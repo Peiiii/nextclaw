@@ -1,17 +1,18 @@
 import type { Command } from "commander";
-import { readFile, stat } from "node:fs/promises";
+import { open, readFile, stat } from "node:fs/promises";
+import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import {
-  FeedbackCodexDesktopService,
-  feedbackCodexTriggerInputFromEnvironment,
-} from "@nextclaw-cli/cli/app/services/feedback/feedback-codex-desktop.service.js";
-import { FeedbackMaintenanceClient } from "@nextclaw-cli/cli/app/services/feedback/feedback-maintenance-client.service.js";
-import { FeedbackMaintenanceSupervisorService } from "@nextclaw-cli/cli/app/services/feedback/feedback-maintenance-supervisor.service.js";
-import { FeedbackMaintenanceWorkerService } from "@nextclaw-cli/cli/app/services/feedback/feedback-maintenance-worker.service.js";
+  CodexDesktopDiscussionConsumerService,
+  discussionCodexTriggerInputFromEnvironment,
+} from "@nextclaw-cli/cli/app/services/discussion/codex-desktop-discussion-consumer.service.js";
+import { DiscussionListenerSupervisorService } from "@nextclaw-cli/cli/app/services/discussion/discussion-listener-supervisor.service.js";
+import { DiscussionListenerWorkerService } from "@nextclaw-cli/cli/app/services/discussion/discussion-listener-worker.service.js";
+import { DiscussionClient } from "@nextclaw-cli/cli/app/services/discussion/discussion-client.service.js";
 import {
-  FeedbackMaintenanceStateStore,
-  type FeedbackMaintainerConfig,
-} from "@nextclaw-cli/cli/app/stores/feedback/feedback-maintenance-state.store.js";
+  DiscussionListenerStateStore,
+  type DiscussionListenerConfig,
+} from "@nextclaw-cli/cli/app/stores/discussion/discussion-listener-state.store.js";
 
 type LifecycleOptions = {
   endpoint?: string;
@@ -22,14 +23,14 @@ type LifecycleOptions = {
   preset?: string;
 };
 
-export function registerFeedbackMaintenanceLifecycleCommands(
+export function registerDiscussionListenerCommands(
   group: Command,
   skillPath: () => Promise<string>
 ): void {
   const lifecycleOptions = (target: Command) =>
     target
-      .option("--endpoint <url>", "Feedback service origin")
-      .option("--token-file <path>", "Private maintainer token file")
+      .option("--endpoint <url>", "Discussion service origin")
+      .option("--token-file <path>", "Private participant token file")
       .option(
         "--workspace <path>",
         "Codex Desktop preset workspace; not part of the trigger protocol"
@@ -38,25 +39,25 @@ export function registerFeedbackMaintenanceLifecycleCommands(
         "--interval <milliseconds>",
         "Polling interval; defaults to 30000"
       )
-      .option("--timeout <milliseconds>", "Trigger timeout; defaults to 600000")
+      .option("--timeout <milliseconds>", "Trigger handshake timeout; defaults to 60000")
       .option("--preset <name>", "Recommended trigger preset: codex-desktop");
   lifecycleOptions(
     group
       .command("configure [command...]", { hidden: false })
       .description(
-        "Save the maintainer listener configuration; pass a trigger argv after --"
+        "Save the discussion listener configuration; pass a trigger argv after --"
       )
   ).action(async (commandArgs: string[], options: LifecycleOptions) => {
     const { preset, workspace } = options;
-    const config = await writeFeedbackMaintainerConfig(
+    const config = await writeDiscussionListenerConfig(
       options,
       commandArgs ?? []
     );
     if (preset === "codex-desktop")
-      await new FeedbackCodexDesktopService().check();
+      await new CodexDesktopDiscussionConsumerService().check();
     console.log(
       JSON.stringify(
-        feedbackMaintainerConfigOutput(config, preset, workspace),
+        discussionListenerConfigOutput(config, preset, workspace),
         null,
         2
       )
@@ -65,18 +66,19 @@ export function registerFeedbackMaintenanceLifecycleCommands(
   lifecycleOptions(
     group
       .command("start [command...]", { hidden: false })
-      .description("Start the configured feedback listener in the background")
+      .description("Start the configured discussion listener in the background")
   ).action(async (commandArgs: string[], options: LifecycleOptions) => {
-    const store = new FeedbackMaintenanceStateStore();
+    const store = new DiscussionListenerStateStore();
     const hasOverrides = Boolean(
       (commandArgs?.length ?? 0) || Object.values(options).some(Boolean)
     );
     if (hasOverrides)
-      await writeFeedbackMaintainerConfig(options, commandArgs ?? [], store);
+      await writeDiscussionListenerConfig(options, commandArgs ?? [], store);
     else await store.readConfig();
+    const supervisor = new DiscussionListenerSupervisorService(store);
     console.log(
       JSON.stringify(
-        await new FeedbackMaintenanceSupervisorService(store).start(),
+        await (hasOverrides ? supervisor.restart() : supervisor.start()),
         null,
         2
       )
@@ -88,7 +90,7 @@ export function registerFeedbackMaintenanceLifecycleCommands(
     .action(async () =>
       console.log(
         JSON.stringify(
-          await new FeedbackMaintenanceSupervisorService().status(),
+          await new DiscussionListenerSupervisorService().status(),
           null,
           2
         )
@@ -96,11 +98,11 @@ export function registerFeedbackMaintenanceLifecycleCommands(
     );
   group
     .command("stop")
-    .description("Stop the configured feedback listener")
+    .description("Stop the configured discussion listener")
     .action(async () =>
       console.log(
         JSON.stringify(
-          await new FeedbackMaintenanceSupervisorService().stop(),
+          await new DiscussionListenerSupervisorService().stop(),
           null,
           2
         )
@@ -108,24 +110,24 @@ export function registerFeedbackMaintenanceLifecycleCommands(
     );
   group
     .command("restart")
-    .description("Restart the configured feedback listener")
+    .description("Restart the configured discussion listener")
     .action(async () => {
-      const store = new FeedbackMaintenanceStateStore();
+      const store = new DiscussionListenerStateStore();
       console.log(
         JSON.stringify(
-          await new FeedbackMaintenanceSupervisorService(store).restart(),
+          await new DiscussionListenerSupervisorService(store).restart(),
           null,
           2
         )
       );
     });
   group.command("worker", { hidden: true }).action(async () => {
-    const store = new FeedbackMaintenanceStateStore();
+    const store = new DiscussionListenerStateStore();
     const config = await store.readConfig();
-    const instanceId = process.env.NEXTCLAW_FEEDBACK_MAINTAINER_INSTANCE_ID;
+    const instanceId = process.env.NEXTCLAW_DISCUSSION_LISTENER_INSTANCE_ID;
     if (!instanceId)
       throw new Error(
-        "Feedback worker must be started through `feedback maintain start`."
+        "Discussion worker must be started through `discussion listen start`."
       );
     const deadline = Date.now() + 5_000;
     let runtime = await store.readRuntime();
@@ -134,13 +136,10 @@ export function registerFeedbackMaintenanceLifecycleCommands(
       runtime = await store.readRuntime();
     }
     if (runtime?.instanceId !== instanceId || runtime.pid !== process.pid)
-      throw new Error("Feedback worker runtime ownership was not established.");
+      throw new Error("Discussion listener runtime ownership was not established.");
     const token = (await readFile(config.tokenFile, "utf8")).trim();
-    const worker = new FeedbackMaintenanceWorkerService({
-      client: new FeedbackMaintenanceClient({
-        endpoint: config.endpoint,
-        token,
-      }),
+    const worker = new DiscussionListenerWorkerService({
+      discussion: new DiscussionClient({ endpoint: config.endpoint, token }),
       config,
       command: config.command,
       skillPath: await skillPath(),
@@ -161,18 +160,55 @@ export function registerFeedbackMaintenanceLifecycleCommands(
       );
       console.log(
         JSON.stringify(
-          await new FeedbackCodexDesktopService().trigger(
-            feedbackCodexTriggerInputFromEnvironment(workspace)
-          ),
+          await dispatchCodexDesktopRunner(workspace),
           null,
           2
         )
       );
     });
+  group
+    .command("codex-desktop-runner", { hidden: true })
+    .requiredOption("--workspace <path>", "Workspace used by this Codex consumer")
+    .action(async (options: LifecycleOptions) => {
+      const workspace = await resolveExistingDirectory(options.workspace, "--workspace");
+      console.log(JSON.stringify(await new CodexDesktopDiscussionConsumerService().trigger(
+        discussionCodexTriggerInputFromEnvironment(workspace)
+      ), null, 2));
+    });
 }
 
-function feedbackMaintainerConfigOutput(
-  config: FeedbackMaintainerConfig,
+async function dispatchCodexDesktopRunner(workspace: string): Promise<Record<string, unknown>> {
+  const input = discussionCodexTriggerInputFromEnvironment(workspace);
+  const store = new DiscussionListenerStateStore();
+  await store.initialize();
+  const existing = (await store.readCodexBindings()).discussions[input.discussionId]?.eventIds[input.eventId];
+  if (existing) return { accepted: true, turnId: existing, reused: true };
+  if (!process.argv[1]) throw new Error("Unable to locate the NextClaw CLI.");
+  const log = await open(store.codexConsumerLogPath, "a", 0o600);
+  const child = spawn(process.execPath, [process.argv[1], "discussion", "listen", "codex-desktop-runner", "--workspace", workspace], {
+    detached: true,
+    stdio: ["ignore", log.fd, log.fd],
+    env: { ...process.env, NEXTCLAW_DISCUSSION_STATE_DIRECTORY: store.root },
+  });
+  await new Promise<void>((resolveSpawn, reject) => {
+    child.once("spawn", resolveSpawn);
+    child.once("error", reject);
+  });
+  child.unref();
+  await log.close();
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    const turnId = (await store.readCodexBindings()).discussions[input.discussionId]?.eventIds[input.eventId];
+    if (turnId) return { accepted: true, turnId, runnerPid: child.pid };
+    try { if (child.pid) process.kill(child.pid, 0); }
+    catch { break; }
+    await new Promise(resolveWait => setTimeout(resolveWait, 100));
+  }
+  throw new Error(`Codex Desktop did not accept the discussion event. Check ${store.codexConsumerLogPath}.`);
+}
+
+function discussionListenerConfigOutput(
+  config: DiscussionListenerConfig,
   preset?: string,
   workspace?: string
 ): Record<string, unknown> {
@@ -186,11 +222,11 @@ function feedbackMaintainerConfigOutput(
   };
 }
 
-async function writeFeedbackMaintainerConfig(
+async function writeDiscussionListenerConfig(
   options: LifecycleOptions,
   commandArgs: string[],
-  store = new FeedbackMaintenanceStateStore()
-): Promise<FeedbackMaintainerConfig> {
+  store = new DiscussionListenerStateStore()
+): Promise<DiscussionListenerConfig> {
   const previous = await store.readConfig().catch(() => null);
   const {
     endpoint,
@@ -205,7 +241,7 @@ async function writeFeedbackMaintainerConfig(
   const timeoutMs =
     timeout === undefined ? previous?.timeoutMs : Number(timeout);
   if (requestedPreset && requestedPreset !== "codex-desktop")
-    throw new Error("Unknown feedback trigger preset.");
+    throw new Error("Unknown discussion consumer preset.");
   if (requestedPreset && commandArgs.length)
     throw new Error("Choose either a trigger command or a preset.");
   if (workspace && !requestedPreset)
@@ -252,8 +288,8 @@ function codexDesktopTriggerCommand(workspace: string): string[] {
   return [
     process.execPath,
     process.argv[1],
-    "feedback",
-    "maintain",
+    "discussion",
+    "listen",
     "codex-desktop-trigger",
     "--workspace",
     workspace,

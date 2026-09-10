@@ -24,37 +24,36 @@ nextclaw feedback import receipt.json
 
 Anyone holding a receipt can access that report. Keep it private. The signed-in CLI sends its existing NextClaw identity for server verification. Expired credentials do not prevent anonymous submission. After signing in, use `nextclaw feedback link <report-id>` to link a receipt, and `nextclaw feedback sync` to retrieve account reports. The standalone page uses anonymous receipts. Import a browser receipt into the CLI to link it to an existing NextClaw login; no separate external login is needed.
 
-## Progress and releases
+## Processing, approval, and direct discussions
 
-Maintainers prepare a mode-`0600` token file and a repair workspace, then configure and start the recommended Codex Desktop consumer:
+Administrators keep using their existing Platform Admin login. The Feedback and Discussions area has two focused views:
 
-```bash
-nextclaw feedback maintain configure --workspace /path/to/project --token-file /path/to/token --preset codex-desktop
-nextclaw feedback maintain start
-nextclaw feedback maintain status
-```
+- Feedback Queue classifies reports, requests details, approves repair, and separately approves release. Reporter, administrator, and processing-client posts show their server-verified identities.
+- Direct Discussions lets an administrator create a private thread without a prior report or CLI command. A subscribed local participant receives the opening post and later administrator messages.
 
-Ordinary polling code invokes a consumer only after administrator approval; idle scans make no model calls. The Codex Desktop preset runs in the configured workspace, creates a task named `反馈：[project directory] <report title>` under **Tasks**, and resumes the same task for later user messages on that report. This makes tasks searchable by project. Codex's current public App Server protocol has no Desktop project-assignment parameter, so NextClaw does not alter Codex's private state to fabricate one. Use the generic command trigger with a capable host API when native project grouping is required. Codex reads the packaged skill and uses `maintain get/claim/comment/result` itself to read, claim, and update the original report. Process completion is not business completion; the platform state remains authoritative.
-
-The listener does not know whether its consumer is an AI. To connect another Agent, queue, or ordinary program, provide a trusted argument array after `--`. The listener sends the feedback ID, event ID, title, revision, endpoint, and skill path through stdin and `NEXTCLAW_FEEDBACK_*` variables without invoking a shell:
+Configure the generic discussion listener once. Codex Desktop is the recommended preset:
 
 ```bash
-nextclaw feedback maintain configure --token-file /path/to/token -- /path/to/consumer --fixed-arg
-nextclaw feedback maintain restart
+nextclaw discussion listen configure --workspace /path/to/project --token-file /path/to/token --preset codex-desktop
+nextclaw discussion listen start
+nextclaw discussion listen status
 ```
 
-The generic listener neither stores nor passes a working directory. Put any directory required by a consumer in that command's own arguments or script.
+The listener is an ordinary code process that reads cursor events addressed to the `participant` role. Idle scans make no model calls. A new thread creates a Codex task, and later messages for that thread resume the same task. The workspace and Codex task mapping belong only to the Codex consumer preset and are absent from the discussion protocol.
 
-Use `nextclaw feedback maintain stop` to stop listening. Initial repair always requires administrator approval. A later user message can resume an engaged task, but it invalidates the previous approval; repair still waits for reapproval.
+Connect any other Agent, queue, script, or ordinary program with a trusted argument array:
 
-Administrators review reports under User Feedback in the existing Platform Admin, using their usual administrator login.
+```bash
+nextclaw discussion listen configure --token-file /path/to/token -- /path/to/consumer --fixed-arg
+nextclaw discussion listen restart
+```
 
-The review inbox defaults to pending reviews, with status filters, title/ID search and pagination. Select a report to read details, approve repair or request information, then continue to the next report. Release approval is separate in Awaiting Release. Filters survive page reloads.
+The listener neither identifies the consumer type nor invokes a shell. It supplies the thread ID, event ID, title, space, cursor, endpoint, and packaged skill path through stdin and `NEXTCLAW_DISCUSSION_*` variables. The consumer decides how to create or resume context and uses `nextclaw discussion get/post` to read and write. Stop it with `nextclaw discussion listen stop`.
 
-AI classifies reports and proposes next steps. Severity takes precedence over account status. Automatic repair requires administrator approval; automatic release requires release approval as well. Additional reproduction information invalidates the previous approval and requires another review.
+The packaged `discussion-participant` skill is the AI capability index. An event supplies the skill path for on-demand reading instead of adding an entry to every screen. The AI first acknowledges receipt in the original thread and can post useful progress during longer work. A `direct` thread uses only discussion commands. A `support` thread follows the skill into `nextclaw feedback workflow get/claim/comment/result`, where the feedback application enforces approval, claim, status, and release rules.
 
-“Awaiting release” means a repair exists, not that your installation has updated. A released report identifies its version and NPM, Runtime or Desktop channel. Ask your AI to check the report before deciding to update. Submitting a report does not authorize an upgrade.
+Submitting feedback initially addresses an event only to administrators. The service creates a participant event after an administrator approves the current input version. New reporter evidence invalidates the old approval and returns to administrators first; the participant is triggered again only after reapproval. Role routing is fixed when the server writes the event, so the generic listener never reads or interprets feedback state.
 
-Reply to the original report if the problem persists. Use `nextclaw feedback withdraw <report-id>` to stop new processing; an existing release cannot be undone by withdrawing its report.
+Awaiting release means a repair artifact exists; it does not mean the installation was updated. A released report identifies the version and NPM, Runtime, or Desktop channel. Release needs separate approval and verifiable release proof. Reply to the original report if the problem persists, or use `nextclaw feedback withdraw <report-id>` to stop new processing.
 
-For local acceptance, all feedback commands accept `--endpoint http://127.0.0.1:3197`. Platform credentials are never sent to custom endpoints. The service must be deployed before the production entry point is enabled; a local acceptance build is not a live rollout.
+For local acceptance, pass `--endpoint http://127.0.0.1:3197`. Platform credentials are never sent to custom endpoints, and the participant credential is only sent to the explicitly configured discussion service.

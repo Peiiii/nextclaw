@@ -3,14 +3,27 @@ import { Button } from '@/components/ui/button';
 import { useSupportReview } from '@/features/support-review/providers/support-review.provider';
 import { receivedAgo, reviewBuckets, supportStatuses } from '@/features/support-review/configs/support-review.config';
 import { SupportReviewDetail } from '@/features/support-review/components/support-review-detail';
+import { DirectDiscussionPanel } from '@/features/support-review/components/direct-discussion-panel';
 
 export function AdminSupportReviewPage({ token }: { token: string }): JSX.Element {
   const work = useSupportReview(token);
   const [search, setSearch] = useState(work.filters.q);
   const [showDetail, setShowDetail] = useState(false);
+  const [view, setView] = useState<'feedback' | 'direct'>('feedback');
   const { queue, review, filters, selected } = work;
   const page = queue.data?.page ?? filters.page;
+  if (view === 'direct') return <section className="space-y-4">
+    <div className="flex gap-1 border-b border-[#e4e0d7]" role="tablist" aria-label="反馈与对话">
+      <button type="button" role="tab" aria-selected={false} onClick={() => setView('feedback')} className="px-3 py-2 text-sm text-[#656561]">反馈队列</button>
+      <button type="button" role="tab" aria-selected className="border-b-2 border-[#1f1f1d] px-3 py-2 text-sm font-semibold">直接对话</button>
+    </div>
+    <DirectDiscussionPanel token={token} />
+  </section>;
   return <section className="space-y-4">
+    <div className="flex gap-1 border-b border-[#e4e0d7]" role="tablist" aria-label="反馈与对话">
+      <button type="button" role="tab" aria-selected className="border-b-2 border-[#1f1f1d] px-3 py-2 text-sm font-semibold">反馈队列</button>
+      <button type="button" role="tab" aria-selected={false} onClick={() => setView('direct')} className="px-3 py-2 text-sm text-[#656561]">直接对话</button>
+    </div>
     <div className="flex flex-wrap items-center justify-between gap-2">
       <p className="text-sm text-[#656561]">先评审，再修复。发布单独批准。</p>
       <Button variant="ghost" disabled={queue.isFetching || review.isPending} onClick={() => void queue.refetch()}>刷新反馈</Button>

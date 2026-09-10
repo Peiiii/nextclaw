@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import { describe, expect, it } from "vitest";
-import { FeedbackMaintenanceStateStore } from "@nextclaw-cli/cli/app/stores/feedback/feedback-maintenance-state.store.js";
-import { FeedbackCodexDesktopService } from "./feedback-codex-desktop.service.js";
+import { DiscussionListenerStateStore } from "@nextclaw-cli/cli/app/stores/discussion/discussion-listener-state.store.js";
+import { CodexDesktopDiscussionConsumerService } from "./codex-desktop-discussion-consumer.service.js";
 
 function codexProxy(methods: string[], taskNames: string[]) {
   return (() => {
@@ -70,22 +70,22 @@ function codexProxy(methods: string[], taskNames: string[]) {
   }) as never;
 }
 
-describe("FeedbackCodexDesktopService", () => {
+describe("CodexDesktopDiscussionConsumerService", () => {
   it("creates one visible thread and resumes it for the next event", async () => {
-    const root = await mkdtemp(join(tmpdir(), "nextclaw-feedback-codex-"));
-    const store = new FeedbackMaintenanceStateStore(root);
+    const root = await mkdtemp(join(tmpdir(), "nextclaw-discussion-codex-"));
+    const store = new DiscussionListenerStateStore(root);
     const methods: string[] = [];
     const taskNames: string[] = [];
-    const service = new FeedbackCodexDesktopService({
+    const service = new CodexDesktopDiscussionConsumerService({
       store,
       spawnProcess: codexProxy(methods, taskNames),
       timeoutMs: 1_000,
     });
     const base = {
-      feedbackId: "feedback-12345678",
+      discussionId: "discussion-12345678",
       title: "Login fails",
       eventKind: "approved",
-      revision: "2",
+      cursor: "2",
       workspace: "/projects/nextbot",
       skillPath: "/skill/SKILL.md",
     };
@@ -97,7 +97,7 @@ describe("FeedbackCodexDesktopService", () => {
         ...base,
         eventId: "event-2",
         eventKind: "user-message",
-        revision: "3",
+        cursor: "3",
       })
     ).resolves.toEqual({ threadId: "thread-1", turnId: "turn-2" });
     expect(methods.filter((method) => method === "thread/start")).toHaveLength(
@@ -109,7 +109,7 @@ describe("FeedbackCodexDesktopService", () => {
     expect(methods.filter((method) => method === "turn/start")).toHaveLength(2);
     expect(taskNames).toEqual(["反馈：[nextbot] Login fails"]);
     expect(
-      (await store.readCodexBindings()).feedback[base.feedbackId]
+      (await store.readCodexBindings()).discussions[base.discussionId]
     ).toMatchObject({
       threadId: "thread-1",
       eventIds: { "event-1": "turn-1", "event-2": "turn-2" },

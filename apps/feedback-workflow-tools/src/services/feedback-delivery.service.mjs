@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { validateFeedbackPaths } from "#feedback-maintainer/configs/feedback-policy.config.mjs";
+import { validateFeedbackPaths } from "#feedback-workflow-tools/configs/feedback-policy.config.mjs";
 const exec = promisify(execFile);
 
 export function validateFeedbackBatch(batch, commits, reports) {

@@ -27,7 +27,7 @@ export function SupportPage(): JSX.Element {
       </div>
       <p className="support-muted">{t.notice}</p>
       <ol className="support-messages">{report.messages.map((message) => <li key={message.id}>
-        <strong>{message.role === "maintainer" ? t.maintainer : t.user}</strong><time>{new Date(message.createdAt).toLocaleString()}</time>
+        <strong>{message.actor.displayName}{message.actor.kind === "agent" ? " · Agent" : ""}</strong><time>{new Date(message.createdAt).toLocaleString()}</time>
         <p className="support-body">{message.body}</p>
       </li>)}</ol>
       <form onSubmit={(event) => { event.preventDefault(); void manager.operate("reply"); }}>

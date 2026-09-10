@@ -30,37 +30,36 @@ nextclaw feedback import receipt.json
 
 已登录 NextClaw 的 CLI 会自动携带现有平台身份，由服务端核验；凭据过期时仍可匿名提交。稍后登录后执行 `nextclaw feedback link <反馈编号>`，可将已有回执关联到账号；`nextclaw feedback sync` 找回账号下的反馈。独立反馈网页使用匿名回执；如需关联已有 NextClaw 登录，可将网页回执导入 CLI 后关联，不需要再登录另一个系统。
 
-## 处理与回复
+## 处理、审批与直接对话
 
-维护者先准备权限为 `0600` 的维护 token 文件和用于修复的工作目录。推荐 Codex Desktop 时只需配置一次并启动：
+管理员仍在原管理平台登录，在“反馈与对话”中完成两类工作：
 
-```bash
-nextclaw feedback maintain configure --workspace /path/to/project --token-file /path/to/token --preset codex-desktop
-nextclaw feedback maintain start
-nextclaw feedback maintain status
-```
+- “反馈队列”用于分类、要求补充、批准修复和单独批准发布。用户、管理员和处理端的发言显示各自经过服务端确认的身份。
+- “直接对话”可由管理员直接创建主题，不需要先有用户反馈，也不需要运行命令行。已订阅的本地参与端会收到主题和后续管理员消息。
 
-管理员批准后，普通代码轮询器才唤醒消费者；空扫描不调用模型。Codex Desktop 预设会以配置的工作目录运行，并在 **Tasks** 中创建“反馈：[项目目录] <反馈标题>”任务，便于按项目搜索和管理；同一反馈的后续用户消息继续进入同一任务。Codex 当前公开的 App Server 协议没有桌面端项目归属参数，因此 NextClaw 不修改 Codex 私有状态来伪造归属。需要原生项目分组时，可以用通用命令入口接入具备该能力的宿主。Codex 读取随包 skill，并自行通过 `maintain get/claim/comment/result` 读取、领取和回写原反馈。进程退出不等于修复完成，平台状态才是业务事实。
-
-监听器不感知消费者是不是 AI。要接入其他 Agent、队列或普通程序，把可信参数数组放在 `--` 后；它会通过 stdin 和 `NEXTCLAW_FEEDBACK_*` 环境变量传递反馈 ID、事件 ID、标题、revision、endpoint 和 skill 路径，不执行 shell：
+本地参与端只需配置一次通用讨论监听器。Codex Desktop 是推荐预设：
 
 ```bash
-nextclaw feedback maintain configure --token-file /path/to/token -- /path/to/consumer --fixed-arg
-nextclaw feedback maintain restart
+nextclaw discussion listen configure --workspace /path/to/project --token-file /path/to/token --preset codex-desktop
+nextclaw discussion listen start
+nextclaw discussion listen status
 ```
 
-通用监听配置不保存或传递工作目录；消费者需要目录时，把它写进自己的参数或脚本。
+监听器是普通代码进程，只读取面向 `participant` 角色的事件游标；没有新事件时不会调用模型。新主题创建 Codex 任务，同一主题的后续消息恢复同一任务。工作目录和 Codex 任务映射只属于 Codex 消费预设，不进入讨论协议。
 
-运行 `nextclaw feedback maintain stop` 停止监听。首次修复必须经过管理员审批；已进入维护链路的用户补充可以唤醒同一任务，但会撤销旧审批，重新修复前仍需管理员再次批准。
+接入其他 Agent、队列、脚本或普通程序时，直接提供可信参数数组：
 
-管理员在现有管理平台的“用户反馈”中评审，沿用原管理员登录；无需输入另一套反馈管理凭据。
+```bash
+nextclaw discussion listen configure --token-file /path/to/token -- /path/to/consumer --fixed-arg
+nextclaw discussion listen restart
+```
 
-评审工作台默认显示待评审事项，可按状态切换、搜索标题或编号，并分页浏览。选中一条阅读详情后，可直接批准修复或要求补充；处理成功后继续下一条。发布在“待发布”中单独确认。筛选条件在刷新后保留。
+监听器不识别消费者类型，也不运行 shell。它通过 stdin 和 `NEXTCLAW_DISCUSSION_*` 环境变量提供主题 ID、事件 ID、标题、空间、游标、endpoint 和随包 skill 路径。消费者自行决定如何建立或恢复上下文，并通过 `nextclaw discussion get/post` 读取和回写。运行 `nextclaw discussion listen stop` 可停止监听。
 
-反馈可能处于已收到、待补充、待判断、处理中、待发布或已发布。问题严重程度优先于登录状态。AI 先分类并提出建议，管理员批准后才开始自动修复；发布是否自动执行取决于管理员批准的范围。你补充新的复现信息后，需要重新评审。
+随包的 `discussion-participant` skill 是 AI 的能力索引：监听事件只传 skill 路径，AI 在需要时读取，而不是在每个界面展示入口。AI 收到事件后先在原主题确认已收到，耗时任务可按实际进度继续回帖。`direct` 主题只使用讨论命令；`support` 主题再按 skill 指引使用 `nextclaw feedback workflow get/claim/comment/result`，由反馈应用执行审批、领取、状态和发布约束。
 
-“待发布”表示已有修复产物，并不表示你的安装已经更新。“已发布”会注明版本和 NPM、Runtime 或 Desktop 渠道。你可以请 AI 查询反馈，再决定是否更新；系统不会因为你提交反馈就自动升级你的环境。
+反馈提交本身只通知管理员。管理员批准当前输入版本后，服务才产生面向参与端的事件；用户补充新证据会使旧批准失效并先回到管理员，重新批准后才再次触发处理端。角色定向发生在服务端事件写入时，通用监听器不读取或解释反馈状态。
 
-如果新版本仍有问题，继续回复原反馈即可重新进入处理。执行 `nextclaw feedback withdraw <反馈编号>` 可撤回，维护者将停止对该单发起新处理，已经发生的发布不会被撤销。
+“待发布”表示已有修复产物，并不表示你的安装已经更新。“已发布”会注明版本和 NPM、Runtime 或 Desktop 渠道。发布需要独立批准和可核验的真实发布证明。问题仍存在时继续回复原反馈；`nextclaw feedback withdraw <反馈编号>` 会停止新的处理。
 
-开发验收服务可以用所有反馈命令的 `--endpoint http://127.0.0.1:3197` 指定。CLI 不会向自定义地址发送平台凭据。此版本代码需部署反馈服务后才能启用正式入口；本地验收地址不代表线上已上线。
+开发验收服务可以用 `--endpoint http://127.0.0.1:3197` 指定。平台凭据不会发送到自定义地址；讨论参与凭据只用于明确配置的讨论服务。

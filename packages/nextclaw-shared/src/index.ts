@@ -1,5 +1,6 @@
 export { EventBus } from "./services/event-bus.service.js";
 export * from "./types/support-feedback.types.js";
+export * from "./types/discussion.types.js";
 export { Ingress } from "./services/ingress.service.js";
 export { Contribution, EffectScope } from "./features/lifecycle/index.js";
 export type {

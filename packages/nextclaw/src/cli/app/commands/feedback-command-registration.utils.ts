@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import { join } from "node:path";
 import { getDataPath, loadConfig } from "@nextclaw/core";
 import { FeedbackClient } from "@nextclaw-cli/cli/app/services/feedback/feedback-client.service.js";
-import { registerFeedbackMaintenanceCommands } from "./feedback-maintenance-command-registration.utils.js";
+import { registerFeedbackWorkflowCommands } from "./feedback-workflow-command-registration.utils.js";
 
 type Options = { endpoint?: string; title?: string; description?: string; environment?: string; affectedVersion?: string; requestId?: string; operationId?: string };
 function manager(options: Options): FeedbackClient {
@@ -16,14 +16,14 @@ function manager(options: Options): FeedbackClient {
 function print(value: unknown): void { console.log(JSON.stringify(value, null, 2)); }
 export function registerFeedbackCommands(program: Command): void {
   const feedback = program.command("feedback").description("Submit and track private feedback without an external account");
-  registerFeedbackMaintenanceCommands(feedback);
+  registerFeedbackWorkflowCommands(feedback);
   const command = (name: string, description: string) => feedback.command(name).description(description).option("--endpoint <url>", "Feedback service origin");
   command("submit", "Submit a private report; receipt is saved locally")
     .requiredOption("--title <text>", "Short summary").requiredOption("--description <text>", "Problem and expected behavior")
     .option("--environment <text>", "Environment details").option("--affected-version <version>", "Affected version")
     .option("--request-id <id>", "Retry a saved submission").action(async (o: Options) => print(await manager(o).submit({ title: o.title!, description: o.description!, environment: o.environment, version: o.affectedVersion, requestId: o.requestId })));
   command("list", "List local feedback receipts").action(async (o: Options) => print(await manager(o).list()));
-  command("get <id>", "Read a report and maintainer replies").action(async (id: string, o: Options) => print(await manager(o).get(id)));
+  command("get <id>", "Read a report and participant replies").action(async (id: string, o: Options) => print(await manager(o).get(id)));
   command("reply <id> <message>", "Add reproduction details or report that a fix still fails")
     .option("--operation-id <id>", "Stable operation ID for retry").action(async (id: string, message: string, o: Options) => print(await manager(o).update(id, "reply", message, o.operationId)));
   command("withdraw <id>", "Withdraw a report and stop new processing").action(async (id: string, o: Options) => print(await manager(o).update(id, "withdraw")));

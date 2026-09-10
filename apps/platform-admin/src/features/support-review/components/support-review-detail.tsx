@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { SupportReport, SupportReviewDecision } from '@nextclaw/shared';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { reviewLabels, supportStatuses } from '@/features/support-review/configs/support-review.config';
+import { discussionActorLabel, reviewLabels, supportStatuses } from '@/features/support-review/configs/support-review.config';
 
 export function SupportReviewDetail({ report, maxAuthority, busy, submit, body, setBody }: {
   report: SupportReport; maxAuthority: string; busy: boolean; submit: (decision: SupportReviewDecision, body: string) => void;
@@ -29,7 +29,7 @@ export function SupportReviewDetail({ report, maxAuthority, busy, submit, body, 
     {report.release && <a className="block text-sm underline" href={report.release.url} target="_blank" rel="noreferrer">已发布 {report.release.version} · {report.release.channel} ↗</a>}
     <section className="border-t border-[#eeeae1] pt-4"><h4 className="mb-3 text-sm font-semibold">讨论 · {report.messages.length}</h4>
       {!report.messages.length && <p className="text-sm text-[#8f8a7d]">暂无补充或回复。</p>}
-      <ol className="space-y-4">{report.messages.map(message => <li key={message.id}><p className="text-xs text-[#8f8a7d]">{message.role === 'user' ? '用户' : '维护者'} · {new Date(message.createdAt).toLocaleString()}</p><p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6">{message.body}</p></li>)}</ol>
+      <ol className="space-y-4">{report.messages.map(message => <li key={message.id}><p className="text-xs text-[#8f8a7d]">{discussionActorLabel(message.actor)} · {new Date(message.createdAt).toLocaleString()}</p><p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6">{message.body}</p></li>)}</ol>
     </section>
     {reviewable && <section className="space-y-3 border-t border-[#eeeae1] pt-4">
       <div><h4 className="text-sm font-semibold">评审处理</h4><p className="mt-1 text-xs text-[#656561]">{approved ? reviewLabels[report.approval!.authority] : '尚未批准执行'} · 处理成功后继续下一条</p></div>

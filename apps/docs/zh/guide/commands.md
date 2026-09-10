@@ -21,38 +21,44 @@ nextclaw <command> --help
 
 查看版本使用 `nextclaw --version`。许多查询和管理命令支持 `--json`；用于脚本、CI 或 Agent 集成前，请先查看对应命令的帮助。首次安装和启动请看[快速开始](/zh/guide/getting-started)，日常最常用的少量命令请看[核心命令](/zh/guide/core-commands)。
 
-## 问题反馈
+## 问题反馈与私密讨论
 
-无需 GitHub 登录，详见[问题反馈](./feedback)。
+无需 GitHub 登录，详见[问题反馈](./feedback)。`feedback` 只表示反馈应用；通用主题、帖子、参与者和事件订阅统一由 `discussion` 承载。
 
-| 命令                                               | 用途                                                                    |
-| -------------------------------------------------- | ----------------------------------------------------------------------- |
-| `nextclaw feedback submit`                         | 提交私密反馈并保存回执                                                  |
-| `nextclaw feedback list`                           | 列出本机回执                                                            |
-| `nextclaw feedback get`                            | 读取反馈详情和回复                                                      |
-| `nextclaw feedback reply`                          | 补充复现信息                                                            |
-| `nextclaw feedback withdraw`                       | 撤回反馈                                                                |
-| `nextclaw feedback link`                           | 关联当前 NextClaw 账号                                                  |
-| `nextclaw feedback sync`                           | 同步账号反馈                                                            |
-| `nextclaw feedback export`                         | 导出私密回执                                                            |
-| `nextclaw feedback import`                         | 恢复私密回执                                                            |
-| `nextclaw feedback maintain skill-path`            | 定位随包维护 skill                                                      |
-| `nextclaw feedback maintain configure`             | 保存监听 endpoint、凭据文件和消费命令；Codex 预设可在配置时接收工作目录 |
-| `nextclaw feedback maintain start`                 | 后台启动监听并完成首次扫描                                              |
-| `nextclaw feedback maintain status`                | 查看监听、心跳和最近错误                                                |
-| `nextclaw feedback maintain stop`                  | 停止当前监听实例                                                        |
-| `nextclaw feedback maintain restart`               | 使用已保存配置重启监听                                                  |
-| `nextclaw feedback maintain worker`                | 内部监听进程入口                                                        |
-| `nextclaw feedback maintain codex-desktop-trigger` | 内部 Codex Desktop 消费预设入口                                         |
-| `nextclaw feedback maintain list`                  | 查询维护队列                                                            |
-| `nextclaw feedback maintain get`                   | 读取反馈及当前审批                                                      |
-| `nextclaw feedback maintain claim`                 | 领取已批准反馈                                                          |
-| `nextclaw feedback maintain comment`               | 写入维护回复                                                            |
-| `nextclaw feedback maintain result`                | 提交验证结果或阻塞原因                                                  |
-| `nextclaw feedback maintain triage`                | 分类，不能授予修复权限                                                  |
-| `nextclaw feedback maintain recover`               | 确认旧执行停止后恢复                                                    |
-| `nextclaw feedback maintain authorize-delivery`    | 关联获准发布的修复提交                                                  |
-| `nextclaw feedback maintain publish`               | 核验发布证明并回写                                                      |
+| 命令 | 用途 |
+| --- | --- |
+| `nextclaw feedback submit` | 提交私密反馈并保存回执 |
+| `nextclaw feedback list` | 列出本机回执 |
+| `nextclaw feedback get` | 读取反馈详情和回复 |
+| `nextclaw feedback reply` | 补充复现信息 |
+| `nextclaw feedback withdraw` | 撤回反馈 |
+| `nextclaw feedback link` | 关联当前 NextClaw 账号 |
+| `nextclaw feedback sync` | 同步账号反馈 |
+| `nextclaw feedback export` | 导出私密回执 |
+| `nextclaw feedback import` | 恢复私密回执 |
+| `nextclaw feedback workflow skill-path` | 定位随包反馈处理 skill |
+| `nextclaw feedback workflow list` | 查询已批准反馈工作队列 |
+| `nextclaw feedback workflow get` | 读取反馈及当前审批 |
+| `nextclaw feedback workflow claim` | 领取已批准反馈 |
+| `nextclaw feedback workflow comment` | 写入处理端回复 |
+| `nextclaw feedback workflow result` | 提交验证结果或阻塞原因 |
+| `nextclaw feedback workflow triage` | 分类，不能授予修复权限 |
+| `nextclaw feedback workflow recover` | 确认旧执行停止后恢复 |
+| `nextclaw feedback workflow authorize-delivery` | 关联获准发布的修复提交 |
+| `nextclaw feedback workflow publish` | 核验发布证明并回写 |
+| `nextclaw discussion skill-path` | 定位随包讨论参与 skill |
+| `nextclaw discussion list` | 按空间列出可访问主题 |
+| `nextclaw discussion events` | 从游标读取面向当前角色的事件 |
+| `nextclaw discussion get` | 读取主题和有序帖子 |
+| `nextclaw discussion post` | 以认证参与者身份发帖 |
+| `nextclaw discussion listen configure` | 保存 endpoint、参与凭据和消费命令；Codex 预设可接收工作目录 |
+| `nextclaw discussion listen start` | 后台启动代码监听并完成首次扫描 |
+| `nextclaw discussion listen status` | 查看监听健康度、心跳和最近错误 |
+| `nextclaw discussion listen stop` | 停止当前监听实例 |
+| `nextclaw discussion listen restart` | 使用已保存配置重启监听 |
+| `nextclaw discussion listen worker` | 内部监听进程入口 |
+| `nextclaw discussion listen codex-desktop-trigger` | 内部 Codex Desktop 消费预设入口 |
+| `nextclaw discussion listen codex-desktop-runner` | 内部异步 Codex Desktop 任务执行入口 |
 
 ## 能力地图
 

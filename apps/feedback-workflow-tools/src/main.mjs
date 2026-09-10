@@ -1,16 +1,16 @@
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { FeedbackMaintenanceClient } from "nextclaw";
-import { FeedbackDeliveryService } from "#feedback-maintainer/services/feedback-delivery.service.mjs";
-import { feedbackPolicy } from "#feedback-maintainer/configs/feedback-policy.config.mjs";
+import { FeedbackWorkflowClient } from "nextclaw";
+import { FeedbackDeliveryService } from "#feedback-workflow-tools/services/feedback-delivery.service.mjs";
+import { feedbackPolicy } from "#feedback-workflow-tools/configs/feedback-policy.config.mjs";
 
 const [configFile, action = "scan", input, journal] = process.argv.slice(2);
 try {
-  if (!configFile) throw new Error("Usage: feedback-maintainer <config.json> [scan|check-batch|dispatch-batch|reconcile-batch] [input] [journal]");
+  if (!configFile) throw new Error("Usage: feedback-workflow-tools <config.json> [scan|check-batch|dispatch-batch|reconcile-batch] [input] [journal]");
   const config = JSON.parse(await readFile(configFile, "utf8"));
   const base = dirname(resolve(configFile));
-  const token = config.tokenFile ? (await readFile(resolve(base, config.tokenFile), "utf8")).trim() : process.env.SUPPORT_MAINTAINER_TOKEN;
-  const client = new FeedbackMaintenanceClient({ endpoint: config.endpoint, token });
+  const token = config.tokenFile ? (await readFile(resolve(base, config.tokenFile), "utf8")).trim() : process.env.DISCUSSION_PARTICIPANT_TOKEN;
+  const client = new FeedbackWorkflowClient({ endpoint: config.endpoint, token });
   if (action === "scan") console.log(JSON.stringify(await client.scan(), null, 2));
   else {
     const service = new FeedbackDeliveryService({ repository: resolve(base, config.workspace), githubRepository: config.githubRepository, client,

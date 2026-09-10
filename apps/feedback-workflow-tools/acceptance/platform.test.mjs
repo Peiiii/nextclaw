@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { FeedbackMaintenanceClient } from "nextclaw";
+import { FeedbackWorkflowClient } from "nextclaw";
 import { chromium } from "playwright";
 const state = new URL("../../../.local/feedback-acceptance/", import.meta.url);
 const account = JSON.parse(await readFile(new URL("platform-account.json", state), "utf8"));
-const client = new FeedbackMaintenanceClient({ endpoint: "http://127.0.0.1:3197", token: (await readFile(new URL("maintainer-token", state), "utf8")).trim() });
+const client = new FeedbackWorkflowClient({ endpoint: "http://127.0.0.1:3197", token: (await readFile(new URL("participant-token", state), "utf8")).trim() });
 const id = randomUUID(), receiptKey = randomUUID().replaceAll("-", "") + randomUUID().replaceAll("-", "");
 const submitted = await fetch("http://127.0.0.1:3197/api/support", {
   method: "POST", headers: { "content-type": "application/json" },

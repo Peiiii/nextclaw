@@ -1,9 +1,18 @@
 # 用户反馈闭环执行计划与验收账本
 
-- active-contract：agent-feedback-loop-20260909；scope-revision：4；风险：L3。
-- 完整目标：用户 AI/CLI 提交和管理个人反馈 → 原管理平台分类与审批 → 私有维护应用提醒 Codex → Codex 经 CLI 修复并回写 → 同批正式发行 → 用户 AI 查询原反馈结果。
+- active-contract：agent-feedback-loop-20260909；scope-revision：6；风险：L3。
+- 完整目标：用户 AI/CLI 提交和管理个人反馈 → 原管理平台分类与审批 → 通用私密讨论事件提醒任意本地消费端 → 消费端经 CLI 处理并持续回写 → 可选批量发行 → 用户 AI 查询原反馈结果；管理员也可直接从平台发起私密主题。
 - 用户已授权本任务提交、主干集成推送、部署、NPM/runtime 发行和正式验收；无关 WIP、Desktop 二进制发行不在范围内。
-- 设计：[冻结方案](../designs/2026-09-09-agent-feedback-loop.design.md)。
+- 当前冻结设计：[通用私密讨论与反馈闭环](../designs/2026-09-10-feedback-conversation-identity.design.md)。旧反馈专用触发设计仅保留历史背景，不再是实现合同。
+
+## Scope revision 6 阶段图
+
+| 阶段 | 可验收结果 | 进入下一阶段的门 | 状态 |
+| --- | --- | --- | --- |
+| 讨论 owner 与迁移 | thread/post/actor/audienceRole/event cursor 成为私密讨论唯一事实源，旧反馈可读 | migration、事务、身份和角色定向事件验证通过 | 已完成 |
+| 应用与入口接入 | 反馈 workflow、管理员 Gateway、管理端创建/发帖、对象级 CLI 使用同一讨论合同 | 双端 tsc、API 合同与管理端交互通过 | 已完成 |
+| 本地消费闭环 | listener 按游标触发任意命令，管理员追问复用同一任务，Agent 独立回评 | 空闲、重复、失败、重启与同线程真实链路通过 | 已完成 |
+| AI 验收与交付 | FB-20 至 FB-26 全部 current passed，文档、changeset、部署与正式入口闭合 | Review 无 findings，用户无需代替 AI 排障 | 进行中 |
 - 版本：NextClaw 0.50.0；发行提交：7e2dde431872ff289d7471da4c89eb467b80bbfe。
 - AI 验收结论：acceptance-ready。18 个必需项均有有效证据；FB-18 为已确认可选项，不默认启用。状态为待用户验收，不代表用户已验收通过。
 
@@ -13,7 +22,7 @@
 | --- | --- | --- |
 | 用户 AI | 已发布的 feedback CLI、自管理 skill 索引、匿名回执、个人查询与补充；无需 GitHub 登录 | 下方 0.50.0 正式安装版会话 |
 | 管理员 | 原平台身份登录、待评审队列、补充/不处理/撤销、修复与发布独立审批 | 原 Platform Admin 的用户反馈页 |
-| 维护者 | private workspace package；代码轮询、去重提醒、实际 Codex 执行、本地随包 skill 路径；Codex 自行调用维护 CLI | apps/feedback-maintainer，运行配置与凭据仅在本机 .local |
+| 参与端 | `discussion listen` 代码轮询、角色事件、任意 argv、随包 skill；Codex 预设自行读取和回写 | NextClaw CLI；发行批次工具在 apps/feedback-workflow-tools |
 | 发行与反馈闭环 | 原 release workflow、平台独立核验发行证明、同一版本发布两项真实修复、原反馈回评及安装验证 | release run 34387275723、两条原始报告 |
 
 平台是业务状态的唯一 owner；维护器不代写模板结果，kernel 不引入反馈概念。修复子进程不获得无限提交/发布权限；本轮发行由当前维护 Codex 在用户授权及独立发布审批后执行既有发行入口。未引入 Docker 或 AI 定时扫描。
@@ -58,6 +67,13 @@
 | FB-17 | true | 用户 AI 提交与个人查询 | passed：前序真实 NextClaw AI 提交；本轮正式安装版 native + DeepSeek 通过真实 SSE 自行发现 skill、调用 CLI 查询生产原单并报告 0.50.0，run.finished。 |
 | FB-18 | false | 原会话主动定时通知 | optional：用户后续三端设计确认可选；旧 AI heartbeat 暂停，测试 cron 清理；默认无 AI 轮询。 |
 | FB-19 | true | 人无需代替 AI 操作或排障 | passed：AI 完成提交、修复、部署发行、安装、回评与最终查询，交付真实会话和同单平台记录。 |
+| FB-20 | true | 用户、管理员、讨论 Agent 的发言身份可验证且可辨认 | passed：共享 actor 合同、服务端签发、门户测试与管理端渲染验收均区分 reporter、administrator、participant。 |
+| FB-21 | true | 管理员可从原管理平台直接创建主题，无需 CLI 或用户先提交 | passed：Platform Admin“直接对话”入口、Gateway 路由、direct API 与渲染验收通过。 |
+| FB-22 | true | 管理员可在原主题独立发言，并唤醒同一 Agent 任务 | passed：异步真实验收中首帖 3 秒完成触发握手、追问 3 秒完成握手，两次均由同一 Codex task `01a08b9d-cfb9-7003-bafa-2a9a6997d770` 回帖。 |
+| FB-23 | true | Agent 只信任平台认证的管理员指令，身份与 repair/deliver 动作权限取交集 | passed：actor 由 Gateway/凭据入口覆盖签发；participant 无 review 权；skill 明确正文不可信，真实 Codex 核验 administrator 后行动。 |
+| FB-24 | true | 旧记录可读且不把不确定历史评论伪造成管理员或 Agent | passed：0004 migration 迁移旧记录，未知旧回复标为 unauthenticated 历史主体；本地迁移与支持投影测试通过。 |
+| FB-25 | true | 管理员/Agent 对话不自触发、不重复投递，重启后保持事件与会话映射 | passed：参与端回复只产生 administrator 事件；journal 幂等/游标测试、真实两事件异步投递与同 task resume 通过；Agent 执行不占住扫描循环。 |
+| FB-26 | true | 讨论层以 thread/post/actor/role-addressed event cursor 提供 HTTP/CLI 合同，且不感知 AI runtime、项目或工作目录 | passed：discussion API/CLI 与任意 Node argv 真实触发通过；通用 worker 仅含事件与进程合同，Codex/workspace 只在预设适配器。 |
 
 FB-02 的生产普通账号重演、OS 级隔离、token 数硬预算不冒充已有证据或保证；采用当前设计约定的受控维护及分层验证。以上不把合同测试描述为真实模型或线上发行。
 
@@ -84,4 +100,4 @@ FB-02 的生产普通账号重演、OS 级隔离、token 数硬预算不冒充�
 
 长期运行逻辑从 scripts 迁为私有 package，删除外层代写业务评论，保留公共 CLI 客户端及随包 skill。本次 Google Chrome 源校验失败通过限定 Ubuntu 工具链所需源修复；Windows 安装超时沿同一发行任务恢复，未降低校验门禁。
 
-维护应用配置、恢复及边界见 apps/feedback-maintainer/README.md。继续工作前读本账本并核对实际服务状态，复用有效证据。主镜像存在其它任务活跃 WIP 时不得覆盖；交付代码已进入远程 master，本地镜像由既有 reconcile/retry owner 安全对齐。
+讨论监听配置与恢复见中英文反馈指南；发行批次工具边界见 apps/feedback-workflow-tools/README.md。继续工作前读本账本并核对实际服务状态，复用有效证据。主镜像存在其它任务活跃 WIP 时不得覆盖；本次 scope 6 在隔离工作区完成后按交付 owner 集成。

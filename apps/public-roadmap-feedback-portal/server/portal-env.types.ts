@@ -1,4 +1,4 @@
-type D1BindValue = string | number | null;
+export type D1BindValue = string | number | null;
 
 export type D1RunResult = {
   success: boolean;
@@ -18,7 +18,7 @@ export type D1PreparedStatement = {
 
 export type D1Database = {
   prepare: (query: string) => D1PreparedStatement;
-  batch?: (statements: D1PreparedStatement[]) => Promise<unknown>;
+  batch: (statements: D1PreparedStatement[]) => Promise<D1RunResult[]>;
 };
 
 export type PortalAssetsBinding = {
@@ -27,7 +27,7 @@ export type PortalAssetsBinding = {
 
 export type PortalWorkerEnv = {
   SUPPORT_PLATFORM_API_BASE?: string;
-  SUPPORT_MAINTAINER_TOKEN?: string;
+  DISCUSSION_PARTICIPANT_TOKEN?: string;
   SUPPORT_ADMIN_TOKEN?: string;
   SUPPORT_MAX_AUTHORITY?: "analyze" | "repair" | "deliver";
   SUPPORT_PAUSED?: string;

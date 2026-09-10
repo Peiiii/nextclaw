@@ -2,10 +2,10 @@ import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { open } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import type { FeedbackMaintainerConfig } from "@nextclaw-cli/cli/app/stores/feedback/feedback-maintenance-state.store.js";
-import { FeedbackMaintenanceStateStore } from "@nextclaw-cli/cli/app/stores/feedback/feedback-maintenance-state.store.js";
+import type { DiscussionListenerConfig } from "@nextclaw-cli/cli/app/stores/discussion/discussion-listener-state.store.js";
+import { DiscussionListenerStateStore } from "@nextclaw-cli/cli/app/stores/discussion/discussion-listener-state.store.js";
 
-export type FeedbackMaintainerStatus = {
+export type DiscussionListenerStatus = {
   state: "running" | "stopped" | "degraded";
   pid?: number;
   startedAt?: string;
@@ -16,13 +16,13 @@ export type FeedbackMaintainerStatus = {
   logPath: string;
 };
 
-export class FeedbackMaintenanceSupervisorService {
+export class DiscussionListenerSupervisorService {
   constructor(
-    private readonly store = new FeedbackMaintenanceStateStore(),
+    private readonly store = new DiscussionListenerStateStore(),
     private readonly launcher = process.argv[1]
   ) {}
 
-  start = async (): Promise<FeedbackMaintainerStatus> => {
+  start = async (): Promise<DiscussionListenerStatus> => {
     const config = await this.store.readConfig();
     const current = await this.status(config);
     if (current.state === "running") return current;
@@ -33,14 +33,14 @@ export class FeedbackMaintenanceSupervisorService {
     const log = await open(this.store.logPath, "a", 0o600);
     const child = spawn(
       process.execPath,
-      [this.launcher, "feedback", "maintain", "worker"],
+      [this.launcher, "discussion", "listen", "worker"],
       {
         detached: true,
         stdio: ["ignore", log.fd, log.fd],
         env: {
           ...process.env,
-          NEXTCLAW_FEEDBACK_MAINTAINER_INSTANCE_ID: instanceId,
-          NEXTCLAW_FEEDBACK_STATE_DIRECTORY: this.store.root,
+          NEXTCLAW_DISCUSSION_LISTENER_INSTANCE_ID: instanceId,
+          NEXTCLAW_DISCUSSION_STATE_DIRECTORY: this.store.root,
         },
       }
     );
@@ -51,7 +51,7 @@ export class FeedbackMaintenanceSupervisorService {
     child.unref();
     await log.close();
     if (!child.pid)
-      throw new Error("Feedback maintainer did not return a process ID.");
+      throw new Error("Discussion listener did not return a process ID.");
     const now = new Date().toISOString();
     await this.store.writeRuntime({
       instanceId,
@@ -63,20 +63,27 @@ export class FeedbackMaintenanceSupervisorService {
     while (Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 200));
       const status = await this.status(config);
-      if (status.state === "running" && status.lastScanAt) return status;
+      if (status.state === "running" && status.lastScanAt) {
+        if (status.lastError) {
+          await this.stop();
+          throw new Error(`Discussion listener first scan failed: ${status.lastError}`);
+        }
+        return status;
+      }
       if (status.state === "stopped") break;
     }
     const status = await this.status(config);
+    await this.stop();
     throw new Error(
-      `Feedback maintainer did not complete its first scan. Check ${
+      `Discussion listener did not complete its first scan. Check ${
         status.logPath
       }${status.lastError ? `: ${status.lastError}` : "."}`
     );
   };
 
   status = async (
-    knownConfig?: FeedbackMaintainerConfig
-  ): Promise<FeedbackMaintainerStatus> => {
+    knownConfig?: DiscussionListenerConfig
+  ): Promise<DiscussionListenerStatus> => {
     const runtime = await this.store.readRuntime();
     if (!runtime) return { state: "stopped", logPath: this.store.logPath };
     let alive = true;
@@ -113,7 +120,7 @@ export class FeedbackMaintenanceSupervisorService {
     };
   };
 
-  stop = async (): Promise<FeedbackMaintainerStatus> => {
+  stop = async (): Promise<DiscussionListenerStatus> => {
     const status = await this.status();
     if (!status.pid || status.state === "stopped") {
       await this.store.clearRuntime();
@@ -124,7 +131,7 @@ export class FeedbackMaintenanceSupervisorService {
       !(await this.isOwnedProcess(status.pid))
     ) {
       throw new Error(
-        `Refusing to stop PID ${status.pid}: it no longer matches the feedback maintainer process.`
+        `Refusing to stop PID ${status.pid}: it no longer matches the discussion listener process.`
       );
     }
     process.kill(status.pid, "SIGTERM");
@@ -143,7 +150,7 @@ export class FeedbackMaintenanceSupervisorService {
     return { state: "stopped", logPath: this.store.logPath };
   };
 
-  restart = async (): Promise<FeedbackMaintainerStatus> => {
+  restart = async (): Promise<DiscussionListenerStatus> => {
     await this.stop();
     return this.start();
   };
@@ -157,7 +164,7 @@ export class FeedbackMaintenanceSupervisorService {
         "-o",
         "command=",
       ]);
-      return stdout.includes("feedback maintain worker");
+      return stdout.includes("discussion listen worker");
     } catch {
       return false;
     }

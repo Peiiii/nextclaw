@@ -8,14 +8,15 @@ import { publicRoadmapFeedbackPortalApp as app } from "../server/portal.controll
 import { SupportLocalDatabaseService } from "../server/support/support-local-database.service.js";
 import type { PortalWorkerEnv } from "../server/portal-env.types.js";
 import type { SupportReport, SupportSubmission } from "../shared/support-feedback.types.js";
+import type { DiscussionEventPage, DiscussionThreadView } from "@nextclaw/shared";
 
 const directory = mkdtempSync(join(tmpdir(), "nextclaw-feedback-test-"));
 const path = join(directory, "feedback.sqlite");
 let database = new SupportLocalDatabaseService(path, new URL("../migrations/", import.meta.url));
-const maintainer = crypto.randomUUID() + crypto.randomUUID();
+const participant = crypto.randomUUID() + crypto.randomUUID();
 const administrator = crypto.randomUUID() + crypto.randomUUID();
 const env: PortalWorkerEnv = { PUBLIC_ROADMAP_PORTAL_DB: database, PUBLIC_ROADMAP_FEEDBACK_PORTAL_DATA_MODE: "live",
-  SUPPORT_MAINTAINER_TOKEN: maintainer, SUPPORT_ADMIN_TOKEN: administrator, SUPPORT_MAX_AUTHORITY: "repair" };
+  DISCUSSION_PARTICIPANT_TOKEN: participant, SUPPORT_ADMIN_TOKEN: administrator, SUPPORT_MAX_AUTHORITY: "repair" };
 const auth = createServer((req, res) => {
   const token = req.headers.authorization;
   res.writeHead(token === "Bearer valid" || token === "Bearer other" ? 200 : 401, { "Content-Type": "application/json" });
@@ -37,7 +38,15 @@ async function request(route: string, body?: unknown, headers: Record<string, st
   const payload = await response.json() as { data: SupportReport; error?: { message: string } };
   return { status: response.status, payload, response };
 }
-const maintenanceHeaders = { authorization: "Bearer " + maintainer };
+async function discussionRequest(role: "admin" | "participant", route: string, body?: unknown) {
+  const response = await app.request(`http://localhost/api/discussions/${role}${route}`, {
+    method: body === undefined ? "GET" : "POST",
+    headers: { "Content-Type": "application/json", authorization: "Bearer " + (role === "admin" ? administrator : participant) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  }, env);
+  return { status: response.status, payload: await response.json() as { data: DiscussionThreadView | DiscussionEventPage; error?: { message: string } } };
+}
+const participantHeaders = { authorization: "Bearer " + participant };
 const administratorHeaders = { authorization: "Bearer " + administrator };
 function op(report: SupportReport, values: Record<string, unknown>) {
   return { operationId: crypto.randomUUID(), revision: report.revision, runId: report.runId, ...values };
@@ -60,9 +69,9 @@ test("FB-01/03/04 anonymous receipt, retry, private projection, ownership", asyn
   assert.equal((await request("/" + input.requestId, undefined, { authorization: "Bearer other" })).status, 404);
   const publicResponse = await app.request("http://localhost/api/feedback", {}, env);
   assert.ok(!(await publicResponse.text()).includes(input.requestId));
-  const operation = { operationId: crypto.randomUUID(), action: "reply", body: "补充复现步骤", role: "maintainer" };
+  const operation = { operationId: crypto.randomUUID(), action: "reply", body: "补充复现步骤" };
   const reply = await request("/" + input.requestId, operation, { "x-feedback-receipt": input.receiptKey });
-  assert.equal(reply.payload.data.messages[0]!.role, "user");
+  assert.deepEqual(reply.payload.data.messages[0]!.actor.roles, ["reporter"]);
   const retried = await request("/" + input.requestId, operation, { "x-feedback-receipt": input.receiptKey });
   assert.equal(retried.payload.data.messages.length, 1);
   assert.equal((await request("/" + input.requestId, { ...operation, body: "different" }, { "x-feedback-receipt": input.receiptKey })).status, 409);
@@ -83,27 +92,27 @@ test("FB-06/07/08 atomic claim, stale generation, new evidence, pause and withdr
   const input = submission();
   let report = (await request("", input)).payload.data;
   report = await approve(report);
-  const claims = await Promise.all([1, 2].map(() => request("/maintenance/" + report.id, op(report, { action: "claim" }), maintenanceHeaders)));
+  const claims = await Promise.all([1, 2].map(() => request("/workflow/" + report.id, op(report, { action: "claim" }), participantHeaders)));
   assert.deepEqual(claims.map((r) => r.status).sort(), [200, 409]);
   const claimed = claims.find((r) => r.status === 200)!.payload.data;
   const updated = await request("/" + report.id, { operationId: crypto.randomUUID(), action: "reply", body: "又出现不同错误" }, { "x-feedback-receipt": input.receiptKey });
   assert.equal(updated.payload.data.runId, null); assert.equal(updated.payload.data.inputVersion, 2);
-  assert.equal((await request("/maintenance/" + report.id, op(claimed, { action: "checkpoint", status: "ready", evidence: "test" }), maintenanceHeaders)).status, 409);
+  assert.equal((await request("/workflow/" + report.id, op(claimed, { action: "checkpoint", status: "ready", evidence: "test" }), participantHeaders)).status, 409);
   await request("/" + report.id, { operationId: crypto.randomUUID(), action: "withdraw" }, { "x-feedback-receipt": input.receiptKey });
   const current = (await request("/" + report.id, undefined, { "x-feedback-receipt": input.receiptKey })).payload.data;
-  assert.equal((await request("/maintenance/" + report.id, op(current, { action: "reply", body: "should not send" }), maintenanceHeaders)).status, 409);
+  assert.equal((await request("/workflow/" + report.id, op(current, { action: "reply", body: "should not send" }), participantHeaders)).status, 409);
   env.SUPPORT_PAUSED = "true";
-  assert.equal((await request("/maintenance/" + report.id, op(current, { action: "reply" }), maintenanceHeaders)).status, 409);
+  assert.equal((await request("/workflow/" + report.id, op(current, { action: "reply" }), participantHeaders)).status, 409);
   env.SUPPORT_PAUSED = "false";
 });
 
-test("FB-06 persistence and pagination over 20 reports; missing maintenance credential", async () => {
+test("FB-06 persistence and pagination over 20 reports; missing participant credential", async () => {
   for (let i = 0; i < 25; i++) assert.equal((await request("", submission())).status, 201);
-  assert.equal((await request("/maintenance")).status, 401);
+  assert.equal((await request("/workflow")).status, 401);
   const ids = new Set<string>();
   let cursor = "";
   do {
-    const result = await request("/maintenance?cursor=" + cursor, undefined, maintenanceHeaders);
+    const result = await request("/workflow?cursor=" + cursor, undefined, participantHeaders);
     const page = result.payload.data as unknown as { items: SupportReport[]; nextCursor: string | null };
     for (const report of page.items) { assert.ok(!ids.has(report.id)); ids.add(report.id); }
     cursor = page.nextCursor ?? "";
@@ -112,7 +121,7 @@ test("FB-06 persistence and pagination over 20 reports; missing maintenance cred
   database.close();
   database = new SupportLocalDatabaseService(path, new URL("../migrations/", import.meta.url));
   env.PUBLIC_ROADMAP_PORTAL_DB = database;
-  const page = (await request("/maintenance", undefined, maintenanceHeaders)).payload.data as unknown as { items: SupportReport[] };
+  const page = (await request("/workflow", undefined, participantHeaders)).payload.data as unknown as { items: SupportReport[] };
   assert.equal(page.items.length, 20);
 });
 
@@ -122,30 +131,72 @@ test("FB-13 rate limit, payload size and no self-granted delivery", async () => 
   assert.equal(last, 429);
   assert.equal((await request("", { ...submission(), description: "x".repeat(20000) })).status, 413);
   const report = (await request("", submission())).payload.data;
-  assert.equal((await request("/maintenance/" + report.id, op(report, { action: "triage", kind: "bug", priority: 0, authority: "deliver" }), maintenanceHeaders)).status, 403);
-  assert.equal((await request("/maintenance/" + report.id, op(report, { action: "publish", release: { version: "1.0.0" } }), maintenanceHeaders)).status, 403);
+  assert.equal((await request("/workflow/" + report.id, op(report, { action: "triage", kind: "bug", priority: 0, authority: "deliver" }), participantHeaders)).status, 403);
+  assert.equal((await request("/workflow/" + report.id, op(report, { action: "publish", release: { version: "1.0.0" } }), participantHeaders)).status, 403);
 });
 
 test("FB-15 administrator approval is separate from AI authority and bound to current input", async () => {
   const input = submission();
   let report = (await request("", input)).payload.data;
-  const path = "/maintenance/" + report.id;
-  assert.equal((await request(path, op(report, { action: "claim" }), maintenanceHeaders)).status, 403);
-  assert.equal((await request(path, op(report, { action: "review", decision: "repair" }), maintenanceHeaders)).status, 403);
-  assert.equal((await request("/review/" + report.id, op(report, { action: "review", decision: "repair" }), maintenanceHeaders)).status, 403);
+  const path = "/workflow/" + report.id;
+  assert.equal((await request(path, op(report, { action: "claim" }), participantHeaders)).status, 403);
+  assert.equal((await request(path, op(report, { action: "review", decision: "repair" }), participantHeaders)).status, 403);
+  assert.equal((await request("/review/" + report.id, op(report, { action: "review", decision: "repair" }), participantHeaders)).status, 403);
   assert.equal((await request("/review")).status, 403);
   report = await approve(report);
   assert.equal(report.approval?.inputVersion, report.inputVersion);
-  const claim = await request(path, op(report, { action: "claim" }), maintenanceHeaders);
+  const claim = await request(path, op(report, { action: "claim" }), participantHeaders);
   assert.equal(claim.status, 200);
   report = claim.payload.data;
   const revoked = await request("/review/" + report.id, op(report, { action: "review", decision: "revoke" }), administratorHeaders);
   assert.equal(revoked.status, 200); assert.equal(revoked.payload.data.approval, null);
-  assert.equal((await request(path, op(report, { action: "checkpoint", status: "ready", evidence: "stale" }), maintenanceHeaders)).status, 409);
+  assert.equal((await request(path, op(report, { action: "checkpoint", status: "ready", evidence: "stale" }), participantHeaders)).status, 409);
   report = await approve(revoked.payload.data);
   report = (await request("/" + report.id, { action: "reply", operationId: crypto.randomUUID(), body: "新的复现条件" }, { "x-feedback-receipt": input.receiptKey })).payload.data;
   assert.equal(report.approval, null);
-  assert.equal((await request(path, op(report, { action: "claim" }), maintenanceHeaders)).status, 403);
+  assert.equal((await request(path, op(report, { action: "claim" }), participantHeaders)).status, 403);
+});
+
+test("FB-20/21/26 authenticated actors and direct discussions share the generic event stream", async () => {
+  const id = crypto.randomUUID();
+  const created = await discussionRequest("admin", "", {
+    requestId: id, title: "直接检查桌面任务", body: "请检查最近一次升级后的启动行为。",
+    _actor: { id: "admin-a", displayName: "平台管理员" },
+  });
+  assert.equal(created.status, 201);
+  const view = created.payload.data as DiscussionThreadView;
+  assert.equal(view.thread.space, "direct");
+  assert.deepEqual(view.posts[0]!.author.roles, ["administrator"]);
+  assert.equal(view.posts[0]!.author.authenticated, true);
+  const events = await discussionRequest("participant", "/events?after=0");
+  const createdEvent = (events.payload.data as DiscussionEventPage).items.find(event => event.threadId === id && event.type === "thread-created");
+  assert.equal(createdEvent?.audienceRole, "participant");
+  const agentPost = await discussionRequest("participant", "/" + id + "/posts", { operationId: crypto.randomUUID(), body: "已收到，正在检查。" });
+  assert.equal((agentPost.payload.data as DiscussionThreadView).posts.at(-1)!.author.kind, "agent");
+  const adminPost = await discussionRequest("admin", "/" + id + "/posts", {
+    operationId: crypto.randomUUID(), body: "优先核对桌面端任务是否可见。", _actor: { id: "admin-a", displayName: "平台管理员" },
+  });
+  assert.equal((adminPost.payload.data as DiscussionThreadView).posts.at(-1)!.author.displayName, "平台管理员");
+  assert.equal((await discussionRequest("participant", "/" + id)).status, 200);
+});
+
+test("FB-20/22 trusted administrator and discussion participant remain distinguishable on feedback", async () => {
+  let report = (await request("", submission())).payload.data;
+  const beforeApproval = await discussionRequest("participant", "/events?after=0");
+  const participantCursor = (beforeApproval.payload.data as DiscussionEventPage).nextCursor;
+  assert.equal((beforeApproval.payload.data as DiscussionEventPage).items.some(event => event.threadId === report.id), false);
+  const reviewed = await request("/review/" + report.id, op(report, {
+    action: "review", decision: "repair", body: "批准修复，并先反馈收到。", _actor: { id: "admin-b", displayName: "审批管理员" },
+  }), administratorHeaders);
+  report = reviewed.payload.data;
+  assert.equal(report.messages[0]!.actor.displayName, "审批管理员");
+  assert.deepEqual(report.messages[0]!.actor.roles, ["administrator"]);
+  const approvedEvents = await discussionRequest("participant", "/events?after=" + participantCursor);
+  const approvalEvent = (approvedEvents.payload.data as DiscussionEventPage).items.find(event => event.threadId === report.id);
+  assert.equal(approvalEvent?.audienceRole, "participant");
+  const replied = await request("/workflow/" + report.id, op(report, { action: "reply", body: "已收到，开始复现。" }), participantHeaders);
+  assert.equal(replied.payload.data.messages[1]!.actor.kind, "agent");
+  assert.deepEqual(replied.payload.data.messages[1]!.actor.roles, ["participant"]);
 });
 
 test("FB-16 review inbox filters and searches all pages, with stable ordering", async () => {
@@ -179,7 +230,7 @@ test("FB-15 public portal cannot mint administrator sessions", async () => {
 
 test("FB-06/08 interrupted runs require recovery and only two repair attempts", async () => {
   let report = (await request("", submission())).payload.data;
-  const act = async (values: Record<string, unknown>) => request("/maintenance/" + report.id, op(report, values), maintenanceHeaders);
+  const act = async (values: Record<string, unknown>) => request("/workflow/" + report.id, op(report, values), participantHeaders);
   for (let attempt = 0; attempt < 2; attempt++) {
     report = await approve(report);
     env.SUPPORT_MAX_AUTHORITY = "analyze";
@@ -198,7 +249,7 @@ test("FB-06/08 interrupted runs require recovery and only two repair attempts", 
 test("FB-11/12 publication reply is atomic and retryable; user failure reopens original report", async () => {
   const input = submission();
   let report = (await request("", input)).payload.data;
-  const act = async (values: Record<string, unknown>) => request("/maintenance/" + report.id, op(report, values), maintenanceHeaders);
+  const act = async (values: Record<string, unknown>) => request("/workflow/" + report.id, op(report, values), participantHeaders);
   report = await approve(report);
   report = (await act({ action: "claim" })).payload.data;
   report = (await act({ action: "checkpoint", status: "ready", evidence: "本地定向测试通过" })).payload.data;
@@ -219,11 +270,11 @@ test("FB-11/12 publication reply is atomic and retryable; user failure reopens o
   }) as typeof fetch;
   try {
     const operation = op(report, { action: "publish", body: "已发布 1.0.0 到 NPM。", release: { sha, version: "1.0.0", runId: "123", channel: "npm" } });
-    assert.equal((await request("/maintenance/" + report.id, operation, maintenanceHeaders)).status, 409);
+    assert.equal((await request("/workflow/" + report.id, operation, participantHeaders)).status, 409);
     successful = true;
-    const published = await request("/maintenance/" + report.id, operation, maintenanceHeaders);
+    const published = await request("/workflow/" + report.id, operation, participantHeaders);
     assert.equal(published.payload.data.status, "published");
-    const retry = await request("/maintenance/" + report.id, operation, maintenanceHeaders);
+    const retry = await request("/workflow/" + report.id, operation, participantHeaders);
     assert.equal(retry.payload.data.messages.length, 1);
     const reopened = await request("/" + report.id, { operationId: crypto.randomUUID(), action: "reply", body: "更新后仍失败" }, { "x-feedback-receipt": input.receiptKey });
     assert.equal(reopened.payload.data.id, input.requestId); assert.equal(reopened.payload.data.status, "received");

@@ -1,10 +1,10 @@
 {
-  "name": "@nextclaw/feedback-maintainer",
+  "name": "@nextclaw/feedback-workflow-tools",
   "version": "0.0.3",
   "private": true,
   "type": "module",
   "imports": {
-    "#feedback-maintainer/*": "./src/*"
+    "#feedback-workflow-tools/*": "./src/*"
   },
   "engines": {
     "node": ">=22.12.0"

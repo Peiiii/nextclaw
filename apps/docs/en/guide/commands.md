@@ -21,38 +21,44 @@ nextclaw <command> --help
 
 Use `nextclaw --version` to inspect the installed version. Many query and management commands support `--json`; check the command help before integrating it into a script, CI job, or Agent. For first-time setup, start with [Quickstart](/en/guide/getting-started). For the small set of commands used most often, see [Core Commands](/en/guide/core-commands).
 
-## Feedback
+## Feedback and private discussions
 
-No GitHub login required. See [Feedback](./feedback).
+No GitHub login is required; see [problem feedback](./feedback). `feedback` names the feedback application. Generic threads, posts, participants, and event subscriptions use `discussion`.
 
-| Command                                            | Purpose                                                                                               |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `nextclaw feedback submit`                         | Submit a private report and save its receipt                                                          |
-| `nextclaw feedback list`                           | List local receipts                                                                                   |
-| `nextclaw feedback get`                            | Read a report and replies                                                                             |
-| `nextclaw feedback reply`                          | Add reproduction details                                                                              |
-| `nextclaw feedback withdraw`                       | Withdraw a report                                                                                     |
-| `nextclaw feedback link`                           | Link to the current NextClaw account                                                                  |
-| `nextclaw feedback sync`                           | Sync account reports                                                                                  |
-| `nextclaw feedback export`                         | Export a private receipt                                                                              |
-| `nextclaw feedback import`                         | Restore a private receipt                                                                             |
-| `nextclaw feedback maintain skill-path`            | Locate the packaged maintainer skill                                                                  |
-| `nextclaw feedback maintain configure`             | Save the endpoint, credential file, and consumer command; the Codex setup helper can take a workspace |
-| `nextclaw feedback maintain start`                 | Start the listener in the background and complete its first scan                                      |
-| `nextclaw feedback maintain status`                | Inspect listener health, heartbeat, and the latest error                                              |
-| `nextclaw feedback maintain stop`                  | Stop the current listener instance                                                                    |
-| `nextclaw feedback maintain restart`               | Restart the listener with its saved configuration                                                     |
-| `nextclaw feedback maintain worker`                | Internal listener process entry point                                                                 |
-| `nextclaw feedback maintain codex-desktop-trigger` | Internal Codex Desktop consumer preset entry point                                                    |
-| `nextclaw feedback maintain list`                  | Read the maintenance queue                                                                            |
-| `nextclaw feedback maintain get`                   | Read a report and its approval                                                                        |
-| `nextclaw feedback maintain claim`                 | Claim approved work                                                                                   |
-| `nextclaw feedback maintain comment`               | Write a maintainer reply                                                                              |
-| `nextclaw feedback maintain result`                | Submit verification evidence or a blocker                                                             |
-| `nextclaw feedback maintain triage`                | Classify without granting repair permission                                                           |
-| `nextclaw feedback maintain recover`               | Recover after confirming the previous run stopped                                                     |
-| `nextclaw feedback maintain authorize-delivery`    | Associate an approved repair commit                                                                   |
-| `nextclaw feedback maintain publish`               | Verify release proof and update the report                                                            |
+| Command | Purpose |
+| --- | --- |
+| `nextclaw feedback submit` | Submit a private report and save its receipt |
+| `nextclaw feedback list` | List local receipts |
+| `nextclaw feedback get` | Read report details and replies |
+| `nextclaw feedback reply` | Add reproduction information |
+| `nextclaw feedback withdraw` | Withdraw a report |
+| `nextclaw feedback link` | Link the current NextClaw account |
+| `nextclaw feedback sync` | Sync account reports |
+| `nextclaw feedback export` | Export a private receipt |
+| `nextclaw feedback import` | Restore a private receipt |
+| `nextclaw feedback workflow skill-path` | Locate the packaged feedback workflow skill |
+| `nextclaw feedback workflow list` | Read the approved feedback work queue |
+| `nextclaw feedback workflow get` | Read a report and its current approval |
+| `nextclaw feedback workflow claim` | Claim approved feedback |
+| `nextclaw feedback workflow comment` | Write a participant reply |
+| `nextclaw feedback workflow result` | Submit verification evidence or a blocker |
+| `nextclaw feedback workflow triage` | Classify without granting repair permission |
+| `nextclaw feedback workflow recover` | Recover after confirming the previous run stopped |
+| `nextclaw feedback workflow authorize-delivery` | Associate an approved repair commit |
+| `nextclaw feedback workflow publish` | Verify release proof and update the report |
+| `nextclaw discussion skill-path` | Locate the packaged discussion participant skill |
+| `nextclaw discussion list` | List accessible threads by space |
+| `nextclaw discussion events` | Read events addressed to the current role after a cursor |
+| `nextclaw discussion get` | Read a thread and its ordered posts |
+| `nextclaw discussion post` | Post as the authenticated participant |
+| `nextclaw discussion listen configure` | Save the endpoint, participant credential, and consumer command; the Codex preset can take a workspace |
+| `nextclaw discussion listen start` | Start the code-only listener and complete its first scan |
+| `nextclaw discussion listen status` | Inspect listener health, heartbeat, and the latest error |
+| `nextclaw discussion listen stop` | Stop the current listener instance |
+| `nextclaw discussion listen restart` | Restart the listener with its saved configuration |
+| `nextclaw discussion listen worker` | Internal listener process entry point |
+| `nextclaw discussion listen codex-desktop-trigger` | Internal Codex Desktop consumer preset entry point |
+| `nextclaw discussion listen codex-desktop-runner` | Internal asynchronous Codex Desktop task runner |
 
 ## Capability map
 

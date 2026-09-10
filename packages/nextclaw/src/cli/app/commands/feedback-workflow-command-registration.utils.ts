@@ -2,9 +2,8 @@ import type { Command } from "commander";
 import { access, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SupportMaintenance } from "@nextclaw/shared";
-import { registerFeedbackMaintenanceLifecycleCommands } from "@nextclaw-cli/cli/app/commands/feedback-maintenance-lifecycle-command-registration.utils.js";
-import { FeedbackMaintenanceClient } from "@nextclaw-cli/cli/app/services/feedback/feedback-maintenance-client.service.js";
+import type { SupportWorkflowOperation } from "@nextclaw/shared";
+import { FeedbackWorkflowClient } from "@nextclaw-cli/cli/app/services/feedback/feedback-workflow-client.service.js";
 
 type Options = {
   endpoint?: string;
@@ -14,24 +13,24 @@ type Options = {
   operationId?: string;
   bodyFile?: string;
   evidenceFile?: string;
-  status?: SupportMaintenance["status"];
-  kind?: SupportMaintenance["kind"];
+  status?: SupportWorkflowOperation["status"];
+  kind?: SupportWorkflowOperation["kind"];
   priority?: string;
   fixedCommit?: string;
   releaseFile?: string;
 };
-async function client(o: Options): Promise<FeedbackMaintenanceClient> {
-  return new FeedbackMaintenanceClient({
+async function client(o: Options): Promise<FeedbackWorkflowClient> {
+  return new FeedbackWorkflowClient({
     endpoint:
       o.endpoint ??
       process.env.NEXTCLAW_FEEDBACK_ENDPOINT ??
       "https://roadmap.nextclaw.io",
     token: o.tokenFile
       ? (await readFile(o.tokenFile, "utf8")).trim()
-      : process.env.SUPPORT_MAINTAINER_TOKEN,
+      : process.env.DISCUSSION_PARTICIPANT_TOKEN,
   });
 }
-export async function feedbackMaintainerSkillPath(): Promise<string> {
+export async function feedbackWorkflowSkillPath(): Promise<string> {
   let directory = dirname(fileURLToPath(import.meta.url));
   while (dirname(directory) !== directory) {
     try {
@@ -41,7 +40,7 @@ export async function feedbackMaintainerSkillPath(): Promise<string> {
       if (pkg.name === "nextclaw") {
         const path = join(
           directory,
-          "resources/skills/feedback-maintainer/SKILL.md"
+          "resources/skills/feedback-workflow/SKILL.md"
         );
         await access(path);
         return path;
@@ -51,13 +50,13 @@ export async function feedbackMaintainerSkillPath(): Promise<string> {
     }
     directory = dirname(directory);
   }
-  throw new Error("Packaged feedback maintainer skill is missing.");
+  throw new Error("Packaged feedback workflow skill is missing.");
 }
-export function registerFeedbackMaintenanceCommands(feedback: Command): void {
+export function registerFeedbackWorkflowCommands(feedback: Command): void {
   const group = feedback
-    .command("maintain")
+    .command("workflow")
     .description(
-      "Read and act on feedback with a maintainer credential; cannot approve work"
+      "Process approved feedback with a participant credential; cannot approve work"
     );
   const command = (name: string, description: string) =>
     group
@@ -66,17 +65,13 @@ export function registerFeedbackMaintenanceCommands(feedback: Command): void {
       .option("--endpoint <url>", "Feedback service origin")
       .option(
         "--token-file <path>",
-        "Private maintainer token file; otherwise use SUPPORT_MAINTAINER_TOKEN"
+        "Private participant token file; otherwise use DISCUSSION_PARTICIPANT_TOKEN"
       );
   group
     .command("skill-path")
-    .description("Print the installed maintainer skill path")
-    .action(async () => console.log(await feedbackMaintainerSkillPath()));
-  registerFeedbackMaintenanceLifecycleCommands(
-    group,
-    feedbackMaintainerSkillPath
-  );
-  command("list", "Read the maintenance queue").action(async (o: Options) =>
+    .description("Print the installed feedback workflow skill path")
+    .action(async () => console.log(await feedbackWorkflowSkillPath()));
+  command("list", "Read the approved feedback work queue").action(async (o: Options) =>
     console.log(JSON.stringify(await (await client(o)).scan(), null, 2))
   );
   command("get <id>", "Read the current report, approval and comments").action(
@@ -95,7 +90,7 @@ export function registerFeedbackMaintenanceCommands(feedback: Command): void {
   for (const [name, action] of Object.entries(actions)) {
     command(
       name + " <id>",
-      `Perform maintainer ${name}; server enforces approval and current execution`
+      `Perform feedback workflow ${name}; server enforces approval and current execution`
     )
       .requiredOption(
         "--revision <number>",
@@ -126,7 +121,7 @@ export function registerFeedbackMaintenanceCommands(feedback: Command): void {
         if (name === "comment" && !o.bodyFile)
           throw new Error("comment requires --body-file.");
         const input: Omit<
-          SupportMaintenance,
+          SupportWorkflowOperation,
           "revision" | "runId" | "operationId"
         > & { operationId?: string } = {
           action,
@@ -143,7 +138,7 @@ export function registerFeedbackMaintenanceCommands(feedback: Command): void {
           release: o.releaseFile
             ? (JSON.parse(
                 await readFile(o.releaseFile, "utf8")
-              ) as SupportMaintenance["release"])
+              ) as SupportWorkflowOperation["release"])
             : undefined,
         };
         console.log(

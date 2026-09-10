@@ -2,7 +2,7 @@
   "contractKind": "protocol",
   "protocol": "app-l1",
   "allowedRootFiles": ["main.mjs"],
-  "importAliasPrefixes": ["#feedback-maintainer/"],
+  "importAliasPrefixes": ["#feedback-workflow-tools/"],
   "rootPolicy": "contract-only",
   "enforcement": "error"
 }

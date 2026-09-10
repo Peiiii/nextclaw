@@ -1,17 +1,17 @@
-import { SUPPORT_KINDS, type SupportMaintenance, type SupportReport } from "../../shared/support-feedback.types.js";
+import { SUPPORT_KINDS, type DiscussionActor, type SupportWorkflowOperation, type SupportReport } from "@nextclaw/shared";
 import type { PortalWorkerEnv } from "../portal-env.types.js";
 import type { SupportRepository } from "./support.repository.js";
 import { SupportReleaseService } from "./support-release.service.js";
 import { digest, identifier, reject, safeUrl, textField } from "./support-validation.utils.js";
 
 const authorityRank = { analyze: 0, repair: 1, deliver: 2 };
-export class SupportMaintenanceService {
+export class SupportWorkflowService {
   constructor(private readonly repository: SupportRepository, private readonly env: PortalWorkerEnv) {}
-  operate = async (id: string, input: SupportMaintenance, administrator = false) => {
+  operate = async (id: string, input: SupportWorkflowOperation, actor: DiscussionActor) => {
     if (this.env.SUPPORT_PAUSED === "true") reject(409, "维护处理已暂停。");
     const value = await this.repository.get(identifier(id));
     if (!value) reject(404, "反馈不存在。");
-    const op = identifier(input.operationId), hash = await digest(JSON.stringify(input));
+    const op = identifier(input.operationId), hash = await digest(JSON.stringify({ input, actor }));
     if (value.operations[op]) {
       if (value.operations[op] !== hash) reject(409, "操作标识已使用。");
       return value.report;
@@ -22,19 +22,24 @@ export class SupportMaintenanceService {
     if (report.status === "withdrawn") reject(409, "用户已撤回反馈。");
     const before = report.revision;
     if (input.action === "review") {
-      if (!administrator) reject(403, "执行 AI 无权审批反馈。");
+      if (!actor.roles.includes("administrator")) reject(403, "执行 AI 无权审批反馈。");
       this.review(report, input);
     } else await this.transition(report, input);
+    let body: string | undefined;
     if (input.body) {
       if (report.messages.length >= 200) reject(409, "回复数量已达上限。");
-      report.messages.push({ id: op, role: "maintainer", body: textField(input.body, "回复", 4000), createdAt: new Date().toISOString() });
+      body = textField(input.body, "回复", 4000);
     }
     report.updatedAt = new Date().toISOString(); report.revision++;
     value.operations[op] = hash;
-    await this.repository.save(value, before);
-    return report;
+    await this.repository.save(value, before, {
+      operationId: op, operationHash: hash, actor: body ? actor : undefined, body,
+      audienceRole: actor.roles.includes("administrator") && report.approval?.inputVersion === report.inputVersion
+        ? "participant" : body ? "administrator" : undefined,
+    });
+    return (await this.repository.get(report.id))!.report;
   };
-  private transition = async (report: SupportReport, input: SupportMaintenance): Promise<void> => {
+  private transition = async (report: SupportReport, input: SupportWorkflowOperation): Promise<void> => {
     if (input.action === "triage") {
       this.classify(report, input);
     } else if (input.action === "claim") {
@@ -67,7 +72,7 @@ export class SupportMaintenanceService {
     if (report.runId || report.status !== "received" || report.authority === "analyze" || report.attempts >= 2) reject(409, "当前反馈不可领取修复。");
     report.runId = crypto.randomUUID(); report.status = "working"; report.attempts++; delete report.fixedCommit;
   };
-  private classify = (report: SupportReport, input: SupportMaintenance): void => {
+  private classify = (report: SupportReport, input: SupportWorkflowOperation): void => {
     if (report.approval) reject(409, "已审批的反馈需由管理员撤销批准后重新分类。");
     if (report.runId) reject(409, "请先结束当前执行。");
     if (!SUPPORT_KINDS.includes(input.kind!) || !Number.isInteger(input.priority) || input.priority! < 0 || input.priority! > 3) reject(400, "分类或优先级不正确。");
@@ -76,7 +81,7 @@ export class SupportMaintenanceService {
     if (!["needs-info", "needs-decision", "received", "resolved"].includes(status)) reject(400, "分类状态不正确。");
     report.kind = input.kind!; report.priority = input.priority!; report.authority = input.authority!; report.status = status;
   };
-  private review = (report: SupportReport, input: SupportMaintenance): void => {
+  private review = (report: SupportReport, input: SupportWorkflowOperation): void => {
     const decision = input.decision;
     if (decision === "repair" || decision === "deliver") {
       if (report.status === "working" || report.status === "published" || report.status === "resolved") reject(409, "当前状态不能批准新执行。");

@@ -1,13 +1,14 @@
 import { Hono, type Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { bodyLimit } from "hono/body-limit";
-import type { SupportMaintenance, SupportOperation, SupportSubmission } from "../../shared/support-feedback.types.js";
+import type { SupportWorkflowOperation, SupportOperation, SupportSubmission } from "../../shared/support-feedback.types.js";
 import type { PortalWorkerEnv } from "../portal-env.types.js";
 import { SupportAuthService } from "./support-auth.service.js";
 import { SupportRepository } from "./support.repository.js";
 import { SupportService } from "./support.service.js";
-import { SupportMaintenanceService } from "./support-maintenance.service.js";
+import { SupportWorkflowService } from "./support-workflow.service.js";
 import { object, reject } from "./support-validation.utils.js";
+import { administratorActor, discussionParticipantActor } from "../discussion/discussion.controller.js";
 
 export const supportController = new Hono<{ Bindings: PortalWorkerEnv }>();
 supportController.use("*", bodyLimit({ maxSize: 16000 }));
@@ -36,9 +37,10 @@ supportController.get("/review", async (c) => {
 });
 supportController.post("/review/:id", async (c) => {
   await requireAdministrator(c);
-  const input = object(await c.req.json()) as unknown as SupportMaintenance;
+  const body = object(await c.req.json());
+  const input = body as unknown as SupportWorkflowOperation;
   if (input.action !== "review") reject(400, "请提交评审决定。");
-  return c.json({ ok: true, data: await new SupportMaintenanceService(repository(c.env), c.env).operate(c.req.param("id"), input, true) });
+  return c.json({ ok: true, data: await new SupportWorkflowService(repository(c.env), c.env).operate(c.req.param("id"), input, administratorActor(body)) });
 });
 supportController.post("/", async (c) => {
   const userId = await new SupportAuthService(c.env).user(c.req.header("authorization") ?? "");
@@ -51,16 +53,22 @@ supportController.get("/", async (c) => {
   if (!user) reject(401, "账号暂未验证，请凭回执查看反馈。");
   return c.json({ ok: true, data: await repository(c.env).list(user, c.req.query("cursor") ?? "", "", false) });
 });
-supportController.get("/maintenance", async (c) => {
-  await new SupportAuthService(c.env).maintenance(c.req.header("authorization") ?? "");
+supportController.get("/workflow", async (c) => {
+  await new SupportAuthService(c.env).participant(c.req.header("authorization") ?? "");
   const status = c.req.query("status") ?? "";
   return c.json({ ok: true, data: { ...await repository(c.env).list(null, c.req.query("cursor") ?? "", status, true),
     paused: c.env.SUPPORT_PAUSED === "true", maxAuthority: c.env.SUPPORT_MAX_AUTHORITY ?? "analyze" } });
 });
-supportController.post("/maintenance/:id", async (c) => {
-  await new SupportAuthService(c.env).maintenance(c.req.header("authorization") ?? "");
-  const input = object(await c.req.json()) as unknown as SupportMaintenance;
-  return c.json({ ok: true, data: await new SupportMaintenanceService(repository(c.env), c.env).operate(c.req.param("id"), input) });
+supportController.get("/workflow/:id", async (c) => {
+  await new SupportAuthService(c.env).participant(c.req.header("authorization") ?? "");
+  const value = await repository(c.env).get(c.req.param("id"));
+  if (!value) reject(404, "反馈不存在。");
+  return c.json({ ok: true, data: value.report });
+});
+supportController.post("/workflow/:id", async (c) => {
+  await new SupportAuthService(c.env).participant(c.req.header("authorization") ?? "");
+  const input = object(await c.req.json()) as unknown as SupportWorkflowOperation;
+  return c.json({ ok: true, data: await new SupportWorkflowService(repository(c.env), c.env).operate(c.req.param("id"), input, discussionParticipantActor) });
 });
 supportController.get("/:id", async (c) => {
   const user = await new SupportAuthService(c.env).user(c.req.header("authorization") ?? "");

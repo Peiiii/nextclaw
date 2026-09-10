@@ -221,7 +221,7 @@ importers:
         specifier: ^3.5.13
         version: 3.5.28(typescript@5.9.3)
 
-  apps/feedback-maintainer:
+  apps/feedback-workflow-tools:
     dependencies:
       nextclaw:
         specifier: workspace:*
@@ -1267,7 +1267,6 @@ importers:
       tsx:
         specifier: ^4.20.6
         version: 4.21.0
-
 
   packages/nextclaw-agent-chat:
     dependencies:
@@ -17083,24 +17082,6 @@ snapshots:
       esbuild: 0.27.3
       fsevents: 2.3.3
       jiti: 2.6.1
-      tsx: 4.21.0
-      yaml: 2.8.2
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
-
-  vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2):
-    dependencies:
-      lightningcss: 1.32.0
-      picomatch: 4.0.4
-      postcss: 8.5.8
-      rolldown: 1.0.0-rc.12(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)
-      tinyglobby: 0.2.15
-    optionalDependencies:
-      '@types/node': 25.5.0
-      esbuild: 0.27.3
-      fsevents: 2.3.3
-      jiti: 1.21.7
       tsx: 4.21.0
       yaml: 2.8.2
     transitivePeerDependencies:

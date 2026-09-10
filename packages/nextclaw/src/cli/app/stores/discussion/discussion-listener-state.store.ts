@@ -11,29 +11,29 @@ import {
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
-export type FeedbackMaintainerConfig = {
+export type DiscussionListenerConfig = {
   endpoint: string;
   tokenFile: string;
   intervalMs: number;
   timeoutMs: number;
   command: string[];
 };
-export type FeedbackEventState = {
-  feedbackId: string;
-  kind: "approved" | "reapproved" | "user-message";
-  revision: number;
+export type DiscussionEventState = {
+  threadId: string;
+  type: "thread-created" | "post-created" | "thread-updated";
+  cursor: number;
   state: "launching" | "delivered" | "failed";
   attempts: number;
   updatedAt: string;
   nextAttemptAt?: string;
   lastError?: string;
 };
-export type FeedbackMaintenanceJournal = {
+export type DiscussionListenerJournal = {
   version: 1;
-  engaged: Record<string, string>;
-  events: Record<string, FeedbackEventState>;
+  cursor: number;
+  events: Record<string, DiscussionEventState>;
 };
-export type FeedbackMaintenanceRuntime = {
+export type DiscussionListenerRuntime = {
   instanceId: string;
   pid: number;
   startedAt: string;
@@ -42,41 +42,42 @@ export type FeedbackMaintenanceRuntime = {
   lastEventId?: string;
   lastError?: string;
 };
-export type CodexFeedbackBinding = {
+export type CodexDiscussionBinding = {
   threadId: string;
   eventIds: Record<string, string>;
 };
-export type CodexFeedbackBindings = {
+export type CodexDiscussionBindings = {
   version: 1;
-  feedback: Record<string, CodexFeedbackBinding>;
+  discussions: Record<string, CodexDiscussionBinding>;
 };
 
-const emptyJournal = (): FeedbackMaintenanceJournal => ({
+const emptyJournal = (): DiscussionListenerJournal => ({
   version: 1,
-  engaged: {},
+  cursor: 0,
   events: {},
 });
-const emptyBindings = (): CodexFeedbackBindings => ({
+const emptyBindings = (): CodexDiscussionBindings => ({
   version: 1,
-  feedback: {},
+  discussions: {},
 });
 
-export class FeedbackMaintenanceStateStore {
+export class DiscussionListenerStateStore {
   readonly root: string;
   readonly configPath: string;
   readonly journalPath: string;
   readonly runtimePath: string;
   readonly logPath: string;
+  readonly codexConsumerLogPath: string;
   readonly codexBindingsPath: string;
 
   constructor(
     root = resolve(
-      process.env.NEXTCLAW_FEEDBACK_STATE_DIRECTORY?.trim() ||
+      process.env.NEXTCLAW_DISCUSSION_STATE_DIRECTORY?.trim() ||
         join(
           resolve(
             process.env.NEXTCLAW_HOME?.trim() || join(homedir(), ".nextclaw")
           ),
-          "feedback-maintainer"
+          "discussion-listener"
         )
     )
   ) {
@@ -84,8 +85,9 @@ export class FeedbackMaintenanceStateStore {
     this.configPath = join(root, "config.json");
     this.journalPath = join(root, "journal.json");
     this.runtimePath = join(root, "runtime.json");
-    this.logPath = join(root, "maintainer.log");
-    this.codexBindingsPath = join(root, "codex-bindings.json");
+    this.logPath = join(root, "listener.log");
+    this.codexConsumerLogPath = join(root, "codex-consumer.log");
+    this.codexBindingsPath = join(root, "discussion-bindings.json");
   }
 
   initialize = async (): Promise<void> => {
@@ -94,42 +96,42 @@ export class FeedbackMaintenanceStateStore {
   };
 
   writeConfig = async (
-    input: Omit<FeedbackMaintainerConfig, "intervalMs" | "timeoutMs"> & {
+    input: Omit<DiscussionListenerConfig, "intervalMs" | "timeoutMs"> & {
       intervalMs?: number;
       timeoutMs?: number;
     }
-  ): Promise<FeedbackMaintainerConfig> => {
+  ): Promise<DiscussionListenerConfig> => {
     const config = await this.validateConfig({
       ...input,
       intervalMs: input.intervalMs ?? 30_000,
-      timeoutMs: input.timeoutMs ?? 600_000,
+      timeoutMs: input.timeoutMs ?? 60_000,
     });
     await this.writeJson(this.configPath, config);
     return config;
   };
 
-  readConfig = async (): Promise<FeedbackMaintainerConfig> => {
-    const value = await this.readJson<FeedbackMaintainerConfig>(
+  readConfig = async (): Promise<DiscussionListenerConfig> => {
+    const value = await this.readJson<DiscussionListenerConfig>(
       this.configPath
     );
     if (!value)
       throw new Error(
-        "Feedback maintainer is not configured. Run `nextclaw feedback maintain configure --help`."
+        "Discussion listener is not configured. Run `nextclaw discussion listen configure --help`."
       );
     return this.validateConfig({
       ...value,
       intervalMs: value.intervalMs ?? 30_000,
-      timeoutMs: value.timeoutMs ?? 600_000,
+      timeoutMs: value.timeoutMs ?? 60_000,
     });
   };
 
-  readJournal = async (): Promise<FeedbackMaintenanceJournal> =>
+  readJournal = async (): Promise<DiscussionListenerJournal> =>
     (await this.readJson(this.journalPath)) ?? emptyJournal();
-  writeJournal = async (value: FeedbackMaintenanceJournal): Promise<void> =>
+  writeJournal = async (value: DiscussionListenerJournal): Promise<void> =>
     this.writeJson(this.journalPath, value);
-  readRuntime = async (): Promise<FeedbackMaintenanceRuntime | null> =>
+  readRuntime = async (): Promise<DiscussionListenerRuntime | null> =>
     this.readJson(this.runtimePath);
-  writeRuntime = async (value: FeedbackMaintenanceRuntime): Promise<void> =>
+  writeRuntime = async (value: DiscussionListenerRuntime): Promise<void> =>
     this.writeJson(this.runtimePath, value);
   clearRuntime = async (): Promise<void> => {
     try {
@@ -138,14 +140,14 @@ export class FeedbackMaintenanceStateStore {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
   };
-  readCodexBindings = async (): Promise<CodexFeedbackBindings> =>
+  readCodexBindings = async (): Promise<CodexDiscussionBindings> =>
     (await this.readJson(this.codexBindingsPath)) ?? emptyBindings();
-  writeCodexBindings = async (value: CodexFeedbackBindings): Promise<void> =>
+  writeCodexBindings = async (value: CodexDiscussionBindings): Promise<void> =>
     this.writeJson(this.codexBindingsPath, value);
 
   private validateConfig = async (
-    value: FeedbackMaintainerConfig
-  ): Promise<FeedbackMaintainerConfig> => {
+    value: DiscussionListenerConfig
+  ): Promise<DiscussionListenerConfig> => {
     const endpoint = new URL(value.endpoint);
     if (
       (endpoint.protocol !== "https:" &&
@@ -159,16 +161,16 @@ export class FeedbackMaintenanceStateStore {
       endpoint.search ||
       endpoint.hash
     ) {
-      throw new Error("Invalid feedback origin.");
+      throw new Error("Invalid discussion origin.");
     }
     if (!isAbsolute(value.tokenFile) || !(await stat(value.tokenFile)).isFile())
       throw new Error(
-        "Maintainer token file must be an existing absolute file."
+        "Participant token file must be an existing absolute file."
       );
     const tokenMode = (await stat(value.tokenFile)).mode & 0o777;
     if (process.platform !== "win32" && tokenMode & 0o077)
       throw new Error(
-        "Maintainer token file permissions must be 0600 or stricter."
+        "Participant token file permissions must be 0600 or stricter."
       );
     if (
       !Number.isInteger(value.intervalMs) ||

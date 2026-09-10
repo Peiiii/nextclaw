@@ -23,13 +23,25 @@ export class SupportLocalDatabaseService implements D1Database {
   prepare = (query: string): D1PreparedStatement => {
     const statement = this.database.prepare(query);
     let values: SQLInputValue[] = [];
-    const prepared: D1PreparedStatement = {
+    const prepared: D1PreparedStatement & { runSync: () => { success: boolean; meta: { changes: number } } } = {
       bind: (...args) => { values = args; return prepared; },
       run: async () => { const result = statement.run(...values); return { success: true, meta: { changes: Number(result.changes) } }; },
       first: async <T>() => (statement.get(...values) as T | undefined) ?? null,
-      all: async <T>() => ({ results: statement.all(...values) as T[] })
+      all: async <T>() => ({ results: statement.all(...values) as T[] }),
+      runSync: () => { const result = statement.run(...values); return { success: true, meta: { changes: Number(result.changes) } }; }
     };
     return prepared;
+  };
+  batch = async (statements: D1PreparedStatement[]) => {
+    this.database.exec("BEGIN");
+    try {
+      const results = statements.map(statement => (statement as D1PreparedStatement & { runSync: () => { success: boolean; meta: { changes: number } } }).runSync());
+      this.database.exec("COMMIT");
+      return results;
+    } catch (error) {
+      this.database.exec("ROLLBACK");
+      throw error;
+    }
   };
   close = (): void => { this.database.close(); };
 }

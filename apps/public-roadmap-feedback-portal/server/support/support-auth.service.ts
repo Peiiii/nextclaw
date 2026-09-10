@@ -17,14 +17,14 @@ export class SupportAuthService {
       return data.ok && typeof data.data?.user?.id === "string" ? data.data.user.id : null;
     } catch { return null; }
   };
-  maintenance = async (authorization: string): Promise<void> => {
-    const expected = this.env.SUPPORT_MAINTAINER_TOKEN;
-    if (!expected || expected.length < 32) reject(503, "维护接口尚未启用。");
-    if (!secureEqual(await digest(authorization), await digest("Bearer " + expected))) reject(401, "维护身份无效。");
+  participant = async (authorization: string): Promise<void> => {
+    const expected = this.env.DISCUSSION_PARTICIPANT_TOKEN;
+    if (!expected || expected.length < 32) reject(503, "讨论参与接口尚未启用。");
+    if (!secureEqual(await digest(authorization), await digest("Bearer " + expected))) reject(401, "讨论参与身份无效。");
   };
   administrator = async (authorization: string): Promise<void> => {
     const expected = this.env.SUPPORT_ADMIN_TOKEN;
-    if (!expected || expected.length < 32 || expected === this.env.SUPPORT_MAINTAINER_TOKEN) reject(503, "请配置独立的管理员凭据。");
+    if (!expected || expected.length < 32 || expected === this.env.DISCUSSION_PARTICIPANT_TOKEN) reject(503, "请配置独立的管理员凭据。");
     if (!secureEqual(await digest(authorization), await digest("Bearer " + expected))) reject(403, "需要管理员评审权限。");
   };
 }

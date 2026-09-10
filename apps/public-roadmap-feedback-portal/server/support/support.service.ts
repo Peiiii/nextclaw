@@ -1,4 +1,4 @@
-import type { SupportOperation, SupportSubmission } from "../../shared/support-feedback.types.js";
+import type { DiscussionActor, SupportOperation, SupportSubmission } from "@nextclaw/shared";
 import type { SupportRepository, StoredSupport } from "./support.repository.js";
 import { digest, identifier, receiptKey, reject, secureEqual, textField } from "./support-validation.utils.js";
 
@@ -16,11 +16,12 @@ export class SupportService {
     await this.repository.limit("submit:" + await digest(source), userId ? 30 : 10);
     if (userId) await this.repository.limit("account:" + await digest(userId), 30);
     const now = new Date().toISOString();
+    const openedBy = reporterActor(userId);
     const value: StoredSupport = {
       receiptHash, payloadHash, userId, operations: {},
       report: { id, ...content, status: "received", kind: "unknown", priority: 2, authority: "analyze",
         identity: userId ? "verified" : "anonymous", createdAt: now, updatedAt: now, revision: 1,
-        inputVersion: 1, runId: null, attempts: 0, approval: null, messages: [], release: null, evidence: "", relatedUrl: null }
+        openedBy, inputVersion: 1, runId: null, attempts: 0, approval: null, messages: [], release: null, evidence: "", relatedUrl: null }
     };
     return this.checkSubmission(await this.repository.create(value), receiptHash, payloadHash);
   };
@@ -43,6 +44,7 @@ export class SupportService {
     }
     await this.repository.limit("reply:" + value.report.id, 30);
     const expected = value.report.revision, report = value.report;
+    let messageBody: string | undefined;
     if (Object.keys(value.operations).length >= 500) reject(409, "该反馈操作次数已达上限，请联系维护者。");
     if (raw.action === "link") {
       if (!userId) reject(401, "账号暂未验证，反馈仍可凭回执查看。");
@@ -51,21 +53,31 @@ export class SupportService {
     } else if (raw.action === "withdraw") {
       report.status = "withdrawn"; report.runId = null; report.approval = null; report.authority = "analyze";
     } else if (raw.action === "reply" || raw.action === "reopen") {
-      const body = textField(raw.body, "补充信息", 4000);
+      messageBody = textField(raw.body, "补充信息", 4000);
       if (report.messages.length >= 200) reject(409, "该反馈回复已达上限，请联系维护者。");
-      report.messages.push({ id: op, role: "user", body, createdAt: new Date().toISOString() });
       report.inputVersion++;
       // New evidence invalidates the active generation before any further action.
       this.invalidateApproval(report);
     } else reject(400, "不支持的操作。");
     report.revision++; report.updatedAt = new Date().toISOString();
     value.operations[op] = fingerprint;
-    await this.repository.save(value, expected);
-    return report;
+    await this.repository.save(value, expected, {
+      operationId: op, operationHash: fingerprint,
+      actor: messageBody ? reporterActor(userId) : undefined,
+      body: messageBody,
+      audienceRole: messageBody ? "administrator" : undefined,
+    });
+    return (await this.repository.get(report.id))!.report;
   };
   private invalidateApproval = (report: StoredSupport["report"]): void => {
     report.status = "received"; report.runId = null; report.attempts = 0; report.authority = "analyze";
     delete report.fixedCommit;
     report.approval = null;
   };
+}
+
+function reporterActor(userId: string | null): DiscussionActor {
+  return userId
+    ? { id: userId, kind: "human", displayName: "已验证用户", roles: ["reporter"], authenticated: true }
+    : { id: null, kind: "anonymous", displayName: "匿名用户", roles: ["reporter"], authenticated: false };
 }

@@ -1,4 +1,4 @@
-# @nextclaw/feedback-maintainer
+# @nextclaw/feedback-workflow-tools
 
 ## 0.0.3
 
