@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { chmod, mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type {
   ServiceAppResidentEventDisposition,
@@ -16,6 +16,11 @@ const MAX_ATTEMPTS = 5;
 const DEFAULT_LEASE_MS = 30_000;
 const MAX_LEASE_MS = 5 * 60_000;
 const MAX_RETRY_DELAY_MS = 60_000;
+const MAX_EVENT_PAYLOAD_BYTES = 32 * 1024;
+const MAX_ACTIVE_EVENTS = 512;
+const MAX_STORED_EVENTS = 1_024;
+const MAX_ACKNOWLEDGED_EVENTS = 256;
+const MAX_STORE_FILE_BYTES = 40 * 1024 * 1024;
 
 const STATUSES = new Set<ServiceAppResidentEventStatus>([
   "received", "pending", "leased", "acked", "retry-wait", "dead-letter",
@@ -86,6 +91,7 @@ type InboxStore = {
  */
 export class ServiceAppResidentEventInboxService {
   private readonly stores = new Map<string, InboxStore>();
+  private readonly deadLetterStreams = new Map<string, Set<string>>();
   private readonly loadPromises = new Map<string, Promise<void>>();
   private readonly mutationQueues = new Map<string, Promise<unknown>>();
 
@@ -95,6 +101,7 @@ export class ServiceAppResidentEventInboxService {
   ): Promise<ServiceAppResidentEventView> => {
     this.assertEventInput(input);
     let event!: StoredEvent;
+    let limitError: ServiceAppError | undefined;
     await this.mutate(scope, (store) => {
       const existing = store.events.find((candidate) => candidate.eventId === input.eventId);
       if (existing) {
@@ -103,12 +110,25 @@ export class ServiceAppResidentEventInboxService {
       }
       const now = new Date().toISOString();
       const streamKey = input.streamKey?.trim() || "default";
-      if (store.events.some((candidate) => candidate.streamKey === streamKey && candidate.status === "dead-letter")) {
+      if (this.requireDeadLetterStreams(scope).has(streamKey)) {
         throw new ServiceAppError("SERVICE_APP_RESIDENT_EVENT_CONFLICT", `Resident stream ${streamKey} is blocked by a dead-letter event.`);
+      }
+      const trimmed = this.trimAcknowledgedEvents(store);
+      const activeEvents = store.events.reduce(
+        (count, candidate) => count + (candidate.status === "acked" ? 0 : 1),
+        0,
+      );
+      if (activeEvents >= MAX_ACTIVE_EVENTS || store.events.length >= MAX_STORED_EVENTS) {
+        limitError = new ServiceAppError(
+          "SERVICE_APP_RESIDENT_INBOX_LIMIT_EXCEEDED",
+          `Resident inbox reached its safety limit (${activeEvents} active, ${store.events.length} stored events).`,
+          { activeEvents, storedEvents: store.events.length, maxActiveEvents: MAX_ACTIVE_EVENTS, maxStoredEvents: MAX_STORED_EVENTS },
+        );
+        return trimmed;
       }
       const sequence = store.events
         .filter((candidate) => candidate.streamKey === streamKey)
-        .reduce((maximum, candidate) => Math.max(maximum, candidate.sequence), 0) + 1;
+        .reduce((maximum, candidate) => Math.max(maximum, candidate.sequence), store.cursors[streamKey] ?? 0) + 1;
       event = {
         id: randomUUID(),
         appId: scope.appId,
@@ -125,6 +145,7 @@ export class ServiceAppResidentEventInboxService {
       };
       store.events.push(event);
     });
+    if (limitError) throw limitError;
     // Persist the observable receive boundary before moving the event into the
     // eligible queue. This makes a crash between the two states recoverable.
     if (event.status === "received") {
@@ -152,6 +173,28 @@ export class ServiceAppResidentEventInboxService {
       cursors: { ...store.cursors },
       frozen: store.frozen,
     };
+  };
+
+  isStreamBlocked = async (
+    scope: ServiceAppResidentEventScope,
+    streamKey = "default",
+  ): Promise<boolean> => {
+    await this.ensureLoaded(scope);
+    return this.requireDeadLetterStreams(scope).has(streamKey.trim() || "default");
+  };
+
+  canAcceptEvent = async (
+    scope: ServiceAppResidentEventScope,
+    streamKey = "default",
+  ): Promise<boolean> => {
+    await this.ensureLoaded(scope);
+    if (this.requireDeadLetterStreams(scope).has(streamKey.trim() || "default")) return false;
+    const store = this.requireStore(scope);
+    if (store.events.length >= MAX_STORED_EVENTS) return false;
+    return store.events.reduce(
+      (count, event) => count + (event.status === "acked" ? 0 : 1),
+      0,
+    ) < MAX_ACTIVE_EVENTS;
   };
 
   /** Reclaim expired leases then lease one item: one Resident means one lane. */
@@ -214,6 +257,7 @@ export class ServiceAppResidentEventInboxService {
       event.leaseExpiresAt = undefined;
       store.cursors[event.streamKey] = event.sequence;
       updated = event;
+      this.trimAcknowledgedEvents(store);
     });
     return this.toView(updated);
   };
@@ -234,6 +278,7 @@ export class ServiceAppResidentEventInboxService {
       if (event.attempt >= MAX_ATTEMPTS) {
         this.transition(event, "dead-letter");
         event.deadLetteredAt = event.updatedAt;
+        this.requireDeadLetterStreams(scope).add(event.streamKey);
       } else {
         this.transition(event, "retry-wait");
         const delay = this.retryDelay(event.attempt, disposition.delayMs);
@@ -267,17 +312,30 @@ export class ServiceAppResidentEventInboxService {
       event.nextAttemptAt = undefined;
       event.leaseExpiresAt = undefined;
       this.transition(event, "pending");
+      if (!store.events.some((candidate) => candidate !== event && candidate.streamKey === event.streamKey && candidate.status === "dead-letter")) {
+        this.requireDeadLetterStreams(scope).delete(event.streamKey);
+      }
       updated = event;
     });
     return this.toView(updated);
   };
 
   freeze = async (scope: ServiceAppResidentEventScope): Promise<void> => {
-    await this.mutate(scope, (store) => { store.frozen = true; });
+    try {
+      await this.mutate(scope, (store) => {
+        if (store.frozen) return false;
+        store.frozen = true;
+      });
+    } catch (error) {
+      if (!(error instanceof ServiceAppError) || error.code !== "SERVICE_APP_RESIDENT_INBOX_LIMIT_EXCEEDED") throw error;
+    }
   };
 
   resume = async (scope: ServiceAppResidentEventScope): Promise<void> => {
-    await this.mutate(scope, (store) => { store.frozen = false; });
+    await this.mutate(scope, (store) => {
+      if (!store.frozen) return false;
+      store.frozen = false;
+    });
   };
 
   private assertEventInput = (input: ResidentEventInput): void => {
@@ -286,6 +344,14 @@ export class ServiceAppResidentEventInboxService {
     }
     if (!input.payload || typeof input.payload !== "object" || Array.isArray(input.payload)) {
       throw new ServiceAppError("SERVICE_APP_RESIDENT_EVENT_CONFLICT", "Resident event payload must be an object.");
+    }
+    const payloadBytes = Buffer.byteLength(JSON.stringify(input.payload));
+    if (payloadBytes > MAX_EVENT_PAYLOAD_BYTES) {
+      throw new ServiceAppError(
+        "SERVICE_APP_RESIDENT_INBOX_LIMIT_EXCEEDED",
+        `Resident event payload exceeds the ${MAX_EVENT_PAYLOAD_BYTES}-byte safety limit.`,
+        { payloadBytes, maxPayloadBytes: MAX_EVENT_PAYLOAD_BYTES },
+      );
     }
   };
 
@@ -342,12 +408,28 @@ export class ServiceAppResidentEventInboxService {
   private load = async (scope: ServiceAppResidentEventScope): Promise<void> => {
     let store: InboxStore = { schemaVersion: 1, frozen: false, cursors: {}, events: [] };
     try {
-      const parsed = JSON.parse(await readFile(this.storePath(scope), "utf8")) as unknown;
+      const storePath = this.storePath(scope);
+      const storeStat = await stat(storePath);
+      if (storeStat.size > MAX_STORE_FILE_BYTES) {
+        throw this.createStoreLimitError({ fileBytes: storeStat.size });
+      }
+      const parsed = JSON.parse(await readFile(storePath, "utf8")) as unknown;
       if (this.isStore(parsed, scope)) store = parsed;
     } catch (error) {
       if (!this.isMissing(error)) throw error;
     }
+    const activeEvents = store.events.reduce(
+      (count, event) => count + (event.status === "acked" ? 0 : 1),
+      0,
+    );
+    if (activeEvents > MAX_ACTIVE_EVENTS || store.events.length > MAX_STORED_EVENTS) {
+      throw this.createStoreLimitError({ activeEvents, storedEvents: store.events.length });
+    }
     this.stores.set(scope.stateDirectory, store);
+    this.deadLetterStreams.set(
+      scope.stateDirectory,
+      new Set(store.events.filter((event) => event.status === "dead-letter").map((event) => event.streamKey)),
+    );
   };
 
   private mutate = async (scope: ServiceAppResidentEventScope, operation: (store: InboxStore) => boolean | void): Promise<void> => {
@@ -367,7 +449,10 @@ export class ServiceAppResidentEventInboxService {
     const target = this.storePath(scope);
     await mkdir(path.dirname(target), { recursive: true, mode: 0o700 });
     const staged = `${target}.${process.pid}.${Date.now()}.tmp`;
-    await writeFile(staged, `${JSON.stringify(this.requireStore(scope), null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+    const serialized = `${JSON.stringify(this.requireStore(scope), null, 2)}\n`;
+    const fileBytes = Buffer.byteLength(serialized);
+    if (fileBytes > MAX_STORE_FILE_BYTES) throw this.createStoreLimitError({ fileBytes });
+    await writeFile(staged, serialized, { encoding: "utf8", mode: 0o600 });
     await rename(staged, target);
     await chmod(target, 0o600);
   };
@@ -377,6 +462,37 @@ export class ServiceAppResidentEventInboxService {
     if (!store) throw new Error(`Resident event inbox ${scope.stateDirectory} was not loaded.`);
     return store;
   };
+
+  private requireDeadLetterStreams = (scope: ServiceAppResidentEventScope): Set<string> => {
+    const streams = this.deadLetterStreams.get(scope.stateDirectory);
+    if (!streams) throw new Error(`Resident event inbox ${scope.stateDirectory} was not loaded.`);
+    return streams;
+  };
+
+  private trimAcknowledgedEvents = (store: InboxStore): boolean => {
+    const acknowledged = store.events.filter((event) => event.status === "acked");
+    if (acknowledged.length <= MAX_ACKNOWLEDGED_EVENTS) return false;
+    const retainedIds = new Set(
+      acknowledged
+        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+        .slice(0, MAX_ACKNOWLEDGED_EVENTS)
+        .map((event) => event.id),
+    );
+    store.events = store.events.filter((event) => event.status !== "acked" || retainedIds.has(event.id));
+    return true;
+  };
+
+  private createStoreLimitError = (details: Record<string, unknown>): ServiceAppError =>
+    new ServiceAppError(
+      "SERVICE_APP_RESIDENT_INBOX_LIMIT_EXCEEDED",
+      "Resident inbox exceeded its safety limit and was isolated before loading or accepting more events.",
+      {
+        ...details,
+        maxActiveEvents: MAX_ACTIVE_EVENTS,
+        maxStoredEvents: MAX_STORED_EVENTS,
+        maxFileBytes: MAX_STORE_FILE_BYTES,
+      },
+    );
 
   private storePath = (scope: ServiceAppResidentEventScope): string => path.join(scope.stateDirectory, STORE_FILE_NAME);
   private readTime = (value: string | undefined): number => value ? Date.parse(value) : 0;

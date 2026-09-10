@@ -243,6 +243,10 @@ NextClaw 内置 HTTP server 继续使用动态 `compress()` 和 immutable cache�
 
 验收必须证明：无候选 lease 不替换存储文件；dead-letter 只阻塞所属 stream；replay 仍能恢复原事件；VPS 原 196 MB inbox 保持不丢失且不再周期性重写，CPU 与会话接口延迟同步下降。
 
+2026-09-11 的整机假死证明上述修复仍漏掉一个恢复边界：196 MB 遗留 inbox 虽不再重写，启用的 Resident 仍会把整份 JSON 常驻内存，并由每秒 timer ingress 对约 25 万条事件重复做 dead-letter/去重扫描。在 2 GiB VPS 上，这会形成约 800 MiB runtime RSS 与持续 swap 读，最终把系统盘推到约 2,200 read IOPS，HTTP 与 SSH 一起失去响应。
+
+补充后的单一安全合同是：timer producer 在进入持久队列前查询该 stream 的 dead-letter 状态，阻塞时不再创建事件；inbox 对单事件 payload、active/stored event 数和磁盘文件体积设置硬上限，超过上限只隔离该 App 并返回结构化错误，不读取超大遗留 JSON，也不得影响 Kernel、其它 App 或宿主；acked 历史只保留有界的近期诊断窗口，cursor 继续持有已提交进度。显式 replay 清除 stream 阻塞后，原 timer 主链路自然恢复。该限制优先保护宿主可用性，不提供静默丢弃、自动 replay 或绕过上限的 fallback。
+
 ## 数据与事件主链路
 
 1. 会话发生标准变更时，`publishSessionChange` 读取 canonical record、计算 context window、写入 message projection 并发布 session summary。
