@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -58,11 +58,13 @@ describe("ServiceAppResidentEventInboxService", () => {
     }
     const dead = await inbox.list(target, { deadLettersOnly: true });
     expect(dead.entries).toMatchObject([{ eventId: "retry-1", status: "dead-letter", attempt: 5 }]);
+    await expect(inbox.isStreamBlocked(target)).resolves.toBe(true);
     await expect(inbox.enqueue(target, { eventId: "blocked", payload: {} }))
       .rejects.toThrow("blocked by a dead-letter event");
     await expect(inbox.enqueue(target, { eventId: "other-1", streamKey: "other", payload: {} }))
       .resolves.toMatchObject({ streamKey: "other", status: "pending" });
     await inbox.replayDeadLetter(target, "retry-1");
+    await expect(inbox.isStreamBlocked(target)).resolves.toBe(false);
     event = await inbox.leaseNext(target);
     expect(event).toMatchObject({ eventId: "retry-1", status: "leased", attempt: 1 });
   });
@@ -75,5 +77,124 @@ describe("ServiceAppResidentEventInboxService", () => {
     expect(await inbox.leaseNext(target)).toBeUndefined();
     await inbox.resume(target);
     expect(await inbox.leaseNext(target)).toMatchObject({ eventId: "pause-1", status: "leased" });
+  });
+
+  it("does not rewrite an already active inbox during resident startup", async () => {
+    const inbox = new ServiceAppResidentEventInboxService();
+    const target = await scope();
+    await inbox.enqueue(target, { eventId: "active-1", payload: {} });
+    const storePath = path.join(target.stateDirectory, "service-resident-events.json");
+    const inodeBeforeResume = (await stat(storePath)).ino;
+
+    await inbox.resume(target);
+
+    expect((await stat(storePath)).ino).toBe(inodeBeforeResume);
+  });
+
+  it("bounds acknowledged history without regressing the durable stream cursor", async () => {
+    const target = await scope();
+    await writeFile(path.join(target.stateDirectory, "service-resident-events.json"), JSON.stringify({
+      schemaVersion: 1,
+      frozen: false,
+      cursors: { timer: 300 },
+      events: Array.from({ length: 300 }, (_, index) => ({
+        id: `acked-id-${index}`,
+        appId: target.appId,
+        instanceId: target.instanceId,
+        componentId: target.appId,
+        eventId: `acked-event-${index}`,
+        streamKey: "timer",
+        sequence: index + 1,
+        status: "acked",
+        receivedAt: "2026-09-11T00:00:00.000Z",
+        updatedAt: `2026-09-11T00:00:${String(index % 60).padStart(2, "0")}.000Z`,
+        attempt: 1,
+        payload: {},
+      })),
+    }), "utf8");
+    const inbox = new ServiceAppResidentEventInboxService();
+
+    await expect(inbox.enqueue(target, { eventId: "next", streamKey: "timer", payload: {} }))
+      .resolves.toMatchObject({ sequence: 301 });
+    await expect(inbox.list(target)).resolves.toMatchObject({ entries: expect.arrayContaining([
+      expect.objectContaining({ eventId: "next", sequence: 301 }),
+    ]) });
+    expect((await inbox.list(target)).entries).toHaveLength(257);
+  });
+
+  it("isolates oversized legacy stores and rejects oversized event payloads", async () => {
+    const oversizedFile = await scope();
+    const oversizedFilePath = path.join(oversizedFile.stateDirectory, "service-resident-events.json");
+    await writeFile(oversizedFilePath, "", "utf8");
+    await truncate(oversizedFilePath, 40 * 1024 * 1024 + 1);
+    await expect(new ServiceAppResidentEventInboxService().list(oversizedFile))
+      .rejects.toMatchObject({ code: "SERVICE_APP_RESIDENT_INBOX_LIMIT_EXCEEDED" });
+
+    const target = await scope();
+    await writeFile(
+      path.join(target.stateDirectory, "service-resident-events.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        frozen: false,
+        cursors: {},
+        events: Array.from({ length: 513 }, (_, index) => ({
+          id: `id-${index}`,
+          appId: target.appId,
+          instanceId: target.instanceId,
+          componentId: target.appId,
+          eventId: `event-${index}`,
+          streamKey: "timer",
+          sequence: index + 1,
+          status: "pending",
+          receivedAt: "2026-09-11T00:00:00.000Z",
+          updatedAt: "2026-09-11T00:00:00.000Z",
+          attempt: 0,
+          payload: {},
+        })),
+      }),
+      "utf8",
+    );
+    const oversizedInbox = new ServiceAppResidentEventInboxService();
+    await expect(oversizedInbox.list(target))
+      .rejects.toMatchObject({ code: "SERVICE_APP_RESIDENT_INBOX_LIMIT_EXCEEDED" });
+    await expect(oversizedInbox.freeze(target)).resolves.toBeUndefined();
+
+    const atCapacity = await scope();
+    const capacityPath = path.join(atCapacity.stateDirectory, "service-resident-events.json");
+    await writeFile(
+      capacityPath,
+      JSON.stringify({
+        schemaVersion: 1,
+        frozen: false,
+        cursors: {},
+        events: Array.from({ length: 512 }, (_, index) => ({
+          id: `capacity-id-${index}`,
+          appId: atCapacity.appId,
+          instanceId: atCapacity.instanceId,
+          componentId: atCapacity.appId,
+          eventId: `capacity-event-${index}`,
+          streamKey: "timer",
+          sequence: index + 1,
+          status: "pending",
+          receivedAt: "2026-09-11T00:00:00.000Z",
+          updatedAt: "2026-09-11T00:00:00.000Z",
+          attempt: 0,
+          payload: {},
+        })),
+      }),
+      "utf8",
+    );
+    const capacityInbox = new ServiceAppResidentEventInboxService();
+    const capacityInode = (await stat(capacityPath)).ino;
+    await expect(capacityInbox.canAcceptEvent(atCapacity, "timer")).resolves.toBe(false);
+    await expect(capacityInbox.enqueue(atCapacity, { eventId: "over-capacity", streamKey: "timer", payload: {} }))
+      .rejects.toMatchObject({ code: "SERVICE_APP_RESIDENT_INBOX_LIMIT_EXCEEDED" });
+    expect((await stat(capacityPath)).ino).toBe(capacityInode);
+
+    const fresh = await scope();
+    await expect(new ServiceAppResidentEventInboxService().enqueue(fresh, {
+      eventId: "too-large",
+      payload: { text: "x".repeat(33 * 1024) },
+    })).rejects.toMatchObject({ code: "SERVICE_APP_RESIDENT_INBOX_LIMIT_EXCEEDED" });
   });
 });

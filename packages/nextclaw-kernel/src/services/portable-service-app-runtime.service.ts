@@ -437,17 +437,22 @@ export class PortableServiceAppRuntimeService {
     const registration = this.persistentRegistrations.get(params.appId);
     if (!registration || registration.manifest.lifecycle?.mode !== "resident") return;
     const triggeredAt = new Date().toISOString();
-    void this.residentInbox.enqueue(requireResidentInboxScope(registration.app), {
-      eventId: `timer-${triggeredAt}`,
-      streamKey: "timer",
-      componentId: registration.app.id,
-      payload: {
+    const scope = requireResidentInboxScope(registration.app);
+    void this.residentInbox.canAcceptEvent(scope, "timer").then(async (canAccept) => {
+      if (!canAccept) return;
+      await this.residentInbox.enqueue(scope, {
         eventId: `timer-${triggeredAt}`,
-        kind: "timer",
-        triggeredAt,
-        eventIntervalMs: params.eventIntervalMs,
-      },
-    }).then(() => this.scheduleResidentDelivery(params.appId)).catch((error) => {
+        streamKey: "timer",
+        componentId: registration.app.id,
+        payload: {
+          eventId: `timer-${triggeredAt}`,
+          kind: "timer",
+          triggeredAt,
+          eventIntervalMs: params.eventIntervalMs,
+        },
+      });
+      this.scheduleResidentDelivery(params.appId);
+    }).catch((error) => {
       this.markFailed(
         params.appId,
         this.states.get(params.appId)?.lastStartedAt ?? triggeredAt,

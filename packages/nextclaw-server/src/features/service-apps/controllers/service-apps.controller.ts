@@ -13,6 +13,7 @@ function statusForServiceAppError(code: string): 400 | 401 | 403 | 404 | 409 | 4
       return 401;
     case "DOCUMENT_SCOPE_MODE_INSUFFICIENT":
     case "DOCUMENT_SCOPE_UNAVAILABLE":
+    case "SERVICE_APP_RESIDENT_INBOX_LIMIT_EXCEEDED":
       return 409;
     case "SERVICE_APP_ACTION_NOT_DECLARED":
       return 403;
