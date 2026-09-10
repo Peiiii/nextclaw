@@ -85,7 +85,9 @@ export class AppRoutesController {
           ncpAgent: bootstrapStatus.ncpAgent.state,
           cronService: this.options.cron ? "ready" : "unavailable"
         },
-        // 核心健康是独立事实：检查失败不改变服务器存活的 ok 语义
+        // 自感知快照：核心部件健康与"服务器活着"是两个独立事实。
+        // 检查失败不改变 200 + ok 的存活语义（代理探测/status 命令不受影响），
+        // 由自修复闭环的降级（PR-2）与排查（PR-3）环节消费这份快照。
         ...(coreHealth ? { coreHealth } : {})
       })
     );
