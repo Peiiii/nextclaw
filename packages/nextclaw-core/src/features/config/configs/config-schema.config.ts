@@ -285,6 +285,20 @@ export const AgentsConfigSchema = z.object({
   list: z.array(AgentProfileSchema).default([])
 });
 
+export const ToolRiskLevelSchema = z.enum(["low", "medium", "high", "critical"]);
+
+export const ToolRiskPolicyEntrySchema = z.object({
+  risk: ToolRiskLevelSchema.default("low"),
+  reasonHint: z.string().optional(),
+  requireConfirmWhen: z.array(z.string()).default([])
+});
+
+export const ToolRiskPolicySchema = z.object({
+  entries: z.record(z.string(), ToolRiskPolicyEntrySchema).default({}),
+  confirmTimeoutSec: z.number().int().min(1).default(120),
+  rememberConfirmations: z.boolean().default(true)
+});
+
 export const ProviderConfigSchema = z.object({
   enabled: z.boolean().default(true),
   providerType: z.string().trim().min(1).nullable().optional(),
