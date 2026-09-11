@@ -38,6 +38,8 @@ describe("ServiceRestartManager self relaunch", () => {
     originalHome = process.env.NEXTCLAW_HOME;
     originalArgv = [...process.argv];
     process.env.NEXTCLAW_HOME = tempHome;
+    vi.stubEnv("NEXTCLAW_PROCESS_SUPERVISOR", "");
+    vi.stubEnv("INVOCATION_ID", "");
     vi.useFakeTimers();
     mocks.spawn.mockClear();
     pendingRestartStore.clear();
@@ -78,6 +80,7 @@ describe("ServiceRestartManager self relaunch", () => {
     }
     rmSync(tempHome, { recursive: true, force: true });
     pendingRestartStore.clear();
+    vi.unstubAllEnvs();
   });
 
   it("re-enters the runtime launcher so an activated bundle can replace the current app", async () => {
@@ -121,6 +124,7 @@ describe("ServiceRestartManager self relaunch", () => {
       prepare: vi.fn(async () => ({ operationId: "restart-operation-1" })),
       abort: vi.fn(async () => undefined),
       recover: vi.fn(),
+      recoverFromSupervisor: vi.fn(),
     };
     restartManager.installPlannedRestartRecovery(recovery);
 
@@ -146,6 +150,7 @@ describe("ServiceRestartManager self relaunch", () => {
       prepare: vi.fn(async () => ({ operationId: "restart-operation-2" })),
       abort: vi.fn(async () => undefined),
       recover: vi.fn(),
+      recoverFromSupervisor: vi.fn(),
     };
     restartManager.installPlannedRestartRecovery(recovery);
     const exitSpy = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
@@ -178,6 +183,7 @@ describe("ServiceRestartManager self relaunch", () => {
       prepare: vi.fn(async () => ({ operationId: "foreground-operation" })),
       abort: vi.fn(async () => undefined),
       recover: vi.fn(),
+      recoverFromSupervisor: vi.fn(),
     };
     restartManager.installPlannedRestartRecovery(recovery);
 
@@ -229,5 +235,88 @@ describe("ServiceRestartManager self relaunch", () => {
       message: "Run nextclaw restart in an external terminal to apply changes.",
       reasons: ["agent runtime config changed"],
     });
+  });
+});
+
+describe("ServiceRestartManager systemd relaunch", () => {
+  let tempHome = "";
+  let originalHome: string | undefined;
+  let restartManager: ServiceRestartManager;
+
+  beforeEach(() => {
+    tempHome = mkdtempSync(join(tmpdir(), "nextclaw-systemd-restart-test-"));
+    originalHome = process.env.NEXTCLAW_HOME;
+    process.env.NEXTCLAW_HOME = tempHome;
+    vi.stubEnv("NEXTCLAW_PROCESS_SUPERVISOR", "");
+    vi.stubEnv("INVOCATION_ID", "");
+    vi.useFakeTimers();
+    mocks.spawn.mockClear();
+    managedServiceStateStore.write({
+      pid: process.pid,
+      startedAt: "2026-09-11T00:00:00.000Z",
+      uiUrl: "http://127.0.0.1:19199",
+      apiUrl: "http://127.0.0.1:19199/api",
+      uiHost: "0.0.0.0",
+      uiPort: 19199,
+      logPath: join(tempHome, "logs", "service.log"),
+    });
+    restartManager = new ServiceRestartManager({
+      managedService: {} as ManagedServiceManager,
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    managedServiceStateStore.clear();
+    if (originalHome === undefined) {
+      delete process.env.NEXTCLAW_HOME;
+    } else {
+      process.env.NEXTCLAW_HOME = originalHome;
+    }
+    rmSync(tempHome, { recursive: true, force: true });
+    vi.unstubAllEnvs();
+  });
+
+  it("lets systemd own a recoverable restart and uses a failure-compatible exit code", async () => {
+    vi.stubEnv("NEXTCLAW_PROCESS_SUPERVISOR", "systemd");
+    const recovery = {
+      prepare: vi.fn(async () => ({ operationId: "systemd-operation" })),
+      abort: vi.fn(async () => undefined),
+      recover: vi.fn(),
+      recoverFromSupervisor: vi.fn(),
+    };
+    restartManager.installPlannedRestartRecovery(recovery);
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
+
+    await restartManager.requestRestart({
+      reason: "cli.restart",
+      manualMessage: "Restart NextClaw.",
+      strategy: "background-service-or-exit",
+      delayMs: 500,
+    });
+
+    expect(recovery.prepare).toHaveBeenCalledWith("cli.restart");
+    expect(recovery.abort).not.toHaveBeenCalled();
+    expect(mocks.spawn).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(exitSpy).toHaveBeenCalledWith(75);
+    exitSpy.mockRestore();
+  });
+
+  it("recognizes a legacy systemd invocation for recoverable restarts", async () => {
+    vi.stubEnv("INVOCATION_ID", "legacy-systemd-invocation");
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
+
+    await restartManager.requestRestart({
+      reason: "cli.restart",
+      manualMessage: "Restart NextClaw.",
+      strategy: "background-service-or-exit",
+      delayMs: 500,
+    });
+
+    expect(mocks.spawn).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(exitSpy).toHaveBeenCalledWith(75);
+    exitSpy.mockRestore();
   });
 });

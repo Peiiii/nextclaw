@@ -9,7 +9,7 @@ This guide covers installation, configuration, channels, tools, automation, and 
 When NextClaw AI needs to operate the product itself (version/status/doctor/service/channels/config/agents/apps/cron/remote/update), follow these rules:
 
 1. **Read the built-in self-management guide first**. The packaged runtime copy lives at `packages/nextclaw/resources/USAGE.md`, and this repo page is kept aligned with it.
-2. **Use the exact command for the intent**: use `nextclaw --version` for version lookup; do not infer version from `status`.
+2. **Use the exact command for the intent**: use `nextclaw --version` for the invoked CLI/runtime version; use `nextclaw status --json` and `runtime.version` for the version of the process currently serving the local API.
 3. **Prefer machine-readable output** (`--json`) whenever available.
 4. **Discover runtime HTTP addresses from `nextclaw status --json`** before calling local APIs or `/webhook`; use `endpoints.uiUrl` and `endpoints.apiUrl` instead of guessing ports.
 5. **Close the loop after changes** with `nextclaw status --json` (and `nextclaw doctor --json` when needed).
@@ -898,8 +898,8 @@ Notes:
 
 Status/diagnostics tips:
 
-- `nextclaw --version` is the only supported way to query the installed CLI version.
-- `nextclaw status` shows runtime truth (process + health + config summary).
+- `nextclaw --version` queries the version of the CLI/runtime selected for that command. It can differ from an already-running service during an update or a legacy supervisor migration.
+- `nextclaw status` shows runtime truth (running version + process + health + config summary). In JSON output, `runtime.version` comes from the process answering `/api/app/meta`; `runtime.state` is non-`ok` rather than falling back to a launcher or bundle pointer when that fact cannot be read.
 - `nextclaw status --json` outputs machine-readable status and exits `0` when the command itself succeeds; use the JSON `level` field (`healthy` / `degraded` / `stopped`) to interpret runtime state.
 - Use `nextclaw status --json` as the source of truth for local HTTP addresses. `endpoints.uiUrl` is the base for `/webhook`; `endpoints.apiUrl` is the base for `/api/*` calls.
 - `nextclaw status --fix` safely clears stale service state if PID is dead.
@@ -938,7 +938,7 @@ Behavior:
 - Use `nextclaw update --download-only` to stage an update without switching the active runtime. `nextclaw update --apply` applies an already staged runtime update.
 - If the background service is running, restart it after `nextclaw update` reports that the runtime update was applied.
 - `nextclaw restart` and gateway-triggered restarts use the running host's controlled-restart path when available. Before exiting, the host records the exact active runs; the replacement process continues eligible interrupted sessions after channels are ready.
-- Recovery currently covers managed services and foreground hosts registered with the local runtime API. Use `nextclaw restart` without configuration-changing flags. Explicit port/open/timeout overrides, older hosts returning HTTP 404, desktop/supervisor-owned restarts, and direct stop/start do not use this recovery handoff. A timeout or other API error is reported without a second destructive fallback restart; inspect `nextclaw status --json` before retrying.
+- Recovery currently covers managed services, foreground hosts registered with the local runtime API, and NextClaw systemd services. Use `nextclaw restart` without configuration-changing flags. Explicit port/open/timeout overrides, older hosts returning HTTP 404, desktop/other-supervisor exits, and direct stop/start do not use this recovery handoff. A timeout or other API error is reported without a second destructive fallback restart; inspect `nextclaw status --json` before retrying.
 - Recovery starts a new run from the persisted conversation. It does not resume an in-flight tool process or replay its execution stack, so the agent must verify external state before continuing.
 - Direct process termination, crashes, machine restarts, expired handoff records, and the first restart from an older runtime without this capability do not trigger automatic continuation. Use `nextclaw status --json` to confirm the replacement process is healthy.
 

@@ -96,7 +96,7 @@ nextclaw <command> --help
 | `nextclaw restart`    | 受控重启服务；支持恢复的宿主就绪后续跑本次中断的会话 |
 | `nextclaw serve`      | 前台运行 Gateway 和 UI，适合调试                 |
 | `nextclaw stop`       | 停止后台服务                                     |
-| `nextclaw status`     | 查看进程、健康度、配置摘要和可用端点             |
+| `nextclaw status`     | 查看运行中 Runtime 版本、进程、健康度、配置摘要和可用端点 |
 | `nextclaw doctor`     | 运行诊断，并可修复安全范围内的陈旧状态           |
 | `nextclaw logs path`  | 查看本地日志文件路径                             |
 | `nextclaw logs tail`  | 查看最近的服务或崩溃日志                         |
@@ -104,9 +104,9 @@ nextclaw <command> --help
 | `nextclaw usage`      | 查看最近模型用量、历史记录和缓存统计             |
 | `nextclaw update`     | 检查、下载或应用 NextClaw Runtime 更新           |
 
-经用户授权，AI 可通过普通命令行执行 `nextclaw update`，在结果要求重启时执行 `nextclaw restart`。支持本地运行时 API 的后台服务和前台宿主会记录当时正在运行的会话；新进程就绪后，发起会话和并行会话各续跑一次，并收到“重启已完成、不要重放中断命令”的上下文。
+经用户授权，AI 可通过普通命令行执行 `nextclaw update`，在结果要求重启时执行 `nextclaw restart`。支持本地运行时 API 的后台服务、前台宿主和 NextClaw systemd 服务会记录当时正在运行的会话；新进程就绪后，发起会话和并行会话各续跑一次，并收到“重启已完成、不要重放中断命令”的上下文。
 
-自动恢复要求不带修改配置的端口、打开浏览器或超时参数。桌面/系统 supervisor 托管的退出、旧版本兼容 stop/start、崩溃及普通启动不在此恢复范围内。请求超时不代表重启失败：先用 `nextclaw status --json` 检查状态，不要连续重试更新或重启。已完成或普通失败的任务不会因此自动重跑。
+自动恢复要求不带修改配置的端口、打开浏览器或超时参数。桌面和其它 supervisor 托管的退出、旧版本兼容 stop/start、崩溃及普通启动不在此恢复范围内。请求超时不代表重启失败：先用 `nextclaw status --json` 检查状态，不要连续重试更新或重启。其中 `runtime.version` 由实际提供本地 API 的进程报告，是运行中宿主的权威版本；`nextclaw --version` 表示本次命令选择的 CLI/Runtime 版本。已完成或普通失败的任务不会因此自动重跑。
 
 ## 宿主托管与自启动
 

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { EventBus } from "@nextclaw/shared";
 import { NextclawApp } from "./nextclaw-app.service.js";
 import type { ServiceGatewayManager } from "@nextclaw-service/managers/service-gateway.manager.js";
@@ -14,6 +14,7 @@ function createGateway(params: {
   startExtensions?: () => Promise<void>;
   startChannels?: () => Promise<void>;
   recoverPlannedRestart?: () => Promise<unknown>;
+  recoverPlannedRestartFromSupervisor?: () => Promise<unknown>;
   wakeFromRestartSentinel?: () => Promise<void>;
   markNcpAgentError?: (message: string) => void;
 }): ServiceGatewayManager {
@@ -23,6 +24,7 @@ function createGateway(params: {
     markNcpAgentError,
     order: inputOrder,
     recoverPlannedRestart,
+    recoverPlannedRestartFromSupervisor,
     startChannels,
     uiEnabled,
     wakeFromRestartSentinel,
@@ -32,6 +34,8 @@ function createGateway(params: {
     ...kernel,
     plannedRestartRecovery: {
       recover: recoverPlannedRestart ?? vi.fn(async () => ({ status: "none" })),
+      recoverFromSupervisor:
+        recoverPlannedRestartFromSupervisor ?? vi.fn(async () => ({ status: "none" })),
     },
   };
   const gateway = {
@@ -70,6 +74,8 @@ function createGateway(params: {
 }
 
 describe("NextclawApp", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   it("marks the NCP agent ready immediately after kernel bootstrap and before extension loading", async () => {
     const order: string[] = [];
     const gateway = createGateway({
@@ -119,6 +125,31 @@ describe("NextclawApp", () => {
       .toBeGreaterThan(order.indexOf("start-channels"));
     expect(order.indexOf("recover-planned-restart"))
       .toBeLessThan(order.indexOf("wake-restart-sentinel"));
+  });
+
+  it("uses the manifest-owned recovery token for a systemd successor", async () => {
+    vi.stubEnv("NEXTCLAW_PROCESS_SUPERVISOR", "systemd");
+    vi.stubEnv("NEXTCLAW_RESTART_OPERATION_ID", "");
+    const recoverPlannedRestart = vi.fn();
+    const recoverPlannedRestartFromSupervisor = vi.fn(async () => ({
+      status: "recovered",
+      resumed: 1,
+      skipped: 0,
+      failed: 0,
+    }));
+    const gateway = createGateway({
+      kernel: {
+        start: vi.fn(async () => undefined),
+        extensions: { start: vi.fn(async () => undefined) },
+      } as never,
+      recoverPlannedRestart,
+      recoverPlannedRestartFromSupervisor,
+    });
+
+    await new NextclawApp(gateway).start();
+
+    expect(recoverPlannedRestartFromSupervisor).toHaveBeenCalledTimes(1);
+    expect(recoverPlannedRestart).not.toHaveBeenCalled();
   });
 
   it("records kernel startup errors but still continues deferred extension work", async () => {

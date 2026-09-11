@@ -11,6 +11,10 @@ import type { RequestRestartParams } from "@nextclaw-service/types/cli.types.js"
 import { isProcessRunning } from "@nextclaw-service/utils/cli.utils.js";
 import { resolveCliSubcommandLaunch } from "@nextclaw-service/utils/marketplace/cli-subcommand-launch.utils.js";
 import { writeRestartSentinel } from "@nextclaw-service/utils/restart-sentinel.utils.js";
+import {
+  resolveSystemdProcessSupervisor,
+  SUPERVISED_PROCESS_RESTART_EXIT_CODE,
+} from "@nextclaw-service/utils/runtime/process-supervisor.utils.js";
 
 type ServiceRestartManagerDeps = {
   managedService: ManagedServiceManager;
@@ -62,13 +66,16 @@ export class ServiceRestartManager {
       strategy === "background-service-or-exit" && this.plannedRestartRecovery
         ? await this.plannedRestartRecovery.prepare(reason)
         : null;
-    const selfRelaunchArmed = this.armManagedServiceRelaunch({
+    const systemdSupervisor = strategy === "background-service-or-exit"
+      ? resolveSystemdProcessSupervisor(process.env)
+      : null;
+    const replacementArmed = Boolean(systemdSupervisor) || this.armManagedServiceRelaunch({
       reason,
       strategy,
       delayMs,
       operationId: recoveryTicket?.operationId,
     });
-    if (recoveryTicket && !selfRelaunchArmed) {
+    if (recoveryTicket && !replacementArmed) {
       await this.plannedRestartRecovery?.abort(recoveryTicket.operationId);
       throw new Error("Cannot perform a recoverable restart because the replacement process could not be armed.");
     }
@@ -76,7 +83,9 @@ export class ServiceRestartManager {
     const result = await this.restartCoordinator.requestRestart({
       reason,
       strategy,
-      exitCode,
+      exitCode: systemdSupervisor
+        ? exitCode ?? SUPERVISED_PROCESS_RESTART_EXIT_CODE
+        : exitCode,
       delayMs,
       manualMessage
     });

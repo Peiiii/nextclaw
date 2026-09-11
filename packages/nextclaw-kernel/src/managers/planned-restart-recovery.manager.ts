@@ -19,7 +19,7 @@ export type PlannedRestartRecoveryResult = {
 
 export type PlannedRestartRecovery = Pick<
   PlannedRestartRecoveryManager,
-  "prepare" | "abort" | "recover"
+  "prepare" | "abort" | "recover" | "recoverFromSupervisor"
 >;
 
 type ActiveRun = {
@@ -208,6 +208,18 @@ export class PlannedRestartRecoveryManager {
     } catch (error) {
       console.error(`[planned-restart-recovery] failed to consume manifest: ${String(error)}`);
       return this.result("error", operationId);
+    }
+  };
+
+  recoverFromSupervisor = async (): Promise<PlannedRestartRecoveryResult> => {
+    try {
+      const readResult = await this.readManifest();
+      if (readResult.status === "missing") return this.result("none");
+      if (readResult.status === "invalid") return this.result("invalid");
+      return await this.recover(readResult.manifest.operationId);
+    } catch (error) {
+      console.error(`[planned-restart-recovery] failed to inspect supervisor manifest: ${String(error)}`);
+      return this.result("error");
     }
   };
 

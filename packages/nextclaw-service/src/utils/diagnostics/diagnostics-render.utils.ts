@@ -60,6 +60,11 @@ function printProcessSection(report: RuntimeStatusReport): void {
       ? "stale-state"
       : "stopped";
   console.log(`Process: ${processLabel}`);
+  console.log(
+    report.runtime.state === "ok"
+      ? `Runtime version: ${report.runtime.version} (${report.runtime.source})`
+      : `Runtime version: unavailable (${report.runtime.detail})`,
+  );
   console.log(`State file: ${report.serviceStatePath} ${report.serviceStateExists ? "✓" : "✗"}`);
   if (report.process.startedAt) {
     console.log(`Started: ${report.process.startedAt}`);

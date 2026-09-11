@@ -14,12 +14,14 @@ import { isProcessRunning, resolveUiApiBase, resolveUiConfig } from "@nextclaw-s
 import { managedServiceStateStore } from "@nextclaw-service/stores/managed-service-state.store.js";
 import type { ManagedServiceState } from "@nextclaw-service/stores/managed-service-state.store.js";
 import { ManagedServiceSupervisor } from "@nextclaw-service/services/runtime/managed-service-supervisor.service.js";
+import { RuntimeVersionProbeService } from "@nextclaw-service/services/diagnostics/runtime-version-probe.service.js";
 import { printDoctorReport, printStatusReport, type DoctorCheck } from "@nextclaw-service/utils/diagnostics/diagnostics-render.utils.js";
 import { resolveNextclawRemoteStatusSnapshot } from "@nextclaw-service/controllers/commands/remote-command.controller.js";
 import type { DoctorCommandOptions, HealthProbe, RuntimeStatusReport, StatusCommandOptions } from "@nextclaw-service/types/cli.types.js";
 
 export class DiagnosticsCommands {
   private readonly managedServiceSupervisor = new ManagedServiceSupervisor();
+  private readonly runtimeVersionProbe = new RuntimeVersionProbeService();
 
   constructor(private deps: { logo: string }) {}
 
@@ -208,6 +210,20 @@ export class DiagnosticsCommands {
       : { state: "unavailable" as const, detail: "service not running", runtimes: [] };
 
     const configuredHealth = await this.probeApiHealth(`${configuredApiUrl}/health`, 900);
+    const runtimeVersionTarget = running && managedApiUrl
+      ? { apiUrl: managedApiUrl, source: "managed-api" as const }
+      : configuredHealth.state === "ok"
+        ? { apiUrl: configuredApiUrl, source: "configured-api" as const }
+        : null;
+    const runtime = runtimeVersionTarget
+      ? await this.runtimeVersionProbe.probe(runtimeVersionTarget)
+      : {
+          state: "unavailable" as const,
+          version: null,
+          source: null,
+          apiUrl: null,
+          detail: "no reachable local API endpoint",
+        };
     const remote = resolveNextclawRemoteStatusSnapshot(config);
     const orphanSuspected = !running && configuredHealth.state === "ok";
     const providers = this.listProviderStatuses(config);
@@ -282,6 +298,7 @@ export class DiagnosticsCommands {
         managed: managedHealth,
         configured: configuredHealth
       },
+      runtime,
       extensions,
       issues,
       recommendations,

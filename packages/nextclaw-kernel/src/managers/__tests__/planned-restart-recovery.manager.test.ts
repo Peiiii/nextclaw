@@ -1,7 +1,10 @@
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PlannedRestartRecoveryManager } from "@kernel/managers/planned-restart-recovery.manager.js";
 
@@ -145,6 +148,41 @@ describe("PlannedRestartRecoveryManager", () => {
     expect(existsSync(oldRuntime.manifestPath)).toBe(false);
   });
 
+  it("lets a supervisor successor claim the prepared manifest without an inherited token", async () => {
+    const oldRuntime = await createFixture({
+      activeRuns: [{ sessionId: "session-a", runId: "run-a" }],
+    });
+    const ticket = await oldRuntime.manager.prepare("systemd restart");
+    const successor = new PlannedRestartRecoveryManager({
+      manifestPath: oldRuntime.manifestPath,
+      listActiveRuns: () => [],
+      flushSessionEvents: async () => undefined,
+      suspendAdmissions: async () => undefined,
+      resumeAdmissions: () => undefined,
+      continueRun: async () => true,
+    });
+
+    await expect(successor.recoverFromSupervisor()).resolves.toMatchObject({
+      status: "recovered",
+      operationId: ticket.operationId,
+      resumed: 1,
+    });
+    await expect(successor.recoverFromSupervisor()).resolves.toMatchObject({
+      status: "none",
+      resumed: 0,
+    });
+  });
+
+  it("does not recover a supervisor startup without a prepared manifest", async () => {
+    const fixture = await createFixture();
+
+    await expect(fixture.manager.recoverFromSupervisor()).resolves.toMatchObject({
+      status: "none",
+      resumed: 0,
+    });
+    expect(fixture.continueRun).not.toHaveBeenCalled();
+  });
+
   it("continues remaining sessions when one recovery callback fails", async () => {
     const oldRuntime = await createFixture({
       activeRuns: [
@@ -225,4 +263,97 @@ describe("PlannedRestartRecoveryManager", () => {
     expect(fixture.resumeAdmissions).toHaveBeenCalledTimes(1);
     expect(existsSync(fixture.manifestPath)).toBe(false);
   });
+});
+
+describe("PlannedRestartRecoveryManager cross-process recovery", () => {
+  it("passes supervisor recovery through the manifest across two processes", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nextclaw-planned-restart-process-"));
+    temporaryDirectories.push(directory);
+    const outputPath = join(directory, "events.ndjson");
+    await writeFile(outputPath, "", "utf-8");
+    const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+    const managerModuleUrl = pathToFileURL(resolve(
+      packageRoot,
+      "src/managers/planned-restart-recovery.manager.ts",
+    )).href;
+    const tsxPath = createRequire(import.meta.url).resolve("tsx/cli");
+    const script = `
+      import { appendFile } from "node:fs/promises";
+      import { join } from "node:path";
+      import { PlannedRestartRecoveryManager } from ${JSON.stringify(managerModuleUrl)};
+      const home = process.env.NEXTCLAW_HOME;
+      const outputPath = process.env.NEXTCLAW_ACCEPTANCE_OUTPUT;
+      const cycle = process.env.NEXTCLAW_ACCEPTANCE_CYCLE;
+      if (!home || !outputPath) throw new Error("missing acceptance environment");
+      const continued = [];
+      const manager = new PlannedRestartRecoveryManager({
+        manifestPath: join(home, "planned-restart-recovery.json"),
+        listActiveRuns: () => [
+          { sessionId: "session-initiator", runId: "run-initiator" },
+          { sessionId: "session-parallel", runId: "run-parallel" },
+        ],
+        flushSessionEvents: async () => undefined,
+        suspendAdmissions: async () => undefined,
+        resumeAdmissions: () => undefined,
+        continueRun: async (input) => (continued.push(input), true),
+      });
+      const record = async (event) => await appendFile(
+        outputPath,
+        JSON.stringify({ pid: process.pid, cycle, ...event }) + "\\n",
+        "utf-8",
+      );
+      if (process.env.NEXTCLAW_ACCEPTANCE_MODE === "prepare") {
+        await record({ phase: "prepared", ticket: await manager.prepare("systemd restart") });
+        process.exit(75);
+      } else {
+        const first = await manager.recoverFromSupervisor();
+        const second = await manager.recoverFromSupervisor();
+        await record({ phase: "recovered", first, second, continued });
+      }
+    `;
+    const fixturePath = join(directory, "supervisor-fixture.mts");
+    await writeFile(fixturePath, script, "utf-8");
+    const run = (mode: "prepare" | "recover", cycle: string) => spawnSync(
+      process.execPath,
+      [tsxPath, fixturePath],
+      {
+        cwd: packageRoot,
+        encoding: "utf-8",
+        env: {
+          ...process.env,
+          NEXTCLAW_HOME: directory,
+          NEXTCLAW_ACCEPTANCE_OUTPUT: outputPath,
+          NEXTCLAW_ACCEPTANCE_MODE: mode,
+          NEXTCLAW_ACCEPTANCE_CYCLE: cycle,
+          NEXTCLAW_PROCESS_SUPERVISOR: "systemd",
+          NEXTCLAW_RESTART_OPERATION_ID: "",
+        },
+      },
+    );
+
+    for (const cycle of ["first", "second"]) {
+      const oldProcess = run("prepare", cycle);
+      expect(oldProcess.status, oldProcess.stderr).toBe(75);
+      const successor = run("recover", cycle);
+      expect(successor.status, successor.stderr).toBe(0);
+    }
+
+    const events = (await readFile(outputPath, "utf-8")).trim().split("\n")
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    expect(new Set(events.map((event) => event.pid)).size).toBe(4);
+    expect(events.filter((event) => event.phase === "prepared")).toHaveLength(2);
+    const recoveredEvents = events.filter((event) => event.phase === "recovered");
+    expect(recoveredEvents).toHaveLength(2);
+    for (const event of recoveredEvents) {
+      expect(event).toEqual(expect.objectContaining({
+        first: expect.objectContaining({ status: "recovered", resumed: 2 }),
+        second: expect.objectContaining({ status: "none", resumed: 0 }),
+        continued: expect.arrayContaining([
+          expect.objectContaining({ sessionId: "session-initiator", sourceRunId: "run-initiator" }),
+          expect.objectContaining({ sessionId: "session-parallel", sourceRunId: "run-parallel" }),
+        ]),
+      }));
+    }
+  });
+
 });

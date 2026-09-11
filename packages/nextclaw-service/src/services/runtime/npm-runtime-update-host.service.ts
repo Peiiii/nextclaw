@@ -19,6 +19,10 @@ import { NextclawDistributionService } from "@nextclaw-service/services/runtime/
 import { requestManagedServiceRestart } from "@nextclaw-service/services/ui/service-remote-access.service.js";
 import type { ManagedServiceState } from "@nextclaw-service/stores/managed-service-state.store.js";
 import type { RequestRestartParams } from "@nextclaw-service/types/cli.types.js";
+import {
+  resolveSystemdProcessSupervisor,
+  SUPERVISED_PROCESS_RESTART_EXIT_CODE,
+} from "@nextclaw-service/utils/runtime/process-supervisor.utils.js";
 
 const INITIAL_DOWNLOAD_PROGRESS: UpdateProgress = {
   downloadedBytes: 0,
@@ -45,7 +49,7 @@ export type NpmRuntimeUpdateApplyRestartResolution = {
   source: "configured-systemd" | "legacy-systemd-invocation" | "managed-service" | "manual-process";
 };
 
-export const SUPERVISED_RUNTIME_UPDATE_EXIT_CODE = 75;
+export const SUPERVISED_RUNTIME_UPDATE_EXIT_CODE = SUPERVISED_PROCESS_RESTART_EXIT_CODE;
 
 export function resolveNpmRuntimeUpdateApplyRestartMode(options: {
   currentPid: number;
@@ -55,12 +59,9 @@ export function resolveNpmRuntimeUpdateApplyRestartMode(options: {
   uiPort: number;
 }): NpmRuntimeUpdateApplyRestartResolution {
   const { currentPid, env, launchedByLauncher, serviceState, uiPort } = options;
-  const configuredSupervisor = env.NEXTCLAW_PROCESS_SUPERVISOR?.trim();
-  if (configuredSupervisor === "systemd") {
-    return { mode: "supervised-process-restart", source: "configured-systemd" };
-  }
-  if (!configuredSupervisor && env.INVOCATION_ID?.trim()) {
-    return { mode: "supervised-process-restart", source: "legacy-systemd-invocation" };
+  const systemdSupervisor = resolveSystemdProcessSupervisor(env);
+  if (systemdSupervisor) {
+    return { mode: "supervised-process-restart", source: systemdSupervisor };
   }
   if (serviceState?.pid === currentPid) {
     return { mode: "managed-service-restart", source: "managed-service" };

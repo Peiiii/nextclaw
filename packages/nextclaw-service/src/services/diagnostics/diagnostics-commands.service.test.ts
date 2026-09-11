@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DiagnosticsCommands } from "./diagnostics-commands.service.js";
+import { RuntimeVersionProbeService } from "./runtime-version-probe.service.js";
 import type { RuntimeStatusReport } from "@nextclaw-service/types/cli.types.js";
 import { ConfigSchema } from "@nextclaw/core";
 
@@ -52,6 +53,13 @@ describe("DiagnosticsCommands status", () => {
         managed: { state: "unreachable", detail: "service not running" },
         configured: { state: "unreachable", detail: "fetch failed" }
       },
+      runtime: {
+        state: "unavailable",
+        version: null,
+        source: null,
+        apiUrl: null,
+        detail: "no reachable local API endpoint"
+      },
       extensions: {
         state: "unavailable",
         detail: "service not running",
@@ -76,6 +84,46 @@ describe("DiagnosticsCommands status", () => {
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('"level": "stopped"'));
     expect(process.exitCode).toBe(0);
+  });
+
+  it("reads the running runtime version from app metadata without a local fallback", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      ok: true,
+      data: { name: "NextClaw", productVersion: "0.53.0" },
+    }), { status: 200 }));
+    const probe = new RuntimeVersionProbeService();
+
+    await expect(probe.probe({
+      apiUrl: "http://127.0.0.1:18791/api",
+      source: "managed-api",
+    })).resolves.toEqual({
+      state: "ok",
+      version: "0.53.0",
+      source: "managed-api",
+      apiUrl: "http://127.0.0.1:18791/api",
+      detail: "running API reported its product version",
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      "http://127.0.0.1:18791/api/app/meta",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("does not substitute a CLI or pointer version for invalid app metadata", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      ok: true,
+      data: {},
+    }), { status: 200 }));
+    const probe = new RuntimeVersionProbeService();
+
+    await expect(probe.probe({
+      apiUrl: "http://127.0.0.1:18791/api",
+      source: "configured-api",
+    })).resolves.toEqual(expect.objectContaining({
+      state: "invalid-response",
+      version: null,
+      source: "configured-api",
+    }));
   });
 
   it("reports OpenCode Zen as configured when it uses anonymous access", () => {

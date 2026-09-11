@@ -1,6 +1,7 @@
 import type { NextclawKernel } from "@nextclaw/kernel";
 import { logStartupTrace, measureStartupAsync } from "@nextclaw-service/utils/startup-trace.utils.js";
 import type { ServiceGatewayManager } from "@nextclaw-service/managers/service-gateway.manager.js";
+import { resolveSystemdProcessSupervisor } from "@nextclaw-service/utils/runtime/process-supervisor.utils.js";
 
 export type UiStartupHandle = {
   endpoint: string;
@@ -61,9 +62,12 @@ export class NextclawApp {
       "service.deferred_startup.recover_planned_restart",
       async () => {
         if (!this.kernelReady) return;
-        const result = await this.kernel.plannedRestartRecovery.recover(
-          process.env.NEXTCLAW_RESTART_OPERATION_ID,
-        );
+        const operationId = process.env.NEXTCLAW_RESTART_OPERATION_ID?.trim();
+        const result = operationId
+          ? await this.kernel.plannedRestartRecovery.recover(operationId)
+          : resolveSystemdProcessSupervisor(process.env)
+            ? await this.kernel.plannedRestartRecovery.recoverFromSupervisor()
+            : await this.kernel.plannedRestartRecovery.recover(undefined);
         if (result.status === "recovered") {
           console.log(
             `✓ Planned restart recovery: ${result.resumed} resumed, ${result.skipped} skipped, ${result.failed} failed`,

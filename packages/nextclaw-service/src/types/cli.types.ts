@@ -302,6 +302,14 @@ export type HealthProbe = {
   payload?: unknown;
 };
 
+export type RuntimeVersionProbe = {
+  state: "ok" | "unavailable" | "invalid-response";
+  version: string | null;
+  source: "managed-api" | "configured-api" | null;
+  apiUrl: string | null;
+  detail: string;
+};
+
 export type RuntimeStatusReport = {
   generatedAt: string;
   configPath: string;
@@ -345,6 +353,7 @@ export type RuntimeStatusReport = {
     managed: HealthProbe;
     configured: HealthProbe;
   };
+  runtime: RuntimeVersionProbe;
   extensions: {
     detail: string;
     runtimes: ExtensionRuntimeStatus[];

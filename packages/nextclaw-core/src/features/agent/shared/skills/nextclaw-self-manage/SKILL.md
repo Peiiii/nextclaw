@@ -26,7 +26,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 
 ## Stable Execution Rules
 
-- Map version lookup directly to `nextclaw --version`; do not substitute `status` for version queries.
+- Map CLI/runtime version lookup to `nextclaw --version`. When the question is about the process currently serving NextClaw, use `nextclaw status --json` and read `runtime.version`; do not substitute the CLI version, launcher version, or bundle pointer.
 - Treat `nextclaw update --channel beta` as opting into both preview and production candidates; the updater offers whichever compatible version is newer. The `stable` channel remains production-only.
 - For an explicitly authorized self-update, run `nextclaw update` through the ordinary exec/CLI path. If its result requires a restart, then run `nextclaw restart`; never look for or invent an agent-only update tool.
 - Prefer machine-readable output: use `--json` when available.
@@ -60,7 +60,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - For cron notifications, do not add delivery flags to the cron command. Put the notification intent in the scheduled message and let the scheduled agent call the `message` tool with an explicit channel and recipient.
 - For Agent creation/update/removal, treat `nextclaw agents list|new|update|remove --json` as the default path and follow the Agent management section in the self-management guide.
 - For runtime context injection, use `nextclaw agents runtime config <runtime-id> --json` to inspect and `--inject-nextclaw-context <true|false>` to update. Apply the authorized restart using the lifecycle guidance above.
-- Automatic continuation requires a supported managed/foreground host and plain `nextclaw restart`, without port/open/timeout overrides. Desktop/supervisor exits and legacy stop/start transitions do not carry this handoff. If the restart request times out, inspect status before retrying; an interrupted tool result is not proof that the restart failed.
+- Automatic continuation requires a supported managed/foreground host or NextClaw systemd service and plain `nextclaw restart`, without port/open/timeout overrides. Desktop/other-supervisor exits and legacy stop/start transitions do not carry this handoff. If the restart request times out, inspect status before retrying; an interrupted tool result is not proof that the restart failed.
 - For project creation, discovery, or removal, use `nextclaw projects list|templates|create|remove --json`; project removal also requires `--confirm <project-id>` and preserves the local folder, sessions, and Project Work. Do not synthesize placeholder sessions or edit the project registry file directly.
 - For session naming, project binding, or deletion, use `nextclaw sessions rename|set-project|clear-project|delete --json`; deletion also requires `--confirm <session-id>`. Do not edit session journal metadata directly.
 - Do not edit `config.json` or `agents.list` directly for normal Agent CRUD; only do that when the user explicitly wants a manual recovery path.
@@ -91,7 +91,8 @@ When the user reports missing messages, missing replies, intermittent failures, 
 
 ## High-frequency Intents
 
-- Version lookup: `nextclaw --version`
+- CLI/runtime selected for this command: `nextclaw --version`
+- Runtime currently serving the local API: `nextclaw status --json` → `runtime.version`
 - Service health: `nextclaw status --json` / `nextclaw doctor --json`
 - Runtime incident logs: `nextclaw logs query --since 2h --json` and narrow by `--domain` / `--correlation-id`
 - Local HTTP/API/webhook addresses: `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`
