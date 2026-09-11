@@ -419,8 +419,17 @@ export const McpConfigSchema = z.object({
   servers: z.record(McpServerDefinitionSchema).default({})
 });
 
+export const CoreSelfHealConfigSchema = z.object({
+  enabled: z.boolean().default(true),
+  intervalMs: z.number().int().min(1_000).default(30_000),
+  failureThreshold: z.number().int().min(1).default(3),
+  maxRepairsPerHour: z.number().int().min(0).default(3),
+  repairCooldownMs: z.number().int().min(0).default(60_000)
+});
+
 export const CoreHealthConfigSchema = z.object({
-  autoDegrade: z.boolean().default(false)
+  autoDegrade: z.boolean().default(false),
+  selfHeal: CoreSelfHealConfigSchema.default({})
 });
 
 export const WebSearchConfigSchema = z.object({
@@ -573,6 +582,7 @@ export type SearchConfig = z.infer<typeof SearchConfigSchema>;
 export type SearchProviderName = z.infer<typeof SearchProviderNameSchema>;
 export type McpConfig = z.infer<typeof McpConfigSchema>;
 export type CoreHealthConfig = z.infer<typeof CoreHealthConfigSchema>;
+export type CoreSelfHealConfig = z.infer<typeof CoreSelfHealConfigSchema>;
 export type McpServerDefinition = z.infer<typeof McpServerDefinitionSchema>;
 export type McpServerMetadata = z.infer<typeof McpServerMetadataSchema>;
 export type McpServerScope = z.infer<typeof McpServerScopeSchema>;

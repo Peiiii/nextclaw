@@ -1,6 +1,12 @@
 export const FIELD_HELP: Record<string, string> = {
   "coreHealth.autoDegrade":
     "When the minimal core (config/provider/workspace/sessions) is unhealthy, external features (desktop automation, MCP tools) are disabled to keep the core running.",
+  "coreHealth.selfHeal": "Self-repair: periodically heartbeat the core health, and attempt automatic repair when failures persist.",
+  "coreHealth.selfHeal.enabled": "Enable periodic heartbeat and automatic repair. Default true.",
+  "coreHealth.selfHeal.intervalMs": "Heartbeat interval in milliseconds. Default 30000 (30 seconds).",
+  "coreHealth.selfHeal.failureThreshold": "Consecutive failed heartbeats before declaring degraded. Default 3.",
+  "coreHealth.selfHeal.maxRepairsPerHour": "Max repairs per hour per check id. Default 3.",
+  "coreHealth.selfHeal.repairCooldownMs": "Minimum cooldown between repairs for the same check id. Default 60000 (60 seconds).",
   "agents.defaults.workspace": "Workspace directory for agent context files and memory.",
   "agents.defaults.model":
     "Default model identifier used by the agent. Use provider-prefixed format. Examples: openai/gpt-5.1 · anthropic/claude-opus-4-1 · deepseek/deepseek-chat · minimax/MiniMax-M2.5 · openrouter/openai/gpt-5.3-codex.",

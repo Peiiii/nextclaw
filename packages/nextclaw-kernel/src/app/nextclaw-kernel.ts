@@ -51,6 +51,7 @@ import {
 } from "@kernel/features/desktop-host/index.js";
 import { FeatureControlsService } from "@kernel/features/feature-controls/index.js";
 import { CoreHealthCheckService } from "@kernel/features/core-health/index.js";
+import { CoreSelfHealService } from "@kernel/features/core-self-heal/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
@@ -181,6 +182,7 @@ export class NextclawKernel {
   readonly capabilityGrants: CapabilityGrantManager;
   readonly featureControls: FeatureControlsService;
   readonly coreHealth: CoreHealthCheckService;
+  readonly coreSelfHeal: CoreSelfHealService;
   readonly verificationRecords: VerificationRecordService;
   readonly portableRuntimeAcceptance: PortableRuntimeAcceptanceManager;
   readonly plannedRestartRecovery: PlannedRestartRecoveryManager;
@@ -207,12 +209,13 @@ export class NextclawKernel {
       providerModelCatalogManager: this.providerModelCatalog,
     }));
     this.assetStore = new LocalAssetStore({ rootDir: resolve(getDataDir(), "assets") });
-    ({ coreHealth: this.coreHealth, featureControls: this.featureControls } = createKernelCoreServices({
-      desktopHost,
-      getWorkspacePath: () => getWorkspacePath(this.configManager.config.agents.defaults.workspace),
-      sessionsDir,
-      configManager: this.configManager,
-    }));
+    ({ coreHealth: this.coreHealth, featureControls: this.featureControls, coreSelfHeal: this.coreSelfHeal } =
+      createKernelCoreServices({
+        desktopHost,
+        getWorkspacePath: () => getWorkspacePath(this.configManager.config.agents.defaults.workspace),
+        sessionsDir,
+        configManager: this.configManager,
+      }));
     this.control = new NextclawKernelControlManager<unknown, unknown, unknown>();
     this.agents = new AgentManager(this.configManager);
     this.agentContextWindowManager = new AgentContextWindowManager(
@@ -369,6 +372,7 @@ export class NextclawKernel {
     }
     this.agentRunRequestManager.start();
     await this.observations.start();
+    this.coreSelfHeal.start();
   };
 
   dispose = async (): Promise<void> => {
@@ -388,6 +392,6 @@ export class NextclawKernel {
     await this.mcpManager.dispose();
     await this.serviceAppManager.dispose();
     await this.sessionSearch.dispose();
-    this.projectWorkManager.dispose(); this.projectManager.dispose();
+    this.projectWorkManager.dispose(); this.coreSelfHeal.dispose(); this.projectManager.dispose();
   };
 }

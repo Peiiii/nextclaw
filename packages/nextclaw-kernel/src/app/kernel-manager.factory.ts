@@ -1,8 +1,8 @@
 import { AppDataManager } from "@kernel/managers/app-data.manager.js";
 import { CoreHealthCheckService } from "@kernel/features/core-health/index.js";
+import { CoreSelfHealService } from "@kernel/features/core-self-heal/index.js";
 import { FeatureControlsService } from "@kernel/features/feature-controls/index.js";
 import type { DesktopHost } from "@kernel/features/desktop-host/index.js";
-import type { Config } from "@nextclaw/core";
 import type { AppPackageManager } from "@kernel/managers/app-package.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { ChannelManager } from "@kernel/managers/channel.manager.js";
@@ -344,8 +344,8 @@ export function createKernelCoreServices(params: {
   desktopHost: DesktopHost;
   getWorkspacePath: () => string;
   sessionsDir: string;
-  configManager: { config: Config };
-}): { coreHealth: CoreHealthCheckService; featureControls: FeatureControlsService } {
+  configManager: ConfigManager;
+}): { coreHealth: CoreHealthCheckService; featureControls: FeatureControlsService; coreSelfHeal: CoreSelfHealService } {
   const coreHealth = new CoreHealthCheckService({
     getConfig: () => params.configManager.config,
     getWorkspacePath: () => params.getWorkspacePath(),
@@ -356,7 +356,14 @@ export function createKernelCoreServices(params: {
     coreHealth,
     getConfig: () => params.configManager.config,
   });
-  return { coreHealth, featureControls };
+  const coreSelfHeal = new CoreSelfHealService({
+    getConfig: () => params.configManager.config,
+    coreHealthEvaluate: () => coreHealth.evaluate(),
+    applyConfigReload: () => params.configManager.applyLiveConfigReload(),
+    getWorkspacePath: () => params.getWorkspacePath(),
+    sessionsDir: params.sessionsDir,
+  });
+  return { coreHealth, featureControls, coreSelfHeal };
 }
 
 export function installKernelConfigRuntimeHooks(params: {

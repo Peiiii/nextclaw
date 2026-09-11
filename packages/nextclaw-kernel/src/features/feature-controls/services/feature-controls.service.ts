@@ -38,7 +38,13 @@ export class FeatureControlsService {
     // 不向其它 ToolProvider 传播失败——保住最小核心。
     let desktop: { online: boolean; platform: string; supportedOperations: string[] };
     try {
-      desktop = await this.deps.desktopHost.status();
+      const status = await this.deps.desktopHost.status();
+      desktop = {
+        online: status.online,
+        // 契约 platform 可缺省（UnavailableDesktopHost 等场景），归一化为 "unknown"
+        platform: status.platform ?? "unknown",
+        supportedOperations: status.supportedOperations,
+      };
     } catch {
       desktop = { online: false, platform: "unknown", supportedOperations: [] };
     }

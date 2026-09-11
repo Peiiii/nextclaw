@@ -75,6 +75,7 @@ export type UiKernelHost = Pick<
 > & {
   accessManager?: NextclawKernel["accessManager"];
   coreHealth?: NextclawKernel["coreHealth"];
+  coreSelfHeal?: NextclawKernel["coreSelfHeal"];
 };
 
 export type UiCronHost = {

@@ -67,6 +67,7 @@ describe("DiagnosticsCommands status", () => {
       hostIncident: {
         latest: null
       },
+      coreSelfHeal: null,
       level: "stopped",
       exitCode: 0
     });

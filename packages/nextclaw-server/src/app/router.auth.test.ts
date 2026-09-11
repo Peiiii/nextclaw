@@ -301,30 +301,53 @@ describe("ui auth protection flows", () => {
     saveConfig(ConfigSchema.parse({}), configPath);
 
     const evaluatedAt = new Date().toISOString();
+    const healthSnapshot = {
+      healthy: false,
+      checks: [
+        { id: "config", ok: true, checkedAt: evaluatedAt },
+        { id: "provider", ok: false, detail: "no enabled provider", checkedAt: evaluatedAt }
+      ],
+      evaluatedAt
+    };
+    const selfHealSnapshot = {
+      phase: "degraded",
+      healthy: false,
+      failedCheckIds: ["provider"],
+      consecutiveFailures: 3,
+      lastHeartbeatAt: evaluatedAt,
+      checks: []
+    };
     const app = createApp(
       configPath,
       {
         coreHealth: {
-          evaluate: () => ({
-            healthy: false,
-            checks: [
-              { id: "config", ok: true, checkedAt: evaluatedAt },
-              { id: "provider", ok: false, detail: "no enabled provider", checkedAt: evaluatedAt }
-            ],
-            evaluatedAt
-          })
-        } as never
-      },
+          evaluate: () => healthSnapshot,
+          toPublicSnapshot: () => healthSnapshot
+        },
+        coreSelfHeal: {
+          evaluate: () => selfHealSnapshot,
+          toPublicSnapshot: () => selfHealSnapshot
+        }
+      } as never,
     );
 
     const healthResponse = await app.request("http://localhost/api/health");
     expect(healthResponse.status).toBe(200);
     const payload = (await healthResponse.json()) as {
       ok: boolean;
-      data: { status: string; coreHealth?: unknown };
+      data: { status: string; coreHealth?: unknown; coreSelfHeal?: unknown };
     };
     expect(payload.ok).toBe(true);
     expect(payload.data.status).toBe("ok");
+    // PR-3 不变量：新增 coreSelfHeal 字段不改变 200 + ok + services 形状
+    expect(payload.data.services).toEqual({ ncpAgent: expect.any(String), cronService: expect.any(String) });
+    expect(payload.data.coreSelfHeal).toMatchObject({
+      phase: "degraded",
+      healthy: false,
+      failedCheckIds: ["provider"],
+      consecutiveFailures: 3,
+      lastHeartbeatAt: evaluatedAt
+    });
     expect(payload.data.coreHealth).toMatchObject({
       healthy: false,
       evaluatedAt,

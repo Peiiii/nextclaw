@@ -1,6 +1,12 @@
 export const FIELD_LABELS: Record<string, string> = {
   coreHealth: "Core Health",
   "coreHealth.autoDegrade": "Auto Degrade",
+  "coreHealth.selfHeal": "Self Repair",
+  "coreHealth.selfHeal.enabled": "Enable Self Repair",
+  "coreHealth.selfHeal.intervalMs": "Heartbeat Interval",
+  "coreHealth.selfHeal.failureThreshold": "Failure Threshold",
+  "coreHealth.selfHeal.maxRepairsPerHour": "Max Repairs Per Hour",
+  "coreHealth.selfHeal.repairCooldownMs": "Repair Cooldown",
   agents: "Agents",
   "agents.defaults": "Agent Defaults",
   "agents.defaults.workspace": "Workspace",

@@ -16,6 +16,7 @@ import type { ManagedServiceState } from "@nextclaw-service/stores/managed-servi
 import { ManagedServiceSupervisor } from "@nextclaw-service/services/runtime/managed-service-supervisor.service.js";
 import { printDoctorReport, printStatusReport, type DoctorCheck } from "@nextclaw-service/utils/diagnostics/diagnostics-render.utils.js";
 import { resolveNextclawRemoteStatusSnapshot } from "@nextclaw-service/controllers/commands/remote-command.controller.js";
+import type { CoreSelfHealStatus } from "@nextclaw/kernel";
 import type { DoctorCommandOptions, HealthProbe, RuntimeStatusReport, StatusCommandOptions } from "@nextclaw-service/types/cli.types.js";
 
 export class DiagnosticsCommands {
@@ -207,6 +208,11 @@ export class DiagnosticsCommands {
       ? await this.probeExtensionRuntimes(`${managedApiUrl}/runtime/extensions`)
       : { state: "unavailable" as const, detail: "service not running", runtimes: [] };
 
+    // 核心自愈状态取自 /api/health 的 coreSelfHeal 快照（PR-3）；服务未运行时不可用
+    const coreSelfHeal =
+      running && managedHealth.state === "ok"
+        ? ((managedHealth.payload as { data?: { coreSelfHeal?: CoreSelfHealStatus } } | undefined)?.data?.coreSelfHeal ?? null)
+        : null;
     const configuredHealth = await this.probeApiHealth(`${configuredApiUrl}/health`, 900);
     const remote = resolveNextclawRemoteStatusSnapshot(config);
     const orphanSuspected = !running && configuredHealth.state === "ok";
@@ -288,6 +294,7 @@ export class DiagnosticsCommands {
       logTail,
       remote,
       hostIncident: { latest: latestHostIncident },
+      coreSelfHeal,
       level,
       exitCode
     };

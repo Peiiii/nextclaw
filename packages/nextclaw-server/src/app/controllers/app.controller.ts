@@ -80,6 +80,8 @@ export class AppRoutesController {
     // /api/health 是未登录也可访问的公共路由，脱敏快照只暴露稳定 reason code，
     // 不泄露本机路径与原始异常。已鉴权面（日志、诊断面板）消费原始 evaluate()。
     const coreHealth = this.options.kernel.coreHealth?.toPublicSnapshot();
+    // PR-3：附加自愈状态快照，供 /api/health 可观测（脱敏，不暴露绝对路径/异常）。
+    const coreSelfHeal = this.options.kernel.coreSelfHeal?.toPublicSnapshot();
     return c.json(
       ok({
         status: "ok",
@@ -87,10 +89,8 @@ export class AppRoutesController {
           ncpAgent: bootstrapStatus.ncpAgent.state,
           cronService: this.options.cron ? "ready" : "unavailable"
         },
-        // 自感知快照：核心部件健康与"服务器活着"是两个独立事实。
-        // 检查失败不改变 200 + ok 的存活语义（代理探测/status 命令不受影响），
-        // 由自修复闭环的降级（PR-2）与排查（PR-3）环节消费这份快照。
-        ...(coreHealth ? { coreHealth } : {})
+        ...(coreHealth ? { coreHealth } : {}),
+        ...(coreSelfHeal ? { coreSelfHeal } : {}),
       })
     );
   };

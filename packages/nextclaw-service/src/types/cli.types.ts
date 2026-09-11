@@ -1,5 +1,5 @@
 import type { RestartStrategy } from "@nextclaw-service/services/restart/restart-coordinator.service.js";
-import type { ExtensionRuntimeStatus } from "@nextclaw/kernel";
+import type { CoreSelfHealStatus, ExtensionRuntimeStatus } from "@nextclaw/kernel";
 import type { RemoteRuntimeState } from "@nextclaw/remote";
 import type { HostIncident } from "@nextclaw/core";
 
@@ -360,6 +360,8 @@ export type RuntimeStatusReport = {
   hostIncident: {
     latest: HostIncident | null;
   };
+  /** 核心自愈状态（来自 /api/health 的 coreSelfHeal 快照）；服务未运行或字段缺失时为 null */
+  coreSelfHeal: CoreSelfHealStatus | null;
   level: "healthy" | "degraded" | "stopped";
   exitCode: 0 | 1 | 2;
 };

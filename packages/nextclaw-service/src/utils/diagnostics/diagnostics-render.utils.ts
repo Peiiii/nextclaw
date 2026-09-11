@@ -82,6 +82,25 @@ function printProcessSection(report: RuntimeStatusReport): void {
     const incident = report.hostIncident.latest;
     console.log(`Latest Desktop incident: ${incident.reasonCode} (${incident.confidence}) at ${incident.observedEndedAt ?? incident.startedAt}`);
   }
+  console.log(formatCoreSelfHealLine(report));
+}
+
+function formatCoreSelfHealLine(report: RuntimeStatusReport): string {
+  const selfHeal = report.coreSelfHeal;
+  if (!selfHeal) {
+    return "Core self-heal: unavailable (service not running or field missing)";
+  }
+  const suffixes: string[] = [];
+  if (selfHeal.phase === "degraded" || selfHeal.phase === "failing") {
+    suffixes.push(`failed: ${selfHeal.failedCheckIds.join(", ") || "-"}`);
+  }
+  if (selfHeal.lastRepair) {
+    const repair = selfHeal.lastRepair;
+    suffixes.push(`last repair ${repair.action} on ${repair.checkId}: ${repair.recovered ? "recovered" : "not recovered"} at ${repair.at}`);
+  }
+  return suffixes.length > 0
+    ? `Core self-heal: ${selfHeal.phase} (${suffixes.join("; ")})`
+    : `Core self-heal: ${selfHeal.phase}`;
 }
 
 function printEndpointSection(report: RuntimeStatusReport): void {
