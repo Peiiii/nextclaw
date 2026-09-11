@@ -87,9 +87,16 @@ function createId(prefix: string): string {
 
 const REMOTE_REQUEST_TIMEOUT_MS = 15_000;
 
+class RemoteBrowserRecoveryReplacementError extends Error {
+  constructor() {
+    super('Remote transport connection replaced after browser recovery.');
+  }
+}
+
 export class RemoteSessionMultiplexTransport implements AppTransport {
   private socket: WebSocket | null = null;
   private connectPromise: Promise<void> | null = null;
+  private rejectConnect: ((error: Error) => void) | null = null;
   private connectTimeoutId: number | null = null;
   private reconnectTimer: number | null = null;
   private manualClose = false;
@@ -221,6 +228,9 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
     this.subscribers.add(handler);
     this.browserRecovery.start();
     void this.ensureSocket().catch((error) => {
+      if (error instanceof RemoteBrowserRecoveryReplacementError) {
+        return;
+      }
       handler({
         type: 'connection.error',
         payload: { message: error instanceof Error ? error.message : String(error) }
@@ -258,6 +268,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
     const wsUrl = resolveTransportWebSocketUrl(this.apiBase, this.runtime.wsPath);
     this.manualClose = false;
     this.connectPromise = new Promise<void>((innerResolve, innerReject) => {
+        this.rejectConnect = innerReject;
         const socket = new WebSocket(wsUrl);
         this.socket = socket;
         let connectionOpened = false;
@@ -279,6 +290,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
           connectionOpened = true;
           clearConnectTimeout();
           this.connectPromise = null;
+          this.rejectConnect = null;
           innerResolve();
           this.emit({ type: 'connection.open', payload: {} });
         };
@@ -304,6 +316,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
           const wasConnecting = this.connectPromise !== null;
           this.socket = null;
           this.connectPromise = null;
+          this.rejectConnect = null;
           this.failPendingWork(new Error('Remote transport connection closed.'));
           this.emit({ type: 'connection.close', payload: {} });
           if (wasConnecting && !connectionOpened) {
@@ -330,21 +343,29 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
   }
 
   private replaceSocket = (): void => {
-    if (this.subscribers.size === 0 || this.connectPromise !== null) {
+    if (this.subscribers.size === 0) {
       return;
     }
     if (this.reconnectTimer !== null) {
       window.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+    if (this.connectTimeoutId !== null) {
+      window.clearTimeout(this.connectTimeoutId);
+      this.connectTimeoutId = null;
+    }
     const staleSocket = this.socket;
+    const rejectStaleConnect = this.rejectConnect;
     this.socket = null;
+    this.connectPromise = null;
+    this.rejectConnect = null;
     if (staleSocket) {
       staleSocket.onopen = null;
       staleSocket.onmessage = null;
       staleSocket.onerror = null;
       staleSocket.onclose = null;
       staleSocket.close();
+      rejectStaleConnect?.(new RemoteBrowserRecoveryReplacementError());
       this.failPendingWork(new Error('Remote transport connection replaced after browser recovery.'));
       this.emit({ type: 'connection.close', payload: {} });
     }

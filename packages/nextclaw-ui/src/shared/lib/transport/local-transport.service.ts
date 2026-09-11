@@ -54,7 +54,6 @@ class LocalRealtimeGateway {
   private socket: WebSocket | null = null;
   private reconnectTimer: number | null = null;
   private manualClose = false;
-  private replacingAfterBrowserRecovery = false;
   private subscribers = new Set<EventHandler>();
   private readonly browserRecovery = new BrowserRealtimeRecoveryService(() => {
     this.replaceSocket();
@@ -95,7 +94,6 @@ class LocalRealtimeGateway {
     this.socket = socket;
 
     socket.onopen = () => {
-      this.replacingAfterBrowserRecovery = false;
       this.emit({ type: 'connection.open', payload: {} });
     };
 
@@ -113,7 +111,6 @@ class LocalRealtimeGateway {
     };
 
     socket.onclose = () => {
-      this.replacingAfterBrowserRecovery = false;
       this.emit({ type: 'connection.close', payload: {} });
       this.socket = null;
       if (!this.manualClose && this.subscribers.size > 0) {
@@ -133,10 +130,9 @@ class LocalRealtimeGateway {
   };
 
   private replaceSocket = (): void => {
-    if (this.subscribers.size === 0 || this.replacingAfterBrowserRecovery) {
+    if (this.subscribers.size === 0) {
       return;
     }
-    this.replacingAfterBrowserRecovery = true;
     if (this.reconnectTimer !== null) {
       window.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -156,7 +152,6 @@ class LocalRealtimeGateway {
 
   private disconnect = (): void => {
     this.manualClose = true;
-    this.replacingAfterBrowserRecovery = false;
     if (this.reconnectTimer !== null) {
       window.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;

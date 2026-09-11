@@ -21,7 +21,7 @@ This manual explains how NextClaw can stay available. Use it to choose between f
 
 Unused messaging channels stay stopped and do not keep separate processes resident. For the current tested server baseline, three-run idle measurements, and active workloads that need more memory, see [Runtime Resource Usage](/en/guide/resource-usage).
 
-When a phone browser returns from the lock screen, background, or a short network interruption, NextClaw proactively rebuilds its realtime connection and synchronizes session and task state again. A full-page refresh is normally unnecessary.
+When a phone browser returns from the lock screen, background, a frozen page, or a short network interruption, NextClaw immediately rebuilds its realtime connection when the page is shown or focused and synchronizes session and task state again. A full-page refresh is normally unnecessary.
 
 ## Important boundary
 

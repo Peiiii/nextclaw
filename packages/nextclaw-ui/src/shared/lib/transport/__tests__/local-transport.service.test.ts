@@ -38,11 +38,13 @@ class MockWebSocket {
 describe('LocalAppTransport browser connection recovery', () => {
   beforeEach(() => {
     MockWebSocket.instances = [];
+    vi.useFakeTimers();
     vi.stubGlobal('WebSocket', MockWebSocket as unknown as typeof WebSocket);
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -70,6 +72,7 @@ describe('LocalAppTransport browser connection recovery', () => {
 
     expect(MockWebSocket.instances).toHaveLength(2);
     expect(handler).toHaveBeenLastCalledWith({ type: 'connection.open', payload: {} });
+    vi.advanceTimersByTime(250);
     window.dispatchEvent(new Event('online'));
     const secondReplacement = MockWebSocket.instances[2];
     secondReplacement?.open();
@@ -81,5 +84,22 @@ describe('LocalAppTransport browser connection recovery', () => {
     unsubscribe();
     window.dispatchEvent(new Event('online'));
     expect(MockWebSocket.instances).toHaveLength(3);
+  });
+
+  it('replaces a frozen connecting socket when the page regains focus', () => {
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    const transport = new LocalAppTransport({ apiBase: 'https://vps.example.com' });
+    const handler = vi.fn();
+    const unsubscribe = transport.subscribe(handler);
+    const frozenSocket = MockWebSocket.instances[0];
+
+    window.dispatchEvent(new Event('focus'));
+
+    expect(frozenSocket?.close).toHaveBeenCalledTimes(1);
+    expect(MockWebSocket.instances).toHaveLength(2);
+    expect(handler).toHaveBeenCalledWith({ type: 'connection.close', payload: {} });
+    MockWebSocket.instances[1]?.open();
+    expect(handler).toHaveBeenLastCalledWith({ type: 'connection.open', payload: {} });
+    unsubscribe();
   });
 });

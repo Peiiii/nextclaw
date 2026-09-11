@@ -185,6 +185,7 @@ describe('RemoteSessionMultiplexTransport request path', () => {
     await pendingFailure;
     await Promise.resolve();
     expect(replacementSocket?.sent).toHaveLength(0);
+    vi.advanceTimersByTime(250);
     window.dispatchEvent(new Event('online'));
     const secondReplacement = MockWebSocket.instances[2];
     secondReplacement?.open();
@@ -195,6 +196,31 @@ describe('RemoteSessionMultiplexTransport request path', () => {
     secondReplacement?.receive({ type: 'response', id: frame.id, status: 200, body: { ok: true, data: { total: 1 } } });
     await expect(recovered).resolves.toEqual({ total: 1 });
     expect(MockWebSocket.instances).toHaveLength(3);
+    unsubscribe();
+  });
+
+  it('abandons a frozen connecting socket immediately when the page is shown again', async () => {
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    const transport = new RemoteSessionMultiplexTransport({
+      mode: 'remote',
+      protocolVersion: 1,
+      wsPath: '/_remote/ws'
+    }, 'https://remote.claw.cool');
+
+    const handler = vi.fn();
+    const unsubscribe = transport.subscribe(handler);
+    const frozenSocket = MockWebSocket.instances[0];
+
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+    await Promise.resolve();
+
+    expect(frozenSocket?.readyState).toBe(MockWebSocket.CLOSED);
+    expect(MockWebSocket.instances).toHaveLength(2);
+    expect(handler).toHaveBeenCalledWith({ type: 'connection.close', payload: {} });
+
+    MockWebSocket.instances[1]?.open();
+    await Promise.resolve();
+    expect(handler).toHaveBeenLastCalledWith({ type: 'connection.open', payload: {} });
     unsubscribe();
   });
 });
