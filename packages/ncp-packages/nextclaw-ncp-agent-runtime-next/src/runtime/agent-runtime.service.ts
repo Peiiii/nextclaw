@@ -27,6 +27,8 @@ import type {
 import { runModelRoundWithRecovery } from "./runtime-model-round-recovery.manager.js";
 import { AgentRunExecutionManager } from "./agent-run-execution.manager.js";
 import { RuntimeToolCallExecutionService } from "./runtime-tool-call-execution.service.js";
+import { ActionFusionService } from "./action-fusion/service.js";
+import type { ActionFusionConfig, ActionFusionContext } from "./action-fusion/types.js";
 
 export type AgentRuntimeSessionStateSnapshot = {
   messages: readonly NcpMessage[];
@@ -69,6 +71,7 @@ export type DefaultNcpAgentRuntimeConfig = {
   reasoningNormalizationMode?: NcpAssistantReasoningNormalizationMode;
   streamEncoder?: NcpStreamEncoder;
   toolResultContentManager?: ToolResultContentManager;
+  actionFusion?: ActionFusionConfig;
 };
 
 type RuntimeDrainReady =
@@ -169,6 +172,7 @@ export class DefaultNcpAgentRuntime {
   private readonly reasoningNormalizationMode: NcpAssistantReasoningNormalizationMode;
   private readonly streamEncoder: NcpStreamEncoder;
   private readonly toolCallExecution: RuntimeToolCallExecutionService;
+  private readonly actionFusion: ActionFusionService | null;
 
   constructor(config: DefaultNcpAgentRuntimeConfig) {
     const {
@@ -178,6 +182,7 @@ export class DefaultNcpAgentRuntime {
       reasoningNormalizationMode,
       streamEncoder,
       toolResultContentManager,
+      actionFusion,
     } = config;
     this.llmApi = llmApi;
     this.modelInputBuilder = modelInputBuilder;
@@ -193,6 +198,7 @@ export class DefaultNcpAgentRuntime {
     this.toolCallExecution = new RuntimeToolCallExecutionService(
       toolResultContentManager ?? defaultToolResultContentManager,
     );
+    this.actionFusion = actionFusion ? new ActionFusionService(actionFusion) : null;
   }
 
   // eslint-disable-next-line max-statements
@@ -246,8 +252,40 @@ export class DefaultNcpAgentRuntime {
           applyEvent: this.applyEvent,
           drainRuntimeEvents: (encoded, toolExecutor) =>
             this.drainRuntimeEvents(sessionRun, encoded, toolExecutor, signal),
-          executeToolCall: (toolCall, publishToolEvent) =>
-            this.toolCallExecution.execute({
+          executeToolCall: async (toolCall, publishToolEvent) => {
+            if (this.actionFusion) {
+              const context: ActionFusionContext = {
+                sessionId,
+                messageId: roundMessageId,
+                correlationId: spec.correlationId,
+                publishToolEvent,
+                originalExecuteToolCall: async (tc, pe) =>
+                  this.toolCallExecution.execute({
+                    tools,
+                    sessionId,
+                    messageId: roundMessageId,
+                    spec,
+                    toolCall: tc,
+                    publishToolEvent: pe,
+                    signal,
+                  }),
+                activeFusion: undefined,
+              };
+              const result = await this.actionFusion.detectAndFuse(context, toolCall);
+              if (result.fused && result.result !== undefined) {
+                // 返回融合结果，跳过原始执行
+                return this.toolCallExecution.execute({
+                  tools,
+                  sessionId,
+                  messageId: roundMessageId,
+                  spec,
+                  toolCall,
+                  publishToolEvent,
+                  signal,
+                });
+              }
+            }
+            return this.toolCallExecution.execute({
               tools,
               sessionId,
               messageId: roundMessageId,
@@ -255,7 +293,8 @@ export class DefaultNcpAgentRuntime {
               toolCall,
               publishToolEvent,
               signal,
-            }),
+            });
+          },
           supportsParallelToolCalls: (toolCall) =>
             tools.find((tool) => tool.name === toolCall.toolName)
               ?.supportsParallelToolCalls === true,

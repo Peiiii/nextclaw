@@ -13,3 +13,4 @@ export type {
   DefaultNcpAgentRuntimeConfig,
   DefaultNcpAgentRuntimeRunOptions,
 } from "./runtime/agent-runtime.service.js";
+export * from "./runtime/action-fusion/index.js";

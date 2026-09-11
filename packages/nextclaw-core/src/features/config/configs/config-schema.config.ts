@@ -485,6 +485,22 @@ export const ToolsConfigSchema = z.object({
   restrictToWorkspace: z.boolean().default(false)
 });
 
+/** Action Fusion 配置：合并连续工具调用以节省 LLM 调用 */
+export const ActionFusionConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  rules: z.array(z.object({
+    name: z.string().trim().min(1),
+    pattern: z.array(z.string().trim().min(1)),
+    maxDepth: z.number().int().min(2).max(10).default(2),
+  })).default([]),
+  maxLookahead: z.number().int().min(1).max(20).default(5),
+});
+
+/** Runtime 配置节点：包含 Action Fusion 等运行时优化选项 */
+export const CoreRuntimeConfigSchema = z.object({
+  actionFusion: ActionFusionConfigSchema.default({}),
+});
+
 export const SecretSourceSchema = z.enum(["env", "file", "exec"]);
 
 export const SecretRefSchema = z.object({
@@ -545,7 +561,8 @@ export const ConfigSchema = z.object({
   companion: CompanionConfigSchema.default({}),
   productAnalytics: ProductAnalyticsConfigSchema.default({}),
   tools: ToolsConfigSchema.default({}),
-  secrets: SecretsConfigSchema.default({})
+  secrets: SecretsConfigSchema.default({}),
+  coreRuntime: CoreRuntimeConfigSchema.default({})
 });
 
 export type ConfigSchemaJson = Record<string, unknown>;

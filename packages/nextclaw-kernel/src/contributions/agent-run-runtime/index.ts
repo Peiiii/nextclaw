@@ -15,6 +15,7 @@ import {
   DefaultNcpAgentRuntime,
   type AgentRunPreflight,
 } from "@nextclaw/ncp-agent-runtime-next";
+import { getDefaultFusionRules } from "@nextclaw/ncp-agent-runtime-next";
 
 export class AgentRunRuntimeContribution extends Contribution {
   private readonly modelInputBuilder: AgentRunModelInputBuilder;
@@ -76,10 +77,25 @@ export class AgentRunRuntimeContribution extends Contribution {
       label: "Native",
       defaultReuseScope: "global",
       createRuntime: ({ entry }) => {
+        const actionFusion = this.kernel.configManager.loadConfig().coreRuntime.actionFusion;
         const runtime = new DefaultNcpAgentRuntime({
           llmApi: new ProviderManagerNcpLLMApi(this.kernel.llmProviders),
           modelInputBuilder: this.modelInputBuilder,
           runPreflight: this.runNativePreflight,
+          actionFusion: actionFusion.enabled
+            ? {
+                enabled: true,
+                rules: actionFusion.rules.length > 0
+                  ? actionFusion.rules.map((r) => ({
+                      name: r.name,
+                      pattern: r.pattern,
+                      maxDepth: r.maxDepth,
+                      execute: async () => null, // 默认 stub，实际执行由工具调用链处理
+                    }))
+                  : getDefaultFusionRules(),
+                maxLookahead: actionFusion.maxLookahead,
+              }
+            : undefined,
         });
         return {
           capabilities: { nextStepInput: true },
