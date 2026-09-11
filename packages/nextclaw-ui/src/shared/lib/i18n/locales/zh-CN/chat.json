@@ -692,6 +692,7 @@
   "chatInputVoiceNoDevice": "没有检测到麦克风。请连接或启用输入设备，再检测重试。",
   "chatInputVoiceDeviceBusy": "麦克风无法读取，可能被其他应用占用或被系统限制。请关闭其他录音应用，检查输入设备后重试。",
   "chatInputVoiceServiceDenied": "浏览器拒绝了语音识别服务。请检查浏览器的语音服务设置或组织策略，或使用支持语音识别的浏览器。",
+  "chatInputVoiceInsecureContext": "当前页面通过不安全的 HTTP 地址打开，浏览器会禁用麦克风。请为 VPS 配置 HTTPS；仅在本机访问时可使用 localhost 或 127.0.0.1。",
   "chatInputVoiceUnsupported": "当前浏览器不支持语音输入。",
   "chatInputVoiceNoSpeech": "没有听清，请再试一次。",
   "chatInputVoiceFailed": "语音输入失败，请重试。",

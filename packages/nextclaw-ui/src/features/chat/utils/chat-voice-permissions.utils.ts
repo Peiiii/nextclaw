@@ -1,4 +1,8 @@
-export type MicrophoneError = 'permission' | 'no-device' | 'device-busy' | 'unsupported' | 'failed';
+export type MicrophoneError = 'insecure-context' | 'permission' | 'no-device' | 'device-busy' | 'unsupported' | 'failed';
+
+export function isMicrophoneSecureContext(): boolean {
+  return globalThis.isSecureContext !== false;
+}
 
 export function classifyMicrophoneError(error: unknown): MicrophoneError {
   const name = error instanceof DOMException || error instanceof Error ? error.name : '';
@@ -11,6 +15,7 @@ export function classifyMicrophoneError(error: unknown): MicrophoneError {
 
 /** Check on explicit start/retry; release every track even if the panel was closed. */
 export async function checkMicrophoneAccess(): Promise<MicrophoneError | null> {
+  if (!isMicrophoneSecureContext()) return 'insecure-context';
   if (!navigator.mediaDevices?.getUserMedia) return 'unsupported';
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });

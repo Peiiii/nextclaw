@@ -201,6 +201,10 @@ describe('dictation lifecycle', () => {
     expect(manager.getSnapshot().error).toBe('timeout');
   });
   it('handles unsupported APIs and thrown starts', async () => {
+    const insecure = new ChatVoiceInputManager(() => recognition, async () => null, () => false);
+    insecure.start('en', 'one', draft);
+    expect(insecure.getSnapshot().error).toBe('insecure-context');
+    expect(recognition.start).not.toHaveBeenCalled();
     const unsupported = new ChatVoiceInputManager(() => null);
     unsupported.start('en', 'one', draft);
     expect(unsupported.getSnapshot().error).toBe('unsupported');

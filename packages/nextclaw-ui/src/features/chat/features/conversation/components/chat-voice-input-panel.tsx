@@ -7,7 +7,7 @@ import { ChatVoiceShortcutControl } from './chat-voice-shortcut-control';
 import { voicePermissionInstructionKeys } from '@/features/chat/utils/chat-voice-permissions.utils';
 
 const ERROR_KEYS: Record<VoiceError, string> = {
-  unsupported: 'chatInputVoiceUnsupported', permission: 'chatInputVoicePermissionDenied',
+  'insecure-context': 'chatInputVoiceInsecureContext', unsupported: 'chatInputVoiceUnsupported', permission: 'chatInputVoicePermissionDenied',
   'service-denied': 'chatInputVoiceServiceDenied', 'no-device': 'chatInputVoiceNoDevice', 'device-busy': 'chatInputVoiceDeviceBusy',
   network: 'chatInputVoiceNetwork', 'audio-capture': 'chatInputVoiceDevice',
   'no-speech': 'chatInputVoiceNoSpeech', interrupted: 'chatInputVoiceInterrupted',
@@ -57,7 +57,8 @@ export function ChatVoiceInputPanel({ manager, snapshot, onStart, desktop }: {
       {phase === 'starting' ? <p className='sr-only'>{t('chatInputVoicePermissionPurpose')}</p> : null}
       {error ? <VoiceErrorDetails error={error} microphoneError={microphoneError} text={snapshot.text} /> : null}
       </div>
-      {error ? <Button className='mt-2 shrink-0 self-start' size='sm' disabled={error === 'unsupported'} onClick={onStart}>
+      {error ? <Button className='mt-2 shrink-0 self-start' size='sm'
+        disabled={error === 'unsupported' || error === 'insecure-context'} onClick={onStart}>
         {t(microphoneError ? 'chatInputVoiceCheckAndRetry' : 'chatInputVoiceRetry')}
       </Button> : null}
       {phase === 'error' ? <Button className='mt-2 shrink-0 self-start' variant='ghost' size='sm'

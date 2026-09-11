@@ -1,8 +1,8 @@
 import type { ChatComposerDictationSession } from '@nextclaw/agent-chat-ui';
-import { checkMicrophoneAccess, classifyMicrophoneError } from '@/features/chat/utils/chat-voice-permissions.utils';
+import { checkMicrophoneAccess, classifyMicrophoneError, isMicrophoneSecureContext } from '@/features/chat/utils/chat-voice-permissions.utils';
 
 export type VoicePhase = 'idle' | 'ready' | 'starting' | 'recording' | 'stopping' | 'error';
-export type VoiceError = 'unsupported' | 'permission' | 'service-denied' | 'no-device' | 'device-busy' | 'network' | 'audio-capture' | 'no-speech' | 'interrupted' | 'timeout' | 'failed';
+export type VoiceError = 'insecure-context' | 'unsupported' | 'permission' | 'service-denied' | 'no-device' | 'device-busy' | 'network' | 'audio-capture' | 'no-speech' | 'interrupted' | 'timeout' | 'failed';
 export type VoiceSnapshot = { phase: VoicePhase; text: string; interim: string; seconds: number; error: VoiceError | null };
 export type SpeechRecognitionLike = {
   lang: string;
@@ -38,7 +38,8 @@ export class ChatVoiceInputManager {
   private draft: ChatComposerDictationSession | null = null;
 
   constructor(private readonly createRecognition = createBrowserRecognition,
-    private readonly checkMicrophone = checkMicrophoneAccess) {}
+    private readonly checkMicrophone = checkMicrophoneAccess,
+    private readonly isSecureContext = isMicrophoneSecureContext) {}
 
   getSnapshot = (): VoiceSnapshot => this.snapshot;
   subscribe = (listener: () => void): (() => void) => {
@@ -70,6 +71,7 @@ export class ChatVoiceInputManager {
     this.draft = draft;
     this.update({ ...initialSnapshot(), phase: 'starting' });
     try {
+      if (!this.isSecureContext()) { this.fail('insecure-context'); return; }
       const recognition = this.createRecognition();
       if (!recognition) { this.fail('unsupported'); return; }
       this.recognition = recognition;

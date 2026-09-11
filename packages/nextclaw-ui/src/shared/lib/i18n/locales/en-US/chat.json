@@ -692,6 +692,7 @@
   "chatInputVoiceNoDevice": "No microphone was detected. Connect or enable an input device, then check again.",
   "chatInputVoiceDeviceBusy": "The microphone cannot be read. Another app or a system restriction may be preventing access. Close other recording apps, check your input device and retry.",
   "chatInputVoiceServiceDenied": "The browser denied access to speech recognition. Check its speech service settings or organization policy, or use a browser that supports speech recognition.",
+  "chatInputVoiceInsecureContext": "This page is using an insecure HTTP address, so the browser disables microphone access. Configure HTTPS for a VPS; localhost or 127.0.0.1 is available only for access from the same machine.",
   "chatInputVoiceUnsupported": "Speech input is not supported in this browser.",
   "chatInputVoiceNoSpeech": "Could not hear you. Please try again.",
   "chatInputVoiceFailed": "Voice input failed. Please try again.",

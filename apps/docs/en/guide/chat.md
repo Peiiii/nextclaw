@@ -29,6 +29,8 @@ Startup, recording, and finalization share one compact bar, labeled Preparing, L
 
 Browsers cannot always distinguish a site-level denial from a system-level denial, so the instructions cover both settings. A disabled speech recognition service is reported separately.
 
+Browsers expose microphone access only in a secure context. Use HTTPS for a remote VPS. When NextClaw is opened directly at `http://<VPS-IP>`, it reports the insecure address instead of claiming that the browser lacks voice support. The `http://localhost` and `http://127.0.0.1` exceptions apply only to local access on the same machine and do not replace remote HTTPS.
+
 Click the microphone beside the composer to record, then press Esc or choose **Save and close**. Words appear at the cursor or selection captured when recording starts. Underlined words are provisional and may change; the underline disappears when transcription finishes. The overlay shows recording status and duration, without a discard button; the Esc shortcut appears only in the save button's tooltip. Saving waits for the final words; if finalization fails, the words already displayed are retained. Nothing is sent automatically; surrounding text, references, and attachments stay intact. Each recording is limited to 60 seconds.
 
 Typing, pasting, or moving the cursor inside the composer ends dictation and keeps the visible words so you can edit. Late recognition results cannot overwrite your edits. During dictation, Enter ends dictation without sending; Esc saves and closes dictation.
