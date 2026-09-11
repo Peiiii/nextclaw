@@ -244,6 +244,7 @@ export class NextclawKernel {
       listPackageComponentSources: this.appPackageManager.listActiveComponentSources,
       listPackageComponentDiagnostics: async () =>
         (await this.appPackageManager.listActiveComponentSourcesWithDiagnostics()).unavailablePackages,
+      resolvePackagePrimaryPanelId: this.appPackageManager.resolvePrimaryPanelId,
       capabilityGrantManager: this.capabilityGrants,
     });
     this.preferenceManager = new PreferenceManager({

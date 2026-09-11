@@ -21,6 +21,7 @@ import { AppPackagePresentationService } from "@kernel/services/app-package-pres
 import { AppPackageRuntimeActivationService, EMPTY_APP_PACKAGE_RUNTIME_HOOKS } from "@kernel/services/app-package-runtime-activation.service.js";
 import {
   AppPackageError,
+  isAppPackageError,
   type AppPackageComponentSource,
   type AppPackageComponentSourceList,
   type AppPackageDependencyBindingInput,
@@ -154,6 +155,18 @@ export class AppPackageManager {
         throw error;
       }
     });
+  };
+
+  resolvePrimaryPanelId = async (appId: string): Promise<string | undefined> => {
+    try {
+      const app = await this.getPackage(appId);
+      return app.enabled ? app.primaryPanelId : undefined;
+    } catch (error) {
+      if (isAppPackageError(error) && error.code === "APP_PACKAGE_NOT_FOUND") {
+        return undefined;
+      }
+      throw error;
+    }
   };
 
   inspectDependencies = async (appId: string): Promise<AppPackageDependencyView> =>

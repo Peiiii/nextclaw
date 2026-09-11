@@ -778,3 +778,17 @@ const handleToolAction = (action: ChatToolActionViewModel) => {
 - inline card 和 opened preview 之间需要稳定关联。
 
 届时再讨论是否需要 `SurfaceManager`、`ResultViewRegistry` 或更大的资产模型。当前阶段不做。
+
+## 2026-09-11：Panel App 展示目标解析补充（NC-175）
+
+线上复现证明首版 `show_panel_app` 在 kernel emit 展示事件时尚未校验目标，UI 解析失败后工具仍已返回 `ok:true`；同时 schema 没有区分 App package id 与 Panel component id。多 Panel App 因而会把 package id 当作组件 id，形成“Agent 宣称已打开、用户实际未看到”的静默失败。
+
+补充合同如下：
+
+- `PanelAppManager` 是可展示 Panel target 的唯一解析 owner：真实 Panel id/appId 沿现有来源解析；已安装 App package id 解析到启用版本的 `primaryPanelId`，并再次确认该 Panel 组件当前可用。
+- `show_panel_app` 在无显式外部 `path` 时必须先完成上述解析。解析成功后，request、事件 payload 与 `resourceUri` 全部携带真实 Panel component id；解析失败时返回 `{ ok:false, error:{ code:"PANEL_APP_NOT_FOUND", ... } }`，不得 emit `ui.show-content`。
+- 带绝对 `path` 的外部 Panel App 保持原合同，因为它不依赖已安装目录；相对路径仍拒绝。
+- UI 继续只消费标准 `panel_app` target，不新增异步回执协议或第二套 package-to-panel 映射。
+- `show_panel_app` schema 与内置展示说明明确接受 App id 或 Panel component id；`nextclaw app list --json` 的 `primaryPanelId` / `components[].id` 是需要显式选择组件时的事实源。
+
+回归验收必须覆盖：多 Panel App 的 package id 命中 primary Panel、直接 Panel id 保持不变、未知/禁用/无 Panel App 返回 `PANEL_APP_NOT_FOUND` 且零事件、显式外部路径保持可用，以及工具 schema/内置 skill/中英文用户文档同步。

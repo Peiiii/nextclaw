@@ -338,6 +338,8 @@ Service App 的使用方式见 [Service Apps](/zh/guide/service-apps)；WASM 开
 
 `app dev` 和 `app call` 直接接受 schema v2 App 根目录。包内只有一个 Service 时会自动选择；有多个 Service 时使用 `--component <service-id>`。本地 `.napp` 可以使用相对路径安装，例如 `nextclaw app install ./my-app.napp`。
 
+`app list --json` 会列出每个 App 的 `primaryPanelId` 和 `components[].id`。内置 `show_panel_app` 工具既可接收 App ID 并打开其已启用的主 Panel，也可接收具体的 Panel component ID；未知或未启用的目标会在发送 UI 展示请求前返回 `PANEL_APP_NOT_FOUND`。
+
 `app invoke <app-id> <action-name> --input '<json>'` 调用的是已启用、已安装的 App，而不是源码包；输出会带上调用 ID、追踪 ID、数据版本和验证记录 ID。使用 `app verification [--acceptance <id>] [--app <id>] [--limit <n>]` 可查看对应的脱敏、持久化 Runtime 事实；脚本可加 `--json` 获取机器可读输出。
 
 `app acceptance contract|status|export` 读取产品、Server、CLI 与发布门共同使用的唯一 Portable Runtime 验收合同。`status` 会用当前产品版本、Runtime 版本、runner 指纹与合同指纹重新判断证据；只有 `current-passed` 才代表证据仍然当前有效。`export` 始终输出完整的机器可读状态文档。英文展示使用 `--locale en`；只有检查非默认验收 App 时才传 `--app <id>`。

@@ -150,4 +150,4 @@ my-app/
 - 交付说明准确写明：最终用户是否需要外部依赖，以及 Rust 是否只出现在开发期；
 - 用户进一步要求发布时读取 `nextclaw-app-publisher`，只使用 `nextclaw app validate-publish/publish`。
 
-验收通过后主动展示可见结果。Panel、编辑器、管理页、大表格和多页工作流使用 side panel；普通本地 HTML 用 `show_file(path, viewer="rendered")`；本地 dev server 用 `show_url(url)`。普通 inline Panel App 使用 `nextclaw-inline` fenced JSON，不调用 `show_panel_app` 做 inline 展示。
+验收通过后主动展示可见结果。Panel、编辑器、管理页、大表格和多页工作流使用 side panel；普通本地 HTML 用 `show_file(path, viewer="rendered")`；本地 dev server 用 `show_url(url)`。普通 inline Panel App 使用 `nextclaw-inline` fenced JSON，不调用 `show_panel_app` 做 inline 展示。`show_panel_app` 可传 App id 自动打开其 `primaryPanelId`，也可传 Panel component id；需要指定组件时先从 `nextclaw app list --json` 读取 `primaryPanelId` 或 `components[].id`。

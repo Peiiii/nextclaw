@@ -4,6 +4,7 @@ import { EventBus, eventKeys } from "@nextclaw/shared";
 import type { NcpTool } from "@nextclaw/ncp";
 import { createShowContentTools } from "./show-content.tools.js";
 import { ShowContentToolProvider } from "@kernel/contributions/tool-provider/index.js";
+import { PanelAppError } from "@kernel/types/panel-app.types.js";
 
 type TestToolParameters = {
   required?: unknown;
@@ -11,8 +12,13 @@ type TestToolParameters = {
   additionalProperties?: unknown;
 };
 
-function getTool(name: string, eventBus = new EventBus()): NcpTool {
-  const tool = createShowContentTools(eventBus).find((candidate) => candidate.name === name);
+function getTool(
+  name: string,
+  eventBus = new EventBus(),
+  resolvePanelAppDisplayTarget?: (id: string) => Promise<string | undefined>,
+): NcpTool {
+  const tool = createShowContentTools(eventBus, resolvePanelAppDisplayTarget)
+    .find((candidate) => candidate.name === name);
   if (!tool) {
     throw new Error(`Missing test tool: ${name}`);
   }
@@ -25,7 +31,11 @@ function readParameters(tool: NcpTool): TestToolParameters {
 
 describe("show content tools", () => {
   it("exposes narrow tools instead of the legacy show_content tool", () => {
-    const tools = new ShowContentToolProvider(new EventBus()).provide().map((tool) => tool.name);
+    const tools = new ShowContentToolProvider(new EventBus(), {
+      resolvePanelAppDisplayTarget: async () => {
+        throw new Error("not used");
+      },
+    }).provide().map((tool) => tool.name);
 
     expect(tools).toEqual(["show_file", "show_url", "show_panel_app"]);
     expect(tools).not.toContain("show_content");
@@ -269,6 +279,84 @@ describe("show_panel_app", () => {
     ]);
   });
 
+  it("resolves an installed App id to its primary Panel component before emitting", async () => {
+    const eventBus = new EventBus();
+    const events: unknown[] = [];
+    eventBus.on(eventKeys.uiShowContent, (payload) => {
+      events.push(payload);
+    });
+
+    const result = await getTool(
+      "show_panel_app",
+      eventBus,
+      async (id) => id === "publisher.demo-package" ? "stable-panel" : undefined,
+    ).execute({
+      appId: "publisher.demo-package",
+      title: "Demo",
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      resourceUri: "nextclaw://panel-app/stable-panel",
+      request: {
+        target: {
+          type: "panel_app",
+          payload: { appId: "stable-panel" },
+        },
+      },
+    });
+    expect(events).toEqual([
+      expect.objectContaining({
+        id: "show-content:panel_app:stable-panel",
+        target: expect.objectContaining({
+          payload: expect.objectContaining({ appId: "stable-panel" }),
+        }),
+      }),
+    ]);
+  });
+
+  it("returns a structured error without emitting when the target does not exist", async () => {
+    const eventBus = new EventBus();
+    const events: unknown[] = [];
+    eventBus.on(eventKeys.uiShowContent, (payload) => {
+      events.push(payload);
+    });
+
+    const result = await getTool(
+      "show_panel_app",
+      eventBus,
+      async () => undefined,
+    ).execute({ appId: "missing-app" });
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        code: "PANEL_APP_NOT_FOUND",
+        message: "panel app not found",
+      },
+    });
+    expect(events).toEqual([]);
+  });
+
+  it("maps the production Panel target resolver's not-found error without emitting", async () => {
+    const eventBus = new EventBus();
+    const events: unknown[] = [];
+    eventBus.on(eventKeys.uiShowContent, (payload) => {
+      events.push(payload);
+    });
+    const tool = new ShowContentToolProvider(eventBus, {
+      resolvePanelAppDisplayTarget: async () => {
+        throw new PanelAppError("PANEL_APP_NOT_FOUND", "panel app not found");
+      },
+    }).provide().find((candidate) => candidate.name === "show_panel_app");
+
+    await expect(tool?.execute({ appId: "missing-app" })).resolves.toMatchObject({
+      ok: false,
+      error: { code: "PANEL_APP_NOT_FOUND" },
+    });
+    expect(events).toEqual([]);
+  });
+
   it("opens a panel app from an explicit absolute source path", async () => {
     const eventBus = new EventBus();
     const events: unknown[] = [];
@@ -277,7 +365,9 @@ describe("show_panel_app", () => {
       events.push(payload);
     });
 
-    const result = await getTool("show_panel_app", eventBus).execute({
+    const result = await getTool("show_panel_app", eventBus, async () => {
+      throw new Error("explicit paths must bypass installed target resolution");
+    }).execute({
       appId: "reader",
       path,
     });

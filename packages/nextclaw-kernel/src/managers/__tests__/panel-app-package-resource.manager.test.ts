@@ -48,6 +48,7 @@ function createPackagePanelComponent(sourcePath: string): AppPackageComponentSou
 function createManager(
   workspacePath: string,
   listPackageComponentSources: () => Promise<AppPackageComponentSource[]>,
+  resolvePackagePrimaryPanelId?: (appId: string) => Promise<string | undefined>,
 ): PanelAppManager {
   const configPath = join(createTempDir(), "config.json");
   saveConfig(ConfigSchema.parse({
@@ -60,6 +61,7 @@ function createManager(
       providerManager: { load: vi.fn() } as never,
     }),
     listPackageComponentSources,
+    resolvePackagePrimaryPanelId,
     capabilityGrantManager: new CapabilityGrantManager(
       join(createTempDir(), "capability-grants.json"),
     ),
@@ -86,7 +88,11 @@ describe("PanelAppManager package resources", () => {
     writeFileSync(join(packagePath, "index.html"), "<!doctype html><h1>Package Panel</h1>");
     const packageComponent = createPackagePanelComponent(packagePath);
     let activeComponents = [packageComponent];
-    const manager = createManager(workspacePath, async () => activeComponents);
+    const manager = createManager(
+      workspacePath,
+      async () => activeComponents,
+      async (appId) => appId === packageComponent.packageId ? packageComponent.id : undefined,
+    );
 
     const [entry] = (await manager.listPanelApps()).entries;
 
@@ -98,6 +104,15 @@ describe("PanelAppManager package resources", () => {
     }));
     await manager.updatePanelAppPreferences(entry.id, { mainSidebar: true });
     expect(entry.contentPath).not.toContain("path=");
+    await expect(manager.resolvePanelAppDisplayTarget(entry.appId)).resolves.toMatchObject({
+      appId: "stable-panel",
+    });
+    await expect(manager.resolvePanelAppDisplayTarget(packageComponent.packageId)).resolves.toMatchObject({
+      appId: "stable-panel",
+    });
+    await expect(manager.resolvePanelAppDisplayTarget("publisher.missing-package")).rejects.toMatchObject({
+      code: "PANEL_APP_NOT_FOUND",
+    } satisfies Partial<PanelAppError>);
     await expect(manager.getPanelAppContent(entry.appId)).resolves.toEqual(expect.objectContaining({
       appId: "stable-panel",
       html: expect.stringContaining("Package Panel"),
@@ -109,6 +124,9 @@ describe("PanelAppManager package resources", () => {
     activeComponents = [];
     await expect(manager.listPanelApps()).resolves.toMatchObject({ entries: [] });
     await expect(manager.getPanelAppContent(entry.appId)).rejects.toMatchObject({
+      code: "PANEL_APP_NOT_FOUND",
+    } satisfies Partial<PanelAppError>);
+    await expect(manager.resolvePanelAppDisplayTarget(packageComponent.packageId)).rejects.toMatchObject({
       code: "PANEL_APP_NOT_FOUND",
     } satisfies Partial<PanelAppError>);
 

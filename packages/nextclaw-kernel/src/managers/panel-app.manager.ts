@@ -6,6 +6,7 @@ import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import { PanelAppPackageStateManager } from "@kernel/managers/panel-app-package-state.manager.js";
 import { PanelAppEntryPresenter } from "@kernel/presenters/panel-app-entry.presenter.js";
 import { PanelAppAssetTokenService } from "@kernel/services/panel-app-asset-token.service.js";
+import { PanelAppEntryResolverService } from "@kernel/services/panel-app-entry-resolver.service.js";
 import { PanelAppStateStore } from "@kernel/stores/panel-app-state.store.js";
 import type { PanelAppPreferencesUpdate } from "@kernel/stores/panel-app-state.store.js";
 import {
@@ -78,6 +79,7 @@ export class PanelAppManager {
   private readonly sourceService = new PanelAppSourceService();
   private readonly packageStateManager: PanelAppPackageStateManager;
   private readonly entryPresenter: PanelAppEntryPresenter;
+  private readonly entryResolver: PanelAppEntryResolverService;
   private readonly removalService: PanelAppRemovalService;
 
   constructor(private readonly params: {
@@ -87,6 +89,7 @@ export class PanelAppManager {
     ingress?: Ingress;
     listPackageComponentSources?: () => Promise<AppPackageComponentSource[]>;
     listPackageComponentDiagnostics?: () => Promise<AppPackageUnavailableDiagnostic[]>;
+    resolvePackagePrimaryPanelId?: (appId: string) => Promise<string | undefined>;
     capabilityGrantManager: CapabilityGrantManager;
   }) {
     this.agentRunClient = params.agentRunClient ??
@@ -115,40 +118,27 @@ export class PanelAppManager {
       createAssetBaseHref: this.createAssetBaseHref,
       isClientGranted: this.isPanelAppClientGranted,
     });
+    this.entryResolver = new PanelAppEntryResolverService({
+      getWorkspacePath: this.getWorkspacePath,
+      getPanelsPath: this.getPanelsPath,
+      listSources: this.packageStateManager.listSources,
+      listPackageComponentDiagnostics: params.listPackageComponentDiagnostics,
+      resolveSourceByIdOrAppId: this.packageStateManager.resolveSourceByIdOrAppId,
+      loadState: async () => await this.createStateStore(
+        this.getPanelsPath(this.getWorkspacePath()),
+      ).load(),
+      buildEntry: this.entryPresenter.build,
+      compareEntries: this.entryPresenter.compare,
+      resolvePackagePrimaryPanelId: params.resolvePackagePrimaryPanelId,
+    });
   }
 
-  listPanelApps = async (): Promise<PanelAppList> => {
-    const workspacePath = this.getWorkspacePath();
-    const panelsPath = this.getPanelsPath(workspacePath);
-    const sources = await this.packageStateManager.listSources();
-    const appState = await this.createStateStore(panelsPath).load();
-    const entries = await Promise.all(
-      sources.map(({ source, packageSource }) =>
-        this.entryPresenter.build(
-          source,
-          appState.apps[encodePanelAppId(source.sourceName)] ?? {},
-          packageSource,
-          appState.mainSidebarAppIds,
-        ),
-      ),
-    );
+  listPanelApps = async (): Promise<PanelAppList> => await this.entryResolver.list();
 
-    return {
-      workspacePath,
-      panelsPath,
-      entries: entries.sort(this.entryPresenter.compare),
-      unavailablePackages: await this.params.listPackageComponentDiagnostics?.() ?? [],
-    };
-  };
+  getPanelApp = async (id: string): Promise<PanelAppEntry> => await this.entryResolver.get(id);
 
-  getPanelApp = async (id: string): Promise<PanelAppEntry> => {
-    const panelsPath = this.getPanelsPath(this.getWorkspacePath());
-    const resolved = await this.packageStateManager.resolveSourceByIdOrAppId(id);
-    const appState = await this.createStateStore(panelsPath).load();
-    return await this.entryPresenter.build(resolved.source,
-      appState.apps[encodePanelAppId(resolved.source.sourceName)] ?? {},
-      resolved.packageSource, appState.mainSidebarAppIds);
-  };
+  resolvePanelAppDisplayTarget = async (id: string): Promise<PanelAppEntry> =>
+    await this.entryResolver.resolveDisplayTarget(id);
 
   getPanelAppContent = async (id: string, sourcePath?: string): Promise<PanelAppContent> => {
     try {

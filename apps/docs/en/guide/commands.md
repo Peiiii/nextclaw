@@ -338,6 +338,8 @@ See [Service Apps](/en/guide/service-apps) for the user workflow and [Develop a 
 
 `app dev` and `app call` accept a schema v2 App root directly. A package with one Service is selected automatically; use `--component <service-id>` when a package has multiple Services. Local `.napp` files can be installed by relative path, for example `nextclaw app install ./my-app.napp`.
 
+`app list --json` exposes each App's `primaryPanelId` and `components[].id`. The built-in `show_panel_app` tool accepts either an App ID, which opens its enabled primary Panel, or a specific Panel component ID. Unknown or inactive targets return `PANEL_APP_NOT_FOUND` before a UI display request is emitted.
+
 `app invoke <app-id> <action-name> --input '<json>'` calls an Action on an enabled installed App, rather than a source package. It returns the call ID, trace ID, data version, and verification-record ID. Use `app verification [--acceptance <id>] [--app <id>] [--limit <n>]` to inspect the corresponding redacted, persisted runtime facts; add `--json` for machine-readable output.
 
 `app acceptance contract|status|export` reads the single Portable Runtime acceptance registry used by the product, server, CLI, and release gate. `status` evaluates evidence against the active product version, runtime version, runner fingerprint, and contract fingerprint; only `current-passed` means the evidence is current. `export` always writes the complete machine-readable status document. Use `--locale en` for English presentation and `--app <id>` only when inspecting a non-default acceptance App.

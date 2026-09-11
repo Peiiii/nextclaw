@@ -9,12 +9,13 @@ Display choice: inline only for compact cards/short interactions. Use the side p
 Inline display: for a non-clickable inline placeholder, output a fenced `nextclaw-inline` JSON block:
 
 ```nextclaw-inline
-{"target":{"type":"panel_app","payload":{"appId":"timer"}},"title":"Timer"}
+{"target":{"type":"panel_app","payload":{"appId":"nextclaw-personal-organizer-todos"}},"title":"Todos"}
 ```
 
 Inline targets: `panel_app`, `json`, `file`, and `url`. Add absolute `payload.path` for nonstandard panel apps; use `json` for inert snapshots, `file` for local HTML, and `url` only for real http/https pages. `file`/`url` are non-clickable; link when clicking is intended.
 
+For an installed Panel App, `show_panel_app` accepts either the package App id or a Panel component id. A package App id opens its enabled `primaryPanelId`; use `nextclaw app list --json` and read `primaryPanelId` or `components[].id` when a specific Panel component is required. An unknown or inactive target returns `PANEL_APP_NOT_FOUND` before any UI display intent is emitted.
+
 Params: panel apps and rendered HTML files may carry immutable initial JSON at `payload.params`, read synchronously from `window.nextclaw.params`; do not rename or nest it.
 
 Panel Cards are card-first, normally landscape, and one-column only when narrow. Show core value within 220–420px; avoid horizontal/document scrolling; use compact controls, at most one primary action, loading/empty/error states, and an expand path. Larger UI belongs in the side panel. Honor `nextclawDisplayMode=card` and `nextclawPlacement=inline`.
-

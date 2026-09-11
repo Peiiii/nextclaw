@@ -42,7 +42,7 @@ export class ToolProviderContribution extends Contribution {
     return [
       new StructuredResultToolProvider(),
       new ResourceToolProvider(this.kernel.systemObjectReferenceManager),
-      new ShowContentToolProvider(this.kernel.eventBus),
+      new ShowContentToolProvider(this.kernel.eventBus, this.kernel.panelAppManager),
       new InboxDeliveryToolProvider(this.kernel.inboxDeliveryManager),
       new ObservationToolProvider(this.kernel.observations),
       new DesktopToolProvider(

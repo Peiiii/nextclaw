@@ -22,6 +22,7 @@ type ShowContentRequest = {
 };
 
 type ShowContentEventBus = Pick<EventBus, "emit">;
+type ResolvePanelAppDisplayTarget = (id: string) => Promise<string | undefined>;
 type ShowContentToolSpec = {
   name: string;
   description: string;
@@ -185,6 +186,7 @@ class ShowContentDisplayTool implements NcpTool {
   constructor(
     private readonly eventBus: ShowContentEventBus,
     private readonly spec: ShowContentToolSpec,
+    private readonly resolvePanelAppDisplayTarget?: ResolvePanelAppDisplayTarget,
   ) {}
 
   get name(): string { return this.spec.name; }
@@ -192,7 +194,30 @@ class ShowContentDisplayTool implements NcpTool {
   get parameters(): NcpTool["parameters"] { return this.spec.parameters; }
 
   execute = async (args: unknown, context?: ToolExecutionContext): Promise<unknown> => {
-    const request = this.spec.normalize(args);
+    let request = this.spec.normalize(args);
+    if (
+      request.target.type === "panel_app" &&
+      !request.target.payload.path &&
+      this.resolvePanelAppDisplayTarget
+    ) {
+      const appId = await this.resolvePanelAppDisplayTarget(request.target.payload.appId);
+      if (!appId) {
+        return {
+          ok: false,
+          error: {
+            code: "PANEL_APP_NOT_FOUND",
+            message: "panel app not found",
+          },
+        };
+      }
+      request = {
+        ...request,
+        target: {
+          ...request.target,
+          payload: { ...request.target.payload, appId },
+        },
+      };
+    }
     this.eventBus.emit(
       eventKeys.uiShowContent,
       createShowContentEventPayload(request, context),
@@ -246,7 +271,7 @@ const SHOW_CONTENT_TOOL_SPECS: readonly ShowContentToolSpec[] = [
     parameters: {
       type: "object",
       properties: {
-        appId: { type: "string", description: "Installed Panel App id to show." },
+        appId: { type: "string", description: "Installed App id or Panel component id to show. An App id opens its primary Panel." },
         path: { type: "string", description: "Optional absolute path to a .panel.html file or .panel directory outside the standard panels directory." },
         params: { type: "object", description: "Optional JSON object exposed synchronously as window.nextclaw.params." },
         title: { type: "string", description: "Optional title for the shown content." },
@@ -259,6 +284,11 @@ const SHOW_CONTENT_TOOL_SPECS: readonly ShowContentToolSpec[] = [
   },
 ];
 
-export function createShowContentTools(eventBus: ShowContentEventBus): readonly NcpTool[] {
-  return SHOW_CONTENT_TOOL_SPECS.map((spec) => new ShowContentDisplayTool(eventBus, spec));
+export function createShowContentTools(
+  eventBus: ShowContentEventBus,
+  resolvePanelAppDisplayTarget?: ResolvePanelAppDisplayTarget,
+): readonly NcpTool[] {
+  return SHOW_CONTENT_TOOL_SPECS.map(
+    (spec) => new ShowContentDisplayTool(eventBus, spec, resolvePanelAppDisplayTarget),
+  );
 }
