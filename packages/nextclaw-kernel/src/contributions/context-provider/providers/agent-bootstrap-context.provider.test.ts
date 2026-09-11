@@ -54,6 +54,7 @@ function createContext(workspace: string): ContextProviderRunContextService {
           minimalFiles: ["AGENTS.md"],
           perFileChars: 4000,
           totalChars: 12000,
+          pinnedFile: "pinned.md",
         },
         memory: {
           enabled: false,
@@ -103,5 +104,58 @@ describe("AgentBootstrapContextProvider", () => {
     expect(context).not.toContain("USER.md");
     expect(context).not.toContain("Startup instructions.");
     expect(context).not.toContain("Ask for assistant name before doing anything.");
+  });
+
+  it("injects pinned facts even for compacted sessions and places them at the tail", async () => {
+    const workspace = createWorkspace();
+    mkdirSync(workspace, { recursive: true });
+    writeFileSync(join(workspace, "AGENTS.md"), "Durable project rules.");
+    writeFileSync(join(workspace, "pinned.md"), "Call me 小墨. Never mention the surprise party.");
+
+    const blocks = await new AgentBootstrapContextProvider(createContext(workspace))
+      .provide(createRequest(workspace));
+    const context = blocks.join("\n\n");
+
+    expect(context).toContain("## pinned.md\n\nCall me 小墨.");
+    expect(context.indexOf("pinned.md")).toBeGreaterThan(context.indexOf("AGENTS.md"));
+  });
+
+  it("keeps pinned facts when custom pinnedFile is configured", async () => {
+    const workspace = createWorkspace();
+    mkdirSync(workspace, { recursive: true });
+    writeFileSync(join(workspace, "AGENTS.md"), "Durable project rules.");
+    writeFileSync(join(workspace, "facts.md"), "The server host is prod-01.");
+
+    const contextService = createContext(workspace);
+    contextService.resolve = async () => {
+      const resolved = await (contextService as unknown as {
+        resolveRaw: ContextProviderRunContextService["resolve"];
+      }).resolveRaw();
+      return {
+        ...resolved,
+        contextConfig: {
+          bootstrap: {
+            files: ["AGENTS.md"],
+            minimalFiles: ["AGENTS.md"],
+            perFileChars: 4000,
+            totalChars: 12000,
+            pinnedFile: "facts.md",
+          },
+          memory: {
+            enabled: false,
+            maxChars: 0,
+          },
+        },
+      };
+    };
+    (contextService as unknown as {
+      resolveRaw: ContextProviderRunContextService["resolve"];
+    }).resolveRaw = createContext(workspace).resolve;
+
+    const blocks = await new AgentBootstrapContextProvider(contextService)
+      .provide(createRequest(workspace));
+    const context = blocks.join("\n\n");
+
+    expect(context).toContain("## facts.md\n\nThe server host is prod-01.");
   });
 });
