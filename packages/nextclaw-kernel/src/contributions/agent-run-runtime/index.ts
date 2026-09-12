@@ -79,6 +79,7 @@ export class AgentRunRuntimeContribution extends Contribution {
       createRuntime: ({ entry }) => {
         const actionFusion = this.kernel.configManager.loadConfig().coreRuntime.actionFusion;
         const observationPack = this.kernel.configManager.loadConfig().coreRuntime.observationPack;
+        const evidenceReducer = this.kernel.configManager.loadConfig().coreRuntime.evidenceReducer;
         const runtime = new DefaultNcpAgentRuntime({
           llmApi: new ProviderManagerNcpLLMApi(this.kernel.llmProviders),
           modelInputBuilder: this.modelInputBuilder,
@@ -98,6 +99,7 @@ export class AgentRunRuntimeContribution extends Contribution {
               }
             : undefined,
           observationPack: observationPack.enabled ? observationPack : undefined,
+          evidenceReducer: evidenceReducer.enabled ? evidenceReducer : undefined,
         });
         return {
           capabilities: { nextStepInput: true },

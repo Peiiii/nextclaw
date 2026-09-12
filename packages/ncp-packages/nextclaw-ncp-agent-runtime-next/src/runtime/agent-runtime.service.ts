@@ -31,6 +31,7 @@ import { ActionFusionService } from "./action-fusion/service.js";
 import type { ActionFusionConfig, ActionFusionContext } from "./action-fusion/types.js";
 import { ObservationPackToolResultContentManager } from "./observation-pack/observation-pack-content-manager.config.js";
 import { ObservationStore } from "./observation-pack/observation-pack-store.config.js";
+import { EvidencePreservingReducer } from "./evidence-reducer.service.js";
 
 export type AgentRuntimeSessionStateSnapshot = {
   messages: readonly NcpMessage[];
@@ -77,6 +78,11 @@ export type DefaultNcpAgentRuntimeConfig = {
   observationPack?: {
     enabled: boolean;
     thresholdChars?: number;
+  };
+  evidenceReducer?: {
+    enabled: boolean;
+    thresholdChars?: number;
+    injectSummary?: boolean;
   };
 };
 
@@ -180,6 +186,7 @@ export class DefaultNcpAgentRuntime {
   private readonly toolCallExecution: RuntimeToolCallExecutionService;
   private readonly actionFusion: ActionFusionService | null;
   private readonly observationStore: ObservationStore | null;
+  private readonly evidenceReducer: EvidencePreservingReducer | null;
 
   constructor(config: DefaultNcpAgentRuntimeConfig) {
     const {
@@ -191,6 +198,7 @@ export class DefaultNcpAgentRuntime {
       toolResultContentManager,
       actionFusion,
       observationPack,
+      evidenceReducer,
     } = config;
     this.llmApi = llmApi;
     this.modelInputBuilder = modelInputBuilder;
@@ -214,6 +222,12 @@ export class DefaultNcpAgentRuntime {
     );
     this.actionFusion = actionFusion ? new ActionFusionService(actionFusion) : null;
     this.observationStore = observationPack?.enabled ? new ObservationStore() : null;
+    this.evidenceReducer = evidenceReducer?.enabled
+      ? new EvidencePreservingReducer({
+          thresholdChars: evidenceReducer.thresholdChars,
+          injectSummary: evidenceReducer.injectSummary,
+        })
+      : null;
   }
 
   // eslint-disable-next-line max-statements
@@ -293,7 +307,7 @@ export class DefaultNcpAgentRuntime {
                 return result.result as NcpEndpointEvent;
               }
             }
-            return this.toolCallExecution.execute({
+            const rawEvent = await this.toolCallExecution.execute({
               tools,
               sessionId,
               messageId: roundMessageId,
@@ -302,6 +316,35 @@ export class DefaultNcpAgentRuntime {
               publishToolEvent,
               signal,
             });
+            // Evidence-Preserving Reducer：对大输出附加预审摘要
+            if (this.evidenceReducer && rawEvent.type === NcpEventType.MessageToolCallResult) {
+              const payload = rawEvent.payload as { content?: unknown } | undefined;
+              const resultBytes = payload?.content
+                ? (typeof payload.content === "string"
+                    ? payload.content.length * 2
+                    : (() => { try { return JSON.stringify(payload.content ?? null).length * 2; } catch { return 0; } })())
+                : 0;
+              if (this.evidenceReducer.shouldReduce(resultBytes)) {
+                const reduced = this.evidenceReducer.reduceResult({
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  args: typeof toolCall.args === "string" ? JSON.parse(toolCall.args) : null,
+                  rawArgsText: toolCall.args,
+                  result: payload?.content,
+                });
+                if (reduced.result !== payload?.content) {
+                  return createRuntimeEvent({
+                    type: rawEvent.type,
+                    payload: {
+                      ...rawEvent.payload,
+                      content: reduced.result,
+                    },
+                    occurredAt: rawEvent.occurredAt,
+                  }) as NcpEndpointEvent;
+                }
+              }
+            }
+            return rawEvent;
           },
           supportsParallelToolCalls: (toolCall) =>
             tools.find((tool) => tool.name === toolCall.toolName)

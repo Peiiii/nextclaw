@@ -500,12 +500,19 @@ export const ActionFusionConfigSchema = z.object({
   maxLookahead: z.number().int().min(1).max(20).default(5),
 });
 
-/** Runtime 配置节点：包含 Action Fusion / ObservationPack 等运行时优化选项 */
+/** Runtime 配置节点：包含 Action Fusion / ObservationPack / EvidenceReducer 等运行时优化选项 */
 export const CoreRuntimeConfigSchema = z.object({
   actionFusion: ActionFusionConfigSchema.default({}),
   observationPack: z.object({
     enabled: z.boolean().default(false),
     thresholdChars: z.number().int().min(100).max(100_000).default(8_000),
+  }).default({}),
+  evidenceReducer: z.object({
+    enabled: z.boolean().default(false),
+    /** 工具结果字节数超过此阈值时触发预审（默认 4096）。 */
+    thresholdChars: z.number().int().min(512).max(64_000).default(4_096),
+    /** 是否将预审摘要注入到工具结果上下文中（默认 true）。 */
+    injectSummary: z.boolean().default(true),
   }).default({}),
 });
 
