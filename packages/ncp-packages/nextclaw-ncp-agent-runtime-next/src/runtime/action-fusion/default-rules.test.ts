@@ -1,9 +1,30 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type { CollectedToolCall } from "@nextclaw/ncp-agent-runtime";
+import type { NcpEndpointEvent } from "@nextclaw/ncp";
 import {
   EDIT_VERIFY_FUSION_RULE,
   WRITE_VERIFY_FUSION_RULE,
   getDefaultFusionRules,
 } from "./default-rules.config.js";
+import type { ActionFusionContext } from "./types.js";
+
+function makeCall(toolName: string, args = "{}"): CollectedToolCall {
+  return { toolCallId: `call-${toolName}`, toolName, args };
+}
+
+function makeContext(
+  results: Record<string, NcpEndpointEvent>,
+  published: NcpEndpointEvent[] = [],
+): ActionFusionContext {
+  return {
+    sessionId: "test-session",
+    messageId: "test-message",
+    publishToolEvent: vi.fn(async (event: NcpEndpointEvent) => {
+      published.push(event);
+    }),
+    originalExecuteToolCall: vi.fn(async (call: CollectedToolCall) => results[call.toolName]!),
+  };
+}
 
 describe("ActionFusion default rules", () => {
   describe("EDIT_VERIFY_FUSION_RULE", () => {
@@ -13,20 +34,29 @@ describe("ActionFusion default rules", () => {
       expect(EDIT_VERIFY_FUSION_RULE.maxDepth).toBe(2);
     });
 
-    it("should fuse when pattern matches", async () => {
-      const result = await EDIT_VERIFY_FUSION_RULE.execute([
-        { toolCallId: "c1", toolName: "edit_file", args: JSON.stringify({ path: "/test.ts", old_string: "old", new_string: "new" }) },
-        { toolCallId: "c2", toolName: "exec", args: JSON.stringify({ command: "echo test" }) },
-      ]);
-      expect(result).toHaveProperty("fused", true);
-      expect(result).toHaveProperty("editApplied", true);
+    it("executes both calls sequentially and returns the last result", async () => {
+      const editEvent = { type: "tool-result-edit" } as unknown as NcpEndpointEvent;
+      const execEvent = { type: "tool-result-exec" } as unknown as NcpEndpointEvent;
+      const published: NcpEndpointEvent[] = [];
+      const context = makeContext(
+        { edit_file: editEvent, exec: execEvent },
+        published,
+      );
+
+      const result = await EDIT_VERIFY_FUSION_RULE.execute(
+        [makeCall("edit_file"), makeCall("exec")],
+        context,
+      );
+
+      expect(result).toBe(execEvent);
+      expect(published).toEqual([editEvent]);
+      expect(context.originalExecuteToolCall).toHaveBeenCalledTimes(2);
     });
 
     it("should throw when called with insufficient calls", async () => {
+      const context = makeContext({ edit_file: {} as NcpEndpointEvent });
       await expect(
-        EDIT_VERIFY_FUSION_RULE.execute([
-          { toolCallId: "c1", toolName: "edit_file", args: "{}" },
-        ])
+        EDIT_VERIFY_FUSION_RULE.execute([makeCall("edit_file")], context),
       ).rejects.toThrow("requires at least 2 calls");
     });
   });
@@ -38,13 +68,22 @@ describe("ActionFusion default rules", () => {
       expect(WRITE_VERIFY_FUSION_RULE.maxDepth).toBe(2);
     });
 
-    it("should fuse when pattern matches", async () => {
-      const result = await WRITE_VERIFY_FUSION_RULE.execute([
-        { toolCallId: "c1", toolName: "write_file", args: JSON.stringify({ path: "/test.ts", content: "hello" }) },
-        { toolCallId: "c2", toolName: "exec", args: JSON.stringify({ command: "cat /test.ts" }) },
-      ]);
-      expect(result).toHaveProperty("fused", true);
-      expect(result).toHaveProperty("fileWritten", true);
+    it("executes both calls sequentially and returns the last result", async () => {
+      const writeEvent = { type: "tool-result-write" } as unknown as NcpEndpointEvent;
+      const execEvent = { type: "tool-result-exec" } as unknown as NcpEndpointEvent;
+      const published: NcpEndpointEvent[] = [];
+      const context = makeContext(
+        { write_file: writeEvent, exec: execEvent },
+        published,
+      );
+
+      const result = await WRITE_VERIFY_FUSION_RULE.execute(
+        [makeCall("write_file"), makeCall("exec")],
+        context,
+      );
+
+      expect(result).toBe(execEvent);
+      expect(published).toEqual([writeEvent]);
     });
   });
 

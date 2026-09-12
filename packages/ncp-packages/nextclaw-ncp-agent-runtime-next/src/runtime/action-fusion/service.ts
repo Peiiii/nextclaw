@@ -143,7 +143,7 @@ export class ActionFusionService {
     rule: FusionRule,
   ): Promise<ActionFusionResult> => {
     try {
-      const result = await rule.execute(calls);
+      const result = await rule.execute(calls, context);
       // 融合成功，重置状态
       this.currentFusion = null;
 

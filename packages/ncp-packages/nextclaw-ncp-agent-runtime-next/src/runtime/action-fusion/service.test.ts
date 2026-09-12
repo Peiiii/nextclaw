@@ -75,7 +75,7 @@ describe("ActionFusionService", () => {
       expect(execute).toHaveBeenCalledWith([
         expect.objectContaining({ toolName: "edit_file" }),
         expect.objectContaining({ toolName: "exec" }),
-      ]);
+      ], expect.anything());
     });
 
     it("respects maxDepth and does not exceed it", async () => {

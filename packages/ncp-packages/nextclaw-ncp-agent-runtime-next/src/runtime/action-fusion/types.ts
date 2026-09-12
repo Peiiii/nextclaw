@@ -11,8 +11,13 @@ export type FusionRule = {
   pattern: string[];
   /** 最大连续调用深度 */
   maxDepth: number;
-  /** 执行合并的工具调用序列 */
-  execute: (calls: CollectedToolCall[]) => Promise<unknown>;
+  /**
+   * 真实执行融合的工具调用序列：
+   * 逐个通过 context.originalExecuteToolCall 执行，除最后一个外的结果事件
+   * 通过 context.publishToolEvent 发布；返回最后一个调用的结果事件，
+   * 由运行时作为当前工具调用的结果上抛。
+   */
+  execute: (calls: CollectedToolCall[], context: ActionFusionContext) => Promise<unknown>;
   /**
    * 可选：验证是否应该应用此规则
    * 默认为 true（总是应用）

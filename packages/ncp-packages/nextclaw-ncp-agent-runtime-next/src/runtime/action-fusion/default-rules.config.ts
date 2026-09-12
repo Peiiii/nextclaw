@@ -1,11 +1,35 @@
 import type { CollectedToolCall } from "@nextclaw/ncp-agent-runtime";
-import type { FusionRule } from "./types.js";
+import type { NcpEndpointEvent } from "@nextclaw/ncp";
+import type { ActionFusionContext, FusionRule } from "./types.js";
+
+/**
+ * 顺序真实执行融合序列：每个调用通过原始执行器运行，
+ * 除最后一个外的结果事件立即发布，最后一个返回给运行时。
+ */
+async function executeCallsSequentially(
+  calls: CollectedToolCall[],
+  context: ActionFusionContext,
+): Promise<unknown> {
+  if (calls.length < 2) {
+    throw new Error("fusion sequence requires at least 2 calls");
+  }
+  let lastResult: unknown;
+  for (let index = 0; index < calls.length; index += 1) {
+    const call = calls[index]!;
+    const result = await context.originalExecuteToolCall(call, context.publishToolEvent);
+    if (index < calls.length - 1) {
+      await context.publishToolEvent(result as NcpEndpointEvent);
+    }
+    lastResult = result;
+  }
+  return lastResult;
+}
 
 /**
  * 默认融合规则：edit_file + exec（验证）
  *
- * 场景：模型编辑文件后，立即运行命令验证结果
- * 收益：消除中间的 LLM 调用，直接本地执行
+ * 场景：模型在同一轮发出编辑文件与验证命令时，本地顺序真实执行两者，
+ * 编辑结果事件照常入会话，模型下一轮直接拿到验证结果。
  */
 export const EDIT_VERIFY_FUSION_RULE: FusionRule = {
   name: "edit_verify",
@@ -21,40 +45,13 @@ export const EDIT_VERIFY_FUSION_RULE: FusionRule = {
     }
     return false;
   },
-  execute: async (calls: CollectedToolCall[]) => {
-    if (calls.length < 2) {
-      throw new Error("edit_verify fusion requires at least 2 calls");
-    }
-
-    const [editCall, verifyCall] = calls;
-
-    // 解析 edit_file 参数
-    let editArgs: { path: string; old_string?: string; new_string?: string } | null = null;
-    try {
-      editArgs = JSON.parse(editCall.args);
-    } catch {
-      // 解析失败，降级到单独执行
-      throw new Error("Failed to parse edit_file args");
-    }
-
-    // 执行编辑（这里应该调用实际的 edit_file 工具）
-    // 注意：实际执行需要访问工具定义，这里只做框架演示
-    console.log(`[Action Fusion] Fusing edit_verify: ${editCall.toolName} → ${verifyCall.toolName}`);
-
-    // 返回合并结果（实际实现需要调用工具）
-    return {
-      fused: true,
-      editApplied: true,
-      verifyResult: null,
-      message: "edit+verify fusion executed (stub)",
-    };
-  },
+  execute: executeCallsSequentially,
 };
 
 /**
  * 默认融合规则：write_file + exec
  *
- * 场景：模型写入文件后，立即运行命令验证
+ * 场景：模型在同一轮发出写文件与验证命令时，本地顺序真实执行两者。
  */
 export const WRITE_VERIFY_FUSION_RULE: FusionRule = {
   name: "write_verify",
@@ -69,20 +66,7 @@ export const WRITE_VERIFY_FUSION_RULE: FusionRule = {
     }
     return false;
   },
-  execute: async (calls: CollectedToolCall[]) => {
-    if (calls.length < 2) {
-      throw new Error("write_verify fusion requires at least 2 calls");
-    }
-
-    console.log(`[Action Fusion] Fusing write_verify: ${calls[0].toolName} → ${calls[1].toolName}`);
-
-    return {
-      fused: true,
-      fileWritten: true,
-      verifyResult: null,
-      message: "write+verify fusion executed (stub)",
-    };
-  },
+  execute: executeCallsSequentially,
 };
 
 /**

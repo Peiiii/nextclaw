@@ -273,16 +273,9 @@ export class DefaultNcpAgentRuntime {
               };
               const result = await this.actionFusion.detectAndFuse(context, toolCall);
               if (result.fused && result.result !== undefined) {
-                // 返回融合结果，跳过原始执行
-                return this.toolCallExecution.execute({
-                  tools,
-                  sessionId,
-                  messageId: roundMessageId,
-                  spec,
-                  toolCall,
-                  publishToolEvent,
-                  signal,
-                });
+                // 融合序列已真实执行完毕；最后调用的结果事件已由规则返回，
+                // 直接上抛，不再重复执行当前调用。
+                return result.result as NcpEndpointEvent;
               }
             }
             return this.toolCallExecution.execute({
