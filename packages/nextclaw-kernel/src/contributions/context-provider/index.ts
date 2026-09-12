@@ -2,6 +2,7 @@ import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import { Contribution } from "@nextclaw/shared";
 import { AgentBootstrapContextProvider } from "./providers/agent-bootstrap-context.provider.js";
 import { CurrentSessionContextProvider } from "./providers/current-session-context.provider.js";
+import { PartnershipContextProvider } from "./providers/partnership-context.provider.js";
 import { ConversationExcerptContextProvider } from "./providers/conversation-excerpt-context.provider.js";
 import { SystemObjectReferenceContextProvider } from "./providers/system-object-reference-context.provider.js";
 import { UiResourceReferenceContextProvider } from "./providers/ui-resource-reference-context.provider.js";
@@ -69,6 +70,7 @@ export class ContextProviderContribution extends Contribution {
       new SystemObjectReferenceContextProvider(this.kernel.assetStore),
       new UiResourceReferenceContextProvider(),
       new CurrentSessionContextProvider(context),
+      new PartnershipContextProvider(this.kernel.configManager),
     ]) {
       this.effect(() => this.kernel.contextProviderManager.register(provider));
     }

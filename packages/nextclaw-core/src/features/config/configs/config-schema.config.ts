@@ -277,11 +277,15 @@ export const AgentsLearningLoopSchema = z.object({
   toolCallThreshold: z.number().int().min(1).default(15)
 });
 
+/** Partnership mode: how proactively the agent participates in the user's life. */
+export const PartnershipModeSchema = z.enum(["off", "observe", "analyze", "assist", "execute"]).default("assist");
+
 export const AgentsConfigSchema = z.object({
   defaults: AgentDefaultsSchema.default({}),
   runtimes: AgentRuntimesConfigSchema.default({}),
   context: ContextConfigSchema.default({}),
   learningLoop: AgentsLearningLoopSchema.default({}),
+  partnershipMode: PartnershipModeSchema,
   list: z.array(AgentProfileSchema).default([])
 });
 

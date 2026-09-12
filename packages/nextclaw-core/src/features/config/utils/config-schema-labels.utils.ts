@@ -32,6 +32,7 @@ export const FIELD_LABELS: Record<string, string> = {
   "agents.learningLoop": "Learning Loop",
   "agents.learningLoop.enabled": "Enable Learning Loop",
   "agents.learningLoop.toolCallThreshold": "Learning Loop Tool Threshold",
+  "agents.partnershipMode": "Partnership Mode",
   "bindings": "Bindings",
   "bindings.*.agentId": "Target Agent",
   "bindings.*.match.channel": "Match Channel",

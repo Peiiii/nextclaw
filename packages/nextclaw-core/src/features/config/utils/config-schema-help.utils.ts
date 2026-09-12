@@ -32,6 +32,7 @@ export const FIELD_HELP: Record<string, string> = {
   "agents.context.memory.maxChars": "Max characters of memory injected per turn.",
   "agents.learningLoop.enabled": "Enable automatic background learning-loop reviews after enough main-session tool usage accumulates.",
   "agents.learningLoop.toolCallThreshold": "Minimum number of tool calls since the last learning-loop review before the next review is triggered.",
+  "agents.partnershipMode": "Proactive participation level: off (passive, only responds to direct requests), observe (watch, analyze, report without acting), analyze (identify opportunities and propose plans), assist (suggest before acting on non-routine items), execute (autonomous within pre-authorized boundaries). Default is assist.",
   "bindings": "Inbound routing rules: channel + account + peer -> agent.",
   "bindings.*.agentId": "Target agent id for this routing rule.",
   "bindings.*.match.channel": "Channel id to match (e.g. discord, telegram).",
