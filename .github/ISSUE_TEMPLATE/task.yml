@@ -1,56 +1,45 @@
-name: Task
-description: Track engineering tasks, refactors, and maintenance work.
+name: Maintainer Task
+description: Maintainer-owned engineering task. Outside contributors should use Bug Report or Idea / Feature Proposal.
 title: "[Task] "
-labels:
-  - type: chore
-  - status: needs-triage
+labels: []
 body:
+  - type: markdown
+    attributes:
+      value: |
+        This template is for maintainer-owned work tracking. It does not open the task to outside implementation unless maintainers later add `help wanted` and explicitly confirm a contributor.
   - type: textarea
     id: context
     attributes:
       label: Context
       description: Why is this task needed now?
-      placeholder: Background and trigger.
+      placeholder: Background, evidence, and trigger.
     validations:
       required: true
   - type: textarea
     id: scope
     attributes:
       label: Scope
-      description: What is included and excluded?
+      description: What is included and explicitly excluded?
       placeholder: |
         In scope:
         Out of scope:
     validations:
       required: true
   - type: textarea
-    id: checklist
-    attributes:
-      label: Task Checklist
-      description: Split into small, verifiable steps.
-      placeholder: |
-        - [ ] Step 1
-        - [ ] Step 2
-        - [ ] Step 3
-    validations:
-      required: true
-  - type: textarea
     id: verification
     attributes:
       label: Verification
-      description: Commands, assertions, and smoke checks.
+      description: User-visible acceptance criteria, commands, assertions, and smoke checks.
       placeholder: |
-        - pnpm build
-        - pnpm lint
-        - pnpm tsc
-        - smoke test:
+        Acceptance:
+        Commands:
+        Manual checks:
     validations:
       required: true
   - type: textarea
     id: risk
     attributes:
-      label: Risks / Rollback
-      description: Key risks and rollback strategy.
-      placeholder: Main risks, fallback path, and rollback trigger.
+      label: Risks / rollback
+      description: Key risks, fallback path, and rollback trigger.
     validations:
       required: false

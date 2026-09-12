@@ -1,29 +1,36 @@
-## Linked issue
+## Approved issue
 
 Closes #
 
-## Problem
+- [ ] The linked Issue has the `help wanted` label
+- [ ] A maintainer explicitly confirmed my scope in that Issue or assigned it to me
 
-<!-- The real, reproducible problem. Not the solution. -->
+## Confirmed scope
 
-## Scope
+<!-- Copy or link the scope confirmed by the maintainer. -->
 
 - Included:
 - Explicitly not included:
+
+## Problem and evidence
+
+<!-- The real, reproducible problem. Do not use implementation completion as evidence that the change is needed. -->
 
 ## Verification
 
 <!-- Commands run and observed results. State what CI covers and what it does not. -->
 
-- [ ] Reproduced the problem before the change
-- [ ] Ran `<command>` → result:
+- [ ] Reproduced or verified the problem before the change
+- [ ] Ran `<command>` → observed result:
+- [ ] Manually verified:
 
 ## AI assistance
 
-<!-- Required. e.g. "AI-assisted (tool/model). I reviewed and verified every line." -->
+<!-- Required. Name the tool/model if applicable and explain how you reviewed and verified the output. -->
 
-## Checklist
+## Final checklist
 
-- [ ] One topic only; no unrelated changes
-- [ ] A maintainer confirmed this direction on the linked issue before implementation
-- [ ] No new config surface, public API, or dependency without prior agreement
+- [ ] One Issue and one topic only; no unrelated changes or follow-up roadmap work
+- [ ] This PR stays within the scope confirmed on the linked Issue
+- [ ] It is not stacked on an unmerged PR
+- [ ] No new config surface, public API, dependency, runtime hook, product direction, or security boundary was added unless explicitly approved in the Issue

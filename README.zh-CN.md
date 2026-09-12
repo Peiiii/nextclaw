@@ -246,7 +246,7 @@ pnpm run screenshots:refresh
 
 ## 参与贡献
 
-欢迎参与贡献。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)：它说明了哪些改动需要事前确认，以及当前哪里需要帮助。简单说：先在 Issue 里把方向确认清楚，再提交范围清晰、包含验证的 Pull Request。
+欢迎通过 GitHub Issue [报告 Bug](https://github.com/Peiiii/nextclaw/issues/new?template=bug_report.yml)、[提出功能或改进建议](https://github.com/Peiiii/nextclaw/issues/new?template=feature_request.yml)，或[查看当前对外开放的贡献任务](https://github.com/Peiiii/nextclaw/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22)。开始实现前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)：只有 Issue 同时带有 `help wanted`，且维护者明确确认范围或完成 assignment 后，才可以提交 Pull Request。
 
 ## 致谢
 

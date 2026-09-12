@@ -1,68 +1,114 @@
 # Contributing to NextClaw
 
-Thanks for your interest. NextClaw is a small, actively-designed product, so maintainer attention — not code volume — is the scarce resource. These rules exist to keep contributions useful and reviewable, not to discourage them.
+Thanks for your interest. NextClaw is a small, actively designed product, so maintainer attention — not code volume — is the scarce resource. These rules exist to make suggestions and contributions useful, reviewable, and fair.
 
-## The short version
+## Start here
 
-1. **Talk before you build.** Open an Issue and get maintainer confirmation before implementing anything non-trivial. Unconfirmed work may be closed without detailed review.
-2. **One PR, one topic.** No bundling, no stacking on unmerged PRs, no roadmaps inside a pull request.
-3. **Give evidence, not conclusions.** Reproduce the real problem, show the before/after, and state what CI does and does not cover. A local "all green" is not proof.
-4. **Disclose AI assistance.** AI-assisted contributions are welcome; say so. Correctness remains your responsibility.
-5. **Maintainers review on their own schedule.** Closing a PR is not a verdict on you. A closed PR can be reopened after the direction is agreed.
+There is one formal path for bugs, ideas, and contribution proposals: **GitHub Issues**.
 
-## Requires prior confirmation
+- [Report a reproducible bug](https://github.com/Peiiii/nextclaw/issues/new?template=bug_report.yml)
+- [Propose an idea or improvement](https://github.com/Peiiii/nextclaw/issues/new?template=feature_request.yml)
+- [Browse work open to outside contributors](https://github.com/Peiiii/nextclaw/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22)
+- [Report a security vulnerability privately](https://github.com/Peiiii/nextclaw/security/advisories/new)
 
-Open an Issue first, and wait for a maintainer reply, for anything that:
+Do not open a pull request first. Start with an Issue, even for a small fix, test, or documentation change. Small and well-evidenced proposals should be quick to approve.
 
-- changes architecture, public interfaces, config schema, or extension points;
-- changes product direction, roadmap, or positioning;
-- adds a dependency, a new package, or a new runtime hook;
-- touches auth, credentials, secrets, or security boundaries;
-- is large (roughly >300 changed lines or >10 files).
+## From suggestion to pull request
 
-## Welcome without prior discussion
+### 1. Open an Issue
 
-- bug fixes with reproducible steps;
-- tests, docs, typos, i18n;
-- small, focused improvements that stay within existing behaviour.
+Describe the problem or opportunity before designing a large solution. Include a reproducible example, user scenario, or other evidence when possible. You may propose an approach, but implementation is optional at this stage.
 
-## Where to start
+### 2. Maintainers triage it
 
-We plan in the open. Read these before proposing anything:
+A maintainer will choose one of these outcomes:
 
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — what NextClaw is building next, plus an explicit **Not Doing** list (§4). Read the Not Doing list first; it exists so the same proposals don't have to be declined twice.
-- [`docs/TODO.md`](docs/TODO.md) — the near-term execution backlog.
-- [`docs/workflows/issue-labels.md`](docs/workflows/issue-labels.md) — how issues are classified.
+- **More information needed** — discussion continues; do not implement yet.
+- **Accepted, maintainer-owned** — the problem is valid, but it is not open to outside implementation.
+- **Open for contribution** — the Issue receives the `help wanted` label and a maintainer states the accepted scope and verification criteria.
+- **Not planned / closed** — the project will not pursue it now; the reason should be recorded.
 
-**Only issues labeled `help wanted` are open for outside contribution.**
-Issues labeled `good first issue` are a newcomer-friendly subset of those.
+`good first issue` is a newcomer-friendly subset and should also carry `help wanted`.
 
-Everything else — including items in `docs/ROADMAP.md` — is maintainer-committed
-scope. Do not start implementing it without an explicit `help wanted` label or a
-maintainer confirmation on that issue.
+### 3. Claim the Issue
 
-If nothing is labeled right now, or the problem you want to fix isn't listed,
-open an Issue describing the problem and the evidence. That is the normal path to
-getting something accepted, and it is cheap.
+On an Issue labeled `help wanted`, comment with the scope you intend to implement. Wait for a maintainer to confirm or assign it to you before starting work. This avoids duplicate work and catches scope misunderstandings early.
+
+### 4. Get explicit confirmation
+
+You may start only after both are true:
+
+1. the Issue has the `help wanted` label; and
+2. a maintainer explicitly confirms your scope in the Issue or assigns the Issue to you.
+
+The confirmation should state what is included, what is excluded, and how the result will be verified.
+
+### 5. Open one focused pull request
+
+Link the approved Issue, stay inside the confirmed scope, include observed verification results, and disclose AI assistance. Do not stack work on an unmerged pull request or add follow-up roadmap items to the same pull request.
+
+## What does not count as approval
+
+None of the following is permission to implement:
+
+- an item appearing in `docs/ROADMAP.md` or `docs/TODO.md`;
+- an open Issue without `help wanted`;
+- a maintainer saying an idea is interesting or valid;
+- informal chat or community discussion;
+- a reaction, silence, or lack of response;
+- passing CI or having already completed the code.
+
+The durable approval record is the GitHub Issue: `help wanted` plus explicit maintainer confirmation or assignment.
+
+## Changes requiring careful prior alignment
+
+These normally remain maintainer-owned unless explicitly opened with `help wanted`:
+
+- architecture, public interfaces, config schema, or extension points;
+- product direction, roadmap, positioning, or default behavior;
+- dependencies, packages, runtime hooks, or cross-runtime contracts;
+- auth, credentials, secrets, permissions, or security boundaries;
+- large changes (roughly more than 300 changed lines or 10 files).
+
+## Contributions most likely to be approved quickly
+
+These still start with an Issue, but they are usually easier to scope and review:
+
+- reproducible bug fixes;
+- tests for existing behavior;
+- documentation, typos, and i18n;
+- small, focused improvements that preserve existing product and architecture decisions.
+
+Read [`docs/ROADMAP.md`](docs/ROADMAP.md), especially its **Not Doing** section, before proposing a new direction. [`docs/TODO.md`](docs/TODO.md) shows near-term maintainer execution, but neither document is an open task list for outside contributors.
 
 ## Pull requests must include
 
-- a linked Issue where the direction was confirmed;
-- the problem being solved, with evidence;
-- scope: what is included and what is explicitly not;
-- verification: commands run and observed results;
-- whether AI assistance was used, and how the result was verified.
+- the approved Issue it addresses;
+- the confirmed scope and any explicit exclusions;
+- the problem evidence or reproduction;
+- commands run and observed results, including what CI does not cover;
+- whether AI assistance was used and how the result was reviewed and verified.
 
-## Review and closure
+Maintainers may close an unapproved or out-of-scope pull request without a line-by-line review. This is a bandwidth and project-direction decision, not a judgment about the contributor.
 
-Maintainers may close a PR that ignores the above without a line-by-line review. This is a bandwidth decision, not a personal one. If you want your work to land, ask for alignment first — a short Issue is usually enough.
+## 中文说明
 
-## 中文摘要
+NextClaw 的 Bug、建议和贡献提案统一通过 **GitHub Issue** 进入：
 
-1. 先提 Issue 取得维护者确认，再动手实现；未确认的改动可能不逐行审查直接关闭。
-2. 一个 PR 只做一件事：不打包、不叠在未合并的 PR 上、不在 PR 里排路线。
-3. 给证据不给结论：能复现的问题、改动前后的结果，并说明 CI 覆盖了什么、没覆盖什么；"本地全绿"不算证明。
-4. 可以借助 AI，但要如实说明；正确性由提交者本人负责。
-5. 维护者按自己的节奏 review；关闭不是对你个人的否定，方向确认后可以重开。
-6. 仍然欢迎：能复现的 bug 修复、测试、文档、i18n、范围内的聚焦小改进。
-7. 只做被标为 `help wanted` 的 issue；`good first issue` 是其中适合新人的子集。`docs/ROADMAP.md` 里的条目属维护者既定范围，未获确认不要直接开工。想做的事不在列表里，就先提 Issue 说明问题和证据——这是正常的纳入路径，成本很低。
+- [报告可复现 Bug](https://github.com/Peiiii/nextclaw/issues/new?template=bug_report.yml)
+- [提出功能或改进建议](https://github.com/Peiiii/nextclaw/issues/new?template=feature_request.yml)
+- [查看对外开放的贡献任务](https://github.com/Peiiii/nextclaw/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22)
+- [私密报告安全漏洞](https://github.com/Peiiii/nextclaw/security/advisories/new)
+
+请不要先开 PR。完整流程是：
+
+1. 先提 Issue，描述问题、使用场景和证据；方案可以提，但此时不需要实现。
+2. 维护者分诊：补充信息 / 问题接受但由维护者负责 / 对外开放 / 当前不做。
+3. 只有带 `help wanted` 的 Issue 才对外开放；`good first issue` 是其中适合新人的子集。
+4. 在 Issue 下留言说明你准备实现的范围，等待维护者明确回复或把 Issue assign 给你。
+5. **`help wanted` + 维护者明确确认或 assignment** 同时成立后，才算获得开工确认。
+6. 提交一个范围聚焦的 PR，关联 Issue，遵守确认过的边界，写明验证结果，并披露 AI 参与。
+
+以下都不算开发确认：Roadmap/TODO 中出现、普通开放 Issue、维护者说“想法不错”、聊天讨论、点赞、沉默、CI 通过，或者代码已经写完。
+
+Roadmap 是维护者规划，不是可自由认领的任务列表。没有开放任务时，欢迎先提建议，但请等待项目明确开放后再实现。

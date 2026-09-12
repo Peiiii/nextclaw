@@ -1,73 +1,73 @@
-name: Feature Request
-description: Propose a new capability or improvement.
-title: "[Feature] "
+name: Idea / Feature Proposal
+description: Suggest a product capability, experience improvement, or engineering change before implementation.
+title: "[Proposal] "
 labels:
-  - type: feature
-  - status: needs-triage
+  - enhancement
 body:
   - type: markdown
     attributes:
       value: |
-        Describe the user problem first, then the proposed solution.
+        Thanks for the suggestion. Describe the problem or opportunity first. This Issue is a proposal, not permission to start implementation.
+
+        Outside implementation may begin only after this Issue receives the `help wanted` label **and** a maintainer explicitly confirms your scope or assigns the Issue to you.
   - type: textarea
-    id: problem
+    id: user_problem
     attributes:
-      label: Problem Statement
-      description: What user pain or business problem should this solve?
+      label: User problem or opportunity
+      description: Who encounters this, in what situation, and what is difficult or missing today?
       placeholder: "When ..., users cannot ..., which causes ..."
     validations:
       required: true
   - type: textarea
-    id: proposal
+    id: current_behavior
     attributes:
-      label: Proposed Solution
-      description: What exactly should we build?
-      placeholder: Describe the desired behavior and key interactions.
+      label: Current behavior
+      description: What does NextClaw do today? Include links, screenshots, logs, or a reproducible example when available.
+      placeholder: Describe the current observable behavior and evidence.
     validations:
       required: true
   - type: textarea
-    id: alternatives
+    id: desired_outcome
     attributes:
-      label: Alternatives Considered
-      description: What other options were considered?
-      placeholder: List alternatives and why they are weaker.
+      label: Desired outcome
+      description: Describe the user-visible result, not a full implementation plan.
+      placeholder: What should become possible or meaningfully better?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or real-world example
+      description: Why is this worth solving now? Real use cases and observed failures are more useful than projected benefits.
+      placeholder: User report, repeated workflow, benchmark, reproduction, or other evidence.
+    validations:
+      required: false
+  - type: textarea
+    id: proposed_approach
+    attributes:
+      label: Possible approach (optional)
+      description: Share an implementation idea if useful, but keep problem acceptance separate from solution approval.
+      placeholder: A bounded approach and its tradeoffs. Do not implement it yet.
     validations:
       required: false
   - type: dropdown
-    id: impact
+    id: contribution_interest
     attributes:
-      label: Expected Impact
-      description: How much impact do you expect?
+      label: Would you like to implement this if it is opened for contribution?
       options:
-        - high
-        - medium
-        - low
+        - "No — suggestion only"
+        - "Yes — I can help after scope confirmation"
+        - "Not sure"
     validations:
       required: true
-  - type: textarea
-    id: acceptance
-    attributes:
-      label: Acceptance Criteria
-      description: Define verifiable conditions of done.
-      placeholder: |
-        - [ ] Given ..., when ..., then ...
-        - [ ] CLI/API/UI behavior is documented
-    validations:
-      required: true
-  - type: textarea
-    id: out_of_scope
-    attributes:
-      label: Out of Scope
-      description: What this request explicitly does not include.
-      placeholder: Boundaries to avoid scope creep.
-    validations:
-      required: false
   - type: checkboxes
     id: checks
     attributes:
-      label: Preflight Checklist
+      label: Proposal checklist
       options:
-        - label: I searched existing issues and did not find a duplicate.
+        - label: I searched existing Issues and did not find a duplicate.
           required: true
-        - label: I included acceptance criteria that can be verified.
+        - label: I understand that Roadmap/TODO entries and an open Issue do not by themselves authorize implementation.
+          required: true
+        - label: I will wait for both the `help wanted` label and explicit maintainer confirmation or assignment before opening a PR.
           required: true
