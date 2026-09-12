@@ -1,8 +1,14 @@
 import { AppDataManager } from "@kernel/managers/app-data.manager.js";
+import { CoreHealthCheckService } from "@kernel/features/core-health/index.js";
+import { FeatureControlsService } from "@kernel/features/feature-controls/index.js";
+import type { DesktopHost } from "@kernel/features/desktop-host/index.js";
+import type { Config } from "@nextclaw/core";
 import type { AppPackageManager } from "@kernel/managers/app-package.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { ChannelManager } from "@kernel/managers/channel.manager.js";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
+import type { ExtensionManager } from "@kernel/managers/extension.manager.js";
+import type { McpManager } from "@kernel/managers/mcp.manager.js";
 import type { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import type { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import type { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
@@ -332,6 +338,46 @@ export function createKernelContributions(
     new AgentRunRuntimeContribution(kernel),
     new ContextWindowContribution(kernel),
   ];
+}
+
+export function createKernelCoreServices(params: {
+  desktopHost: DesktopHost;
+  getWorkspacePath: () => string;
+  sessionsDir: string;
+  configManager: { config: Config };
+}): { coreHealth: CoreHealthCheckService; featureControls: FeatureControlsService } {
+  const coreHealth = new CoreHealthCheckService({
+    getConfig: () => params.configManager.config,
+    getWorkspacePath: () => params.getWorkspacePath(),
+    sessionsDir: params.sessionsDir,
+  });
+  const featureControls = new FeatureControlsService({
+    desktopHost: params.desktopHost,
+    coreHealth,
+    getConfig: () => params.configManager.config,
+  });
+  return { coreHealth, featureControls };
+}
+
+export function installKernelConfigRuntimeHooks(params: {
+  configManager: ConfigManager;
+  extensions: ExtensionManager;
+  mcpManager: McpManager;
+}): void {
+  const { configManager, extensions, mcpManager } = params;
+  configManager.installRuntimeHooks({
+    resolveChannelConfig: extensions.toConfigView,
+    getExtensionChannels: () =>
+      extensions.getExtensionRegistry().channels,
+    reloadExtensions: async ({ config, changedPaths }) => {
+      await extensions.reloadForConfigChange({
+        config,
+        changedPaths,
+      });
+    },
+    reloadMcp: async ({ config }) =>
+      await mcpManager.applyConfig(config),
+  });
 }
 
 export function installKernelAppPackageRuntimeHooks(params: {
