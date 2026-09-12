@@ -248,7 +248,7 @@ Repository planning: [Roadmap](docs/ROADMAP.md) · [TODO](docs/TODO.md)
 
 ## Contributing
 
-Contributions are welcome. Open an issue to discuss a bug or proposal, or submit a pull request with a focused change and its relevant verification.
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first — it explains what needs prior confirmation and where help is needed right now. In short: agree on the direction in an issue, then send a focused pull request with its verification.
 
 ## Acknowledgements
 

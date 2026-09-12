@@ -246,7 +246,7 @@ pnpm run screenshots:refresh
 
 ## 参与贡献
 
-欢迎参与贡献。你可以先通过 Issue 讨论问题或提案，也可以提交范围清晰、包含相关验证的 Pull Request。
+欢迎参与贡献。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)：它说明了哪些改动需要事前确认，以及当前哪里需要帮助。简单说：先在 Issue 里把方向确认清楚，再提交范围清晰、包含验证的 Pull Request。
 
 ## 致谢
 
