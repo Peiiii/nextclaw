@@ -257,6 +257,7 @@ export function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
             onSetModelVision={onSetModelVision}
             thinkingLevels={THINKING_LEVELS}
             formatThinkingLevelLabel={formatThinkingLevelLabel}
+            onTestModelLatency={connectivity.testModelLatency}
           />
 
           <ProviderAdvancedSettingsSection
