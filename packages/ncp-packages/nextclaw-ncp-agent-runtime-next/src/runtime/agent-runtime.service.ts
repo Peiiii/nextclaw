@@ -29,6 +29,8 @@ import { AgentRunExecutionManager } from "./agent-run-execution.manager.js";
 import { RuntimeToolCallExecutionService } from "./runtime-tool-call-execution.service.js";
 import { ActionFusionService } from "./action-fusion/service.js";
 import type { ActionFusionConfig, ActionFusionContext } from "./action-fusion/types.js";
+import { ObservationPackToolResultContentManager } from "./observation-pack/observation-pack-content-manager.config.js";
+import { ObservationStore } from "./observation-pack/observation-pack-store.config.js";
 
 export type AgentRuntimeSessionStateSnapshot = {
   messages: readonly NcpMessage[];
@@ -72,6 +74,10 @@ export type DefaultNcpAgentRuntimeConfig = {
   streamEncoder?: NcpStreamEncoder;
   toolResultContentManager?: ToolResultContentManager;
   actionFusion?: ActionFusionConfig;
+  observationPack?: {
+    enabled: boolean;
+    thresholdChars?: number;
+  };
 };
 
 type RuntimeDrainReady =
@@ -173,6 +179,7 @@ export class DefaultNcpAgentRuntime {
   private readonly streamEncoder: NcpStreamEncoder;
   private readonly toolCallExecution: RuntimeToolCallExecutionService;
   private readonly actionFusion: ActionFusionService | null;
+  private readonly observationStore: ObservationStore | null;
 
   constructor(config: DefaultNcpAgentRuntimeConfig) {
     const {
@@ -183,6 +190,7 @@ export class DefaultNcpAgentRuntime {
       streamEncoder,
       toolResultContentManager,
       actionFusion,
+      observationPack,
     } = config;
     this.llmApi = llmApi;
     this.modelInputBuilder = modelInputBuilder;
@@ -196,9 +204,16 @@ export class DefaultNcpAgentRuntime {
         toolCallEndMode: "sequential-index",
       });
     this.toolCallExecution = new RuntimeToolCallExecutionService(
-      toolResultContentManager ?? defaultToolResultContentManager,
+      (observationPack?.enabled
+        ? new ObservationPackToolResultContentManager({
+            delegate: toolResultContentManager ?? defaultToolResultContentManager,
+            store: new ObservationStore(),
+            thresholdChars: observationPack.thresholdChars,
+          })
+        : toolResultContentManager ?? defaultToolResultContentManager) as ToolResultContentManager,
     );
     this.actionFusion = actionFusion ? new ActionFusionService(actionFusion) : null;
+    this.observationStore = observationPack?.enabled ? new ObservationStore() : null;
   }
 
   // eslint-disable-next-line max-statements
@@ -355,6 +370,7 @@ export class DefaultNcpAgentRuntime {
             endedAt,
           ),
         );
+        this.observationStore?.clear();
         return;
       }
 

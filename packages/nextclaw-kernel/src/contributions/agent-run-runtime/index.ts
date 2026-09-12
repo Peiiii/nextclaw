@@ -78,6 +78,7 @@ export class AgentRunRuntimeContribution extends Contribution {
       defaultReuseScope: "global",
       createRuntime: ({ entry }) => {
         const actionFusion = this.kernel.configManager.loadConfig().coreRuntime.actionFusion;
+        const observationPack = this.kernel.configManager.loadConfig().coreRuntime.observationPack;
         const runtime = new DefaultNcpAgentRuntime({
           llmApi: new ProviderManagerNcpLLMApi(this.kernel.llmProviders),
           modelInputBuilder: this.modelInputBuilder,
@@ -96,6 +97,7 @@ export class AgentRunRuntimeContribution extends Contribution {
                 maxLookahead: actionFusion.maxLookahead,
               }
             : undefined,
+          observationPack: observationPack.enabled ? observationPack : undefined,
         });
         return {
           capabilities: { nextStepInput: true },

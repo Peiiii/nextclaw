@@ -496,9 +496,13 @@ export const ActionFusionConfigSchema = z.object({
   maxLookahead: z.number().int().min(1).max(20).default(5),
 });
 
-/** Runtime 配置节点：包含 Action Fusion 等运行时优化选项 */
+/** Runtime 配置节点：包含 Action Fusion / ObservationPack 等运行时优化选项 */
 export const CoreRuntimeConfigSchema = z.object({
   actionFusion: ActionFusionConfigSchema.default({}),
+  observationPack: z.object({
+    enabled: z.boolean().default(false),
+    thresholdChars: z.number().int().min(100).max(100_000).default(8_000),
+  }).default({}),
 });
 
 export const SecretSourceSchema = z.enum(["env", "file", "exec"]);
