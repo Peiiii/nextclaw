@@ -16,6 +16,8 @@ Create the `agent:mozhao` label in the platform. Add it to a new issue to invite
 
 The host checks every 30 seconds while this computer is awake and online. A status receipt shows the Codex task ID and when processing starts. Later messages continue that same task. The agent can handle irrelevant input quietly. Statuses are updated in place on GitHub/Linear; official discussions support a first receipt and explicit status replies.
 
+GitHub issues and comments receive an eyes reaction after durable acceptance, before execution. This is a receipt, not a completion signal; status comments remain authoritative for agent identity and progress. Reaction failures are recorded locally without blocking work. Greetings and connectivity tests receive replies, and the host removes duplicate leading internal labels before adding its signed identity prefix.
+
 Send a standalone `/agent pause`, `/agent resume`, `/agent cancel` or `/agent status` in the issue. Pause retains pending input and lets current work finish. Cancel requests interruption and pauses future work. Closing an issue pauses follow-up; reopening only clears a pause caused by closure. A user pause remains until resumed.
 
 `status` and `show CONTEXT` inspect local state without invoking a model. `stop` preserves bindings and pending work; `restart` resumes them. `run` is the foreground entry for an existing OS service manager. `start` runs detached until shutdown; it does not install an OS startup service. Default state: `~/.nextclaw/collaboration`. Protect that directory: it contains agent private keys and task input. Completed input/result payloads older than 30 days are compacted on host startup; small identity and deduplication records remain. Do not delete state while its host is running.

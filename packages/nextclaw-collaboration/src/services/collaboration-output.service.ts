@@ -3,6 +3,7 @@ import type {
   ContextState,
   OutboxEntry,
   SourceAdapter,
+  StoredEvent,
 } from "../types/collaboration.types.js";
 import type { CollaborationStore } from "../stores/collaboration.store.js";
 import { digest, signMessage } from "../utils/identity.utils.js";
@@ -13,6 +14,20 @@ export class CollaborationOutputService {
     private readonly store: CollaborationStore,
     private readonly sources: Map<string, SourceAdapter>,
   ) {}
+  acknowledge = async (connection: Connection, input: StoredEvent): Promise<void> => {
+    const source = this.source(connection.id);
+    if (!source.acknowledge || input.receiptAttempted) return;
+    input.receiptAttempted = true;
+    try {
+      const check = await source.check();
+      if (check.source !== connection.source || check.account !== connection.account || !check.writable)
+        throw new Error("Receipt identity/permission changed");
+      await source.acknowledge(input.event);
+    } catch (error) {
+      input.receiptError = errorMessage(error);
+    }
+    this.store.put("event", input.key, input);
+  };
   publish = async (): Promise<void> => {
     for (const context of this.store.list<ContextState>("context")) {
       if (context.status === context.statusPublished) continue;
@@ -72,7 +87,7 @@ export class CollaborationOutputService {
     const { key, connectionId, source, subject, status } = context;
     const connection = this.store.get<Connection>("connection", connectionId)!;
     const scope = { source, subject, operationId: id, purpose, hop };
-    let content = `🤖[墨爪] ${connection.agent.id}：${text}`;
+    let content = `🤖[墨爪] ${connection.agent.id}：${normalizeReplyText(text, connection.agent.id)}`;
     let body = signMessage(connection.agent, content, scope);
     const limit = this.source(connectionId).maxMessageChars || 60_000;
     if (body.length > limit) {
@@ -184,4 +199,14 @@ export class CollaborationOutputService {
 }
 function errorMessage(error: unknown): string {
   return (error instanceof Error ? error.message : String(error)).slice(0, 500);
+}
+/** Strip only leading transport/rule labels; preserve labels quoted inside the reply. */
+export function normalizeReplyText(text: string, agentId: string): string {
+  let result = text.trim();
+  const labels = ["[我严格遵守规则]", "[深思模式]", `🤖[墨爪] ${agentId}：`, "🤖[墨爪]"];
+  for (;;) {
+    const label = labels.find((prefix) => result.startsWith(prefix));
+    if (!label) return result;
+    result = result.slice(label.length).trimStart();
+  }
 }

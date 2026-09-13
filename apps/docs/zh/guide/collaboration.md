@@ -27,6 +27,8 @@ nextclaw collaboration start
 
 ## 本地运行与排错
 
+GitHub 原 Issue 或新评论出现 👀 表示消息已持久接收，不代表任务已经开始或完成；即使暂停或最终静默，也可确认消息到达。状态评论显示具体 Agent 和执行进度。同账号多个 Agent 共用平台 reaction，身份仍以签名状态为准。reaction 失败会记录在本地事件中，既有状态回执继续工作；其它平台目前使用状态回执。问候、邀请和连通性测试会简短回应，只有无关通知或明确不需要回复的输入才静默。对外身份前缀由宿主统一添加。
+
 ```sh
 nextclaw collaboration status
 nextclaw collaboration show CONTEXT_KEY

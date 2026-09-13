@@ -50,3 +50,11 @@
 - [双语 GitHub Release](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.54.0) 已更新。[中文说明](https://docs.nextclaw.io/zh/notes/2026-09-13-nextclaw-v0-54-0)、英文说明与结构化 JSON 线上 200，JSON 版本 0.54.0 且 CORS 正常；Docs [34743632271](https://github.com/Peiiii/nextclaw/actions/runs/34743632271) 成功。最后按正式 CLI help 修正文档 trust 的账号位置参数，未改变协议或实现。
 - 范围内交付完成；桌面安装包按用户要求暂缓。可选 X 宣传未执行，release surface 保留 CONTENT_PENDING，不声称完整营销传播完成。周额度最后核对剩余 80%，未使用重置额度。
 - 主线通过 `release:reconcile:mainline` 回流，源区草稿经审计迁移且无遗留；最终文档收尾提交继续使用同一回流 owner。
+
+### 用户验收返工 checkpoint（2026-09-13 15:36 CST）
+
+#64 实测触发三项返工：连通测试被 quiet、需要原消息 reaction、模型与宿主前缀叠加。工作树已修正提示词、增加可选 acknowledge（GitHub eyes）、在单输出 owner 清理前导规则/身份标识再签名。19 项测试、包 tsc/lint、diff-only maintainability 0 errors；真实 #65 对同样测试输入自动 eyes 并正常回复，#64 新评论 5651956235 自动 eyes。旧评论 5651924841/5651928624 已原位清理并重新签名，#64 原 Issue 补历史接收反馈。
+
+本机监听已临时切到本 worktree 修正版，PID 27394，绑定保留；不是正式发布安装。修改尚未提交/发布，changeset collaboration-receipts-and-replies.md 已准备。周额度最新 used 22%（剩余 78%）到达用户硬边界，停止后续发布；不能将本地修复标为稳定发布完成。恢复入口：本段、设计中返工小节、git diff、/tmp/collaboration-receipt-* 验证日志；下一步提交并按 exact-SHA prepare/product 发布、切回正式安装包、原 Issue 复验后关闭 COL-010/COL-011/COL-015。不要重做已验证且未变的全平台功能；不要使用重置额度或越过 78% 下限。
+
+用户随后明确授权继续完成发布收尾，允许本次必要闭环越过此前 78% 暂停点；不扩大功能或重复既有测试。最终定向测试 19 项、两个相关包 tsc、文档构建和 i18n 均通过，diff-only Review 0 errors / 0 warnings。设计 Review 与实现 Review 均无开放 findings。EXISTING_RELEASE_PATH: release.yml / npm-production，既有成功 34743043117。沿原发布 owner 完成 patch，不发布桌面或额外宣传。

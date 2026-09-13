@@ -66,6 +66,8 @@ export interface SourceAdapter {
     subjects: string[],
   ): Promise<SourceBatch>;
   readContext(subject: string): Promise<Conversation>;
+  /** Idempotent receipt on the original resource; never signals execution completion. */
+  acknowledge?(event: CollaborationEvent): Promise<void>;
   reply?(operation: OutputOperation): Promise<string>;
   findReply?(subject: string, operationId: string): Promise<string | undefined>;
 }
@@ -155,6 +157,8 @@ export type StoredEvent = {
   event: CollaborationEvent;
   state: "pending" | "done" | "ignored";
   receivedAt: string;
+  receiptAttempted?: boolean;
+  receiptError?: string;
 };
 export type OutboxEntry = {
   id: string;

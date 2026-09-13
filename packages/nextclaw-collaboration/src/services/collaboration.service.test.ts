@@ -154,6 +154,51 @@ function fixture() {
     },
   };
 }
+describe("visible collaboration receipts", () => {
+  it("acknowledges persisted input before execution, only once, including paused input", async () => {
+    const f = fixture();
+    const received: string[] = [];
+    f.source.acknowledge = async (event) => {
+      expect(f.store.list<StoredEvent>("event").some((e) => e.event.id === event.id)).toBe(true);
+      expect(f.submissions).toHaveLength(0);
+      received.push(event.id);
+    };
+    f.service.ingest(f.connection, f.event("hello"));
+    await f.service.dispatch();
+    expect(received).toEqual(["hello"]);
+    await f.service.dispatch();
+    expect(received).toEqual(["hello"]);
+    const context = f.store.list<ContextState>("context")[0];
+    context.paused = true;
+    f.store.put("context", context.key, context);
+    f.source.acknowledge = async (event) => { received.push(event.id); };
+    f.service.ingest(f.connection, f.event("later"));
+    f.service.ingest(f.connection, f.event("unauthorized", "hello", "stranger"));
+    await f.service.dispatch();
+    expect(received).toEqual(["hello", "later"]);
+    expect(f.submissions).toHaveLength(1);
+  });
+  it("keeps receipt failures observable without losing the task", async () => {
+    const f = fixture();
+    f.source.acknowledge = async () => { throw new Error("reaction unavailable"); };
+    f.service.ingest(f.connection, f.event("hello"));
+    await f.service.dispatch();
+    expect(f.submissions).toHaveLength(1);
+    expect(f.store.list<StoredEvent>("event")[0].receiptError).toBe("reaction unavailable");
+  });
+  it("publishes one identity prefix and preserves literal labels within body text", async () => {
+    const f = fixture();
+    f.consumer.inspect = async () => ({ state: "completed", text: "[我严格遵守规则] [深思模式] 🤖[墨爪]我是墨爪。引用：[我严格遵守规则]" });
+    f.service.ingest(f.connection, f.event("hello"));
+    await f.service.dispatch();
+    await f.service.advance();
+    await f.service.publish();
+    const reply = f.messages.find((m) => m.body.includes("我是墨爪"))!;
+    expect(reply.body.startsWith("🤖[墨爪] alice：我是墨爪。引用：[我严格遵守规则]")).toBe(true);
+    expect(reply.body.match(/🤖\[墨爪\]/g)).toHaveLength(1);
+    expect(identifyMessage(reply.body, "shared", "urn:test", "ticket", [{ ...f.agent, account: "shared" }]).invalidAgent).not.toBe(true);
+  });
+});
 describe("durable collaboration contract", () => {
   it("does not invoke a model for peer controls without control authority", async () => {
     const f = fixture();

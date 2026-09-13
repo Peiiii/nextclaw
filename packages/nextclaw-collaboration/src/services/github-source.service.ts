@@ -141,6 +141,13 @@ export class GitHubSource implements SourceAdapter {
       })),
     };
   };
+  acknowledge = async (event: CollaborationEvent): Promise<void> => {
+    const resource = this.subject(event.data.resourceId);
+    const path = event.data.change === "message"
+      ? `repos/${this.repository}/issues/comments/${resource}/reactions`
+      : `repos/${this.repository}/issues/${this.subject(event.subject)}/reactions`;
+    await this.api(path, "POST", { content: "eyes" });
+  };
   reply = async (operation: OutputOperation): Promise<string> => {
     this.subject(operation.subject);
     const path = operation.existingId
