@@ -17,6 +17,7 @@ export function printStatusReport(params: {
   console.log(`Level: ${report.level}`);
   console.log(`Generated: ${report.generatedAt}`);
   console.log("");
+  printInstanceSection(report);
   printProcessSection(report);
   printExtensionSection(report);
   printEndpointSection(report);
@@ -32,6 +33,24 @@ export function printStatusReport(params: {
       console.log(line);
     }
   }
+}
+
+function printInstanceSection(report: RuntimeStatusReport): void {
+  const installation = report.instance.installationKind ? ` (${report.instance.installationKind})` : "";
+  console.log(`Distribution: ${report.instance.distribution}${installation}`);
+  if (report.storage.portableDataRoot) {
+    console.log(`Portable data: ${report.storage.portableDataRoot}`);
+  }
+  console.log(`Runtime home: ${report.storage.runtimeHome}`);
+  if (report.storage.desktopDataDirectory) {
+    console.log(`Desktop data: ${report.storage.desktopDataDirectory}`);
+  }
+  if (report.storage.desktopLogsDirectory) {
+    console.log(`Desktop logs: ${report.storage.desktopLogsDirectory}`);
+  }
+  console.log(`Runtime logs: ${report.storage.runtimeLogsDirectory}`);
+  console.log(`Config: ${report.storage.configPath} ${report.configExists ? "✓" : "✗"}`);
+  console.log(`Workspace: ${report.storage.workspacePath} ${report.workspaceExists ? "✓" : "✗"}`);
 }
 
 function printExtensionSection(report: RuntimeStatusReport): void {
@@ -102,8 +121,6 @@ function printEndpointSection(report: RuntimeStatusReport): void {
   if (report.remote.runtime?.lastError) {
     console.log(`Remote error: ${report.remote.runtime.lastError}`);
   }
-  console.log(`Config: ${report.configPath} ${report.configExists ? "✓" : "✗"}`);
-  console.log(`Workspace: ${report.workspacePath} ${report.workspaceExists ? "✓" : "✗"}`);
   console.log(`Model: ${report.model}`);
 }
 

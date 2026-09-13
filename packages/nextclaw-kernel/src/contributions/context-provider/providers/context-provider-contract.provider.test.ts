@@ -32,7 +32,6 @@ import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 
 const tempWorkspaces: string[] = [];
 const NATIVE_CONTEXT_SECTION_ORDER = [
-  "You are a personal assistant running inside nextclaw.",
   "## Tool Call Style",
   "## Chat Composer Tokens",
   "## Safety",
@@ -41,7 +40,6 @@ const NATIVE_CONTEXT_SECTION_ORDER = [
   "## Messaging",
   "## Memory Recall",
   "## Silent Replies",
-  "## Runtime",
   "## nextclaw Self-Management Guide",
   "## Session Orchestration",
   "## Agent Output & Reply Formatting Contract",
@@ -52,7 +50,7 @@ const NATIVE_CONTEXT_SECTION_ORDER = [
   "## Skills",
   "# Skill Learning Loop",
   "## Tool Use Enforcement",
-  "## Current Session",
+  "## Current Self",
 ] as const;
 
 function createWorkspace(): string {
@@ -307,7 +305,7 @@ describe("ContextProviderContribution native prompt contract", () => {
       .join("\n\n");
 
     for (const expected of [
-      "You are a personal assistant running inside nextclaw.",
+      "## Current Self\nIdentity: Main (Agent ID: main), a personal assistant running inside nextclaw.",
       "provider tool schemas are the complete policy-filtered tool catalog",
       "# Project Context",
       "NextClaw Resource Protocol (NextClaw 资源协议)",
@@ -338,7 +336,9 @@ describe("ContextProviderContribution native prompt contract", () => {
       "## Session Orchestration",
       "## Tool Use Enforcement",
       "## OpenAI/Codex Execution Discipline",
-      "## Current Session\nChannel: ui\nChat ID: web-ui\nSession: session-1\nModel: openai/gpt-5",
+      `Host: ${process.platform} ${process.arch}, Node ${process.version}`,
+      "Distribution: cli",
+      "Channel: ui\nChat ID: web-ui\nSession: session-1\nModel: openai/gpt-5",
       "## Agent Output & Reply Formatting Contract",
       "After that call, always write a concise, self-contained final response",
       "focused Mermaid",
@@ -360,6 +360,13 @@ describe("ContextProviderContribution native prompt contract", () => {
     expect(context).not.toContain("<location>");
     expect(context).not.toContain("## Reply Tags");
     expect(context).not.toContain("[[reply_to_current]]");
+    expect(context).not.toContain("## Runtime");
+    expect(context).not.toContain("## Current Session");
+    expect(context.match(/Agent ID: main/g)).toHaveLength(1);
+    expect(context.match(new RegExp(`Host: ${process.platform} ${process.arch}, Node`, "g"))).toHaveLength(1);
+    expect(context.match(/Session: session-1/g)).toHaveLength(1);
+    expect(context.match(/Channel: ui/g)).toHaveLength(1);
+    expect(context.match(/Model: openai\/gpt-5/g)).toHaveLength(1);
     const alwaysOnSkillsContext = context.slice(
       context.indexOf("# Always-on Skills"),
       context.indexOf("## Skills"),

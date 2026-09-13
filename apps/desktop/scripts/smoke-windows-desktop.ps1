@@ -77,6 +77,16 @@ function Get-DesktopRuntimeBaseUrlFromLog {
   return $runtimeBaseUrl
 }
 
+function Get-DesktopCommandSurfaceBinFromLog {
+  $commandSurfaceBin = $null
+  foreach ($line in @(Get-CurrentMainLogLines)) {
+    if ($line -match "desktop\.commandSurface\.ready binDir=(.*?) manifest=") {
+      $commandSurfaceBin = $Matches[1]
+    }
+  }
+  return $commandSurfaceBin
+}
+
 function Get-DesktopRootProcessIdFromLog {
   $candidatePid = $null
   foreach ($line in @(Get-CurrentMainLogLines)) {
@@ -1039,6 +1049,21 @@ try {
     }
     if ($logText -notmatch [regex]::Escape("runtimeHome=$expectedRuntimeHome")) {
       throw "Portable smoke did not observe expected runtime home in $script:MainLog"
+    }
+    $commandSurfaceBin = Get-DesktopCommandSurfaceBinFromLog
+    if ([string]::IsNullOrWhiteSpace($commandSurfaceBin)) {
+      throw "Portable smoke did not observe the managed command surface bin in $script:MainLog"
+    }
+    node "apps/desktop/scripts/smoke/command-surface-smoke.mjs" `
+      --bin-dir $commandSurfaceBin `
+      --expected-distribution desktop `
+      --expected-installation-kind portable `
+      --expected-portable-data-root (Join-Path $resolvedPortableRoot "data") `
+      --expected-runtime-home $expectedRuntimeHome `
+      --expected-desktop-data-directory $expectedDesktopData `
+      --expected-desktop-logs-directory $expectedLogsDir
+    if ($LASTEXITCODE -ne 0) {
+      throw "Portable managed command surface self-awareness smoke failed with exit code $LASTEXITCODE"
     }
   }
 } catch {

@@ -18,6 +18,7 @@ import {
 
 export type NextclawNcpResolvedAgentProfile = {
   agentId: string;
+  displayName: string;
   contextTokens: number;
   execTimeoutSeconds: number;
   model: string;
@@ -163,6 +164,7 @@ function buildResolvedAgentProfile(params: {
   } = config;
   return {
     agentId: profile.id,
+    displayName: profile.displayName ?? profile.id,
     workspace: getWorkspacePath(profile.workspace),
     model: profile.model,
     contextTokens: profile.contextTokens,

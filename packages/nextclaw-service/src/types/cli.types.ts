@@ -1,5 +1,5 @@
 import type { RestartStrategy } from "@nextclaw-service/services/restart/restart-coordinator.service.js";
-import type { ExtensionRuntimeStatus } from "@nextclaw/kernel";
+import type { ExtensionRuntimeStatus, RuntimeInstanceSnapshot } from "@nextclaw/kernel";
 import type { RemoteRuntimeState } from "@nextclaw/remote";
 import type { HostIncident } from "@nextclaw/core";
 
@@ -312,6 +312,8 @@ export type RuntimeVersionProbe = {
 
 export type RuntimeStatusReport = {
   generatedAt: string;
+  instance: Pick<RuntimeInstanceSnapshot, "distribution" | "installationKind">;
+  storage: RuntimeInstanceSnapshot["storage"];
   configPath: string;
   configExists: boolean;
   workspacePath: string;

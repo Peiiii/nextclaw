@@ -2,6 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { join } from "node:path";
 import { runDesktopCommandBridge } from "./desktop-command-bridge.utils";
+import {
+  RUNTIME_INSTANCE_DESKTOP_DATA_DIRECTORY_ENV,
+  RUNTIME_INSTANCE_DESKTOP_LOGS_DIRECTORY_ENV,
+  RUNTIME_INSTANCE_DISTRIBUTION_ENV,
+  RUNTIME_INSTANCE_INSTALLATION_KIND_ENV,
+  RUNTIME_INSTANCE_PORTABLE_DATA_ROOT_ENV
+} from "@nextclaw/core";
 
 function createManifest(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -9,6 +16,8 @@ function createManifest(overrides: Record<string, unknown> = {}): Record<string,
     installationKind: "installed",
     desktopDataDir: "/desktop-data",
     runtimeHome: "/runtime-home",
+    portableDataRoot: null,
+    desktopLogsDir: "/desktop-logs",
     appExecutablePath: "/Applications/NextClaw Desktop.app/Contents/MacOS/NextClaw Desktop",
     commandBridgeScriptPath: "/bridge.js",
     commandSurfaceBinDir: "/desktop-data/command-surface/bin",
@@ -67,6 +76,11 @@ test("desktop command bridge resolves current bundle runtime and forwards args",
   assert.equal(calls[0]?.env.NEXTCLAW_COMMAND_SURFACE_BIN, "/desktop-data/command-surface/bin");
   assert.equal(calls[0]?.env.NEXTCLAW_DESKTOP_COMMAND_SURFACE, "1");
   assert.equal(calls[0]?.env.NEXTCLAW_PRODUCT_ANALYTICS_ENVIRONMENT, "production");
+  assert.equal(calls[0]?.env[RUNTIME_INSTANCE_DISTRIBUTION_ENV], "desktop");
+  assert.equal(calls[0]?.env[RUNTIME_INSTANCE_INSTALLATION_KIND_ENV], "installed");
+  assert.equal(calls[0]?.env[RUNTIME_INSTANCE_DESKTOP_DATA_DIRECTORY_ENV], "/desktop-data");
+  assert.equal(calls[0]?.env[RUNTIME_INSTANCE_DESKTOP_LOGS_DIRECTORY_ENV], "/desktop-logs");
+  assert.equal(calls[0]?.env[RUNTIME_INSTANCE_PORTABLE_DATA_ROOT_ENV], undefined);
   assert.equal(calls[0]?.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD, undefined);
   assert.equal(calls[0]?.env.NEXTCLAW_DISABLE_RUNTIME_BUNDLE_LAUNCHER, undefined);
 });

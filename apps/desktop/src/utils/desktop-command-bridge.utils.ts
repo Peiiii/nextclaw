@@ -3,6 +3,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { DesktopCommandSurfaceManifest } from "../managers/desktop-command-surface.manager";
 import { NEXTCLAW_COMMAND_SURFACE_BIN_ENV } from "../managers/desktop-command-surface.manager";
+import {
+  RUNTIME_INSTANCE_DESKTOP_DATA_DIRECTORY_ENV,
+  RUNTIME_INSTANCE_DESKTOP_LOGS_DIRECTORY_ENV,
+  RUNTIME_INSTANCE_DISTRIBUTION_ENV,
+  RUNTIME_INSTANCE_INSTALLATION_KIND_ENV,
+  RUNTIME_INSTANCE_PORTABLE_DATA_ROOT_ENV
+} from "@nextclaw/core";
 
 type DesktopCommandBridgeArgs = {
   manifestPath: string;
@@ -75,7 +82,9 @@ function readManifest(path: string, readTextFile: (path: string) => string): Des
   return {
     schemaVersion: 1,
     installationKind: readRequiredString(parsed, "installationKind") as DesktopCommandSurfaceManifest["installationKind"],
+    portableDataRoot: readOptionalString(parsed, "portableDataRoot"),
     desktopDataDir: readRequiredString(parsed, "desktopDataDir"),
+    desktopLogsDir: readOptionalString(parsed, "desktopLogsDir"),
     runtimeHome: readRequiredString(parsed, "runtimeHome"),
     appExecutablePath: readRequiredString(parsed, "appExecutablePath"),
     commandBridgeScriptPath: readRequiredString(parsed, "commandBridgeScriptPath"),
@@ -148,8 +157,21 @@ function createRuntimeEnv(manifest: DesktopCommandSurfaceManifest, baseEnv: Node
     NEXTCLAW_HOME: manifest.runtimeHome,
     NEXTCLAW_DESKTOP_COMMAND_SURFACE: "1",
     NEXTCLAW_PRODUCT_ANALYTICS_ENVIRONMENT: "production",
+    [RUNTIME_INSTANCE_DISTRIBUTION_ENV]: "desktop",
+    [RUNTIME_INSTANCE_INSTALLATION_KIND_ENV]: manifest.installationKind,
+    [RUNTIME_INSTANCE_DESKTOP_DATA_DIRECTORY_ENV]: manifest.desktopDataDir,
     [NEXTCLAW_COMMAND_SURFACE_BIN_ENV]: manifest.commandSurfaceBinDir
   };
+  if (manifest.portableDataRoot) {
+    env[RUNTIME_INSTANCE_PORTABLE_DATA_ROOT_ENV] = manifest.portableDataRoot;
+  } else {
+    delete env[RUNTIME_INSTANCE_PORTABLE_DATA_ROOT_ENV];
+  }
+  if (manifest.desktopLogsDir) {
+    env[RUNTIME_INSTANCE_DESKTOP_LOGS_DIRECTORY_ENV] = manifest.desktopLogsDir;
+  } else {
+    delete env[RUNTIME_INSTANCE_DESKTOP_LOGS_DIRECTORY_ENV];
+  }
   delete env.NEXTCLAW_RUNTIME_BUNDLE_CHILD;
   delete env.NEXTCLAW_DISABLE_RUNTIME_BUNDLE_LAUNCHER;
   return env;

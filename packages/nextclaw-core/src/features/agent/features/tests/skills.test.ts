@@ -418,6 +418,16 @@ describe("SkillsLoader catalog prompt", () => {
       expect.stringContaining("nextclaw-self-manage"),
     );
   });
+
+  it("requires current self-management facts to come from structured status", () => {
+    const workspace = createWorkspace();
+    const skill = new SkillsLoader(workspace).loadSkill("nextclaw-self-manage");
+
+    expect(skill).toContain("current installation kind, data directory, runtime home");
+    expect(skill).toContain("run `nextclaw status --json` and read `instance` / `storage`");
+    expect(skill).toContain("Documentation paths are defaults or examples, never proof of the current instance");
+    expect(skill).toContain("current value cannot be verified");
+  });
 });
 
 describe("SkillsLoader Mini App publishing", () => {

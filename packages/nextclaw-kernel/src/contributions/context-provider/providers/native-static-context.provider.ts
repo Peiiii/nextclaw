@@ -17,9 +17,6 @@ const staticProvider = (contextBlock: ContextBlock): ContextProvider => ({
 const staticBlock = (lines: string[]): ContextProvider =>
   staticProvider(block(lines));
 
-export const createAssistantIdentityContextProvider = (): ContextProvider =>
-  staticProvider(`You are a personal assistant running inside ${APP_NAME}.`);
-
 export const createToolCallStyleContextProvider = (): ContextProvider =>
   staticBlock([
     "## Tool Call Style",
@@ -102,14 +99,6 @@ export const createSilentRepliesContextProvider = (): ContextProvider =>
     "",
     '❌ Wrong: "Here\'s help... <noreply/>"',
     '✅ Right: "<noreply/>"',
-  ]);
-
-export const createRuntimeContextProvider = (): ContextProvider =>
-  staticBlock([
-    "## Runtime",
-    `Runtime: ${process.platform} ${process.arch}, Node ${process.version}`,
-    "Time handling: do not assume exact minute/second unless the user/tool explicitly provides it.",
-    "When a turn includes a time hint, treat it as context for relative-time interpretation in that turn.",
   ]);
 
 export const createSelfManagementContextProvider = (): ContextProvider => ({

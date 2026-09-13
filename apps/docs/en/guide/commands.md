@@ -96,7 +96,7 @@ No GitHub login is required; see [problem feedback](./feedback). `feedback` name
 | `nextclaw restart`    | Restart the service; supported hosts resume sessions interrupted by this restart |
 | `nextclaw serve`      | Run the Gateway and UI in the foreground for debugging                 |
 | `nextclaw stop`       | Stop the background service                                            |
-| `nextclaw status`     | Inspect the running runtime version, processes, health, configuration, and endpoints |
+| `nextclaw status`     | Inspect the current installation, storage paths, running runtime version, processes, health, configuration, and endpoints |
 | `nextclaw doctor`     | Run diagnostics and optionally repair safe stale state                 |
 | `nextclaw logs path`  | Show local log-file paths                                              |
 | `nextclaw logs tail`  | Show recent service or crash logs                                      |
@@ -107,6 +107,8 @@ No GitHub login is required; see [problem feedback](./feedback). `feedback` name
 With explicit user authorization, an agent can run ordinary `nextclaw update`, then `nextclaw restart` if required. Managed services, foreground hosts with the local runtime API, and NextClaw systemd services record active sessions before exit. Once ready, the replacement process continues both the initiating session and concurrent sessions once, with context stating that the restart succeeded and interrupted commands must not be replayed.
 
 Use plain `nextclaw restart`, without port/open/timeout overrides, for this handoff. Desktop and other-supervisor exits, legacy stop/start, crashes, and ordinary startup are outside its scope. A request timeout does not prove failure: check `nextclaw status --json` before retrying. Its `runtime.version` field is reported by the process serving the local API and is authoritative for the running host; `nextclaw --version` describes the CLI/runtime selected for that command. Completed or ordinarily failed tasks are not automatically rerun.
+
+For the current instance's data locations, use `instance` and `storage` from `nextclaw status --json`. In Portable Edition, `storage.portableDataRoot` is `<portableRoot>/data` and `storage.runtimeHome` is its `runtime-home` child. Desktop logs and Runtime structured logs are reported separately as `desktopLogsDirectory` and `runtimeLogsDirectory`. `.nextclaw` is only the ordinary default when no override or Portable Edition profile applies; it is not a substitute for querying the current instance.
 
 ## Host management and autostart
 

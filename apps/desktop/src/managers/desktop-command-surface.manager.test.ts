@@ -5,6 +5,13 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { DesktopCommandSurfaceManager, type DesktopCommandSurfaceManifest } from "./desktop-command-surface.manager";
 import type { DesktopInstallationProfile } from "../utils/desktop-installation-profile.utils";
+import {
+  RUNTIME_INSTANCE_DESKTOP_DATA_DIRECTORY_ENV,
+  RUNTIME_INSTANCE_DESKTOP_LOGS_DIRECTORY_ENV,
+  RUNTIME_INSTANCE_DISTRIBUTION_ENV,
+  RUNTIME_INSTANCE_INSTALLATION_KIND_ENV,
+  RUNTIME_INSTANCE_PORTABLE_DATA_ROOT_ENV
+} from "@nextclaw/core";
 
 function createProfile(root: string, installationKind: DesktopInstallationProfile["installationKind"]): DesktopInstallationProfile {
   return {
@@ -45,7 +52,14 @@ test("desktop command surface writes manifest and shims for installed profile", 
     assert.equal(manifest.schemaVersion, 1);
     assert.equal(manifest.installationKind, "installed");
     assert.equal(manifest.runtimeHome, join(root, "runtime-home"));
+    assert.equal(manifest.portableDataRoot, null);
+    assert.equal(manifest.desktopLogsDir, join(root, "logs"));
     assert.equal(result.runtimeEnvPatch.NEXTCLAW_COMMAND_SURFACE_BIN, result.binDir);
+    assert.equal(result.runtimeEnvPatch[RUNTIME_INSTANCE_DISTRIBUTION_ENV], "desktop");
+    assert.equal(result.runtimeEnvPatch[RUNTIME_INSTANCE_INSTALLATION_KIND_ENV], "installed");
+    assert.equal(result.runtimeEnvPatch[RUNTIME_INSTANCE_DESKTOP_DATA_DIRECTORY_ENV], join(root, "desktop"));
+    assert.equal(result.runtimeEnvPatch[RUNTIME_INSTANCE_DESKTOP_LOGS_DIRECTORY_ENV], join(root, "logs"));
+    assert.equal(result.runtimeEnvPatch[RUNTIME_INSTANCE_PORTABLE_DATA_ROOT_ENV], undefined);
 
     const posixShimPath = join(result.binDir, "nextclaw");
     const windowsShimPath = join(result.binDir, "nextclaw.cmd");
@@ -79,6 +93,9 @@ test("desktop command surface is idempotent for portable profile", async () => {
     const manifest = JSON.parse(readFileSync(first.manifestPath, "utf8")) as DesktopCommandSurfaceManifest;
     assert.equal(manifest.installationKind, "portable");
     assert.equal(manifest.desktopDataDir, join(root, "desktop"));
+    assert.equal(manifest.portableDataRoot, join(root, "data"));
+    assert.equal(manifest.desktopLogsDir, join(root, "logs"));
+    assert.equal(first.runtimeEnvPatch[RUNTIME_INSTANCE_PORTABLE_DATA_ROOT_ENV], join(root, "data"));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

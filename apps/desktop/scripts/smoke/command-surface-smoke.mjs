@@ -47,6 +47,24 @@ function parseJsonOutput(result, args) {
   }
 }
 
+function normalizeComparablePath(value) {
+  const normalized = resolve(value);
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+}
+
+function assertExpectedValue(actual, expected, label) {
+  if (expected && actual !== expected) {
+    throw new Error(`${label} mismatch: expected ${expected}, received ${String(actual)}`);
+  }
+}
+
+function assertExpectedPath(actual, expected, label) {
+  if (!expected) return;
+  if (typeof actual !== "string" || normalizeComparablePath(actual) !== normalizeComparablePath(expected)) {
+    throw new Error(`${label} mismatch: expected ${expected}, received ${String(actual)}`);
+  }
+}
+
 function main() {
   const binDir = readArgValue("--bin-dir");
   if (!binDir) {
@@ -71,6 +89,12 @@ function main() {
   if (!status?.generatedAt || !status?.endpoints) {
     throw new Error("nextclaw status --json returned an invalid status report.");
   }
+  assertExpectedValue(status.instance?.distribution, readArgValue("--expected-distribution"), "instance.distribution");
+  assertExpectedValue(status.instance?.installationKind, readArgValue("--expected-installation-kind"), "instance.installationKind");
+  assertExpectedPath(status.storage?.portableDataRoot, readArgValue("--expected-portable-data-root"), "storage.portableDataRoot");
+  assertExpectedPath(status.storage?.runtimeHome, readArgValue("--expected-runtime-home"), "storage.runtimeHome");
+  assertExpectedPath(status.storage?.desktopDataDirectory, readArgValue("--expected-desktop-data-directory"), "storage.desktopDataDirectory");
+  assertExpectedPath(status.storage?.desktopLogsDirectory, readArgValue("--expected-desktop-logs-directory"), "storage.desktopLogsDirectory");
 
   const doctorArgs = ["doctor", "--json"];
   const doctorResult = runNextclaw(binDir, doctorArgs);
@@ -87,6 +111,8 @@ function main() {
         commandPath,
         version,
         statusLevel: status.level,
+        instance: status.instance,
+        storage: status.storage,
         doctorExitCode: doctor.exitCode
       },
       null,

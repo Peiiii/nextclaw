@@ -3,12 +3,15 @@ import { existsSync, readFileSync } from "node:fs";
 import {
   APP_NAME,
   getConfigPath,
+  getDataDir,
+  getLogsPath,
   getWorkspacePath,
   hasSecretRef,
   HostIncidentStore,
   loadConfig,
   resolveAppLogPath
 } from "@nextclaw/core";
+import { resolveRuntimeInstanceSnapshot } from "@nextclaw/kernel";
 import { listBuiltinProviders } from "@nextclaw/runtime";
 import { isProcessRunning, resolveUiApiBase, resolveUiConfig } from "@nextclaw-service/utils/cli.utils.js";
 import { managedServiceStateStore } from "@nextclaw-service/stores/managed-service-state.store.js";
@@ -188,12 +191,18 @@ export class DiagnosticsCommands {
     const workspacePath = getWorkspacePath(config.agents.defaults.workspace);
     const serviceStatePath = managedServiceStateStore.path;
 
-    const serviceStatus = this.resolveManagedServiceStatus({ fix: params.fix });
-    const { fixActions, liveness, serviceState } = serviceStatus;
+    const { fixActions, liveness, serviceState } = this.resolveManagedServiceStatus({ fix: params.fix });
+    const runtimeLogPath = serviceState?.logPath ?? resolveAppLogPath("service");
+    const instanceSnapshot = resolveRuntimeInstanceSnapshot({
+      configPath,
+      runtimeHome: getDataDir(),
+      runtimeLogsDirectory: getLogsPath(),
+      workspacePath,
+    });
 
-    const managedByState = Boolean(serviceState);
-    const running = Boolean(serviceState && liveness.running);
-    const staleState = Boolean(serviceState && liveness.staleState);
+    const managedByState = Boolean(serviceState),
+      running = Boolean(serviceState && liveness.running),
+      staleState = Boolean(serviceState && liveness.staleState);
 
     const configuredUi = resolveUiConfig(config, { enabled: true, host: config.ui.host, port: config.ui.port });
     const configuredUiUrl = resolveUiApiBase(configuredUi.host, configuredUi.port);
@@ -247,7 +256,7 @@ export class DiagnosticsCommands {
     });
 
     const logTail = params.verbose
-      ? this.readLogTail((serviceState?.logPath ?? resolveAppLogPath("service")), 25)
+      ? this.readLogTail(runtimeLogPath, 25)
       : [];
 
     const level: RuntimeStatusReport["level"] = running
@@ -262,9 +271,14 @@ export class DiagnosticsCommands {
 
     return {
       generatedAt: new Date().toISOString(),
-      configPath,
+      instance: {
+        distribution: instanceSnapshot.distribution,
+        installationKind: instanceSnapshot.installationKind,
+      },
+      storage: instanceSnapshot.storage,
+      configPath: instanceSnapshot.storage.configPath,
       configExists: existsSync(configPath),
-      workspacePath,
+      workspacePath: instanceSnapshot.storage.workspacePath,
       workspaceExists: existsSync(workspacePath),
       model: config.agents.defaults.model,
       providers,

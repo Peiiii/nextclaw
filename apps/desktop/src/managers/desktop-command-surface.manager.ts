@@ -3,13 +3,22 @@ import { existsSync } from "node:fs";
 import { chmod, mkdir, rename, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import type { DesktopInstallationProfile } from "../utils/desktop-installation-profile.utils";
+import {
+  RUNTIME_INSTANCE_DESKTOP_DATA_DIRECTORY_ENV,
+  RUNTIME_INSTANCE_DESKTOP_LOGS_DIRECTORY_ENV,
+  RUNTIME_INSTANCE_DISTRIBUTION_ENV,
+  RUNTIME_INSTANCE_INSTALLATION_KIND_ENV,
+  RUNTIME_INSTANCE_PORTABLE_DATA_ROOT_ENV
+} from "@nextclaw/core";
 
 export const NEXTCLAW_COMMAND_SURFACE_BIN_ENV = "NEXTCLAW_COMMAND_SURFACE_BIN";
 
 export type DesktopCommandSurfaceManifest = {
   schemaVersion: 1;
   installationKind: DesktopInstallationProfile["installationKind"];
+  portableDataRoot: string | null;
   desktopDataDir: string;
+  desktopLogsDir: string | null;
   runtimeHome: string;
   appExecutablePath: string;
   commandBridgeScriptPath: string;
@@ -71,6 +80,18 @@ function createWindowsShim(manifest: DesktopCommandSurfaceManifest, manifestPath
   ].join("\r\n");
 }
 
+function createRuntimeInstanceEnvPatch(profile: DesktopInstallationProfile): Record<string, string> {
+  return {
+    [RUNTIME_INSTANCE_DISTRIBUTION_ENV]: "desktop",
+    [RUNTIME_INSTANCE_INSTALLATION_KIND_ENV]: profile.installationKind,
+    [RUNTIME_INSTANCE_DESKTOP_DATA_DIRECTORY_ENV]: profile.desktopDataDir,
+    [RUNTIME_INSTANCE_DESKTOP_LOGS_DIRECTORY_ENV]: profile.logsDir,
+    ...(profile.portableRoot
+      ? { [RUNTIME_INSTANCE_PORTABLE_DATA_ROOT_ENV]: join(profile.portableRoot, "data") }
+      : {})
+  };
+}
+
 export class DesktopCommandSurfaceManager {
   private readonly fileExists: (path: string) => boolean;
   private readonly writeTextFile: (path: string, content: string) => Promise<void>;
@@ -107,7 +128,8 @@ export class DesktopCommandSurfaceManager {
       manifestPath,
       binDir,
       runtimeEnvPatch: {
-        [NEXTCLAW_COMMAND_SURFACE_BIN_ENV]: binDir
+        [NEXTCLAW_COMMAND_SURFACE_BIN_ENV]: binDir,
+        ...createRuntimeInstanceEnvPatch(this.options.profile)
       }
     };
   };
@@ -115,7 +137,9 @@ export class DesktopCommandSurfaceManager {
   private createManifest = (binDir: string): DesktopCommandSurfaceManifest => ({
     schemaVersion: 1,
     installationKind: this.options.profile.installationKind,
+    portableDataRoot: this.options.profile.portableRoot ? join(this.options.profile.portableRoot, "data") : null,
     desktopDataDir: this.options.profile.desktopDataDir,
+    desktopLogsDir: this.options.profile.logsDir,
     runtimeHome: this.options.profile.runtimeHome,
     appExecutablePath: this.options.appExecutablePath,
     commandBridgeScriptPath: resolveCommandBridgeScriptPath(this.options.compiledMainDir),

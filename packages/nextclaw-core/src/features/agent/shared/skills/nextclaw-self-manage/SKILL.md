@@ -31,6 +31,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - For an explicitly authorized self-update, run `nextclaw update` through the ordinary exec/CLI path. If its result requires a restart, then run `nextclaw restart`; never look for or invent an agent-only update tool.
 - Same-machine CLI restart/status authenticate through the local bridge when web login protection is enabled. Do not request browser cookies or disable protection. Report an update as complete only after the serving `runtime.version` matches the target; if authentication or a custom launcher override blocks the transition, report the installed and running states separately.
 - Prefer machine-readable output: use `--json` when available.
+- For questions about the current installation kind, data directory, runtime home, Desktop data, logs, config path, or workspace, run `nextclaw status --json` and read `instance` / `storage`. Documentation paths are defaults or examples, never proof of the current instance. If status is unavailable or a field is unknown, say that the current value cannot be verified; only then describe a default conditionally.
 - Before calling local HTTP APIs or `/webhook`, run `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`; do not guess the service port.
 - For webhook payload details, read the focused guide linked from the self-management guide only when you need to implement or debug a webhook caller.
 - Execute only commands documented in the self-management guide or CLI help; do not invent commands or config paths.
@@ -94,6 +95,7 @@ When the user reports missing messages, missing replies, intermittent failures, 
 
 - CLI/runtime selected for this command: `nextclaw --version`
 - Runtime currently serving the local API: `nextclaw status --json` → `runtime.version`
+- Current installation and storage: `nextclaw status --json` → `instance` / `storage`
 - Service health: `nextclaw status --json` / `nextclaw doctor --json`
 - Runtime incident logs: `nextclaw logs query --since 2h --json` and narrow by `--domain` / `--correlation-id`
 - Local HTTP/API/webhook addresses: `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`

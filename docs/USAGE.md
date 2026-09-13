@@ -11,14 +11,15 @@ When NextClaw AI needs to operate the product itself (version/status/doctor/serv
 1. **Read the built-in self-management guide first**. The packaged runtime copy lives at `packages/nextclaw/resources/USAGE.md`, and this repo page is kept aligned with it.
 2. **Use the exact command for the intent**: use `nextclaw --version` for the invoked CLI/runtime version; use `nextclaw status --json` and `runtime.version` for the version of the process currently serving the local API.
 3. **Prefer machine-readable output** (`--json`) whenever available.
-4. **Discover runtime HTTP addresses from `nextclaw status --json`** before calling local APIs or `/webhook`; use `endpoints.uiUrl` and `endpoints.apiUrl` instead of guessing ports.
-5. **Close the loop after changes** with `nextclaw status --json` (and `nextclaw doctor --json` when needed).
-6. **Be explicit about restart semantics** (hot-apply, auto-restart, or manual restart required).
-7. **Never invent commands**; use documented commands or `nextclaw --help` / `nextclaw <subcommand> --help`.
-8. **Desktop-installed AI uses the same command names**. When NextClaw Desktop launches the runtime, it exposes a managed `nextclaw` command surface to AI command tools, so self-management commands keep using `nextclaw ...` without requiring a global NPM install.
-9. **Restart live Service App runtimes before live retest**: after modifying a running Service App, use `nextclaw app restart <app-id> --json` before validating through the product UI or panel-to-service action calls.
-10. **Manage App data through the product contract**: list data with `nextclaw app data list --json`; delete only a `retained` entry with the returned data id and an exact `--confirm <app-id>`. Never replace this flow with a recursive filesystem deletion.
-11. **Manage Mini Apps through the product contract**: use `nextclaw app install <app-id|local-dir|bundle.napp>`, `list`, `operations`, `enable`, `disable`, `update`, `rollback`, and `uninstall`. Do not use or recommend another App runtime command.
+4. **Query current installation and storage facts** with `nextclaw status --json`; read `instance` and `storage`. Documentation examples and `.nextclaw` defaults are not evidence of the current instance. If status is unavailable, state that the current value cannot be verified.
+5. **Discover runtime HTTP addresses from `nextclaw status --json`** before calling local APIs or `/webhook`; use `endpoints.uiUrl` and `endpoints.apiUrl` instead of guessing ports.
+6. **Close the loop after changes** with `nextclaw status --json` (and `nextclaw doctor --json` when needed).
+7. **Be explicit about restart semantics** (hot-apply, auto-restart, or manual restart required).
+8. **Never invent commands**; use documented commands or `nextclaw --help` / `nextclaw <subcommand> --help`.
+9. **Desktop-installed AI uses the same command names**. When NextClaw Desktop launches the runtime, it exposes a managed `nextclaw` command surface to AI command tools, so self-management commands keep using `nextclaw ...` without requiring a global NPM install.
+10. **Restart live Service App runtimes before live retest**: after modifying a running Service App, use `nextclaw app restart <app-id> --json` before validating through the product UI or panel-to-service action calls.
+11. **Manage App data through the product contract**: list data with `nextclaw app data list --json`; delete only a `retained` entry with the returned data id and an exact `--confirm <app-id>`. Never replace this flow with a recursive filesystem deletion.
+12. **Manage Mini Apps through the product contract**: use `nextclaw app install <app-id|local-dir|bundle.napp>`, `list`, `operations`, `enable`, `disable`, `update`, `rollback`, and `uninstall`. Do not use or recommend another App runtime command.
 
 ---
 
@@ -901,6 +902,8 @@ Status/diagnostics tips:
 - `nextclaw --version` queries the version of the CLI/runtime selected for that command. It can differ from an already-running service during an update or a legacy supervisor migration.
 - `nextclaw status` shows runtime truth (running version + process + health + config summary). In JSON output, `runtime.version` comes from the process answering `/api/app/meta`; `runtime.state` is non-`ok` rather than falling back to a launcher or bundle pointer when that fact cannot be read.
 - `nextclaw status --json` outputs machine-readable status and exits `0` when the command itself succeeds; use the JSON `level` field (`healthy` / `degraded` / `stopped`) to interpret runtime state.
+- For the current installation and storage layout, read `instance.distribution`, `instance.installationKind`, and `storage`. `storage.portableDataRoot` is the Portable Edition's `<portableRoot>/data`; `storage.runtimeHome` is the runtime data root. Desktop launcher logs (`desktopLogsDirectory`) and Runtime structured logs (`runtimeLogsDirectory`) are separate paths. The status command reports these instance facts even when the managed service is stopped.
+- `.nextclaw` is only the ordinary default runtime home when no override or Portable Edition profile applies. Never present it as the current path without checking status.
 - Use `nextclaw status --json` as the source of truth for local HTTP addresses. `endpoints.uiUrl` is the base for `/webhook`; `endpoints.apiUrl` is the base for `/api/*` calls.
 - `nextclaw status --fix` safely clears stale service state if PID is dead.
 - `nextclaw doctor` runs additional checks (state coherence, health, port availability, provider readiness).
