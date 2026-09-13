@@ -1,5 +1,31 @@
 # @nextclaw/service
 
+## 0.7.3
+
+### Patch Changes
+
+- a55c335: Expose the current installation and storage layout through structured status, teach native Agents to query current self-management facts instead of repeating defaults, and consolidate duplicate identity/runtime/session prompt blocks into one current-self projection.
+- 22d2266: Fix CLI self-restart and running-version checks when web password protection is enabled, allowing local self-management to authenticate without requesting browser credentials or disabling protection.
+- Updated dependencies [a55c335]
+- Updated dependencies [7bab66f]
+- Updated dependencies [22d2266]
+  - @nextclaw/core@0.18.3
+  - @nextclaw/kernel@0.18.3
+  - @nextclaw/server@0.23.9
+  - @nextclaw/channel-extension-dingtalk@0.2.52
+  - @nextclaw/channel-extension-discord@0.2.52
+  - @nextclaw/channel-extension-email@0.2.52
+  - @nextclaw/channel-extension-slack@0.2.52
+  - @nextclaw/channel-extension-telegram@0.2.52
+  - @nextclaw/channel-extension-wecom@0.2.52
+  - @nextclaw/channel-extension-whatsapp@0.2.52
+  - @nextclaw/mcp@0.3.53
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.53
+  - @nextclaw/remote@0.3.66
+  - @nextclaw/runtime@0.4.52
+  - @nextclaw/client-sdk@0.12.9
+  - @nextclaw/ncp-mcp@0.2.53
+
 ## 0.7.2
 
 ### Patch Changes

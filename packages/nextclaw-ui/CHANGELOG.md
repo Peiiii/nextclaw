@@ -1,5 +1,29 @@
 # @nextclaw/ui
 
+## 0.26.4
+
+### Patch Changes
+
+- b70f217: Show immediate spinner and skeleton feedback when expanding deferred process details. Keep user collapse intent while loading and provide an inline retry action on failure.
+- 5fb4805: 统一会话切换器的紧凑搜索字号、项目行高和项目间距，并让会话标签与文件树行内编辑共用同一紧凑输入规格。
+- aac4ee9: 为左侧“页面”分组标题补齐与侧栏导航一致的悬停、按下和键盘焦点反馈。
+- 3be189e: 统一弹出菜单、更多操作与下拉选择的轻描边、圆角和柔和阴影，改善明暗主题下的浮层质感，并收紧会话切换菜单的间距与选中背景。
+
+  修复会话列表滚到底部后菜单头部被带走的问题，标题、视图切换与搜索框保持固定。
+
+- 7d732a2: Support collapsing pinned and date groups in the session list, with a compact heading and a right-aligned arrow shown on hover. Share smooth height and fade transitions with message details so expansion remains visible for long groups.
+- cf62b27: Move desktop conversation view controls to the left and collapse search behind an icon on the right. Project creation sits beside search; closing search clears the filter and restores the conversation list.
+
+  Restore visible shared hover feedback on sidebar and muted surfaces in light and dark themes.
+
+- 87e1564: 发送消息时为回复预留阅读空间，翻看历史时保持当前位置。为消息中的已处理、思考过程、工具组和工具详情增加平滑的展开收起动画，并支持减少动态效果设置。
+- a961fd7: 统一标签、侧栏、筛选和菜单的悬停及选中反馈，降低普通控件颜色强度并保留侧栏设计；修复工作台标签底边下方多余空白，会话行内操作提示优先显示在上方。
+- Updated dependencies [b70f217]
+- Updated dependencies [7d732a2]
+- Updated dependencies [87e1564]
+  - @nextclaw/agent-chat-ui@0.11.0
+  - @nextclaw/client-sdk@0.12.9
+
 ## 0.26.3
 
 ### Patch Changes

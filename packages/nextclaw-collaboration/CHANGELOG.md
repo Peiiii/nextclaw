@@ -1,5 +1,11 @@
 # @nextclaw/collaboration
 
+## 0.1.4
+
+### Patch Changes
+
+- 2e958a6: Add optional signed GitHub webhook relay reception for local collaboration, with persistent task bindings, connection health and an explicit switch back to polling.
+
 ## 0.1.3
 
 ### Patch Changes
