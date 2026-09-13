@@ -1,5 +1,11 @@
 # @nextclaw/collaboration
 
+## 0.1.2
+
+### Patch Changes
+
+- 460c912: Confirm accepted GitHub messages with an eyes reaction, reply to invitations and connectivity tests, and remove duplicated internal prefixes from agent replies.
+
 ## 0.1.1
 
 ### Patch Changes

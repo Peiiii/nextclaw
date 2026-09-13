@@ -1,5 +1,12 @@
 # nextclaw-core
 
+## 0.18.2
+
+### Patch Changes
+
+- dddc3b9: Send stable NextClaw session and request correlation headers to OpenCode Zen so free-trial models such as `big-pickle` continue to work without manual provider headers.
+  - @nextclaw/shared@0.8.2
+
 ## 0.18.1
 
 ### Patch Changes

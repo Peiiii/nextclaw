@@ -1,5 +1,30 @@
 # nextclaw
 
+## 0.54.1
+
+### Patch Changes
+
+- 460c912: Confirm accepted GitHub messages with an eyes reaction, reply to invitations and connectivity tests, and remove duplicated internal prefixes from agent replies.
+- Updated dependencies [460c912]
+- Updated dependencies [dddc3b9]
+  - @nextclaw/collaboration@0.1.2
+  - @nextclaw/ncp@0.11.2
+  - @nextclaw/ncp-agent-runtime@0.4.26
+  - @nextclaw/core@0.18.2
+  - @nextclaw/runtime@0.4.51
+  - @nextclaw/kernel@0.18.2
+  - @nextclaw/ncp-mcp@0.2.52
+  - @nextclaw/ncp-toolkit@0.6.27
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.24
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.25
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.52
+  - @nextclaw/server@0.23.8
+  - @nextclaw/service@0.7.2
+  - @nextclaw/shared@0.8.2
+  - @nextclaw/mcp@0.3.52
+  - @nextclaw/remote@0.3.65
+  - @nextclaw/app-runtime@0.16.9
+
 ## 0.54.0
 
 ### Minor Changes

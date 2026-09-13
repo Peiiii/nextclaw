@@ -1,5 +1,13 @@
 # @nextclaw/channel-extension-telegram
 
+## 0.2.51
+
+### Patch Changes
+
+- Updated dependencies [dddc3b9]
+  - @nextclaw/core@0.18.2
+  - @nextclaw/extension-sdk@0.5.9
+
 ## 0.2.50
 
 ### Patch Changes

@@ -1,5 +1,36 @@
 # @nextclaw/service
 
+## 0.7.2
+
+### Patch Changes
+
+- Updated dependencies [dddc3b9]
+  - @nextclaw/ncp@0.11.2
+  - @nextclaw/ncp-agent-runtime@0.4.26
+  - @nextclaw/core@0.18.2
+  - @nextclaw/runtime@0.4.51
+  - @nextclaw/kernel@0.18.2
+  - @nextclaw/channel-extension-feishu@0.2.40
+  - @nextclaw/channel-extension-weixin@0.2.40
+  - @nextclaw/ncp-mcp@0.2.52
+  - @nextclaw/ncp-toolkit@0.6.27
+  - @nextclaw/client-sdk@0.12.8
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.24
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.25
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.52
+  - @nextclaw/server@0.23.8
+  - @nextclaw/shared@0.8.2
+  - @nextclaw/channel-extension-dingtalk@0.2.51
+  - @nextclaw/channel-extension-discord@0.2.51
+  - @nextclaw/channel-extension-email@0.2.51
+  - @nextclaw/channel-extension-slack@0.2.51
+  - @nextclaw/channel-extension-telegram@0.2.51
+  - @nextclaw/channel-extension-wecom@0.2.51
+  - @nextclaw/channel-extension-whatsapp@0.2.51
+  - @nextclaw/mcp@0.3.52
+  - @nextclaw/remote@0.3.65
+  - @nextclaw/channel-extension-qq@0.2.38
+
 ## 0.7.1
 
 ### Patch Changes

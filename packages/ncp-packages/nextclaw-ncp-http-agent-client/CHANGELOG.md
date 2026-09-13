@@ -1,5 +1,12 @@
 # @nextclaw/ncp-http-agent-client
 
+## 0.4.25
+
+### Patch Changes
+
+- Updated dependencies [dddc3b9]
+  - @nextclaw/ncp@0.11.2
+
 ## 0.4.24
 
 ### Patch Changes

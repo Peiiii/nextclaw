@@ -1,5 +1,14 @@
 # @nextclaw/nextclaw-narp-runtime-claude-code-sdk
 
+## 0.2.26
+
+### Patch Changes
+
+- Updated dependencies [dddc3b9]
+  - @nextclaw/ncp@0.11.2
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.2.26
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper@0.3.25
+
 ## 0.2.25
 
 ### Patch Changes

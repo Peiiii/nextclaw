@@ -1,5 +1,17 @@
 # @nextclaw/ui
 
+## 0.26.2
+
+### Patch Changes
+
+- Updated dependencies [dddc3b9]
+  - @nextclaw/ncp@0.11.2
+  - @nextclaw/ncp-http-agent-client@0.4.25
+  - @nextclaw/ncp-react@0.5.30
+  - @nextclaw/ncp-toolkit@0.6.27
+  - @nextclaw/client-sdk@0.12.8
+  - @nextclaw/shared@0.8.2
+
 ## 0.26.1
 
 ### Patch Changes
