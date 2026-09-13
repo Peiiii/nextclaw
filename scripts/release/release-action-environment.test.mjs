@@ -308,6 +308,10 @@ test("the writable NPM release checkpoint prepares the immutable Desktop Draft",
 test("stable release exposes only the business target and infers recovery checkpoints", () => {
   const workflow = readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
   assert.doesNotMatch(workflow, /resume_version|resume_previous_version/);
+  assert.match(
+    workflow,
+    /const hasDesktopDraft = desktopDrafts\.some[\s\S]*?mode=recovery[\s\S]*?const planned =/,
+  );
   assert.match(workflow, /Infer release checkpoint[\s\S]*?is_recovery=\$is_recovery/);
   assert.match(
     workflow,

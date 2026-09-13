@@ -69,3 +69,7 @@ Desktop builder 的 `--target` 保持使用 `publish-npm.outputs.desktop_target`
 - FIX-6：父 workflow 显式启用 orchestrated control plane，冻结 HEAD 是 `origin/master` 祖先时允许远端前进。
 - FIX-7：分叉、本地领先或未显式提供产品 target 时不得借该模式绕过 Git 安全门。
 - FIX-8：同一 `v0.55.0-desktop.1` Draft 和 `cd6d0890a` 产品 target 完成恢复；NPM、Runtime 与 Desktop identity 均不重建。
+
+恢复父任务还必须在 identity 阶段优先识别未完成的 stable Desktop Draft。若当前包版本已经存在 NPM version/tag，且 `target=all` 对应 `v<version>-desktop.N` 仍为 Draft，则该版本是优先恢复身份；后来进入 master 的 changeset 留给 Draft 闭合后的下一次发布。不存在未完成 Draft 时才按 Changesets 生成新版本。Draft 的 target 与内容仍在后续既有 owner 中精确验证，identity resolver 不复制该合同。
+
+- FIX-9：`target=all` 同时存在 `0.55.0` 未完成 Draft 与 `0.55.1` changeset 时选择 recovery `0.55.0`；不得尝试准备或发布 `0.55.1`。

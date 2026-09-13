@@ -67,6 +67,9 @@ jobs:
       - run: pnpm install --frozen-lockfile --prefer-offline
       - id: identity
         name: Resolve planned release or existing recovery identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TARGET: ${{ inputs.target }}
         shell: bash
         run: |
           set -euo pipefail
@@ -76,14 +79,26 @@ jobs:
           const fs = require("node:fs");
           const status = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
           if (status.preState?.mode === "pre") throw new Error("stable release cannot use Changesets prerelease mode");
+          const version = JSON.parse(fs.readFileSync("packages/nextclaw/package.json", "utf8")).version;
+          if (!/^\d+\.\d+\.\d+$/.test(version ?? "")) throw new Error("current NextClaw version is not stable");
+          const published = execFileSync("npm", ["view", `nextclaw@${version}`, "version"], { encoding: "utf8" }).trim();
+          const desktopDrafts = process.env.RELEASE_TARGET === "all"
+            ? JSON.parse(execFileSync("gh", ["release", "list", "--limit", "100", "--json", "isDraft,tagName"], { encoding: "utf8" }))
+            : [];
+          const escapedVersion = version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const hasDesktopDraft = desktopDrafts.some((entry) =>
+            entry.isDraft === true && new RegExp(`^v${escapedVersion}-desktop\\.\\d+$`).test(entry.tagName),
+          );
+          if (published === version && hasDesktopDraft) {
+            execFileSync("git", ["ls-remote", "--exit-code", "--tags", "origin", `refs/tags/nextclaw@${version}`], { stdio: "ignore" });
+            process.stdout.write(`mode=recovery\ntarget_version=${version}\n`);
+            process.exit(0);
+          }
           const planned = (status.releases ?? []).find((entry) => entry.name === "nextclaw");
           if (planned && /^\d+\.\d+\.\d+$/.test(planned.newVersion ?? "")) {
             process.stdout.write(`mode=new\ntarget_version=${planned.newVersion}\n`);
             process.exit(0);
           }
-          const version = JSON.parse(fs.readFileSync("packages/nextclaw/package.json", "utf8")).version;
-          if (!/^\d+\.\d+\.\d+$/.test(version ?? "")) throw new Error("no planned NextClaw release and source version is not stable");
-          const published = execFileSync("npm", ["view", `nextclaw@${version}`, "version"], { encoding: "utf8" }).trim();
           execFileSync("git", ["ls-remote", "--exit-code", "--tags", "origin", `refs/tags/nextclaw@${version}`], { stdio: "ignore" });
           if (published !== version) throw new Error(`no planned NextClaw release and ${version} is not a published recovery identity`);
           process.stdout.write(`mode=recovery\ntarget_version=${version}\n`);
