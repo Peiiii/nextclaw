@@ -60,6 +60,32 @@ async function readCodesignDetails(appPath) {
   }
 }
 
+function collectAdhocNativeCodePaths(appPath) {
+  const paths = [];
+  const visit = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        visit(entryPath);
+        continue;
+      }
+      if (entry.isFile() && (entry.name.endsWith(".node") || entry.name.endsWith(".dylib"))) {
+        paths.push(entryPath);
+      }
+    }
+  };
+  visit(appPath);
+  return paths.sort((left, right) => right.split(path.sep).length - left.split(path.sep).length || left.localeCompare(right));
+}
+
+async function signAdhocNativeCode(appPath) {
+  const nativeCodePaths = collectAdhocNativeCodePaths(appPath);
+  for (const nativeCodePath of nativeCodePaths) {
+    await execFileAsync("codesign", ["--force", "--sign", "-", "--timestamp=none", nativeCodePath]);
+  }
+  console.log(`[desktop-after-sign] signed ${nativeCodePaths.length} nested native code file(s).`);
+}
+
 async function ensureUsableMacBundleSignature(appPath) {
   const verification = await verifyBundleSignature(appPath);
   const details = await readCodesignDetails(appPath);
@@ -82,6 +108,7 @@ async function ensureUsableMacBundleSignature(appPath) {
     console.warn("[desktop-after-sign] rebuilding complete adhoc bundle signature for unsigned macOS distribution.");
   }
 
+  await signAdhocNativeCode(appPath);
   await execFileAsync("codesign", ["--force", "--deep", "--sign", "-", "--timestamp=none", appPath]);
 
   const repaired = await verifyBundleSignature(appPath);
@@ -134,3 +161,5 @@ module.exports = async (context) => {
     }
   }
 };
+
+module.exports.collectAdhocNativeCodePaths = collectAdhocNativeCodePaths;
