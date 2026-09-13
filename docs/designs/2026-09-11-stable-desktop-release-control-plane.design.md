@@ -73,3 +73,4 @@ Desktop builder 的 `--target` 保持使用 `publish-npm.outputs.desktop_target`
 恢复父任务还必须在 identity 阶段优先识别未完成的 stable Desktop Draft。若当前包版本已经存在 NPM version/tag，且 `target=all` 对应 `v<version>-desktop.N` 仍为 Draft，则该版本是优先恢复身份；后来进入 master 的 changeset 留给 Draft 闭合后的下一次发布。不存在未完成 Draft 时才按 Changesets 生成新版本。Draft 的 target 与内容仍在后续既有 owner 中精确验证，identity resolver 不复制该合同。
 
 - FIX-9：`target=all` 同时存在 `0.55.0` 未完成 Draft 与 `0.55.1` changeset 时选择 recovery `0.55.0`；不得尝试准备或发布 `0.55.1`。
+- FIX-10：identity job 使用能读取隐藏 Draft 的仓库权限；读取成功但结果省略 Draft 不得被解释为“没有待恢复身份”。该 job 不执行 mutation，实际发布权限边界仍归后续 owner。

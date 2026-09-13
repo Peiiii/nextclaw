@@ -310,6 +310,10 @@ test("stable release exposes only the business target and infers recovery checkp
   assert.doesNotMatch(workflow, /resume_version|resume_previous_version/);
   assert.match(
     workflow,
+    /resolve-release-identity:[\s\S]*?permissions:[\s\S]*?contents: write[\s\S]*?Draft releases are only returned|resolve-release-identity:[\s\S]*?Draft releases are only returned[\s\S]*?contents: write/,
+  );
+  assert.match(
+    workflow,
     /const hasDesktopDraft = desktopDrafts\.some[\s\S]*?mode=recovery[\s\S]*?const planned =/,
   );
   assert.match(workflow, /Infer release checkpoint[\s\S]*?is_recovery=\$is_recovery/);

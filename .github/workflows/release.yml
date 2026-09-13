@@ -33,7 +33,8 @@ jobs:
     name: resolve immutable stable release identity
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      # Draft releases are only returned to tokens with push access.
+      contents: write
     outputs:
       mode: ${{ steps.identity.outputs.mode }}
       target_version: ${{ steps.identity.outputs.target_version }}
