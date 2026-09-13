@@ -1,5 +1,13 @@
 # @nextclaw/extension-sdk
 
+## 0.5.8
+
+### Patch Changes
+
+- Updated dependencies [4e85e9f]
+  - @nextclaw/ncp@0.11.1
+  - @nextclaw/shared@0.8.1
+
 ## 0.5.7
 
 ### Patch Changes

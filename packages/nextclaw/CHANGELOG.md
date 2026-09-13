@@ -1,5 +1,39 @@
 # nextclaw
 
+## 0.54.0
+
+### Minor Changes
+
+- 82370b0: Connect GitHub Issues and Linear to persistent local Codex tasks using existing CLI login. See when the agent starts, continue in the same task, and pause or resume from the issue. The standalone collaboration SDK supports custom sources and consumers, signed same-account agent identities, durable recovery and migration of existing discussion bindings.
+
+### Patch Changes
+
+- d355951: Continue eligible sessions after a controlled restart of a NextClaw systemd service, while keeping ordinary supervisor starts and crashes ineligible for automatic recovery.
+
+  Expose the version reported by the process serving the local API through `nextclaw status`, so operators can distinguish the running runtime from the CLI or bundle pointer version.
+
+- Updated dependencies [19c4127]
+- Updated dependencies [4e85e9f]
+- Updated dependencies [82370b0]
+- Updated dependencies [d355951]
+  - @nextclaw/kernel@0.18.1
+  - @nextclaw/core@0.18.1
+  - @nextclaw/ncp@0.11.1
+  - @nextclaw/ncp-toolkit@0.6.26
+  - @nextclaw/service@0.7.1
+  - @nextclaw/collaboration@0.1.1
+  - @nextclaw/remote@0.3.64
+  - @nextclaw/server@0.23.7
+  - @nextclaw/mcp@0.3.51
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.51
+  - @nextclaw/runtime@0.4.50
+  - @nextclaw/ncp-agent-runtime@0.4.25
+  - @nextclaw/ncp-mcp@0.2.51
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.23
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.24
+  - @nextclaw/shared@0.8.1
+  - @nextclaw/app-runtime@0.16.8
+
 ## 0.53.0
 
 ### Minor Changes

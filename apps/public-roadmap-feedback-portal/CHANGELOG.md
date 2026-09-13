@@ -1,5 +1,11 @@
 # @nextclaw/public-roadmap-feedback-portal
 
+## 0.0.5
+
+### Patch Changes
+
+- @nextclaw/shared@0.8.1
+
 ## 0.0.4
 
 ### Patch Changes

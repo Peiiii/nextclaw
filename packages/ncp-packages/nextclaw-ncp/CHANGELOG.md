@@ -1,5 +1,11 @@
 # @nextclaw/ncp
 
+## 0.11.1
+
+### Patch Changes
+
+- 4e85e9f: Stop asking the AI to emit reply-control tags and prevent legacy reply tags from leaking into streamed channel messages, including Weixin and Feishu.
+
 ## 0.11.0
 
 ### Minor Changes

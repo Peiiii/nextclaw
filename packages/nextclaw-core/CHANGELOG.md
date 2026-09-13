@@ -1,5 +1,15 @@
 # nextclaw-core
 
+## 0.18.1
+
+### Patch Changes
+
+- 19c4127: Resolve `show_panel_app` App IDs to their enabled primary Panel before emitting a display request, and return `PANEL_APP_NOT_FOUND` for unknown or inactive targets.
+- d355951: Continue eligible sessions after a controlled restart of a NextClaw systemd service, while keeping ordinary supervisor starts and crashes ineligible for automatic recovery.
+
+  Expose the version reported by the process serving the local API through `nextclaw status`, so operators can distinguish the running runtime from the CLI or bundle pointer version.
+  - @nextclaw/shared@0.8.1
+
 ## 0.18.0
 
 ### Minor Changes

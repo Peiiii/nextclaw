@@ -1,5 +1,33 @@
 # @nextclaw/ui
 
+## 0.26.1
+
+### Patch Changes
+
+- 96ef18f: 聊天运行过程中只在当前活动回复下显示加载动画，避免历史流式消息与当前回复同时显示为加载中。
+- f42baad: Restore realtime connection and session state immediately when a mobile browser resumes through visibility, page-show, focus, or online lifecycle signals, including when the previous connection attempt was frozen.
+- ea57bd2: Distinguish insecure HTTP access on remote VPS hosts from unsupported browser voice input and guide users to HTTPS.
+- dffb642: Add a manual download link to the GitHub Releases page when Portable Edition cannot update in-app.
+- bd2b355: 简化回复的折叠摘要，只保留状态与耗时，中文耗时使用“分钟”“秒”，去掉工具次数和工具名；失败和停止的回复显示对应状态，过程详情仍可展开查看。
+- 2c45464: 统一页面和资源操作菜单：核心操作优先，布局与停靠操作收进二级菜单，更多按钮放在操作区末尾。移除普通设置页的空操作栏，修复收件箱、详情弹窗和侧栏页面菜单的位置及整行交互反馈。
+
+  中文设置导航中的 Extensions 更名为“扩展”，页面标题和相关状态说明同步使用中文。
+  设置导航按基础配置、常用设置、安全与隐私、系统与扩展分组，模型、提供商和渠道保持最前，随后为外观、更新和搜索渠道，扩展位于末尾；桌面和移动端共享分组。
+
+  侧栏页面复用主导航组件，统一行高、圆角及主题背景状态；桌面会话与项目行使用同一套反馈，页面菜单保持在整行交互区域内。
+
+  二级菜单统一采用保留父菜单的侧向级联，支持悬停、键盘退层与窗口边缘避让。
+
+- Updated dependencies [96ef18f]
+- Updated dependencies [4e85e9f]
+  - @nextclaw/agent-chat-ui@0.10.1
+  - @nextclaw/ncp@0.11.1
+  - @nextclaw/ncp-toolkit@0.6.26
+  - @nextclaw/ncp-http-agent-client@0.4.24
+  - @nextclaw/ncp-react@0.5.29
+  - @nextclaw/client-sdk@0.12.7
+  - @nextclaw/shared@0.8.1
+
 ## 0.26.0
 
 ### Minor Changes

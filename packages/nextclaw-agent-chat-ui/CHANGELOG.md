@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.10.1
+
+### Patch Changes
+
+- 96ef18f: 聊天运行过程中只在当前活动回复下显示加载动画，避免历史流式消息与当前回复同时显示为加载中。
+
 ## 0.10.0
 
 ### Minor Changes
