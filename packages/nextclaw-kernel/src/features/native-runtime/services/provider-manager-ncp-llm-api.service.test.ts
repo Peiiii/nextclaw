@@ -46,15 +46,18 @@ describe("ProviderManagerNcpLLMApi", () => {
     ];
 
     await Array.fromAsync(
-      api.generate({
-        messages: history,
-        contextTail: await requestContextTailManager.build({
-          sessionId: "session-1",
-          runId: "run-1",
-          agentId: "main",
-          model: "test-model",
-        }),
-      }),
+      api.generate(
+        {
+          messages: history,
+          contextTail: await requestContextTailManager.build({
+            sessionId: "session-1",
+            runId: "run-1",
+            agentId: "main",
+            model: "test-model",
+          }),
+        },
+        { sessionId: "session-1", requestId: "message-1" },
+      ),
     );
 
     expect(chatStream).toHaveBeenCalledWith(
@@ -69,6 +72,8 @@ describe("ProviderManagerNcpLLMApi", () => {
             ),
           }),
         ],
+        requestId: "message-1",
+        sessionId: "session-1",
       }),
     );
     const messages = chatStream.mock.calls[0]?.[0]?.messages ?? [];

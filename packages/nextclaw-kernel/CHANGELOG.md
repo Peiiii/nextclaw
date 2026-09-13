@@ -1,5 +1,54 @@
 # @nextclaw/kernel
 
+## 0.18.2
+
+### Patch Changes
+
+- dddc3b9: Send stable NextClaw session and request correlation headers to OpenCode Zen so free-trial models such as `big-pickle` continue to work without manual provider headers.
+- Updated dependencies [dddc3b9]
+  - @nextclaw/ncp@0.11.2
+  - @nextclaw/ncp-agent-runtime@0.4.26
+  - @nextclaw/ncp-agent-runtime-next@0.1.28
+  - @nextclaw/core@0.18.2
+  - @nextclaw/runtime@0.4.51
+  - @nextclaw/channel-extension-feishu@0.2.40
+  - @nextclaw/channel-extension-weixin@0.2.40
+  - @nextclaw/ncp-mcp@0.2.52
+  - @nextclaw/ncp-toolkit@0.6.27
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.25
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.52
+  - @nextclaw/shared@0.8.2
+  - @nextclaw/mcp@0.3.52
+  - @nextclaw/app-runtime@0.16.9
+
+## 0.18.1
+
+### Patch Changes
+
+- 19c4127: Resolve `show_panel_app` App IDs to their enabled primary Panel before emitting a display request, and return `PANEL_APP_NOT_FOUND` for unknown or inactive targets.
+- 4e85e9f: Stop asking the AI to emit reply-control tags and prevent legacy reply tags from leaking into streamed channel messages, including Weixin and Feishu.
+- d355951: Continue eligible sessions after a controlled restart of a NextClaw systemd service, while keeping ordinary supervisor starts and crashes ineligible for automatic recovery.
+
+  Expose the version reported by the process serving the local API through `nextclaw status`, so operators can distinguish the running runtime from the CLI or bundle pointer version.
+
+- Updated dependencies [19c4127]
+- Updated dependencies [4e85e9f]
+- Updated dependencies [d355951]
+  - @nextclaw/core@0.18.1
+  - @nextclaw/ncp@0.11.1
+  - @nextclaw/ncp-toolkit@0.6.26
+  - @nextclaw/mcp@0.3.51
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.51
+  - @nextclaw/runtime@0.4.50
+  - @nextclaw/channel-extension-feishu@0.2.39
+  - @nextclaw/channel-extension-weixin@0.2.39
+  - @nextclaw/ncp-agent-runtime@0.4.25
+  - @nextclaw/ncp-agent-runtime-next@0.1.27
+  - @nextclaw/ncp-mcp@0.2.51
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.24
+  - @nextclaw/shared@0.8.1
+  - @nextclaw/app-runtime@0.16.8
+
 ## 0.18.0
 
 ### Minor Changes

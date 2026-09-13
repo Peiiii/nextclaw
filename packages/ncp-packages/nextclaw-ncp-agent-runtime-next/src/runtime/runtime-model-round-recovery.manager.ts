@@ -70,7 +70,11 @@ export async function* runModelRoundWithRecovery(
       const encoded = input.streamEncoder.encode(
         abortableRuntimeStream(
           input.executionManager.observeModelCall(
-            input.llmApi.generate(input.modelInput, { signal: input.signal }),
+            input.llmApi.generate(input.modelInput, {
+              signal: input.signal,
+              sessionId: input.sessionId,
+              requestId: input.messageId,
+            }),
           ),
           input.signal,
         ),

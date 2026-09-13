@@ -195,7 +195,11 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
     while (!done && !options?.signal?.aborted) {
       roundCollector.clear();
 
-      const stream = this.llmApi.generate(currentInput, { signal: options?.signal });
+      const stream = this.llmApi.generate(currentInput, {
+        signal: options?.signal,
+        sessionId: ctx.sessionId,
+        requestId: ctx.messageId,
+      });
       const tappedStream = this.tapStream(stream, (chunk) => roundCollector.consumeChunk(chunk));
 
       for await (const event of this.streamEncoder.encode(tappedStream, ctx)) {

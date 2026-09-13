@@ -1,5 +1,23 @@
 # @nextclaw/client-sdk
 
+## 0.12.8
+
+### Patch Changes
+
+- Updated dependencies [dddc3b9]
+  - @nextclaw/ncp@0.11.2
+  - @nextclaw/server@0.23.8
+  - @nextclaw/shared@0.8.2
+
+## 0.12.7
+
+### Patch Changes
+
+- Updated dependencies [4e85e9f]
+  - @nextclaw/ncp@0.11.1
+  - @nextclaw/server@0.23.7
+  - @nextclaw/shared@0.8.1
+
 ## 0.12.6
 
 ### Patch Changes

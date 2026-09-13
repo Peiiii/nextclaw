@@ -36,6 +36,8 @@ const generationParams = {
   maxTokens: 4_400,
   messages: largeMessages(),
   model: "run-selected-model",
+  requestId: "compaction-message-1",
+  sessionId: "session-1",
   targetSummaryTokens: 4_000,
 };
 
@@ -53,6 +55,10 @@ describe("ContextCompactionSummaryGenerationService", () => {
     const generated = await service.generate(generationParams);
 
     expect(providerManager.chat).toHaveBeenCalledOnce();
+    expect(providerManager.chat).toHaveBeenCalledWith(expect.objectContaining({
+      requestId: "compaction-message-1",
+      sessionId: "session-1",
+    }));
     expect(generated.summary).toContain("Critical Technical Context");
     expect(generated.summary).not.toContain("Evidence and Verification");
     expect(generated.diagnostics).toMatchObject({

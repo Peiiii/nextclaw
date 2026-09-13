@@ -206,7 +206,9 @@ describe("LlmProviderManager", () => {
 
     expect(upstreamModel).toBe("deepseek-v4-flash");
   });
+});
 
+describe("LlmProviderManager OpenCode correlation", () => {
   it("routes the OpenCode Zen free model without a configured API key or forwarded provider prefix", async () => {
     const manager = new LlmProviderManager();
     manager.load(ConfigSchema.parse({
@@ -226,10 +228,10 @@ describe("LlmProviderManager", () => {
       },
     }));
 
-    let upstreamModel: unknown;
+    let upstreamParams: Record<string, unknown> | undefined;
     mockResolvedProviderClient(manager, "opencode/big-pickle", {
       chat: async (params) => {
-        upstreamModel = params.model;
+        upstreamParams = params;
         return response();
       },
     });
@@ -237,11 +239,52 @@ describe("LlmProviderManager", () => {
     await manager.chat({
       model: "opencode/big-pickle",
       messages: [{ role: "user", content: "ping" }],
+      requestId: "message-1",
+      sessionId: "session-1",
     });
 
-    expect(upstreamModel).toBe("big-pickle");
+    expect(upstreamParams).toMatchObject({
+      model: "big-pickle",
+      requestHeaders: {
+        "x-opencode-request": "message-1",
+        "x-opencode-session": "session-1",
+      },
+    });
   });
 
+  it("does not send OpenCode correlation headers to other providers", async () => {
+    const manager = new LlmProviderManager();
+    manager.load(ConfigSchema.parse({
+      agents: { defaults: { model: "deepseek/deepseek-chat" } },
+      providers: {
+        deepseek: {
+          apiKey: "sk-test",
+          apiBase: "https://api.deepseek.com/v1",
+          models: ["deepseek/deepseek-chat"],
+        },
+      },
+    }));
+
+    let upstreamParams: Record<string, unknown> | undefined;
+    mockResolvedProviderClient(manager, "deepseek/deepseek-chat", {
+      chat: async (params) => {
+        upstreamParams = params;
+        return response();
+      },
+    });
+
+    await manager.chat({
+      model: "deepseek/deepseek-chat",
+      messages: [{ role: "user", content: "ping" }],
+      requestId: "message-1",
+      sessionId: "session-1",
+    });
+
+    expect(upstreamParams?.requestHeaders).toBeUndefined();
+  });
+});
+
+describe("LlmProviderManager legacy routing", () => {
   it("keeps legacy builtin provider routes compatible", async () => {
     const manager = new LlmProviderManager();
     manager.load(ConfigSchema.parse({

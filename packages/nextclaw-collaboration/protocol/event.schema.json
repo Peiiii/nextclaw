@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:nextclaw:collaboration:event:v1",
+  "title": "Collaboration CloudEvent v1",
+  "type": "object",
+  "required": [
+    "specversion",
+    "id",
+    "source",
+    "subject",
+    "type",
+    "time",
+    "data"
+  ],
+  "properties": {
+    "specversion": { "const": "1.0" },
+    "id": { "type": "string", "minLength": 1, "maxLength": 2047 },
+    "source": { "type": "string", "minLength": 1, "maxLength": 2047 },
+    "subject": { "type": "string", "minLength": 1, "maxLength": 2047 },
+    "type": { "type": "string", "minLength": 1, "maxLength": 2047 },
+    "time": { "type": "string", "format": "date-time" },
+    "data": {
+      "type": "object",
+      "required": ["actor", "body", "resourceId", "change"],
+      "properties": {
+        "actor": {
+          "type": "object",
+          "required": ["account"],
+          "properties": { "account": { "type": "string" } }
+        },
+        "body": { "type": "string", "maxLength": 100000 },
+        "resourceId": { "type": "string" },
+        "change": { "enum": ["message", "context", "closed", "reopened"] },
+        "invited": { "type": "boolean" }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "nextclaw",
-  "version": "0.53.0",
+  "version": "0.54.1",
   "description": "Powerful AI assistant for coordinating agents, skills, CLI tools, automations, and messaging apps.",
   "private": false,
   "type": "module",
@@ -55,6 +55,7 @@
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
+    "@nextclaw/collaboration": "workspace:*",
     "@nextclaw/app-runtime": "workspace:*",
     "@nextclaw/core": "workspace:*",
     "@nextclaw/kernel": "workspace:*",

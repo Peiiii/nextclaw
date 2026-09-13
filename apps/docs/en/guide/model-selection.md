@@ -6,7 +6,7 @@ NextClaw connects to hosted models, local models, and custom OpenAI-compatible e
 
 ## A fresh installation is ready to use
 
-A fresh installation enables `OpenCode Zen Free Trial` without requiring an API key. Chat selects `big-pickle` by default, and the model selector includes the other free-trial models currently available.
+A fresh installation enables `OpenCode Zen Free Trial` without requiring an API key. Chat selects `big-pickle` by default, and the model selector includes the other free-trial models currently available. NextClaw identifies itself as a coding-agent client and sends a stable session ID for each conversation, as required by OpenCode; no extra headers need to be configured manually.
 
 Use this path to verify an installation and start the first task quickly. It runs through OpenCode Zen's public gateway, so limits and the model list may change. Request data may be used to improve models; do not send passwords, secrets, business-confidential material, or other sensitive content. Configure your own provider or a local model when you need stable quotas, a specific model, or a defined data contract.
 

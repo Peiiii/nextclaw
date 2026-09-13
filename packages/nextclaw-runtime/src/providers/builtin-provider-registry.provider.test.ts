@@ -33,6 +33,10 @@ describe('@nextclaw/runtime module boundary', () => {
     assert.equal(opencode?.anonymousApiKey, 'public');
     assert.equal(opencode?.defaultWireApi, 'chat');
     assert.equal(opencode?.supportsResponsesApi, false);
+    assert.deepEqual(opencode?.defaultHeaders, {
+      'User-Agent': 'nextclaw',
+      'x-opencode-client': 'nextclaw'
+    });
     assert.deepEqual(opencode?.defaultModels, [
       'opencode/big-pickle',
       'opencode/deepseek-v4-flash-free',

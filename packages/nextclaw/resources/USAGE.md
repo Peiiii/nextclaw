@@ -1389,3 +1389,7 @@ try {
   await harness.dispose();
 }
 ```
+
+## External collaboration / 外部协作
+
+`nextclaw collaboration` connects GitHub, Linear and official discussions to persistent local Codex tasks (Node.js 22.13+). Reuse local platform CLI login with `connect`, verify identity with `check`, then `start`. Invite an issue using `agent:mozhao`; later comments reuse the same task. Use `/agent pause`, `/agent resume`, `/agent cancel` and `/agent status` as standalone comments. `status` and `show` inspect state without model calls. `stop` preserves bindings; `restart` resumes. `migrate-discussion` imports a stopped official listener without replay. See the documentation command catalog and collaboration guide for setup, signed peer trust and recovery. The host owns platform replies; agents return final text or COLLABORATION_QUIET instead of posting a second reply.

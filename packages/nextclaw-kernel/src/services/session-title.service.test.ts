@@ -21,7 +21,12 @@ describe('SessionTitleService', () => {
   it('summarizes actual content once with no tools and a bounded request', async () => {
     const f = fixture();
     await f.service.schedule('title-test');
-    expect(f.chat).toHaveBeenCalledWith(expect.objectContaining({ maxTokens: 160, thinkingLevel: 'off' }));
+    expect(f.chat).toHaveBeenCalledWith(expect.objectContaining({
+      maxTokens: 160,
+      requestId: 'assistant',
+      sessionId: 'title-test',
+      thinkingLevel: 'off',
+    }));
     expect(f.chat.mock.calls[0][0].tools).toBeUndefined();
     expect(f.applyGeneratedTitle).toHaveBeenCalledWith('title-test', {
       label: f.record.metadata?.label, label_source: 'fallback', title_attempt_message_id: undefined,

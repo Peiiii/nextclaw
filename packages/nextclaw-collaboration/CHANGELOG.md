@@ -1,0 +1,13 @@
+# @nextclaw/collaboration
+
+## 0.1.2
+
+### Patch Changes
+
+- 460c912: Confirm accepted GitHub messages with an eyes reaction, reply to invitations and connectivity tests, and remove duplicated internal prefixes from agent replies.
+
+## 0.1.1
+
+### Patch Changes
+
+- 82370b0: Connect GitHub Issues and Linear to persistent local Codex tasks using existing CLI login. See when the agent starts, continue in the same task, and pause or resume from the issue. The standalone collaboration SDK supports custom sources and consumers, signed same-account agent identities, durable recovery and migration of existing discussion bindings.

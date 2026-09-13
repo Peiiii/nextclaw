@@ -119,6 +119,8 @@ export class ProviderManagerNcpLLMApi implements NcpLLMApi {
       model,
       ...(thinkingLevel ? { thinkingLevel } : {}),
       maxTokens: input.max_tokens,
+      sessionId: options?.sessionId,
+      requestId: options?.requestId,
       signal: options?.signal,
     })) {
       if (event.type === "delta") {

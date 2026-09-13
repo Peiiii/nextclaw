@@ -1,5 +1,17 @@
 # @nextclaw/app-runtime
 
+## 0.16.9
+
+### Patch Changes
+
+- @nextclaw/shared@0.8.2
+
+## 0.16.8
+
+### Patch Changes
+
+- @nextclaw/shared@0.8.1
+
 ## 0.16.7
 
 ### Patch Changes

@@ -20,7 +20,7 @@
 - 架构、链路、事件流、状态归属和根因结论必须有端到端证据；只有局部证据时明确标注阶段性判断。
 - 用户常用语音输入；“绘画”等疑似错词在 chat/session 上下文中优先理解为“会话”，歧义会改变结果时再澄清。
 - 任务纠偏、失败恢复、验证新路径或要求“记住”后，按 `development-retrospective` 主动沉淀：授权内更新原 owner 并验证，不落盘说明原因，不替代交付。
-- 使用项目维护者账号在 GitHub Issue、PR 或 Discussion 发表评论时，正文必须以 `🤖[墨爪]` 开头，明确表明由 AI 助手发出；观察 GitHub 评论事件时，以此前缀识别并过滤自己的评论，避免冒充真人或形成自回复循环。
+- 使用维护者账号在 GitHub Issue、PR 或 Discussion 评论时，正文须以 `🤖[墨爪]` 标明 AI。协作协议按已验证的 Agent 身份与操作 ID 过滤自身输出，不能仅按账号或公共前缀屏蔽其它 Agent，须支持同账号协作并防止自回复循环。
 - 产品实现兼顾用户价值、技术结构和交付路径。
 
 ## 深思模式
@@ -32,7 +32,7 @@
 - 未经用户明确要求，不得 commit、push、建 PR、发布、部署或执行破坏性 Git 操作。
 - 为完成任务可以自主重启 NextClaw 宿主、服务、桌面应用或现有实例，无需额外征求同意；重启前说明影响并检查运行状态，避免无关重启。
 - 工作区可能有用户或其它任务的改动；不得覆盖、revert、格式化或混入无关改动。触达已修改文件前先读懂现状并做双向范围审计。
-- 主工作区常驻 `master`，作为可自动快进的主线镜像。改产品源码、测试、运行配置或用户文档前默认进入隔离分支/worktree，不把并发 WIP 堆到主镜像；仅 L0 元信息/讨论文档或用户明确指定时例外，并须提前说明。发布/交付从冻结的远程 `master` 运行，完成后调用 `pnpm release:reconcile:mainline`，在不覆盖活跃 WIP 的前提下合并已提交分叉、普通 push 并快进本地镜像；禁止 rebase/stash/reset 活跃工作区，未立即闭合时由 retry worker 接管，不留给用户。
+- 主工作区常驻 `master`，允许任务前期起草；首次写入前记录已有改动与本任务归属。切入隔离 worktree 时按 [Worktree 合同](.agents/skills/development-lifecycle/references/parallel-worktree-development.md)迁移本任务全部草稿（含 skill、规则与文档），核对完整后仅撤掉源区对应改动，后续统一写目标 worktree；提交前及收尾核查源区无本任务遗漏。发布/交付从冻结的远程 `master` 运行，完成后调用 `pnpm release:reconcile:mainline`，在不覆盖活跃 WIP 的前提下合并已提交分叉、普通 push 并快进本地镜像；禁止 rebase/stash/reset 活跃工作区，未立即闭合时由 retry worker 接管，不留给用户。
 - “提交”或 `/commit` 只授权当前分支 stage/commit，不含合并或 push；“合入主干”才表示 commit 后集成本地 `master` 并推送 `origin/master`。要求“只合入本地”或“不要推送”时跳过 push；只停在隔离分支不算完成。changeset、迭代与 NPM 记录由 `development-delivery` 提交前判断。
 - 成功执行提交、推送、建分支或 PR 后，最终回复输出 Codex app 对应 directive。
 - 涉及用户私有远程主机、VPS、部署或线上诊断时，若 `.local/remote-environments.private.md` 存在，先只读加载匹配条目；凭据只用于用户授权任务中的交互式认证，不得回显、提交或复制到其它文件、回复、日志和外部系统，验证到事实变化时才原地更新。

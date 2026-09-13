@@ -23,6 +23,10 @@ export const opencodeZenProviderSpec: ProviderSpec = {
   defaultApiBase: OPENCODE_ZEN_API_BASE,
   anonymousApiKey: OPENCODE_ZEN_PUBLIC_API_KEY,
   defaultModels: [...OPENCODE_ZEN_FREE_MODELS],
+  defaultHeaders: {
+    "User-Agent": "nextclaw",
+    "x-opencode-client": "nextclaw",
+  },
   modelConfig: { ...OPENCODE_ZEN_MODEL_CONFIG },
   modelDiscovery: {
     kind: "models-dev",

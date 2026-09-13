@@ -23,6 +23,8 @@ type ProviderChatParams = {
   model?: string | null;
   maxTokens?: number;
   thinkingLevel?: ThinkingLevel | null;
+  sessionId?: string;
+  requestId?: string;
   signal?: AbortSignal;
 };
 
@@ -165,10 +167,12 @@ export class LlmProviderManager {
   readonly chat = async (params: ProviderChatParams): Promise<LLMResponse> => {
     const route = this.resolveRoute(params.model ?? null);
     const provider = route ? this.getOrCreateProvider(route) : this.missingProvider;
+    const { requestId, sessionId, ...providerParams } = params;
     return provider.chat({
-      ...params,
+      ...providerParams,
       model: route?.model ?? params.model,
       messages: this.prepareMessagesForProvider(route, params.messages),
+      requestHeaders: this.buildRequestHeaders(route, { requestId, sessionId }),
     });
   };
 
@@ -178,10 +182,12 @@ export class LlmProviderManager {
   ): AsyncGenerator<LLMStreamEvent> {
     const route = this.resolveRoute(params.model ?? null);
     const provider = route ? this.getOrCreateProvider(route) : this.missingProvider;
+    const { requestId, sessionId, ...providerParams } = params;
     for await (const event of provider.chatStream({
-      ...params,
+      ...providerParams,
       model: route?.model ?? params.model,
       messages: this.prepareMessagesForProvider(route, params.messages),
+      requestHeaders: this.buildRequestHeaders(route, { requestId, sessionId }),
     })) {
       yield event;
     }
@@ -451,6 +457,24 @@ export class LlmProviderManager {
         modelConfig: route?.modelConfig,
       }),
     });
+  };
+
+  private buildRequestHeaders = (
+    route: ProviderRoute | null,
+    context: Pick<ProviderChatParams, "requestId" | "sessionId">,
+  ): Record<string, string> | undefined => {
+    if (route?.providerName !== "opencode") {
+      return undefined;
+    }
+    const sessionId = context.sessionId?.trim();
+    const requestId = context.requestId?.trim();
+    if (!sessionId && !requestId) {
+      return undefined;
+    }
+    return {
+      ...(sessionId ? { "x-opencode-session": sessionId } : {}),
+      ...(requestId ? { "x-opencode-request": requestId } : {}),
+    };
   };
 
   private buildCacheKey = (route: ProviderRoute): string => {

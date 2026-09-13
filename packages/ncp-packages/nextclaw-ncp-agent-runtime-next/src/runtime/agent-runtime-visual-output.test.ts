@@ -27,10 +27,12 @@ const spec: DefaultNcpAgentRunSpec = {
 describe("DefaultNcpAgentRuntime visual tool output", () => {
   it("carries view_image tool output into the next model round as image input", async () => {
     const capturedInputs: NcpLLMApiInput[] = [];
+    const capturedOptions: Array<Parameters<NcpLLMApi["generate"]>[1]> = [];
     let generateRound = 0;
     const llmApi: NcpLLMApi = {
-      generate: async function* (input) {
+      generate: async function* (input, options) {
         capturedInputs.push(input);
+        capturedOptions.push(options);
         generateRound += 1;
         if (generateRound === 1) {
           yield toolCallChunk(
@@ -83,6 +85,11 @@ describe("DefaultNcpAgentRuntime visual tool output", () => {
       type: NcpEventType.MessageToolCallResult,
     });
     expect(capturedInputs).toHaveLength(2);
+    expect(capturedOptions).toEqual([
+      expect.objectContaining({ sessionId: "session-1", requestId: expect.any(String) }),
+      expect.objectContaining({ sessionId: "session-1", requestId: expect.any(String) }),
+    ]);
+    expect(capturedOptions[0]?.requestId).toBe(capturedOptions[1]?.requestId);
     const secondInputMessages = capturedInputs[1]?.messages ?? [];
     const visualMessage = secondInputMessages.find(
       (message) => message.role === "user" && Array.isArray(message.content)

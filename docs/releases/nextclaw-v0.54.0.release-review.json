@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.54.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-09-13-nextclaw-v0-54-0.md",
+        "apps/docs/en/notes/2026-09-13-nextclaw-v0-54-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.54.0.json",
+        "apps/docs/zh/notes/index.md",
+        "apps/docs/en/notes/index.md"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "This delivery adds a documented local CLI/SDK workflow; positioning, pricing and download entry points remain valid."
+    },
+    "socialPost": {
+      "decision": "not-needed",
+      "reason": "The authorized delivery is an installed collaboration workflow and documentation; no social announcement was requested."
+    }
+  }
+}

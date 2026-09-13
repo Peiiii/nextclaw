@@ -133,6 +133,8 @@ export type NcpLLMApiInput = {
 export type NcpLLMApiOptions = {
   signal?: AbortSignal;
   temperature?: number;
+  sessionId?: string;
+  requestId?: string;
 };
 
 export interface NcpLLMApi {

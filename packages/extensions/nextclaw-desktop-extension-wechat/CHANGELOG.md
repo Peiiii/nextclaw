@@ -1,5 +1,17 @@
 # @nextclaw/desktop-extension-wechat
 
+## 0.2.9
+
+### Patch Changes
+
+- @nextclaw/extension-sdk@0.5.9
+
+## 0.2.8
+
+### Patch Changes
+
+- @nextclaw/extension-sdk@0.5.8
+
 ## 0.2.7
 
 ### Patch Changes
