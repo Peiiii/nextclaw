@@ -1,5 +1,8 @@
 # Tasks and sessions
 
+
+In the desktop sidebar, switch between Time and Project views at the top left of the conversation list. Click the search icon on the right to open a search field below the controls. Close it with the close button or Escape to clear the filter and hide the field. In Project view, Add Project appears immediately to the left of search.
+
 A session is not merely chat history. It is the container where a task keeps its goal, messages, tool activity, working directory, file results, and follow-up changes.
 
 ## Start a new task when

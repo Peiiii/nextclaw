@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from "vitest";
 import {
   ChatSidebarDesktopToolbar,
+  ChatSidebarListToolbar,
   ChatSidebarMobileToolbar,
 } from "@/features/chat/components/layout/chat-sidebar-toolbar";
 import type { ChatSessionTypeOption } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
@@ -34,8 +35,18 @@ function searchIconClassName() {
 }
 
 describe("ChatSidebarToolbar", () => {
-  it("keeps desktop search icon transparent to pointer input", () => {
+  it("does not reserve a search row in the desktop header", () => {
     render(<ChatSidebarDesktopToolbar {...toolbarProps} />);
+    expect(screen.queryByRole("textbox")).toBeNull();
+  });
+  it("reveals desktop search below the list controls and clears it on close", async () => {
+    const user = userEvent.setup();
+    const onQueryChange = vi.fn();
+    render(<ChatSidebarListToolbar {...toolbarProps} onQueryChange={onQueryChange} isProjectFirstView={false} onSelectMode={vi.fn()} onAddProject={vi.fn()} />);
+    expect(screen.queryByRole("textbox")).toBeNull();
+    const trigger = screen.getByRole("button", { name: "Search conversations..." });
+    await user.click(trigger);
+    expect(document.activeElement).toBe(screen.getByRole("textbox"));
 
     expect(searchIconClassName()).toContain("pointer-events-none");
     expect(
@@ -46,6 +57,16 @@ describe("ChatSidebarToolbar", () => {
         .getByPlaceholderText("Search conversations...")
         .getAttribute("data-theme-control"),
     ).toBe("chat-search");
+    await user.type(screen.getByRole("textbox"), "a");
+    expect(onQueryChange).toHaveBeenLastCalledWith("a");
+    await user.click(screen.getByRole("button", { name: "Close search" }));
+    expect(onQueryChange).toHaveBeenLastCalledWith("");
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+    await user.click(trigger);
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(document.activeElement).toBe(trigger);
   });
 
   it('reveals mobile search on demand and clears the filter when closed', async () => {

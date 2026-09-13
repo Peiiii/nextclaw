@@ -1,6 +1,6 @@
 import { BrandHeader } from "@/shared/components/common/brand-header";
 import { StatusBadge } from "@/shared/components/common/status-badge";
-import { ChatSidebarListModeSwitch } from "@/features/chat/components/chat-sidebar-list-mode-switch";
+import { ChatSidebarListToolbar } from "@/features/chat/components/layout/chat-sidebar-toolbar";
 import type {
   groupSessionsByDate,
   groupSessionsByProject,
@@ -20,7 +20,6 @@ import {
   Inbox,
   PanelLeftClose,
   PanelLeftOpen,
-  FolderPlus,
 } from "lucide-react";
 import { useInboxUnreadCount } from "@/features/inbox";
 import { ChatSidebarSessionList } from "@/features/chat/features/session/components/chat-sidebar-session-list";
@@ -148,6 +147,8 @@ export function ChatSidebarDesktopNav({
 }
 
 export function ChatSidebarSessionArea({
+  query,
+  onQueryChange,
   variant = 'desktop',
   defaultSessionType,
   groups,
@@ -162,6 +163,8 @@ export function ChatSidebarSessionArea({
   renderSessionItem,
   sessionTypeOptions,
 }: {
+  query: string;
+  onQueryChange: (query: string) => void;
   variant?: 'desktop' | 'mobile';
   defaultSessionType: string;
   groups: ReturnType<typeof groupSessionsByDate>;
@@ -189,20 +192,13 @@ export function ChatSidebarSessionArea({
 
   return (
     <>
-      <div className={variant === 'mobile' ? 'hidden' : 'flex h-8 items-center justify-end gap-1 px-3'}>
-        {isProjectFirstView ? (
-          <IconActionButton
-            icon={<FolderPlus className="h-3.5 w-3.5" />}
-            label={t("chatProjectAdd")}
-            tone="surface"
-            onClick={onAddProject}
-          />
-        ) : null}
-        <ChatSidebarListModeSwitch
+      {variant === 'desktop' ? <ChatSidebarListToolbar
+          query={query}
+          onQueryChange={onQueryChange}
           isProjectFirstView={isProjectFirstView}
           onSelectMode={onSelectMode}
-        />
-      </div>
+          onAddProject={onAddProject}
+        /> : null}
 
       <div
         ref={scrollRef}

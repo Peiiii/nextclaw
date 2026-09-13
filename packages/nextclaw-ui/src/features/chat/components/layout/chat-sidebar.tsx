@@ -304,9 +304,7 @@ export function ChatSidebar({
         />
       ) : (
         <ChatSidebarDesktopToolbar
-          query={listSnapshot.query}
           onCreateSession={createSessionAndOpenIfNeeded}
-          onQueryChange={presenter.chatSessionListManager.setQuery}
           collapsed={shouldCollapse}
         />
       )}
@@ -316,6 +314,8 @@ export function ChatSidebar({
       ) : null}
 
       <ChatSidebarSessionArea
+        query={listSnapshot.query}
+        onQueryChange={presenter.chatSessionListManager.setQuery}
         variant={variant}
         defaultSessionType={newSessionTypePreference.selectedSessionType}
         groups={groups}

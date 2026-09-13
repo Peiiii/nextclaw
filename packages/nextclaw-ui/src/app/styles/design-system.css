@@ -86,7 +86,7 @@
       /* Accent */
       --accent: var(--brand-50);
       --accent-foreground: var(--brand-700);
-      --interaction-hover: hsl(var(--muted));
+      --interaction-hover: hsl(var(--foreground) / 0.08);
       --interaction-selection: hsl(211 100% 92%);
       --interaction-selection-border: hsl(211 75% 84%);
 
@@ -723,7 +723,6 @@
       --secondary-foreground: var(--gray-800);
       --accent: 151 32% 18%;
       --accent-foreground: 148 34% 84%;
-      --interaction-hover: hsl(var(--muted));
       --interaction-selection: hsl(211 48% 30%);
       --interaction-selection-border: hsl(211 48% 42%);
       --muted: var(--gray-100);

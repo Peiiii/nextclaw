@@ -8,6 +8,8 @@ function renderSessionArea(isProjectFirstView: boolean, onScrollNearEnd = vi.fn(
 
   render(
     <ChatSidebarSessionArea
+      query=""
+      onQueryChange={vi.fn()}
       defaultSessionType="native"
       groups={[]}
       isCollapsed={false}
@@ -50,9 +52,9 @@ describe("ChatSidebarSessionArea", () => {
     expect(projectButton.className).toContain("rounded-full");
     expect(timeButton.querySelector("svg")).not.toBeNull();
     expect(projectButton.querySelector("svg")).not.toBeNull();
-    expect(modeGroup.parentElement?.className).toContain("justify-end");
+    expect(modeGroup.parentElement?.className).toContain("justify-between");
     expect(modeGroup.parentElement?.className).toContain("h-8");
-    expect(modeGroup.parentElement?.lastElementChild).toBe(modeGroup);
+    expect(modeGroup.parentElement?.firstElementChild).toBe(modeGroup);
 
     fireEvent.click(projectButton);
 
@@ -73,7 +75,7 @@ describe("ChatSidebarSessionArea", () => {
         .querySelector("svg")
         ?.classList.contains("lucide-folder-plus"),
     ).toBe(true);
-    expect(addProjectButton.className).toContain("hover:bg-gray-200/60");
+    expect(addProjectButton.className).toContain("hover:before:bg-[var(--interaction-hover)]");
     expect(modeIndicator?.className).toContain("translate-x-full");
     expect(modeIndicator?.className).toContain("motion-reduce:transition-none");
     expect(
@@ -81,7 +83,7 @@ describe("ChatSidebarSessionArea", () => {
         .getByRole("button", { name: "Project" })
         .getAttribute("aria-pressed"),
     ).toBe("true");
-    expect(modeIndicator?.parentElement?.previousElementSibling).toBe(
+    expect(screen.getByRole("button", { name: "Search conversations..." }).previousElementSibling).toBe(
       addProjectButton,
     );
     fireEvent.click(addProjectButton);

@@ -51,6 +51,9 @@ description: 通用开发生命周期的「验证与测试」阶段 owner；当�
 
 ## 条件验证
 
+<!-- model-capability-patch: gap=用组件和类名证据代替交互视觉结果; review-on=model-change; remove-when=无提示也能稳定匹配状态与渲染证据 -->
+- 触达控件视觉状态、共享反馈或主题颜色时，按[交互质量合同](../../wiki/skills/frontend/frontend-interaction-quality/SKILL.md)选择渲染证据；L1/L2 的低成本证据原则不能将视觉正确性降为类名或事件断言。纯逻辑和文案改动不触发。
+
 - 分页/懒加载、虚拟列表瞬态、IME/选区、结构化输入、附件消费闭环或外部主题复刻：读取[复杂 UI 验证](references/ui-validation.md)。普通 CSS 和审美修改不读取。
 - 用户已在真实实例复现，或任务触达冷/热启动、重复状态转换、journal/projection/hydrate、accepted run handle 或启动恢复：读取[真实运行实例验证](references/runtime-instance-validation.md)。
 - 需要隔离全局安装版验证时，按 diff 过构建资格门并读取[本地源码运行验证](references/local-source-runtime.md)；纯前端不得触发未变化的 Runtime/Cargo/CLI 构建。

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
+import { ChatSidebarListModeSwitch } from '@/features/chat/components/chat-sidebar-list-mode-switch';
 import { Link } from 'react-router-dom';
 import { AlarmClock, ChevronDown, Clock3, Folder, FolderPlus, Plus, Search, X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -19,7 +20,7 @@ type ChatSidebarToolbarProps = {
   collapsed?: boolean;
 };
 
-export function ChatSidebarDesktopToolbar({ query, onQueryChange, onCreateSession, collapsed }: ChatSidebarToolbarProps) {
+export function ChatSidebarDesktopToolbar({ onCreateSession, collapsed }: Pick<ChatSidebarToolbarProps, 'onCreateSession' | 'collapsed'>) {
   if (collapsed) {
     return <div className="px-2 pb-2">
       <IconActionButton icon={<Plus className={SIDEBAR_RAIL_ICON_CLASS} />} label={t('chatSidebarNewTask')}
@@ -32,14 +33,44 @@ export function ChatSidebarDesktopToolbar({ query, onQueryChange, onCreateSessio
         <Plus className="mr-1.5 h-4 w-4" />{t('chatSidebarNewTask')}
       </Button>
     </div>
-    <div className="px-4 pb-2">
+  </>;
+}
+
+export function ChatSidebarListToolbar({ query, onQueryChange, isProjectFirstView, onSelectMode, onAddProject }: {
+  query: string;
+  onQueryChange: (query: string) => void;
+  isProjectFirstView: boolean;
+  onSelectMode: (mode: 'time-first' | 'project-first') => void;
+  onAddProject: () => void;
+}) {
+  const [searchOpen, setSearchOpen] = useState(Boolean(query));
+  const searchButtonRef = useRef<HTMLButtonElement>(null);
+  const searchId = useId();
+  const closeSearch = () => {
+    onQueryChange('');
+    setSearchOpen(false);
+    searchButtonRef.current?.focus();
+  };
+  return <div className="shrink-0 px-3">
+    <div className="flex h-8 items-center justify-between gap-1">
+      <ChatSidebarListModeSwitch isProjectFirstView={isProjectFirstView} onSelectMode={onSelectMode} />
+      <IconActionGroup>
+        {isProjectFirstView ? <IconActionButton icon={<FolderPlus className="h-3.5 w-3.5" />} label={t('chatProjectAdd')} onClick={onAddProject} /> : null}
+        <IconActionButton ref={searchButtonRef} icon={<Search className="h-3.5 w-3.5" />} label={t('chatSidebarSearchPlaceholder')}
+          aria-expanded={searchOpen} aria-controls={searchId} onClick={() => { if (searchOpen) closeSearch(); else setSearchOpen(true); }} />
+      </IconActionGroup>
+    </div>
+    {searchOpen ? <div id={searchId} className="pb-2 pt-1">
       <div className="relative">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
-        <Input data-theme-control="chat-search" value={query} onChange={event => onQueryChange(event.target.value)}
-          placeholder={t('chatSidebarSearchPlaceholder')} className="h-8 rounded-lg border-0 bg-background/55 pl-8 text-xs shadow-none hover:bg-background/75" />
+        <Input autoFocus data-theme-control="chat-search" value={query} onChange={event => onQueryChange(event.target.value)}
+          onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeSearch(); } }}
+          aria-label={t('chatSidebarSearchPlaceholder')} placeholder={t('chatSidebarSearchPlaceholder')} className="h-8 rounded-lg border-0 bg-background/55 pl-8 pr-9 text-xs shadow-none hover:bg-background/75" />
+        <IconActionButton icon={<X className="h-3.5 w-3.5" />} label={t('chatSidebarCloseSearch')} size="sm"
+          className="absolute right-1 top-1/2 -translate-y-1/2" onClick={closeSearch} />
       </div>
-    </div>
-  </>;
+    </div> : null}
+  </div>;
 }
 
 export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps & {
