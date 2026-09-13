@@ -1,5 +1,13 @@
 # nextclaw
 
+## 0.54.2
+
+### Patch Changes
+
+- 71beba4: Make agent reply labels caller-configurable instead of hard-coded, keep internal identity out of reply text, and preserve signed peer controls independently of display labels.
+- Updated dependencies [71beba4]
+  - @nextclaw/collaboration@0.1.3
+
 ## 0.54.1
 
 ### Patch Changes
