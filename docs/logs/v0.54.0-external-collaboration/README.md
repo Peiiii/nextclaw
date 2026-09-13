@@ -24,7 +24,7 @@
 
 复用 `release.yml target=product`：NPM → stable runtime → 文档/内容闭环；不发布 desktop。既有成功生产路径：Actions [34541952826](https://github.com/Peiiii/nextclaw/actions/runs/34541952826)，`npm-production` environment。readme 同步、release health 和 product dry-run 已完成。dry-run 计划 nextclaw 0.53.0 → 0.54.0，随既有 Changesets 依赖闭包发布；本批发布状态待下节补录。首轮 prewarm 34741078725 与 Docs 34741078384 失败：包缺少仓库显式 `private:false`，新指南缺少导航登记；已修正并通过 release:check:groups、文档完整构建与导航 tsc。未发生 npm publish。第二轮 prewarm 34741431222 在所有构建之后发现独立 tsc/lint checkpoint 缺失：新增包补齐 lint；发布步骤不再根据 build 命令文本猜测完整类型检查已完成，尊重显式 tsc script（构建 tsconfig 可能排除测试）。13 项发布合同测试及实际单包 scheduler build/tsc/lint 全链路通过。AUTOMATION_INTERVENTIONS: 4（公开标记、导航、lint 声明、类型检查推断四个根因；均在原 owner 修复，无新发布分支）。
 
-本地宿主复用已有 gh/Linear 登录、官方凭据文件引用。默认 30 秒轮询，电脑须在线；`start` 不安装开机服务，可由已有系统服务托管 `run`。状态目录只存本地，不进入 Git。最终宿主将从稳定发布安装运行，不能把开发 worktree 路径当长期部署。
+本地宿主复用已有 gh/Linear 登录、官方凭据文件引用。默认 30 秒轮询，电脑须在线；`start` 不安装开机服务，可由已有系统服务托管 `run`。状态目录只存本地，不进入 Git。正式宿主 PID 33551 已从 NPM 全局安装的 `@nextclaw/collaboration@0.1.1` 运行，进程入口位于 Node 22.23.2 全局包目录，不依赖开发 worktree。
 
 ## 用户/产品视角的验收步骤
 
@@ -42,7 +42,11 @@
 
 ## NPM 包发布记录
 
-- `@nextclaw/collaboration`：新公共包，当前源版本 0.1.0，计划首发 0.1.1；稳定发布待执行。
-- `nextclaw`：新协作入口及迁移装配，计划 0.54.0；稳定发布待执行。
-- 其它本批包以 exact-SHA Changesets release identity 为准，发布后补录 workflow、registry/runtime、安装和主线回流事实。
-- 当前不是发布完成声明。最终完成门包含稳定包、实际绑定宿主、用户三条验收入口。
+- `@nextclaw/collaboration@0.1.1` 与 `nextclaw@0.54.0` 已稳定发布，registry latest 核对通过。NPM 发布提交 `68413e2ad`，准备来源 `65b4df347`，预构建 [34741999323](https://github.com/Peiiii/nextclaw/actions/runs/34741999323) 成功。
+- 正式发布 [34743043117](https://github.com/Peiiii/nextclaw/actions/runs/34743043117) 最终 success：四平台 Runtime、Node 20/22/24/26 安装矩阵、过旧 Node 提示、上一稳定版升级均通过。首次 Windows Node 24 公网 npm install 超时，仅重跑失败 job 后通过，没有再次发布 NPM。AUTOMATION_INTERVENTIONS: 5（前述四个根因，加安装超时的精确重跑）。
+- 发布从 06:33:35Z 至 07:01 左右约 28 分钟，包含 Windows 重跑。NPM job 636 秒，Runtime/升级 job 217 秒；最慢为 NPM job。`time budget: missed`。已修复准备阶段类型检查推断；本次没有用跳过完整性或安装门换取速度，网络安装超时保留为本批性能证据，不扩展新的发布系统。
+- 本机从独立缓存安装两个精确 NPM 包。下载得到 0.54.0 后，更新过的 launcher 在下一进程激活了新 bundle；随后冗余 `--apply` 报没有待应用版本，因此不把该命令记为成功。最终 `nextclaw --version`、实际 current pointer 和 `update --check --json` 均为 0.54.0 / up-to-date / 无错误；正式 `nextclaw collaboration status` 读出三个连接、五个原绑定及在运行的独立宿主。
+- 正式包续聊输入 [5651739045](https://github.com/Peiiii/nextclaw/issues/63#issuecomment-5651739045) 得到 [5651744050](https://github.com/Peiiii/nextclaw/issues/63#issuecomment-5651744050) 的 BLUE-93，仍为原 Codex 任务 `01a09932-eed9-7862-b23f-7c66ad35fdc3`。最终快照三个来源无错误，pending=0，未知输出=0。
+- [双语 GitHub Release](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.54.0) 已更新。[中文说明](https://docs.nextclaw.io/zh/notes/2026-09-13-nextclaw-v0-54-0)、英文说明与结构化 JSON 线上 200，JSON 版本 0.54.0 且 CORS 正常；Docs [34743632271](https://github.com/Peiiii/nextclaw/actions/runs/34743632271) 成功。最后按正式 CLI help 修正文档 trust 的账号位置参数，未改变协议或实现。
+- 范围内交付完成；桌面安装包按用户要求暂缓。可选 X 宣传未执行，release surface 保留 CONTENT_PENDING，不声称完整营销传播完成。周额度最后核对剩余 80%，未使用重置额度。
+- 主线通过 `release:reconcile:mainline` 回流，源区草稿经审计迁移且无遗留；最终文档收尾提交继续使用同一回流 owner。

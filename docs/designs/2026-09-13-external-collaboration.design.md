@@ -531,7 +531,7 @@ GitHub 使用 gh api，Linear 固定支持 schpet linear-cli 1.11.1 的 api/vari
 - `contract-id: external-collaboration-2026-09-13`
 - `parent-goal`：交付第三方可独立接入、NextClaw 自用同一公开实现的持续协作方案，正式支持官方后台、GitHub Issue、Linear 和 Codex；任意符合规范的来源可接入。
 - `scope-revision: 2`；`scope-confirmation: user-authorized-full-delivery`。
-- 当前阶段门：实现与真实验收已完成，发布与最终安装闭环进行中。
+- 当前阶段门：实现、AI 验收、稳定发布与本机正式安装闭环完成；用户可按三条黄金验收抽验。
 
 | ID | Required | 可观察合同 | Status | 当前证据 / 失效原因 |
 | --- | --- | --- | --- | --- |
@@ -544,7 +544,7 @@ GitHub 使用 gh api，Linear 固定支持 schpet linear-cli 1.11.1 的 api/vari
 | COL-007 | true | 独立打包安装、SDK/CLI、规范、Schema 和接入验证用例可用，无完整 NextClaw 依赖 | passed | 独立 tarball 在 /tmp/collaboration-clean-install 安装，命令/SDK/Schema/适配器实际运行 |
 | COL-008 | true | NextClaw 通过公共入口使用同一实现；现有配置/绑定迁移后连续，旧消费者退出 | passed | 官方两条原绑定导入；旧进程停止、配置备份退役；nextclaw collaboration 与旧 status alias 均显示同一三连接状态 |
 | COL-009 | true | 用户能从 CLI 查询连接、关注、队列/运行/输出失败并恢复；文档与资源完整同步 | passed | CLI status/show/reconcile/resolve-output/bind/retry-run 与文档站中英文、USAGE 两份和 skills 同步；命令目录测试通过 |
-| COL-010 | true | 真实端到端证据、适用类型检查、实现 Review、打包与交接完成，未验证项不冒充通过 | in-progress | 本地 tsc/测试/Review/安装与三来源真实证据已形成；稳定发布和最终安装待闭合 |
+| COL-010 | true | 真实端到端证据、适用类型检查、实现 Review、打包与交接完成，未验证项不冒充通过 | passed | 发布 34743043117 成功；collaboration 0.1.1 与 NextClaw 0.54.0 正式安装，GitHub #63 发布后同任务返回 BLUE-93；三个连接、五个绑定保留 |
 | COL-011 | true | 按 §1A 从独立安装/配置检查、原平台邀请走到持续沟通；空状态和认证失败可返回同一配置继续 | passed | GitHub #63 新建带标签自动建立任务，原平台提前状态后回复；独立安装入口修复 symlink 检测后重验 |
 | COL-012 | true | 日常参与者在原平台查询状态、暂停/取消/恢复；quiet 可核实，离线边界和维护者恢复入口如实呈现 | passed | GitHub #62、Linear NC-179 原平台暂停/待处理/恢复；#63 quiet；真实 Codex running→cancelled 探针 |
 | COL-013 | true | 已安装并登录的受支持 CLI 可直接接入，无额外 Token 配置；后台同身份运行，工具/登录失效可在原 CLI 修复，事件与回复共用原协调链路 | passed | 后台复用 gh Peiiii 与 Linear 已登录 UUID，无复制 Token；实际读写与同账号签名 peer 通过 |
@@ -580,7 +580,7 @@ GitHub 使用 gh api，Linear 固定支持 schpet linear-cli 1.11.1 的 api/vari
 
 用户明确要求后续设计均提供不超过三条优先验收链路。原设计 Skill 已要求完整验收和最短操作，但没有区分时间有限时的优先抽验，本文也曾列四条。现将方法合并到 development-design 原验收段，本文收敛为三条，完整 ledger 与 AI 验证范围不变。没有新增发现入口、阶段或脚本。规则先试用：本案例应输出三条真实链路；单一功能一条即可，纯内部不变行为只给证据、不编造用户操作。后续若出现把长测试清单藏进三条标题，或误将抽验当全部验收，应修正原段；若增加无关人工操作则收窄或回退。静态检查不证明未来执行效果。
 
-`open-required: COL-010`；`parent_status: in-progress`。实现与 AI 验收已完成，等待稳定发布、发布后安装和持续运行闭环。
+`open-required: none`；`parent_status: completed`。实现、AI 验收、稳定发布、正式安装与实际持续运行已闭合，完整证据见迭代记录。桌面安装包按授权暂缓；可选 X 宣传未执行，内容传播状态不冒充 CONTENT_READY，不影响本合同的可用交付。
 
 ## 13. 当前交付证据与边界
 

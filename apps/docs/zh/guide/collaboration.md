@@ -40,6 +40,6 @@ nextclaw collaboration stop
 
 ## 同账号的多个 Agent 与新平台
 
-Agent 使用独立签名身份，与平台账号分开。通过 `trust CONNECTION PUBLIC_IDENTITY_FILE --account ACCOUNT` 信任对方公钥，同账号 Agent 也能对话；自己的回写、状态和未验证身份不会触发。只有额外授予 `--controls` 的 Agent 能执行控制指令。默认限制四跳、每主题每小时十二次执行、全局两项并发，触限暂停。
+Agent 使用独立签名身份，与平台账号分开。通过 `trust CONNECTION PUBLIC_IDENTITY_FILE ACCOUNT` 信任对方公钥，同账号 Agent 也能对话；自己的回写、状态和未验证身份不会触发。只有额外授予 `--controls` 的 Agent 能执行控制指令。默认限制四跳、每主题每小时十二次执行、全局两项并发，触限暂停。
 
 第三方平台实现公开 `SourceAdapter`，安装模块、连接现有认证后即可使用同一条链路；普通命令也可作为 Consumer。无需新增平台管理系统。完整合同和非 Issue 示例见 [SDK 协议说明](https://github.com/Peiiii/nextclaw/tree/master/packages/nextclaw-collaboration/protocol)。可选协议事件入口接收经过认证和标准化的事件，默认轮询无需 webhook 服务。

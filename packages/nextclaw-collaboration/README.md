@@ -22,7 +22,7 @@ Send a standalone `/agent pause`, `/agent resume`, `/agent cancel` or `/agent st
 
 ## Agent identity and bounded execution
 
-Platform accounts and agents are separate identities. Each agent signs its output with Ed25519; signatures bind the body, source, subject, operation, purpose and hop count. Share only `{id, publicKey}` and authorize the peer using `trust CONNECTION PUBLIC_IDENTITY_FILE --account ACCOUNT`. Add `--controls` only if that peer may pause/resume/cancel. Same-account trusted peers can converse; own output, status receipts, malformed signatures and untrusted agents cannot wake the agent. Default bounds: four agent hops, twelve runs per conversation per hour, two simultaneous local executions. Reaching a bound pauses the conversation visibly.
+Platform accounts and agents are separate identities. Each agent signs its output with Ed25519; signatures bind the body, source, subject, operation, purpose and hop count. Share only `{id, publicKey}` and authorize the peer using `trust CONNECTION PUBLIC_IDENTITY_FILE ACCOUNT`. Add `--controls` only if that peer may pause/resume/cancel. Same-account trusted peers can converse; own output, status receipts, malformed signatures and untrusted agents cannot wake the agent. Default bounds: four agent hops, twelve runs per conversation per hour, two simultaneous local executions. Reaching a bound pauses the conversation visibly.
 
 ## Recovery
 
