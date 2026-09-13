@@ -63,6 +63,7 @@
   "desktopUpdatesDownloadProgressUnknown": "Downloading",
   "desktopUpdatesBlockedTitle": "Update Blocked",
   "desktopUpdatesBlockedDescription": "Resolve the current installation requirement before continuing the update.",
+  "desktopUpdatesManualPortableDownload": "Download Latest Portable Edition",
   "desktopUpdatesBlockedRootCause.signature-verification-unavailable": "Root cause: missing update public key; install a configured build or ask the maintainer to set the key.",
   "desktopUpdatesBlockedRootCause.host-too-old": "Root cause: the host is too old for this runtime bundle; upgrade the NextClaw launcher first.",
   "desktopUpdatesBlockedRootCause.unsupported-installation": "Root cause: this installation or update source does not support auto-update; use a configured build.",

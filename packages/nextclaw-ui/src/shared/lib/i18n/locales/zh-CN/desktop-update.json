@@ -63,6 +63,7 @@
   "desktopUpdatesDownloadProgressUnknown": "正在下载",
   "desktopUpdatesBlockedTitle": "更新暂时无法继续",
   "desktopUpdatesBlockedDescription": "当前安装环境需要先处理阻塞项，之后才能继续更新。",
+  "desktopUpdatesManualPortableDownload": "下载最新 Portable Edition",
   "desktopUpdatesBlockedRootCause.signature-verification-unavailable": "根因：缺少更新签名公钥，无法验证更新包来源；请安装包含正确更新配置的新版本，或由维护者配置更新公钥。",
   "desktopUpdatesBlockedRootCause.host-too-old": "根因：当前宿主版本太旧，不满足新运行包的最低宿主版本要求；请先升级 NextClaw 启动器。",
   "desktopUpdatesBlockedRootCause.unsupported-installation": "根因：当前安装形态或更新源配置不支持自动更新；请安装支持自动更新的版本，或由维护者补齐更新源配置。",

@@ -16,7 +16,9 @@ import {
   type ReleaseNotesLocale,
   type ReleaseNotesSection
 } from '@/features/system-status/utils/update-release-notes.utils';
-import { RefreshCw, RotateCw } from 'lucide-react';
+import { Download, RefreshCw, RotateCw } from 'lucide-react';
+
+const PORTABLE_RELEASES_URL = 'https://github.com/Peiiii/nextclaw/releases';
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
   checking: 'desktopUpdatesStatusChecking',
@@ -115,6 +117,12 @@ function getStatusTone(status: string): string {
     return 'bg-red-50 text-red-700 ring-red-100';
   }
   return 'bg-gray-100 text-gray-700 ring-gray-200';
+}
+
+function isPortableUpdateBlocked(snapshot: UpdateSnapshot): boolean {
+  return snapshot.status === 'blocked'
+    && snapshot.installationKind === 'desktop-bundle'
+    && snapshot.blockReason === 'unsupported-installation';
 }
 
 function getReleaseNotesLocale(): ReleaseNotesLocale {
@@ -265,6 +273,16 @@ export function DesktopUpdateConfig() {
                 <p className='text-sm font-semibold text-red-800'>{t('desktopUpdatesBlockedTitle')}</p>
                 <p className='mt-1 text-sm text-red-700'>{snapshot.errorMessage ?? t('desktopUpdatesBlockedDescription')}</p>
                 {snapshot.recoveryCommand ? <code className='mt-3 block rounded-lg bg-white/70 px-3 py-2 text-xs text-red-800'>{snapshot.recoveryCommand}</code> : null}
+                {isPortableUpdateBlocked(snapshot) ? (
+                  <NavigationLink
+                    href={PORTABLE_RELEASES_URL}
+                    external
+                    icon={Download}
+                    className='mt-3 rounded-full border border-red-300 bg-white/70 px-3 py-2 text-red-800 no-underline hover:bg-white hover:text-red-900 hover:no-underline'
+                  >
+                    {t('desktopUpdatesManualPortableDownload')}
+                  </NavigationLink>
+                ) : null}
               </div>
             ) : null}
             {snapshot.errorMessage && snapshot.status !== 'blocked' ? <div className='rounded-2xl border border-red-200 bg-red-50/70 p-4 text-sm text-red-700'>{snapshot.errorMessage}</div> : null}
