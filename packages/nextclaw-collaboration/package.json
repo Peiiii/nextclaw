@@ -1,0 +1,44 @@
+{
+  "name": "@nextclaw/collaboration",
+  "version": "0.1.0",
+  "description": "Local, durable collaboration between external conversations and agents.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Peiiii/nextclaw.git"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "nextclaw-collaboration": "dist/controllers/cli.controller.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "protocol"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "tsc": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "prepack": "pnpm run build",
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "undici": "7.18.2"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
+  }
+}

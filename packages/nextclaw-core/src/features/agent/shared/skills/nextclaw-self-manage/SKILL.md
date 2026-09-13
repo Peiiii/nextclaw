@@ -114,3 +114,7 @@ When the user reports missing messages, missing replies, intermittent failures, 
 - Automation: `nextclaw cron list|add|remove|enable|run`
 - Installed skills: `nextclaw skills installed|info`
 - Marketplace skills: `nextclaw marketplace skills search|info|recommend|install|update`
+
+## 外部协作
+
+通过 `nextclaw collaboration connect/check/start/status/show/stop/restart` 管理外部来源与本地任务，使用 `--help` 获取对象级参数。优先复用本地平台 CLI 登录，连接限定项目和允许账号；不直接编辑 SQLite 或复制凭据。Issue 中独立 `/agent pause|resume|cancel|status` 是控制入口。迁移旧官方监听使用 `migrate-discussion`，保留原任务绑定。协作宿主负责平台状态和最终回写，受其触发时只返回最终文本或 `COLLABORATION_QUIET`，不得再调用平台发帖工具重复发送。Agent 身份依据已验证签名，不按同账号一概过滤。

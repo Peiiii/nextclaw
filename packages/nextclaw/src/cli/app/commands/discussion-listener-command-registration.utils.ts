@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import { open, readFile, stat } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import { resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
   CodexDesktopDiscussionConsumerService,
   discussionCodexTriggerInputFromEnvironment,
@@ -23,9 +23,40 @@ type LifecycleOptions = {
   preset?: string;
 };
 
+async function migratedDiscussionState(): Promise<
+  { statePath: string } | undefined
+> {
+  try {
+    return JSON.parse(
+      await readFile(
+        join(
+          new DiscussionListenerStateStore().root,
+          "collaboration-migration.json",
+        ),
+        "utf8",
+      ),
+    );
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
+}
+
+async function routeMigratedDiscussion(command: string): Promise<boolean> {
+  const migration = await migratedDiscussionState();
+  if (!migration) return false;
+  const { runCollaborationCli } = await import("@nextclaw/collaboration");
+  await runCollaborationCli([
+    "--state-dir",
+    dirname(migration.statePath),
+    command,
+  ]);
+  return true;
+}
+
 export function registerDiscussionListenerCommands(
   group: Command,
-  skillPath: () => Promise<string>
+  skillPath: () => Promise<string>,
 ): void {
   const lifecycleOptions = (target: Command) =>
     target
@@ -33,25 +64,32 @@ export function registerDiscussionListenerCommands(
       .option("--token-file <path>", "Private participant token file")
       .option(
         "--workspace <path>",
-        "Codex Desktop preset workspace; not part of the trigger protocol"
+        "Codex Desktop preset workspace; not part of the trigger protocol",
       )
       .option(
         "--interval <milliseconds>",
-        "Polling interval; defaults to 30000"
+        "Polling interval; defaults to 30000",
       )
-      .option("--timeout <milliseconds>", "Trigger handshake timeout; defaults to 60000")
+      .option(
+        "--timeout <milliseconds>",
+        "Trigger handshake timeout; defaults to 60000",
+      )
       .option("--preset <name>", "Recommended trigger preset: codex-desktop");
   lifecycleOptions(
     group
       .command("configure [command...]", { hidden: false })
       .description(
-        "Save the discussion listener configuration; pass a trigger argv after --"
-      )
+        "Save the discussion listener configuration; pass a trigger argv after --",
+      ),
   ).action(async (commandArgs: string[], options: LifecycleOptions) => {
+    if (await migratedDiscussionState())
+      throw new Error(
+        "This listener has migrated. Manage its connection with nextclaw collaboration.",
+      );
     const { preset, workspace } = options;
     const config = await writeDiscussionListenerConfig(
       options,
-      commandArgs ?? []
+      commandArgs ?? [],
     );
     if (preset === "codex-desktop")
       await new CodexDesktopDiscussionConsumerService().check();
@@ -59,18 +97,21 @@ export function registerDiscussionListenerCommands(
       JSON.stringify(
         discussionListenerConfigOutput(config, preset, workspace),
         null,
-        2
-      )
+        2,
+      ),
     );
   });
   lifecycleOptions(
     group
       .command("start [command...]", { hidden: false })
-      .description("Start the configured discussion listener in the background")
+      .description(
+        "Start the configured discussion listener in the background",
+      ),
   ).action(async (commandArgs: string[], options: LifecycleOptions) => {
+    if (await routeMigratedDiscussion("start")) return;
     const store = new DiscussionListenerStateStore();
     const hasOverrides = Boolean(
-      (commandArgs?.length ?? 0) || Object.values(options).some(Boolean)
+      (commandArgs?.length ?? 0) || Object.values(options).some(Boolean),
     );
     if (hasOverrides)
       await writeDiscussionListenerConfig(options, commandArgs ?? [], store);
@@ -80,54 +121,68 @@ export function registerDiscussionListenerCommands(
       JSON.stringify(
         await (hasOverrides ? supervisor.restart() : supervisor.start()),
         null,
-        2
-      )
+        2,
+      ),
     );
   });
   group
     .command("status")
     .description("Show listener health and the last trigger error")
-    .action(async () =>
+    .action(async () => {
+      if (await routeMigratedDiscussion("status")) return;
       console.log(
         JSON.stringify(
           await new DiscussionListenerSupervisorService().status(),
           null,
-          2
-        )
-      )
-    );
+          2,
+        ),
+      );
+    });
   group
     .command("stop")
     .description("Stop the configured discussion listener")
-    .action(async () =>
+    .action(async () => {
+      if (await routeMigratedDiscussion("stop")) return;
       console.log(
         JSON.stringify(
           await new DiscussionListenerSupervisorService().stop(),
           null,
-          2
-        )
-      )
-    );
+          2,
+        ),
+      );
+    });
   group
     .command("restart")
     .description("Restart the configured discussion listener")
     .action(async () => {
+      if (await routeMigratedDiscussion("restart")) return;
       const store = new DiscussionListenerStateStore();
       console.log(
         JSON.stringify(
           await new DiscussionListenerSupervisorService(store).restart(),
           null,
-          2
-        )
+          2,
+        ),
       );
     });
+  registerLegacyWorkerCommands(group, skillPath);
+}
+
+function registerLegacyWorkerCommands(
+  group: Command,
+  skillPath: () => Promise<string>,
+): void {
   group.command("worker", { hidden: true }).action(async () => {
+    if (await migratedDiscussionState())
+      throw new Error(
+        "Legacy worker is retired for this state directory; use collaboration run.",
+      );
     const store = new DiscussionListenerStateStore();
     const config = await store.readConfig();
     const instanceId = process.env.NEXTCLAW_DISCUSSION_LISTENER_INSTANCE_ID;
     if (!instanceId)
       throw new Error(
-        "Discussion worker must be started through `discussion listen start`."
+        "Discussion worker must be started through `discussion listen start`.",
       );
     const deadline = Date.now() + 5_000;
     let runtime = await store.readRuntime();
@@ -136,7 +191,9 @@ export function registerDiscussionListenerCommands(
       runtime = await store.readRuntime();
     }
     if (runtime?.instanceId !== instanceId || runtime.pid !== process.pid)
-      throw new Error("Discussion listener runtime ownership was not established.");
+      throw new Error(
+        "Discussion listener runtime ownership was not established.",
+      );
     const token = (await readFile(config.tokenFile, "utf8")).trim();
     const worker = new DiscussionListenerWorkerService({
       discussion: new DiscussionClient({ endpoint: config.endpoint, token }),
@@ -151,45 +208,68 @@ export function registerDiscussionListenerCommands(
     .command("codex-desktop-trigger", { hidden: true })
     .requiredOption(
       "--workspace <path>",
-      "Workspace used by this Codex consumer"
+      "Workspace used by this Codex consumer",
     )
     .action(async (options: LifecycleOptions) => {
       const workspace = await resolveExistingDirectory(
         options.workspace,
-        "--workspace"
+        "--workspace",
       );
       console.log(
-        JSON.stringify(
-          await dispatchCodexDesktopRunner(workspace),
-          null,
-          2
-        )
+        JSON.stringify(await dispatchCodexDesktopRunner(workspace), null, 2),
       );
     });
   group
     .command("codex-desktop-runner", { hidden: true })
-    .requiredOption("--workspace <path>", "Workspace used by this Codex consumer")
+    .requiredOption(
+      "--workspace <path>",
+      "Workspace used by this Codex consumer",
+    )
     .action(async (options: LifecycleOptions) => {
-      const workspace = await resolveExistingDirectory(options.workspace, "--workspace");
-      console.log(JSON.stringify(await new CodexDesktopDiscussionConsumerService().trigger(
-        discussionCodexTriggerInputFromEnvironment(workspace)
-      ), null, 2));
+      const workspace = await resolveExistingDirectory(
+        options.workspace,
+        "--workspace",
+      );
+      console.log(
+        JSON.stringify(
+          await new CodexDesktopDiscussionConsumerService().trigger(
+            discussionCodexTriggerInputFromEnvironment(workspace),
+          ),
+          null,
+          2,
+        ),
+      );
     });
 }
 
-async function dispatchCodexDesktopRunner(workspace: string): Promise<Record<string, unknown>> {
+async function dispatchCodexDesktopRunner(
+  workspace: string,
+): Promise<Record<string, unknown>> {
   const input = discussionCodexTriggerInputFromEnvironment(workspace);
   const store = new DiscussionListenerStateStore();
   await store.initialize();
-  const existing = (await store.readCodexBindings()).discussions[input.discussionId]?.eventIds[input.eventId];
+  const existing = (await store.readCodexBindings()).discussions[
+    input.discussionId
+  ]?.eventIds[input.eventId];
   if (existing) return { accepted: true, turnId: existing, reused: true };
   if (!process.argv[1]) throw new Error("Unable to locate the NextClaw CLI.");
   const log = await open(store.codexConsumerLogPath, "a", 0o600);
-  const child = spawn(process.execPath, [process.argv[1], "discussion", "listen", "codex-desktop-runner", "--workspace", workspace], {
-    detached: true,
-    stdio: ["ignore", log.fd, log.fd],
-    env: { ...process.env, NEXTCLAW_DISCUSSION_STATE_DIRECTORY: store.root },
-  });
+  const child = spawn(
+    process.execPath,
+    [
+      process.argv[1],
+      "discussion",
+      "listen",
+      "codex-desktop-runner",
+      "--workspace",
+      workspace,
+    ],
+    {
+      detached: true,
+      stdio: ["ignore", log.fd, log.fd],
+      env: { ...process.env, NEXTCLAW_DISCUSSION_STATE_DIRECTORY: store.root },
+    },
+  );
   await new Promise<void>((resolveSpawn, reject) => {
     child.once("spawn", resolveSpawn);
     child.once("error", reject);
@@ -198,19 +278,26 @@ async function dispatchCodexDesktopRunner(workspace: string): Promise<Record<str
   await log.close();
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
-    const turnId = (await store.readCodexBindings()).discussions[input.discussionId]?.eventIds[input.eventId];
+    const turnId = (await store.readCodexBindings()).discussions[
+      input.discussionId
+    ]?.eventIds[input.eventId];
     if (turnId) return { accepted: true, turnId, runnerPid: child.pid };
-    try { if (child.pid) process.kill(child.pid, 0); }
-    catch { break; }
-    await new Promise(resolveWait => setTimeout(resolveWait, 100));
+    try {
+      if (child.pid) process.kill(child.pid, 0);
+    } catch {
+      break;
+    }
+    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
   }
-  throw new Error(`Codex Desktop did not accept the discussion event. Check ${store.codexConsumerLogPath}.`);
+  throw new Error(
+    `Codex Desktop did not accept the discussion event. Check ${store.codexConsumerLogPath}.`,
+  );
 }
 
 function discussionListenerConfigOutput(
   config: DiscussionListenerConfig,
   preset?: string,
-  workspace?: string
+  workspace?: string,
 ): Record<string, unknown> {
   if (preset !== "codex-desktop") return { configured: true, ...config };
   const { command: _command, ...visible } = config;
@@ -225,7 +312,7 @@ function discussionListenerConfigOutput(
 async function writeDiscussionListenerConfig(
   options: LifecycleOptions,
   commandArgs: string[],
-  store = new DiscussionListenerStateStore()
+  store = new DiscussionListenerStateStore(),
 ): Promise<DiscussionListenerConfig> {
   const previous = await store.readConfig().catch(() => null);
   const {
@@ -250,17 +337,17 @@ async function writeDiscussionListenerConfig(
     ? codexDesktopTriggerCommand(
         await resolveExistingDirectory(
           workspace ?? process.cwd(),
-          "--workspace"
-        )
+          "--workspace",
+        ),
       )
     : commandArgs.length
-    ? commandArgs
-    : previous?.command ?? [];
+      ? commandArgs
+      : (previous?.command ?? []);
   return store.writeConfig({
     endpoint: endpoint ?? previous?.endpoint ?? "https://roadmap.nextclaw.io",
     tokenFile: resolveRequiredPath(
       tokenFile ?? previous?.tokenFile,
-      "--token-file"
+      "--token-file",
     ),
     intervalMs,
     timeoutMs,
@@ -275,7 +362,7 @@ function resolveRequiredPath(path: string | undefined, option: string): string {
 
 async function resolveExistingDirectory(
   path: string | undefined,
-  option: string
+  option: string,
 ): Promise<string> {
   const resolved = resolveRequiredPath(path, option);
   if (!(await stat(resolved)).isDirectory())

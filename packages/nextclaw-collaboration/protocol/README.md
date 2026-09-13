@@ -1,0 +1,17 @@
+# Collaboration protocol v1
+
+The source boundary uses a CloudEvents 1.0 envelope with the payload in [event.schema.json](event.schema.json). `source` identifies the verified installation/workspace; `subject` is the stable external conversation/object ID; `id` identifies an immutable revision. Redelivery must reuse the same ID. `data.actor.account` comes from authenticated platform data, never a claimed author in the message body. The host derives agent identity from signed envelopes. `invited` starts participation; later messages for a followed subject may wake it without another invitation.
+
+## New-platform user journey
+
+1. Implement one ESM module exporting `adapterId`, `contractVersion = 1`, and `createSource(connection)`. Import types only from `@nextclaw/collaboration`. `check` returns stable source/account and write/status-edit capabilities; `collect(checkpoint, since, subjects)` returns ordered events and a checkpoint; `readContext(subject)` returns the current object and its messages. Use the platform's existing local authentication where available.
+2. Implement `reply` and `findReply` for bidirectional sources. Set `maxMessageChars` when the platform limits comment size; the host signs a shortened reply with a pointer to the full local result. Recover delivery using a signature-verified operation ID and authenticated author. Return no `reply` for a one-way event source; results remain locally inspectable. An adapter is trusted local code; installing it grants local code execution. Install with `install-adapter /absolute/adapter.mjs`.
+3. Connect it using `connect alerts --adapter local-alert --workspace /absolute/project --options-json '{"namespace":"demo","input":"/absolute/input.json"}'`. Use the published [alert adapter](alert-adapter.utils.mjs) as a minimal non-forum example. It does not require GitHub or Linear fields. Start the host and change the file revision to deliver a second event to the same task.
+
+To use an ordinary process instead of Codex, add `--command-json '["node","/absolute/echo-consumer.utils.mjs"]'`. The command receives JSON `{threadId, requestId, turnId, prompt}` on stdin and returns `{text: "..."}` or `{quiet: true}`. The provided [echo consumer](echo-consumer.utils.mjs) demonstrates this contract. The host persists its result; a lost process after restart becomes unknown instead of repeating side effects automatically.
+
+An authenticated event producer may send the same envelope through `ingest CONNECTION FILE` (or `-` for stdin). Optional `serve-events CONNECTION --token-file PATH` accepts `POST /events` with a minimum 32-character bearer secret; it commits before returning 202. It binds to loopback by default. This is the normalized protocol endpoint, not a native GitHub/Linear webhook endpoint: a native webhook adapter must verify that platform's signature and normalize the event first. Polling needs neither a public endpoint nor a new secret.
+
+## Required adapter evidence
+
+Test stable source identity, unauthorized authors, invitation filtering, pagination/checkpoint overlap, repeated event delivery, closed/reopened objects, read/write permission changes, output-response loss and same-account signed peers. Then run two revisions through a fresh installed package and an ordinary consumer: one binding, two executions, no platform-specific branches in the coordinator. The host owns deduplication, binding, execution recovery, bounded agent hops and output state; adapters own platform transport and normalization.

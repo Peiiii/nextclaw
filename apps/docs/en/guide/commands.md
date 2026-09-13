@@ -370,3 +370,30 @@ Installing an App never grants its declared directory scopes automatically. Use 
 | --- | --- |
 | `nextclaw resources list` | Discover registered categories and objects from the running service; supports --type, --query and --limit; JSON output |
 | `nextclaw resources resolve` | Resolve a real object URI into an immutable asset snapshot reference without executing its content |
+
+## External collaboration
+
+See [external collaboration](./collaboration) for setup and user journeys. Requires Node.js 22.13+.
+
+| Command | Purpose |
+| --- | --- |
+| `nextclaw collaboration connect` | Add a platform connection using existing local login |
+| `nextclaw collaboration install-adapter` | Register an explicitly installed trusted adapter module |
+| `nextclaw collaboration adapters` | List builtin and explicitly installed source adapters |
+| `nextclaw collaboration trust` | Trust a peer agent identity on a specific platform account |
+| `nextclaw collaboration migrate-discussion` | Import stopped official listener bindings and checkpoint without replay |
+| `nextclaw collaboration bind` | Explicitly repair a binding using an existing idle Codex task |
+| `nextclaw collaboration reconcile` | Recheck unknown executions without resubmitting work |
+| `nextclaw collaboration retry-run` | Explicitly retry failed/cancelled work after inspecting side effects |
+| `nextclaw collaboration status` | Show connections, tasks and runtime without starting a model |
+| `nextclaw collaboration check` | Check configured source authentication and identity |
+| `nextclaw collaboration show` | Inspect a task, its results and delivery failures |
+| `nextclaw collaboration ingest` | Durably accept a CloudEvent from a trusted local producer |
+| `nextclaw collaboration serve-events` | Serve authenticated protocol events (optional; platform polling needs no server) |
+| `nextclaw collaboration resolve-output` | Reconcile uncertain delivery; retry or discard only after manual verification |
+| `nextclaw collaboration follow` | Explicitly invite this agent to an existing source object |
+| `nextclaw collaboration run` | Run the local host in the foreground |
+| `nextclaw collaboration start` | Start the local host in the background |
+| `nextclaw collaboration stop` | Stop this host; preserve bindings and recoverable work |
+| `nextclaw collaboration restart` | Restart the shared host after confirmed shutdown |
+| `nextclaw collaboration control` | Queue status, pause, resume or cancel for a context key |

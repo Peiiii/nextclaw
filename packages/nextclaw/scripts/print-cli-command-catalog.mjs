@@ -10,6 +10,10 @@ NextclawDistributionService.configureRuntime(
 const { nextclawCliProgram } =
   await import("../src/cli/app/nextclaw-cli-app.ts");
 
+const collaboration = nextclawCliProgram.commands.find(command => command.name() === "collaboration");
+const { registerCollaborationCommands } = await import("@nextclaw/collaboration");
+registerCollaborationCommands(collaboration);
+
 function collectLeafCommandPaths(command, prefix = []) {
   return command.commands.flatMap((child) => {
     const path = [...prefix, child.name()];
