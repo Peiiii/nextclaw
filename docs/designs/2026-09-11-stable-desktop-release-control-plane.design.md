@@ -76,10 +76,10 @@ Desktop builder 的 `--target` 保持使用 `publish-npm.outputs.desktop_target`
 - FIX-10：identity job 使用能读取隐藏 Draft 的仓库权限；读取成功但结果省略 Draft 不得被解释为“没有待恢复身份”。该 job 不执行 mutation，实际发布权限边界仍归后续 owner。
 - FIX-11：recovery 已有同版本 Draft 时，从 Draft 读取 Desktop candidate 并继续通过既有 `resolveDesktopReleaseTarget` 漂移校验；不得把后来推进 master 的未发布产品改动当成本次恢复 target。没有 Draft 时才以当前 control plane 作为独立 Desktop 修复候选。
 
-## 2026-09-14 macOS 原生代码签名补充
+## 2026-09-14 macOS 启动依赖边界补充
 
-`0.55.0` 的两个 macOS 构建在 Electron 主进程写出第一条启动日志前停滞，而 Windows 与 Linux 正常。重复构建稳定复现；AMFI 明确报告 `libffmpeg.dylib` 与 `sharp-darwin-arm64.node` 没有可用 CMS blob。现有 after-sign 只对最外层 App 使用 `codesign --deep`，静态验证通过却没有保证 `app.asar.unpacked` 与 Framework 中的动态原生代码获得独立签名；本版启动路径更早加载 Core 后暴露了这个既有缺口。
+`0.55.0` 的两个 macOS 构建在 Electron 主进程写出第一条启动日志前停滞，而 Windows 与 Linux 正常。主进程采用 `tsc` 产出 CommonJS；新增的 Desktop command surface 在模块顶层从 `@nextclaw/core` 根入口读取五个环境变量名，因此 `main.ts` 创建 logger 之前就会执行完整 Core 根入口并加载其原生依赖。AMFI 中出现的原生模块签名信息是这条过早加载路径的表征，不是根因：显式签署全部 `.node` / `.dylib` 后，签名报错消失但真实 DMG 启动冒烟仍以相同方式失败。
 
-修复保持产品依赖和 Runtime identity 不变：after-sign 先按由内到外顺序显式 ad-hoc 签署 App 内全部 `.node` 与 `.dylib`，再签最外层 bundle，并继续执行现有 deep/strict 验证。它不放宽冒烟，也不把 AMFI 失败误判为 GUI 成功。
+修复不改变已发布的 Runtime 或 Core 合同，也不为 Desktop 单独重发 NPM。Launcher 在自身已有的 `desktop-path-env.utils.ts` 中保留这组跨进程环境变量键，command surface 与 bridge 只依赖该无副作用模块；环境变量的解释和产品语义仍由 kernel owner。编译后必须证明这两个启动模块不再生成 `require("@nextclaw/core")`，最终由真实 macOS arm64/x64 DMG 安装启动冒烟闭合。
 
-- FIX-12：签名脚本覆盖 unpacked native addon 与 Framework dylib，单元测试证明收集范围和由深到浅的顺序；真实 macOS arm64/x64 DMG 安装启动冒烟闭合。
+- FIX-12：Electron 首条启动日志之前的 Desktop 模块不得经 Core 根入口加载 Runtime 或原生依赖；环境桥接键由 launcher 的轻量模块提供，定向测试、编译产物检查与真实 macOS 双架构启动冒烟共同验收。

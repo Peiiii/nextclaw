@@ -8,7 +8,7 @@ import {
   RUNTIME_INSTANCE_DISTRIBUTION_ENV,
   RUNTIME_INSTANCE_INSTALLATION_KIND_ENV,
   RUNTIME_INSTANCE_PORTABLE_DATA_ROOT_ENV
-} from "@nextclaw/core";
+} from "./desktop-path-env.utils";
 
 function createManifest(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
