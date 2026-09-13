@@ -17,6 +17,8 @@ export const LANDING_EN_COPY: LandingCopy = {
   heroInstallDescription: 'Ready to use after installation, with no extra setup',
   heroScreenshotAlt: 'NextClaw project files open beside an inspectable task result',
   downloadTitle: 'Download & install NextClaw',
+  downloadSystemLabel: 'System',
+  downloadChipLabel: 'Chip',
   downloadSubtitle: 'Desktop is recommended for most people. npm and Docker options are available below for terminals, servers, and NAS devices.',
   downloadDesktopTitle: 'Desktop app (recommended)',
   downloadDesktopSubtitle: 'Choose your device and download the latest stable installer.',
@@ -48,35 +50,35 @@ export const LANDING_EN_COPY: LandingCopy = {
     'Run: chmod +x NextClaw.Desktop-*.AppImage',
     'Run: ./NextClaw.Desktop-*.AppImage'
   ],
-  downloadWindowsPortableLabel: 'Need the portable ZIP instead?',
-  downloadWindowsPortableDescription: 'Use the unpacked ZIP when you want a no-install fallback or portable copy.',
+  downloadWindowsPortableLabel: 'Portable ZIP',
+  downloadWindowsPortableDescription: 'Windows Portable: unzip and run. Data stays in the data folder beside the app, separate from the installed edition. Keep the whole data folder when moving or updating.',
   downloadOptions: [
     {
       key: 'macArm64Dmg',
       icon: 'apple',
-      title: 'macOS (Apple Silicon)',
-      description: 'DMG package for M-series Macs.',
+      title: 'macOS',
+      description: 'Apple Silicon · M series',
       buttonLabel: 'Download DMG'
     },
     {
       key: 'macX64Dmg',
       icon: 'apple',
-      title: 'macOS (Intel)',
-      description: 'DMG package for Intel Macs.',
+      title: 'macOS',
+      description: 'Intel',
       buttonLabel: 'Download DMG'
     },
     {
       key: 'windowsX64Installer',
       icon: 'monitor',
-      title: 'Windows (x64)',
-      description: 'Recommended Setup.exe installer with a proper setup wizard and shortcuts.',
+      title: 'Windows',
+      description: 'Intel / AMD · x64',
       buttonLabel: 'Download Installer'
     },
     {
       key: 'linuxX64AppImage',
       icon: 'terminal',
-      title: 'Linux (x64)',
-      description: 'Single-file AppImage package for mainstream Linux distributions.',
+      title: 'Linux',
+      description: 'Intel / AMD · x64',
       buttonLabel: 'Download AppImage'
     }
   ],

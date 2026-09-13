@@ -1,4 +1,7 @@
 export * from './landing-comparison-content.config';
+export * from './landing-copy-en.config';
+export * from './landing-copy-zh.config';
+export * from './utils/interactive-artifact.utils';
 export * from './landing-content.types';
 export * from './landing-home-sections.utils';
 export * from './landing-proactive-delivery.config';

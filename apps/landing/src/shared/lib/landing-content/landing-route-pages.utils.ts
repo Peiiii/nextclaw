@@ -155,7 +155,6 @@ export function renderLandingHomeHero(
 export function renderLandingRouteHero(route: PageRoute, copy: LandingCopy): string {
   return `
     <section class="landing-route-hero">
-      <p class="landing-route-hero__eyebrow">NextClaw</p>
       <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-normal max-w-6xl mb-6 animate-slide-up opacity-0" style="animation-delay: 0.2s">
         <span class="hero-brand">${getPageTitle(route, copy)}</span>
       </h1>

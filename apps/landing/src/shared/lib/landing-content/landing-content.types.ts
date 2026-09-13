@@ -111,6 +111,8 @@ export type LandingCopy = {
   heroInstallDescription: string;
   heroScreenshotAlt: string;
   downloadTitle: string;
+  downloadSystemLabel: string;
+  downloadChipLabel: string;
   downloadSubtitle: string;
   downloadDesktopTitle: string;
   downloadDesktopSubtitle: string;

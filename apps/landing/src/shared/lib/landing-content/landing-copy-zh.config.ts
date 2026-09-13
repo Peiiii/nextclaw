@@ -17,6 +17,8 @@ export const LANDING_ZH_COPY: LandingCopy = {
   heroInstallDescription: '安装完成即可使用，无需额外配置',
   heroScreenshotAlt: 'NextClaw 工作台中的任务会话、数据图表与项目文档',
   downloadTitle: '下载与安装 NextClaw',
+  downloadSystemLabel: '系统',
+  downloadChipLabel: '芯片',
   downloadSubtitle: '桌面版适合大多数用户；也可以通过 npm 或 Docker 安装到个人电脑、NAS 或服务器。',
   downloadDesktopTitle: '桌面版（推荐）',
   downloadDesktopSubtitle: '选择你的设备，下载最新稳定版安装包。',
@@ -48,35 +50,35 @@ export const LANDING_ZH_COPY: LandingCopy = {
     '执行：chmod +x NextClaw.Desktop-*.AppImage',
     '执行：./NextClaw.Desktop-*.AppImage'
   ],
-  downloadWindowsPortableLabel: '需要便携版 ZIP？',
-  downloadWindowsPortableDescription: '想免安装使用，或留一个备用包，可以下载 ZIP 解压版。',
+  downloadWindowsPortableLabel: '便携版 ZIP',
+  downloadWindowsPortableDescription: 'Windows 便携版：解压即可运行，数据保存在程序旁的 data 文件夹，与安装版独立。迁移或更新时请保留整个 data 文件夹。',
   downloadOptions: [
     {
       key: 'macArm64Dmg',
       icon: 'apple',
-      title: 'macOS（Apple Silicon）',
-      description: '适用于 M 系列芯片 Mac 的 DMG 包。',
+      title: 'macOS',
+      description: 'Apple Silicon · M 系列',
       buttonLabel: '下载 DMG'
     },
     {
       key: 'macX64Dmg',
       icon: 'apple',
-      title: 'macOS（Intel）',
-      description: '适用于 Intel 芯片 Mac 的 DMG 包。',
+      title: 'macOS',
+      description: 'Intel',
       buttonLabel: '下载 DMG'
     },
     {
       key: 'windowsX64Installer',
       icon: 'monitor',
-      title: 'Windows（x64）',
-      description: '推荐使用带正式安装向导和快捷方式的 Setup.exe 安装器。',
+      title: 'Windows',
+      description: 'Intel / AMD · x64',
       buttonLabel: '下载安装器'
     },
     {
       key: 'linuxX64AppImage',
       icon: 'terminal',
-      title: 'Linux（x64）',
-      description: '适用于主流 Linux 发行版的 AppImage 单文件包。',
+      title: 'Linux',
+      description: 'Intel / AMD · x64',
       buttonLabel: '下载 AppImage'
     }
   ],

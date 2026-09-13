@@ -660,15 +660,6 @@
     align-items: center;
   }
 
-  .landing-route-hero__eyebrow {
-    margin-bottom: 1rem;
-    color: hsl(var(--accent));
-    font-size: 0.75rem;
-    font-weight: 800;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-  }
-
   .landing-route-hero h1 {
     font-weight: 600;
     line-height: 1.02;
@@ -699,64 +690,27 @@
     display: block;
   }
 
-  .install-method-nav {
-    position: sticky;
-    top: 6.25rem;
-    z-index: 30;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.4rem;
-    width: 100%;
-    margin-bottom: 1rem;
-    padding: 0.5rem;
-    border: 1px solid hsl(var(--border) / 0.72);
-    border-radius: 1.15rem;
-    background: hsl(42 44% 98% / 0.92);
-    box-shadow: 0 20px 52px -38px hsl(var(--foreground) / 0.68);
-    backdrop-filter: blur(22px);
-    transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+  .download-table { width: 100%; border-collapse: collapse; text-align: left; }
+  .download-table thead { color: hsl(var(--muted-foreground)); font-size: 0.8rem; }
+  .download-table th, .download-table td { padding: 1rem 0.8rem; border-bottom: 1px solid hsl(var(--border)); }
+  .download-table th { font-weight: 500; }
+  .download-table tbody tr:hover, .download-table .is-recommended { background: hsl(var(--primary) / 0.04); }
+  .download-system { display: flex; align-items: center; gap: 0.65rem; white-space: nowrap; font-weight: 600; }
+  .download-chip { color: hsl(var(--muted-foreground)); font-size: 0.875rem; }
+  .download-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .download-button { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0.5rem 0.9rem; border: 1px solid hsl(var(--primary) / 0.25); border-radius: 0.5rem; color: hsl(var(--primary)); font-size: 0.875rem; font-weight: 600; white-space: nowrap; }
+  .download-button:hover { background: hsl(var(--primary) / 0.08); }
+  .download-button:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; }
+  .download-portable-note { margin-top: 1rem; font-size: 0.875rem; line-height: 1.7; color: hsl(var(--muted-foreground)); }
+  .download-other-methods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  @media (max-width: 640px) {
+    .download-table th, .download-table td { padding: 0.8rem 0.3rem; }
+    .download-chip { max-width: 6rem; font-size: 0.75rem; }
+    .download-system { gap: 0.35rem; font-size: 0.85rem; }
+    .download-button { padding: 0.5rem; font-size: 0.75rem; }
+    .download-other-methods { grid-template-columns: 1fr; }
   }
 
-  .install-method-nav.is-stuck {
-    border-color: hsl(var(--foreground) / 0.15);
-    background: hsl(42 44% 98% / 0.98);
-    box-shadow:
-      0 18px 42px -18px hsl(var(--foreground) / 0.48),
-      0 5px 16px -9px hsl(var(--foreground) / 0.34);
-  }
-
-  .install-method-nav__item {
-    display: flex;
-    min-height: 3.5rem;
-    align-items: center;
-    justify-content: center;
-    gap: 0.65rem;
-    padding: 0.8rem 1rem;
-    border-radius: 0.85rem;
-    color: hsl(var(--muted-foreground));
-    font-size: 0.875rem;
-    font-weight: 600;
-    line-height: 1.25;
-    transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
-  }
-
-  .install-method-nav__item:hover,
-  .install-method-nav__item:focus-visible {
-    color: hsl(var(--foreground));
-    background: hsl(var(--secondary) / 0.82);
-    outline: none;
-    transform: translateY(-1px);
-  }
-
-  .install-method-nav__item.is-recommended:not([aria-current='true']) {
-    color: hsl(var(--primary));
-    background: hsl(var(--primary) / 0.08);
-  }
-
-  .install-method-nav__item[aria-current='true'] {
-    color: hsl(var(--primary-foreground));
-    background: hsl(var(--primary));
-  }
 
   .install-method-panels {
     display: grid;
@@ -1181,31 +1135,6 @@
       display: block;
     }
 
-    .install-method-nav {
-      position: sticky;
-      top: 4.5rem;
-      z-index: 30;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.25rem;
-      margin-bottom: 0.75rem;
-      padding: 0.35rem;
-      border-radius: 1rem;
-    }
-
-    .install-method-nav__item {
-      min-height: 3.5rem;
-      flex-direction: column;
-      justify-content: center;
-      gap: 0.3rem;
-      padding: 0.55rem 0.3rem;
-      text-align: center;
-      font-size: 0.72rem;
-    }
-
-    .install-method-nav__item:hover,
-    .install-method-nav__item:focus-visible {
-      transform: none;
-    }
 
     .install-method-panel {
       scroll-margin-top: 9rem;
