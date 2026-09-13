@@ -30,6 +30,12 @@ export function PanelAppToolbar({
       >
         {appTitle}
       </span>
+      <IconActionButton
+        icon={<RefreshCw className="h-3.5 w-3.5" />}
+        label={t('panelAppsRefreshCurrent')}
+        onClick={onRefresh}
+        size="sm"
+      />
       {entry ? (
         <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
           <PopoverTrigger asChild>
@@ -39,7 +45,7 @@ export function PanelAppToolbar({
               size="sm"
             />
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-48 rounded-xl p-1.5">
+          <PopoverContent align="end" variant="menu">
             <PanelAppOpenStandaloneMenuItem
               entry={entry}
               onSelect={() => setIsMenuOpen(false)}
@@ -51,12 +57,6 @@ export function PanelAppToolbar({
           </PopoverContent>
         </Popover>
       ) : null}
-      <IconActionButton
-        icon={<RefreshCw className="h-3.5 w-3.5" />}
-        label={t('panelAppsRefreshCurrent')}
-        onClick={onRefresh}
-        size="sm"
-      />
     </div>
   );
 }

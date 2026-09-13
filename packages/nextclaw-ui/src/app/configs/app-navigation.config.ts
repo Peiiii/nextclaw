@@ -138,107 +138,60 @@ export function getMainSidebarNavItems(
   ];
 }
 
-export function getSettingsNavItems(
-  translate: Translate,
-  options: SettingsNavigationOptions = {},
-): AppNavigationItem[] {
-  const items = [
-    {
-      target: "/model",
-      label: translate("model"),
-      icon: Cpu,
-    },
-    {
-      target: "/providers",
-      label: translate("providers"),
-      icon: Sparkles,
-    },
-    {
-      target: "/channels",
-      label: translate("channels"),
-      icon: MessageSquare,
-    },
-    {
-      target: "/extensions",
-      label: translate("extensions"),
-      icon: Puzzle,
-    },
-    {
-      target: "/appearance",
-      label: translate("appearance"),
-      icon: Palette,
-    },
-    {
-      target: "/keyboard-shortcuts",
-      label: translate("keyboardShortcuts"),
-      icon: Keyboard,
-    },
-    {
-      target: "/security",
-      label: translate("security"),
-      icon: Shield,
-    },
-    {
-      target: "/privacy",
-      label: translate("privacy"),
-      icon: Activity,
-    },
-    {
-      target: "/desktop-capabilities",
-      label: translate("desktopCapabilities"),
-      icon: MonitorCog,
-    },
-    {
-      target: "/search",
-      label: translate("searchChannels"),
-      icon: Search,
-    },
-    {
-      target: "/updates",
-      label: translate("updates"),
-      icon: Download,
-    },
-    {
-      target: "/remote",
-      label: translate("remote"),
-      icon: Wifi,
-    },
-    {
-      target: "/runtime",
-      label: translate("runtime"),
-      icon: Cpu,
-    },
-    {
-      target: "/secrets",
-      label: translate("secrets"),
-      icon: KeyRound,
-    },
-    {
-      target: "/marketplace/mcp",
-      label: translate("marketplaceFilterMcp"),
-      icon: Wrench,
-    },
-  ];
-  return items.filter((item) =>
-    (options.includeDesktopCapabilities !== false || item.target !== "/desktop-capabilities") &&
-    (options.includeKeyboardShortcuts !== false || item.target !== "/keyboard-shortcuts"));
-}
-
 export function getSettingsNavSections(
   translate: Translate,
   options: SettingsNavigationOptions = {},
 ): AppNavigationSection[] {
-  const items = getSettingsNavItems(translate, options);
-  return [
+  const sections = [
     {
       label: translate("settingsGroupBasic"),
-      items: items.slice(0, 3),
+      items: [
+        { target: "/model", label: translate("model"), icon: Cpu },
+        { target: "/providers", label: translate("providers"), icon: Sparkles },
+        { target: "/channels", label: translate("channels"), icon: MessageSquare },
+      ],
     },
     {
-      label: translate("settingsGroupAdvanced"),
-      items: items.slice(3),
+      label: translate("settingsGroupCommon"),
+      items: [
+        { target: "/appearance", label: translate("appearance"), icon: Palette },
+        { target: "/updates", label: translate("updates"), icon: Download },
+        { target: "/search", label: translate("searchChannels"), icon: Search },
+        { target: "/keyboard-shortcuts", label: translate("keyboardShortcuts"), icon: Keyboard },
+      ],
+    },
+    {
+      label: translate("settingsGroupSecurity"),
+      items: [
+        { target: "/security", label: translate("security"), icon: Shield },
+        { target: "/privacy", label: translate("privacy"), icon: Activity },
+        { target: "/secrets", label: translate("secrets"), icon: KeyRound },
+        { target: "/desktop-capabilities", label: translate("desktopCapabilities"), icon: MonitorCog },
+      ],
+    },
+    {
+      label: translate("settingsGroupSystem"),
+      items: [
+        { target: "/remote", label: translate("remote"), icon: Wifi },
+        { target: "/runtime", label: translate("runtime"), icon: Cpu },
+        { target: "/marketplace/mcp", label: translate("marketplaceFilterMcp"), icon: Wrench },
+        { target: "/extensions", label: translate("extensions"), icon: Puzzle },
+      ],
     },
   ];
+  return sections.map((section) => ({
+    ...section,
+    items: section.items.filter((item) =>
+      (options.includeDesktopCapabilities !== false || item.target !== "/desktop-capabilities") &&
+      (options.includeKeyboardShortcuts !== false || item.target !== "/keyboard-shortcuts")),
+  })).filter((section) => section.items.length > 0);
+}
+
+export function getSettingsNavItems(
+  translate: Translate,
+  options: SettingsNavigationOptions = {},
+): AppNavigationItem[] {
+  return getSettingsNavSections(translate, options).flatMap((section) => section.items);
 }
 
 export function isSettingsRoute(pathname: string): boolean {

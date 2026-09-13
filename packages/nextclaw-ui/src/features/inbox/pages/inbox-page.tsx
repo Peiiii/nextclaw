@@ -115,14 +115,17 @@ function InboxListPane({
         {filteredDeliveries.length > 0 ? (
           <ul className="space-y-0.5">
             {filteredDeliveries.map((delivery) => (
-              <li key={delivery.id}>
+              <li key={delivery.id} className={cn(
+                "group/page-row relative rounded-lg hover:bg-[var(--interaction-hover)] focus-within:bg-[var(--interaction-hover)] has-[[data-context-menu-open]]:bg-[var(--interaction-hover)]",
+                activeDeliveryId === delivery.id && "bg-[var(--interaction-selection)]",
+              )}>
                 <Link
                   to={`/inbox/${encodeURIComponent(delivery.id)}`}
                   className={cn(
-                    "block rounded-lg px-2.5 py-2 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
+                    "block rounded-lg px-2.5 py-2 pr-10 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
                     activeDeliveryId === delivery.id
-                      ? "bg-[var(--interaction-selection)] text-foreground"
-                      : "text-foreground/80 hover:bg-[var(--interaction-hover)] hover:text-foreground",
+                      ? "text-foreground"
+                      : "text-foreground/80 hover:text-foreground",
                   )}
                 >
                   <h2 className={cn(
@@ -131,7 +134,6 @@ function InboxListPane({
                   )}>
                     {delivery.title}
                   </h2>
-          <PageResourceActionsMenu page={pageResourceFromSystemObject("inbox-delivery", delivery.id, delivery.title)} />
                   <div className="mt-0.5 flex items-center gap-2 text-[11px] leading-4 text-muted-foreground/65">
                     <p className="min-w-0 flex-1 truncate">
                       {delivery.summary ?? t("inboxNoSummary")}
@@ -148,6 +150,9 @@ function InboxListPane({
                     )}
                   </div>
                 </Link>
+                <span className="absolute right-1 top-1.5">
+                  <PageResourceActionsMenu revealOnHover page={pageResourceFromSystemObject("inbox-delivery", delivery.id, delivery.title)} />
+                </span>
               </li>
             ))}
           </ul>

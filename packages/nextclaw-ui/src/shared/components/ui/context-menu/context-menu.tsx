@@ -8,9 +8,11 @@ import {
   type MouseEvent,
   type ReactElement,
   type ReactNode,
-} from 'react';
-import { createPortal } from 'react-dom';
-import { cn } from '@/shared/lib/utils';
+} from "react";
+import { createPortal } from "react-dom";
+import { cn } from "@/shared/lib/utils";
+import { ContextMenuItems, CONTEXT_MENU_SURFACE_CLASS } from "./context-menu-items";
+export { ContextMenuItems } from "./context-menu-items";
 
 type ContextMenuItemBase = {
   key: string;
@@ -25,14 +27,22 @@ type ContextMenuItemBase = {
 export type ContextMenuItem = ContextMenuItemBase &
   (
     | {
+        children?: never;
         download?: string;
         href: string;
         onSelect?: () => void;
       }
     | {
+        children?: never;
         download?: never;
         href?: never;
         onSelect: () => void;
+      }
+    | {
+        children: readonly ContextMenuGroup[];
+        download?: never;
+        href?: never;
+        onSelect?: never;
       }
   );
 
@@ -42,7 +52,7 @@ export type ContextMenuGroup = {
 };
 
 type ContextMenuPosition = {
-  align: 'start' | 'end';
+  align: "start" | "end";
   x: number;
   y: number;
   trigger: HTMLElement;
@@ -53,9 +63,17 @@ type ContextMenuController = {
   toggleFromButton: (trigger: HTMLElement) => void;
 };
 
-const ContextMenuControllerContext = createContext<ContextMenuController | null>(null);
+const ContextMenuControllerContext =
+  createContext<ContextMenuController | null>(null);
 
 const CONTEXT_MENU_EDGE_GAP = 8;
+
+/** Radix dismisses overlays during capture, before the inner menu handles Escape. */
+export function deferEscapeToNestedMenu(event: KeyboardEvent): boolean {
+  if (!(event.target instanceof Element) || !event.target.closest('[data-menu-escape-owner]')) return false;
+  event.preventDefault();
+  return true;
+}
 
 function ContextMenuSurface({
   groups,
@@ -70,7 +88,8 @@ function ContextMenuSurface({
 }) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   // Keep modal menus inside the dialog's focus and pointer-event boundary.
-  const portalHost = position.trigger.closest<HTMLElement>('[role="dialog"]') ?? document.body;
+  const portalHost =
+    position.trigger.closest<HTMLElement>('[role="dialog"]') ?? document.body;
   const isModal = portalHost !== document.body;
 
   useLayoutEffect(() => {
@@ -78,124 +97,77 @@ function ContextMenuSurface({
     if (!menu) {
       return;
     }
-    const bounds = isModal ? portalHost.getBoundingClientRect() : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight, height: window.innerHeight };
-    menu.style.maxHeight = `${Math.max(0, bounds.height - CONTEXT_MENU_EDGE_GAP * 2)}px`;
-    const rect = menu.getBoundingClientRect();
-    const preferredLeft = position.align === 'end' ? position.x - rect.width : position.x;
-    const left = Math.max(
-      bounds.left + CONTEXT_MENU_EDGE_GAP,
-      Math.min(preferredLeft, bounds.right - rect.width - CONTEXT_MENU_EDGE_GAP),
-    );
-    const top = Math.max(
-      bounds.top + CONTEXT_MENU_EDGE_GAP,
-      Math.min(position.y, bounds.bottom - rect.height - CONTEXT_MENU_EDGE_GAP),
-    );
-    menu.style.left = `${left - bounds.left}px`;
-    menu.style.top = `${top - bounds.top}px`;
-    menu.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')?.focus();
+    const reposition = () => {
+      const bounds = isModal
+        ? portalHost.getBoundingClientRect()
+        : {
+            left: 0,
+            top: 0,
+            right: window.innerWidth,
+            bottom: window.innerHeight,
+            height: window.innerHeight,
+          };
+      menu.style.maxHeight = `${Math.max(0, bounds.height - CONTEXT_MENU_EDGE_GAP * 2)}px`;
+      const rect = menu.getBoundingClientRect();
+      const preferredLeft =
+        position.align === "end" ? position.x - rect.width : position.x;
+      const left = Math.max(
+        bounds.left + CONTEXT_MENU_EDGE_GAP,
+        Math.min(
+          preferredLeft,
+          bounds.right - rect.width - CONTEXT_MENU_EDGE_GAP,
+        ),
+      );
+      const top = Math.max(
+        bounds.top + CONTEXT_MENU_EDGE_GAP,
+        Math.min(
+          position.y,
+          bounds.bottom - rect.height - CONTEXT_MENU_EDGE_GAP,
+        ),
+      );
+      menu.style.left = `${left - bounds.left}px`;
+      menu.style.top = `${top - bounds.top}px`;
+    };
+    reposition();
+    menu
+      .querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')
+      ?.focus();
+    const observer = new ResizeObserver(reposition);
+    observer.observe(menu);
+    return () => observer.disconnect();
   }, [position, portalHost, isModal]);
-
-  const moveFocus = (direction: 1 | -1) => {
-    const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? []);
-    if (items.length === 0) {
-      return;
-    }
-    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
-    const nextIndex = currentIndex < 0 ? 0 : (currentIndex + direction + items.length) % items.length;
-    items[nextIndex]?.focus();
-  };
 
   return createPortal(
     <div
-      className={cn("pointer-events-auto inset-0 z-[var(--z-tooltip)]", isModal ? "absolute" : "fixed")}
+      className={cn(
+        "pointer-events-auto inset-0 z-[var(--z-tooltip)]",
+        isModal ? "absolute" : "fixed",
+      )}
+      data-context-menu-layer=""
       onContextMenu={(event) => event.preventDefault()}
       onPointerDown={() => onClose(true)}
     >
       <div
         ref={menuRef}
         role="menu"
+        data-menu-escape-owner=""
         data-theme-overlay="menu"
         aria-label={label}
-        className={cn("min-w-52 max-w-72 overflow-y-auto rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-[0_18px_48px_-20px_rgba(15,23,42,0.42)]", isModal ? "absolute" : "fixed")}
+        className={cn(
+          CONTEXT_MENU_SURFACE_CLASS,
+          isModal ? "absolute" : "fixed",
+        )}
         style={{ left: position.x, top: position.y }}
         onPointerDown={(event) => event.stopPropagation()}
         onKeyDown={(event) => {
-          if (event.key === 'Escape') {
+          if (event.key === "Escape") {
             event.preventDefault();
             event.stopPropagation();
             onClose(true);
-          } else if (event.key === 'ArrowDown') {
-            event.preventDefault();
-            moveFocus(1);
-          } else if (event.key === 'ArrowUp') {
-            event.preventDefault();
-            moveFocus(-1);
-          } else if (event.key === 'Home' || event.key === 'End') {
-            event.preventDefault();
-            const items = menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)');
-            items?.[event.key === 'Home' ? 0 : items.length - 1]?.focus();
           }
         }}
       >
-        {groups.map((group, groupIndex) => (
-          <div key={group.key} role="group">
-            {groupIndex > 0 ? <div className="my-1 h-px bg-border" /> : null}
-            {group.items.map((item) => {
-              const itemClassName = cn(
-                'flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[13px] font-medium outline-none transition-colors',
-                item.destructive
-                  ? 'text-destructive hover:bg-destructive/10 focus-visible:bg-destructive/10'
-                  : 'text-foreground hover:bg-muted focus-visible:bg-muted',
-                'disabled:pointer-events-none disabled:opacity-45',
-              );
-              const content = (
-                <>
-                  {item.icon ? (
-                    <span
-                      className={cn(
-                        'inline-flex h-4 w-4 shrink-0 items-center justify-center',
-                        item.destructive ? 'text-destructive' : 'text-muted-foreground',
-                      )}
-                    >
-                      {item.icon}
-                    </span>
-                  ) : null}
-                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                </>
-              );
-              return item.href ? (
-                <a
-                  key={item.key}
-                  role="menuitem"
-                  className={itemClassName}
-                  href={item.href}
-                  download={item.download}
-                  onClick={() => {
-                    item.onSelect?.();
-                    onClose(false);
-                  }}
-                >
-                  {content}
-                </a>
-              ) : (
-                <button
-                  key={item.key}
-                  type="button"
-                  role="menuitem"
-                  disabled={item.disabled}
-                  aria-pressed={item.pressed}
-                  className={itemClassName}
-                  onClick={() => {
-                    item.onSelect?.();
-                    onClose(item.restoreFocus !== false);
-                  }}
-                >
-                  {content}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+        <ContextMenuItems groups={groups} onClose={onClose} />
       </div>
     </div>,
     portalHost,
@@ -208,7 +180,7 @@ export function ContextMenu({
   label,
 }: {
   children: ReactElement<{
-    'data-context-menu-open'?: string;
+    "data-context-menu-open"?: string;
     onContextMenu?: (event: MouseEvent) => void;
   }>;
   groups: readonly ContextMenuGroup[];
@@ -234,7 +206,7 @@ export function ContextMenu({
     }
     const bounds = trigger.getBoundingClientRect();
     setPosition({
-      align: 'end',
+      align: "end",
       x: bounds.right,
       y: bounds.bottom,
       trigger,
@@ -242,7 +214,7 @@ export function ContextMenu({
   };
 
   const child = cloneElement(children, {
-    'data-context-menu-open': position ? '' : undefined,
+    "data-context-menu-open": position ? "" : undefined,
     onContextMenu: (event: MouseEvent) => {
       children.props.onContextMenu?.(event);
       if (event.defaultPrevented || visibleGroups.length === 0) {
@@ -252,7 +224,7 @@ export function ContextMenu({
       const trigger = event.currentTarget as HTMLElement;
       const bounds = trigger.getBoundingClientRect();
       setPosition({
-        align: 'start',
+        align: "start",
         x: event.clientX || bounds.left,
         y: event.clientY || bounds.bottom,
         trigger,
@@ -261,10 +233,17 @@ export function ContextMenu({
   });
 
   return (
-    <ContextMenuControllerContext.Provider value={{ isOpen: Boolean(position), toggleFromButton }}>
+    <ContextMenuControllerContext.Provider
+      value={{ isOpen: Boolean(position), toggleFromButton }}
+    >
       {child}
       {position ? (
-        <ContextMenuSurface groups={visibleGroups} label={label} position={position} onClose={closeMenu} />
+        <ContextMenuSurface
+          groups={visibleGroups}
+          label={label}
+          position={position}
+          onClose={closeMenu}
+        />
       ) : null}
     </ContextMenuControllerContext.Provider>
   );
@@ -274,19 +253,19 @@ export function ContextMenuTrigger({
   children,
 }: {
   children: ReactElement<{
-    'aria-expanded'?: boolean;
-    'aria-haspopup'?: 'menu';
+    "aria-expanded"?: boolean;
+    "aria-haspopup"?: "menu";
     onClick?: (event: MouseEvent) => void;
   }>;
 }) {
   const controller = useContext(ContextMenuControllerContext);
   if (!controller) {
-    throw new Error('ContextMenuTrigger must be rendered inside ContextMenu');
+    throw new Error("ContextMenuTrigger must be rendered inside ContextMenu");
   }
 
   return cloneElement(children, {
-    'aria-expanded': controller.isOpen,
-    'aria-haspopup': 'menu',
+    "aria-expanded": controller.isOpen,
+    "aria-haspopup": "menu",
     onClick: (event: MouseEvent) => {
       children.props.onClick?.(event);
       if (event.defaultPrevented) {

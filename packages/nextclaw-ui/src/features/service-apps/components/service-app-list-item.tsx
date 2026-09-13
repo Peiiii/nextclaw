@@ -167,8 +167,7 @@ export function ServiceAppListItem({
                   {t("serviceAppsMoreActions")}
                 </TooltipContent>
               </Tooltip>
-              <PopoverContent align="end" className="w-56 rounded-xl p-1.5">
-                <PageResourceActionItems page={pageResourceFromSystemObject("service-app", app.id, app.title)} onSelect={() => setIsMenuOpen(false)} />
+              <PopoverContent align="end" variant="menu">
                 <div className="my-1 h-px bg-border" />
                 <ServiceAppMenuItem
                   disabled={!canDisconnectRuntime}
@@ -197,6 +196,8 @@ export function ServiceAppListItem({
                     onClick={openDeleteDialog}
                   />
                 )}
+                <div className="my-1 h-px bg-border" />
+                <PageResourceActionItems page={pageResourceFromSystemObject("service-app", app.id, app.title)} onSelect={() => setIsMenuOpen(false)} />
               </PopoverContent>
             </Popover>
           </div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, PanelsTopLeft } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { SidebarNavLinkItem } from "@/app/components/layout/sidebar-items";
+import { SIDEBAR_RAIL_CONTROL_CLASS, SIDEBAR_RAIL_SURFACE_CLASS } from "@/app/components/layout/sidebar-rail.styles";
 import { usePanelApps } from "@/features/panel-apps";
 import { createPanelAppRightPanelResourceTarget } from "@/features/right-panel-resources/utils/right-panel-resource-uri.utils";
 import {
@@ -34,22 +35,18 @@ function PageResourceSidebarItems({
       {pages.map((page) => (
         <li
           key={page.uri}
-          className="group/page-row flex items-center gap-1 rounded-lg hover:bg-muted/60"
         >
-          <NavLink
+          <SidebarNavLinkItem
             to={pageResourceMainPath(page)}
-            onClick={() => {
+            label={page.title}
+            density="compact"
+            iconNode={<PageResourceIcon uri={page.uri} icon={page.target.dockIcon} />}
+            actions={<PageResourceActionsMenu page={page} revealOnHover />}
+            onNavigate={() => {
               app.pageResourceManager.remember(page);
               onNavigate?.();
             }}
-            className={({ isActive }) =>
-              `flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] ${isActive ? "bg-primary/10 font-medium text-primary" : "text-muted-foreground hover:text-foreground"}`
-            }
-          >
-            <PageResourceIcon uri={page.uri} icon={page.target.dockIcon} />
-            <span className="truncate">{page.title}</span>
-          </NavLink>
-          <PageResourceActionsMenu page={page} revealOnHover />
+          />
         </li>
       ))}
     </ul>
@@ -85,7 +82,7 @@ export function PageResourceSidebarNav({
           <button
             type="button"
             aria-label={t("pageSidebar")}
-            className="mx-auto my-1 flex h-9 w-9 items-center justify-center rounded-lg hover:bg-muted"
+            className={`mx-auto my-1 flex items-center justify-center ${SIDEBAR_RAIL_CONTROL_CLASS} ${SIDEBAR_RAIL_SURFACE_CLASS}`}
           >
             <PanelsTopLeft className="h-4 w-4" />
           </button>

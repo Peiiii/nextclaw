@@ -1,4 +1,5 @@
 import { AgentAvatar } from "@/shared/components/common/agent-avatar";
+import { SIDEBAR_ITEM_SURFACE_CLASS, SIDEBAR_ITEM_ACTIVE_SURFACE_CLASS } from "@/app/components/layout/sidebar-rail.styles";
 import { ChatMobileSessionRow } from './chat-mobile-session-row';
 import { SessionContextIconNode } from "@/features/chat/features/session/components/session-context-icon";
 import { SessionRunBadge } from "@/features/chat/features/session/components/session-run-badge";
@@ -309,20 +310,22 @@ export function ChatSidebarSessionItem(props: ChatSidebarSessionItemProps) {
   onCancel,
   onTogglePinned,
   onDelete,
+  variant,
   } = props;
   return (
     <div
       className={cn(
-        props.variant === 'mobile'
+        variant === 'mobile'
           ? 'w-full border-b border-border/50 bg-background text-left'
-          : "w-full rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors",
-        active
+          : cn("w-full px-3 py-2 text-left text-[13px]", SIDEBAR_ITEM_SURFACE_CLASS, active && SIDEBAR_ITEM_ACTIVE_SURFACE_CLASS),
+        variant === 'mobile' && (active
           ? "bg-background/90 font-medium text-foreground"
-          : "text-foreground/80 hover:bg-background/65 hover:text-foreground",
+          : "text-foreground/80 hover:bg-background/65 hover:text-foreground"),
+        active && "font-medium",
       )}
     >
       {isEditing ? (
-        <div className={props.variant === 'mobile' ? 'p-4' : undefined}>
+        <div className={variant === 'mobile' ? 'p-4' : undefined}>
         <ChatSidebarSessionEditingView
           sessionKey={sessionKey}
           draftLabel={draftLabel}
@@ -332,7 +335,7 @@ export function ChatSidebarSessionItem(props: ChatSidebarSessionItemProps) {
           onCancel={onCancel}
         />
         </div>
-      ) : props.variant === 'mobile' ? <ChatMobileSessionRow {...props} /> : (
+      ) : variant === 'mobile' ? <ChatMobileSessionRow {...props} /> : (
         <ChatSidebarSessionDisplayView
           sessionKey={sessionKey}
           active={active}

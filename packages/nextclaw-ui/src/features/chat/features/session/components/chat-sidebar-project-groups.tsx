@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { SIDEBAR_ITEM_SURFACE_CLASS, SIDEBAR_ITEM_ACTIVE_SURFACE_CLASS } from "@/app/components/layout/sidebar-rail.styles";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   AlarmClock,
@@ -116,8 +117,9 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
           <div key={group.projectRoot}>
             <div
               className={cn(
-                "group/project relative h-8 rounded-lg px-1 text-muted-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900",
-                isSelected && "bg-gray-200/60 text-gray-900",
+                "group/project relative h-8 px-1",
+                SIDEBAR_ITEM_SURFACE_CLASS,
+                isSelected && SIDEBAR_ITEM_ACTIVE_SURFACE_CLASS,
               )}
             >
               <ChatSidebarContextCard

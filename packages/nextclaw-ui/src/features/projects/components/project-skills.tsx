@@ -35,10 +35,10 @@ export function ProjectSkills({
       {skills.length ? (
         <div className="grid min-w-0 gap-3 md:grid-cols-2">
           {skills.map((skill) => (
-            <div key={skill.ref} className="relative group/page-row">
+            <div key={skill.ref} className="relative group/page-row rounded-xl border border-border/60 transition-colors hover:border-border hover:bg-[var(--interaction-hover)] focus-within:bg-[var(--interaction-hover)] has-[[data-context-menu-open]]:bg-[var(--interaction-hover)]">
             <button
               type="button"
-              className="w-full min-w-0 rounded-xl border border-border/60 p-3 text-left transition-colors hover:border-border hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+              className="w-full min-w-0 rounded-xl p-3 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
               onClick={() => onOpen(skill)}
             >
               <h3 className="pr-7 text-sm font-medium">{skill.name}</h3>

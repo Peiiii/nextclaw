@@ -3,6 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
+import { deferEscapeToNestedMenu } from './context-menu/context-menu';
 
 const Dialog = DialogPrimitive.Root
 
@@ -42,6 +43,9 @@ const DialogContent = React.forwardRef<
         className
       )}
       {...props}
+      onEscapeKeyDown={(event) => {
+        if (!deferEscapeToNestedMenu(event)) props.onEscapeKeyDown?.(event);
+      }}
     >
       {children}
       <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-1 opacity-70 transition-all duration-fast hover:bg-[var(--interaction-hover)] hover:text-accent-foreground hover:opacity-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:pointer-events-none">

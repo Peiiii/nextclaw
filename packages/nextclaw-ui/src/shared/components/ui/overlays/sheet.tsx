@@ -4,6 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
 
 import { cn } from "@/shared/lib/utils";
+import { deferEscapeToNestedMenu } from '@/shared/components/ui/context-menu/context-menu';
 
 const Sheet = SheetPrimitive.Root;
 const SheetTrigger = SheetPrimitive.Trigger;
@@ -63,6 +64,9 @@ const SheetContent = React.forwardRef<
       data-theme-overlay="sheet"
       className={cn(sheetVariants({ side }), className)}
       {...props}
+      onEscapeKeyDown={(event) => {
+        if (!deferEscapeToNestedMenu(event)) props.onEscapeKeyDown?.(event);
+      }}
     >
       {children}
       <SheetPrimitive.Close className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground opacity-75 transition-colors hover:bg-muted hover:text-foreground hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:pointer-events-none">

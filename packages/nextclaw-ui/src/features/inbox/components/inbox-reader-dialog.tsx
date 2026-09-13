@@ -153,8 +153,10 @@ export function InboxReaderDialog() {
                     {formatDateTime(activeDelivery.createdAt)}
                   </time>
                 </div>
-                {activeDelivery && <PageResourceActionsMenu page={pageResourceFromSystemObject("inbox-delivery", activeDelivery.id, activeDelivery.title)} />}
-                {positionControls}
+                <div className="flex shrink-0 items-center gap-1">
+                  {positionControls}
+                  <PageResourceActionsMenu page={pageResourceFromSystemObject("inbox-delivery", activeDelivery.id, activeDelivery.title)} />
+                </div>
               </div>
               <DialogDescription className="sr-only">
                 {activeDelivery.summary ?? t("inboxNoSummary")}

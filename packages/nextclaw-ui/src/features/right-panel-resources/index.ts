@@ -26,7 +26,6 @@ export type {
 
 export { PageResourceIcon } from './components/page-resource-icon';
 export { PageResourceActionsMenu, PageResourceActionItems } from './components/page-resource-actions-menu';
-export { CurrentPageActions } from './components/current-page-actions';
 export { PageResourceSidebarNav } from './components/page-resource-sidebar-nav';
 export { SYSTEM_OBJECT_RESOURCE_RENDERERS } from './components/system-object-resource';
 export { WORKSPACE_FILE_PANEL_RENDERERS } from './components/workspace-file-resource';

@@ -75,22 +75,22 @@ export function AgentDetailsDialog({
       <DialogContent className="flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden border-none bg-popover p-0 sm:max-h-[720px] sm:max-w-2xl">
         <div className="shrink-0 px-5 pb-3 pt-5">
           <DialogHeader className="text-left">
-            <div className="flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3 pr-7">
               <AgentAvatar
                 agentId={agent.id}
                 displayName={agent.displayName}
                 avatarUrl={agent.avatarUrl}
                 className="h-10 w-10 shrink-0"
               />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <DialogTitle className="truncate text-base">
                   {agent.displayName?.trim() || agent.id}
                 </DialogTitle>
-                <PageResourceActionsMenu page={pageResourceFromSystemObject('agent', agent.id, agent.displayName || agent.id)} />
                 <DialogDescription className="truncate text-xs">
                   @{agent.id}
                 </DialogDescription>
               </div>
+              <PageResourceActionsMenu page={pageResourceFromSystemObject('agent', agent.id, agent.displayName || agent.id)} />
             </div>
           </DialogHeader>
         </div>

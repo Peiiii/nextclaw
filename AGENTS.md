@@ -59,6 +59,7 @@
 - 业务层传递 owner 或本次调用的数据快照，不把稳定 owner 拆成多层参数、proxy 或同名转发方法。
 - 跨 workspace package 默认只导入 package 根公共入口；仅当宿主/runtime 互操作需要独立双模产物、目标 subpath 已是稳定公共合同且被 package-public-imports 检查显式 allowlist 时例外。禁止其它 `exports` 子路径以及 tsconfig/Vitest/Vite alias 绕过包边界。
 - 前端业务状态和编排归 manager/store/presenter；组件与 hook 主要连接和展示。用户文案走 i18n，React 组件类型保持模块级稳定，effect 只同步外部系统。
+- 前端界面与交互以至少达到 ChatGPT 的成熟度为质量基线；触达时执行[交互质量合同](.agents/wiki/skills/frontend/frontend-interaction-quality/SKILL.md)，不以功能可用或测试通过替代体验验收。
 - Chat 链路默认只建设 NCP 主链路；legacy 只做迁移阻塞修复、删除前清理或用户明确要求的临时保障。
 - 触达 NextClaw 自管理命令语义时，同步维护 `docs/USAGE.md`、`packages/nextclaw/resources/USAGE.md` 和 `nextclaw-self-manage` skill，并说明资源同步结果。
 - 新增、重命名、移动文件或改变角色/目录边界时，由当前阶段读取 Wiki 中的 `file-organization-governance` 下级 Skill，并在首次实质编辑前运行 planned-path preflight；局部修改现有文件不为仪式重复加载目录规则。

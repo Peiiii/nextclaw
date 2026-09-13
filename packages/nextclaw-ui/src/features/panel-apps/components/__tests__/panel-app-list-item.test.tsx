@@ -98,9 +98,10 @@ describe('PanelAppListItem', () => {
       />,
     );
 
-    expect(screen.queryByRole('button', { name: 'Pin to left sidebar' })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: 'Pin to left sidebar' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'More panel app actions' }));
-    await user.click(screen.getByRole('button', { name: 'Pin to left sidebar' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Layout and position' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Pin to left sidebar' }));
     expect(mainSidebarMutation.mutate).toHaveBeenCalledWith({
       id: 'demo',
       preferences: { mainSidebar: true },
@@ -120,9 +121,10 @@ describe('PanelAppListItem', () => {
         onToggleFavorite={vi.fn()}
       />,
     );
-    expect(screen.queryByRole('button', { name: 'Unpin from left sidebar' })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: 'Unpin from left sidebar' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'More panel app actions' }));
-    await user.click(screen.getByRole('button', { name: 'Unpin from left sidebar' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Layout and position' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Unpin from left sidebar' }));
     expect(mainSidebarMutation.mutate).toHaveBeenLastCalledWith({
       id: 'demo',
       preferences: { mainSidebar: false },

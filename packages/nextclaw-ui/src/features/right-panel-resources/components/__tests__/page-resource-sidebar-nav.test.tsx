@@ -8,6 +8,7 @@ import { PageResourceSidebarNav } from "@/features/right-panel-resources/compone
 import { usePageNavigationStore } from "@/features/right-panel-resources/stores/page-navigation.store";
 import { AppPresenterProvider } from "@/app/components/app-presenter-provider";
 import type { PanelAppEntryView } from "@/shared/lib/api";
+import { SidebarNavLinkItem } from "@/app/components/layout/sidebar-items";
 
 const mocks = vi.hoisted(() => ({
   entries: [] as PanelAppEntryView[],
@@ -123,10 +124,10 @@ describe("shared left pages", () => {
     expect(link.contains(menu)).toBe(false);
     expect(menu.querySelector(".lucide-ellipsis-vertical")).not.toBeNull();
     expect(menu.parentElement?.className).toContain(
-      "group-hover/page-row:opacity-100",
+      "group-hover/sidebar-item:opacity-100",
     );
     expect(menu.parentElement?.className).toContain(
-      "group-focus-within/page-row:opacity-100",
+      "group-focus-within/sidebar-item:opacity-100",
     );
     expect(menu.parentElement?.className).toContain(
       "data-[context-menu-open]:opacity-100",
@@ -136,6 +137,8 @@ describe("shared left pages", () => {
     expect(menu.parentElement?.hasAttribute("data-context-menu-open")).toBe(
       true,
     );
+    expect(screen.queryByRole("menuitem", { name: "Unpin from left sidebar" })).toBeNull();
+    await userEvent.click(screen.getByRole("menuitem", { name: "Layout and position" }));
     await userEvent.click(
       screen.getByRole("menuitem", { name: "Unpin from left sidebar" }),
     );
@@ -154,5 +157,27 @@ describe("shared left pages", () => {
   });
   it("omits an empty group", () => {
     expect(renderNav().container.firstChild).toBeNull();
+  });
+  it("shares one whole-row surface with primary navigation and keeps actions inside that surface", () => {
+    mocks.entries = [createEntry({ mainSidebar: true })];
+    render(
+      <MemoryRouter><AppPresenterProvider>
+        <SidebarNavLinkItem to="/inbox" label="Inbox" density="compact" />
+        <PageResourceSidebarNav isCollapsed={false} />
+      </AppPresenterProvider></MemoryRouter>,
+    );
+    const primary = screen.getByRole("link", { name: "Inbox" });
+    const page = screen.getByRole("link", { name: "Demo" });
+    expect(page.parentElement?.className).toBe(primary.parentElement?.className);
+    expect(page.parentElement?.contains(screen.getByRole("button", { name: "Page actions" }))).toBe(true);
+    expect(page.className).toContain("pr-9");
+  });
+  it("distinguishes resources sharing a pathname by their query identity", () => {
+    render(<MemoryRouter initialEntries={["/resource?uri=one"]}>
+      <SidebarNavLinkItem to="/resource?uri=one" label="One" />
+      <SidebarNavLinkItem to="/resource?uri=two" label="Two" />
+    </MemoryRouter>);
+    expect(screen.getByRole("link", { name: "One" }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("link", { name: "Two" }).hasAttribute("aria-current")).toBe(false);
   });
 });

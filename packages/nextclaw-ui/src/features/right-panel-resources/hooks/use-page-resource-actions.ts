@@ -14,9 +14,21 @@ import {
 } from "@/features/right-panel-resources/utils/right-panel-resource-uri.utils";
 import { pageResourceTab } from "@/features/right-panel-resources/managers/page-resource.manager";
 import type { PageResource } from "@/features/right-panel-resources/types/page-resource.types";
-import type { ContextMenuGroup } from "@/shared/components/ui/context-menu/context-menu";
+import type {
+  ContextMenuGroup,
+  ContextMenuItem,
+} from "@/shared/components/ui/context-menu/context-menu";
 import { t } from "@/shared/lib/i18n";
 import { toast } from "sonner";
+import { createElement } from "react";
+import {
+  LayoutPanelLeft,
+  Link,
+  MessageSquarePlus,
+  PanelLeft,
+  PanelsTopLeft,
+  Pin,
+} from "lucide-react";
 
 export function usePageResourceActions() {
   const app = useAppPresenter();
@@ -47,7 +59,12 @@ export function usePageResourceActions() {
     const items = [
       {
         key: "open-main",
-        label: t(page.target.kind === "workspace" ? "workbenchMaximize" : "workbenchOpenMain"),
+        icon: createElement(PanelsTopLeft, { className: "h-4 w-4" }),
+        label: t(
+          page.target.kind === "workspace"
+            ? "workbenchMaximize"
+            : "workbenchOpenMain",
+        ),
         onSelect: () => open("main"),
       },
       ...(page.target.kind === "route"
@@ -55,17 +72,20 @@ export function usePageResourceActions() {
         : [
             {
               key: "open-sidebar",
+              icon: createElement(PanelLeft, { className: "h-4 w-4" }),
               label: t("workbenchDock"),
               onSelect: () => open("sidebar"),
             },
             {
               key: "open-floating",
+              icon: createElement(PanelsTopLeft, { className: "h-4 w-4" }),
               label: t("workbenchFloatView"),
               onSelect: () => open("floating"),
             },
           ]),
       {
         key: "pin-left",
+        icon: createElement(Pin, { className: "h-4 w-4" }),
         pressed: pinned,
         label: t(pinned ? "pageUnpinLeft" : "pagePinLeft"),
         disabled: Boolean(entry && updatePreferences.isPending),
@@ -85,6 +105,7 @@ export function usePageResourceActions() {
         ? [
             {
               key: "add-to-chat",
+              icon: createElement(MessageSquarePlus, { className: "h-4 w-4" }),
               label: t("docBrowserAddToChat"),
               restoreFocus: false,
               onSelect: () =>
@@ -94,6 +115,7 @@ export function usePageResourceActions() {
         : []),
       {
         key: "copy-uri",
+        icon: createElement(Link, { className: "h-4 w-4" }),
         label: t("pageCopyUri"),
         onSelect: () => {
           void navigator.clipboard
@@ -103,7 +125,6 @@ export function usePageResourceActions() {
       },
     ];
     return [
-      { key: "page", items },
       ...(viewer
         ? [
             {
@@ -132,6 +153,38 @@ export function usePageResourceActions() {
             },
           ]
         : []),
+      ...groupPageResourceActions(items),
     ];
   };
+}
+
+function groupPageResourceActions(
+  items: ContextMenuItem[],
+): ContextMenuGroup[] {
+  return [
+    {
+      key: "page-reference",
+      items: items.filter(
+        (item) => item.key === "add-to-chat" || item.key === "copy-uri",
+      ),
+    },
+    {
+      key: "page-layout",
+      items: [
+        {
+          key: "layout",
+          label: t("pageLayoutActions"),
+          icon: createElement(LayoutPanelLeft, { className: "h-4 w-4" }),
+          children: [
+            {
+              key: "placement",
+              items: items.filter(
+                (item) => item.key !== "add-to-chat" && item.key !== "copy-uri",
+              ),
+            },
+          ],
+        },
+      ],
+    },
+  ];
 }

@@ -1,4 +1,3 @@
-import { CurrentPageActions } from '@/features/right-panel-resources';
 import { ResourcePage } from '@/features/right-panel-resources';
 import { lazy, Suspense, useLayoutEffect } from "react";
 import { ChatSidebar } from "@/features/chat/components/layout/chat-sidebar";
@@ -73,7 +72,6 @@ export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
     {!isMobile ? <ChatSidebar /> : null}
     {view === 'chat' ? (isMobile ? <ChatMobileShell /> : <ChatConversationPanel />) : (
       <section data-theme-surface="workspace" className={`${resolveManagementWorkspaceClass(view)} flex flex-col`}>
-        {view !== 'resource' && view !== 'panel-app' ? <CurrentPageActions /> : null}
         <div className="min-h-0 flex-1 overflow-hidden"><ManagementPageContent view={view} /></div>
       </section>
     )}

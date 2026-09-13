@@ -2,6 +2,8 @@ import * as React from 'react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 
 import { cn } from '@/shared/lib/utils';
+import { deferEscapeToNestedMenu } from './context-menu/context-menu';
+import { CONTEXT_MENU_SURFACE_CLASS } from './context-menu/context-menu-items';
 
 const FLOATING_CONTENT_AVAILABLE_HEIGHT_GAP = '2rem';
 
@@ -19,21 +21,25 @@ const PopoverAnchor = PopoverPrimitive.Anchor;
 
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, sideOffset = 8, align = 'start', collisionPadding = 12, style, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & { variant?: 'default' | 'menu' }
+>(({ className, variant = 'default', sideOffset = 8, align = 'start', collisionPadding = 12, style, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
-      data-theme-overlay="popover"
+      data-theme-overlay={variant === 'menu' ? 'menu' : 'popover'}
       sideOffset={sideOffset}
       align={align}
       collisionPadding={collisionPadding}
       className={cn(
         'z-[var(--z-popover,10100)] w-72 overflow-x-hidden overflow-y-auto rounded-2xl border border-border bg-popover p-4 text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-        className
+        className,
+        variant === 'menu' && CONTEXT_MENU_SURFACE_CLASS
       )}
       style={{ maxHeight: POPOVER_CONTENT_MAX_HEIGHT, ...style }}
       {...props}
+      onEscapeKeyDown={(event) => {
+        if (!deferEscapeToNestedMenu(event)) props.onEscapeKeyDown?.(event);
+      }}
     />
   </PopoverPrimitive.Portal>
 ));

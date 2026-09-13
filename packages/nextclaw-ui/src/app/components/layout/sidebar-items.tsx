@@ -17,6 +17,7 @@ import {
   SIDEBAR_RAIL_CONTROL_CLASS,
   SIDEBAR_RAIL_ICON_CLASS,
   SIDEBAR_RAIL_SURFACE_CLASS,
+  SIDEBAR_ITEM_SURFACE_CLASS,
 } from "@/app/components/layout/sidebar-rail.styles";
 
 export type SidebarIcon = ComponentType<{ className?: string }>;
@@ -63,9 +64,12 @@ export function getSidebarItemStackClass(
   return getSidebarItemTone(density).stack;
 }
 
-function isSidebarRouteActive(pathname: string, target: string): boolean {
+function isSidebarRouteActive(pathname: string, search: string, target: string): boolean {
   const normalizedPathname = pathname.toLowerCase();
-  const normalizedTarget = target.toLowerCase();
+  const [targetPath, targetSearch] = target.split("?");
+  const normalizedTarget = targetPath.toLowerCase();
+  const currentParams = new URLSearchParams(search);
+  if ([...new URLSearchParams(targetSearch)].some(([key, value]) => currentParams.get(key) !== value)) return false;
   return (
     normalizedPathname === normalizedTarget ||
     normalizedPathname.startsWith(`${normalizedTarget}/`)
@@ -99,10 +103,11 @@ type SidebarNavLinkItemProps = {
   icon?: SidebarIcon;
   iconNode?: ReactNode;
   density?: SidebarItemDensity;
-  className?: string;
   collapsed?: boolean;
   indicator?: boolean;
   trailing?: ReactNode;
+  actions?: ReactNode;
+  onNavigate?: () => void;
 };
 
 function SidebarNavIcon({
@@ -149,32 +154,32 @@ export function SidebarNavLinkItem({
   icon: Icon,
   iconNode,
   density = "default",
-  className,
   collapsed = false,
   indicator = false,
   trailing,
+  actions,
+  onNavigate,
 }: SidebarNavLinkItemProps) {
   const tone = getSidebarItemTone(density);
-  const { pathname } = useLocation();
-  const isActive = isSidebarRouteActive(pathname, to);
+  const { pathname, search } = useLocation();
+  const isActive = isSidebarRouteActive(pathname, search, to);
   const link = (
+    <div
+      data-sidebar-item=""
+      data-active={isActive || undefined}
+      className={cn("group group/sidebar-item relative flex items-center", collapsed ? SIDEBAR_RAIL_CONTROL_CLASS : "w-full", SIDEBAR_ITEM_SURFACE_CLASS, isActive && SIDEBAR_RAIL_ACTIVE_SURFACE_CLASS)}
+    >
     <Link
       to={to}
+      onClick={onNavigate}
       aria-label={label}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "group flex w-full items-center rounded-xl font-medium transition-colors duration-base focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
+        "flex min-w-0 flex-1 items-center rounded-xl font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
         collapsed
           ? cn(SIDEBAR_RAIL_CONTROL_CLASS, "justify-center px-0 py-0")
           : tone.row,
-        isActive
-          ? collapsed
-            ? SIDEBAR_RAIL_ACTIVE_SURFACE_CLASS
-            : "bg-gray-200/80 text-gray-900 shadow-sm"
-          : collapsed
-            ? SIDEBAR_RAIL_SURFACE_CLASS
-            : "text-muted-foreground hover:bg-gray-200/60 hover:text-gray-900",
-        className,
+        actions && !collapsed && "pr-9",
       )}
     >
       <SidebarNavIcon
@@ -185,7 +190,7 @@ export function SidebarNavLinkItem({
         isActive={isActive}
         tone={tone}
       />
-      <span className={collapsed ? "sr-only" : "min-w-0 flex-1 text-left"}>
+      <span className={collapsed ? "sr-only" : "min-w-0 flex-1 truncate text-left"}>
         {label}
       </span>
       {!collapsed && trailing ? (
@@ -194,6 +199,8 @@ export function SidebarNavLinkItem({
         </span>
       ) : null}
     </Link>
+    {!collapsed && actions ? <span className="absolute right-1 flex items-center">{actions}</span> : null}
+    </div>
   );
 
   return collapsed ? (
@@ -270,7 +277,8 @@ export function SidebarActionItem({
       onClick={onClick}
       aria-label={label}
       className={cn(
-        "group flex w-full items-center rounded-xl font-medium text-muted-foreground transition-colors duration-base hover:bg-gray-200/60 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
+        "group flex w-full items-center font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
+        SIDEBAR_ITEM_SURFACE_CLASS,
         collapsed
           ? cn(
               SIDEBAR_RAIL_CONTROL_CLASS,
@@ -344,7 +352,8 @@ export function SidebarSelectItem({
     <SelectTrigger
       aria-label={label}
       className={cn(
-        "group h-auto w-full rounded-xl border-0 bg-transparent font-medium text-muted-foreground shadow-none hover:bg-gray-200/60 hover:text-gray-900 focus:ring-0 focus-visible:ring-1 focus-visible:ring-border",
+        "group h-auto w-full border-0 bg-transparent font-medium shadow-none focus:ring-0 focus-visible:ring-1 focus-visible:ring-border",
+        SIDEBAR_ITEM_SURFACE_CLASS,
         collapsed
           ? cn(
               SIDEBAR_RAIL_CONTROL_CLASS,

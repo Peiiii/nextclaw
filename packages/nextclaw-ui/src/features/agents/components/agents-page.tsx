@@ -133,6 +133,7 @@ function AgentListCard(props: {
     onEdit,
     onDelete,
   } = props;
+  const [menuOpen, setMenuOpen] = useState(false);
   const runtimeValue = agent.runtime?.trim() || agent.engine?.trim() || "";
   const runtimeLabel = runtimeValue
     ? (runtimeOptions.find(
@@ -181,7 +182,7 @@ function AgentListCard(props: {
           >
             <MessageCircle className="h-4 w-4" />
           </Button>
-          <Popover>
+          <Popover open={menuOpen} onOpenChange={setMenuOpen}>
             <PopoverTrigger asChild>
               <Button
                 type="button"
@@ -194,9 +195,7 @@ function AgentListCard(props: {
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-56 p-1.5">
-              <PageResourceActionItems page={pageResourceFromSystemObject('agent', agent.id, agent.displayName || agent.id)} />
-              <div className="my-1 border-t border-border" />
+            <PopoverContent align="end" variant="menu">
               <AgentActionMenuItem
                 icon={Eye}
                 label={t("agentsViewDetailsAction")}
@@ -217,6 +216,8 @@ function AgentListCard(props: {
                   destructive
                 />
               ) : null}
+                <div className="my-1 h-px bg-border" />
+              <PageResourceActionItems page={pageResourceFromSystemObject('agent', agent.id, agent.displayName || agent.id)} onSelect={() => setMenuOpen(false)} />
             </PopoverContent>
           </Popover>
         </div>

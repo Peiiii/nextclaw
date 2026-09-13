@@ -137,7 +137,6 @@ export function ChatSidebarDesktopNav({
                       : unreadCount
                     : undefined
                 }
-                className={isCollapsed ? undefined : "rounded-lg px-2.5 py-1.5"}
               />
             </li>
           ))}

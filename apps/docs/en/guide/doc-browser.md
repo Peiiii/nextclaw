@@ -77,3 +77,11 @@ The resource catalog is not a link allowlist. AI tool descriptions advertise the
 ### Proactive links in AI replies
 
 When listing, recommending or locating specific apps, skills, scheduled tasks, conversations or files, AI replies should make their names clickable by default. Successful creation or modification should also include an entry point to the result, without a separate request for links. Known URIs and paths are reused; missing identities require targeted lookup. Generic concepts, repeated mentions, explicit plain-text requests and unconfirmed objects do not require links. A link does not authorize execution, opening or modification.
+
+Page and resource menus group actions by purpose: task actions come first, chat references and resource links remain directly available, and placement and pinning appear under “Layout and position”. Regular settings pages have no separate page-action toolbar. Sidebar and inbox overflow buttons share the row highlight and do not trigger navigation.
+
+Sidebar pages share row height, corners, hover and selection feedback with primary navigation. The more-actions button remains inside the row, which stays highlighted while focused or while its menu is open. Desktop conversations and project groups use the same sidebar background states.
+
+Settings are grouped into Basic Configuration, Common Settings, Security & Privacy, and System & Extensions. Model, Providers and Channels remain first, followed by Appearance, Updates, Search Channels and Keyboard shortcuts. Sign-in, privacy and secrets are grouped together, with Extensions last. Desktop and mobile share this grouping and order; desktop keyboard shortcuts are omitted on mobile.
+
+Submenus open beside their parent without replacing the original action list. Hover, click or press Right Arrow to open; Left Arrow or Escape closes the current level and returns focus to its parent item. Near window edges, menus switch sides and fit the available width.

@@ -192,7 +192,7 @@ describe('ChatSessionHeaderActions', () => {
     expect(screen.getByRole('button', { name: 'Open session workspace' }).className).toContain('w-7');
   });
 
-  it('places the workspace toggle at the far right of the visible header actions', () => {
+  it('places more actions at the far right of the visible header actions', () => {
     render(
       <ChatSessionHeaderActions
         sessionKey="session-actions"
@@ -208,7 +208,7 @@ describe('ChatSessionHeaderActions', () => {
     const menuButton = screen.getByRole('button', { name: 'More actions' });
     const workspaceButton = screen.getByRole('button', { name: 'Open session workspace' });
 
-    expect(menuButton.compareDocumentPosition(workspaceButton)).toBe(
+    expect(workspaceButton.compareDocumentPosition(menuButton)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
   });

@@ -205,7 +205,7 @@ export function ChatSessionWorkspacePanel({
             const file = workspaceFileTabs.find((item) => `file:${item.key}` === tab.key);
             const target = file ? createWorkspaceFilePanelTarget(file, { workingDir: sessionWorkingDir, projectRoot: sessionProjectRoot })
               : tab.sessionKey ? { kind: 'chat-session', title: tab.title, url: buildSessionPanelUrl(tab.sessionKey), resourceUri: buildSessionPanelUrl(tab.sessionKey), historyPolicy: 'none' as const } : tab.kind !== 'side-chat-draft' ? { kind: 'workspace', title: tab.title, url: `nextclaw://workspace?${new URLSearchParams({ session: sessionKey ?? '', page: tab.kind })}`, historyPolicy: 'none' as const } : null;
-            return target ? [...pageActions(pageResourceFromTarget(target), 'workspace'), ...(tab.menuGroups ?? [])] : tab.menuGroups;
+            return target ? [...(tab.menuGroups ?? []), ...pageActions(pageResourceFromTarget(target), 'workspace')] : tab.menuGroups;
           })(),
           onMoveGlobal: tab.kind === 'file' ? () => presenter.chatThreadManager.moveFileToGlobal(tab.key.slice('file:'.length), { workingDir: sessionWorkingDir, projectRoot: sessionProjectRoot }, getAppPresenter().docBrowserManager)
             : tab.kind === 'child-session' && tab.sessionKey ? () => {

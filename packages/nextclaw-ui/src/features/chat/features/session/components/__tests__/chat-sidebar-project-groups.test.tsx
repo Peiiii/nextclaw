@@ -113,7 +113,7 @@ describe("ChatSidebarProjectGroups", () => {
     const projectRow = projectLink.parentElement?.parentElement;
     expect(container.firstElementChild?.className).toBe("space-y-0.5");
     expect(projectRow?.className).toContain("h-8");
-    expect(projectRow?.className).toContain("hover:bg-gray-200/60");
+    expect(projectRow?.className).toContain("hover:bg-[hsl(var(--gray-200)/0.6)]");
     const projectContent = projectLink.parentElement;
     expect(projectContent?.classList.contains("pr-14")).toBe(false);
     expect(projectContent?.className).toContain("group-hover/project:pr-20");

@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import { fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MobileSettingsShell } from "@/platforms/mobile/components/mobile-settings-shell";
 import { Sidebar } from "@/app/components/layout/sidebar";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 import type * as RemoteFeature from "@/features/remote";
@@ -17,6 +18,10 @@ const mocks = vi.hoisted(() => ({
       },
     },
   },
+}));
+
+vi.mock("@/app/hooks/use-feature-controls", () => ({
+  useFeatureControls: () => ({ data: { desktopAutomation: { available: false } } }),
 }));
 
 vi.mock("@/shared/components/doc-browser", () => ({
@@ -102,7 +107,7 @@ describe("Sidebar", () => {
     expect(backLink).toBeTruthy();
     expect(header.className).not.toContain("bg-white");
     expect(header.className).not.toContain("rounded-2xl");
-    expect(backLink.className).toContain("hover:bg-gray-200/60");
+    expect(backLink.className).toContain("hover:bg-[hsl(var(--gray-200)/0.6)]");
   });
 
   it("keeps the settings navigation in the expected product order", () => {
@@ -127,9 +132,11 @@ describe("Sidebar", () => {
 
     expect(groupHeadings).toEqual([
       "Basic Configuration",
-      "Advanced Configuration",
+      "Common Settings",
+      "Security & Privacy",
+      "System & Extensions",
     ]);
-    expect(groups).toHaveLength(2);
+    expect(groups).toHaveLength(4);
     expect(
       within(groups[0] as HTMLElement)
         .getAllByRole("link")
@@ -140,32 +147,45 @@ describe("Sidebar", () => {
         .getAllByRole("link")
         .map((link) => link.textContent?.trim() || ""),
     ).toEqual([
-      "Extensions",
       "Appearance",
-      "Sign-in Management",
-      "Privacy & Analytics",
-      "Search Channels",
       "Updates",
-      "Remote Access",
-      "Routing & Runtime",
-      "Secrets",
-      "MCP",
+      "Search Channels",
+      "Keyboard shortcuts",
+    ]);
+    expect(within(groups[2] as HTMLElement).getAllByRole("link").map((link) => link.textContent)).toEqual([
+      "Sign-in Management", "Privacy & Analytics", "Secrets",
+    ]);
+    expect(within(groups[3] as HTMLElement).getAllByRole("link").map((link) => link.textContent)).toEqual([
+      "Remote Access", "Routing & Runtime", "MCP", "Extensions",
     ]);
     expect(linkTexts).toEqual([
       "Model",
       "Providers",
       "Channels",
-      "Extensions",
       "Appearance",
+      "Updates",
+      "Search Channels",
+      "Keyboard shortcuts",
       "Sign-in Management",
       "Privacy & Analytics",
-      "Search Channels",
-      "Updates",
+      "Secrets",
       "Remote Access",
       "Routing & Runtime",
-      "Secrets",
       "MCP",
+      "Extensions",
     ]);
+  });
+
+  it("shares the grouped navigation with mobile while omitting desktop shortcuts", () => {
+    render(<MemoryRouter initialEntries={["/settings"]}><MobileSettingsShell /></MemoryRouter>);
+    expect(screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent)).toEqual([
+      "Basic Configuration", "Common Settings", "Security & Privacy", "System & Extensions",
+    ]);
+    const links = screen.getAllByRole("link");
+    expect(links.slice(0, 3).map((link) => link.textContent?.trim())).toEqual(["Model", "Providers", "Channels"]);
+    expect(links.at(-1)?.textContent?.trim()).toBe("Extensions");
+    expect(screen.queryByRole("link", { name: "Keyboard shortcuts" })).toBeNull();
+    expect(new Set(links.map((link) => link.getAttribute("href"))).size).toBe(links.length);
   });
 
   it("keeps the footer utilities compact without changing the top header structure", () => {
@@ -187,7 +207,7 @@ describe("Sidebar", () => {
     expect(screen.queryByRole("combobox", { name: "Language" })).toBeNull();
     expect(accountEntry.className).toContain("py-2");
     expect(accountEntry.className).toContain("text-muted-foreground");
-    expect(accountEntry.className).toContain("hover:bg-gray-200/60");
+    expect(accountEntry.className).toContain("hover:bg-[hsl(var(--gray-200)/0.6)]");
     expect(navigationList?.className).toContain("space-y-0.5");
     expect(footer?.className).toContain("space-y-0.5");
     expect(footer?.firstElementChild?.textContent).toContain("Help Docs");

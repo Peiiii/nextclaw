@@ -1,4 +1,5 @@
 {
+  "pageLayoutActions": "布局与位置",
   "pagePinLeft": "固定到左侧页面",
   "pageUnpinLeft": "从左侧页面移除",
   "pageCopyUri": "复制资源链接",

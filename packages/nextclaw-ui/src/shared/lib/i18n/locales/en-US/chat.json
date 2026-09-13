@@ -1,4 +1,5 @@
 {
+  "pageLayoutActions": "Layout and position",
   "pagePinLeft": "Pin to left sidebar",
   "pageUnpinLeft": "Unpin from left sidebar",
   "pageCopyUri": "Copy resource link",

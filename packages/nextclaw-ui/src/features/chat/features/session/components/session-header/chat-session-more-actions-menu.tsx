@@ -1,7 +1,7 @@
 import { PageResourceActionItems } from '@/features/right-panel-resources';
 import { pageResourceFromTarget } from '@/features/right-panel-resources';
 import { buildSessionPanelUrl } from '@/features/chat/features/session/utils/chat-session-route.utils';
-import { useState, type ReactNode } from 'react';
+import { Children, isValidElement, useState, type ReactNode } from 'react';
 import { copyText } from '@nextclaw/agent-chat-ui';
 import { Copy, MoreVertical } from 'lucide-react';
 import { toast } from 'sonner';
@@ -42,6 +42,9 @@ export function ChatSessionMoreActionsMenu({
   className,
 }: ChatSessionMoreActionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const menuItems = Children.toArray(children);
+  const isDestructive = (item: ReactNode) => isValidElement<{ destructive?: boolean }>(item) && item.props.destructive;
+  const destructiveItems = menuItems.filter(isDestructive);
 
   const handleCopySessionId = () => {
     setIsOpen(false);
@@ -54,7 +57,6 @@ export function ChatSessionMoreActionsMenu({
         <IconActionButton
           icon={<MoreVertical className="h-4 w-4" />}
           label={t('chatSessionMoreActions')}
-          tooltip={false}
           size={triggerSize}
           tone={triggerTone}
           className={className}
@@ -62,17 +64,22 @@ export function ChatSessionMoreActionsMenu({
           onClick={(event) => event.stopPropagation()}
         />
       </PopoverTrigger>
-      <ChatPopoverContent align="end" className="w-56 p-2">
-        <div className="space-y-1" onClick={() => setIsOpen(false)}>
-          <PageResourceActionItems page={pageResourceFromTarget({ kind: 'chat-session', title: sessionTitle || t('chatFloatingConversation'), url: buildSessionPanelUrl(sessionKey), resourceUri: buildSessionPanelUrl(sessionKey), historyPolicy: 'none' })} onSelect={() => setIsOpen(false)} />
+      <ChatPopoverContent align="end" variant="menu">
+        <div onClick={() => setIsOpen(false)}>
+          {menuItems.filter((item) => !isDestructive(item))}
           <ChatSessionHeaderMenuItem
             icon={Copy}
             label={t('chatSessionCopyId')}
             onClick={handleCopySessionId}
             disabled={disabled}
           />
-          {children}
         </div>
+        <div className="my-1 h-px bg-border" />
+          <PageResourceActionItems page={pageResourceFromTarget({ kind: 'chat-session', title: sessionTitle || t('chatFloatingConversation'), url: buildSessionPanelUrl(sessionKey), resourceUri: buildSessionPanelUrl(sessionKey), historyPolicy: 'none' })} onSelect={() => setIsOpen(false)} />
+        {destructiveItems.length > 0 ? <>
+          <div className="my-1 h-px bg-border" />
+          <div onClick={() => setIsOpen(false)}>{destructiveItems}</div>
+        </> : null}
       </ChatPopoverContent>
     </Popover>
   );

@@ -87,7 +87,8 @@ it("shows session actions only on hover or when an action owns focus", () => {
 it("opens any sidebar session as a floating conversation", async () => {
   const user = userEvent.setup();
   await user.click(screen.getByRole('button', { name: 'More actions' }));
-  await user.click(screen.getByRole('button', { name: 'Open in floating window' }));
+  await user.click(screen.getByRole('menuitem', { name: 'Layout and position' }));
+  await user.click(screen.getByRole('menuitem', { name: 'Open in floating window' }));
   expect(useFloatingSessionStore.getState().session).toEqual({
     sessionKey: 'session:current', title: 'Current Task',
   });

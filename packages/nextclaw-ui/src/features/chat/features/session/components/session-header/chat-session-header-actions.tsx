@@ -61,6 +61,23 @@ export function ChatSessionHeaderActions({
 
   return (
     <div className={SESSION_HEADER_ACTION_GROUP_CLASS}>
+      <IconActionButton
+        icon={
+          isWorkspaceOpen ? (
+            <PanelRightClose className="h-4 w-4" />
+          ) : (
+            <PanelRightOpen className="h-4 w-4" />
+          )
+        }
+        label={t(
+          isWorkspaceOpen
+            ? 'chatSessionCloseWorkspace'
+            : 'chatSessionOpenWorkspace',
+        )}
+        aria-pressed={isWorkspaceOpen}
+        onClick={onToggleWorkspace}
+        disabled={isBusy}
+      />
       {sessionKey ? (
         <ChatSessionMoreActionsMenu
           sessionKey={sessionKey}
@@ -88,23 +105,6 @@ export function ChatSessionHeaderActions({
           />
         </ChatSessionMoreActionsMenu>
       ) : null}
-      <IconActionButton
-        icon={
-          isWorkspaceOpen ? (
-            <PanelRightClose className="h-4 w-4" />
-          ) : (
-            <PanelRightOpen className="h-4 w-4" />
-          )
-        }
-        label={t(
-          isWorkspaceOpen
-            ? 'chatSessionCloseWorkspace'
-            : 'chatSessionOpenWorkspace',
-        )}
-        aria-pressed={isWorkspaceOpen}
-        onClick={onToggleWorkspace}
-        disabled={isBusy}
-      />
 
       {sessionKey ? (
         <>

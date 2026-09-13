@@ -19,7 +19,7 @@ import { IconActionButton } from "@/shared/components/ui/actions/icon-action-but
 import { SCROLL_BOTTOM_EDGE_FADE_CLASS } from "@/shared/components/ui/scroll-area";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { useRemoteStatus } from "@/features/remote";
-import { useDesktopCapabilityAvailability } from "@/features/desktop-capabilities/hooks/use-desktop-capabilities";
+import { useDesktopCapabilityAvailability } from "@/features/desktop-capabilities";
 import { getSettingsNavSections } from "@/app/configs/app-navigation.config";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
@@ -89,7 +89,8 @@ function SettingsSidebarHeader({
           to="/chat"
           aria-label={t("backToMain")}
           className={cn(
-            "group inline-flex min-w-0 items-center rounded-lg text-[12px] font-medium text-muted-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
+            "group inline-flex min-w-0 items-center text-[12px] font-medium",
+            SIDEBAR_RAIL_SURFACE_CLASS,
             isCollapsed
               ? cn(
                   SIDEBAR_RAIL_CONTROL_CLASS,

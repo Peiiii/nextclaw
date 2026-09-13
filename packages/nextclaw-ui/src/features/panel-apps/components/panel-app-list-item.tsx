@@ -76,7 +76,7 @@ export function PanelAppListItem({
                 <MoreVertical className="h-4 w-4" />
               </button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-48 rounded-xl p-1.5">
+            <PopoverContent align="end" variant="menu">
               <PanelAppOpenStandaloneMenuItem
                 entry={entry}
                 onSelect={() => setIsMenuOpen(false)}

@@ -159,8 +159,14 @@ export function CronJobRow({
         </button>
 
         <TooltipProvider delayDuration={250}>
-          <div className="relative flex shrink-0 items-center">
-            <div className="absolute right-11 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-100 transition-opacity duration-150 [@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:pointer-events-auto [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:pointer-events-auto [@media(hover:hover)]:group-hover:opacity-100">
+          <div className="relative flex shrink-0 items-center gap-1">
+            <Switch
+              checked={job.enabled}
+              onCheckedChange={(checked) => onToggle(job, checked)}
+              aria-label={job.enabled ? t("cronDisable") : t("cronEnable")}
+            />
+
+            <div className="flex items-center gap-0.5 opacity-100 transition-opacity duration-150 [@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:pointer-events-auto [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:pointer-events-auto [@media(hover:hover)]:group-hover:opacity-100">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -192,8 +198,7 @@ export function CronJobRow({
                   </TooltipTrigger>
                   <TooltipContent>{t("cronMoreActions")}</TooltipContent>
                 </Tooltip>
-                <PopoverContent align="end" sideOffset={4} className="w-56 p-1">
-                  <PageResourceActionItems page={pageResourceFromSystemObject("cron-job", job.id, jobLabel)} onSelect={() => setMenuOpen(false)} />
+                <PopoverContent align="end" sideOffset={4} variant="menu">
                   <div className="my-1 h-px bg-border" />
                   <button
                     type="button"
@@ -217,14 +222,11 @@ export function CronJobRow({
                     <Trash2 className="h-3.5 w-3.5" />
                     {t("delete")}
                   </button>
+                <div className="my-1 h-px bg-border" />
+                  <PageResourceActionItems page={pageResourceFromSystemObject("cron-job", job.id, jobLabel)} onSelect={() => setMenuOpen(false)} />
                 </PopoverContent>
               </Popover>
             </div>
-            <Switch
-              checked={job.enabled}
-              onCheckedChange={(checked) => onToggle(job, checked)}
-              aria-label={job.enabled ? t("cronDisable") : t("cronEnable")}
-            />
           </div>
         </TooltipProvider>
       </div>

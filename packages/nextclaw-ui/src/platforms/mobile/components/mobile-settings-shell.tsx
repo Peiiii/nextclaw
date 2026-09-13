@@ -1,12 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { getSettingsNavItems } from "@/app/configs/app-navigation.config";
+import { getSettingsNavSections } from "@/app/configs/app-navigation.config";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 import { useDesktopCapabilityAvailability } from "@/features/desktop-capabilities";
 
 export function MobileSettingsShell() {
   const desktopCapabilityAvailable = useDesktopCapabilityAvailability();
-  const settingsNavItems = getSettingsNavItems(t, {
+  const settingsNavSections = getSettingsNavSections(t, {
     includeKeyboardShortcuts: false,
     includeDesktopCapabilities: desktopCapabilityAvailable,
   });
@@ -16,7 +16,10 @@ export function MobileSettingsShell() {
       data-testid="mobile-settings-shell"
       className="space-y-3 pb-4"
     >
-      {settingsNavItems.map((item) => (
+      {settingsNavSections.map((section) => (
+        <section key={section.label} className="space-y-2">
+          <h2 className="px-1 pt-2 text-xs font-medium text-muted-foreground">{section.label}</h2>
+          {section.items.map((item) => (
         <NavLink
           key={item.target}
           to={item.target}
@@ -38,6 +41,8 @@ export function MobileSettingsShell() {
             </p>
           </div>
         </NavLink>
+          ))}
+        </section>
       ))}
     </div>
   );

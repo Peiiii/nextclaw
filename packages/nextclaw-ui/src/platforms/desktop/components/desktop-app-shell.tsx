@@ -1,4 +1,3 @@
-import { CurrentPageActions } from '@/features/right-panel-resources';
 import { lazy, Suspense } from "react";
 import type { CSSProperties } from "react";
 import {
@@ -136,7 +135,6 @@ export function DesktopAppShell({
         {!isMainRoute && <Sidebar />}
         <div className="flex-1 flex min-w-0 overflow-hidden relative">
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {!isMainRoute ? <CurrentPageActions /> : null}
             {isMainRoute ? (
               <div className="flex-1 h-full overflow-hidden">{children}</div>
             ) : (

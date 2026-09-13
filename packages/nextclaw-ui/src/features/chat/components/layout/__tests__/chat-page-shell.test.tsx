@@ -102,5 +102,3 @@ describe("ChatPageLayout", () => {
     expect(screen.queryByTestId("chat-conversation-panel")).toBeNull();
   });
 });
-
-vi.mock("@/features/right-panel-resources/components/current-page-actions", () => ({ CurrentPageActions: () => null }));
