@@ -73,6 +73,7 @@ function ChatSidebarSessionEditingView({
   return (
     <div className="space-y-2">
       <Input
+        density="compact"
         value={draftLabel}
         onChange={(event) => onDraftLabelChange(event.target.value)}
         onKeyDown={(event) => {
@@ -85,7 +86,7 @@ function ChatSidebarSessionEditingView({
           }
         }}
         placeholder={t("sessionsLabelPlaceholder")}
-        className="h-8 rounded-lg border-border bg-background text-xs"
+        className="h-8 rounded-lg border-border bg-background"
         autoFocus
         disabled={isSaving}
       />

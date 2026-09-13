@@ -180,11 +180,12 @@ function ChatSessionTitleSwitcherPopover({
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/65" />
             <Input
+              density="compact"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder={t("chatSearchSessionPlaceholder")}
               aria-label={t("chatSearchSessionPlaceholder")}
-              className="h-8 rounded-lg bg-background pl-8 pr-2 text-xs"
+              className="h-8 rounded-lg bg-background pl-8 pr-2"
               autoFocus
             />
           </div>

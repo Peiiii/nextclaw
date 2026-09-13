@@ -177,12 +177,12 @@ function ChatSessionSwitchProjectGroup({
         aria-controls={contentId}
         aria-expanded={!isCollapsed}
         aria-label={actionLabel}
-        className="group flex h-10 w-full min-w-0 items-center gap-1.5 rounded-lg px-2 text-left text-muted-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+        className="group flex h-8 w-full min-w-0 items-center gap-1.5 rounded-lg px-2 text-left text-muted-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
         onClick={() => onToggleCollapsed(group.projectRoot)}
       >
         <Folder className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <span
-          className="min-w-0 flex-1 truncate text-[11px] font-medium uppercase tracking-wider"
+          className="min-w-0 flex-1 truncate text-[13px] font-medium"
           title={group.projectRoot}
         >
           {group.projectName}
@@ -222,7 +222,7 @@ export function ChatSessionSwitcherGroups({
   projectGroups: ChatSidebarProjectGroup[];
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-0.5">
       {isProjectFirstView
         ? projectGroups.map((group) => (
             <ChatSessionSwitchProjectGroup

@@ -35,8 +35,8 @@ export function ChatSidebarDesktopToolbar({ query, onQueryChange, onCreateSessio
     <div className="px-4 pb-2">
       <div className="relative">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
-        <Input data-theme-control="chat-search" value={query} onChange={event => onQueryChange(event.target.value)}
-          placeholder={t('chatSidebarSearchPlaceholder')} className="h-8 rounded-lg border-0 bg-background/55 pl-8 text-xs shadow-none hover:bg-background/75" />
+        <Input data-theme-control="chat-search" density="compact" value={query} onChange={event => onQueryChange(event.target.value)}
+          placeholder={t('chatSidebarSearchPlaceholder')} className="h-8 rounded-lg border-0 bg-background/55 pl-8 shadow-none hover:bg-background/75" />
       </div>
     </div>
   </>;

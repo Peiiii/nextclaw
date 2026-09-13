@@ -371,9 +371,10 @@ export function WorkspaceDirectoryTreeEntry({
               }}
             >
               <Input
+                density="compact"
                 autoFocus
                 aria-label={t('chatWorkspaceRenameName')}
-                className="h-6 min-w-0 flex-1 px-1.5 text-xs"
+                className="h-6 min-w-0 flex-1 px-1.5"
                 value={rename.name}
                 onChange={(event) => rename.updateName(event.target.value)}
                 onKeyDown={(event) => {

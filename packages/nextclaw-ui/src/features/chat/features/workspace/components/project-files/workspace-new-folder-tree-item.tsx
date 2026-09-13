@@ -67,9 +67,10 @@ export function WorkspaceNewFolderTreeItem({
           <Folder className="h-4 w-4 shrink-0 text-amber-500" />
         )}
         <Input
+          density="compact"
           ref={inputRef}
           aria-label={t(kind === 'file' ? 'chatWorkspaceFileName' : 'chatWorkspaceFolderName')}
-          className="h-7 min-w-0 flex-1 rounded-md px-2 text-xs"
+          className="h-7 min-w-0 flex-1 rounded-md px-2"
           disabled={isCreating}
           placeholder={t(kind === 'file' ? 'chatWorkspaceFileNamePlaceholder' : 'chatWorkspaceFolderNamePlaceholder')}
           value={name}
