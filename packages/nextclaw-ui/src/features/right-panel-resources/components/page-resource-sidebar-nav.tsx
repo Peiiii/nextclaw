@@ -105,7 +105,7 @@ export function PageResourceSidebarNav({
         type="button"
         aria-expanded={!groupCollapsed}
         onClick={viewportLayoutManager.toggleMainSidebarAppGroupCollapsed}
-        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-[13px] text-muted-foreground"
+        className={`flex w-full items-center gap-2 px-2.5 py-1.5 text-[13px] ${SIDEBAR_RAIL_SURFACE_CLASS}`}
       >
         <ChevronDown
           className={`h-3.5 w-3.5 ${groupCollapsed ? "-rotate-90" : ""}`}

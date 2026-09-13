@@ -110,7 +110,15 @@ describe("shared left pages", () => {
   it("preserves the collapsed group preference", async () => {
     mocks.entries = [createEntry({ mainSidebar: true })];
     renderNav();
-    await userEvent.click(screen.getByRole("button", { name: "Pages 1" }));
+    const groupTrigger = screen.getByRole("button", { name: "Pages 1" });
+    expect(groupTrigger.className).toContain(
+      "hover:bg-[hsl(var(--gray-200)/0.6)]",
+    );
+    expect(groupTrigger.className).toContain(
+      "active:bg-[hsl(var(--gray-200)/0.8)]",
+    );
+    expect(groupTrigger.className).toContain("focus-visible:ring-1");
+    await userEvent.click(groupTrigger);
     expect(screen.queryByRole("link")).toBeNull();
     expect(
       useViewportLayoutStore.getState().isMainSidebarAppGroupCollapsed,
