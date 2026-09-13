@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.54.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-09-13",
+  "title": {
+    "zh-CN": "NextClaw v0.54.0",
+    "en-US": "NextClaw v0.54.0"
+  },
+  "summary": {
+    "zh-CN": "从 GitHub 与 Linear 继续本地 Agent 任务，并改善菜单、聊天状态与运行恢复。",
+    "en-US": "Continue local agent work from GitHub and Linear, with clearer actions, chat status and runtime recovery."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-09-13-nextclaw-v0-54-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-09-13-nextclaw-v0-54-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "从 Issue 持续协作",
+        "en-US": "Persistent collaboration from issues"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "从 Issue 持续协作",
+            "en-US": "Persistent collaboration from issues"
+          },
+          "body": {
+            "zh-CN": "GitHub、Linear 和官方讨论连接到同一个本地 Codex 任务，提前显示状态并支持暂停、恢复、取消。独立 CLI/SDK 支持自定义来源和同账号签名 Agent。",
+            "en-US": "Connect GitHub, Linear and official discussions to persistent local Codex tasks, with early status and pause/resume/cancel controls. A standalone CLI/SDK supports custom sources and signed same-account agents."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "更清晰的操作和状态",
+        "en-US": "Clearer actions and status"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "更清晰的操作和状态",
+            "en-US": "Clearer actions and status"
+          },
+          "body": {
+            "zh-CN": "页面菜单、设置分组与侧栏反馈保持一致；聊天只为当前活动回复显示加载动画，过程摘要更简洁。",
+            "en-US": "Page menus, settings groups and sidebar feedback are consistent. Only the active reply animates, and process summaries stay concise."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "恢复连接和运行",
+        "en-US": "Connection and runtime recovery"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "恢复连接和运行",
+            "en-US": "Connection and runtime recovery"
+          },
+          "body": {
+            "zh-CN": "改善移动端恢复连接、渠道控制标签、应用面板定位与 HTTPS 语音提示；修复 systemd 受控重启续接，状态显示实际运行版本，便携版提供手动下载。",
+            "en-US": "Improve mobile reconnection, channel reply tags, panel targeting and HTTPS voice guidance. Restore eligible sessions after controlled systemd restarts, show the running API version, and offer manual portable downloads."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "本地运行条件",
+        "en-US": "Local runtime requirements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "本地运行条件",
+            "en-US": "Local runtime requirements"
+          },
+          "body": {
+            "zh-CN": "外部协作需要 Node.js 22.13+、在线电脑与运行中的宿主。本批不发布桌面安装器；旧讨论迁移保留绑定。",
+            "en-US": "External collaboration requires Node.js 22.13+, an online computer and a running host. This batch does not publish desktop installers; discussion migration preserves bindings."
+          }
+        }
+      ]
+    }
+  ]
+}
