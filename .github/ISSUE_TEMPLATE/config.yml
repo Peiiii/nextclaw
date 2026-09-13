@@ -2,7 +2,10 @@ blank_issues_enabled: false
 contact_links:
   - name: Documentation
     url: https://docs.nextclaw.io/en/
-    about: Check setup and usage docs before opening an issue.
-  - name: Discord Community
-    url: https://discord.gg/j4Skbgye
-    about: Ask questions and discuss ideas with maintainers and users.
+    about: Check setup and usage documentation before opening an Issue.
+  - name: Security vulnerability (private)
+    url: https://github.com/Peiiii/nextclaw/security/advisories/new
+    about: Report vulnerabilities privately. Do not include secrets or private logs in public Issues.
+  - name: Contribution guide
+    url: https://github.com/Peiiii/nextclaw/blob/master/CONTRIBUTING.md
+    about: Read how proposals are triaged, opened for contribution, claimed, and approved before implementation.

@@ -248,7 +248,7 @@ Repository planning: [Roadmap](docs/ROADMAP.md) · [TODO](docs/TODO.md)
 
 ## Contributing
 
-Contributions are welcome. Open an issue to discuss a bug or proposal, or submit a pull request with a focused change and its relevant verification.
+Suggestions are welcome through GitHub Issues: [report a bug](https://github.com/Peiiii/nextclaw/issues/new?template=bug_report.yml), [propose an idea or improvement](https://github.com/Peiiii/nextclaw/issues/new?template=feature_request.yml), or [browse work open to outside contributors](https://github.com/Peiiii/nextclaw/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22). Please read [CONTRIBUTING.md](CONTRIBUTING.md) before implementing anything: an Issue needs `help wanted` plus explicit maintainer confirmation or assignment before a pull request is opened.
 
 ## Acknowledgements
 
