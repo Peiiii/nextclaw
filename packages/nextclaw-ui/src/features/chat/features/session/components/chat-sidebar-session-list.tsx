@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
-import { MessageSquareText } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { ChatCollapsibleContent } from "@nextclaw/agent-chat-ui";
+import { ChevronRight, MessageSquareText } from "lucide-react";
 import type { NcpSessionListItemView } from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
 import type {
   ChatSidebarDateGroup,
@@ -8,6 +9,7 @@ import type {
 import { ChatSidebarProjectGroups } from "@/features/chat/features/session/components/chat-sidebar-project-groups";
 import type { ChatSessionTypeOption } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
 import { t } from "@/shared/lib/i18n";
+import { cn } from "@/shared/lib/utils";
 
 type SessionTypeOption = ChatSessionTypeOption;
 
@@ -28,6 +30,41 @@ function ChatSidebarEmptyState({ label }: { label: string }) {
     <div className="p-4 text-center">
       <MessageSquareText className="mx-auto mb-2 h-6 w-6 text-muted-foreground/45" />
       <div className="text-xs text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function ChatSidebarSessionGroup({ group, variant, renderSessionItem }: {
+  group: ChatSidebarDateGroup;
+  variant: 'desktop' | 'mobile';
+  renderSessionItem: ChatSidebarSessionListProps['renderSessionItem'];
+}) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className={cn(
+          'group/session-heading flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl text-left text-xs font-medium text-muted-foreground outline-none transition-colors duration-base hover:bg-[var(--interaction-hover)] hover:text-foreground',
+          variant === 'mobile' ? 'min-h-9 px-4' : 'min-h-7 px-2',
+        )}
+      >
+        <span className="truncate">{group.label}</span>
+        <ChevronRight
+          aria-hidden="true"
+          className={cn(
+            'h-3 w-3 shrink-0 opacity-0 transition-[opacity,transform] duration-200 group-hover/session-heading:opacity-100 motion-reduce:transition-none',
+            open && 'rotate-90',
+          )}
+        />
+      </button>
+      <ChatCollapsibleContent open={open}>{() => (
+        <div className={variant === 'mobile' ? undefined : 'space-y-0.5'}>
+          {group.items.map(renderSessionItem)}
+        </div>
+      )}</ChatCollapsibleContent>
     </div>
   );
 }
@@ -72,14 +109,12 @@ export function ChatSidebarSessionList({
   return (
     <div className={variant === 'mobile' ? undefined : 'space-y-2'}>
       {groups.map((group) => (
-        <div key={group.label}>
-          <div className={variant === 'mobile' ? 'px-4 py-1 text-[11px] text-muted-foreground' : 'px-2 pb-1 pt-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/65'}>
-            {group.label}
-          </div>
-          <div className={variant === 'mobile' ? undefined : 'space-y-0.5'}>
-            {group.items.map(renderSessionItem)}
-          </div>
-        </div>
+        <ChatSidebarSessionGroup
+          key={group.label}
+          group={group}
+          variant={variant}
+          renderSessionItem={renderSessionItem}
+        />
       ))}
     </div>
   );
