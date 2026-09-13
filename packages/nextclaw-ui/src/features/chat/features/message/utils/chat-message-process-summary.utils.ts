@@ -1,28 +1,14 @@
-import type { NcpMessage } from "@nextclaw/ncp";
+import { readNcpAiExecutionMetadata, type NcpMessage } from "@nextclaw/ncp";
 import type { ChatMessageProcessSummarySource } from "@/features/chat/types/chat-message.types";
+import { t, type I18nLanguage } from "@/shared/lib/i18n";
 
 type BuildChatMessageProcessSummaryParams = {
   message: NcpMessage;
   processedLabel: string;
-  formatDeferredToolSummary?: (toolCallCount: number, toolNames: readonly string[]) => string;
+  failedLabel: string;
+  stoppedLabel: string;
+  language: I18nLanguage;
 };
-
-const UI_HISTORY_TOOL_PAYLOAD_SUMMARY_METADATA_KEY =
-  "nextclawUiHistoryToolPayloadSummary";
-
-function readDeferredToolSummary(
-  message: NcpMessage,
-): { toolCallCount: number; toolNames: string[] } | null {
-  const value = message.metadata?.[UI_HISTORY_TOOL_PAYLOAD_SUMMARY_METADATA_KEY];
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const record = value as Record<string, unknown>;
-  const { toolCallCount } = record;
-  if (!Number.isInteger(toolCallCount) || (toolCallCount as number) <= 0) return null;
-  const toolNames = Array.isArray(record.toolNames)
-    ? record.toolNames.filter((name): name is string => typeof name === "string" && name.trim().length > 0)
-    : [];
-  return { toolCallCount: toolCallCount as number, toolNames };
-}
 
 function isAssistantProcessPart(part: NcpMessage["parts"][number]): boolean {
   return part.type === "reasoning" || part.type === "tool-invocation";
@@ -62,7 +48,7 @@ function hasCollapsibleAssistantProcess(message: NcpMessage): boolean {
   );
 }
 
-function formatLifecycleDuration(message: NcpMessage): string | null {
+function formatLifecycleDuration(message: NcpMessage, language: I18nLanguage): string | null {
   const startedAt = message.lifecycle?.startedAt;
   const endedAt = message.lifecycle?.endedAt;
   if (!startedAt || !endedAt) {
@@ -77,13 +63,13 @@ function formatLifecycleDuration(message: NcpMessage): string | null {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  if (hours > 0) {
-    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-  }
-  if (minutes > 0) {
-    return `${minutes}m ${seconds}s`;
-  }
-  return `${seconds}s`;
+  const key = hours > 0
+    ? (minutes > 0 ? "chatProcessDurationHoursMinutes" : "chatProcessDurationHours")
+    : (minutes > 0 ? "chatProcessDurationMinutesSeconds" : "chatProcessDurationSeconds");
+  return t(key, language)
+    .replace("{hours}", String(hours))
+    .replace("{minutes}", String(minutes))
+    .replace("{seconds}", String(seconds));
 }
 
 /**
@@ -92,22 +78,21 @@ function formatLifecycleDuration(message: NcpMessage): string | null {
  * and must not be mixed into this summary.
  */
 export function buildChatMessageProcessSummary({
-  formatDeferredToolSummary,
+  failedLabel,
+  stoppedLabel,
   message,
   processedLabel,
+  language,
 }: BuildChatMessageProcessSummaryParams): ChatMessageProcessSummarySource | undefined {
   if (!hasCollapsibleAssistantProcess(message)) {
     return undefined;
   }
-  const duration = formatLifecycleDuration(message);
-  const baseLabel = duration ? `${processedLabel} ${duration}` : processedLabel;
-  const deferredToolSummary = readDeferredToolSummary(message);
+  const duration = formatLifecycleDuration(message, language);
+  const outcome = readNcpAiExecutionMetadata(message.metadata)?.outcome;
+  const statusLabel = message.status === "error" || outcome === "failed"
+    ? failedLabel
+    : outcome === "aborted" ? stoppedLabel : processedLabel;
   return {
-    label: deferredToolSummary && formatDeferredToolSummary
-      ? `${baseLabel} · ${formatDeferredToolSummary(
-          deferredToolSummary.toolCallCount,
-          deferredToolSummary.toolNames,
-        )}`
-      : baseLabel,
+    label: duration ? `${statusLabel} ${duration}` : statusLabel,
   };
 }

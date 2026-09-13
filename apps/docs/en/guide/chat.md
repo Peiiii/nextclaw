@@ -15,7 +15,7 @@ Continue the current session when you are refining its files, asking more questi
 
 ## Processing details
 
-Reasoning and tool activity can collapse into a “Processed” summary. When the run records its start and end times, the summary shows elapsed time and keeps it after a refresh. Older messages without timing records do not show an estimated duration.
+After a reply ends, reasoning and tool activity can collapse into a “Processed” summary. Failed runs show “Failed”; runs with a recorded stop show “Stopped”. The summary shows only status and recorded elapsed time, such as “Processed 2m 7s”, without tool counts or tool names. Click it to expand processing details. When the run records its start and end times, elapsed time remains available after a refresh. Older messages without timing records do not show an estimated duration.
 
 The thinking indicator follows the current task. A task may continue after a reply appears; the generation indicator ends when the task reports completion.
 

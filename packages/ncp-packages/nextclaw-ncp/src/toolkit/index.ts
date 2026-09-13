@@ -10,8 +10,8 @@ export type {
 export {
   sanitizeAssistantReplyTags,
   stripReplyTagsFromText,
-} from "./reply-tags.js";
-export type { NcpReplyTagParseResult } from "./reply-tags.js";
+} from "./reply-tags.utils.js";
+export type { NcpReplyTagParseResult } from "./reply-tags.utils.js";
 export {
   NcpAssistantTextStreamNormalizer,
   normalizeAssistantText,

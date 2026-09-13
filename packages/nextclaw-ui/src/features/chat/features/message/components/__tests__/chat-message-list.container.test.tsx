@@ -10,6 +10,7 @@ import type { ChatMessageListProps } from "@nextclaw/agent-chat-ui";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ChatMessageListContainer as RuntimeChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
+import type * as I18nModule from "@/shared/lib/i18n";
 
 type AgentChatUiModule = {
   ChatMessageList: ComponentType<ChatMessageListProps>;
@@ -112,10 +113,15 @@ vi.mock("@/app/components/i18n-provider", () => ({
   useI18n: () => ({ language: captures.language }),
 }));
 
-vi.mock("@/shared/lib/i18n", () => ({
-  formatDateTime: (value: string) => `formatted:${value}`,
-  t: (key: string) => key,
-}));
+vi.mock("@/shared/lib/i18n", async (importOriginal) => {
+  const actual = await importOriginal<typeof I18nModule>();
+  return {
+    ...actual,
+    formatDateTime: (value: string) => `formatted:${value}`,
+    t: (key: string) => key.startsWith("chatProcessDuration") || (captures.language === "zh" && key.startsWith("chatProcessSummary"))
+      ? actual.t(key, captures.language === "zh" ? "zh" : "en") : key,
+  };
+});
 
 vi.mock(
   "@/features/chat/features/workspace/components/chat-session-workspace-file-preview",
@@ -325,51 +331,30 @@ it("adds a completed assistant process summary without inventing a duration", ()
   });
 });
 
-it("derives completed assistant process duration from message lifecycle", () => {
-  const assistantMessage = {
-    id: "assistant-process-result",
-    sessionId: "session-1",
-    role: "assistant",
-    status: "final",
-    timestamp: "2026-03-31T10:01:03.000Z",
-    lifecycle: {
-      startedAt: "2026-03-31T10:00:00.000Z",
-      endedAt: "2026-03-31T10:03:51.000Z",
-    },
+it("renders a minimal Chinese history summary and still expands its process", () => {
+  captures.language = "zh";
+  captures.renderActualChatMessageList = true;
+  const message: NcpMessage = {
+    id: "assistant-minimal-summary", sessionId: "session-1", role: "assistant", status: "final",
+    timestamp: "2026-03-31T10:02:07.000Z",
+    lifecycle: { startedAt: "2026-03-31T10:00:00.000Z", endedAt: "2026-03-31T10:02:07.000Z" },
+    metadata: { nextclawUiHistoryToolPayloadSummary: {
+      toolCallCount: 67, toolNames: ["tool_schema", "projects_list", "project_work_list"],
+    } },
     parts: [
-      {
-        type: "reasoning",
-        text: "Inspecting current state.",
-      },
-      {
-        type: "tool-invocation",
-        toolCallId: "tool-1",
-        toolName: "exec_command",
-        state: "result",
-        args: '{"cmd":"git status"}',
-        result: "clean",
-      },
-      {
-        type: "text",
-        text: "Done.",
-      },
+      { type: "reasoning", text: "核对项目详情" },
+      { type: "tool-invocation", toolCallId: "tool-1", toolName: "projects_list", state: "result" },
+      { type: "text", text: "项目已整理" },
     ],
-  } satisfies NcpMessage;
-
-  render(
-    <ChatMessageListContainer
-      messages={[assistantMessage]}
-      isSending={false}
-    />,
-  );
-
-  const renderedMessages =
-    captures.renders[captures.renders.length - 1]?.messages ?? [];
-  expect(renderedMessages[0]).toMatchObject({
-    processSummary: {
-      label: "chatProcessSummaryProcessed 3m 51s",
-    },
-  });
+  };
+  render(<ChatMessageListContainer messages={[message]} isSending={false} />);
+  const summary = screen.getByRole("button", { name: "已处理 2分钟7秒" });
+  expect(summary.getAttribute("aria-expanded")).toBe("false");
+  expect(screen.queryByText(/67|tool_schema|project_work_list/)).toBeNull();
+  expect(screen.getByText("项目已整理")).toBeTruthy();
+  fireEvent.click(summary);
+  expect(summary.getAttribute("aria-expanded")).toBe("true");
+  expect(screen.getByRole("button", { name: "projects list" })).toBeTruthy();
 });
 
 it("keeps unavailable ai usage in metadata but out of the footer", () => {
