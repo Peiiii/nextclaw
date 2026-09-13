@@ -66,7 +66,7 @@ import {
 import { useChatMessageActions } from "@/features/chat/features/message/hooks/use-chat-message-actions";
 import { useChatInlineTokenActions } from "@/features/chat/features/message/hooks/use-chat-inline-token-actions";
 import { buildServerPathContentUrl } from "@/shared/lib/api";
-import { formatDateTime, formatNumber, t } from "@/shared/lib/i18n";
+import { formatDateTime, t, type I18nLanguage } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 import type { SessionMessageToolPayloadState } from "@/features/chat/features/ncp/hooks/use-ncp-session-message-history";
 import { ChatMessageObservationEvent } from "@/features/chat/features/message/components/chat-message-observation-event";
@@ -96,7 +96,7 @@ class ChatMessageViewModelAdapter {
   private readonly cache = new WeakMap<
     NcpMessage,
     {
-      language: Parameters<typeof formatDateTime>[1];
+      language: I18nLanguage;
       processSummaryLabel: string | null;
       executionPresentationKey: string | null;
       triggerDetailsKey: string | null;
@@ -108,7 +108,7 @@ class ChatMessageViewModelAdapter {
     continuationRunning: boolean;
     executionLabels: ReturnType<typeof buildChatMessageExecutionLabels>;
     triggerLabels: ReturnType<typeof buildChatMessageTriggerLabels>;
-    language: Parameters<typeof formatDateTime>[1];
+    language: I18nLanguage;
     processedLabel: string;
     rawMessages: readonly NcpMessage[];
     texts: ReturnType<typeof buildChatMessageAdapterTexts>;
@@ -120,13 +120,9 @@ class ChatMessageViewModelAdapter {
       const processSummary = buildChatMessageProcessSummary({
         message,
         processedLabel,
-        formatDeferredToolSummary: (toolCallCount, toolNames) => {
-          const countLabel = t("chatProcessSummaryToolCalls", language)
-            .replace("{count}", formatNumber(toolCallCount, language));
-          if (toolNames.length === 0) return countLabel;
-          const separator = language === "zh" ? "、" : ", ";
-          return `${countLabel} · ${toolNames.join(separator)}`;
-        },
+        language,
+        failedLabel: t("chatProcessSummaryError", language),
+        stoppedLabel: t("chatProcessSummaryStopped", language),
       });
       const processSummaryLabel = processSummary?.label ?? null;
       const executionPresentation = buildChatMessageExecutionPresentation({
