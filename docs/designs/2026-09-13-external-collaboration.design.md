@@ -605,6 +605,8 @@ GitHub 使用 gh api，Linear 固定支持 schpet linear-cli 1.11.1 的 api/vari
 
 ## 14. GitHub webhook 本地增量（2026-09-13）
 
+交付状态：本地已启用，GitHub 周期扫描关闭；原任务回复 5652380279 于 09:11:06Z 返回。`nextclaw collaboration` 活跃本地 runtime 和独立 CLI 均已安装本次源码构建，旧 runtime 文件已本地备份。命令文档同步测试 2 项通过；本次不执行 NPM/runtime 发布。以下为设计与验收过程记录，以此完成状态为准。
+
 用户在原 Issue 评论，GitHub 将 issues / issue_comment 事件推到独立 Smee 通道，本机宿主通过 SSE 接收，校验 HMAC-SHA256、仓库与事件种类后持久化到原 journal；原回执、权限、去重、会话绑定和执行链继续消费。无需公网端口、独立平台或新运行进程。配置由 `collaboration webhook CONNECTION --relay-url URL --secret-file PATH` 完成，关闭该连接轮询；`--disable` 恢复 30 秒轮询。宿主 start/stop 同时管理连接，status 显示通道健康。
 
 采用现有 undici EventSource 和代理环境；Smee JSON 转发按其官方客户端重新序列化 body 后验签，失败绝不降级放行。密钥只存本地文件；转发服务可见事件内容。长连接重连不等同于离线可靠补投，停机期间消息需 GitHub 手动重投或切回轮询补采。本次不新增云存储、不发布包、不改其它现存 hook。
