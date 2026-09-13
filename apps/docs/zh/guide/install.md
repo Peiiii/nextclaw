@@ -12,6 +12,12 @@ NextClaw 支持桌面版、npm 和 Docker。三种方式使用同一个产品，
 
 你可以在桌面端设置中选择更新渠道。stable 只接收正式版；beta 会同时检查预览版和正式版，并提示其中版本较新的更新。
 
+### Portable Edition 手动更新
+
+Portable Edition（便携版）暂不支持应用内自动更新。更新页面显示阻塞提示时，点击「下载最新 Portable Edition」打开 [GitHub Releases](https://github.com/Peiiii/nextclaw/releases)，选择适合当前系统和架构的便携包。
+
+下载后退出正在运行的 NextClaw，将新包解压到新目录，再把旧便携版目录中的整个 `data` 文件夹复制到新目录中，与程序放在一起，然后启动新版。确认原有配置和数据可用后再清理旧目录；不要删除或覆盖原有 `data` 文件夹。
+
 ## 终端与本机服务：npm
 
 如果你习惯命令行，或希望在本机以服务方式运行，可以安装 npm 包。

@@ -12,6 +12,12 @@ Open NextClaw after installation. A fresh install enables OpenCode Zen free-tria
 
 You can choose an update channel in Desktop settings. Stable receives production releases only. Beta checks both preview and production releases and offers whichever version is newer.
 
+### Update Portable Edition manually
+
+Portable Edition does not support in-app updates yet. When the update page shows a blocked notice, select **Download Latest Portable Edition** to open [GitHub Releases](https://github.com/Peiiii/nextclaw/releases), then choose the portable archive for your operating system and architecture.
+
+After downloading, quit NextClaw and extract the new archive into a new directory. Copy the entire `data` folder from the old portable directory into the new directory alongside the app, then launch the new version. Verify that your existing settings and data are available before removing the old directory; do not delete or overwrite the original `data` folder.
+
 ## Terminal and local service: npm
 
 Use npm when you prefer a command-line workflow or want NextClaw to run as a local service.

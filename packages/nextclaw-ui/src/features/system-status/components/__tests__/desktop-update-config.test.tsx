@@ -181,6 +181,46 @@ describe('DesktopUpdateConfig', () => {
     expect(screen.getByText('fetch failed: getaddrinfo ENOTFOUND updates.nextclaw.io')).toBeTruthy();
   });
 
+  it('offers a manual Portable Edition download when in-app updates are blocked', () => {
+    useRuntimeUpdateStore.setState((state) => ({
+      ...state,
+      snapshot: state.snapshot
+        ? {
+            ...state.snapshot,
+            status: 'blocked',
+            installationKind: 'desktop-bundle',
+            blockReason: 'unsupported-installation',
+            errorMessage: 'Portable Edition does not support in-app updates yet. Download a newer Portable Edition and keep the data directory.'
+          }
+        : null
+    }));
+
+    renderDesktopUpdateConfig();
+
+    const downloadLink = screen.getByRole('link', { name: '下载最新 Portable Edition' });
+    expect(downloadLink.getAttribute('href')).toBe('https://github.com/Peiiii/nextclaw/releases');
+    expect(downloadLink.getAttribute('target')).toBe('_blank');
+  });
+
+  it('does not offer a Portable Edition download for non-desktop update blocks', () => {
+    useRuntimeUpdateStore.setState((state) => ({
+      ...state,
+      snapshot: state.snapshot
+        ? {
+            ...state.snapshot,
+            status: 'blocked',
+            installationKind: 'npm-runtime-bundle',
+            blockReason: 'unsupported-installation',
+            errorMessage: 'This runtime does not support updates.'
+          }
+        : null
+    }));
+
+    renderDesktopUpdateConfig();
+
+    expect(screen.queryByRole('link', { name: '下载最新 Portable Edition' })).toBeNull();
+  });
+
   it('loads structured release notes from the docs JSON endpoint', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       schemaVersion: 1,
