@@ -207,9 +207,11 @@ describe("useChatMessageVirtualizer", () => {
     expect(scrollElement.scrollTop - (anchored?.start ?? 0)).toBe(anchorOffset);
   });
 
-  it.each([11, 20])(
-    "does not reclaim sticky escape when the active row grows %d px from the bottom",
-    async (escapeDistance) => {
+  it.each([-200, 0, 11, 20].flatMap((distance) => [
+    [distance, 100], [distance, -105],
+  ]))(
+    "leaves bottom following to the scroll owner at distance %d with height delta %d",
+    async (escapeDistance, delta) => {
       const scrollElement = document.createElement("div");
       Object.defineProperties(scrollElement, {
         clientHeight: { configurable: true, value: 800 },
@@ -248,14 +250,14 @@ describe("useChatMessageVirtualizer", () => {
         expect(result.current.virtualizer.scrollOffset).toBe(escapedScrollTop),
       );
 
-      act(() => result.current.virtualizer.resizeItem(9, 1_100));
+      act(() => result.current.virtualizer.resizeItem(9, 1_000 + delta));
 
       expect(scrollElement.scrollTop).toBe(escapedScrollTop);
       expect(
         result.current.virtualizer.getTotalSize() -
           scrollElement.scrollTop -
           scrollElement.clientHeight,
-      ).toBe(escapeDistance + 100);
+      ).toBe(escapeDistance + delta);
     },
   );
 });

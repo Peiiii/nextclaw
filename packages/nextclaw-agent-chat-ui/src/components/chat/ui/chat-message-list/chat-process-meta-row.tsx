@@ -57,6 +57,7 @@ export function ChatProcessMetaRow({
   role,
   tabIndex,
   onKeyDown,
+  "aria-expanded": ariaExpanded,
 }: {
   children: ReactNode;
   className?: string;
@@ -65,6 +66,7 @@ export function ChatProcessMetaRow({
   role?: string;
   tabIndex?: number;
   onKeyDown?: (event: KeyboardEvent<HTMLElement>) => void;
+  "aria-expanded"?: boolean;
 }) {
   return (
     <div
@@ -80,6 +82,7 @@ export function ChatProcessMetaRow({
       role={role}
       tabIndex={tabIndex}
       onKeyDown={onKeyDown}
+      aria-expanded={interactive ? ariaExpanded : undefined}
     >
       {children}
     </div>

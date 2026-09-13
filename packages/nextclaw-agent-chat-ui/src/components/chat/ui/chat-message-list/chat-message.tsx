@@ -20,6 +20,7 @@ import { ChatReasoningBlock } from "./chat-reasoning-block";
 import { ChatToolCard } from "./chat-tool-card";
 import { ChatToolActivityGroup } from "./chat-tool-activity-group";
 import { ChatCollapsibleMetaSummary } from "./chat-collapsible-meta-summary";
+import { ChatCollapsibleContent } from "./chat-collapsible-content";
 import { ChatProcessWorkflowRail } from "./chat-process-meta-row";
 import {
   groupConsecutiveToolParts,
@@ -430,9 +431,8 @@ export const ChatMessage = memo(function ChatMessage({
                   onClick={handleProcessToggle}
                 />
               </div>
-              {processOpen ? (
-                <div className="space-y-0">
-                  {renderMessageParts({
+              <ChatCollapsibleContent open={processOpen}>{() => (
+                  renderMessageParts({
                     parts: processSplit.processParts,
                     role,
                     isUser,
@@ -449,9 +449,8 @@ export const ChatMessage = memo(function ChatMessage({
                     renderInlineDisplay,
                     renderToolAgent,
                     renderPanelAppCard,
-                  })}
-                </div>
-              ) : null}
+                  })
+              )}</ChatCollapsibleContent>
             </div>
             {renderMessageParts({
               parts: processSplit.finalParts,

@@ -7,6 +7,7 @@ import type {
 import { ToolCardRoot, ToolCardContent, ToolCardDetailSection } from './tool-card-root';
 import { ToolCardHeader, ToolCardHeaderAction } from './tool-card-header';
 import { formatToolCardPayload, useToolCardExpandedState } from './tool-card-views';
+import { ChatCollapsibleContent } from '../chat-collapsible-content';
 
 function buildToolActionSlot(
   card: ChatToolPartViewModel,
@@ -46,8 +47,6 @@ export function GenericToolCard({
     autoExpandWhileRunning: false,
     statusTone: card.statusTone,
   });
-  const input = expanded ? formatToolCardPayload(card.input, card.inputData) : '';
-  const output = expanded ? formatToolCardPayload(card.output, card.outputData) : '';
 
   return (
     <ToolCardRoot>
@@ -60,11 +59,11 @@ export function GenericToolCard({
         actionSlot={actionSlot}
         onToggle={onToggle}
       />
-      {expanded && hasContent ? (
+      <ChatCollapsibleContent open={expanded && hasContent}>{() => (
         <ToolCardContent className="bg-transparent py-0">
           {hasInputSection ? (
             <ToolCardDetailSection label={card.inputLabel?.trim() || 'Input'} tone="input">
-              {input}
+              {formatToolCardPayload(card.input, card.inputData)}
             </ToolCardDetailSection>
           ) : null}
           {hasInputSection && hasOutputSection ? <div className="h-2" /> : null}
@@ -73,11 +72,11 @@ export function GenericToolCard({
               label={card.outputLabel?.trim() || 'Output'}
               tone={card.statusTone === 'error' ? 'error' : 'output'}
             >
-              {output}
+              {formatToolCardPayload(card.output, card.outputData)}
             </ToolCardDetailSection>
           ) : null}
         </ToolCardContent>
-      ) : null}
+      )}</ChatCollapsibleContent>
     </ToolCardRoot>
   );
 }

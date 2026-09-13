@@ -10,6 +10,7 @@ import { ToolCardHeader } from './tool-card-header';
 import { ToolCardFileOperationContent } from './tool-card-file-operation';
 import { ToolExecutionDuration } from './terminal/tool-execution-duration';
 import { ChatTerminalSurface } from './terminal/terminal-panes';
+import { ChatCollapsibleContent } from '../chat-collapsible-content';
 
 const TOOL_CARD_AUTO_EXPAND_DELAY_MS = 200;
 
@@ -246,7 +247,6 @@ export function TerminalExecutionView({ card, toolLabel }: { card: ChatToolPartV
     expandOnError: canExpand,
     statusTone: card.statusTone,
   });
-  const output = expanded ? terminalOutput : '';
 
   return (
     <ToolCardRoot>
@@ -264,11 +264,11 @@ export function TerminalExecutionView({ card, toolLabel }: { card: ChatToolPartV
         )}
         onToggle={onToggle}
       />
-      {expanded && (
+      <ChatCollapsibleContent open={expanded}>{() => (
         <ToolCardContent className="bg-transparent py-0">
           <ChatTerminalSurface
             command={commandPart}
-            output={output}
+            output={terminalOutput}
             emptyLabel={card.emptyLabel}
             isRunning={isRunning}
             hasOutput={hasOutput}
@@ -277,7 +277,7 @@ export function TerminalExecutionView({ card, toolLabel }: { card: ChatToolPartV
             workingDir={meta.workingDir}
           />
         </ToolCardContent>
-      )}
+      )}</ChatCollapsibleContent>
     </ToolCardRoot>
   );
 }
@@ -347,8 +347,6 @@ export function FileOperationView({
     expandOnError: hasContent,
     statusTone: card.statusTone,
   });
-  const input = expanded ? formatToolCardPayload(card.input, card.inputData) : '';
-  const output = expanded ? formatToolCardPayload(card.output, card.outputData) : '';
 
   const isEdit = isFileEditTool(card.toolName);
   const changeSummary = isEdit
@@ -368,7 +366,10 @@ export function FileOperationView({
         hideSummary={false}
         onToggle={onToggle}
       />
-      {expanded && hasContent ? (
+      <ChatCollapsibleContent open={expanded && hasContent}>{() => {
+        const input = formatToolCardPayload(card.input, card.inputData);
+        const output = formatToolCardPayload(card.output, card.outputData);
+        return (
         <ToolCardContent className="bg-transparent py-0">
           {showRawInput ? (
             <ToolCardDetailSection label={card.inputLabel?.trim() || 'Input'} tone="input">
@@ -386,7 +387,8 @@ export function FileOperationView({
             />
           ) : null}
         </ToolCardContent>
-      ) : null}
+        );
+      }}</ChatCollapsibleContent>
     </ToolCardRoot>
   );
 }
@@ -408,7 +410,6 @@ export function SearchSnippetView({
     autoExpandWhileRunning: false,
     statusTone: card.statusTone,
   });
-  const output = expanded ? formatToolCardPayload(card.output, card.outputData) : '';
 
   return (
     <ToolCardRoot>
@@ -420,13 +421,13 @@ export function SearchSnippetView({
         canExpand={hasOutput || isRunning}
         onToggle={onToggle} 
       />
-      {expanded && output && (
+      <ChatCollapsibleContent open={expanded && hasOutput}>{() => (
         <ToolCardContent className="py-0">
            <pre className="font-mono text-[12px] text-muted-foreground whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar leading-relaxed">
-             {output}
+             {formatToolCardPayload(card.output, card.outputData)}
            </pre>
         </ToolCardContent>
-      )}
+      )}</ChatCollapsibleContent>
     </ToolCardRoot>
   );
 }

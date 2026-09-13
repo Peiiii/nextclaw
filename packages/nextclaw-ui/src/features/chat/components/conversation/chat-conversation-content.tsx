@@ -95,6 +95,9 @@ export function ChatConversationContent({
 }: ChatConversationContentProps) {
   const threadRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const turnAnchorRef = useRef<HTMLDivElement>(null);
+  const turnFrameRef = useRef<HTMLDivElement>(null);
+  const latestUserMessageId = messages.findLast((message) => message.role === "user")?.id ?? null;
   const hasConversationContent = messages.length > 0 || isSending;
   const readingKey = createConversationScrollRestorationKey(sessionKey, showWelcome);
   const initialReadingPosition = useMemo(() => readingKey ? scrollRestorationManager.read(readingKey) : null, [readingKey]);
@@ -112,6 +115,8 @@ export function ChatConversationContent({
     isLoading: isHistoryLoading,
     hasContent: hasConversationContent,
     contentVersion: messages[messages.length - 1] ?? isSending,
+    stickyThresholdPx: 80,
+    turnSpace: { key: latestUserMessageId, anchorRef: turnAnchorRef, frameRef: turnFrameRef },
   });
   const hasMessages = messages.length > 0;
   const handleScroll = useCallback(
@@ -148,7 +153,7 @@ export function ChatConversationContent({
         {showWelcome ? (
           (welcomeSlot ?? null)
         ) : (
-          <div ref={contentRef} className="pb-7">
+          <div ref={turnFrameRef}><div ref={contentRef} className="pb-7">
             {hasConversationContent ? (
               <ChatConversationTrack className="relative py-4 sm:py-5">
                 <ConversationHistoryStatus historyError={historyError} isLoadingPreviousMessages={isLoadingPreviousMessages} onLoadPreviousMessages={onLoadPreviousMessages} />
@@ -163,6 +168,7 @@ export function ChatConversationContent({
                   onLoadMessageDetails={onLoadMessageDetails}
                   scrollRef={threadRef}
                   sessionKey={sessionKey}
+                  turnAnchorRef={turnAnchorRef}
                 />
                 {isContextCompacting ? <ChatContextCompactionDivider /> : null}
               </ChatConversationTrack>
@@ -172,7 +178,7 @@ export function ChatConversationContent({
                 {bottomSlot}
               </ChatConversationTrack>
             ) : null}
-          </div>
+          </div></div>
         )}
       </div>
       {hasMessages && !showWelcome && !isAtBottom ? (

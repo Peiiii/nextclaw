@@ -19,6 +19,14 @@ After a reply ends, reasoning and tool activity can collapse into a “Processed
 
 The thinking indicator follows the current task. A task may continue after a reply appears; the generation indicator ends when the task reports completion.
 
+## Reading position after sending
+
+When you send at or near the bottom of a conversation, your new message moves toward the top of the reading area, leaving room for the AI reply. The reply fills this space before the page follows longer output. Any remaining space stays after a short reply finishes, preventing a jump.
+
+If you are browsing earlier messages, sending a message and receiving output keep your reading position. Scrolling up during a reply also pauses following; use the return-to-bottom button to see the latest content again.
+
+Processed summaries, reasoning, tool groups, and tool details share a smooth expand/collapse transition. Repeated clicks reverse from the current height. The transition is skipped when your system requests reduced motion.
+
 ## Voice input
 
 When recording starts, the overlay explains why microphone access is needed. Choose Allow in the browser permission prompt. If access is denied, the overlay shows site permission instructions and the settings path for your operating system. After changing permissions, select **Check microphone and retry**. The check immediately releases its temporary microphone capture before starting speech recognition. Missing or unreadable devices have separate messages. Save your draft before restarting the app if your system requires it.

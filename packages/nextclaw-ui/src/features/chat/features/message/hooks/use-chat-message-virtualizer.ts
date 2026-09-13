@@ -12,14 +12,15 @@ export function useChatMessageVirtualizer(params: {
   scrollRef: RefObject<HTMLDivElement | null>;
   activeRowKey?: string | null;
   focusedRowKey?: string | null;
+  anchorRowKey?: string | null;
 }) {
-  const { activeRowKey, focusedRowKey, rows, scrollRef } = params;
+  const { activeRowKey, focusedRowKey, anchorRowKey, rows, scrollRef } = params;
   const pinnedIndexes = useMemo(
     () =>
       rows.flatMap((row, index) =>
-        row.key === activeRowKey || row.key === focusedRowKey ? [index] : [],
+        row.key === activeRowKey || row.key === focusedRowKey || row.key === anchorRowKey ? [index] : [],
       ),
-    [activeRowKey, focusedRowKey, rows],
+    [activeRowKey, focusedRowKey, anchorRowKey, rows],
   );
   const rangeExtractor = useCallback(
     (range: Parameters<typeof defaultRangeExtractor>[0]) =>
@@ -35,6 +36,9 @@ export function useChatMessageVirtualizer(params: {
   // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     anchorTo: "end",
+    // Preserve prepend anchoring, but let useStickyBottomScroll own end following.
+    // Virtual content excludes the reserved turn space and cannot detect its bottom.
+    scrollEndThreshold: -1,
     count: rows.length,
     directDomUpdates: true,
     estimateSize: () => ESTIMATED_CHAT_MESSAGE_ROW_HEIGHT,
