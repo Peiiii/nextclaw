@@ -45,6 +45,14 @@ Related: [Tasks and sessions](/en/guide/chat), [Inspect task results](/en/guide/
 
 ## View layout and navigation
 
+### On mobile
+
+The bottom navigation opens conversations, inbox, skills, agents, settings, and apps. Open the view menu above the conversation list to switch to projects or open scheduled tasks. The project home page lets you select a registered project directly; the detail page's back button returns to project selection.
+
+The composer shows the current model. Tap it to search and switch models. On mobile, the text area starts at one line, grows with your message, and scrolls internally for longer drafts. Settings are grouped by purpose, and long forms and detail dialogs scroll within the window. Mobile previews use a compact title bar: tap the title to switch tabs, navigate back or forward, and access app actions. Hide a view and reopen it from its original entry to continue browsing.
+
+Inbox details prioritize the content, with **Continue chatting** at the bottom. Read status, archive, and delete actions are in the **More** menu.
+
 The session workspace uses the [same view controls](/en/guide/doc-browser#consistent-view-controls) as the global browser: float, collapse, maximize, and restore without losing tabs or navigation history. **Hide view group** preserves the workspace for reopening.
 
 Choose **Move to global sidebar** from a file tab menu to keep its source conversation, working directory, and diff preview while using it across pages. Switching the main conversation does not reinterpret its relative path. Child conversation tabs can also move to the global sidebar or a separate floating window. Other conversation-bound tools move with the workspace group.

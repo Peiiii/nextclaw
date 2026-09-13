@@ -8,6 +8,7 @@ const ChatInput = React.forwardRef<HTMLInputElement, ChatInputProps>(({ classNam
     type={type}
     className={cn(
       'flex h-9 w-full rounded-xl border border-border bg-card px-3.5 py-2 text-sm text-foreground file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground/55 placeholder:font-normal focus:outline-none focus:ring-0 transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+      'max-md:min-h-[var(--control-touch-size,2.75rem)] max-md:text-base',
       className
     )}
     ref={ref}

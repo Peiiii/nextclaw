@@ -142,12 +142,12 @@ export function MarketplacePage({
     <PageLayout className="flex h-full min-h-0 flex-col pb-0">
       {!curatedSceneRoute.isSceneRoute && (
         <>
-          <div className="mb-3 flex items-start justify-between gap-3 border-b border-gray-200/60">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-border/60">
             <Tabs
               value={scope}
               onValueChange={(value) => setScope(value as ScopeType)}
             >
-              <TabsList className="mb-0 h-auto flex-1 justify-start gap-6 rounded-none border-b-0 bg-transparent p-0 text-gray-500">
+              <TabsList className="mb-0 h-auto flex-1 justify-start gap-4 sm:gap-6 rounded-none border-b-0 bg-transparent p-0 text-muted-foreground">
                 <TabsTrigger
                   value="all"
                   className="rounded-none border-b-2 border-transparent bg-transparent px-0 pb-3 pt-0 shadow-none hover:bg-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-gray-950 data-[state=active]:shadow-none"

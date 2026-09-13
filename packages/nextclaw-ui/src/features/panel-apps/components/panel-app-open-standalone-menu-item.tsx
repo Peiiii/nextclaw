@@ -1,4 +1,6 @@
 import { ExternalLink } from "lucide-react";
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
+import { cn } from '@/shared/lib/utils';
 import type { PanelAppEntryView } from "@/shared/lib/api";
 import { t } from "@/shared/lib/i18n";
 
@@ -22,7 +24,7 @@ export function PanelAppOpenStandaloneMenuItem({
       // `opener` keeps this trusted same-origin target auxiliary, so the current browser owns the new tab.
       rel="opener"
       referrerPolicy="no-referrer"
-      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground"
+      className={cn(ACTION_MENU_ITEM_CLASS, ACTION_FEEDBACK.item)}
       onClick={onSelect}
     >
       <ExternalLink className="h-4 w-4 shrink-0" />

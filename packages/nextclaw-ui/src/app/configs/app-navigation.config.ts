@@ -259,8 +259,8 @@ export function resolveMobileRouteMeta(
   if (normalized === "/projects" || normalized.startsWith("/projects/")) {
     return {
       title: translate("projectsTitle"),
-      backTarget: "/chat",
-      backLabel: translate("chat"),
+      backTarget: normalized === "/projects" ? "/chat" : "/projects",
+      backLabel: translate(normalized === "/projects" ? "chat" : "projectsTitle"),
     };
   }
 
@@ -278,6 +278,10 @@ export function resolveMobileRouteMeta(
       backTarget: null,
       backLabel: null,
     };
+  }
+
+  if (normalized === "/cron" || normalized.startsWith("/cron/")) {
+    return { title: translate("cron"), backTarget: "/chat", backLabel: translate("chat") };
   }
 
   for (const item of settingsItems) {

@@ -1,5 +1,5 @@
 import { ChevronsUp, FilePlus2, FolderPlus, MoreVertical, RefreshCw } from 'lucide-react';
-import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
+import { IconActionButton, IconActionGroup } from '@/shared/components/ui/actions/icon-action-button';
 import { ContextMenuTrigger } from '@/shared/components/ui/context-menu/context-menu';
 import { t } from '@/shared/lib/i18n';
 
@@ -26,6 +26,7 @@ export function WorkspaceProjectFilesToolbar({
       >
         {rootLabel}
       </span>
+      <IconActionGroup>
       <IconActionButton
         icon={<FilePlus2 className="h-4 w-4" />}
         label={t('chatWorkspaceNewFile')}
@@ -59,6 +60,7 @@ export function WorkspaceProjectFilesToolbar({
           size="sm"
         />
       </ContextMenuTrigger>
+      </IconActionGroup>
     </div>
   );
 }

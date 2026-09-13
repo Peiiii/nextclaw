@@ -37,6 +37,8 @@ interface PageHeaderProps {
     description?: string;
     actions?: React.ReactNode;
     headingLevel?: 1 | 2;
+    /** The mobile shell already provides the page title. */
+    mobileTitleInShell?: boolean;
     className?: string;
 }
 
@@ -45,6 +47,7 @@ export function PageHeader({
     description,
     actions,
     headingLevel = 2,
+    mobileTitleInShell = false,
     className
 }: PageHeaderProps) {
     const Heading = headingLevel === 1 ? 'h1' : 'h2';
@@ -54,8 +57,8 @@ export function PageHeader({
             data-theme-surface="header"
             className={cn('flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between', className)}
         >
-            <div className="min-w-0">
-                <Heading className="text-xl font-semibold tracking-tight text-foreground">{title}</Heading>
+            <div className={cn("min-w-0", mobileTitleInShell && !description && "hidden md:block")}>
+                <Heading className={cn("text-xl font-semibold tracking-tight text-foreground", mobileTitleInShell && "hidden md:block")}>{title}</Heading>
                 {description && (
                     <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
                 )}

@@ -74,7 +74,7 @@ function InboxHtmlContent({
   return (
     <iframe
       className={cn(
-        "w-full rounded-xl bg-background",
+        "w-full md:rounded-xl bg-background",
         fillHeight
           ? "h-full min-h-0 border-0"
           : "h-[min(60vh,680px)] min-h-[360px] border border-border/70",

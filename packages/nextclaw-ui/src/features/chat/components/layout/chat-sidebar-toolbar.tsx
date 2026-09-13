@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { ChevronDown, Clock3, Folder, FolderPlus, Plus, Search, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { AlarmClock, ChevronDown, Clock3, Folder, FolderPlus, Plus, Search, X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
-import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
+import { IconActionButton, IconActionGroup } from '@/shared/components/ui/actions/icon-action-button';
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
 import { Input } from '@/shared/components/ui/input';
 import { Popover, PopoverTrigger } from '@/shared/components/ui/popover';
 import { ChatPopoverContent } from '@/features/chat/components/chat-popover-content';
@@ -50,7 +52,7 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps & {
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   return (
     <div className="shrink-0 border-b border-border/50 bg-background px-3 text-foreground" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-      <div className="flex h-14 items-center gap-1">
+      <div className="flex h-[var(--mobile-header-height)] items-center gap-1">
         <Popover open={viewMenuOpen} onOpenChange={setViewMenuOpen}>
           <h1>
             <PopoverTrigger asChild>
@@ -65,14 +67,19 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps & {
               <ChatSessionHeaderMenuItem icon={Clock3} label={t('chatSidebarViewTime')} onClick={() => onSelectMode('time-first')} />
               <ChatSessionHeaderMenuItem icon={Folder} label={t('chatSidebarViewProject')} onClick={() => onSelectMode('project-first')} />
               <ChatSessionHeaderMenuItem icon={FolderPlus} label={t('chatProjectAdd')} onClick={onAddProject} />
+              <Link to="/cron" className={`${ACTION_MENU_ITEM_CLASS} text-foreground ${ACTION_FEEDBACK.item}`}>
+                <AlarmClock className="h-4 w-4 text-muted-foreground" />{t('cron')}
+              </Link>
             </div>
           </ChatPopoverContent>
         </Popover>
         <div className="flex-1" />
+        <IconActionGroup>
         <IconActionButton icon={searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
-          label={t(searchOpen ? 'chatSidebarCloseSearch' : 'chatSidebarSearchPlaceholder')} className="h-11 w-11" tooltip={false}
+          label={t(searchOpen ? 'chatSidebarCloseSearch' : 'chatSidebarSearchPlaceholder')} tooltip={false}
           onClick={() => { setSearchOpen(!searchOpen); if (searchOpen) onQueryChange(''); }} />
-        <IconActionButton icon={<Plus className="h-5 w-5" />} label={t('chatSidebarNewTask')} className="h-11 w-11" tooltip={false} onClick={onCreateSession} />
+        <IconActionButton icon={<Plus className="h-5 w-5" />} label={t('chatSidebarNewTask')} tooltip={false} onClick={onCreateSession} />
+        </IconActionGroup>
       </div>
       {searchOpen ? <div className="pb-2">
         <Input autoFocus value={query} onChange={event => onQueryChange(event.target.value)} placeholder={t('chatSidebarSearchPlaceholder')}

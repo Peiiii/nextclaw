@@ -1,4 +1,8 @@
 import { PageResourceIcon } from '@/features/right-panel-resources';
+import { useState, type ReactNode } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
+import { ContextMenuItems } from '@/shared/components/ui/context-menu/context-menu';
 import {
   ArrowLeft,
   ArrowRight,
@@ -16,6 +20,8 @@ import {
 import { t } from "@/shared/lib/i18n";
 
 type DocBrowserTabStripProps = {
+  compact?: boolean;
+  mobileToolbar?: ReactNode;
   tabs: DocBrowserTab[];
   activeTabId: string;
   canGoBack: boolean;
@@ -47,7 +53,10 @@ export function DocBrowserTabStrip({
   onSetActiveTab,
   onCloseTab,
   getTabMenuGroups,
+  mobileToolbar,
+  compact = false,
 }: DocBrowserTabStripProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const backLabel = t("docBrowserBack");
   const closeTabLabel = t("workbenchCloseTab");
   const dockLabel = dockState?.isDocked
@@ -87,18 +96,40 @@ export function DocBrowserTabStrip({
       : []),
   ];
 
+  const current = tabs.find(tab => tab.id === activeTabId);
+  const mobileGroups: ContextMenuGroup[] = [
+    { key: 'tabs', items: compactTabs.map(tab => ({ key: tab.key, label: tab.label, icon: tab.leadingIcon, pressed: tab.active, onSelect: tab.onSelect })) },
+    { key: 'navigation', items: actions.map(action => ({ key: action.key, label: action.label, icon: action.icon, disabled: action.disabled, onSelect: action.onClick })) },
+    ...(current ? getTabMenuGroups?.(current) ?? [] : []),
+    ...(current ? [{ key: 'close-tab', items: [{ key: 'close-tab', label: closeTabLabel, onSelect: () => onCloseTab(current.id) }] }] : []),
+  ];
+  if (compact) return (
+    <div className="flex h-12 min-w-0 flex-1 items-center">
+      <Popover open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <PopoverTrigger asChild>
+          <button type="button" className="flex h-8 min-w-0 items-center gap-2 rounded-lg px-2 text-sm font-medium hover:bg-[var(--interaction-hover)]" aria-label={t('docBrowserTabMoreActions')}>
+            {current ? <DocBrowserTabIcon tab={current} /> : null}
+            <span className="truncate">{current?.title || t('docBrowserTabUntitled')}</span><ChevronDown className="h-4 w-4 shrink-0" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="max-h-[70dvh] w-72 overflow-y-auto p-1">
+          <ContextMenuItems groups={mobileGroups} onClose={() => setMobileMenuOpen(false)} />
+          {mobileToolbar}
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
   return (
     <CompactTabStrip
       testId="doc-browser-tab-strip"
       actionsTestId="doc-browser-tab-actions"
       tabs={compactTabs}
       actions={actions}
-      className="h-10 min-w-0 flex-1 gap-1 border-0 bg-transparent px-0 select-none"
-      scrollClassName="doc-browser-tab-scrollbar flex h-full items-center gap-0.5"
+      className="flex h-10 min-w-0 flex-1 gap-1 border-0 bg-transparent px-0 select-none"
+      scrollClassName="doc-browser-tab-scrollbar flex h-full max-md:h-11 max-md:basis-full items-center gap-0.5"
       tabsClassName="items-center gap-0.5"
-      actionsClassName="h-full items-center gap-0.5"
-      actionButtonClassName="rounded-md p-1.5 text-muted-foreground hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
-      tabBaseClassName="inline-flex cursor-pointer items-center gap-0.5 h-7 px-2 rounded-md text-xs max-w-[220px] shrink-0 transition-colors"
+      actionsClassName="h-full max-md:h-11 max-md:w-full items-center gap-0.5"
+      tabBaseClassName="inline-flex cursor-pointer items-center gap-0.5 h-7 max-md:min-h-11 px-2 rounded-md text-xs max-w-[220px] shrink-0 transition-colors"
       activeTabClassName="bg-muted/80 text-foreground"
       inactiveTabClassName="text-muted-foreground hover:bg-muted/45 hover:text-foreground"
       labelClassName="px-0.5 text-xs font-normal"

@@ -545,7 +545,8 @@ describe("DocBrowser panel app navigation", () => {
 
     expect(screen.queryByRole("button", { name: "Pin to left sidebar" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "More panel app actions" }));
-    await user.click(screen.getByRole("button", { name: "Pin to left sidebar" }));
+    await user.click(screen.getByRole("menuitem", { name: "Layout and position" }));
+    await user.click(screen.getByRole("menuitem", { name: "Pin to left sidebar" }));
     expect(panelAppHooks.mutate).toHaveBeenCalledWith({
       id: "piano",
       preferences: { mainSidebar: true },
@@ -571,7 +572,8 @@ describe("DocBrowser panel app navigation", () => {
     render(<DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />);
 
     await user.click(screen.getByRole("button", { name: "More panel app actions" }));
-    await user.click(screen.getByRole("button", { name: "Pin to left sidebar" }));
+    await user.click(screen.getByRole("menuitem", { name: "Layout and position" }));
+    await user.click(screen.getByRole("menuitem", { name: "Pin to left sidebar" }));
     expect(panelAppHooks.mutate).toHaveBeenCalledWith({
       id: "piano",
       preferences: { mainSidebar: true },
@@ -649,6 +651,36 @@ describe("DocBrowser floating interactions", () => {
   beforeEach(() => {
     resetDocBrowserTestState();
     installDocBrowserPointerTestEnvironment();
+  });
+
+  it("keeps compact navigation, tab selection, resource and app actions reachable", () => {
+    const onBack = vi.fn();
+    const onSelect = vi.fn();
+    const onClose = vi.fn();
+    const onAdd = vi.fn();
+    const onRefresh = vi.fn();
+    render(<DocBrowserTabStrip compact tabs={docBrowserState.tabs} activeTabId="docs"
+      canGoBack canGoForward={false} onGoBack={onBack} onGoForward={vi.fn()}
+      onOpenNewTab={vi.fn()} onSetActiveTab={onSelect} onCloseTab={onClose}
+      mobileToolbar={<button onClick={onRefresh}>Refresh app</button>}
+      getTabMenuGroups={() => [{ key: 'chat', items: [{ key: 'add', label: 'Add to Chat', onSelect: onAdd }] }]}
+    />);
+    const open = () => fireEvent.click(screen.getByRole('button', { name: 'More tab actions' }));
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
+    open();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Back' }));
+    expect(onBack).toHaveBeenCalledOnce();
+    open();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Docs' }));
+    expect(onSelect).toHaveBeenCalledWith('docs');
+    open();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Add to Chat' }));
+    expect(onAdd).toHaveBeenCalledOnce();
+    open();
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh app' }));
+    expect(onRefresh).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Close tab' }));
+    expect(onClose).toHaveBeenCalledWith('docs');
   });
 
   it("drags the shared header without stealing tab actions", () => {

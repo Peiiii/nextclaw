@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import * as Popover from "@radix-ui/react-popover";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '../actions/action-feedback';
 import type { ContextMenuGroup, ContextMenuItem } from "./context-menu";
 
 export const CONTEXT_MENU_SURFACE_CLASS =
@@ -59,7 +60,7 @@ function ContextSubmenu({ item, open, onOpenChange, onClose, className, children
         aria-expanded={open}
         disabled={item.disabled}
         data-menu-key={item.key}
-        className={cn(className, open && "bg-muted")}
+        className={cn(className, open && "bg-[var(--interaction-hover)]")}
         onPointerEnter={(event) => {
           if (event.pointerType === "touch") return;
           keyboardOpen.current = false;
@@ -154,8 +155,8 @@ export function ContextMenuItems({ groups, onClose }: {
       {index > 0 ? <div className="my-1 h-px bg-border" /> : null}
       {group.items.map((item) => {
         const className = cn(
-          "flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[13px] font-medium outline-none transition-colors disabled:pointer-events-none disabled:opacity-45",
-          item.destructive ? "text-destructive hover:bg-destructive/10 focus-visible:bg-destructive/10" : "text-foreground hover:bg-muted focus-visible:bg-muted",
+          ACTION_MENU_ITEM_CLASS,
+          item.destructive ? ACTION_FEEDBACK.destructive : `text-foreground ${ACTION_FEEDBACK.item}`,
         );
         const content = <MenuItemContent item={item} />;
         if (item.children) return <ContextSubmenu key={item.key} item={item} open={openKey === item.key}

@@ -2,7 +2,9 @@ import { PageResourceActionsMenu } from '@/features/right-panel-resources';
 import { pageResourceFromSystemObject } from '@/features/right-panel-resources';
 import { useEffect, useMemo, useState } from "react";
 import type { InboxDelivery } from "@nextclaw/shared";
-import { Archive, ArrowLeft, Inbox, MessageCircle, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, Inbox, MessageCircle, MoreVertical, RotateCcw, Trash2 } from "lucide-react";
+import { ContextMenu, ContextMenuTrigger } from '@/shared/components/ui/context-menu/context-menu';
+import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { PageHeader } from "@/app/components/layout/page-layout";
@@ -93,8 +95,9 @@ function InboxListPane({
             key={item.id}
             type="button"
             onClick={() => onFilterChange(item.id)}
+            aria-pressed={filter === item.id}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
+              "inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border md:min-h-0 md:px-2.5 md:text-xs",
               filter === item.id
                 ? "bg-[var(--interaction-selection)] text-foreground"
                 : "text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-foreground",
@@ -122,7 +125,7 @@ function InboxListPane({
                 <Link
                   to={`/inbox/${encodeURIComponent(delivery.id)}`}
                   className={cn(
-                    "block rounded-lg px-2.5 py-2 pr-10 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
+                    "block rounded-lg px-2.5 py-3 pr-12 text-sm md:py-2 md:pr-10 md:text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
                     activeDeliveryId === delivery.id
                       ? "text-foreground"
                       : "text-foreground/80 hover:text-foreground",
@@ -165,20 +168,16 @@ function InboxListPane({
 function InboxDetailPane({
   delivery,
   error,
-  isMobile,
   pending,
   onArchiveToggle,
-  onBack,
   onContinue,
   onDelete,
   onReadToggle,
 }: {
   delivery: InboxDelivery | null;
   error: string | null;
-  isMobile: boolean;
   pending: boolean;
   onArchiveToggle: () => void;
-  onBack: () => void;
   onContinue: () => void;
   onDelete: () => void;
   onReadToggle: () => void;
@@ -193,17 +192,7 @@ function InboxDetailPane({
   const isHtml = delivery.contentType === "html";
   return (
     <main className="flex min-h-0 flex-col">
-      <div className="shrink-0 border-b border-border/50 px-5 py-3 sm:px-6">
-        {isMobile ? (
-          <button
-            type="button"
-            onClick={onBack}
-            className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t("inboxTitle")}
-          </button>
-        ) : null}
+      <div className="shrink-0 px-4 py-2 md:border-b md:border-border/50 md:px-6 md:py-3">
         <div className="flex min-h-7 min-w-0 items-center gap-2">
           <h2
             title={delivery.title}
@@ -223,7 +212,7 @@ function InboxDetailPane({
       <div className={cn(
         "min-h-0 flex-1",
         isHtml
-          ? "p-3 sm:p-4"
+          ? "p-0 md:p-4"
           : "custom-scrollbar overflow-y-auto px-5 py-5 sm:px-6 sm:py-6",
       )}
       ref={scrollRef}
@@ -239,10 +228,10 @@ function InboxDetailPane({
           />
         </div>
       </div>
-      <div className="shrink-0 border-t border-border/50 px-5 py-3 sm:px-6">
+      <div className="shrink-0 border-t border-border/50 px-4 py-2 md:px-6 md:py-3">
         {error ? <p role="alert" className="mb-2 text-sm text-destructive">{error}</p> : null}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="hidden md:flex flex-wrap items-center gap-1">
             <Button size="sm" variant="outline" disabled={pending} onClick={onReadToggle}>
               {delivery.readAt ? t("inboxMarkUnread") : t("inboxMarkRead")}
             </Button>
@@ -256,6 +245,15 @@ function InboxDetailPane({
               <Trash2 className="mr-2 h-4 w-4" />
               {t("inboxDelete")}
             </Button>
+          </div>
+          <div className="md:hidden">
+            <ContextMenu label={t('inboxTitle')} groups={[{ key: 'delivery', items: [
+              { key: 'read', label: delivery.readAt ? t('inboxMarkUnread') : t('inboxMarkRead'), disabled: pending, onSelect: onReadToggle },
+              { key: 'archive', label: delivery.archivedAt ? t('inboxRestore') : t('inboxArchive'), icon: <Archive className="h-4 w-4" />, disabled: pending, onSelect: onArchiveToggle },
+              { key: 'delete', label: t('inboxDelete'), icon: <Trash2 className="h-4 w-4" />, destructive: true, disabled: pending, onSelect: onDelete },
+            ] }]}>
+              <div><ContextMenuTrigger><IconActionButton icon={<MoreVertical className="h-4 w-4" />} label={t('more')} /></ContextMenuTrigger></div>
+            </ContextMenu>
           </div>
           <Button size="sm" disabled={pending} onClick={onContinue}>
             <MessageCircle className="mr-2 h-4 w-4" />
@@ -365,14 +363,14 @@ export function InboxPage() {
   const showDetail = !isMobile || Boolean(activeDelivery);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-6">
-      <PageHeader
+    <div className="flex h-full min-h-0 flex-col md:gap-6">
+      {!isMobile ? <PageHeader
         headingLevel={1}
         title={t("inboxTitle")}
         className="px-4 sm:px-0"
-      />
+      /> : null}
 
-      <div className="min-h-0 flex-1 overflow-hidden border-y border-border/60 bg-background sm:rounded-2xl sm:border">
+      <div className="min-h-0 flex-1 overflow-hidden bg-background md:rounded-2xl md:border md:border-border/60">
         {deliveriesQuery.isError ? (
           <div role="alert" className="p-6 text-sm text-destructive">{t("inboxLoadError")}</div>
         ) : (
@@ -386,10 +384,8 @@ export function InboxPage() {
             {showDetail ? <InboxDetailPane
               delivery={activeDelivery}
               error={error}
-              isMobile={isMobile}
               pending={pendingAction !== null}
               onArchiveToggle={toggleArchive}
-              onBack={() => navigate("/inbox")}
               onContinue={continueInChat}
               onDelete={() => void deleteDelivery()}
               onReadToggle={toggleRead}

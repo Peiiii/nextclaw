@@ -7,7 +7,7 @@ import {
   PictureInPicture2,
   X,
 } from "lucide-react";
-import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
+import { IconActionButton, IconActionGroup } from "@/shared/components/ui/actions/icon-action-button";
 import { t } from "@/shared/lib/i18n";
 import type { WorkbenchSurfaceState } from "./types/workbench-surface.types";
 
@@ -33,8 +33,7 @@ export function WorkbenchSurfaceToolbar({
   onOpenMain?: () => void;
 }) {
   return (
-    <div
-      className="flex shrink-0 items-center gap-0.5"
+    <IconActionGroup
       data-workbench-actions=""
     >
       {onOpenMain && (
@@ -97,6 +96,6 @@ export function WorkbenchSurfaceToolbar({
         label={closeLabel}
         onClick={onClose}
       />
-    </div>
+    </IconActionGroup>
   );
 }

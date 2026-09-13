@@ -14,6 +14,12 @@
    :root {
       color-scheme: light;
 
+      /* Mobile density: hit target, visual feedback, and chrome are separate. */
+      --control-touch-size: 2.75rem;
+      --icon-control-size: 2.5rem;
+      --icon-feedback-size: 2rem;
+      --mobile-header-height: 3rem;
+
       /* ========================================
        BRAND COLORS (Natural Olive)
        ======================================== */
@@ -80,7 +86,7 @@
       /* Accent */
       --accent: var(--brand-50);
       --accent-foreground: var(--brand-700);
-      --interaction-hover: hsl(0 0% 96%);
+      --interaction-hover: hsl(var(--muted));
       --interaction-selection: hsl(211 100% 92%);
       --interaction-selection-border: hsl(211 75% 84%);
 
@@ -717,7 +723,7 @@
       --secondary-foreground: var(--gray-800);
       --accent: 151 32% 18%;
       --accent-foreground: 148 34% 84%;
-      --interaction-hover: hsl(var(--gray-200));
+      --interaction-hover: hsl(var(--muted));
       --interaction-selection: hsl(211 48% 30%);
       --interaction-selection-border: hsl(211 48% 42%);
       --muted: var(--gray-100);

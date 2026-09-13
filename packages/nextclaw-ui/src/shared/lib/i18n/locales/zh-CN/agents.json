@@ -1,5 +1,7 @@
 {
   "agentsPageTitle": "Agent 管理",
+  "mobileAgents": "Agent",
+  "mobileNavigation": "主导航",
   "agentsPageDescription": "管理可对话的 Agent 身份。每个 Agent 都有自己的主目录、设定、记忆与技能。",
   "agentsHeroEyebrow": "Agent 管理台",
   "agentsHeroTitle": "让每个 Agent 都像真正的协作者一样存在",

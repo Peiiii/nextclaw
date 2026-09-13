@@ -1,8 +1,10 @@
 import { NavLink } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import { getSettingsNavSections } from "@/app/configs/app-navigation.config";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 import { useDesktopCapabilityAvailability } from "@/features/desktop-capabilities";
+import { SettingsGroup } from "@/shared/components/settings/setting-row";
 
 export function MobileSettingsShell() {
   const desktopCapabilityAvailable = useDesktopCapabilityAvailability();
@@ -19,29 +21,28 @@ export function MobileSettingsShell() {
       {settingsNavSections.map((section) => (
         <section key={section.label} className="space-y-2">
           <h2 className="px-1 pt-2 text-xs font-medium text-muted-foreground">{section.label}</h2>
-          {section.items.map((item) => (
-        <NavLink
-          key={item.target}
-          to={item.target}
-          className={({ isActive }) =>
-            cn(
-              "flex items-center gap-3 rounded-2xl border border-gray-200/80 bg-white px-4 py-4 shadow-card transition-colors",
-              isActive
-                ? "border-gray-300 bg-gray-50"
-                : "hover:border-gray-300 hover:bg-gray-50/70",
-            )
-          }
-        >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gray-100 text-gray-600">
-            <item.icon className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-gray-900">
-              {item.label}
-            </p>
-          </div>
-        </NavLink>
-          ))}
+          <SettingsGroup>
+            {section.items.map((item) => (
+              <NavLink
+                key={item.target}
+                to={item.target}
+                className={({ isActive }) => cn(
+                  "flex min-h-14 items-center gap-3 px-4 py-3 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-border",
+                  isActive
+                    ? "bg-[var(--interaction-selection)]"
+                    : "hover:bg-[var(--interaction-hover)] active:bg-[var(--interaction-hover)]",
+                )}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground">
+                  <item.icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[15px] font-medium text-foreground">{item.label}</p>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" aria-hidden="true" />
+              </NavLink>
+            ))}
+          </SettingsGroup>
         </section>
       ))}
     </div>

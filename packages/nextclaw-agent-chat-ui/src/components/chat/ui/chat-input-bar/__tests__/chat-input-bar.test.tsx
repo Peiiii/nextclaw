@@ -786,7 +786,7 @@ it('keeps the send control active during streaming when the draft can be queued'
   expect(screen.queryByTestId('chat-stop-icon')).toBeNull();
 });
 
-it('lets leading controls shrink before trailing model and send actions wrap', () => {
+it('keeps a long model name accessible while displaying its compact label', () => {
   const { container } = renderInputBar({
     toolbar: {
       trailingSelects: [
@@ -809,8 +809,6 @@ it('lets leading controls shrink before trailing model and send actions wrap', (
   })).toBeTruthy();
   expect(screen.getAllByText('deepseek-v3.2-super-long-model-name')).toHaveLength(2);
   expect(screen.queryByText('DeepSeek/deepseek-v3.2-super-long-model-name')).toBeNull();
-  expect(container.querySelector('.lucide-sparkles')?.getAttribute('class')).toContain('hidden');
-  expect(container.querySelector('.lucide-sparkles')?.getAttribute('class')).toContain('max-width:440px');
   expect(screen.getByRole('button', { name: 'Send' })).toBeTruthy();
 });
 

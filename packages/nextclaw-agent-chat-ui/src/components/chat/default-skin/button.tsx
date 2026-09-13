@@ -40,7 +40,7 @@ export interface ChatButtonProps
 
 const ChatButton = React.forwardRef<HTMLButtonElement, ChatButtonProps>(
   ({ className, variant, size, ...props }, ref) => (
-    <button className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+    <button className={cn(buttonVariants({ variant, size, className }), size !== 'icon' && 'max-md:min-h-[var(--control-touch-size,2.75rem)]')} ref={ref} {...props} />
   )
 );
 

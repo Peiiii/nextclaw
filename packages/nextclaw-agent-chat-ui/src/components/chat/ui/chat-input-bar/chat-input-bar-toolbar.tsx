@@ -81,18 +81,11 @@ function ToolbarSelectTriggerContent({ item }: { item: ChatToolbarSelect }) {
   if (item.selectedLabel) {
     return (
       <div className="flex min-w-0 items-center gap-2 text-left">
-        <ToolbarIcon
-          icon={item.icon}
-          className={
-            item.key === "model"
-              ? "hidden [@container_nextclaw-chat-input-bar_(max-width:440px)]:block"
-              : undefined
-          }
-        />
-        <span className="nextclaw-chat-toolbar-mobile-label truncate sm:hidden [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">
+        {item.key !== 'model' ? <ToolbarIcon icon={item.icon} /> : null}
+        <span className="nextclaw-chat-toolbar-mobile-label max-w-28 truncate sm:hidden">
           {selectedTriggerLabel}
         </span>
-        <span className="nextclaw-chat-toolbar-label hidden truncate sm:inline [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden">
+        <span className="nextclaw-chat-toolbar-label hidden truncate sm:inline [@container_nextclaw-chat-input-bar_(max-width:440px)]:max-w-28">
           {selectedTriggerLabel}
         </span>
       </div>
@@ -186,10 +179,10 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
               : item.placeholder
           }
           disabled={item.disabled}
-          className={`nextclaw-chat-toolbar-select-trigger inline-flex h-8 w-auto items-center justify-between rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-muted-foreground shadow-none hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!basis-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!justify-center [@container_nextclaw-chat-input-bar_(max-width:440px)]:!max-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!min-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!px-0 ${TRIGGER_WIDTH_BY_KEY[item.key] ?? ""}`}
+          className={`nextclaw-chat-toolbar-select-trigger inline-flex h-8 w-auto items-center justify-between rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-muted-foreground shadow-none hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 ${TRIGGER_WIDTH_BY_KEY[item.key] ?? ""}`}
         >
           <ToolbarSelectTriggerContent item={item} />
-          <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 text-muted-foreground/70 [@container_nextclaw-chat-input-bar_(max-width:440px)]:hidden" />
+          <ChevronDown className="ml-1 h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -245,7 +238,7 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
                     >
                       <button
                         type="button"
-                        className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 py-1 text-left leading-4"
+                        className="flex min-w-0 max-md:min-h-11 flex-1 items-center gap-1.5 rounded-lg px-2 py-1 text-left leading-4"
                         onClick={() => {
                           item.onValueChange(option.value);
                           handleOpenChange(false);
@@ -266,7 +259,7 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
                                 type="button"
                                 aria-label={actionLabel}
                                 aria-pressed={isActive}
-                                className={`mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground/60 transition-[background-color,color,opacity] hover:bg-card hover:text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 ${isActive ? "" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"}`}
+                                className={`mr-1 inline-flex h-7 w-7 max-md:min-h-11 max-md:min-w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground/60 transition-[background-color,color,opacity] hover:bg-[var(--interaction-hover)] hover:text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 ${isActive ? "" : "md:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"}`}
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   action.onToggle(option.value, !isActive);
@@ -356,7 +349,7 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
             : item.placeholder
         }
         title={item.selectedLabel}
-        className={`nextclaw-chat-toolbar-select-trigger h-8 w-auto rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-muted-foreground shadow-none hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus:ring-0 sm:px-3 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!basis-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!justify-center [@container_nextclaw-chat-input-bar_(max-width:440px)]:!max-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!min-w-8 [@container_nextclaw-chat-input-bar_(max-width:440px)]:!px-0 ${TRIGGER_WIDTH_BY_KEY[item.key] ?? ""}`}
+        className={`nextclaw-chat-toolbar-select-trigger h-8 max-md:min-h-8 w-auto rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-muted-foreground shadow-none hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus:ring-0 sm:px-3 ${TRIGGER_WIDTH_BY_KEY[item.key] ?? ""}`}
       >
         {item.selectedLabel || item.loading ? (
           <ToolbarSelectTriggerContent item={item} />
@@ -390,7 +383,7 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
                 <SelectItem
                   key={option.value}
                   value={option.value}
-                  className="py-1.5"
+                  className="py-1.5 max-md:min-h-11"
                 >
                   <ToolbarSelectOptionContent option={option} />
                 </SelectItem>
@@ -415,8 +408,8 @@ export function ChatInputBarToolbar({
   const resolvedAddMenuLabel =
     addMenuLabel ?? skillPicker?.title ?? accessories[0]?.label;
   return (
-    <div className="flex flex-wrap items-end justify-between gap-2 px-3 pb-3">
-      <div className="nextclaw-chat-toolbar-leading-controls flex min-w-0 flex-1 flex-wrap items-center gap-1 overflow-hidden">
+    <div className="flex flex-wrap items-center justify-between gap-1 md:gap-2 px-3 pb-3 [--icon-control-size:2rem]">
+      <div className="nextclaw-chat-toolbar-leading-controls flex min-w-0 shrink-0 flex-wrap items-center gap-1">
         {resolvedAddMenuLabel ? (
           <ChatInputBarAddMenu
             label={resolvedAddMenuLabel}
@@ -429,9 +422,9 @@ export function ChatInputBarToolbar({
         ))}
         {leadingSlot}
       </div>
-      <div className="flex shrink-0 items-end gap-1">
+      <div className="flex min-w-0 flex-1 items-center justify-end gap-1">
         {trailingSelects.length > 0 ? (
-          <div className="nextclaw-chat-toolbar-trailing-selects flex min-w-0 items-center gap-1">
+          <div className="nextclaw-chat-toolbar-trailing-selects flex min-w-0 justify-end items-center gap-1">
             {trailingSelects.map((item) => (
               <ToolbarSelect key={item.key} item={item} />
             ))}

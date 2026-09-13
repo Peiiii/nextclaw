@@ -81,8 +81,17 @@ export function ProjectsPage() {
     );
   if (!selectedProject || !tab)
     return (
-      <main className="p-6 text-sm text-muted-foreground">
-        {t("projectsChoose")}
+      <main className="space-y-3 p-4 text-sm text-muted-foreground sm:p-6">
+        <label htmlFor="project-home-selection" className="block font-medium text-foreground">{t("projectsChoose")}</label>
+        <select
+          id="project-home-selection"
+          value=""
+          onChange={(event) => navigate(`/projects/${encodeURIComponent(event.target.value)}/overview`)}
+          className="min-h-11 w-full rounded-xl border border-border bg-card px-3 text-base text-foreground"
+        >
+          <option value="" disabled>{t("projectsChoose")}</option>
+          {registered.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+        </select>
       </main>
     );
 

@@ -1,4 +1,5 @@
 import { PageResourceActionItems } from '@/features/right-panel-resources';
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
 import { pageResourceFromSystemObject } from '@/features/right-panel-resources';
 import { useMemo, useState } from "react";
 import {
@@ -97,10 +98,10 @@ function AgentActionMenuItem(props: {
     <button
       type="button"
       className={cn(
-        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        ACTION_MENU_ITEM_CLASS,
         destructive
-          ? "text-destructive hover:bg-destructive/10"
-          : "text-foreground hover:bg-muted",
+          ? ACTION_FEEDBACK.destructive
+          : `text-foreground ${ACTION_FEEDBACK.item}`,
       )}
       onClick={onClick}
       disabled={disabled}
@@ -342,6 +343,7 @@ export function AgentsPage() {
   return (
     <PageLayout className="space-y-6">
       <PageHeader
+        mobileTitleInShell
         headingLevel={1}
         title={t("agentsHeroEyebrow")}
         description={t("agentsHeroDescription")}

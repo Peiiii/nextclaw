@@ -350,7 +350,7 @@ function DetailItem(props: {
   return (
     <div
       className={cn(
-        "grid min-w-0 grid-cols-[10rem_minmax(0,1fr)] items-baseline gap-x-2",
+        "grid min-w-0 grid-cols-1 sm:grid-cols-[10rem_minmax(0,1fr)] items-baseline gap-x-2 gap-y-1",
         (wide || isStructuredValue) && "sm:col-span-2",
       )}
     >

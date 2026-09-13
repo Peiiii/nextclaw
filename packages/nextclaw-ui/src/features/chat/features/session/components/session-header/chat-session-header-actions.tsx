@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { Braces, FolderOpen, PanelRightClose, PanelRightOpen, Trash2 } from 'lucide-react';
-import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
+import { IconActionButton, IconActionGroup } from '@/shared/components/ui/actions/icon-action-button';
 import { useChatSessionProject } from '@/features/chat/features/session/hooks/use-chat-session-project';
 import { ChatSessionHeaderMenuItem } from './chat-session-header-menu-item';
 import { ChatSessionMoreActionsMenu } from './chat-session-more-actions-menu';
 import { ChatSessionMetadataDialog } from './chat-session-metadata-dialog';
 import { ChatSessionProjectDialog } from './chat-session-project-dialog';
 import { t } from '@/shared/lib/i18n';
-
-const SESSION_HEADER_ACTION_GROUP_CLASS = 'flex shrink-0 items-center gap-1.5';
 
 type ChatSessionHeaderActionsProps = {
   sessionKey: string | null;
@@ -60,7 +58,7 @@ export function ChatSessionHeaderActions({
   };
 
   return (
-    <div className={SESSION_HEADER_ACTION_GROUP_CLASS}>
+    <IconActionGroup>
       <IconActionButton
         icon={
           isWorkspaceOpen ? (
@@ -123,6 +121,6 @@ export function ChatSessionHeaderActions({
           />
         </>
       ) : null}
-    </div>
+    </IconActionGroup>
   );
 }

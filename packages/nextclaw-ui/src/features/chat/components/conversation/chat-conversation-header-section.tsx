@@ -19,7 +19,7 @@ import { useChatSessionListStore } from "@/features/chat/stores/chat-session-lis
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
-import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
+import { IconActionButton, IconActionGroup } from "@/shared/components/ui/actions/icon-action-button";
 import {
   getSessionProjectName,
   normalizeSessionProjectRootValue,
@@ -150,7 +150,7 @@ export function ChatConversationHeaderSection({
         ) : null
       }
       actions={
-        <div className="flex shrink-0 items-center gap-1.5">
+        <IconActionGroup>
           {layoutMode === "mobile" && sessionKey ? (
             <IconActionButton
               icon={<SquarePen className="h-4 w-4" />}
@@ -180,7 +180,7 @@ export function ChatConversationHeaderSection({
             onToggleWorkspace={toggleWorkspace}
             onDeleteSession={presenter.chatThreadManager.deleteSession}
           />
-        </div>
+        </IconActionGroup>
       }
     />
   );

@@ -32,7 +32,7 @@ export function ProjectOverview({
   return (
     <div className="space-y-5">
       <section
-        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        className="grid grid-cols-2 gap-3 lg:grid-cols-4"
         aria-label={t("projectsWorkSummary")}
       >
         {summary.data ? (

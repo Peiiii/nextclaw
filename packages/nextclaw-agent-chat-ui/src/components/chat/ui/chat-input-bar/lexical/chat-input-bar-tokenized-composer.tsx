@@ -143,11 +143,11 @@ export const ChatInputBarTokenizedComposer = forwardRef<
         removeTokenLabel={removeTokenLabel}
       >
         <div className="px-3 py-2 sm:px-4 sm:py-2.5">
-          <div className="min-h-11 sm:min-h-[60px]">
+          <div className="min-h-7 md:min-h-[60px]">
             <PlainTextPlugin
               contentEditable={
                 <ContentEditable
-                  className="nextclaw-chat-composer min-h-7 max-h-[188px] w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent py-0.5 text-sm leading-6 text-foreground outline-none selection:bg-[var(--interaction-selection,Highlight)] selection:text-current"
+                  className="nextclaw-chat-composer min-h-7 max-h-[min(188px,35dvh)] w-full overflow-y-auto overscroll-contain whitespace-pre-wrap break-words bg-transparent py-0.5 text-base md:text-sm leading-6 text-foreground outline-none selection:bg-[var(--interaction-selection,Highlight)] selection:text-current"
                   onPaste={(event: ClipboardEvent<HTMLDivElement>) => {
                     const files = Array.from(event.clipboardData.files ?? []);
                     if (files.length > 0 && onFilesAdd) {

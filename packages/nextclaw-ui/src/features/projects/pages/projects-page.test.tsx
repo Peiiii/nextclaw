@@ -135,11 +135,13 @@ describe("ProjectsPage", () => {
     ).toBeTruthy();
   });
 
-  it("asks the user to choose from the sidebar when no project route is selected", () => {
+  it("lets users enter a project without a desktop sidebar", () => {
     renderPage("/projects");
     expect(mocks.useProjectAgreement).toHaveBeenCalledWith(null);
     expect(mocks.useProjectSkills).toHaveBeenCalledWith(null);
-    expect(screen.getByText(/Choose a project|选择项目/)).toBeTruthy();
+    const picker = screen.getByRole("combobox", { name: /Choose a project|选择项目/ });
+    fireEvent.change(picker, { target: { value: "project-1" } });
+    expect(screen.getByRole("tab", { name: /Overview|概览/ }).getAttribute("aria-selected")).toBe("true");
   });
 
   it("loads each fixed project material only on its own tab", () => {

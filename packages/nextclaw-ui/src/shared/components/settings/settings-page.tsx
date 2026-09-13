@@ -27,7 +27,7 @@ export function SettingsPage({
         className
       )}
     >
-      <PageHeader title={title} description={description} actions={actions} />
+      <PageHeader title={title} description={description} actions={actions} mobileTitleInShell />
       {children}
     </PageLayout>
   );

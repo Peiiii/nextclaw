@@ -109,10 +109,10 @@ export function CronJobRow({
         expanded && "bg-muted/35",
       )}
     >
-      <div className="flex items-center gap-3 px-1 py-3.5">
+      <div className="flex flex-wrap items-center gap-3 px-1 py-3.5">
         <button
           type="button"
-          className="grid min-w-0 flex-1 grid-cols-[36px_minmax(0,1fr)] items-center gap-3 rounded-lg pr-16 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+          className="grid min-w-0 flex-1 max-md:basis-full grid-cols-[36px_minmax(0,1fr)] items-center gap-3 rounded-lg md:pr-16 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
           aria-controls={previewId}
           aria-expanded={expanded}
           aria-label={`${t(expanded ? "cronCollapseTask" : "cronExpandTask")} ${jobLabel}`}
@@ -159,14 +159,14 @@ export function CronJobRow({
         </button>
 
         <TooltipProvider delayDuration={250}>
-          <div className="relative flex shrink-0 items-center gap-1">
+          <div className="relative flex shrink-0 items-center gap-1 max-md:ml-auto">
             <Switch
               checked={job.enabled}
               onCheckedChange={(checked) => onToggle(job, checked)}
               aria-label={job.enabled ? t("cronDisable") : t("cronEnable")}
             />
 
-            <div className="flex items-center gap-0.5 opacity-100 transition-opacity duration-150 [@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:pointer-events-auto [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:pointer-events-auto [@media(hover:hover)]:group-hover:opacity-100">
+            <div className="flex items-center gap-0.5 opacity-100 transition-opacity duration-150 md:[@media(hover:hover)]:pointer-events-none md:[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:pointer-events-auto [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:pointer-events-auto [@media(hover:hover)]:group-hover:opacity-100">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

@@ -17,7 +17,7 @@ describe('IconActionButton', () => {
     expect(button.className).toContain('h-6');
     expect(button.className).toContain('w-6');
     expect(button.className).toContain('p-1');
-    expect(button.className).toContain('hover:bg-black/10');
+    expect(button.className).toContain('hover:before:bg-[var(--interaction-hover)]');
   });
 
   it('defaults to medium size and soft accent hover', () => {
@@ -31,7 +31,7 @@ describe('IconActionButton', () => {
     const button = screen.getByRole('button', { name: 'More' });
     expect(button.className).toContain('h-7');
     expect(button.className).toContain('w-7');
-    expect(button.className).toContain('hover:bg-[var(--interaction-hover)]');
+    expect(button.className).toContain('hover:before:bg-[var(--interaction-hover)]');
   });
 
   it('uses surface-relative feedback without introducing a new surface', () => {
@@ -44,9 +44,9 @@ describe('IconActionButton', () => {
     );
 
     const button = screen.getByRole('button', { name: 'Add project' });
-    expect(button.className).toContain('hover:bg-gray-200/60');
-    expect(button.className).toContain('hover:text-gray-900');
-    expect(button.className).toContain('active:bg-gray-200/80');
+    expect(button.className).toContain('hover:before:bg-[var(--interaction-hover)]');
+    expect(button.className).toContain('hover:text-accent-foreground');
+    expect(button.className).toContain('active:before:bg-[var(--interaction-hover)]');
   });
 
   it('ignores restored pointer focus while preserving keyboard tooltip focus', () => {

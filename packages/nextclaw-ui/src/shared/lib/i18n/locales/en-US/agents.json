@@ -1,5 +1,7 @@
 {
   "agentsPageTitle": "Agents",
+  "mobileAgents": "Agents",
+  "mobileNavigation": "Main navigation",
   "agentsPageDescription": "Manage conversational agent identities. Each agent owns its home directory, setup, memory, and skills.",
   "agentsHeroEyebrow": "Agent Gallery",
   "agentsHeroTitle": "Give every agent the presence of a real collaborator",

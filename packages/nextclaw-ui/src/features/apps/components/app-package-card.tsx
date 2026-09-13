@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
 import type { AppDataEntry, AppPackageOperationView, AppPackageView } from "@nextclaw/client-sdk";
 import {
   AlertCircle,
@@ -80,11 +81,11 @@ export function AppPackageCard({
 
   return (
     <Card surface="flat" hover={false} className="overflow-hidden border-border/60 shadow-[0_1px_2px_rgba(0,0,0,0.025)]">
-      <div className="flex items-start gap-3.5 px-4 pb-3.5 pt-4">
+      <div className="flex max-md:grid max-md:grid-cols-[auto_minmax(0,1fr)] items-start gap-3.5 px-4 pb-3.5 pt-4">
         <AppArtwork icon={appPackage.icon} name={displayName} />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
-            <h2 className="truncate text-sm font-semibold text-foreground">{displayName}</h2>
+            <h2 className="truncate max-md:whitespace-normal max-md:break-words text-sm font-semibold text-foreground">{displayName}</h2>
             <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium", availability.className)}>{availability.label}</span>
           </div>
           {availability.message ? (
@@ -125,7 +126,7 @@ export function AppPackageCard({
             <code className="min-w-0 truncate font-mono text-[10px]">{appPackage.storage.dataDirectory}</code>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1 max-md:col-start-2 max-md:justify-end">
           <Button
             type="button"
             size="sm"
@@ -148,7 +149,7 @@ export function AppPackageCard({
                 aria-label={t("appPackagesMoreActions")}
                 title={t("appPackagesMoreActions")}
                 disabled={pending}
-                className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:opacity-50"
+                className="max-md:min-h-11 max-md:min-w-11 inline-flex items-center justify-center rounded-full p-2 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:opacity-50"
               >
                 <MoreVertical className="h-4 w-4" />
               </button>
@@ -314,8 +315,8 @@ function AppPackageMenuItem({ destructive = false, icon: Icon, label, onClick }:
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
-        destructive ? "text-destructive hover:bg-destructive/10" : "text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-accent-foreground",
+        ACTION_MENU_ITEM_CLASS,
+        destructive ? ACTION_FEEDBACK.destructive : `text-foreground ${ACTION_FEEDBACK.item}`,
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />

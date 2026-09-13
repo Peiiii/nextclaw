@@ -55,7 +55,7 @@ function ManagementPageContent({ view }: ChatPageProps) {
     case 'resource': return <ResourcePage />;
     case 'projects': return <Suspense fallback={<div className="h-full animate-pulse bg-card/30" />}><ProjectsPage /></Suspense>;
     case 'panel-app': return <PanelAppMainPage />;
-    case 'inbox': return <div className={`mx-auto flex h-full min-h-0 w-full flex-col py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}><InboxPage /></div>;
+    case 'inbox': return <div className={`mx-auto flex h-full min-h-0 w-full flex-col md:px-6 md:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}><InboxPage /></div>;
     case 'cron':
     case 'agents': return <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-auto custom-scrollbar">
       <div className={`mx-auto w-full px-4 py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>

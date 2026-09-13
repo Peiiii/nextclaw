@@ -2,6 +2,7 @@ import * as React from "react";
 import { MoreVertical, X } from "lucide-react";
 import {
   IconActionButton,
+  IconActionGroup,
   type IconActionButtonProps,
 } from "@/shared/components/ui/actions/icon-action-button";
 import {
@@ -305,13 +306,14 @@ export function CompactTabStrip({
           ))}
         </div>
       </div>
-      <div
-        className={cn("flex shrink-0 items-center gap-1", actionsClassName)}
+      <IconActionGroup
+        className={actionsClassName}
         data-testid={actionsTestId}
         onPointerDown={(event) => event.stopPropagation()}
       >
         {actions.map((action) => (
           <IconActionButton
+            size="sm"
             key={action.key}
             icon={action.icon}
             label={action.label}
@@ -320,7 +322,7 @@ export function CompactTabStrip({
             className={actionButtonClassName}
           />
         ))}
-      </div>
+      </IconActionGroup>
     </div>
   );
 }

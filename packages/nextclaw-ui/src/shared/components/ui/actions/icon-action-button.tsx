@@ -6,6 +6,7 @@ import {
   TooltipTrigger,
 } from '@/shared/components/ui/tooltip';
 import { cn } from '@/shared/lib/utils';
+import { ACTION_FEEDBACK } from './action-feedback';
 
 type IconActionButtonSize = 'sm' | 'md' | 'lg';
 type IconActionButtonTone = 'default' | 'surface' | 'strong';
@@ -17,7 +18,7 @@ type IconActionButtonProps = Omit<
   icon: React.ReactNode;
   label: string;
   size?: IconActionButtonSize;
-  /** default: global interaction hover. surface: relative feedback on the current surface. strong: denser feedback for nested hover surfaces. */
+  /** @deprecated All neutral icon actions now share the theme feedback color. */
   tone?: IconActionButtonTone;
   tooltip?: string | false | null;
   tooltipSide?: 'top' | 'right' | 'bottom' | 'left';
@@ -29,14 +30,9 @@ const SIZE_CLASS: Record<IconActionButtonSize, string> = {
   lg: 'h-8 w-8 rounded-lg p-1.5',
 };
 
-const TONE_CLASS: Record<IconActionButtonTone, string> = {
-  default:
-    'text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-accent-foreground disabled:text-muted-foreground/45 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/45',
-  surface:
-    'text-muted-foreground hover:bg-gray-200/60 hover:text-gray-900 active:bg-gray-200/80 disabled:text-muted-foreground/45 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/45',
-  strong:
-    'text-muted-foreground hover:bg-black/10 hover:text-foreground disabled:text-muted-foreground/45 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/45',
-};
+export function IconActionGroup({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div {...props} className={cn('flex shrink-0 items-center gap-1 max-md:gap-0', className)}>{children}</div>;
+}
 
 const IconActionButton = React.forwardRef<HTMLButtonElement, IconActionButtonProps>(
   (
@@ -60,14 +56,19 @@ const IconActionButton = React.forwardRef<HTMLButtonElement, IconActionButtonPro
         type="button"
         disabled={disabled}
         aria-label={label}
+        data-tone={tone}
         className={cn(
-          'inline-flex shrink-0 items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:cursor-not-allowed',
+          'relative inline-flex shrink-0 items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:cursor-not-allowed',
           SIZE_CLASS[size],
-          TONE_CLASS[tone],
+          'text-muted-foreground hover:text-accent-foreground disabled:text-muted-foreground/45 disabled:hover:text-muted-foreground/45',
+          ACTION_FEEDBACK.icon,
+          size === 'sm' ? 'max-md:h-8 max-md:w-8' : 'max-md:h-[var(--icon-control-size)] max-md:w-[var(--icon-control-size)]',
+          "before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:transition-colors before:content-[''] max-md:before:inset-auto max-md:before:h-[var(--icon-feedback-size)] max-md:before:w-[var(--icon-feedback-size)]",
+          size === 'sm' && 'max-md:before:h-7 max-md:before:w-7',
           className
         )}
       >
-        {icon}
+        <span className="relative inline-flex items-center justify-center">{icon}</span>
       </button>
     );
     const content = tooltip === false ? null : tooltip ?? label;

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useViewportLayout } from '@/app/hooks/use-viewport-layout';
 import {
   DOC_BROWSER_HOME_TAB_KIND,
   getDefaultDocsUrl,
@@ -258,6 +259,7 @@ export function DocBrowser({
 
 
   const isFullscreen = displayMode === 'fullscreen';
+  const { isMobile } = useViewportLayout();
   const customRenderParams = currentTab ? {
     currentUrl,
     open,
@@ -284,7 +286,7 @@ export function DocBrowser({
         urlInput={urlInput}
       />
 
-      {customToolbar}
+      {!isMobile ? customToolbar : null}
 
       <DocBrowserFrameContent
         currentTab={currentTab}
@@ -310,6 +312,8 @@ export function DocBrowser({
       onWidthCommit={setDockedWidth} onClose={close} closeLabel={t('workbenchHideGroup')}
       hidden={!isOpen} fullscreen={isFullscreen} navigation={
       <DocBrowserTabStrip
+        mobileToolbar={customToolbar}
+        compact={isMobile}
         tabs={tabs}
         activeTabId={activeTabId}
         canGoBack={canGoBack}

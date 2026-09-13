@@ -21,6 +21,26 @@
 
 ## 核心判断
 
+### 移动密度与交互尺寸（2026-09-13 补充）
+
+尺寸与颜色一样由设计系统和公共组件统一承担。点击热区、可见反馈、布局占位是三个不同量，不能用扩大 hover 背景来替代触控优化。
+
+| 角色 | 手机规则 | 实现 owner |
+| --- | --- | --- |
+| 图标操作 | 手机占位40px，可见反馈32px，图形通常16–20px；组内额外gap为0，反馈底色之间8px；相邻热区不重叠 | `IconActionButton` / `IconActionGroup`；`--icon-control-size`、`--icon-feedback-size` |
+| 紧凑工具操作 | 文件、标签导航及窗口控制使用sm：手机32px占位/28px反馈，桌面24px；操作组手机gap0/桌面4px，不能把sm统一扩成普通页头40px | IconActionButton size=sm；文件工具栏、CompactTabStrip和WorkbenchSurfaceToolbar复用IconActionGroup |
+| 发送、继续与停止 | 实心/描边圆形视觉尺寸32px，不能套用文字表单的44px最小尺寸 | ChatInputBarActions / Button 的 icon size |
+| 输入工具栏 | 添加、语音、模型选择、上下文指示器和发送均32px且垂直居中；两侧操作保留占位，模型文字可收缩，移除重复装饰图标，不能让语音独自换行。工具栏为宿主图标设置局部尺寸token。模型弹出菜单行高与触发器分离 | ChatInputBarToolbar / ChatInputBarAddMenu |
+| 单行顶部导航 | 内容高度48px，安全区另加；不再叠加整层大 padding | `--mobile-header-height`，通用页头、会话页头、对话列表工具栏 |
+| 文本输入 | 字体16px避免手机自动放大；聊天文字区初始一行24px行高，输入增加自然长高，到上限内部滚动 | Input / Textarea / 共享聊天 composer |
+| 文本按钮与表单 | 手机最小44px操作高度，反馈覆盖有文字的完整控件，不套用32px图标反馈规则 | Button / Select |
+| 普通动作菜单 | 单行最小32px，文字13px/行高20px，左右10px、上下4px内边距，8px圆角；多行内容自然增高 | ACTION_MENU_ITEM_CLASS；上下文、会话、Agent、应用动作菜单共同消费 |
+| 标题选择按钮 | 左右8px内边距，手机标题与箭头间距4px；返回与标题之间不另叠加组gap | ChatSessionTitleSwitcher |
+| 手机应用面板 | 48px主栏集中标题、折叠和关闭；标题菜单承载标签切换、导航及应用操作，正文直接接主栏；桌面保留原工具栏 | DocBrowserTabStrip / DocBrowser，沿用全局viewport owner |
+| 手机收件箱详情 | 壳层不再叠加上下外边距；正文不套多层卡片，底部单行主动作与更多菜单 | ChatPageShell / InboxPage |
+
+颜色以用户认可的原菜单反馈色为基准：`--interaction-hover: hsl(var(--muted))`，图标与菜单通过 `ACTION_FEEDBACK` 消费同一来源，不用不同灰色/黑色透明度另配普通反馈。默认、暗色、炭夜和岛屿主题均遵循此映射。桌面保持各 size 的24/28/32px图标操作密度，组间距4px。选中、危险动作与禁用保持独立语义。紧凑间距不能通过删除标题内部padding或覆盖公共圆角实现。业务页通过公共组件消费规则，不能另画一套图标 hover 或用 margin 补偿放大的底色。真实桌面/手机、多行输入与主题交互一起验收，不能仅确认点击成功。
+
 NextClaw 的视觉系统应该先解决“统一入口的清晰工作台”问题，而不是继续增加孤立主题。
 
 推荐方向是：

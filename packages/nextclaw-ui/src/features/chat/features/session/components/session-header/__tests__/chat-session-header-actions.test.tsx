@@ -187,7 +187,7 @@ describe('ChatSessionHeaderActions', () => {
 
     const actionGroup = screen.getByRole('button', { name: 'More actions' }).parentElement;
 
-    expect(actionGroup?.className).toContain('gap-1.5');
+    expect(actionGroup?.className).toContain('max-md:gap-0');
     expect(screen.getByRole('button', { name: 'Open session workspace' }).className).toContain('h-7');
     expect(screen.getByRole('button', { name: 'Open session workspace' }).className).toContain('w-7');
   });

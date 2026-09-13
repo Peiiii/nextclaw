@@ -51,7 +51,7 @@ export function ChatMobileSessionRow(props: ChatSidebarSessionItemProps) {
           </span>
         </span>
       </button>
-      <ChatSessionMoreActionsMenu sessionKey={sessionKey} sessionTitle={title} className="h-11 w-9 shrink-0 rounded-none text-muted-foreground">
+      <ChatSessionMoreActionsMenu sessionKey={sessionKey} sessionTitle={title}>
         <ChatSessionHeaderMenuItem icon={Pin} label={t(isPinned ? 'chatSidebarUnpinSession' : 'chatSidebarPinSession')} onClick={onTogglePinned} />
         <ChatSessionHeaderMenuItem icon={Pencil} label={t('edit')} onClick={onStartEditing} />
         <ChatSessionHeaderMenuItem icon={Trash2} label={t('delete')} onClick={onDelete} destructive />

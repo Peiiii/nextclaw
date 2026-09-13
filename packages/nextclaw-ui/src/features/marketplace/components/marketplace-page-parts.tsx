@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { Input } from "@/shared/components/ui/input";
 import { t } from "@/shared/lib/i18n";
 import { Loader2, PackageSearch } from "lucide-react";
 import type { Ref } from "react";
@@ -30,10 +31,10 @@ export function FilterPanel({
 }) {
   return (
     <div className="mb-4">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-0 flex-1">
           <PackageSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
+          <Input
             value={searchText}
             onChange={(event) => onSearchTextChange(event.target.value)}
             placeholder={searchPlaceholder}
@@ -52,7 +53,7 @@ export function FilterPanel({
             value={sort}
             onValueChange={(value) => onSortChange(value as MarketplaceSort)}
           >
-            <SelectTrigger className="h-9 w-[150px] shrink-0 rounded-lg">
+            <SelectTrigger className="h-9 w-[110px] sm:w-[150px] shrink-0 rounded-lg">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

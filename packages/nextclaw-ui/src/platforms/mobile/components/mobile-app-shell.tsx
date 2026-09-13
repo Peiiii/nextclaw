@@ -42,7 +42,7 @@ export function MobileAppShell({
         {isMainRoute ? (
           <div className="h-full min-h-0 overflow-hidden">{children}</div>
         ) : (
-          <main className="h-full overflow-auto px-4 py-4 custom-scrollbar">
+          <main className="h-full overflow-auto overscroll-contain px-4 py-4 custom-scrollbar">
             <div className="mx-auto max-w-3xl animate-fade-in">{children}</div>
           </main>
         )}

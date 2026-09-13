@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
 
 type ChatSessionHeaderMenuItemProps = {
   icon: LucideIcon;
@@ -20,10 +21,10 @@ export function ChatSessionHeaderMenuItem({
     <button
       type="button"
       className={cn(
-        'flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[13px] font-medium outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+        ACTION_MENU_ITEM_CLASS,
         destructive
-          ? 'text-destructive hover:bg-destructive/10 focus-visible:bg-destructive/10'
-          : 'text-foreground hover:bg-muted focus-visible:bg-muted'
+          ? ACTION_FEEDBACK.destructive
+          : `text-foreground ${ACTION_FEEDBACK.item}`
       )}
       onClick={onClick}
       disabled={disabled}

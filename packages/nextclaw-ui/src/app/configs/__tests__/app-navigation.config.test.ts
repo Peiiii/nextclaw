@@ -29,6 +29,16 @@ describe("panel app main navigation", () => {
 describe("project home navigation", () => {
   const translate = (key: string) => key;
 
+  it("returns project details to the project picker", () => {
+    expect(resolveMobileRouteMeta("/projects/example/overview", translate).backTarget).toBe("/projects");
+  });
+
+  it("labels scheduled tasks and returns to chat", () => {
+    expect(resolveMobileRouteMeta("/cron", translate)).toEqual({
+      title: "cron", backTarget: "/chat", backLabel: "chat",
+    });
+  });
+
   it("keeps projects in the main workspace without a parallel global nav item", () => {
     expect(isMainWorkspaceRoute("/projects")).toBe(true);
     expect(getMainSidebarNavItems(translate).map((item) => item.target)).not.toContain("/projects");

@@ -63,7 +63,7 @@ export function TabsList({ children, className }: TabsListProps) {
       role="tablist"
       onKeyDown={handleKeyDown}
       className={cn(
-        'inline-flex h-9 items-center justify-center rounded-xl bg-muted p-1 text-muted-foreground',
+        'inline-flex h-9 max-md:h-auto items-center justify-center rounded-xl bg-muted p-1 text-muted-foreground',
         className
       )}
     >
@@ -87,7 +87,7 @@ export function TabsTrigger({ value, children, className }: TabsTriggerProps) {
       tabIndex={isActive ? 0 : -1}
       data-state={isActive ? 'active' : 'inactive'}
       className={cn(
-        'inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-[13px] font-medium transition-all duration-fast focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:pointer-events-none disabled:opacity-50',
+        'inline-flex max-md:min-h-[var(--control-touch-size)] items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-[13px] font-medium transition-all duration-fast focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:pointer-events-none disabled:opacity-50',
         isActive
           ? 'bg-card text-foreground shadow-sm'
           : 'text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-accent-foreground',

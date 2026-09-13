@@ -4,7 +4,7 @@
   "runtimeUpdatesPageDescription": "系统每两小时自动检查新版本；发现更新后，由你决定何时开始更新。",
   "runtimeUpdatesUnavailableTitle": "当前环境暂不支持更新",
   "runtimeUpdatesUnavailableDescription": "这个运行环境暂时没有可用的更新宿主。",
-  "runtimeUpdatesUnavailableHint": "更新入口会在宿主支持后自动出现，不需要前端单独区分环境。",
+  "runtimeUpdatesUnavailableHint": "请使用安装 NextClaw 时的方式更新；支持应用内更新后，更新按钮会自动出现。",
   "runtimeUpdatesHostVersion": "宿主版本",
   "runtimeUpdatesDownloadedBannerDescription": "版本 {version} 已下载完成，可以继续完成更新。",
   "runtimeUpdatesActionsDescription": "你可以手动检查，并在准备好之后一次完成更新。",

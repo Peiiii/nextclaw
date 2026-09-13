@@ -4,7 +4,7 @@
   "runtimeUpdatesPageDescription": "NextClaw checks every two hours; you choose when to start each update.",
   "runtimeUpdatesUnavailableTitle": "Updates Are Currently Unavailable",
   "runtimeUpdatesUnavailableDescription": "This runtime environment does not currently expose an update host.",
-  "runtimeUpdatesUnavailableHint": "The update entry appears automatically once the host supports updates.",
+  "runtimeUpdatesUnavailableHint": "Update using the method you used to install NextClaw. An update button will appear when in-app updates are supported.",
   "runtimeUpdatesHostVersion": "Host Version",
   "runtimeUpdatesDownloadedBannerDescription": "Version {version} has finished downloading and is ready to finish updating.",
   "runtimeUpdatesActionsDescription": "Check manually, then complete the update in one action whenever you are ready.",

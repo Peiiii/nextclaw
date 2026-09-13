@@ -220,6 +220,7 @@ export function CronConfig() {
   return (
     <PageLayout className="space-y-6">
       <PageHeader
+        mobileTitleInShell
         headingLevel={1}
         title={t("cronPageTitle")}
         description={t("cronPageDescription")}
