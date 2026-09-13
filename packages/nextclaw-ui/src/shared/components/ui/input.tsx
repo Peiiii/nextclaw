@@ -1,16 +1,20 @@
 import * as React from 'react';
 import { cn } from '@/shared/lib/utils';
 
-export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
+export type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+  density?: 'default' | 'compact';
+};
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, density = 'default', type, ...props }, ref) => {
     return (
       <input
         type={type}
         className={cn(
           'flex h-9 w-full rounded-xl border border-border/75 bg-card px-3.5 py-2 text-sm text-foreground file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground/55 placeholder:font-normal transition-colors focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50',
-          'max-md:min-h-[var(--control-touch-size)] max-md:text-base',
+          density === 'default'
+            ? 'max-md:min-h-[var(--control-touch-size)] max-md:text-base'
+            : 'text-[13px] max-md:min-h-0 max-md:text-[13px]',
           className
         )}
         ref={ref}

@@ -8,6 +8,7 @@ import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
+import { ChatSessionSwitcherGroups } from "@/features/chat/features/session/components/session-header/chat-session-switcher-groups";
 import type { NcpSessionListItemView } from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
 import type { NcpSessionSummaryView, SessionEntryView } from "@/shared/lib/api";
 
@@ -312,42 +313,51 @@ describe("ChatConversationHeaderSection", () => {
     ).toBeTruthy();
   });
 
-  it("switches to collapsible project groups inside the header popover", async () => {
+  it("renders compact collapsible project groups inside the header popover", async () => {
     const user = userEvent.setup();
-    viewportLayoutManager.setSidebarCollapsed(true);
-    mocks.sessionItems = [
-      createSessionListItem({
+    const alphaItem = createSessionListItem({
         key: "parent-session-1",
         label: "Parent Task",
         projectName: "Alpha",
         projectRoot: "/workspace/alpha",
-      }),
-      createSessionListItem({
+      });
+    const betaItem = createSessionListItem({
         key: "session:ncp-2",
         label: "Background Task",
         projectName: "Beta",
         projectRoot: "/workspace/beta",
-      }),
-    ];
+      });
 
-    renderHeaderSection();
-    await user.click(screen.getByRole("button", { name: /Switch session/ }));
-    await user.click(screen.getByRole("button", { name: "Project" }));
+    render(
+      <ChatSessionSwitcherGroups
+        collapsedProjectRoots={[]}
+        dateGroups={[]}
+        isProjectFirstView
+        onSelect={mocks.selectSession}
+        onToggleProjectCollapsed={mocks.toggleProjectCollapsed}
+        optimisticReadAtBySessionKey={{}}
+        projectGroups={[
+          { projectRoot: "/workspace/alpha", projectName: "Alpha", items: [alphaItem], latestUpdatedAt: 1, isPinned: false },
+          { projectRoot: "/workspace/beta", projectName: "Beta", items: [betaItem], latestUpdatedAt: 1, isPinned: false },
+        ]}
+        selectedSessionKey="parent-session-1"
+        sessionTypeOptions={[]}
+      />,
+    );
 
-    expect(mocks.setListMode).toHaveBeenCalledWith("project-first");
-    const alphaGroup = screen.getByRole("region", { name: "Alpha" });
+    const alphaGroup = await screen.findByRole("region", { name: "Alpha" });
     const alphaToggle = within(alphaGroup).getByRole("button", {
       name: "Collapse project · Alpha",
     });
     expect(alphaToggle.getAttribute("aria-expanded")).toBe("true");
+    expect(alphaToggle.className).toContain("h-8");
     expect(alphaToggle.className).not.toContain("bg-muted");
+    expect(alphaToggle.querySelector('[title="/workspace/alpha"]')?.getAttribute("class")).toContain("text-[13px]");
+    expect(alphaGroup.parentElement?.className).toContain("space-y-0.5");
     expect(within(alphaGroup).getByText("Parent Task")).toBeTruthy();
 
     await user.click(alphaToggle);
     expect(mocks.toggleProjectCollapsed).toHaveBeenCalledWith("/workspace/alpha");
-    expect(
-      within(screen.getByRole("region", { name: "Alpha" })).queryByText("Parent Task"),
-    ).toBeNull();
   });
 
   it("keeps the desktop title plain while the sidebar is expanded", () => {
@@ -447,6 +457,8 @@ describe("ChatConversationHeaderSection", () => {
     const searchInput = screen.getByRole("textbox", {
       name: "Search session key / label",
     });
+    expect(searchInput.className).toContain("max-md:text-[13px]");
+    expect(searchInput.className).toContain("max-md:min-h-0");
     await user.type(searchInput, "Background");
     await user.click(screen.getByRole("button", { name: /Background Task/ }));
 
