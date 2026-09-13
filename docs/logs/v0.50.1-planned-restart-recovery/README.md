@@ -10,6 +10,8 @@ VPS 实际会话执行了正确的 `nextclaw update` / `nextclaw restart`，后�
 
 自管理 USAGE 已同步打包资源，skill 已同步 core dist；文档站中英文补充认证和运行版本判断。此为原故障能力的补充修复，不新增常驻治理规则。NPM changeset 涉及 nextclaw/core/server/service，等待统一发布；当前授权交付为主干集成与 VPS 部署。最终部署和验收状态见[本次 active ledger](../../plans/2026-09-13-self-management-auth-recovery.plan.md)，未关闭项不能由本段阶段证据替代。
 
+交付完成：主干修复 `22d22669a` 已部署 VPS，2026-09-13 18:02 通过普通CLI从实际0.53.0切到0.54.2，移除历史launcher禁用覆盖；18:03真实native模型会话主动重启后自动恢复，输出成功marker和正确运行版本，随后普通新消息SSE也通过。公开匿名控制保持401，41个首页资产全部200，1,000个部署文件哈希匹配。旧bundle与配置回滚材料留在部署目录。此次没有执行NPM或全平台发行；线上0.54.2为上述主干构建修复产物，以部署receipt提交号区分原发行包。
+
 ## 迭代完成说明
 
 2026-09-11，在隔离工作区 `nextbot-planned-restart-recovery`、分支 `codex/planned-restart-recovery` 完成源码和本地工程验收。用户随后授权合入主干，集成包含功能、测试和文档；不包含版本发布，用户现有安装不因此升级。

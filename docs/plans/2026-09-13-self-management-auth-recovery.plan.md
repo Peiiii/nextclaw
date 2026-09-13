@@ -21,10 +21,14 @@
 | AUTH-2 | true | restart/status 共用可信传输，失败不强杀、不泄漏凭据 | passed | bridge 10 项、restart 8 项及真实 runtime.version 读取 |
 | AUTH-3 | true | 签名更新、两次进程替换、原会话恢复经过正式认证 router | passed | 2026-09-13 17:53 本地两轮进程验收，三个 PID、两个会话 |
 | AUTH-4 | true | 类型检查、定向回归、Review 及用户文档完整 | passed | service/server tsc；定向 lint；auth/control 17 项；governance/ratchet/skill 检查；Review 0 errors |
-| AUTH-5 | true | 修复合入 origin/master，主工作区无遗漏 | not-run | |
-| AUTH-6 | true | VPS 已部署冻结主干产物，标准重启选择正确新版，健康和公开认证正确 | not-run | |
-| AUTH-7 | true | VPS 真实模型经 CLI 自重启，原会话自动继续并核对版本 | not-run | |
+| AUTH-5 | true | 修复合入 origin/master，主工作区无遗漏 | passed | 22d22669a 已推送；reconcile 返回 LOCAL_MAINLINE_SYNCED，主工作区干净 |
+| AUTH-6 | true | VPS 已部署冻结主干产物，标准重启选择正确新版，健康和公开认证正确 | passed | 18:02 普通 restart：0.53.0 → 0.54.2；PID 20118 → 55242；1,000 文件哈希一致；公网健康正常、匿名控制401、41资产200 |
+| AUTH-7 | true | VPS 真实模型经 CLI 自重启，原会话自动继续并核对版本 | passed | ncp-auth-restart-20260913：native/codex-sub/gpt-5.6-sol；PID 55242 → 55400；1 resumed/0 failed，恢复后输出 AUTH_RESTART_20260913_OK；后续普通消息 AUTH_AFTER_RESTART_OK、run.finished |
 
-当前阶段：本地完整产物升级验证与交付准备；设计/实现审查无未关闭 finding。未关闭：AUTH-5 至 AUTH-7。不加入无关 UI、美学或全平台人工验收噪声；当前用户指定部署为 Linux VPS，跨平台基础回归按实际可用环境证明。
+当前阶段：交付收尾；全部 Required 已 passed。当前用户指定部署为 Linux VPS，未声明其它平台人工验收。线上验收会话：[查看](http://8.219.57.52/chat/sid_bmNwLWF1dGgtcmVzdGFydC0yMDI2MDkxMw)。
 
 打包恢复：隔离目录缺 native runner，确认主工作区 darwin-arm64 已有兼容产物后复制复用。NPM 官方源经本机代理持续 ECONNRESET，离线元数据不足；切换当前进程到 npm mirror 后部署依赖安装成功，不修改项目 registry 配置。VPS 当前剩余 1.3 GB，新版 bundle 约 235 MB，数据不复制到同一磁盘，保留旧运行产物与 unit 回滚。
+
+完整本地升级：`dev:verify-update --no-open --rebuild` 成功验证自动发现、签名下载、apply、0.54.2-dev.0 → 0.54.2、PID 19569 → 28517、current pointer 与20个内置技能，验证宿主已清理。缓存构建期间 Linux runner 传输使输入变化，改用 rebuild 并冻结源；终止慢传输后删除不完整 native 文件，未将它部署到 VPS。
+
+VPS 部署目录：`/home/admin/.nextclaw/hotfix-deployments/20260913-auth-22d22669a`。新构建的33个workspace包与现有Linux包外部依赖合同完全一致；通过8,077,045字节增量归档更新1,000文件，保留原生和外部依赖，现场复验所有SHA-256。删除生效中的历史30-runtime-053.conf覆盖，但备份保留；首轮迁移也通过标准受控restart完成，未强杀。保留旧0.54.2 bundle、unit/config备份及独立 rollback.sh（语法和输入存在性已核对，未在健康线上执行回滚演练）。部署10:02:24Z开始、10:02:36Z完成，12秒；该路径由本机SSH发起，不称CI自动发布。AUTOMATION_INTERVENTIONS: 0。原SSE连接因真实重启断开，恢复证据来自持久journal与独立后续SSE请求，不把前一个smoke连接错误当恢复失败。
