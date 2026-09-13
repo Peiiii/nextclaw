@@ -22,7 +22,7 @@
 
 ## 发布/部署方式
 
-复用 `release.yml target=product`：NPM → stable runtime → 文档/内容闭环；不发布 desktop。既有成功生产路径：Actions [34541952826](https://github.com/Peiiii/nextclaw/actions/runs/34541952826)，`npm-production` environment。readme 同步、release health 和 product dry-run 已完成。dry-run 计划 nextclaw 0.53.0 → 0.54.0，随既有 Changesets 依赖闭包发布；本批发布状态待下节补录。
+复用 `release.yml target=product`：NPM → stable runtime → 文档/内容闭环；不发布 desktop。既有成功生产路径：Actions [34541952826](https://github.com/Peiiii/nextclaw/actions/runs/34541952826)，`npm-production` environment。readme 同步、release health 和 product dry-run 已完成。dry-run 计划 nextclaw 0.53.0 → 0.54.0，随既有 Changesets 依赖闭包发布；本批发布状态待下节补录。首轮 prewarm 34741078725 与 Docs 34741078384 失败：包缺少仓库显式 `private:false`，新指南缺少导航登记；已修正并通过 release:check:groups、文档完整构建与导航 tsc。未发生 npm publish。AUTOMATION_INTERVENTIONS: 2（两项配置遗漏，均已由已有门禁检出并修正，无新增发布分支）。
 
 本地宿主复用已有 gh/Linear 登录、官方凭据文件引用。默认 30 秒轮询，电脑须在线；`start` 不安装开机服务，可由已有系统服务托管 `run`。状态目录只存本地，不进入 Git。最终宿主将从稳定发布安装运行，不能把开发 worktree 路径当长期部署。
 

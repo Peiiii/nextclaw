@@ -1,6 +1,7 @@
 {
   "name": "@nextclaw/collaboration",
   "version": "0.1.0",
+  "private": false,
   "description": "Local, durable collaboration between external conversations and agents.",
   "type": "module",
   "license": "MIT",
