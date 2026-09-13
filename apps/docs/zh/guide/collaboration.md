@@ -27,6 +27,19 @@ nextclaw collaboration start
 
 ## 本地运行与排错
 
+### GitHub webhook（可选）
+
+需要及时接收时，在仓库 Webhooks 配置一个独立的 Smee 通道：JSON 格式，只订阅 `issues` 和 `issue_comment`，设置至少 32 字符随机 secret，并将相同 secret 保存在本地权限为 `600` 的文件。转发服务能看到事件内容，本地仍会验证 GitHub 签名和仓库；仅配置可信的转发服务。
+
+```sh
+nextclaw collaboration stop
+nextclaw collaboration webhook github --relay-url https://smee.io/YOUR_CHANNEL --secret-file /absolute/github-webhook.secret
+nextclaw collaboration start
+nextclaw collaboration status
+```
+
+这会关闭该 GitHub 连接的定时轮询，宿主通过长连接接收推送，收到有效消息后自动添加 👀，继续原 Codex 任务。`status` 中 `webhooks` 显示连接或重连状态。Smee 转发并非离线可靠队列；本机停机期间漏掉的事件需在 GitHub 重投，或停止宿主后执行 `webhook github --disable`，恢复 30 秒轮询并补采。其它平台连接不受此配置影响。
+
 显示标识由接入方配置，框架默认不附加名字或内部 Agent ID。停止宿主后运行 `nextclaw collaboration presentation CONNECTION --prefix '🤖[墨爪]'`，再启动即可；省略 prefix 表示只显示正文。`--strip-prefix LABEL...` 可清除接入方自身规则产生的前导标识，不修改正文内部引用。更换显示标识不改变签名身份或任务绑定。
 
 GitHub 原 Issue 或新评论出现 👀 表示消息已持久接收，不代表任务已经开始或完成；即使暂停或最终静默，也可确认消息到达。状态评论显示具体 Agent 和执行进度。同账号多个 Agent 共用平台 reaction，身份仍以签名状态为准。reaction 失败会记录在本地事件中，既有状态回执继续工作；其它平台目前使用状态回执。问候、邀请和连通性测试会简短回应，只有无关通知或明确不需要回复的输入才静默。对外身份前缀由宿主统一添加。

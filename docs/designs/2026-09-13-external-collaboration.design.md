@@ -602,3 +602,15 @@ GitHub 使用 gh api，Linear 固定支持 schpet linear-cli 1.11.1 的 api/vari
 - `start` 是 detached 进程，不安装开机服务；用户本机需在线/唤醒。现有 OS 服务可托管 `run`。原生 GitHub/Linear webhook 验签属于新增适配器，当前可选入口接受已标准化且经过认证的协议事件。
 - 兼容保留仅服务尚未迁移的历史自定义 argv 配置；本次实际配置已迁移，无双进程消费。本批不发布 desktop。
 - 当前源码、失效路径与回归证据统一见 [交付记录](../logs/v0.54.0-external-collaboration/README.md)。旧 §12 的“待 Review”措辞记录当时状态，不再是当前阶段门。
+
+## 14. GitHub webhook 本地增量（2026-09-13）
+
+用户在原 Issue 评论，GitHub 将 issues / issue_comment 事件推到独立 Smee 通道，本机宿主通过 SSE 接收，校验 HMAC-SHA256、仓库与事件种类后持久化到原 journal；原回执、权限、去重、会话绑定和执行链继续消费。无需公网端口、独立平台或新运行进程。配置由 `collaboration webhook CONNECTION --relay-url URL --secret-file PATH` 完成，关闭该连接轮询；`--disable` 恢复 30 秒轮询。宿主 start/stop 同时管理连接，status 显示通道健康。
+
+采用现有 undici EventSource 和代理环境；Smee JSON 转发按其官方客户端重新序列化 body 后验签，失败绝不降级放行。密钥只存本地文件；转发服务可见事件内容。长连接重连不等同于离线可靠补投，停机期间消息需 GitHub 手动重投或切回轮询补采。本次不新增云存储、不发布包、不改其它现存 hook。
+
+黄金验收：① 原 #64 新评论通过 webhook 收到 👀，沿原 Codex 任务回复；② 错误签名/其它仓库拒收，重复消息不重复执行；③ 停止和恢复保留绑定，webhook 模式无 GitHub 周期扫描。最小验证为定向用例、包 tsc 和一次真实触发；不跑全仓与发布验证。
+
+方案审查：保留唯一 journal/consumer，新增模块只负责 GitHub 转发边界；控制事件不假定以 webhook header 为可信身份，可信正文按原模型处理；不以 Smee 投递成功冒充本地完成。design-review: passed；单批实现，plan: not-required。本节交付状态待下方证据闭合。
+
+当前实测：独立 hook 678511014、本地 installed CLI 构建（基于 0.1.3，未发布）、宿主 PID 92868。#64 评论 5652377950 于 09:10:26Z 创建，09:10:28.679Z 持久化，09:10:34Z 添加 👀，09:10:38.719Z 在原任务 01a099a3… 提交。GitHub intervalMs=0，未轮询；24 个包测试、包 tsc 与维护性检查通过（仅原 CLI 文件接近预算提示）。此前仅核验有回执，没有记录端到端等待成本；本次记录消息时间、接收时间和 reaction 时间，避免再以缩短轮询代替实际延迟证据。不扩大为全局流程规则。

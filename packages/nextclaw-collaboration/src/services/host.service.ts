@@ -10,10 +10,12 @@ import { CollaborationService } from "./collaboration.service.js";
 import { CodexConsumer } from "./codex-consumer.service.js";
 import { CommandConsumer } from "./command-consumer.service.js";
 import { loadSource } from "../utils/source-registry.utils.js";
+import { startGitHubWebhooks } from "../utils/github-webhook.utils.js";
 
 export class CollaborationHost {
   private stopped = false;
   private readonly owner = randomUUID();
+  private closeWebhooks = async () => {};
   constructor(
     private readonly store: CollaborationStore,
     private readonly root: string,
@@ -45,8 +47,7 @@ export class CollaborationHost {
     process.once("SIGINT", stop);
     try {
       await this.loadParticipants(sources, consumers);
-      const service = new CollaborationService(this.store, sources, consumers);
-      this.store.compact();
+      const service = this.createService(sources, consumers);
       while (!this.stopped) {
         this.store.put("runtime", "host", {
           pid: process.pid,
@@ -58,6 +59,7 @@ export class CollaborationHost {
           .filter(
             (c) =>
               c.enabled &&
+              c.intervalMs > 0 &&
               !scans.has(c.id) &&
               Date.now() - Date.parse(c.lastScan || "1970-01-01") >=
                 c.intervalMs,
@@ -90,6 +92,7 @@ export class CollaborationHost {
       }
     } finally {
       clearInterval(pulse);
+      await this.closeWebhooks();
       await Promise.allSettled(scans.values());
       process.removeListener("SIGTERM", stop);
       process.removeListener("SIGINT", stop);
@@ -118,5 +121,11 @@ export class CollaborationHost {
             ),
       );
     }
+  };
+  private createService = (sources: Map<string, SourceAdapter>, consumers: Map<string, Consumer>): CollaborationService => {
+    this.store.compact();
+    const service = new CollaborationService(this.store, sources, consumers);
+    this.closeWebhooks = startGitHubWebhooks(this.store, service);
+    return service;
   };
 }

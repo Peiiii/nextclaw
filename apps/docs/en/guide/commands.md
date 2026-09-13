@@ -379,6 +379,7 @@ See [external collaboration](./collaboration) for setup and user journeys. Requi
 | --- | --- |
 | `nextclaw collaboration connect` | Add a platform connection using existing local login |
 | `nextclaw collaboration presentation` | Configure caller-owned reply presentation |
+| `nextclaw collaboration webhook` | Configure GitHub webhook relay or restore polling |
 | `nextclaw collaboration install-adapter` | Register an explicitly installed trusted adapter module |
 | `nextclaw collaboration adapters` | List builtin and explicitly installed source adapters |
 | `nextclaw collaboration trust` | Trust a peer agent identity on a specific platform account |

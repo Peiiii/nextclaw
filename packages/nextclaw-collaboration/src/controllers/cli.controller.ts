@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import type { CliContext } from "../types/cli.types.js";
 import { registerConnectionCommands } from "./cli-connection.controller.js";
+import { registerWebhookCommand } from "./cli-webhook.controller.js";
 import { Command } from "commander";
 import { spawn } from "node:child_process";
 import {
@@ -47,6 +48,7 @@ export function registerCollaborationCommands(program: Command): void {
       );
   };
   registerConnectionCommands(program, { root, open, stopped });
+  registerWebhookCommand(program, { root, open, stopped });
   registerRecoveryCommands(program, { root, open, stopped });
   registerInspectionCommands(program, { root, open, stopped });
   registerIngressCommands(program, { root, open, stopped });
@@ -170,6 +172,7 @@ function registerInspectionCommands(
       try {
         print({
           runtime: store.list("runtime"),
+          webhooks: store.list("webhook"),
           connections: store.list<Connection>("connection").map((c) => ({
             id: c.id,
             source: c.source,

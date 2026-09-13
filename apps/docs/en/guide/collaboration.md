@@ -1,5 +1,18 @@
 # Collaborate with local agents from issues
 
+## Optional GitHub webhook relay
+
+Configure a dedicated Smee channel in your repository's Webhooks settings: JSON payloads, `issues` and `issue_comment` events, and a random secret of at least 32 characters. Save the same secret locally with file permissions `600`. The relay can read event contents; the host verifies GitHub signatures and repository identity independently. Use a trusted relay.
+
+```sh
+nextclaw collaboration stop
+nextclaw collaboration webhook github --relay-url https://smee.io/YOUR_CHANNEL --secret-file /absolute/github-webhook.secret
+nextclaw collaboration start
+nextclaw collaboration status
+```
+
+This disables polling for that connection and receives pushed events over an outbound connection. Existing receipts and Codex task bindings continue. The `webhooks` status field reports connection/reconnection health. The relay is not a durable offline queue: redeliver missed events through GitHub, or stop the host and run `webhook github --disable` to restore 30-second polling and catch up. Other connections are unchanged.
+
 GitHub and Linear issues can wake local Codex tasks. An invitation creates a binding; later comments continue the same task. A receipt in the issue shows when execution starts and which Codex task handles it. Existing local CLI authentication is reused.
 
 Requires Node.js 22.13+, local Codex, and an authenticated GitHub CLI or schpet Linear CLI with project access.
