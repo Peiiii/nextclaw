@@ -11,7 +11,7 @@ import {
   RUNTIME_INSTANCE_DISTRIBUTION_ENV,
   RUNTIME_INSTANCE_INSTALLATION_KIND_ENV,
   RUNTIME_INSTANCE_PORTABLE_DATA_ROOT_ENV
-} from "@nextclaw/core";
+} from "../utils/desktop-path-env.utils";
 
 function createProfile(root: string, installationKind: DesktopInstallationProfile["installationKind"]): DesktopInstallationProfile {
   return {
