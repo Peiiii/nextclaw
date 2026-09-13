@@ -29,6 +29,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "tsc": "tsc -p tsconfig.json",
+    "lint": "eslint src",
     "test": "vitest run",
     "prepack": "pnpm run build",
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"

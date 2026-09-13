@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { planReleaseCheckBatch } from "./batch-plan.mjs";
 import { canRunPackageStep, createPackageStates, hydrateCachedSteps } from "./task-runner.mjs";
+import { resolveReleaseCheckStepSpecs } from "./steps.mjs";
 
 function workspaceEntry(name, dependencies = {}, scripts = { build: "build", tsc: "tsc" }) {
   return {
@@ -80,4 +81,15 @@ test("serializes build, typecheck, and lint steps within one package", () => {
   assert.equal(canRunPackageStep(packageState), false);
   packageState.activeStepNames.clear();
   assert.equal(canRunPackageStep(packageState), true);
+});
+
+test("a tsc build does not replace the declared full-package typecheck checkpoint", () => {
+  const entry = workspaceEntry("@nextclaw/example", {}, {
+    build: "tsc -p tsconfig.build.json",
+    tsc: "tsc -p tsconfig.json",
+    lint: "eslint src"
+  });
+  const checks = resolveReleaseCheckStepSpecs(entry, { includeLint: true });
+  assert.deepEqual(checks.map(check => check.stepName), ["build", "tsc", "lint"]);
+  assert.equal(checks.find(check => check.stepName === "tsc").command, "tsc -p tsconfig.json --noEmit");
 });
