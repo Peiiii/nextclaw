@@ -102,7 +102,6 @@ export function writeSessionActivityPreviewMetadata(
     return null;
   }
   return {
-    ...(metadata ?? {}),
     [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: next,
   };
 }

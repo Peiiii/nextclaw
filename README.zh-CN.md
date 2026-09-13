@@ -1,12 +1,10 @@
-<p align="right">
-  <a href="./README.md">English</a>
-</p>
-
 <div align="center">
 
 <img src="apps/landing/public/logo.svg" width="72" alt="NextClaw 标志" />
 
 # NextClaw
+
+[English](./README.md) · **简体中文**
 
 **你的长期个人智能搭档。**
 

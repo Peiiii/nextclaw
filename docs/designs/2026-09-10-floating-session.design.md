@@ -75,3 +75,27 @@ AI 验收通过，待用户判断悬浮尺寸与视觉偏好。未 commit、push
 定向测试覆盖生成、空话题、无效模型响应、取消、手动标题保护、并发改名、已删除目标以及摘要索引重载。26 条标题/会话 manager 测试通过，kernel tsc 通过；真实配置模型独立验证生成「查询杭州今日天气」和「悬浮会话草稿切换与右侧栏停靠验收」。该真实模型验证使用内存记录，运行中的旧后端 18792 没有被本次重启或冒称已更新。官网 build/tsc 通过，独立 headless 浏览器确认中英文页面图片已加载且 390px 无横向溢出。用户原图完整保留，不把旧截图里的测试标题当作新自动标题效果。
 
 完整 diff maintainability 检查 58 文件、0 errors；剩余提示为既有目录/测试体量和接近预算，没有为消除提示扩大重构。复核异步写入、草稿 owner、共享渲染器与菜单事件隔离，无阻塞 findings。交付为主干源码；发布、安装包与运行实例升级属于独立动作。
+
+## 2026-09-13 自动标题真实链路修复
+
+用户在 5174 UI / 18793 源码后端发送首条消息后，正常收到 codex-sub/gpt-5.6-sol 回答，但标题仍为首句。复现会话 `ncp-mtzq8hum-1wq918az` 的 label_source 为 manual；活动预览 producer 把包含 label 的整份 metadata 当作 patch 写回，触发 SessionManager 的显式改名保护。此前内存模型验证和直接 appendSessionEvent 测试没有覆盖完整事件摄入链，不能证明产品可用。
+
+本批为 bugfix / L2，复用 SessionTitleService、活动预览和 journal owner，不增加入口或配置。活动预览仅写自身字段，避免误标标题及覆盖并发元数据；标题优先使用本轮最终回答的 ai_execution.model（现有执行事实），缺失时保留旧记录的会话模型解析。模型调用仍经同一 kernel provider manager，后台请求保持无工具、有界上下文、关闭思考和超时，不复用聊天的长系统提示。历史 manual 标记无法可靠区分误标和真实改名，不批量猜测覆盖；用户手动改名始终受保护。
+
+黄金验收：从新任务选择可用模型并发送首条消息，回复结束后 25 秒内标题更新；无论输入是明确任务还是只有“你好”，都生成比原始截取更能说明会话性质的标题，刷新后同一标题仍在。保持全局默认模型不可用，所选模型成功时标题也能成功。通过事件总线重放运行开始、消息结束、运行结束，证明预览不把 fallback/generated 改成 manual；同时保留生成期间用户改名的并发保护测试。失败请求不影响聊天和临时标题。无需新增 CLI，已有 sessions rename 与列表查询继续消费同一标题 owner。
+
+方案 Review：禁止仅移除 manual 保护或批量重命名历史会话；预览字段 patch 消除根因并缩小写入范围，最终回答执行元数据消除全局模型重新解析歧义。验收覆盖实际 UI、真实模型、事件摄入、持久化及手动改名。design-review: passed；plan: not-required，单批闭环。
+
+修复验证：新增模型优先级两例与事件摄入一例在修前均失败（标题请求使用 undefined/旧偏好，RunStarted 将 fallback 改成 manual）；修后标题、会话和预览 4 文件 42 项通过，kernel tsc 通过。targeted ESLint 无错误，保留未触达测试函数的既有行数提示；diff maintainability 无错误，仅会话测试文件接近预算提示，主观复核无需扩大拆分。治理与 diff whitespace 检查通过。
+
+真实验收：开发 watcher 冷重启为 PID 20135，源码后端 18793 / UI 5174。19:28 使用原生运行时、codex-sub/gpt-5.6-sol 重发同一读书笔记问题，会话 `ncp-mtzqdo96-sr24wyz6` 收到真实回答，标题变为「卡片笔记法简介」，API label_source=generated。页面未刷新时头部已更新，刷新后头部和侧栏均保留新标题。全局默认仍为 deepseek/deepseek-flash，未修改配置；另一个 DeepSeek 模型的请求已返回 402 余额不足，此事实不冒充精确全局默认模型的独立连通性测试。缺失/失效会话偏好不覆盖已完成回复模型由回归测试证明。真实验证范围是 Native + 当前配置的 Codex provider，未冒称验证其它独立运行时的认证与路由。
+
+复盘落点：修正原产品 producer 并把回归提升到事件总线摄入边界；原验证方法已要求真实实例，不新增规则。中英文会话指南与 changeset 已同步。本批草稿位于主工作区，未提交或发布；历史误标会话保留以保护真实手动名称。
+
+用户随后用会话 `ncp-mtzqk2jj-zvbaomxc` 发送“你好”，标题仍为“你好”。该会话 `label_source=fallback` 且写入 `title_attempt_message_id`，证明模型调用已经完成，但按原设计对纯寒暄返回 null。用户把“首轮后仍是原始截取”视为功能未生效，因此这是自动标题 owner 的局部合同缺口，而非模型路由或 UI 刷新问题。
+
+设计修正为：任何有用户文本且正常完成助手回复的首轮都请求非空标题。明确任务概括任务；只有问候、致谢或简单闲聊时概括会话性质，例如“日常问候”或“简短寒暄”，不照抄开场词。模型失败或响应无效仍保留临时标题；手动标题、已生成标题和并发保护不变。不要为旧的 null 结果批量猜测标题；新消息完成后可用新的助手消息 ID再次生成。该修正不增加新状态、入口或配置，复用同一 service、provider、journal 与 UI 投影。
+
+设计 Review：用户链路从“新任务 → 输入你好 → 收到回复 → 标题变为会话性质摘要 → 刷新保留”完整；失败边界、旧数据和手动改名保护明确。仅修改 title prompt 与结果合同即可闭环，不引入通用分类器或第二条标题路径。design-document: updated；design-review: passed；plan: not-required。
+
+修正后验证：标题、会话 manager 与活动预览 4 个测试文件共 43 项通过；kernel tsc、targeted ESLint 与 diff whitespace 检查通过，只有未触达测试函数的既有行数提示。开发 watcher 冷重启后，在用户同一个 5174 页面选择 `codex-sub/gpt-5.6-sol` 并发送“你好”，真实会话 `ncp-mtzqqodx-gs3otpzg` 收到回复后标题更新为「日常问候」；API 显示 `label_source=generated` 且会话模型仍为 `codex-sub/gpt-5.6-sol`，刷新后头部与侧栏均保留该标题。原会话 `ncp-mtzqk2jj-zvbaomxc` 已记录旧版空结果，不批量改写；后续新助手消息完成时可按新消息 ID重试。

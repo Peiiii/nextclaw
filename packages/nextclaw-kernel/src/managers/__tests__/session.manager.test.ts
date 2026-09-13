@@ -28,6 +28,37 @@ async function waitForCondition(assertion: () => void | Promise<void>): Promise<
 afterEach(cleanupSessionFixtures);
 
 describe("SessionManager", () => {
+  it('generates a title through event ingestion without activity previews claiming the label', async () => {
+    const chat = vi.fn().mockResolvedValue({ content: '{"title":"卡片笔记整理"}' });
+    const sessionId = 'title-ingestion';
+    const fixture = await createFixture([createRecord({ sessionId, metadata: {
+      label: '你好，介绍一下卡片笔记法', label_source: 'fallback', preferred_model: 'test/available',
+    }, messages: [
+      createMessage({ id: 'user', sessionId, text: '你好，介绍一下卡片笔记法' }),
+      createMessage({ id: 'answer', sessionId, role: 'assistant', text: '每张卡片记录一个想法。' }),
+    ] })], createConfig(), { chat } as never);
+    await fixture.manager.start();
+    fixture.eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.RunStarted, payload: { sessionId, runId: 'title-run' },
+    });
+    await fixture.manager.flushSessionEvents();
+    expect((await fixture.manager.getSessionRecord(sessionId))?.metadata?.label_source).toBe('fallback');
+    fixture.eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.RunFinished, payload: { sessionId, runId: 'title-run' },
+    });
+    await fixture.manager.flushSessionEvents();
+    await vi.waitFor(async () => expect((await fixture.manager.getSessionRecord(sessionId))?.metadata).toMatchObject({
+      label: '卡片笔记整理', label_source: 'generated', last_activity_preview: { state: 'completed' },
+    }));
+    fixture.eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.RunStarted, payload: { sessionId, runId: 'next-run' },
+    });
+    await fixture.manager.flushSessionEvents();
+    expect((await fixture.manager.getSessionRecord(sessionId))?.metadata?.label_source).toBe('generated');
+    expect(chat).toHaveBeenCalledOnce();
+    fixture.manager.dispose();
+  });
+
   it('generates titles after a durable completed run and preserves manual edits in flight', async () => {
     let finish!: (result: { content: string }) => void;
     const chat = vi.fn(() => new Promise(resolve => { finish = resolve; }));

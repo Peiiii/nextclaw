@@ -1,12 +1,10 @@
-<p align="right">
-  <a href="./README.zh-CN.md">简体中文</a>
-</p>
-
 <div align="center">
 
 <img src="apps/landing/public/logo.svg" width="72" alt="NextClaw logo" />
 
 # NextClaw
+
+**English** · [简体中文](./README.zh-CN.md)
 
 **Your long-term personal AI partner.**
 

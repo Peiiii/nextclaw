@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AgentSessionRecord } from '@nextclaw/ncp-toolkit';
+import { createUnavailableNcpAiExecutionMetadata } from '@nextclaw/ncp';
 import { SessionTitleService } from './session-title.service.js';
 
 function fixture(metadata: Record<string, unknown> = { label: '你好，帮我看看杭州天气', label_source: 'fallback' }) {
@@ -18,6 +19,16 @@ function fixture(metadata: Record<string, unknown> = { label: '你好，帮我�
 }
 
 describe('SessionTitleService', () => {
+  it.each([{}, { preferred_model: 'unavailable/default', model: 'unavailable/default' }])('uses the completed reply model instead of current preferences %j', async metadata => {
+    const f = fixture({ label: '你好，帮我看看杭州天气', label_source: 'fallback', ...metadata });
+    f.record.messages[1].metadata = { ai_execution: createUnavailableNcpAiExecutionMetadata({
+      runId: 'completed-run', runtimeId: 'native', model: 'selected/available',
+      requestedModel: 'selected/available', outcome: 'completed',
+    }) };
+    await f.service.schedule('title-test');
+    expect(f.chat).toHaveBeenCalledWith(expect.objectContaining({ model: 'selected/available' }));
+  });
+
   it('summarizes actual content once with no tools and a bounded request', async () => {
     const f = fixture();
     await f.service.schedule('title-test');
@@ -45,11 +56,13 @@ describe('SessionTitleService', () => {
     expect(f.applyGeneratedTitle).toHaveBeenCalled();
   });
 
-  it('waits for a topic instead of installing a greeting as the title', async () => {
+  it('generates a useful title for a greeting-only conversation', async () => {
     const f = fixture();
-    f.chat.mockResolvedValue({ content: '{"title":null}' });
+    f.record.messages[0].parts = [{ type: 'text', text: '你好' }];
+    f.record.messages[1].parts = [{ type: 'text', text: '你好，有什么可以帮你？' }];
+    f.chat.mockResolvedValue({ content: '{"title":"日常问候"}' });
     await f.service.schedule('title-test');
-    expect(f.applyGeneratedTitle).toHaveBeenLastCalledWith('title-test', expect.any(Object), null, 'assistant');
+    expect(f.applyGeneratedTitle).toHaveBeenLastCalledWith('title-test', expect.any(Object), '日常问候', 'assistant');
   });
 
   it('ignores malformed results and aborts pending work on disposal', async () => {
@@ -64,6 +77,13 @@ describe('SessionTitleService', () => {
     f.service.dispose();
     finish({ content: '{"title":"Do not install"}' });
     await pending;
+    expect(f.applyGeneratedTitle).not.toHaveBeenCalled();
+  });
+
+  it('does not mark an empty model result as a completed title attempt', async () => {
+    const f = fixture();
+    f.chat.mockResolvedValue({ content: '{"title":null}' });
+    await f.service.schedule('title-test');
     expect(f.applyGeneratedTitle).not.toHaveBeenCalled();
   });
 });

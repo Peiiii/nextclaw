@@ -47,6 +47,8 @@ NextClaw can host Native, Codex, Claude Code, Weixin, Feishu, and scheduled-task
 
 Name work so it is recognizable later. Prefer names such as “July sales analysis” or “Release verification” over a list of sessions called “Hello” or “Test.”
 
+New sessions initially show a short excerpt of the first message. After a reply completes, NextClaw generates a concise title in the background using the model recorded for that reply. Specific work is summarized by topic; greetings and simple small talk are named by interaction type, such as “Casual greeting,” instead of repeating the opening words. The list updates automatically, and the title survives a refresh. Failed title requests keep the temporary title without interrupting chat. Generated titles stay stable, and manual names are never overwritten. Some older versions incorrectly marked temporary titles as manual; those historical names are not overwritten in bulk.
+
 On desktop, hover over a session to see its project, child-session count, and scheduled-task count. Hover over a project to see its path, session count, and related scheduled tasks. Project rows keep the default view minimal; the expand indicator and actions appear on hover.
 
 Running child sessions show a spinner in the session workspace. Child-session management identifies each active session, while the overview and the top-level **Child sessions** tab show the same indicator whenever any child session is running, so you do not need to open each one to check.
