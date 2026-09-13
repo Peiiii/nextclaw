@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { ChatMessageList } from "@agent-chat-ui/components/chat/ui/chat-message-list/chat-message-list";
+import { useChatMessageToolPayload } from "@agent-chat-ui/components/chat/hooks/use-chat-message-tool-payload";
 
 const defaultTexts = {
   copyCodeLabel: "Copy",
@@ -201,9 +202,9 @@ it("collapses completed assistant process content without adding a nested card",
   expect(screen.queryByText("I will inspect the project first.")).toBeNull();
 });
 
-it("loads deferred tool details before opening a completed process", () => {
+it("opens deferred details immediately and preserves collapse intent across loading and retry", () => {
   const onRequest = vi.fn();
-  const renderMessage = (state: "summary" | "loading" | "ready") => (
+  const renderMessage = (state: "summary" | "loading" | "ready" | "error") => (
     <ChatMessageList
       messages={[
         {
@@ -247,14 +248,58 @@ it("loads deferred tool details before opening a completed process", () => {
 
   fireEvent.click(screen.getByRole("button", { name: "Processed" }));
   expect(onRequest).toHaveBeenCalledWith("assistant-deferred-process");
-  expect(screen.getByRole("button", { name: "Processed" }).getAttribute("aria-expanded")).toBe("false");
+  expect(screen.getByRole("button", { name: "Processed" }).getAttribute("aria-expanded")).toBe("true");
+  expect(screen.getByRole("status").textContent).toBe("Loading details");
+  expect(screen.queryByText("pnpm test")).toBeNull();
 
   view.rerender(renderMessage("loading"));
-  expect(screen.getByRole("button", { name: "Processed · Loading details" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Processed" })).toBeTruthy();
+  expect(screen.getAllByText("Loading details")).toHaveLength(1);
+  expect(screen.getByRole("status").querySelector("svg.animate-spin")).toBeTruthy();
+  expect(screen.getByText("Final answer.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Processed" }));
+  expect(screen.queryByRole("status")).toBeNull();
 
   view.rerender(renderMessage("ready"));
+  expect(screen.getByRole("button", { name: "Processed" }).getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(screen.getByRole("button", { name: "Processed" }));
   expect(screen.getByRole("button", { name: "Processed" }).getAttribute("aria-expanded")).toBe("true");
   expect(screen.getByText("pnpm test")).toBeTruthy();
+  expect(onRequest).toHaveBeenCalledTimes(1);
+  view.rerender(renderMessage("error"));
+  expect(screen.getByRole("button", { name: "Processed" })).toBeTruthy();
+  expect(screen.getByRole("alert")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Couldn’t load details. Try again" }));
+  expect(onRequest).toHaveBeenCalledTimes(2);
+  view.rerender(renderMessage("loading"));
+  expect(screen.getByRole("status")).toBeTruthy();
+  view.rerender(renderMessage("ready"));
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.getByText("pnpm test")).toBeTruthy();
+});
+
+it("reveals a requested tool group when ready without reopening a collapsed process", () => {
+  const onRequest = vi.fn();
+  const { result, rerender } = renderHook(
+    ({ state }: { state: "summary" | "loading" | "ready" }) => useChatMessageToolPayload({
+      messageId: "deferred-tools", state, onRequest,
+    }),
+    { initialProps: { state: "summary" } },
+  );
+  act(() => result.current.handleToolActivityOpenChange("tools", true));
+  expect(onRequest).toHaveBeenCalledTimes(1);
+  expect(result.current.openToolGroupKeys.has("tools")).toBe(false);
+  rerender({ state: "loading" });
+  act(() => result.current.handleToolActivityOpenChange("tools", true));
+  expect(onRequest).toHaveBeenCalledTimes(1);
+  act(() => result.current.handleProcessToggle());
+  rerender({ state: "ready" });
+  expect(result.current.processOpen).toBe(false);
+  expect(result.current.openToolGroupKeys.has("tools")).toBe(true);
+  act(() => result.current.handleProcessToggle());
+  expect(result.current.processOpen).toBe(true);
+  act(() => result.current.handleToolActivityOpenChange("tools", false));
+  expect(result.current.openToolGroupKeys.has("tools")).toBe(false);
 });
 
 it("does not collapse in-progress assistant process content", () => {

@@ -19,8 +19,7 @@ import { groupConsecutiveImageFileBlocks } from "./chat-message-file/chat-messag
 import { ChatReasoningBlock } from "./chat-reasoning-block";
 import { ChatToolCard } from "./chat-tool-card";
 import { ChatToolActivityGroup } from "./chat-tool-activity-group";
-import { ChatCollapsibleMetaSummary } from "./chat-collapsible-meta-summary";
-import { ChatCollapsibleContent } from "./chat-collapsible-content";
+import { ChatMessageProcess } from "./process-details/chat-message-process";
 import { ChatProcessWorkflowRail } from "./chat-process-meta-row";
 import {
   groupConsecutiveToolParts,
@@ -397,11 +396,6 @@ export const ChatMessage = memo(function ChatMessage({
     state: toolPayloadState,
     onRequest: onToolPayloadRequest,
   });
-  const processSummaryLabel = toolPayloadState === "loading"
-    ? `${message.processSummary?.label ?? ""} · ${texts.toolPayloadLoadingLabel ?? "Loading details"}`
-    : toolPayloadState === "error"
-      ? `${message.processSummary?.label ?? ""} · ${texts.toolPayloadLoadFailedLabel ?? "Couldn’t load details. Try again"}`
-      : message.processSummary?.label;
 
   return (
     <div
@@ -422,17 +416,14 @@ export const ChatMessage = memo(function ChatMessage({
       <div className="space-y-0">
         {processSplit ? (
           <>
-            <div className="group/process">
-              <div className="mb-2 border-b border-border/60 pb-2">
-                <ChatCollapsibleMetaSummary
-                  openGroup="process"
-                  open={processOpen}
-                  label={processSummaryLabel}
-                  onClick={handleProcessToggle}
-                />
-              </div>
-              <ChatCollapsibleContent open={processOpen}>{() => (
-                  renderMessageParts({
+            <ChatMessageProcess
+              open={processOpen}
+              state={toolPayloadState}
+              label={message.processSummary?.label}
+              texts={texts}
+              onToggle={handleProcessToggle}
+              onRetry={() => void onToolPayloadRequest?.(message.id)}
+            >{() => renderMessageParts({
                     parts: processSplit.processParts,
                     role,
                     isUser,
@@ -449,9 +440,8 @@ export const ChatMessage = memo(function ChatMessage({
                     renderInlineDisplay,
                     renderToolAgent,
                     renderPanelAppCard,
-                  })
-              )}</ChatCollapsibleContent>
-            </div>
+                  })}
+            </ChatMessageProcess>
             {renderMessageParts({
               parts: processSplit.finalParts,
               role,

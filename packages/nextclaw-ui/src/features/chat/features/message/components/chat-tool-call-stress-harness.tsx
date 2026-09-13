@@ -1,5 +1,5 @@
 import { Profiler, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChatMessageList, type ChatMessageTexts } from "@nextclaw/agent-chat-ui";
+import { ChatMessageList, type ChatMessageTexts, type ChatMessageListProps } from "@nextclaw/agent-chat-ui";
 import {
   createChatToolCallStressViewModel,
   DEFAULT_CHAT_TOOL_CALL_STRESS_CONFIG,
@@ -40,6 +40,8 @@ const STRESS_TEXTS: ChatMessageTexts = {
   },
   toolActivityFailedLabel: "failed",
   toolActivityCancelledLabel: "cancelled",
+  toolPayloadLoadingLabel: "正在加载详情",
+  toolPayloadLoadFailedLabel: "详情加载失败，点击重试",
 };
 
 function readBoundedNumber(value: string, fallback: number, maximum: number): number {
@@ -53,6 +55,18 @@ export function ChatToolCallStressHarness() {
   const [config, setConfig] = useState(DEFAULT_CHAT_TOOL_CALL_STRESS_CONFIG);
   const [renderVersion, setRenderVersion] = useState(0);
   const [metric, setMetric] = useState<StressMetric | null>(null);
+  const [detailState, setDetailState] = useState<
+    ReturnType<NonNullable<ChatMessageListProps["resolveMessageToolPayloadState"]>>
+  >("ready");
+  const detailTimer = useRef<ReturnType<typeof setTimeout>>();
+  const failNextRequest = useRef(false);
+  useEffect(() => () => clearTimeout(detailTimer.current), []);
+  const resetDetails = (fail: boolean) => {
+    clearTimeout(detailTimer.current);
+    failNextRequest.current = fail;
+    setDetailState("summary");
+    setRenderVersion((value) => value + 1);
+  };
   const pendingMeasurement = useRef<{ action: string; startedAt: number } | null>(null);
   const viewModel = useMemo(
     () => createChatToolCallStressViewModel(config, `chat-tool-call-stress-message-${renderVersion}`),
@@ -104,6 +118,12 @@ export function ChatToolCallStressHarness() {
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
+          <button type="button" className="rounded border border-border px-3 py-1.5 text-sm" onClick={() => resetDetails(false)}>
+            演练慢加载（5 秒）
+          </button>
+          <button type="button" className="rounded border border-border px-3 py-1.5 text-sm" onClick={() => resetDetails(true)}>
+            演练失败后重试
+          </button>
           <button
             type="button"
             className="rounded bg-primary px-3 py-1.5 text-sm text-primary-foreground"
@@ -165,10 +185,20 @@ export function ChatToolCallStressHarness() {
         >
           <section data-stress-message="true" className="rounded-lg border border-border p-4">
             <ChatMessageList
-              messages={[viewModel]}
+              layout="flat"
+              messages={[{ ...viewModel, processSummary: { label: "已处理 2分钟58秒" } }]}
               isSending={false}
               hasAssistantDraft={false}
               texts={STRESS_TEXTS}
+              resolveMessageToolPayloadState={() => detailState}
+              onMessageToolPayloadRequest={() => {
+                if (detailState === "loading" || detailState === "ready") return;
+                setDetailState("loading");
+                detailTimer.current = setTimeout(() => {
+                  setDetailState(failNextRequest.current ? "error" : "ready");
+                  failNextRequest.current = false;
+                }, 5_000);
+              }}
             />
           </section>
         </Profiler>

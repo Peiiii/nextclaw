@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ChatMessageToolPayloadState } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
+
+const CLOSED_TOOL_GROUPS: ReadonlySet<string> = new Set();
 
 export function useChatMessageToolPayload(params: {
   messageId: string;
@@ -11,37 +13,21 @@ export function useChatMessageToolPayload(params: {
   const [openToolGroupKeys, setOpenToolGroupKeys] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
-  const [pendingProcessOpen, setPendingProcessOpen] = useState(false);
-  const [pendingToolGroupKey, setPendingToolGroupKey] = useState<string | null>(null);
   const payloadReady = state === undefined || state === "ready";
-
-  useEffect(() => {
-    if (!payloadReady) return;
-    if (pendingProcessOpen) {
-      setProcessOpen(true);
-      setPendingProcessOpen(false);
-    }
-    if (pendingToolGroupKey) {
-      setOpenToolGroupKeys((current) => new Set(current).add(pendingToolGroupKey));
-      setProcessOpen(true);
-      setPendingToolGroupKey(null);
-    }
-  }, [payloadReady, pendingProcessOpen, pendingToolGroupKey]);
 
   const requestPayload = () => {
     if (state === "summary" || state === "error") void onRequest?.(messageId);
   };
   const handleProcessToggle = () => {
-    if (processOpen) return setProcessOpen(false);
-    if (payloadReady) return setProcessOpen(true);
-    setPendingProcessOpen(true);
+    if (processOpen) {
+      return setProcessOpen(false);
+    }
+    setProcessOpen(true);
     requestPayload();
   };
   const handleToolActivityOpenChange = (groupKey: string, open: boolean) => {
     if (open && !payloadReady) {
-      setPendingToolGroupKey(groupKey);
       requestPayload();
-      return;
     }
     setOpenToolGroupKeys((current) => {
       const next = new Set(current);
@@ -55,7 +41,7 @@ export function useChatMessageToolPayload(params: {
   return {
     handleProcessToggle,
     handleToolActivityOpenChange,
-    openToolGroupKeys,
+    openToolGroupKeys: payloadReady ? openToolGroupKeys : CLOSED_TOOL_GROUPS,
     processOpen,
   };
 }

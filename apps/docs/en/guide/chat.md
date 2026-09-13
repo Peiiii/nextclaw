@@ -27,6 +27,8 @@ If you are browsing earlier messages, sending a message and receiving output kee
 
 Processed summaries, reasoning, tool groups, and tool details share a smooth expand/collapse transition. Repeated clicks reverse from the current height. The transition is skipped when your system requests reduced motion.
 
+Expanding a completed process immediately shows a spinner and skeleton placeholders while its details load. You can collapse it while waiting; completion will not reopen it. If loading fails, click the retry message to load the details again.
+
 ## Voice input
 
 When recording starts, the overlay explains why microphone access is needed. Choose Allow in the browser permission prompt. If access is denied, the overlay shows site permission instructions and the settings path for your operating system. After changing permissions, select **Check microphone and retry**. The check immediately releases its temporary microphone capture before starting speech recognition. Missing or unreadable devices have separate messages. Save your draft before restarting the app if your system requires it.
