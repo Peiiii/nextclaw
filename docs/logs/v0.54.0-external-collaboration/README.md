@@ -58,3 +58,5 @@
 本机监听已临时切到本 worktree 修正版，PID 27394，绑定保留；不是正式发布安装。修改尚未提交/发布，changeset collaboration-receipts-and-replies.md 已准备。周额度最新 used 22%（剩余 78%）到达用户硬边界，停止后续发布；不能将本地修复标为稳定发布完成。恢复入口：本段、设计中返工小节、git diff、/tmp/collaboration-receipt-* 验证日志；下一步提交并按 exact-SHA prepare/product 发布、切回正式安装包、原 Issue 复验后关闭 COL-010/COL-011/COL-015。不要重做已验证且未变的全平台功能；不要使用重置额度或越过 78% 下限。
 
 用户随后明确授权继续完成发布收尾，允许本次必要闭环越过此前 78% 暂停点；不扩大功能或重复既有测试。最终定向测试 19 项、两个相关包 tsc、文档构建和 i18n 均通过，diff-only Review 0 errors / 0 warnings。设计 Review 与实现 Review 均无开放 findings。EXISTING_RELEASE_PATH: release.yml / npm-production，既有成功 34743043117。沿原发布 owner 完成 patch，不发布桌面或额外宣传。
+
+后续用户要求显示标识更短且框架不耦合名称：采用可选 presentation 配置，公共回写默认纯正文，prefix/stripPrefixes 由接入方指定。签名中的可选 displayPrefix 经过验证后用于控制文本读取，身份不依赖显示字串。21 项测试、双方包 tsc、命令目录两项测试、lint 和文档构建通过；Review 0 errors（既有大文件 warning）。本机三个连接经对象级 CLI 显式配置短前缀，PID 22494；#64 真实回复 5652095770 为“🤖[墨爪] 可以继续交流。”。前一不可变批次 34746046090 已上传 collaboration 0.1.2；本项继续下一 patch，不覆写已发布版本。

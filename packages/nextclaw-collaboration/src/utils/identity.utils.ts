@@ -16,6 +16,7 @@ type Envelope = {
   purpose: "reply" | "status";
   hop: number;
   digest: string;
+  displayPrefix?: string;
 };
 const marker =
   /\n<!-- nextclaw-collaboration:([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+) -->$/;
@@ -67,8 +68,7 @@ export function identifyMessage(
   if (!match)
     return {
       account,
-      ...(/\n<!-- nextclaw-collaboration:.* -->$/.test(body) ||
-      body.startsWith("🤖[墨爪]")
+      ...(/\n<!-- nextclaw-collaboration:.* -->$/.test(body)
         ? { invalidAgent: true }
         : {}),
     };
@@ -84,6 +84,8 @@ export function identifyMessage(
       value.source !== source ||
       value.subject !== subject ||
       value.digest !== digest(body.slice(0, match.index)) ||
+      (value.displayPrefix !== undefined &&
+        (typeof value.displayPrefix !== "string" || !body.startsWith(value.displayPrefix))) ||
       !Number.isSafeInteger(value.hop) ||
       value.hop < 0 ||
       !["reply", "status"].includes(value.purpose) ||
@@ -101,6 +103,7 @@ export function identifyMessage(
       hop: value.hop,
       purpose: value.purpose,
       operationId: value.operationId,
+      displayPrefix: value.displayPrefix,
     };
   } catch {
     return { account, invalidAgent: true };

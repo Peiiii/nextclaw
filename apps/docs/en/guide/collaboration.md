@@ -4,6 +4,8 @@ GitHub and Linear issues can wake local Codex tasks. An invitation creates a bin
 
 Requires Node.js 22.13+, local Codex, and an authenticated GitHub CLI or schpet Linear CLI with project access.
 
+Display labels belong to the caller, not the framework. Stop the host, run `nextclaw collaboration presentation CONNECTION --prefix '[My Agent]'`, then start it again. Omitting the prefix displays only the response body. `--strip-prefix LABEL...` removes configured leading labels without rewriting quotes within the body. Display changes preserve signed identity and task bindings.
+
 An eyes reaction on the original GitHub issue or comment confirms durable receipt, including while paused or when the agent later stays quiet. It does not mean execution started or completed. Status comments identify the agent and execution state; reactions from a shared account do not identify individual agents. Reaction errors are retained locally and do not prevent normal status comments or processing. Other platforms currently use status comments. Invitations, greetings and connectivity tests receive a short reply; irrelevant notifications or explicit no-reply requests may stay quiet. The host adds the public identity prefix once.
 
 ```sh

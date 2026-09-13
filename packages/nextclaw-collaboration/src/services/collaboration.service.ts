@@ -109,8 +109,8 @@ export class CollaborationService {
       .filter((e) => e.state === "pending");
     pending.sort(
       (a, b) =>
-        Number(controlText(b).startsWith("/agent ")) -
-        Number(controlText(a).startsWith("/agent ")),
+        Number(controlText(b, this.store.get<Connection>("connection", b.connectionId)).startsWith("/agent ")) -
+        Number(controlText(a, this.store.get<Connection>("connection", a.connectionId)).startsWith("/agent ")),
     );
     for (const input of pending) {
       const connection = this.store.get<Connection>(
@@ -278,14 +278,15 @@ export class CollaborationService {
     }
   };
   private completeRun = (run: Run, context: ContextState): void => {
-    const text = normalizeReplyText(run.text || "", context.agentId);
+    const connection = this.store.get<Connection>("connection", context.connectionId);
+    const text = normalizeReplyText(run.text || "", connection?.presentation?.stripPrefixes);
     if (!text) {
       run.state = "unknown";
       run.error =
         "Completed execution has no final output; inspect before retry";
       return;
     }
-    if (/^(?:\[我严格遵守规则\]\s*)?COLLABORATION_QUIET$/.test(text)) {
+    if (text === "COLLABORATION_QUIET") {
       context.status = "已安静处理";
       return;
     }
@@ -367,7 +368,7 @@ export class CollaborationService {
     const agentId = input.event.data.actor.agentId;
     if (input.event.data.change !== "message") return false;
     const match = /^\/agent (status|pause|resume|cancel)\s*$/.exec(
-      controlText(input),
+      controlText(input, connection),
     );
     if (!match) return false;
     if (
@@ -459,9 +460,9 @@ export class CollaborationService {
 function errorMessage(error: unknown): string {
   return (error instanceof Error ? error.message : String(error)).slice(0, 500);
 }
-function controlText(input: StoredEvent): string {
+function controlText(input: StoredEvent, connection?: Connection): string {
   return input.event.data.actor.agentId
-    ? stripEnvelope(input.event.data.body).replace(/^🤖\[墨爪\]\s*/, "")
+    ? normalizeReplyText(stripEnvelope(input.event.data.body), [input.event.data.actor.displayPrefix || "", ...(connection?.presentation?.stripPrefixes || [])])
     : input.event.data.body;
 }
 function buildPrompt(

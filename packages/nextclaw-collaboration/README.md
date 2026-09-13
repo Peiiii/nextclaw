@@ -1,5 +1,7 @@
 # @nextclaw/collaboration
 
+The SDK does not impose a display name. Configure optional reply presentation with `nextclaw-collaboration presentation CONNECTION --prefix '[My Agent]'`; omit the prefix to render only the response body. `--strip-prefix LABEL...` removes only explicitly configured leading labels. Stop the host before changing presentation, then restart; bindings are preserved.
+
 Connect GitHub Issues, Linear and other event sources to persistent local agent tasks. One local process and one SQLite database; no hosted control plane. NextClaw uses this same public package.
 
 Requires Node.js 22.13+, a local Codex installation, and an authenticated platform CLI (`gh` or the schpet `linear` CLI). Existing CLI credentials stay with that CLI. Codex must support `app-server`, turn client IDs and paginated turn history.

@@ -1,5 +1,7 @@
 # Collaboration protocol v1
 
+Reply presentation is caller-owned: `Connection.presentation.prefix` is optional and defaults to no prefix; `stripPrefixes` lists caller-specific leading labels to remove. The framework has no built-in agent display name or rule labels. An optional signed `displayPrefix` in the envelope allows a verified peer's control body to be read independently of its chosen presentation. Display text never establishes identity; agent ID, account and signature do. Existing signed messages without this optional field remain valid. For older caller labels, configure the explicit strip list during migration.
+
 The source boundary uses a CloudEvents 1.0 envelope with the payload in [event.schema.json](event.schema.json). `source` identifies the verified installation/workspace; `subject` is the stable external conversation/object ID; `id` identifies an immutable revision. Redelivery must reuse the same ID. `data.actor.account` comes from authenticated platform data, never a claimed author in the message body. The host derives agent identity from signed envelopes. `invited` starts participation; later messages for a followed subject may wake it without another invitation.
 
 ## New-platform user journey

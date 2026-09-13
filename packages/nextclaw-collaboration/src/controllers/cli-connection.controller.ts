@@ -160,6 +160,23 @@ export function registerConnectionCommands(
 
 function registerAdapterCommands(program: Command, context: CliContext): void {
   const { root, open, stopped } = context;
+  program.command("presentation <connection>")
+    .description("Configure caller-owned reply presentation")
+    .option("--prefix <text>", "Visible prefix; empty means none", "")
+    .option("--strip-prefix <text...>", "Leading caller-specific labels to remove", [])
+    .action((id: string, options) => {
+      const store = open();
+      try {
+        stopped(store);
+        const connection = store.get<Connection>("connection", id);
+        if (!connection) throw new Error("Connection not found");
+        const prefix = String(options.prefix).trim();
+        if (prefix.length > 200 || /[\r\n]/.test(prefix)) throw new Error("Prefix must be a single line of at most 200 characters");
+        connection.presentation = { prefix, stripPrefixes: options.stripPrefix.map(String) };
+        store.put("connection", id, connection);
+        print({ connection: id, presentation: connection.presentation });
+      } finally { store.close(); }
+    });
   program
     .command("install-adapter <module>")
     .description("Register an explicitly installed trusted adapter module")

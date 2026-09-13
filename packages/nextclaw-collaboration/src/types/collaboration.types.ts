@@ -16,6 +16,7 @@ export type Actor = {
   purpose?: "reply" | "status";
   operationId?: string;
   invalidAgent?: boolean;
+  displayPrefix?: string;
 };
 export type CollaborationEvent = {
   specversion: "1.0";
@@ -75,6 +76,7 @@ export type ConsumerConfig =
   | { kind: "codex"; executable?: string; workspace: string }
   | { kind: "command"; command: string[]; workspace: string };
 export type Connection = {
+  presentation?: { prefix?: string; stripPrefixes?: string[] };
   id: string;
   adapter: string;
   options: Record<string, string>;

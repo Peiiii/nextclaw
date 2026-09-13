@@ -37,6 +37,7 @@ function fixture() {
   const peer = createIdentity(root, "bob");
   const connection: Connection = {
     id: "test",
+    presentation: { prefix: "🤖[墨爪]", stripPrefixes: ["[我严格遵守规则]", "[深思模式]", "🤖[墨爪]"] },
     adapter: "test",
     options: {},
     source: "urn:test",
@@ -155,6 +156,26 @@ function fixture() {
   };
 }
 describe("visible collaboration receipts", () => {
+  it("recognizes peer controls through an arbitrary signed display prefix", async () => {
+    const f = fixture();
+    f.connection.trustedAgents[0].controls = true;
+    f.store.put("connection", f.connection.id, f.connection);
+    f.service.ingest(f.connection, f.event("first"));
+    await f.service.dispatch(); await f.service.advance();
+    const body = signMessage(f.peer, "[Helper B] /agent pause", { source: "urn:test", subject: "ticket", purpose: "reply", operationId: "custom-prefix-control", hop: 0, displayPrefix: "[Helper B]" });
+    f.service.ingest(f.connection, f.event("pause", body));
+    await f.service.dispatch();
+    expect(f.store.list<ContextState>("context")[0].paused).toBe(true);
+    expect(f.submissions).toHaveLength(1);
+  });
+  it("does not impose a display identity when no presentation is configured", async () => {
+    const f = fixture();
+    delete f.connection.presentation;
+    f.store.put("connection", f.connection.id, f.connection);
+    f.service.ingest(f.connection, f.event("plain"));
+    await f.service.dispatch(); await f.service.advance(); await f.service.publish();
+    expect(f.messages.some(m => m.body.startsWith("Result\n<!--"))).toBe(true);
+  });
   it("acknowledges persisted input before execution, only once, including paused input", async () => {
     const f = fixture();
     const received: string[] = [];
@@ -194,7 +215,7 @@ describe("visible collaboration receipts", () => {
     await f.service.advance();
     await f.service.publish();
     const reply = f.messages.find((m) => m.body.includes("我是墨爪"))!;
-    expect(reply.body.startsWith("🤖[墨爪] alice：我是墨爪。引用：[我严格遵守规则]")).toBe(true);
+    expect(reply.body.startsWith("🤖[墨爪] 我是墨爪。引用：[我严格遵守规则]")).toBe(true);
     expect(reply.body.match(/🤖\[墨爪\]/g)).toHaveLength(1);
     expect(identifyMessage(reply.body, "shared", "urn:test", "ticket", [{ ...f.agent, account: "shared" }]).invalidAgent).not.toBe(true);
   });

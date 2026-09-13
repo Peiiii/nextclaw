@@ -584,6 +584,8 @@ GitHub 使用 gh api，Linear 固定支持 schpet linear-cli 1.11.1 的 api/vari
 
 ### 2026-09-13 用户验收返工：原消息反馈与正文边界
 
+后续用户纠偏：标识属于接入方，不属于公共框架。采用可选 Connection.presentation（prefix/stripPrefixes），默认无前缀；新增对象级 presentation CLI 只更新显示配置，不改绑定/游标。签名可携带 displayPrefix，验签后用于读取控制正文，身份仍由 account/agentId/签名决定。框架不内置墨爪显示名或项目规则前缀；本机连接显式配置短标识，旧前导标签通过接入方 stripPrefixes 兼容。方案 Review：显示、语义、身份分离，不增包或状态队列；补充无配置纯正文、任意前缀签名控制与原会话真实短回复验收。
+
 用户链路：加邀请标签/发送消息 → 原消息出现 👀 表示已持久接收 → 执行开始由状态评论显示 → 正文回复或有依据的静默。主动邀请、问候、连通测试属于需要交流的输入；无关通知与明确不回复仍可静默。
 
 采用原 output owner 的可选 `SourceAdapter.acknowledge(event)` 能力，GitHub 原 Issue/评论使用幂等 eyes reaction。只在身份、关注和生命周期检查后、消费者执行前调用；暂停输入也有接收反馈。无能力的平台保留状态评论。失败记录在本地事件 receiptError，回退既有状态评论，不阻断任务，不另建重试队列；同账号 reaction 只代表平台接收，不证明某个 Agent 身份，具体 Agent 及执行状态仍以签名回执为准。

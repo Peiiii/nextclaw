@@ -86,8 +86,10 @@ export class CollaborationOutputService {
     if (this.store.get("outbox", id)) return;
     const { key, connectionId, source, subject, status } = context;
     const connection = this.store.get<Connection>("connection", connectionId)!;
-    const scope = { source, subject, operationId: id, purpose, hop };
-    let content = `🤖[墨爪] ${connection.agent.id}：${normalizeReplyText(text, connection.agent.id)}`;
+    const prefix = connection.presentation?.prefix?.trim() || "";
+    const scope = { source, subject, operationId: id, purpose, hop, displayPrefix: prefix };
+    const clean = normalizeReplyText(text, connection.presentation?.stripPrefixes);
+    let content = prefix ? `${prefix} ${clean}` : clean;
     let body = signMessage(connection.agent, content, scope);
     const limit = this.source(connectionId).maxMessageChars || 60_000;
     if (body.length > limit) {
@@ -201,9 +203,9 @@ function errorMessage(error: unknown): string {
   return (error instanceof Error ? error.message : String(error)).slice(0, 500);
 }
 /** Strip only leading transport/rule labels; preserve labels quoted inside the reply. */
-export function normalizeReplyText(text: string, agentId: string): string {
+export function normalizeReplyText(text: string, prefixes: string[] = []): string {
   let result = text.trim();
-  const labels = ["[我严格遵守规则]", "[深思模式]", `🤖[墨爪] ${agentId}：`, "🤖[墨爪]"];
+  const labels = prefixes.filter(Boolean).sort((a, b) => b.length - a.length);
   for (;;) {
     const label = labels.find((prefix) => result.startsWith(prefix));
     if (!label) return result;
