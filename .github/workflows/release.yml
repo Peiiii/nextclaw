@@ -275,7 +275,13 @@ jobs:
           prepared_source_sha="$(git rev-parse "$release_commit^")"
           desktop_target="$release_commit"
           if [ "${{ inputs.target }}" = "all" ]; then
-            desktop_target="$(node --input-type=module - "$release_commit" "$GITHUB_SHA" <<'NODE'
+            escaped_version="${TARGET_VERSION//./\\.}"
+            desktop_draft_tag="$(gh release list --limit 100 --json isDraft,tagName --jq '.[] | select(.isDraft == true) | .tagName' | grep -E "^v${escaped_version}-desktop\\.[0-9]+$" | head -n 1 || true)"
+            desktop_candidate="$GITHUB_SHA"
+            if [ -n "$desktop_draft_tag" ]; then
+              desktop_candidate="$(gh release view "$desktop_draft_tag" --json targetCommitish --jq .targetCommitish)"
+            fi
+            desktop_target="$(node --input-type=module - "$release_commit" "$desktop_candidate" <<'NODE'
           import { resolveDesktopReleaseTarget } from './scripts/release/desktop-release-preflight.mjs';
           process.stdout.write(resolveDesktopReleaseTarget(...process.argv.slice(2)));
           NODE

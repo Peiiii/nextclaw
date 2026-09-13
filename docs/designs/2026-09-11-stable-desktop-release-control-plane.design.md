@@ -74,3 +74,4 @@ Desktop builder 的 `--target` 保持使用 `publish-npm.outputs.desktop_target`
 
 - FIX-9：`target=all` 同时存在 `0.55.0` 未完成 Draft 与 `0.55.1` changeset 时选择 recovery `0.55.0`；不得尝试准备或发布 `0.55.1`。
 - FIX-10：identity job 使用能读取隐藏 Draft 的仓库权限；读取成功但结果省略 Draft 不得被解释为“没有待恢复身份”。该 job 不执行 mutation，实际发布权限边界仍归后续 owner。
+- FIX-11：recovery 已有同版本 Draft 时，从 Draft 读取 Desktop candidate 并继续通过既有 `resolveDesktopReleaseTarget` 漂移校验；不得把后来推进 master 的未发布产品改动当成本次恢复 target。没有 Draft 时才以当前 control plane 作为独立 Desktop 修复候选。

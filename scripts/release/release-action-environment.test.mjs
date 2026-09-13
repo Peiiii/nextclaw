@@ -316,6 +316,10 @@ test("stable release exposes only the business target and infers recovery checkp
     workflow,
     /const hasDesktopDraft = desktopDrafts\.some[\s\S]*?mode=recovery[\s\S]*?const planned =/,
   );
+  assert.match(
+    workflow,
+    /desktop_draft_tag=.*gh release list[\s\S]*?gh release view "\$desktop_draft_tag" --json targetCommitish[\s\S]*?resolveDesktopReleaseTarget/,
+  );
   assert.match(workflow, /Infer release checkpoint[\s\S]*?is_recovery=\$is_recovery/);
   assert.match(
     workflow,
