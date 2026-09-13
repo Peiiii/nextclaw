@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as NextclawCoreModule from "@nextclaw/core";
+import type * as NextclawServerModule from "@nextclaw/server";
 import { RestartCommands } from "@nextclaw-service/controllers/commands/restart-command.controller.js";
+
+vi.mock("@nextclaw/server", async (importOriginal) => ({
+  ...await importOriginal<typeof NextclawServerModule>(),
+  ensureUiBridgeSecret: () => "test-local-secret",
+}));
 
 const mocks = vi.hoisted(() => ({
   loadConfig: vi.fn(),
@@ -155,6 +161,29 @@ describe("RestartCommands", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(runtimeCommandService.stopService).toHaveBeenCalledOnce();
     expect(startCommands.run).toHaveBeenCalledWith({ uiPort: 55668 });
+  });
+
+  it.each(["authentication", "timeout"])("does not kill or start a process after controlled restart %s failure", async (failure) => {
+    mocks.localUiRuntimeStore.read.mockReturnValue({ pid: 46598, uiPort: 55667, apiUrl: "http://127.0.0.1:55667/api" });
+    mocks.cliUtils.isProcessRunning.mockReturnValue(true);
+    const stopService = vi.fn();
+    const run = vi.fn();
+    const kill = vi.spyOn(process, "kill");
+    const fetchMock = failure === "authentication"
+      ? vi.fn().mockResolvedValueOnce(new Response(null, { status: 401 })).mockResolvedValueOnce(new Response(null, { status: 403 }))
+      : vi.fn().mockRejectedValue(new Error("request timeout"));
+    vi.stubGlobal("fetch", fetchMock);
+    const commands = new RestartCommands({
+      runtimeCommandService: { stopService } as never,
+      startCommands: { run } as never,
+      forcedPublicHost: "0.0.0.0",
+      writeRestartSentinelFromExecContext: vi.fn(),
+    });
+    await expect(commands.run({})).rejects.toThrow(failure === "authentication" ? "403" : "timeout");
+    expect(stopService).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+    expect(kill).not.toHaveBeenCalled();
+    kill.mockRestore();
   });
 
   it("restarts a tracked foreground local runtime on the target port before starting the managed service", async () => {

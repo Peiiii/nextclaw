@@ -45,6 +45,8 @@ nextclaw restart
 
 Afterward, verify with `nextclaw --version` and `nextclaw status --json`. Use `nextclaw doctor --json` if diagnosis is needed. Do not chain update and restart unconditionally: no available update, a failed update, and an applied update awaiting restart need different handling.
 
+With web password protection enabled, the CLI on the same machine and NextClaw data directory authenticates locally without copying browser cookies or disabling protection. Confirm completion using `runtime.version` from `status --json`: a downloaded bundle or changed CLI version does not prove that the serving process was upgraded. If a custom systemd override disables the runtime bundle launcher, the deployment maintainer must restore the standard launcher entry and verify the running version.
+
 ## How the agent knows what happened
 
 The resumed run receives explicit context: the planned restart completed; the previous tool process and execution stack were not restored; an interrupted tool result is not a reason to repeat the update or restart; first inspect the version, service health, and effects of earlier actions.

@@ -101,7 +101,7 @@ describe("planned restart self-update acceptance", () => {
     await writeFile(packagedRunner, "fixture");
     await chmod(packagedRunner, 0o755);
     const fixturePath = fileURLToPath(new URL(
-      "./planned-restart-update-process-fixture.service.ts", import.meta.url,
+      "../../../utils/runtime/tests/planned-restart-update-process-fixture.utils.ts", import.meta.url,
     ));
     const tsxPath = createRequire(import.meta.url).resolve("tsx/cli");
     await writeFile(launcherPath,
@@ -187,6 +187,8 @@ describe("planned restart self-update acceptance", () => {
         second: expect.objectContaining({ status: "none" }),
       }),
       expect.objectContaining({ phase: "runtime-booted", version: "0.1.1" }),
+      expect.objectContaining({ phase: "authenticated-router", anonymous: 401, invalid: 403, runtimeVersion: "0.1.0" }),
+      expect.objectContaining({ phase: "authenticated-router", anonymous: 401, invalid: 403, runtimeVersion: "0.1.1" }),
     ]));
     expect(events.filter((event) => event.phase === "command" && event.command === "update")).toHaveLength(1);
     expect(events.filter((event) => event.phase === "command" && event.command === "restart")).toHaveLength(2);

@@ -4,10 +4,10 @@ import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { ConfigSchema, ExecTool, saveConfig } from "@nextclaw/core";
 import { NextclawKernel } from "@nextclaw/kernel";
-import { ingressKeys } from "@nextclaw/shared";
+import { EventBus, ingressKeys } from "@nextclaw/shared";
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import { ncpMessageToOpenAiMessages } from "@nextclaw/ncp-agent-runtime";
-import { RuntimeControlRoutesController } from "@nextclaw/server";
+import { createUiRouter } from "@nextclaw/server";
 import { NpmRuntimeLauncher } from "@nextclaw-service/launcher/npm-runtime-launcher.service.js";
 import { NextclawServiceRuntime } from "@nextclaw-service/app/nextclaw-service-runtime.js";
 import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
@@ -15,6 +15,7 @@ import { ServiceRestartManager } from "@nextclaw-service/managers/service-restar
 import { RuntimeControlHost } from "@nextclaw-service/services/ui/runtime-control-host.service.js";
 import { localUiRuntimeStore } from "@nextclaw-service/stores/local-ui-runtime.store.js";
 import { managedServiceStateStore } from "@nextclaw-service/stores/managed-service-state.store.js";
+import { RuntimeVersionProbeService } from "@nextclaw-service/services/diagnostics/runtime-version-probe.service.js";
 
 function required(name: string): string {
   const value = process.env[name];
@@ -85,6 +86,7 @@ if (!successor) {
   }), configPath);
 }
 const kernel = new NextclawKernel({ homeDir: home, configPath });
+if (!successor) await kernel.accessManager.setupPasswordAdmin({ username: "acceptance", password: "acceptance-password" });
 await kernel.start();
 const started = new Set<string>();
 const finished = new Set<string>();
@@ -172,21 +174,28 @@ async function startControlServer(): Promise<void> {
     serviceCommands: { startService: async () => { throw new Error("unexpected start"); }, stopService: async () => undefined },
     uiConfig: { host: "127.0.0.1", port: 0 },
   });
-  const routes = new RuntimeControlRoutesController(host);
+  const router = createUiRouter({ kernel, configPath, appEventBus: new EventBus(), runtimeControl: host, productVersion: version });
   const server = createServer(async (request, response) => {
-    if (request.url !== "/api/runtime/control/restart-service" || request.method !== "POST") {
-      response.writeHead(404).end();
-      return;
-    }
-    const result = await routes.restartService({
-      json: (data: unknown, status: number = 200) => Response.json(data, { status }),
-    } as unknown as Parameters<typeof routes.restartService>[0]);
+    const result = await router.request(`http://127.0.0.1${request.url}`, {
+      method: request.method,
+      headers: request.headers as Record<string, string>,
+    });
     response.writeHead(result.status, Object.fromEntries(result.headers));
     response.end(await result.text());
   });
   await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
   const address = server.address();
   if (!address || typeof address === "string") throw new Error("fixture server missing address");
+  const apiUrl = `http://127.0.0.1:${address.port}/api`;
+  const anonymous = await fetch(`${apiUrl}/runtime/control/restart-service`, { method: "POST" });
+  const invalid = await fetch(`${apiUrl}/auth/bridge`, {
+    method: "POST", headers: { "x-nextclaw-ui-bridge-secret": "invalid" },
+  });
+  const status = await new RuntimeVersionProbeService().probe({ apiUrl, source: "configured-api" });
+  if (anonymous.status !== 401 || invalid.status !== 403 || status.version !== version) {
+    throw new Error(`authenticated router verification failed: ${anonymous.status}/${invalid.status}/${status.version}`);
+  }
+  await record({ phase: "authenticated-router", anonymous: anonymous.status, invalid: invalid.status, runtimeVersion: status.version });
   localUiRuntimeStore.write({
     pid: process.pid, startedAt: new Date().toISOString(), uiPort: address.port, uiHost: "127.0.0.1",
     uiUrl: `http://127.0.0.1:${address.port}`, apiUrl: `http://127.0.0.1:${address.port}/api`,

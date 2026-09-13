@@ -1,5 +1,15 @@
 # 计划重启恢复与 CLI 自更新验收
 
+## 2026-09-13 认证开启场景补充
+
+VPS 实际会话执行了正确的 `nextclaw update` / `nextclaw restart`，后者缺少认证 Cookie，被完整 router 拒绝。既有进程 fixture 直接调用 controller，遗漏认证中间件；不能用它证明开启登录保护的产品闭环。现场 managed 状态虽过期，foreground 状态仍记录正确 PID，因此过期 PID 不是本次 401 的直接原因。另有 systemd 历史覆盖禁用 bundle launcher，需要独立迁移才能让下载版本成为运行版本。
+
+本次复用 UiBridgeApiClient / auth bridge / kernel AccessManager，接入 restart 与 runtime.version 诊断；401 只刷新认证并重试一次，其它错误不降级强杀。发送密钥只允许字面 loopback、拒绝 redirect，复用同一超时；secret 权限收紧为 0600。没有新增 token owner 或匿名控制入口。原 fixture 改为正式 createUiRouter、真实密码认证和真实 kernel，两轮均验证匿名 401、错误 bridge 403 与正确运行版本。
+
+阶段证据：service 定向 26 项（含恢复后的原 discovery 测试）与 server auth/control 17 项通过；正式认证跨进程验收通过，版本 0.1.0 → 0.1.1，三个 PID、两次重启、两会话各续跑两轮。service/server tsc、定向 lint、维护性检查与治理通过。维护性唯一提示是未扩大的既有 commands 目录预算。测试 fixture 的旧 service 后缀没有内部 class，已迁到 utils/runtime/tests，继续从生产构建中排除。
+
+自管理 USAGE 已同步打包资源，skill 已同步 core dist；文档站中英文补充认证和运行版本判断。此为原故障能力的补充修复，不新增常驻治理规则。NPM changeset 涉及 nextclaw/core/server/service，等待统一发布；当前授权交付为主干集成与 VPS 部署。最终部署和验收状态见[本次 active ledger](../../plans/2026-09-13-self-management-auth-recovery.plan.md)，未关闭项不能由本段阶段证据替代。
+
 ## 迭代完成说明
 
 2026-09-11，在隔离工作区 `nextbot-planned-restart-recovery`、分支 `codex/planned-restart-recovery` 完成源码和本地工程验收。用户随后授权合入主干，集成包含功能、测试和文档；不包含版本发布，用户现有安装不因此升级。

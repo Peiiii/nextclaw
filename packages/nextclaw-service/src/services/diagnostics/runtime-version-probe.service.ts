@@ -1,4 +1,5 @@
 import type { RuntimeStatusReport } from "@nextclaw-service/types/cli.types.js";
+import { UiBridgeApiClient } from "@nextclaw-service/services/ui/ui-bridge-api.service.js";
 
 export type RuntimeVersionProbeTarget = {
   apiUrl: string;
@@ -13,8 +14,8 @@ export class RuntimeVersionProbeService {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetch(
-        `${target.apiUrl.replace(/\/$/, "")}/app/meta`,
+      const response = await new UiBridgeApiClient(target.apiUrl.replace(/\/api\/?$/, "")).requestResponse(
+        "/api/app/meta",
         { method: "GET", signal: controller.signal },
       );
       if (!response.ok) {

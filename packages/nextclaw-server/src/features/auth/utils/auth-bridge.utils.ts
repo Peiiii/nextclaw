@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { getDataDir } from "@nextclaw/core";
@@ -25,10 +25,11 @@ export function readUiBridgeSecret(): string | null {
 export function ensureUiBridgeSecret(): string {
   const existing = readUiBridgeSecret();
   if (existing) {
+    chmodSync(REMOTE_BRIDGE_SECRET_PATH, 0o600);
     return existing;
   }
   mkdirSync(REMOTE_BRIDGE_DIR, { recursive: true });
   const secret = randomBytes(24).toString("hex");
-  writeFileSync(REMOTE_BRIDGE_SECRET_PATH, `${secret}\n`, "utf-8");
+  writeFileSync(REMOTE_BRIDGE_SECRET_PATH, `${secret}\n`, { encoding: "utf-8", mode: 0o600, flag: "wx" });
   return secret;
 }

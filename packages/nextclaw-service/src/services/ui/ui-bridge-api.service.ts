@@ -26,13 +26,20 @@ export class UiBridgeApiClient {
 
   constructor(private readonly apiBase: string) {}
 
-  private readonly getCookie = async (): Promise<string | null> => {
+  private readonly getCookie = async (signal?: AbortSignal | null): Promise<string | null> => {
     if (this.cookie !== undefined) {
       return this.cookie;
+    }
+    const target = new URL(this.apiBase);
+    if (!["127.0.0.1", "[::1]"].includes(target.hostname) ||
+        !["http:", "https:"].includes(target.protocol) || target.username || target.password) {
+      throw new Error("Local bridge authentication requires a loopback API address.");
     }
     const bridgeSecret = ensureUiBridgeSecret();
     const response = await fetch(`${this.apiBase}/api/auth/bridge`, {
       method: "POST",
+      redirect: "error",
+      signal,
       headers: {
         "x-nextclaw-ui-bridge-secret": bridgeSecret,
       },
@@ -53,19 +60,35 @@ export class UiBridgeApiClient {
     return this.cookie;
   };
 
+  readonly requestResponse = async (path: string, init: RequestInit = {}): Promise<Response> => {
+    const url = new URL(path, this.apiBase);
+    if (url.origin !== new URL(this.apiBase).origin) {
+      throw new Error("Local API requests must stay on the configured origin.");
+    }
+    const send = (): Promise<Response> => {
+      const headers = new Headers(init.headers);
+      if (this.cookie) headers.set("Cookie", this.cookie);
+      headers.set("x-nextclaw-request-source", "cli");
+      return fetch(url.href, { ...init, headers, redirect: "error" });
+    };
+    const response = await send();
+    if (response.status !== 401) return response;
+    await response.body?.cancel();
+    this.cookie = undefined;
+    await this.getCookie(init.signal);
+    return send();
+  };
+
   readonly request = async <T>(params: {
     path: string;
     method?: UiBridgeApiMethod;
     body?: unknown;
   }): Promise<T> => {
     const { body, method, path } = params;
-    const cookie = await this.getCookie();
-    const response = await fetch(`${this.apiBase}${path}`, {
+    const response = await this.requestResponse(path, {
       method: method ?? "GET",
       headers: {
         ...(body ? { "Content-Type": "application/json" } : {}),
-        ...(cookie ? { Cookie: cookie } : {}),
-        "x-nextclaw-request-source": "cli",
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });

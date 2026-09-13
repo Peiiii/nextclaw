@@ -29,6 +29,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - Map CLI/runtime version lookup to `nextclaw --version`. When the question is about the process currently serving NextClaw, use `nextclaw status --json` and read `runtime.version`; do not substitute the CLI version, launcher version, or bundle pointer.
 - Treat `nextclaw update --channel beta` as opting into both preview and production candidates; the updater offers whichever compatible version is newer. The `stable` channel remains production-only.
 - For an explicitly authorized self-update, run `nextclaw update` through the ordinary exec/CLI path. If its result requires a restart, then run `nextclaw restart`; never look for or invent an agent-only update tool.
+- Same-machine CLI restart/status authenticate through the local bridge when web login protection is enabled. Do not request browser cookies or disable protection. Report an update as complete only after the serving `runtime.version` matches the target; if authentication or a custom launcher override blocks the transition, report the installed and running states separately.
 - Prefer machine-readable output: use `--json` when available.
 - Before calling local HTTP APIs or `/webhook`, run `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`; do not guess the service port.
 - For webhook payload details, read the focused guide linked from the self-management guide only when you need to implement or debug a webhook caller.

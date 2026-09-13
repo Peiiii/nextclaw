@@ -7,6 +7,7 @@ import { describeUnmanagedHealthyTargetMessage } from "@nextclaw-service/manager
 import type { ManagedServiceManager } from "@nextclaw-service/managers/managed-service.manager.js";
 import type { StartCommandOptions } from "@nextclaw-service/types/cli.types.js";
 import type { StartCommands } from "@nextclaw-service/controllers/commands/start-command.controller.js";
+import { UiBridgeApiClient } from "@nextclaw-service/services/ui/ui-bridge-api.service.js";
 
 export class RestartCommands {
   constructor(
@@ -88,8 +89,8 @@ export class RestartCommands {
   };
 
   private requestRuntimeRestart = async (apiUrl: string): Promise<boolean> => {
-    const response = await fetch(
-        `${apiUrl.replace(/\/$/, "")}/runtime/control/restart-service`,
+    const response = await new UiBridgeApiClient(apiUrl.replace(/\/api\/?$/, "")).requestResponse(
+        "/api/runtime/control/restart-service",
         {
           method: "POST",
           signal: AbortSignal.timeout(30_000),

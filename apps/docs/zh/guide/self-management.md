@@ -45,6 +45,8 @@ nextclaw restart
 
 回来后用 `nextclaw --version` 和 `nextclaw status --json` 核对结果；需要排查时再使用 `nextclaw doctor --json`。不要把更新与重启无条件连成一串：没有可用更新、更新失败和更新成功后等待重启，需要分别处理。
 
+开启网页登录保护时，同机、同一 NextClaw 数据目录下的 CLI 会自动完成本机认证，无需复制浏览器 Cookie 或关闭登录保护。更新完成以 `status --json` 的 `runtime.version` 为准：下载完成或 CLI 版本变化不代表正在服务的进程已经升级。若 systemd 使用了禁用 runtime bundle launcher 的自定义覆盖，部署维护者需要先恢复标准 launcher 入口，再验证运行版本。
+
 ## 重启后，AI 怎么知道发生了什么
 
 恢复时，系统会向新的运行提供明确说明：这次计划重启已经完成；原来的工具进程和执行栈没有恢复；不要因为工具结果中断就再次执行更新或重启；先检查版本、健康状态以及之前操作的实际结果。
