@@ -4,7 +4,7 @@ const os = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
 
-const { collectAdhocNativeCodePaths } = require("./electron-after-sign.cjs");
+const { collectAdhocNativeCodePaths } = require("../electron-after-sign.cjs");
 
 test("collects nested macOS native code inside-out without signing ordinary assets", (context) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "nextclaw-signing-test-"));
