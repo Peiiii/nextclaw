@@ -36,6 +36,8 @@ type SummaryGenerationRequest = {
   maxTokens: number;
   messages: Record<string, unknown>[];
   model: string;
+  requestId: string;
+  sessionId: string;
   signal?: AbortSignal;
   targetSummaryTokens: number;
 };
@@ -212,6 +214,8 @@ export class ContextCompactionSummaryGenerationService {
         model: input.params.model,
         maxTokens: input.params.maxTokens,
         messages: input.messages,
+        requestId: input.params.requestId,
+        sessionId: input.params.sessionId,
         signal: input.params.signal,
         thinkingLevel: "off",
       });

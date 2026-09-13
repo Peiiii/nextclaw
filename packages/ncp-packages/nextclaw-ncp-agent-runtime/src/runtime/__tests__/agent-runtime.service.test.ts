@@ -12,8 +12,10 @@ import { DefaultNcpAgentRuntime } from "../agent-runtime.service.js";
 describe("DefaultNcpAgentRuntime tool execution timing", () => {
   it("publishes execution start and progress before a timed terminal result", async () => {
     let round = 0;
+    const requestOptions: Array<Parameters<NcpLLMApi["generate"]>[1]> = [];
     const llmApi: NcpLLMApi = {
-      generate: async function* () {
+      generate: async function* (_input, options) {
+        requestOptions.push(options);
         round += 1;
         if (round === 1) {
           yield {
@@ -103,6 +105,11 @@ describe("DefaultNcpAgentRuntime tool execution timing", () => {
         },
       },
     });
+    expect(requestOptions).toEqual([
+      expect.objectContaining({ sessionId: "session-1", requestId: expect.any(String) }),
+      expect.objectContaining({ sessionId: "session-1", requestId: expect.any(String) }),
+    ]);
+    expect(requestOptions[0]?.requestId).toBe(requestOptions[1]?.requestId);
     expect(appliedEvents).toEqual(events);
   });
 });

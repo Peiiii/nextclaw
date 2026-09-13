@@ -81,6 +81,7 @@ export class LiteLLMProvider extends LLMProvider {
     model?: string | null;
     maxTokens?: number;
     thinkingLevel?: ThinkingLevel | null;
+    requestHeaders?: Record<string, string>;
     signal?: AbortSignal;
   }): Promise<LLMResponse> => {
     const { maxTokens, messages, model, signal, thinkingLevel, tools } = params;
@@ -95,6 +96,7 @@ export class LiteLLMProvider extends LLMProvider {
       model: apiModel,
       maxTokens: overrides.maxTokens,
       thinkingLevel,
+      requestHeaders: params.requestHeaders,
       signal
     });
   };
@@ -105,6 +107,7 @@ export class LiteLLMProvider extends LLMProvider {
     model?: string | null;
     maxTokens?: number;
     thinkingLevel?: ThinkingLevel | null;
+    requestHeaders?: Record<string, string>;
     signal?: AbortSignal;
   }): AsyncGenerator<LLMStreamEvent> => {
     return (async function* (provider: LiteLLMProvider): AsyncGenerator<LLMStreamEvent> {
@@ -119,6 +122,7 @@ export class LiteLLMProvider extends LLMProvider {
         model: apiModel,
         maxTokens: overrides.maxTokens,
         thinkingLevel: params.thinkingLevel,
+        requestHeaders: params.requestHeaders,
         signal: params.signal
       })) {
         yield event;

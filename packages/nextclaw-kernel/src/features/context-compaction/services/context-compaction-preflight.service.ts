@@ -411,6 +411,8 @@ export class ContextCompactionPreflightService {
           maxTokens,
           messages,
           model: pending.model,
+          requestId: pending.serviceMessageId,
+          sessionId: pending.sessionId,
           signal,
           targetSummaryTokens,
         });

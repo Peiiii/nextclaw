@@ -33,6 +33,7 @@ const STREAM_MAX_ATTEMPTS_BEFORE_OUTPUT = 3;
 type ResponsesApiBaseStreamParams = {
   apiBase: string | null;
   body: Record<string, unknown>;
+  requestHeaders?: Record<string, string>;
   responseUrl: string;
   signal?: AbortSignal;
 };
@@ -134,7 +135,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
               thinkingLevel: params.thinkingLevel,
             }),
             ...(typeof params.maxTokens === "number" ? { max_tokens: params.maxTokens } : {})
-          }, params.signal ? { signal: params.signal } : undefined)
+          }, { headers: params.requestHeaders, signal: params.signal })
         );
 
         const normalized = normalizeChatCompletionsResponse(
@@ -168,7 +169,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
               fetchImpl: fetch,
               chatCompletionsUrl: chatCompletionsUrl.toString(),
               apiKey: provider.apiKey,
-              extraHeaders: provider.extraHeaders,
+              extraHeaders: { ...(provider.extraHeaders ?? {}), ...(params.requestHeaders ?? {}) },
               body: {
                 model,
                 messages: params.messages as unknown as ChatCompletionMessageParam[],
@@ -250,6 +251,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
         const result = yield* provider.streamResponsesFromApiBase({
           apiBase,
           body,
+          requestHeaders: params.requestHeaders,
           responseUrl: responseUrl.toString(),
           signal: params.signal,
         });
@@ -264,7 +266,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
   };
 
   private async *streamResponsesFromApiBase(
-    { apiBase, body, responseUrl, signal }: ResponsesApiBaseStreamParams,
+    { apiBase, body, requestHeaders, responseUrl, signal }: ResponsesApiBaseStreamParams,
   ): AsyncGenerator<LLMStreamEvent, { kind: "completed" } | { kind: "failed"; error: unknown }> {
     for (let attempt = 1; attempt <= STREAM_MAX_ATTEMPTS_BEFORE_OUTPUT; attempt += 1) {
       let responseStarted = false;
@@ -274,7 +276,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
           fetchImpl: fetch,
           responseUrl,
           apiKey: this.apiKey,
-          extraHeaders: this.extraHeaders,
+          extraHeaders: { ...(this.extraHeaders ?? {}), ...(requestHeaders ?? {}) },
           body,
           signal,
         }));
