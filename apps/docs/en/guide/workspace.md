@@ -1,5 +1,7 @@
 # Session workspace
 
+YAML front matter enclosed by `---` at the start of a Markdown file appears in a separate, collapsible **Document properties** section. Properties stay out of the document outline. Nested values retain their YAML representation; invalid metadata remains readable as source text. Switch to source view to inspect the complete file. Complete Markdown documents in chat use the same presentation.
+
 The session workspace keeps the current project's files and follow-up work beside the conversation. For local documents, codebases, and generated apps, this is often where the real deliverable lives.
 
 ## Project files

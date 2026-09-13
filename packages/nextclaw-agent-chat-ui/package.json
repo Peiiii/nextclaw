@@ -55,9 +55,11 @@
     "mermaid": "^11.16.0",
     "react-markdown": "^10.1.0",
     "rehype-katex": "^7.0.1",
+    "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
-    "tailwind-merge": "^2.5.4"
+    "tailwind-merge": "^2.5.4",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.0",

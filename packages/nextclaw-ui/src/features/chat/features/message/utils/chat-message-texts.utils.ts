@@ -189,6 +189,7 @@ export function buildChatMessageTexts(
     copiedMessageLabel: t("chatMessageCopied"),
     excerptCharacterCountTemplate: t("chatWorkspaceExcerptCharacterCount"),
     mermaidDiagramLabel: t("chatMermaidDiagram"),
+    frontmatterLabel: t("chatMarkdownFrontmatter"),
     mermaidExpandLabel: t("chatMermaidExpand"),
     mermaidLoadingLabel: t("chatMermaidLoading"),
     mermaidRenderErrorLabel: t("chatMermaidRenderError"),

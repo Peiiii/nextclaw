@@ -268,6 +268,7 @@ function WorkspacePreviewBody({
           texts={{
             copyCodeLabel: t('chatCodeCopy'),
             copiedCodeLabel: t('chatCodeCopied'),
+            frontmatterLabel: t('chatMarkdownFrontmatter'),
           }}
           onFileOpen={onFileOpen}
           resolveFileContentUrl={(action) => buildServerPathContentUrl(action.path, fileBasePath)}

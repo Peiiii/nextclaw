@@ -9,6 +9,9 @@ import {
 import type { Components, Options } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkFrontmatter from "remark-frontmatter";
+import { remarkFrontmatterDisplay } from "./utils/chat-frontmatter.utils";
+import { ChatMarkdownFrontmatter } from "./chat-markdown-frontmatter";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
@@ -62,6 +65,7 @@ type ChatMessageMarkdownProps = {
   texts: Pick<
     ChatMessageTexts,
     | "copyCodeLabel"
+    | "frontmatterLabel"
     | "copiedCodeLabel"
     | "attachmentExpandLabel"
     | "attachmentCloseLabel"
@@ -134,6 +138,13 @@ function useChatMessageMarkdownRuntime(): ChatMessageMarkdownRuntime {
 }
 
 const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
+  div: function ChatMarkdownBlock({ node: _node, children, ...rest }) {
+    const { texts } = useChatMessageMarkdownRuntime();
+    const source = (rest as Record<string, unknown>)["data-frontmatter"];
+    return typeof source === "string"
+      ? <ChatMarkdownFrontmatter source={source} label={texts.frontmatterLabel ?? "Document properties"} />
+      : <div {...rest}>{children}</div>;
+  },
   p: function ChatMarkdownParagraph({ node, children }) {
     const { inline } = useChatMessageMarkdownRuntime();
     return inline ? (
@@ -365,6 +376,7 @@ export function ChatMessageMarkdown({
     ? [remarkGfm, remarkMath, createRemarkLatexDelimitersPlugin(markdown), createRemarkInlineTokenPlugin(inlineTokens)]
     : [remarkGfm, remarkMath, createRemarkLatexDelimitersPlugin(markdown)];
   if (isStreaming) remarkPlugins.push(createRemarkStreamingMathPlugin(markdown));
+  if (!inline) remarkPlugins.unshift(remarkFrontmatter, remarkFrontmatterDisplay);
   const WrapperTag = inline ? "span" : "div";
 
   return (

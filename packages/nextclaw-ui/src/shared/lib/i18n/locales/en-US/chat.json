@@ -610,6 +610,7 @@
   "chatMessageCopy": "Copy",
   "chatMessageCopied": "Copied",
   "chatMermaidDiagram": "Diagram",
+  "chatMarkdownFrontmatter": "Document properties",
   "chatMermaidExpand": "Expand diagram",
   "chatMermaidLoading": "Rendering diagram…",
   "chatMermaidRenderError": "Diagram could not be rendered; showing source instead",

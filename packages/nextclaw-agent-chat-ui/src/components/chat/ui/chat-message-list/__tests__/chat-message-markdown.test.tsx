@@ -7,6 +7,42 @@ const defaultTexts = {
   copiedCodeLabel: "Copied",
 };
 
+it("renders front matter as document properties without polluting body headings", () => {
+  const { container } = render(<ChatMessageMarkdown
+    text={'---\ntitle: A document\ndraft: false\ncount: 0\ntags: [one, two]\nsummary: |\n  First line\n  Second line\nowner:\n  name: Ada\n---\n# Body\n\nText $x$'}
+    role="assistant" texts={{ ...defaultTexts, frontmatterLabel: "文档属性" }}
+  />);
+  expect(screen.getByText("文档属性").tagName).toBe("SUMMARY");
+  expect(container.querySelector("details")?.open).toBe(true);
+  expect(Array.from(container.querySelectorAll("dt")).map(node => node.textContent)).toEqual(["title", "draft", "count", "tags", "summary", "owner"]);
+  expect(container.querySelector("dl")?.textContent).toContain("false");
+  expect(container.querySelector("dl")?.textContent).toContain("name: Ada");
+  expect(container.querySelectorAll("h1,h2")).toHaveLength(1);
+  expect(screen.getByRole("heading", { name: "Body" })).toBeTruthy();
+  expect(container.querySelector(".katex")).not.toBeNull();
+});
+
+it.each([
+  "# Body\n\n---\n\nText",
+  "```yaml\n---\ntitle: Example\n---\n```",
+  "---\ntitle: Unfinished",
+])("does not reinterpret ordinary Markdown as properties: %s", text => {
+  const { container } = render(<ChatMessageMarkdown text={text} role="assistant" texts={defaultTexts} />);
+  expect(container.querySelector("details")).toBeNull();
+});
+
+it.each(["title: [broken", "title: one\ntitle: two", "- one\n- two", "cycle: &cycle\n  self: *cycle", "value: !unknown tag"])("preserves unsupported YAML and the following body: %s", source => {
+  const { container } = render(<ChatMessageMarkdown text={`---\n${source}\n---\n# Body`} role="assistant" texts={defaultTexts} />);
+  expect(container.querySelector("details pre")?.textContent).toBe(source);
+  expect(screen.getByRole("heading", { name: "Body" })).toBeTruthy();
+});
+
+it("treats property values as plain text, including math and HTML", () => {
+  const { container } = render(<ChatMessageMarkdown text={'\uFEFF---\r\ntitle: "<img src=x onerror=alert(1)> $x$"\r\n---\r\n# Body'} role="assistant" texts={defaultTexts} />);
+  expect(container.querySelector("dd")?.textContent).toBe("<img src=x onerror=alert(1)> $x$");
+  expect(container.querySelector("img,.katex")).toBeNull();
+});
+
 it("renders inline and display math with accessible formula source", () => {
   const { container } = render(
     <ChatMessageMarkdown text={"Energy $E=mc^2$\n\n$$\n\\frac{1}{2}\n$$"} role="assistant" texts={defaultTexts} />,

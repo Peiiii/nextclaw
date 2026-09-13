@@ -590,6 +590,7 @@ export type ChatMessageTexts = {
   pendingInputLabel?: string;
   excerptCharacterCountTemplate?: string;
   mermaidDiagramLabel?: string;
+  frontmatterLabel?: string;
   mermaidExpandLabel?: string;
   mermaidLoadingLabel?: string;
   mermaidRenderErrorLabel?: string;
