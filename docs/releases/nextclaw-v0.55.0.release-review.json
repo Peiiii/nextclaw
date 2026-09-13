@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.55.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-09-14-nextclaw-v0-55-0.md",
+        "apps/docs/en/notes/2026-09-14-nextclaw-v0-55-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.55.0.json",
+        "apps/docs/zh/notes/index.md",
+        "apps/docs/en/notes/index.md"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "The release improves self-awareness, collaboration transport and existing conversation surfaces; current positioning, pricing and download entry points remain accurate."
+    },
+    "socialPost": {
+      "decision": "publish",
+      "account": "@XiaotiaoWang",
+      "channel": "x",
+      "text": "NextClaw v0.55.0 已发布：Agent 回答“你现在怎么运行”前，会先查询当前安装、存储、身份、运行时和会话事实；聊天阅读、过程详情与会话分组也更顺滑。NPM、Runtime 与桌面端同步更新。\n\nhttps://docs.nextclaw.io/zh/notes/2026-09-14-nextclaw-v0-55-0",
+      "imagePath": "images/screenshots/nextclaw-mobile-chat-list-cn.png",
+      "imageAlt": "NextClaw 移动端会话列表，展示按日期分组的会话、搜索入口与底部主导航。",
+      "releaseNotesUrl": "https://docs.nextclaw.io/zh/notes/2026-09-14-nextclaw-v0-55-0"
+    }
+  }
+}

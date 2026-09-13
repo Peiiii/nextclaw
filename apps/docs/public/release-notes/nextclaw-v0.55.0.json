@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.55.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-09-14",
+  "title": {
+    "zh-CN": "NextClaw v0.55.0",
+    "en-US": "NextClaw v0.55.0"
+  },
+  "summary": {
+    "zh-CN": "更准确地理解自身运行状态，并带来更顺滑、清晰的会话与侧栏体验。",
+    "en-US": "Understand the live runtime more accurately, with smoother and clearer conversations and navigation."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-09-14-nextclaw-v0-55-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-09-14-nextclaw-v0-55-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "更了解当前的自己",
+        "en-US": "Better awareness of the live system"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "当前状态与 webhook 协作",
+            "en-US": "Live status and webhook collaboration"
+          },
+          "body": {
+            "zh-CN": "原生 Agent 查询当前安装、存储、身份、运行时和会话事实；本地协作可通过签名 GitHub webhook relay 接收事件、保留任务绑定并查看连接健康，也可切回轮询。",
+            "en-US": "Native Agents query current installation, storage, identity, runtime and session facts. Local collaboration can receive signed GitHub webhook relay events, preserve task bindings and report connection health, with an explicit return to polling."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "更顺滑的会话体验",
+        "en-US": "Smoother conversations"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "阅读位置、展开反馈与侧栏交互",
+            "en-US": "Reading position, disclosures and navigation"
+          },
+          "body": {
+            "zh-CN": "回复预留阅读空间，历史浏览保持位置；过程详情、工具和会话分组平滑展开并支持加载重试。搜索、菜单、标签与侧栏控件获得更紧凑、一致的交互反馈。",
+            "en-US": "Replies reserve reading space while history keeps its position. Process details, tools and conversation groups expand smoothly with loading retry. Search, menus, tabs and sidebar controls now use tighter, consistent feedback."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "标题与自管理恢复",
+        "en-US": "Titles and self-management recovery"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "可靠生成标题并保持本地认证",
+            "en-US": "Reliable titles and local authentication"
+          },
+          "body": {
+            "zh-CN": "会话回复后使用本轮模型生成标题并保护手动命名；开启网页密码保护时，CLI 自重启和运行版本检查仍可通过本地认证工作。",
+            "en-US": "Conversations use the reply model to generate titles while preserving manual names. CLI self-restart and running-version checks keep working through local authentication when web password protection is enabled."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "兼容性",
+        "en-US": "Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需迁移",
+            "en-US": "No migration required"
+          },
+          "body": {
+            "zh-CN": "现有配置和本地数据保持兼容；本版本同步提供 NPM、Runtime 与桌面更新。",
+            "en-US": "Existing configuration and local data remain compatible. This version ships through NPM, Runtime and Desktop."
+          }
+        }
+      ]
+    }
+  ]
+}
