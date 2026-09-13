@@ -153,9 +153,7 @@ describe("DefaultNcpAgentConversationStateManager streaming", () => {
       role: "assistant",
       status: "final",
       parts: [{ type: "text", text: "hello" }],
-      metadata: {
-        reply_to: "assistant-reply",
-      },
+      metadata: undefined,
     });
   });
 

@@ -5,8 +5,8 @@ export type NcpReplyTagParseResult = {
   replyTo?: string;
 };
 
-const REPLY_TO_CURRENT_PATTERN = /\[\[\s*reply_to_current\s*\]\]/gi;
-const REPLY_TO_ID_PATTERN = /\[\[\s*reply_to\s*:\s*([^\]]+?)\s*\]\]/i;
+const REPLY_TO_CURRENT_PATTERN = /^\s*\[\[\s*reply_to_current\s*\]\]/i;
+const REPLY_TO_ID_PATTERN = /^\s*\[\[\s*reply_to\s*:\s*([^\]]+?)\s*\]\]/i;
 
 function normalizeReplyTarget(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -36,7 +36,7 @@ export function stripReplyTagsFromText(content: string, currentMessageId?: strin
 
 export function sanitizeAssistantReplyTags(
   message: NcpMessage,
-  currentMessageId = message.id,
+  currentMessageId?: string,
 ): NcpMessage {
   if (message.role !== "assistant") {
     return {
