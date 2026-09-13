@@ -5,6 +5,8 @@ In the desktop sidebar, switch between Time and Project views at the top left of
 
 A session is not merely chat history. It is the container where a task keeps its goal, messages, tool activity, working directory, file results, and follow-up changes.
 
+In Time view, Pinned and date groups start expanded. Click a group heading to collapse or expand its sessions with the same transition as message details. The arrow on the right appears only while hovering over the heading. You can also focus the heading and press Enter or Space. Collapsing and expanding work on both desktop and phones.
+
 ## Start a new task when
 
 On phones, your messages hide the user avatar to leave more room for content. Desktop messages keep the avatar.
