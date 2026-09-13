@@ -9,6 +9,10 @@ import {
   buildStableReleaseActionOutputs,
   writeReleaseActionOutputs,
 } from "./release-action-environment.mjs";
+import {
+  assertDesktopBranchRelationship,
+  assertRemoteAheadOption,
+} from "./desktop-release-branch-safety.mjs";
 
 const oidcEnv = {
   ACTIONS_ID_TOKEN_REQUEST_TOKEN: "request-token",
@@ -26,6 +30,29 @@ function assertPortableRuntimeBuildContract() {
     runtimeWorkflow,
     /build-product-runtime\.mjs --platform \$\{\{ matrix\.platform \}\} --arch \$\{\{ matrix\.arch \}\}/,
   );
+}
+
+function assertDesktopJobContract(desktopJob) {
+  assert.match(desktopJob, /timeout-minutes: 150/);
+  assert.match(desktopJob, /always\(\) && inputs\.target == 'all'/);
+  assert.match(desktopJob, /needs\.publish-runtime\.result == 'success'/);
+  assert.match(desktopJob, /actions: write[\s\S]*?contents: write/);
+  assert.match(
+    desktopJob,
+    /ref: \$\{\{ needs\.publish-npm\.outputs\.is_recovery == 'true' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit \}\}[\s\S]*?checkout_sha="\$\(git rev-parse HEAD\)"[\s\S]*?git switch -C master "\$checkout_sha"[\s\S]*?test "\$\(git rev-parse HEAD\)" = "\$checkout_sha"/,
+  );
+  assert.match(desktopJob, /pnpm release:desktop:stable/);
+  assert.match(
+    desktopJob,
+    /--target "\$\{\{ needs\.publish-npm\.outputs\.desktop_target \}\}"/,
+  );
+  assert.match(
+    desktopJob,
+    /TARGET_VERSION: \$\{\{ needs\.publish-npm\.outputs\.target_version \}\}[\s\S]*?--runtime-version "\$TARGET_VERSION"/,
+  );
+  assert.match(desktopJob, /--skip-local-verify/);
+  assert.match(desktopJob, /--allow-remote-ahead/);
+  assert.doesNotMatch(desktopJob, /NPM_TOKEN|NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY/);
 }
 
 test("accepts the minimum trusted publishing runtime", () => {
@@ -171,28 +198,7 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
     /needs: \[publish-npm, publish-runtime\]/,
     "release.yml must include the publish-desktop job",
   );
-  assert.match(desktopJob, /timeout-minutes: 150/);
-  assert.match(desktopJob, /always\(\) && inputs\.target == 'all'/);
-  assert.match(desktopJob, /needs\.publish-runtime\.result == 'success'/);
-  assert.match(desktopJob, /actions: write[\s\S]*?contents: write/);
-  assert.match(
-    desktopJob,
-    /ref: \$\{\{ needs\.publish-npm\.outputs\.is_recovery == 'true' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit \}\}[\s\S]*?checkout_sha="\$\(git rev-parse HEAD\)"[\s\S]*?git switch -C master "\$checkout_sha"[\s\S]*?test "\$\(git rev-parse HEAD\)" = "\$checkout_sha"/,
-  );
-  assert.match(desktopJob, /pnpm release:desktop:stable/);
-  assert.match(
-    desktopJob,
-    /--target "\$\{\{ needs\.publish-npm\.outputs\.desktop_target \}\}"/,
-  );
-  assert.match(
-    desktopJob,
-    /TARGET_VERSION: \$\{\{ needs\.publish-npm\.outputs\.target_version \}\}[\s\S]*?--runtime-version "\$TARGET_VERSION"/,
-  );
-  assert.match(desktopJob, /--skip-local-verify/);
-  assert.doesNotMatch(
-    desktopJob,
-    /NPM_TOKEN|NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY/,
-  );
+  assertDesktopJobContract(desktopJob);
 
   assert.match(
     workflow,
@@ -245,6 +251,47 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   );
   assert.match(desktopReleaseScript, /DEFAULT_RUN_ATTEMPTS = 720/);
   assert.match(desktopClosure, /gh["], \["run", "cancel"/);
+});
+
+test("orchestrated Desktop release accepts only a frozen ancestor control plane", () => {
+  assert.doesNotThrow(() =>
+    assertRemoteAheadOption(
+      { allowRemoteAhead: true, target: "release-sha" },
+      { GITHUB_ACTIONS: "true" },
+    ),
+  );
+  assert.throws(
+    () => assertRemoteAheadOption({ allowRemoteAhead: true, target: null }, {}),
+    /requires GitHub Actions and an explicit immutable --target/,
+  );
+  assert.doesNotThrow(() =>
+    assertDesktopBranchRelationship({
+      ahead: 0,
+      allowRemoteAhead: true,
+      behind: 2,
+      upstreamRef: "origin/master",
+    }),
+  );
+  assert.throws(
+    () =>
+      assertDesktopBranchRelationship({
+        ahead: 1,
+        allowRemoteAhead: true,
+        behind: 2,
+        upstreamRef: "origin/master",
+      }),
+    /may only use its ancestor/,
+  );
+  assert.throws(
+    () =>
+      assertDesktopBranchRelationship({
+        ahead: 0,
+        allowRemoteAhead: false,
+        behind: 1,
+        upstreamRef: "origin/master",
+      }),
+    /Pull\/rebase first/,
+  );
 });
 
 test("the writable NPM release checkpoint prepares the immutable Desktop Draft", () => {

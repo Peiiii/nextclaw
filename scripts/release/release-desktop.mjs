@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { verifyExistingDesktopReleaseClosure, waitForDesktopReleaseClosure } from "./desktop-release-closure.mjs";
+import { assertDesktopBranchRelationship, assertRemoteAheadOption, formatRemoteAheadWarning } from "./desktop-release-branch-safety.mjs";
 import { assertReleaseIsDraft, createDraftRelease, dispatchReleaseWorkflow, prepareDesktopDraft } from "./desktop-release-github.mjs";
 import {
   inferExistingDesktopDraft,
@@ -58,6 +59,7 @@ Options:
   --release-notes-url <url>       User-facing release notes URL expected in update manifests
   --run-id <id>                   Reuse a known desktop-release run
   --reuse-existing-release        Do not create the GitHub release; verify/close an existing tag
+  --allow-remote-ahead            Allow an orchestrated, immutable release target to use an older master control plane
   --skip-local-verify             Skip pnpm desktop:package:verify
   --skip-remote-preflight         Skip GitHub signing-secret preflight
   --skip-public-pages             Verify gh-pages only; skip public Pages propagation polling
@@ -74,6 +76,7 @@ Options:
 function parseArgs(argv) {
   const args = argv.filter((arg) => arg !== "--");
   const options = {
+    allowRemoteAhead: false,
     branch: null,
     channel: null,
     desktopVersion: null,
@@ -122,6 +125,9 @@ function parseArgs(argv) {
         break;
       case "--dry-run":
         options.dryRun = true;
+        break;
+      case "--allow-remote-ahead":
+        options.allowRemoteAhead = true;
         break;
       case "--reuse-existing-release":
         options.reuseExistingRelease = true;
@@ -202,6 +208,7 @@ function assertOptions(options) {
   if (!CHANNELS.has(options.channel)) {
     throw new Error("--channel must be beta or stable.");
   }
+  assertRemoteAheadOption(options);
 }
 
 function readCurrentBranch() {
@@ -273,7 +280,7 @@ function fetchReleaseRefs(branch) {
   run("git", ["-c", "gc.auto=0", "fetch", "origin", branch, "--no-tags", "--quiet"]);
 }
 
-function assertBranchIsNotBehind(branch) {
+function assertBranchIsNotBehind(branch, { allowRemoteAhead = false, target } = {}) {
   const upstreamRef = `origin/${branch}`;
   try {
     run("git", ["rev-parse", "--verify", "--quiet", upstreamRef]);
@@ -284,9 +291,8 @@ function assertBranchIsNotBehind(branch) {
     .split(/\s+/)
     .map((value) => Number(value));
   const [ahead, behind] = counts;
-  if (behind > 0) {
-    throw new Error(`Current branch is behind ${upstreamRef} by ${behind} commit(s). Pull/rebase first.`);
-  }
+  assertDesktopBranchRelationship({ ahead, allowRemoteAhead, behind, upstreamRef });
+  if (behind > 0 && allowRemoteAhead) console.warn(formatRemoteAheadWarning({ behind, target, upstreamRef }));
   return ahead;
 }
 
@@ -472,7 +478,10 @@ async function main() {
   });
 
   fetchReleaseRefs(options.branch);
-  const aheadCount = assertBranchIsNotBehind(options.branch);
+  const aheadCount = assertBranchIsNotBehind(options.branch, {
+    allowRemoteAhead: options.allowRemoteAhead,
+    target: options.target
+  });
   printPlan(options, aheadCount);
   if (options.prepareDraftOnly) {
     prepareDesktopDraft(options, aheadCount, run);

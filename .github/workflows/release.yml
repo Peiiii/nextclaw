@@ -313,6 +313,7 @@ jobs:
             --runtime-version "$TARGET_VERSION" \
             --notes-file "$notes_file" \
             --release-notes-url "$notes_url" \
+            --allow-remote-ahead \
             --skip-local-verify
 
       - name: Record core release status
@@ -516,6 +517,7 @@ jobs:
             --runtime-version "$TARGET_VERSION" \
             --notes-file "$notes_file" \
             --release-notes-url "$notes_url" \
+            --allow-remote-ahead \
             --skip-local-verify
 
       - name: Record all-platform release status

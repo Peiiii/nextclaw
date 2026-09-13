@@ -55,3 +55,17 @@ Desktop builder 的 `--target` 保持使用 `publish-npm.outputs.desktop_target`
 实现只修改 `.github/workflows/release.yml` 与对应编排合同测试。修复提交进入 `master` 后，通过同一 `release.yml target=all` 的 recovery mode 复用 `0.53.0`；NPM 和 Runtime 已有成功证据不重跑不可逆发布。用户无需执行人工 pull、rerun 或 Desktop 原子命令。
 
 本设计不改变 Desktop 产物格式、签名、launcher floor、版本号、渠道或更新协议，也不处理与本次失败无关的平台构建问题。
+
+## 2026-09-14 并发主线推进补充
+
+`0.55.0` 首次发布再次暴露一个时序缺口：Desktop job 已正确 checkout NPM closure commit `cd6d0890a`，但在它启动前，另一个已在进行的工作把 `origin/master` 推进了两个提交。产品 target 与隐藏 Draft 仍精确绑定 `cd6d0890a`，发布器却因控制面 HEAD 落后远端而在构建前退出。单纯从最新 master 重跑能暂时恢复，但不能消除“恢复期间主线再次前进”的同类竞态。
+
+父 workflow 因此显式声明 orchestrated control plane 模式：允许其冻结的控制面 HEAD 落后 `origin/master`，前提是 HEAD 仍为远端主线祖先、Desktop 产品 target 已显式给出，并继续由 Draft-first 身份校验约束。分叉或本地领先仍失败；本地独立发布不启用该模式，继续要求分支不落后远端。
+
+放弃在 Desktop job 中 checkout 最新 `origin/master`：这会在已启动的发布中动态替换控制面，并把后来产品提交带入工作区。放弃只重跑不修复：它保留同一 TOCTOU 竞态，无法满足无人值守恢复合同。
+
+新增验收：
+
+- FIX-6：父 workflow 显式启用 orchestrated control plane，冻结 HEAD 是 `origin/master` 祖先时允许远端前进。
+- FIX-7：分叉、本地领先或未显式提供产品 target 时不得借该模式绕过 Git 安全门。
+- FIX-8：同一 `v0.55.0-desktop.1` Draft 和 `cd6d0890a` 产品 target 完成恢复；NPM、Runtime 与 Desktop identity 均不重建。
