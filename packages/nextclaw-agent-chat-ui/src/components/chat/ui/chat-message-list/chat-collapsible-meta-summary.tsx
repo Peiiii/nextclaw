@@ -65,7 +65,7 @@ export function ChatCollapsibleMetaSummary({
       >
         <ChevronRight
           className={cn(
-            "h-[1.05em] w-[1.05em] transition-transform",
+            "h-[1.05em] w-[1.05em] transition-transform duration-200 motion-reduce:transition-none",
             open && "rotate-90",
           )}
           strokeWidth={2.25}

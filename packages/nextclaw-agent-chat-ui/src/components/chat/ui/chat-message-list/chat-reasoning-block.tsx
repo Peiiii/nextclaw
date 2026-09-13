@@ -3,6 +3,7 @@ import { useReasoningBlockOpenState } from "@agent-chat-ui/components/chat/hooks
 import { useStickyBottomScroll } from "@agent-chat-ui/components/chat/hooks/use-sticky-bottom-scroll";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 import { ChatCollapsibleMetaSummary } from "./chat-collapsible-meta-summary";
+import { ChatCollapsibleContent } from "./chat-collapsible-content";
 import { Brain } from "lucide-react";
 
 type ChatReasoningBlockProps = {
@@ -65,7 +66,7 @@ export function ChatReasoningBlock({
         labelClassName={isUser ? "text-primary-100" : undefined}
         onClick={onSummaryClick}
       />
-      {isOpen ? (
+      <ChatCollapsibleContent open={isOpen}>{() => (
         <div
           ref={scrollRef}
           onScroll={onScroll}
@@ -77,7 +78,7 @@ export function ChatReasoningBlock({
         >
           <pre className="min-w-0 whitespace-pre-wrap break-all p-2 text-[11px]">{text}</pre>
         </div>
-      ) : null}
+      )}</ChatCollapsibleContent>
     </div>
   );
 }

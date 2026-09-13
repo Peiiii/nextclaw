@@ -126,7 +126,7 @@ function ToolHeaderChevron({ expanded }: { expanded: boolean }) {
     >
       <ChevronRight
         className={cn(
-          'h-[1.05em] w-[1.05em] transition-transform',
+          'h-[1.05em] w-[1.05em] transition-transform duration-200 motion-reduce:transition-none',
           expanded && 'rotate-90',
         )}
         strokeWidth={2.25}
@@ -204,6 +204,7 @@ export function ToolCardHeader({
       interactive={canExpand}
       onClick={canExpand ? () => onToggle() : undefined}
       role={canExpand ? 'button' : undefined}
+      aria-expanded={expanded}
       tabIndex={canExpand ? 0 : undefined}
       onKeyDown={
         canExpand

@@ -89,6 +89,7 @@ type ChatMessageListContainerProps = {
   onLoadMessageDetails?: (messageId: string) => Promise<void>;
   sessionKey: string | null;
   scrollRef: RefObject<HTMLDivElement | null>;
+  turnAnchorRef?: RefObject<HTMLDivElement>;
   className?: string;
 };
 
@@ -231,6 +232,10 @@ function isAwaitingAssistantOutputRow(
   return item.kind === "typing" || item.key === activeRowKey;
 }
 
+function resolveTurnAnchor(item: ChatTimelineItem, messageId: string | undefined, ref?: RefObject<HTMLDivElement>) {
+  return item.kind === "message" && item.message.id === messageId ? ref : undefined;
+}
+
 export function ChatMessageListContainer({
   canContinue = false,
   messages: rawMessages,
@@ -241,6 +246,7 @@ export function ChatMessageListContainer({
   onEditMessage,
   onLoadMessageDetails,
   scrollRef,
+  turnAnchorRef,
   sessionKey,
   className,
 }: ChatMessageListContainerProps) {
@@ -386,11 +392,13 @@ export function ChatMessageListContainer({
   );
   const [focusedRowKey, setFocusedRowKey] = useState<string | null>(null);
   const activeRowKey = activeAssistantMessage ? `message:${activeAssistantMessage.id}` : null;
+  const turnMessageId = messages.findLast((message) => message.role === "user")?.id;
   const { containerRef, virtualizer } = useChatMessageVirtualizer({
     rows: virtualRows,
     scrollRef,
     activeRowKey,
     focusedRowKey,
+    anchorRowKey: turnAnchorRef && turnMessageId ? `message:${turnMessageId}` : null,
   });
   const { handleAttachmentOpen, handleInlineTokenClick } =
     useChatInlineTokenActions({ selectedSession, sessionKey });
@@ -448,7 +456,10 @@ export function ChatMessageListContainer({
             ) : item.kind === "observation-event" ? (
               <ChatMessageObservationEvent event={item.event} />
             ) : (
-              <div className={item.kind === "message" ? "pb-5" : undefined}>
+              <div
+                className={item.kind === "message" ? "pb-5" : undefined}
+                ref={resolveTurnAnchor(item, turnMessageId, turnAnchorRef)}
+              >
                 <ChatMessageList
                   assistantAvatarIcon={assistantAvatarIcon}
                   showAssistantHeader={showAssistantHeader}

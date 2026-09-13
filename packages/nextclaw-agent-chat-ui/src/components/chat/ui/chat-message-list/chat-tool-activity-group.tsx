@@ -8,6 +8,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Workflow } from "lucide-react";
 import { ChatToolCard } from "./chat-tool-card";
 import { ChatCollapsibleMetaSummary } from "./chat-collapsible-meta-summary";
+import { ChatCollapsibleContent } from "./chat-collapsible-content";
 import { ChatReasoningBlock } from "./chat-reasoning-block";
 import { ChatProcessWorkflowRail } from "./chat-process-meta-row";
 import type { ChatToolActivityGroupViewModel } from "./chat-tool-activity-group.utils";
@@ -44,7 +45,7 @@ export function ChatToolActivityGroup({
     setVisiblePartCount(TOOL_ACTIVITY_INITIAL_VISIBLE_PARTS);
   }, [group.key]);
   const toolCount = group.parts.filter((part) => part.type === "tool-card").length;
-  const showWorkflowRail = open && toolCount > 1;
+  const showWorkflowRail = toolCount > 1;
   const visibleParts = group.parts.slice(0, visiblePartCount);
   const remainingPartCount = Math.max(0, group.parts.length - visibleParts.length);
   const nextPartCount = Math.min(TOOL_ACTIVITY_INITIAL_VISIBLE_PARTS, remainingPartCount);
@@ -62,7 +63,7 @@ export function ChatToolActivityGroup({
         label={group.label}
         onClick={() => onOpenChange(!open)}
       />
-      {open ? (
+      <ChatCollapsibleContent open={open}>{() => (
         <div className="text-[0.925rem] leading-[1.72]">
           {visibleParts.map((part, index) => {
             const isLast = index === visibleParts.length - 1;
@@ -111,7 +112,7 @@ export function ChatToolActivityGroup({
             </button>
           ) : null}
         </div>
-      ) : null}
+      )}</ChatCollapsibleContent>
     </div>
   );
 }
