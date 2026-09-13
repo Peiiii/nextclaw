@@ -67,7 +67,6 @@ export class GatewayRestartWakeService {
         summary,
         reason: normalizeOptionalString(payload.stats?.reason),
         note: normalizeOptionalString(payload.message),
-        ...(replyTo ? { replyTo } : {}),
       }),
       timestamp: new Date(),
       attachments: [],
@@ -107,9 +106,8 @@ export class GatewayRestartWakeService {
     summary: string;
     reason?: string;
     note?: string;
-    replyTo?: string;
   }): string => {
-    const { note, reason, replyTo, summary } = params;
+    const { note, reason, summary } = params;
     const lines = [
       "System event: the gateway has restarted successfully.",
       "Please send one short confirmation to the user that you are back online.",
@@ -126,11 +124,6 @@ export class GatewayRestartWakeService {
     const normalizedNote = normalizeOptionalString(note);
     if (normalizedNote) {
       lines.push(`Extra note: ${normalizedNote}`);
-    }
-
-    const normalizedReplyTo = normalizeOptionalString(replyTo);
-    if (normalizedReplyTo) {
-      lines.push(`Reply target message id: ${normalizedReplyTo}. If suitable, include [[reply_to:${normalizedReplyTo}]].`);
     }
 
     return lines.join("\n");

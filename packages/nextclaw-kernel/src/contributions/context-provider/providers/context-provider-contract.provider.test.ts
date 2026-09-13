@@ -38,7 +38,6 @@ const NATIVE_CONTEXT_SECTION_ORDER = [
   "## Safety",
   "## nextclaw CLI Quick Reference",
   "## nextclaw Self-Update",
-  "## Reply Tags",
   "## Messaging",
   "## Memory Recall",
   "## Silent Replies",
@@ -359,6 +358,8 @@ describe("ContextProviderContribution native prompt contract", () => {
     expect(context).not.toContain("- read_file: Read file contents");
     expect(context).not.toContain("<skill_group");
     expect(context).not.toContain("<location>");
+    expect(context).not.toContain("## Reply Tags");
+    expect(context).not.toContain("[[reply_to_current]]");
     const alwaysOnSkillsContext = context.slice(
       context.indexOf("# Always-on Skills"),
       context.indexOf("## Skills"),

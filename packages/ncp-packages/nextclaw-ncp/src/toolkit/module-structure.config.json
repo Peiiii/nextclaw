@@ -5,6 +5,7 @@
   "allowedRootDirectories": [],
   "allowedRootFiles": [
     "index.ts",
+    "reply-tags.utils.ts",
     "run-handle.utils.ts"
   ],
   "enforcement": "error"

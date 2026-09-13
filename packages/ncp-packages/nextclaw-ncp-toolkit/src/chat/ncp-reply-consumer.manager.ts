@@ -1,6 +1,7 @@
 import {
   NcpEventType,
   sanitizeAssistantReplyTags,
+  stripReplyTagsFromText,
   type NcpEndpointEvent,
   type NcpMessage,
   type NcpMessagePart,
@@ -171,27 +172,28 @@ function projectToolResultParts(params: {
   toolCallId?: string;
   toolName?: string;
   content: unknown;
-  projectedToolCallIds: Set<string>;
-}): NcpMessagePart[] {
+  alreadyProjected: boolean;
+}): { parts: NcpMessagePart[]; projectedToolCallId?: string } {
+  const { alreadyProjected, content, toolCallId, toolName } = params;
   if (
-    params.toolName !== "asset_put" ||
-    !params.toolCallId ||
-    params.projectedToolCallIds.has(params.toolCallId)
+    toolName !== "asset_put" ||
+    !toolCallId ||
+    alreadyProjected
   ) {
-    return [];
+    return { parts: [] };
   }
-  const projectedFiles = projectAssetPutFiles(params.content);
-  if (projectedFiles.length > 0) {
-    params.projectedToolCallIds.add(params.toolCallId);
-  }
-  return projectedFiles;
+  const parts = projectAssetPutFiles(content);
+  return parts.length > 0
+    ? { parts, projectedToolCallId: toolCallId }
+    : { parts };
 }
 
 function projectChannelOutputParts(
   parts: NcpMessagePart[],
   projectedToolCallIds: Set<string>,
-): NcpMessagePart[] {
-  return parts.flatMap((part) => {
+): { parts: NcpMessagePart[]; projectedToolCallIds: string[] } {
+  const nextProjectedToolCallIds: string[] = [];
+  const projectedParts = parts.flatMap((part) => {
     if (
       part.type === "tool-invocation" &&
       part.toolName === "asset_put" &&
@@ -206,13 +208,17 @@ function projectChannelOutputParts(
       const projectedFiles = projectAssetPutFiles(part.result);
       if (projectedFiles.length > 0) {
         if (part.toolCallId) {
-          projectedToolCallIds.add(part.toolCallId);
+          nextProjectedToolCallIds.push(part.toolCallId);
         }
         return projectedFiles;
       }
     }
     return [part];
   });
+  return {
+    parts: projectedParts,
+    projectedToolCallIds: nextProjectedToolCallIds,
+  };
 }
 
 class NcpReplySession {
@@ -311,28 +317,34 @@ class NcpReplySession {
     content: unknown,
   ): Promise<void> => {
     await this.ensureTypingStarted();
-    const projectedParts = projectToolResultParts({
+    const projection = projectToolResultParts({
       toolCallId,
       toolName: this.toolNameByCallId.get(toolCallId),
       content,
-      projectedToolCallIds: this.projectedToolCallIds,
+      alreadyProjected: this.projectedToolCallIds.has(toolCallId),
     });
-    if (projectedParts.length === 0) {
+    if (projection.parts.length === 0) {
       return;
     }
+    if (projection.projectedToolCallId) {
+      this.projectedToolCallIds.add(projection.projectedToolCallId);
+    }
     await this.flushTextPart();
-    for (const part of projectedParts) {
+    for (const part of projection.parts) {
       await this.chat.sendPart(this.target, part);
     }
   };
 
   private handleCompleted = async (message: NcpMessage): Promise<void> => {
     await this.flushTextPart();
-    const unsentParts = projectChannelOutputParts(
+    const projection = projectChannelOutputParts(
       resolveUnsentMessageParts(message, this.sentText, this.fullText),
       this.projectedToolCallIds,
     );
-    for (const part of unsentParts) {
+    for (const toolCallId of projection.projectedToolCallIds) {
+      this.projectedToolCallIds.add(toolCallId);
+    }
+    for (const part of projection.parts) {
       await this.ensureTypingStarted();
       await this.chat.sendPart(this.target, part);
       if (isTextLikePart(part)) {
@@ -351,7 +363,8 @@ class NcpReplySession {
   };
 
   private flushTextPart = async (): Promise<void> => {
-    if (!this.activeText.trim()) {
+    const { content } = stripReplyTagsFromText(this.activeText);
+    if (!content.trim()) {
       this.activeText = "";
       return;
     }
@@ -359,9 +372,9 @@ class NcpReplySession {
     await this.ensureTypingStarted();
     await this.chat.sendPart(this.target, {
       type: "text",
-      text: this.activeText,
+      text: content,
     });
-    this.sentText += this.activeText;
+    this.sentText += content;
     this.activeText = "";
   };
 

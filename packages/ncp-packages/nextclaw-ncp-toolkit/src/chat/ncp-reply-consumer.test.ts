@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { NcpEventType, type NcpEndpointEvent, type NcpMessagePart } from "@nextclaw/ncp";
-import { NcpReplyConsumer } from "./ncp-reply-consumer.js";
+import { NcpReplyConsumer } from "./ncp-reply-consumer.manager.js";
 import type { Chat, ChatTarget } from "./chat.types.js";
 
 const target: ChatTarget = {
@@ -38,6 +38,92 @@ function createChat() {
 
   return { chat, calls };
 }
+
+describe("NcpReplyConsumer reply-tag compatibility", () => {
+  it("strips a reply tag before a streamed text part reaches the channel", async () => {
+    const { chat, calls } = createChat();
+    const consumer = new NcpReplyConsumer(chat);
+
+    await consumer.consume({
+      target,
+      eventStream: createEventStream([
+        {
+          type: NcpEventType.MessageTextStart,
+          payload: { sessionId: "session-1", messageId: "assistant-1" },
+        },
+        {
+          type: NcpEventType.MessageTextDelta,
+          payload: {
+            sessionId: "session-1",
+            messageId: "assistant-1",
+            delta: "[[reply_to_",
+          },
+        },
+        {
+          type: NcpEventType.MessageTextDelta,
+          payload: {
+            sessionId: "session-1",
+            messageId: "assistant-1",
+            delta: "current]] Hello",
+          },
+        },
+        {
+          type: NcpEventType.MessageTextEnd,
+          payload: { sessionId: "session-1", messageId: "assistant-1" },
+        },
+        {
+          type: NcpEventType.MessageCompleted,
+          payload: {
+            sessionId: "session-1",
+            message: {
+              id: "assistant-1",
+              sessionId: "session-1",
+              role: "assistant",
+              status: "final",
+              timestamp: new Date().toISOString(),
+              parts: [{ type: "text", text: "[[reply_to_current]] Hello" }],
+            },
+          },
+        },
+      ]),
+    });
+
+    expect(calls).toEqual([
+      "startTyping",
+      "sendPart:text:Hello",
+      "stopTyping",
+    ]);
+  });
+
+  it("keeps reply tag text when it is mentioned inside ordinary content", async () => {
+    const { chat, calls } = createChat();
+    const consumer = new NcpReplyConsumer(chat);
+
+    await consumer.consume({
+      target,
+      eventStream: createEventStream([
+        {
+          type: NcpEventType.MessageTextDelta,
+          payload: {
+            sessionId: "session-1",
+            messageId: "assistant-1",
+            delta: "The marker [[reply_to_current]] is deprecated.",
+          },
+        },
+        {
+          type: NcpEventType.MessageTextEnd,
+          payload: { sessionId: "session-1", messageId: "assistant-1" },
+        },
+      ]),
+    });
+
+    expect(calls).toEqual([
+      "startTyping",
+      "sendPart:text:The marker [[reply_to_current]] is deprecated.",
+      "stopTyping",
+    ]);
+  });
+});
 
 describe("NcpReplyConsumer text streaming", () => {
   it("flushes text parts and sends only the unsent final tail", async () => {
