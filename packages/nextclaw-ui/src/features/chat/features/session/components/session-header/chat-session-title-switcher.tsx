@@ -165,9 +165,9 @@ function ChatSessionTitleSwitcherPopover({
       </PopoverTrigger>
       <ChatPopoverContent
         align="start"
-        className="w-[22rem] max-w-[calc(100vw-2rem)] p-0"
+        className="flex w-[22rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden p-0"
       >
-        <div className="space-y-2 border-b border-border px-3 py-2">
+        <div className="shrink-0 space-y-2 border-b border-border/40 px-3 py-2">
           <div className="flex items-center justify-between gap-3">
             <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/75">
               {t("chatSessionSwitcherTitle")}
@@ -185,12 +185,12 @@ function ChatSessionTitleSwitcherPopover({
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder={t("chatSearchSessionPlaceholder")}
               aria-label={t("chatSearchSessionPlaceholder")}
-              className="h-8 rounded-lg bg-background pl-8 pr-2"
+              className="h-8 rounded-lg border-0 bg-muted/50 pl-8 pr-2"
               autoFocus
             />
           </div>
         </div>
-        <div className="max-h-80 overflow-y-auto p-1.5">
+        <div className="min-h-0 max-h-80 overflow-y-auto overscroll-contain p-1.5">
           {isLoading ? (
             <ChatSessionTitleSwitcherLoadingState />
           ) : hasVisibleGroups ? (

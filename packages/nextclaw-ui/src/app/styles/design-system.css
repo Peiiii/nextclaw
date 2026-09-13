@@ -12,6 +12,7 @@
    }
 
    :root {
+      --shadow-popover: 0 12px 36px -8px rgb(0 0 0 / 0.18), 0 3px 10px -2px rgb(0 0 0 / 0.08);
       color-scheme: light;
 
       /* Mobile density: hit target, visual feedback, and chrome are separate. */
@@ -833,6 +834,7 @@
 
 @layer base {
    :root[data-theme-appearance="dark"] {
+      --shadow-popover: 0 8px 32px -8px rgb(0 0 0 / 0.4), 0 2px 8px -2px rgb(0 0 0 / 0.24);
       --link-foreground: 213 94% 68%;
       --link-foreground-hover: 213 97% 79%;
    }

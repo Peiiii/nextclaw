@@ -140,6 +140,10 @@
     box-shadow: var(--shadow-card);
   }
 
+  .shadow-floating {
+    box-shadow: var(--shadow-popover);
+  }
+
   .shadow-card-hover {
     box-shadow: var(--shadow-card-hover);
   }

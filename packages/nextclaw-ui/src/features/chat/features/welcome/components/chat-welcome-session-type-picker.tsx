@@ -61,7 +61,7 @@ export function ChatWelcomeSessionTypePicker({
       </PopoverTrigger>
       <ChatPopoverContent
         align="start"
-        className="flex w-[min(16rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
+        className="flex w-[min(16rem,calc(100vw-1rem))] flex-col overflow-hidden p-1.5"
         style={{ maxHeight: SESSION_TYPE_PICKER_MAX_HEIGHT }}
       >
         <div className="min-h-0 flex-1 overflow-y-auto">

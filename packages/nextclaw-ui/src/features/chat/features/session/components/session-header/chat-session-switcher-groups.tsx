@@ -66,9 +66,9 @@ function ChatSessionSwitchItem({
       type="button"
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex w-full min-w-0 items-start gap-2 rounded-lg px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
+        "flex w-full min-w-0 items-start gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
         active
-          ? "bg-accent text-accent-foreground"
+          ? "bg-accent/60 text-accent-foreground"
           : "text-foreground hover:bg-[var(--interaction-hover)] hover:text-accent-foreground",
       )}
       onClick={() => onSelect(session.key)}
@@ -101,7 +101,7 @@ function ChatSessionSwitchItem({
             </span>
           ) : null}
         </span>
-        <span className="mt-0.5 flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
+        <span className="mt-0.5 flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground/75">
           <span className="min-w-0 truncate">{previewText}</span>
           <span className="shrink-0">{trailingText}</span>
         </span>
@@ -177,7 +177,7 @@ function ChatSessionSwitchProjectGroup({
         aria-controls={contentId}
         aria-expanded={!isCollapsed}
         aria-label={actionLabel}
-        className="group flex h-8 w-full min-w-0 items-center gap-1.5 rounded-lg px-2 text-left text-muted-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+        className="group flex h-8 w-full min-w-0 items-center gap-1.5 rounded-lg px-2 text-left text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
         onClick={() => onToggleCollapsed(group.projectRoot)}
       >
         <Folder className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />

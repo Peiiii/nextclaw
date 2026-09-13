@@ -39,6 +39,10 @@ Related guide:
 
 ### Appearance
 
+Session switchers, action menus, and dropdown selectors share subtle borders, rounded corners, and soft shadows that adapt to light and dark themes.
+
+In the session switcher, only the list scrolls; the heading, time/project toggle, and search field stay at the top.
+
 Open **Settings → Appearance** to choose the interface theme, language, message layout, and SideDock visibility. Theme choices apply immediately and are kept on the current device across reloads.
 
 The `Island` theme combines a warm paper canvas, a gently swaying tropical tree, and quieter interface chrome for a calmer, more atmospheric workspace. The tree stays still when reduced motion is enabled. It changes presentation only; tasks, sessions, and tool behavior stay the same.

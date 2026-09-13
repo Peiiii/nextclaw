@@ -55,7 +55,7 @@ export function ChatWelcomeProjectPicker({
       </PopoverTrigger>
       <ChatPopoverContent
         align="start"
-        className="flex w-[min(20rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border border-border bg-popover p-0 text-popover-foreground shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
+        className="flex w-[min(20rem,calc(100vw-1rem))] flex-col overflow-hidden p-0"
         style={{ maxHeight: PROJECT_PICKER_MAX_HEIGHT }}
       >
         <div className="shrink-0 px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">

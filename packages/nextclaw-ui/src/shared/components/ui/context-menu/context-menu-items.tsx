@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import * as Popover from "@radix-ui/react-popover";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
-import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '../actions/action-feedback';
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
 import type { ContextMenuGroup, ContextMenuItem } from "./context-menu";
 
 export const CONTEXT_MENU_SURFACE_CLASS =
-  "w-max min-w-52 max-w-[min(18rem,calc(100vw-16px))] overflow-y-auto rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-[0_18px_48px_-20px_rgba(15,23,42,0.42)] outline-none";
+  "w-max min-w-52 max-w-[min(18rem,calc(100vw-16px))] overflow-y-auto rounded-xl border border-border/40 bg-popover p-1 text-popover-foreground shadow-floating outline-none";
 
 function MenuItemContent({ item }: { item: ContextMenuItem }) {
   return <>
@@ -152,7 +152,7 @@ export function ContextMenuItems({ groups, onClose }: {
     }}
   >
     {groups.filter((group) => group.items.length).map((group, index) => <div key={group.key} role="group">
-      {index > 0 ? <div className="my-1 h-px bg-border" /> : null}
+      {index > 0 ? <div className="mx-2 my-1 h-px bg-border/50" /> : null}
       {group.items.map((item) => {
         const className = cn(
           ACTION_MENU_ITEM_CLASS,

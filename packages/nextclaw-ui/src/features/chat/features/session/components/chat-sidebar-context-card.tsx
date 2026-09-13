@@ -30,7 +30,7 @@ export function ChatSidebarContextCard({
           align="start"
           sideOffset={10}
           collisionPadding={12}
-          className="pointer-events-none w-64 rounded-xl border-border/80 bg-popover p-3 text-popover-foreground shadow-[0_18px_48px_-24px_rgba(15,23,42,0.45)]"
+          className="pointer-events-none w-64 p-3"
         >
           <div className="truncate text-sm font-semibold leading-5">
             {title}

@@ -322,8 +322,8 @@
     -webkit-backdrop-filter: blur(18px) saturate(0.9);
     backdrop-filter: blur(18px) saturate(0.9);
     background-color: hsl(var(--popover) / 0.9);
-    border-color: hsl(var(--border) / 0.7);
-    box-shadow: 0 18px 42px -24px hsl(158 27% 20% / 0.46);
+    border-color: hsl(var(--border) / 0.4);
+    box-shadow: var(--shadow-popover);
   }
 
   :root[data-theme="island"] [data-theme-overlay="tooltip"] {

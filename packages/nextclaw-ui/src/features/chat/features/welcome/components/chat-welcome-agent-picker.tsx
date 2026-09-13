@@ -48,7 +48,6 @@ export function ChatWelcomeAgentPicker({
         </div>
       </SelectTrigger>
       <SelectContent
-        className="rounded-xl border-border shadow-lg"
         style={{ maxHeight: AGENT_PICKER_MAX_HEIGHT }}
       >
         {agents.map((agent) => (
