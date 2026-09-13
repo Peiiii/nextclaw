@@ -1,5 +1,30 @@
 # nextclaw
 
+## 0.55.0
+
+### Minor Changes
+
+- a55c335: Expose the current installation and storage layout through structured status, teach native Agents to query current self-management facts instead of repeating defaults, and consolidate duplicate identity/runtime/session prompt blocks into one current-self projection.
+
+### Patch Changes
+
+- 2e958a6: Add optional signed GitHub webhook relay reception for local collaboration, with persistent task bindings, connection health and an explicit switch back to polling.
+- 22d2266: Fix CLI self-restart and running-version checks when web password protection is enabled, allowing local self-management to authenticate without requesting browser credentials or disabling protection.
+- Updated dependencies [a55c335]
+- Updated dependencies [7bab66f]
+- Updated dependencies [2e958a6]
+- Updated dependencies [22d2266]
+  - @nextclaw/core@0.18.3
+  - @nextclaw/kernel@0.18.3
+  - @nextclaw/service@0.7.3
+  - @nextclaw/collaboration@0.1.4
+  - @nextclaw/server@0.23.9
+  - @nextclaw/mcp@0.3.53
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.53
+  - @nextclaw/remote@0.3.66
+  - @nextclaw/runtime@0.4.52
+  - @nextclaw/ncp-mcp@0.2.53
+
 ## 0.54.2
 
 ### Patch Changes

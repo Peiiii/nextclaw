@@ -1,5 +1,12 @@
 # nextclaw-core
 
+## 0.18.3
+
+### Patch Changes
+
+- a55c335: Expose the current installation and storage layout through structured status, teach native Agents to query current self-management facts instead of repeating defaults, and consolidate duplicate identity/runtime/session prompt blocks into one current-self projection.
+- 22d2266: Fix CLI self-restart and running-version checks when web password protection is enabled, allowing local self-management to authenticate without requesting browser credentials or disabling protection.
+
 ## 0.18.2
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @nextclaw/agent-chat-ui
 
+## 0.11.0
+
+### Minor Changes
+
+- 87e1564: 发送消息时为回复预留阅读空间，翻看历史时保持当前位置。为消息中的已处理、思考过程、工具组和工具详情增加平滑的展开收起动画，并支持减少动态效果设置。
+
+### Patch Changes
+
+- b70f217: Show immediate spinner and skeleton feedback when expanding deferred process details. Keep user collapse intent while loading and provide an inline retry action on failure.
+- 7d732a2: Support collapsing pinned and date groups in the session list, with a compact heading and a right-aligned arrow shown on hover. Share smooth height and fade transitions with message details so expansion remains visible for long groups.
+
 ## 0.10.2
 
 ### Patch Changes

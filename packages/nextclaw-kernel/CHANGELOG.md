@@ -1,5 +1,19 @@
 # @nextclaw/kernel
 
+## 0.18.3
+
+### Patch Changes
+
+- a55c335: Expose the current installation and storage layout through structured status, teach native Agents to query current self-management facts instead of repeating defaults, and consolidate duplicate identity/runtime/session prompt blocks into one current-self projection.
+- 7bab66f: 修复新会话完成回复后仍保留首条消息截取标题的问题。自动标题使用该轮回复的模型，问候等简单对话也会生成会话性质标题；运行状态更新不再误把临时标题标为手动命名，并继续保护用户手动修改的名称。
+- Updated dependencies [a55c335]
+- Updated dependencies [22d2266]
+  - @nextclaw/core@0.18.3
+  - @nextclaw/mcp@0.3.53
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.53
+  - @nextclaw/runtime@0.4.52
+  - @nextclaw/ncp-mcp@0.2.53
+
 ## 0.18.2
 
 ### Patch Changes

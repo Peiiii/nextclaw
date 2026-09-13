@@ -1,5 +1,18 @@
 # nextclaw-server
 
+## 0.23.9
+
+### Patch Changes
+
+- 22d2266: Fix CLI self-restart and running-version checks when web password protection is enabled, allowing local self-management to authenticate without requesting browser credentials or disabling protection.
+- Updated dependencies [a55c335]
+- Updated dependencies [7bab66f]
+- Updated dependencies [22d2266]
+  - @nextclaw/core@0.18.3
+  - @nextclaw/kernel@0.18.3
+  - @nextclaw/mcp@0.3.53
+  - @nextclaw/runtime@0.4.52
+
 ## 0.23.8
 
 ### Patch Changes
