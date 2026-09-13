@@ -56,7 +56,7 @@ it("localizes reasoning progress and completion around the live character count"
   const { rerender } = render(
     <ChatMessageList
       messages={[createReasoningMessage("streaming")]}
-      isSending={false}
+      isSending
       hasAssistantDraft={false}
       texts={texts}
     />,
@@ -283,7 +283,7 @@ it("does not collapse in-progress assistant process content", () => {
           ],
         },
       ]}
-      isSending={false}
+      isSending
       hasAssistantDraft
       texts={defaultTexts}
     />,

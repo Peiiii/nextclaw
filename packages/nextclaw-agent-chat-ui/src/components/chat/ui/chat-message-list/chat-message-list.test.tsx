@@ -661,7 +661,7 @@ it("auto-collapses reasoning after the current streaming queue finishes", () => 
   const { rerender } = render(
     <ChatMessageList
       messages={[createReasoningMessage("streaming")]}
-      isSending={false}
+      isSending
       hasAssistantDraft={false}
       texts={defaultTexts}
     />,
@@ -711,7 +711,7 @@ it("keeps earlier reasoning queues collapsed while only the current queue stays 
           ],
         },
       ]}
-      isSending={false}
+      isSending
       hasAssistantDraft={false}
       texts={defaultTexts}
     />,
@@ -729,7 +729,7 @@ it("keeps reasoning expanded after completion when the user manually re-opens it
   const { rerender } = render(
     <ChatMessageList
       messages={[createReasoningMessage("streaming")]}
-      isSending={false}
+      isSending
       hasAssistantDraft={false}
       texts={defaultTexts}
     />,
@@ -781,7 +781,7 @@ it("keeps streaming thought content pinned to the bottom until the user scrolls 
           ],
         },
       ]}
-      isSending={false}
+      isSending
       hasAssistantDraft={false}
       texts={defaultTexts}
     />

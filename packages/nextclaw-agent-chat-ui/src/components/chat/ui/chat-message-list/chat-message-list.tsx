@@ -85,13 +85,6 @@ function resolveMessageMetaPresentation(
   return { label: `${message.roleLabel} · ${message.timestampLabel}` };
 }
 
-function hasRenderableAssistantDraft(messages: readonly ChatMessageViewModel[]): boolean {
-  return messages.some((message) =>
-    message.role === 'assistant' &&
-    (message.status === 'streaming' || message.status === 'pending')
-  );
-}
-
 export type ChatMessageListProps = {
   assistantAvatarIcon?: ReactNode;
   showAssistantHeader?: boolean;
@@ -203,19 +196,25 @@ export function ChatMessageList({
     showAssistantHeader,
   );
   const visibleMessages = messages.filter(hasRenderableMessageContent);
-  const hasAssistantDraftContent = hasRenderableAssistantDraft(visibleMessages);
+  const activeGeneratingAssistant = isSending
+    ? messages.findLast(isGeneratingAssistantMessage)
+    : undefined;
+  const hasAssistantDraftContent = activeGeneratingAssistant
+    ? hasRenderableMessageContent(activeGeneratingAssistant)
+    : false;
 
   return (
     <div className={cn('nextclaw-message-list space-y-5 [container:message-list/inline-size]', className)}>
       {visibleMessages.map((message) => {
         const isUser = message.role === 'user';
-        const isGenerating = isGeneratingAssistantMessage(message);
+        const isGenerating = message.id === activeGeneratingAssistant?.id;
         const meta = resolveMessageMetaPresentation(message, texts);
         const isTextSelectionReferenceEnabled = isTextSelectionReferenceAllowed(message);
         const defaultContent = (
           <ChatMessage
             layout={layout}
             message={message}
+            isInProgress={isGenerating}
             texts={texts}
             onToolAction={onToolAction}
             toolPayloadState={resolveMessageToolPayloadState?.(message.id)}
