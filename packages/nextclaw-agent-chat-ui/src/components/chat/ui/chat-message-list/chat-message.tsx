@@ -30,6 +30,7 @@ import { useChatMessageToolPayload } from "@agent-chat-ui/components/chat/hooks/
 type ChatMessageProps = {
   layout: ChatMessageLayout;
   message: ChatMessageViewModel;
+  isInProgress: boolean;
   texts: Pick<
     ChatMessageTexts,
     | "copyCodeLabel"
@@ -130,21 +131,20 @@ function resolveToolActivityLabels(
   };
 }
 
-function isMessageInProgress(status?: string): boolean {
-  return status === "pending" || status === "streaming";
-}
-
 function isProcessPart(part: ChatMessagePartViewModel): boolean {
   return part.type === "reasoning" ||
     part.type === "tool-card" ||
     (part.type === "custom" && part.process === true);
 }
 
-function splitAssistantProcess(message: ChatMessageViewModel): ChatMessageProcessSplit | null {
+function splitAssistantProcess(
+  message: ChatMessageViewModel,
+  isInProgress: boolean,
+): ChatMessageProcessSplit | null {
   if (
     message.role !== "assistant" ||
     !message.processSummary ||
-    isMessageInProgress(message.status)
+    isInProgress
   ) {
     return null;
   }
@@ -368,6 +368,7 @@ function renderMessageParts(params: {
 export const ChatMessage = memo(function ChatMessage({
   layout,
   message,
+  isInProgress,
   texts,
   onToolAction,
   toolPayloadState,
@@ -384,8 +385,7 @@ export const ChatMessage = memo(function ChatMessage({
   const { role } = message;
   const isUser = role === "user";
   const isFlat = layout === "flat" && !isUser;
-  const isInProgress = isMessageInProgress(message.status);
-  const processSplit = splitAssistantProcess(message);
+  const processSplit = splitAssistantProcess(message, isInProgress);
   const {
     handleProcessToggle,
     handleToolActivityOpenChange,
