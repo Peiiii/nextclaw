@@ -295,6 +295,46 @@ describe("ui auth protection flows", () => {
     });
   });
 
+  it("attaches the core health snapshot from the kernel contract", async () => {
+    useIsolatedHome();
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+
+    const evaluatedAt = new Date().toISOString();
+    const app = createApp(
+      configPath,
+      {
+        coreHealth: {
+          evaluate: () => ({
+            healthy: false,
+            checks: [
+              { id: "config", ok: true, checkedAt: evaluatedAt },
+              { id: "provider", ok: false, detail: "no enabled provider", checkedAt: evaluatedAt }
+            ],
+            evaluatedAt
+          })
+        } as never
+      },
+    );
+
+    const healthResponse = await app.request("http://localhost/api/health");
+    expect(healthResponse.status).toBe(200);
+    const payload = (await healthResponse.json()) as {
+      ok: boolean;
+      data: { status: string; coreHealth?: unknown };
+    };
+    expect(payload.ok).toBe(true);
+    expect(payload.data.status).toBe("ok");
+    expect(payload.data.coreHealth).toMatchObject({
+      healthy: false,
+      evaluatedAt,
+      checks: [
+        expect.objectContaining({ id: "config", ok: true }),
+        expect.objectContaining({ id: "provider", ok: false, detail: "no enabled provider" })
+      ]
+    });
+  });
+
   it("keeps tokenized panel app assets public while protected asset routes still require login", async () => {
     useIsolatedHome();
     const configPath = createTempConfigPath();
