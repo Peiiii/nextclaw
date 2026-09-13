@@ -110,7 +110,7 @@ export function ServiceAppsPanel({
             <TooltipTrigger asChild>
               <button
                 type="button"
-                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
                 aria-label={t("serviceAppsRefresh")}
                 onClick={refetch}
               >

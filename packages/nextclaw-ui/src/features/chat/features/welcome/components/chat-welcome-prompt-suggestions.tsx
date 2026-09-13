@@ -27,7 +27,7 @@ export function ChatWelcomePromptSuggestions({
           key={suggestion.labelKey}
           type="button"
           onClick={() => onSelectPrompt(t(suggestion.promptKey))}
-          className="rounded-full bg-muted/55 px-3.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="rounded-full bg-muted/55 px-3.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           {t(suggestion.labelKey)}
         </button>

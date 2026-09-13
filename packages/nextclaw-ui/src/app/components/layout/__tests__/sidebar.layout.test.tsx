@@ -107,7 +107,7 @@ describe("Sidebar", () => {
     expect(backLink).toBeTruthy();
     expect(header.className).not.toContain("bg-white");
     expect(header.className).not.toContain("rounded-2xl");
-    expect(backLink.className).toContain("hover:bg-[hsl(var(--gray-200)/0.6)]");
+    expect(backLink.className).toContain("hover:bg-[var(--sidebar-interaction-hover)]");
   });
 
   it("keeps the settings navigation in the expected product order", () => {
@@ -207,7 +207,7 @@ describe("Sidebar", () => {
     expect(screen.queryByRole("combobox", { name: "Language" })).toBeNull();
     expect(accountEntry.className).toContain("py-2");
     expect(accountEntry.className).toContain("text-muted-foreground");
-    expect(accountEntry.className).toContain("hover:bg-[hsl(var(--gray-200)/0.6)]");
+    expect(accountEntry.className).toContain("hover:bg-[var(--sidebar-interaction-hover)]");
     expect(navigationList?.className).toContain("space-y-0.5");
     expect(footer?.className).toContain("space-y-0.5");
     expect(footer?.firstElementChild?.textContent).toContain("Help Docs");

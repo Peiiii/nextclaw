@@ -152,7 +152,7 @@ export function SearchableModelInput({
                 onChange(value.trim());
                 closeMenu();
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--interaction-hover)]"
             >
               <Check className="h-4 w-4 text-transparent" />
               <span className="truncate text-gray-700">
@@ -170,7 +170,7 @@ export function SearchableModelInput({
                 onChange(option);
                 closeMenu();
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--interaction-hover)]"
             >
               <Check className={cn('h-4 w-4', option === value.trim() ? 'text-primary' : 'text-transparent')} />
               <span className="truncate text-gray-700">{option}</span>

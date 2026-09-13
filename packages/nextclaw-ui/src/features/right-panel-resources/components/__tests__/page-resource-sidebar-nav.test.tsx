@@ -112,10 +112,10 @@ describe("shared left pages", () => {
     renderNav();
     const groupTrigger = screen.getByRole("button", { name: "Pages 1" });
     expect(groupTrigger.className).toContain(
-      "hover:bg-[hsl(var(--gray-200)/0.6)]",
+      "hover:bg-[var(--sidebar-interaction-hover)]",
     );
     expect(groupTrigger.className).toContain(
-      "active:bg-[hsl(var(--gray-200)/0.8)]",
+      "active:bg-[var(--sidebar-interaction-selection)]",
     );
     expect(groupTrigger.className).toContain("focus-visible:ring-1");
     await userEvent.click(groupTrigger);

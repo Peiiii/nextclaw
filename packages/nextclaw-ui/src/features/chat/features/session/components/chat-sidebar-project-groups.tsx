@@ -233,7 +233,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                     />
                   }
                   label={pinLabel}
-                  tooltipSide="right"
+                  tooltipSide="top"
                   onClick={() =>
                     presenter.chatSessionListManager.toggleProjectPinned(
                       group.projectRoot,

@@ -90,7 +90,7 @@ export function ChatSessionTokenUsage({ sessionKey }: { sessionKey: string | nul
           <span>{t('chatWorkspaceTokenUsageLoadFailed')}</span>
           <button
             type="button"
-            className="shrink-0 rounded px-1.5 py-1 font-semibold text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+            className="shrink-0 rounded px-1.5 py-1 font-semibold text-gray-700 hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
             onClick={() => void usageQuery.refetch()}
           >
             {t('chatWorkspaceTokenUsageRetry')}

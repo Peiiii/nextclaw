@@ -131,7 +131,7 @@ function GoalCard(props: {
       type="button"
       onClick={() => onSelect(scene.scene)}
       className={cn(
-        "group flex min-h-[74px] flex-col justify-center rounded-lg border px-3 py-2.5 text-left shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50/70",
+        "group flex min-h-[74px] flex-col justify-center rounded-lg border px-3 py-2.5 text-left shadow-sm transition-colors hover:border-gray-300 hover:bg-[var(--interaction-hover)]",
         tone.card,
       )}
     >
@@ -194,7 +194,7 @@ export function MarketplaceCuratedSceneView(props: {
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-[var(--interaction-hover)] hover:text-gray-900"
           aria-label={readLocalized({ zh: "返回", en: "Back" }, language)}
         >
           <ArrowLeft className="h-4 w-4" />

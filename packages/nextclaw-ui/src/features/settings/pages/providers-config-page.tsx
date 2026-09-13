@@ -156,7 +156,7 @@ export function ProvidersConfigPage() {
                 <div className='grid max-h-[24rem] grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3'>
                   <button
                     type='button'
-                    className='flex min-h-20 w-full flex-col items-start gap-2 rounded-lg border border-dashed border-border/70 bg-muted/20 px-3 py-2 text-left transition-colors hover:border-border hover:bg-muted/45'
+                    className='flex min-h-20 w-full flex-col items-start gap-2 rounded-lg border border-dashed border-border/70 bg-muted/20 px-3 py-2 text-left transition-colors hover:border-border hover:bg-[var(--interaction-hover)]'
                     onClick={async () => {
                       try {
                         const result = await createProvider.mutateAsync({
@@ -183,7 +183,7 @@ export function ProvidersConfigPage() {
                     <button
                       key={template.providerType}
                       type='button'
-                      className='flex min-h-20 w-full flex-col items-start gap-2 rounded-lg border border-border/55 bg-muted/15 px-3 py-2 text-left transition-colors hover:border-border/80 hover:bg-muted/40'
+                      className='flex min-h-20 w-full flex-col items-start gap-2 rounded-lg border border-border/55 bg-muted/15 px-3 py-2 text-left transition-colors hover:border-border/80 hover:bg-[var(--interaction-hover)]'
                       onClick={async () => {
                         try {
                           const result = await createProvider.mutateAsync({
@@ -254,8 +254,8 @@ export function ProvidersConfigPage() {
                   className={cn(
                     'group w-full rounded-xl p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
                     resolvedSelectedProvider === provider.providerId
-                      ? 'bg-background/95 text-foreground shadow-sm'
-                      : 'bg-transparent text-muted-foreground hover:bg-background/65 hover:text-foreground'
+                      ? 'bg-[var(--interaction-selection)] text-foreground'
+                      : 'bg-transparent text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-foreground'
                   )}
                 >
                   <div className='relative min-h-10'>
@@ -300,7 +300,7 @@ export function ProvidersConfigPage() {
                         <PopoverTrigger asChild>
                           <button
                             type='button'
-                            className='inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/70 hover:bg-muted hover:text-foreground'
+                            className='inline-flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/70 hover:bg-[var(--interaction-hover)] hover:text-foreground'
                             onClick={(event) => event.stopPropagation()}
                             title={t('more')}
                           >
@@ -310,7 +310,7 @@ export function ProvidersConfigPage() {
                         <PopoverContent className='w-40 p-1' align='end' onClick={(event) => event.stopPropagation()}>
                           <button
                             type='button'
-                            className='flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-red-600 hover:bg-red-50'
+                            className='flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-red-600 hover:bg-destructive/10'
                             onClick={() => setProviderToDelete(provider.providerId)}
                           >
                             <Trash2 className='h-4 w-4' />

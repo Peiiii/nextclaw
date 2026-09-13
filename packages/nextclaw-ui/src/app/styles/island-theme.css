@@ -44,8 +44,6 @@
     --secondary-foreground: var(--gray-800);
     --accent: 151 28% 88%;
     --accent-foreground: var(--brand-800);
-    --interaction-selection: hsl(153 35% 80% / 0.82);
-    --interaction-selection-border: hsl(157 37% 58% / 0.88);
     --muted: var(--gray-100);
     --muted-foreground: var(--gray-500);
     --destructive: 5 61% 47%;
@@ -443,16 +441,6 @@
     background-color: transparent;
     border-left: 1px solid hsl(var(--brand-600) / 0.28);
     border-radius: 0;
-  }
-
-  :root[data-theme="island"]
-    [data-theme-surface="navigation"]
-    :is([aria-current="page"], [aria-selected="true"], [data-state="active"]),
-  :root[data-theme="island"]
-    [data-theme-surface="utility-rail"]
-    :is([aria-pressed="true"], [data-state="active"]) {
-    background-color: hsl(151 27% 84% / 0.68);
-    color: hsl(var(--brand-800));
   }
 
   :root[data-theme="island"]

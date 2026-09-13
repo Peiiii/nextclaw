@@ -308,8 +308,8 @@ export function CronConfig() {
                       handlePageChange(0);
                     }}
                     className={cn(
-                      "rounded-lg px-2.5 py-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                      status === value && "bg-muted text-foreground",
+                      "rounded-lg px-2.5 py-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground",
+                      status === value && "bg-[var(--interaction-selection)] hover:bg-[var(--interaction-selection)] text-foreground",
                     )}
                   >
                     {t(label)}

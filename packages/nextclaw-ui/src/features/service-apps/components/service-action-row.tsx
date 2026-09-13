@@ -66,7 +66,7 @@ export function ServiceActionRow({
               <button
                 type="button"
                 disabled={grantAgentPending || availableAgents.length === 0}
-                className="ml-1 rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:cursor-not-allowed disabled:opacity-40"
+                className="ml-1 rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:cursor-not-allowed disabled:opacity-40"
                 title={t("serviceAppsGrantToAgent")}
                 aria-label={t("serviceAppsGrantToAgent")}
               >
@@ -85,7 +85,7 @@ export function ServiceActionRow({
                     onGrantAgent(action.id, agent.id);
                     setAgentMenuOpen(false);
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
                 >
                   <Bot className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="min-w-0 truncate">
@@ -111,7 +111,7 @@ export function ServiceActionRow({
           <button
             type="button"
             onClick={() => onRevoke(grant)}
-            className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-rose-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+            className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-[var(--interaction-hover)] hover:text-rose-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
             title={t("serviceAppsRevokeGrant")}
             aria-label={t("serviceAppsRevokeGrant")}
           >

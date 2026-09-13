@@ -42,7 +42,7 @@ export function SkillShelfCard(props: {
     <article
       onClick={() => onOpen(entry)}
       className={cn(
-        "group flex min-h-[166px] cursor-pointer flex-col justify-between rounded-xl border border-gray-200/70 bg-white p-3 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50/60",
+        "group flex min-h-[166px] cursor-pointer flex-col justify-between rounded-xl border border-gray-200/70 bg-white p-3 shadow-sm transition-colors hover:border-gray-300 hover:bg-[var(--interaction-hover)]",
         layout === "rail" ? "w-[260px] shrink-0" : "w-full min-w-0",
       )}
     >
@@ -81,7 +81,7 @@ export function SkillShelfCard(props: {
               event.stopPropagation();
               onInstall(item);
             }}
-            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 text-[11px] font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 text-[11px] font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-[var(--interaction-hover)] disabled:opacity-50"
           >
             <Download className="h-3.5 w-3.5" />
             {isInstalling ? t("marketplaceInstalling") : t("marketplaceInstall")}

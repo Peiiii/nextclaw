@@ -22,6 +22,7 @@ type ChatSessionMoreActionsMenuProps = {
   disabled?: boolean;
   triggerSize?: IconActionButtonSize;
   triggerTone?: IconActionButtonTone;
+  triggerTooltipSide?: 'top' | 'bottom';
   className?: string;
 };
 
@@ -39,6 +40,7 @@ export function ChatSessionMoreActionsMenu({
   disabled = false,
   triggerSize = 'md',
   triggerTone = 'default',
+  triggerTooltipSide = 'bottom',
   className,
 }: ChatSessionMoreActionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -59,6 +61,7 @@ export function ChatSessionMoreActionsMenu({
           label={t('chatSessionMoreActions')}
           size={triggerSize}
           tone={triggerTone}
+          tooltipSide={triggerTooltipSide}
           className={className}
           disabled={disabled}
           onClick={(event) => event.stopPropagation()}

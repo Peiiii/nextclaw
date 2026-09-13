@@ -14,7 +14,7 @@ export function ChatSidebarListModeSwitch({ isProjectFirstView, onSelectMode }: 
       <span
         aria-hidden="true"
         className={cn(
-          'pointer-events-none absolute bottom-0.5 left-0.5 top-0.5 w-[calc(50%-2px)] rounded-full bg-gray-200/70 transition-transform duration-200 ease-out motion-reduce:transition-none',
+          'pointer-events-none absolute bottom-0.5 left-0.5 top-0.5 w-[calc(50%-2px)] rounded-full bg-[var(--sidebar-segment-selection)] transition-transform duration-200 ease-out motion-reduce:transition-none',
           isProjectFirstView && 'translate-x-full',
         )}
       />

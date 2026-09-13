@@ -65,7 +65,7 @@ export function ChatSidebarListToolbar({ query, onQueryChange, isProjectFirstVie
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
         <Input autoFocus data-theme-control="chat-search" density="compact" value={query} onChange={event => onQueryChange(event.target.value)}
           onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeSearch(); } }}
-          aria-label={t('chatSidebarSearchPlaceholder')} placeholder={t('chatSidebarSearchPlaceholder')} className="h-8 rounded-lg border-0 bg-background/55 pl-8 pr-9 shadow-none hover:bg-background/75" />
+          aria-label={t('chatSidebarSearchPlaceholder')} placeholder={t('chatSidebarSearchPlaceholder')} className="h-8 rounded-lg border-0 bg-background/55 pl-8 pr-9 shadow-none hover:bg-[var(--interaction-hover)]" />
         <IconActionButton icon={<X className="h-3.5 w-3.5" />} label={t('chatSidebarCloseSearch')} size="sm"
           className="absolute right-1 top-1/2 -translate-y-1/2" onClick={closeSearch} />
       </div>

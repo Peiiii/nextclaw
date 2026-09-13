@@ -138,7 +138,7 @@ export function ChannelsList() {
                         <a
                           href={tutorialUrl}
                           onClick={(event) => event.stopPropagation()}
-                          className='inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/45 transition-colors hover:bg-muted hover:text-foreground'
+                          className='inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/45 transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground'
                           title={t('channelsGuideTitle')}
                         >
                           <ExternalLink className='h-3.5 w-3.5' />

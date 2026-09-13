@@ -122,7 +122,7 @@ export function PwaInstallBanner() {
         <button
           type='button'
           aria-label={t('pwaInstallDismiss')}
-          className='rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600'
+          className='rounded-full p-1 text-gray-400 transition hover:bg-[var(--interaction-hover)] hover:text-gray-600'
           onClick={() => {
             pwaInstallManager.dismissInstallPrompt();
           }}

@@ -90,7 +90,7 @@ function DesktopWindowControlButton({
       className={
         control.variant === "danger"
           ? "desktop-window-no-drag flex h-10 w-[46px] items-center justify-center text-gray-700 transition-colors hover:bg-red-500 hover:text-white"
-          : "desktop-window-no-drag flex h-10 w-[46px] items-center justify-center text-gray-700 transition-colors hover:bg-black/10"
+          : "desktop-window-no-drag flex h-10 w-[46px] items-center justify-center text-gray-700 transition-colors hover:bg-[var(--interaction-hover)]"
       }
       onClick={() => {
         void window.nextclawDesktop?.controlWindow?.(control.action);

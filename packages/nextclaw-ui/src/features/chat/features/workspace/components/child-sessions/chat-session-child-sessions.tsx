@@ -27,7 +27,7 @@ export function ChatSessionChildSessions({
           </div>
           <button
             type="button"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-[hsl(var(--primary-hover))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!sessionKey}
             onClick={() => presenter.chatThreadManager.openSideChatDraft(sessionKey)}
           >
@@ -42,7 +42,7 @@ export function ChatSessionChildSessions({
             {childSessionTabs.map((tab) => (
               <div
                 key={tab.sessionKey}
-                className="group relative flex w-full items-center rounded-lg border border-gray-200/80 bg-white transition-colors hover:border-gray-300 hover:bg-gray-50"
+                className="group relative flex w-full items-center rounded-lg border border-gray-200/80 bg-white transition-colors hover:border-gray-300 hover:bg-[var(--interaction-hover)]"
               >
                 <button
                   type="button"

@@ -355,8 +355,8 @@ export function WorkspaceDirectoryTreeEntry({
           ref={rowRef}
           data-workspace-tree-entry=""
           className={cn(
-            'group flex h-[26px] w-full min-w-0 items-center text-gray-700 transition-colors hover:bg-gray-100 focus-within:bg-gray-100',
-            selected ? 'bg-primary/10' : null,
+            'group flex h-[26px] w-full min-w-0 items-center text-gray-700 transition-colors hover:bg-[var(--interaction-hover)] focus-within:bg-[var(--interaction-hover)]',
+            selected ? 'bg-[var(--interaction-selection)] hover:bg-[var(--interaction-selection)] focus-within:bg-[var(--interaction-selection)]' : null,
             entry.hidden ? 'opacity-65' : null,
           )}
           style={{ paddingLeft: `${6 + level * 12}px` }}

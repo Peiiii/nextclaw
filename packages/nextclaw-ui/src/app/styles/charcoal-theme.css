@@ -42,8 +42,6 @@
     --secondary-foreground: var(--gray-800);
     --accent: 0 0% 19%;
     --accent-foreground: var(--gray-900);
-    --interaction-selection: hsl(202 38% 27%);
-    --interaction-selection-border: hsl(202 48% 40%);
     --muted: var(--gray-100);
     --muted-foreground: var(--gray-500);
     --destructive: 0 72% 60%;

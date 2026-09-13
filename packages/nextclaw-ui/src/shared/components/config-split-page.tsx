@@ -47,7 +47,7 @@ export function ConfigSplitPage({
               <button
                 type='button'
                 onClick={onMobileBack}
-                className='inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
+                className='inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
               >
                 <ArrowLeft className='h-4 w-4' />
                 <span>{mobileListLabel ?? t('backToMain')}</span>
@@ -122,8 +122,8 @@ export function ConfigSelectionCard({
       className={cn(
         'w-full rounded-xl p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
         active
-          ? 'bg-background/95 text-foreground shadow-sm'
-          : 'bg-transparent text-muted-foreground hover:bg-background/65 hover:text-foreground',
+          ? 'bg-[var(--interaction-selection)] text-foreground'
+          : 'bg-transparent text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-foreground',
         className
       )}
       {...props}

@@ -102,7 +102,7 @@ export function ChatSidebarUtilityMenu({
           <button
             type="button"
             aria-label={t("settingsMenu")}
-            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors duration-base hover:bg-background/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors duration-base hover:bg-[var(--interaction-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
           >
             <Settings className="h-4 w-4 shrink-0 text-muted-foreground/70" />
             <span className="min-w-0 flex-1 text-left">{t("settings")}</span>
@@ -118,7 +118,7 @@ export function ChatSidebarUtilityMenu({
           <NavLink
             to="/settings"
             onClick={() => onOpenChange(false)}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900"
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-gray-900"
           >
             <Settings className="h-4 w-4 text-muted-foreground/70" />
             <span className="flex-1 text-left">{t("settings")}</span>
@@ -134,7 +134,7 @@ export function ChatSidebarUtilityMenu({
                 action();
                 onOpenChange(false);
               }}
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900"
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-gray-900"
             >
               <Icon className="h-4 w-4 text-muted-foreground/70" />
               <span className="flex-1 text-left">{label}</span>
@@ -197,7 +197,7 @@ function ChatSidebarUtilitySelect<Value extends string>({
     >
       <SelectTrigger
         aria-label={label}
-        className="h-auto w-full rounded-lg border-0 bg-transparent px-3 py-2 text-[13px] font-medium text-foreground shadow-none hover:bg-gray-200/60 hover:text-gray-900 focus:ring-0"
+        className="h-auto w-full rounded-lg border-0 bg-transparent px-3 py-2 text-[13px] font-medium text-foreground shadow-none hover:bg-[var(--interaction-hover)] hover:text-gray-900 focus:ring-0"
         indicator={<ChevronRight className="h-4 w-4 text-muted-foreground/70" />}
       >
         <div className="flex min-w-0 items-center gap-2.5">

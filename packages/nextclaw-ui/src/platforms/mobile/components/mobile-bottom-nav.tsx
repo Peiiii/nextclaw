@@ -40,8 +40,8 @@ export function MobileBottomNav() {
                 className={cn(
                   "group flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
                   active
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    ? "bg-[var(--interaction-selection)] text-foreground"
+                    : "text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-foreground",
                 )}
               >
                 <span className="relative">
@@ -64,7 +64,7 @@ export function MobileBottomNav() {
           <button
             type="button"
             onClick={() => openApps(docBrowser)}
-            className="group flex min-h-12 w-full flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+            className="group flex min-h-12 w-full flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
           >
             <Boxes className="h-5 w-5 text-muted-foreground" />
             <span className="max-w-full truncate">{t("appsTitle")}</span>

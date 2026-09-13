@@ -133,7 +133,7 @@ export function CronTemplateGallery({
             onClick={() => onSelect(t(template.promptKey))}
             className="group grid min-h-24 grid-cols-[38px_minmax(0,1fr)] items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_12px_30px_rgba(30,45,52,0.08)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-colors group-hover:bg-[var(--interaction-hover)] group-hover:text-primary">
               <Icon className="h-4 w-4" aria-hidden="true" />
             </span>
             <span className="min-w-0">

@@ -1,10 +1,46 @@
 import assert from 'node:assert/strict';
+import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { test } from 'node:test';
 import { chromium } from 'playwright';
 
 // Run against a source UI server: NEXTCLAW_UI_URL=http://127.0.0.1:5186 node --test scripts/smoke/ui/interaction-feedback.test.mjs
 const baseUrl = process.env.NEXTCLAW_UI_URL ?? 'http://127.0.0.1:5186';
 const themes = ['work', 'natural', 'minimal', 'warm', 'cool', 'dawn', 'graphite', 'night', 'charcoal', 'island', 'probe'];
+
+const sourceRoot = fileURLToPath(new URL('../../../packages/nextclaw-ui/src/', import.meta.url));
+function feedbackSources(directory = sourceRoot) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const file = path.join(directory, entry.name);
+    if (entry.isDirectory()) return entry.name === '__tests__' ? [] : feedbackSources(file);
+    return /\.(tsx?|css)$/.test(entry.name) && !entry.name.includes('.test.')
+      ? [{ file, source: readFileSync(file, 'utf8') }] : [];
+  });
+}
+
+test('neutral feedback contract: theme ownership and restrained intensity', () => {
+  const definitions = feedbackSources().flatMap(({ file, source }) =>
+    [...source.matchAll(/(--interaction-(?:hover|selection(?:-border)?)):\s*([^;]+);/g)]
+      .map(match => ({ file, token: match[1], value: match[2] })),
+  );
+  assert.equal(definitions.length, 3);
+  for (const definition of definitions) {
+    assert.equal(definition.file, path.join(sourceRoot, 'app/styles/design-system.css'));
+    assert.match(definition.value, /^hsl\(var\(--foreground\) \/ 0\.\d+\)$/);
+  }
+  const alpha = token => Number(definitions.find(item => item.token === token)?.value.match(/\/ ([\d.]+)/)?.[1]);
+  assert.ok(alpha('--interaction-hover') > 0 && alpha('--interaction-hover') <= 0.05);
+  assert.ok(alpha('--interaction-selection') > alpha('--interaction-hover') && alpha('--interaction-selection') <= 0.08);
+});
+
+test('neutral feedback contract: no independent neutral hover backgrounds', () => {
+  const violations = feedbackSources().filter(({ file }) => !file.endsWith('.css')).flatMap(({ file, source }) =>
+    [...source.matchAll(/(?:hover|focus|focus-visible|focus-within|active):(?:before:)?bg-(?:gray-\d+(?:\/\d+)?|muted(?:\/\d+)?|card(?:\/\d+)?|background(?:\/\d+)?|\[hsl\(var\(--gray-[^\]]+\])/g)]
+      .map(match => `${path.relative(sourceRoot, file)}: ${match[0]}`),
+  );
+  assert.deepEqual(violations, []);
+});
 
 async function readFeedback(button) {
   return button.evaluate(element => {

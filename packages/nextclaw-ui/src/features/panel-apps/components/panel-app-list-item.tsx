@@ -40,7 +40,7 @@ export function PanelAppListItem({
     setIsDeleteDialogOpen(true);
   };
   return (
-    <div className="group w-full min-w-0 rounded-lg border border-border/60 bg-card px-2.5 py-2.5 transition-colors hover:bg-muted/40">
+    <div className="group w-full min-w-0 rounded-lg border border-border/60 bg-card px-2.5 py-2.5 transition-colors hover:bg-[var(--interaction-hover)]">
       <div className="flex min-w-0 items-start gap-2">
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
           <span className="flex min-w-0 items-center gap-2">
@@ -59,7 +59,7 @@ export function PanelAppListItem({
             type="button"
             onClick={handleFavorite}
             disabled={favoritePending}
-            className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+            className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground disabled:opacity-50"
             title={favoriteLabel}
             aria-label={favoriteLabel}
           >
@@ -69,7 +69,7 @@ export function PanelAppListItem({
             <PopoverTrigger asChild>
               <button
                 type="button"
-                className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+                className="rounded-md p-1.5 text-muted-foreground/70 transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground"
                 aria-label={t('panelAppsMoreActions')}
                 disabled={deletePending}
               >

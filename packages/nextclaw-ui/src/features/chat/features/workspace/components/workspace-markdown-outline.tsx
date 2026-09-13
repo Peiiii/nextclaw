@@ -137,7 +137,7 @@ export function WorkspaceMarkdownOutline({
               <li key={item.index}>
                 <button
                   type="button"
-                  className="block w-full truncate rounded-md py-1.5 pr-2 text-left text-xs leading-4 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-950 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-border active:bg-gray-200"
+                  className="block w-full truncate rounded-md py-1.5 pr-2 text-left text-xs leading-4 text-gray-600 transition-colors hover:bg-[var(--interaction-hover)] hover:text-gray-950 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-border active:bg-[var(--interaction-hover)]"
                   style={{
                     paddingInlineStart: `${0.5 + item.depth * 0.75}rem`,
                   }}

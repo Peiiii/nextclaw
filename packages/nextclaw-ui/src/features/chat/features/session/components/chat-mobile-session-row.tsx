@@ -28,7 +28,7 @@ export function ChatMobileSessionRow(props: ChatSidebarSessionItemProps) {
     onStartEditing, onTogglePinned, onDelete } = props;
   return (
     <div className="relative flex min-w-0 items-center">
-      <button type="button" onClick={onSelect} className="flex min-h-[76px] min-w-0 flex-1 items-center gap-3 py-3 pl-4 pr-1 text-left active:bg-muted">
+      <button type="button" onClick={onSelect} className="flex min-h-[76px] min-w-0 flex-1 items-center gap-3 py-3 pl-4 pr-1 text-left active:bg-[var(--interaction-hover)]">
         <span className="relative shrink-0">
           {agentAvatarUrl || (agentId && agentId.toLowerCase() !== 'main') ? (
             <AgentAvatar agentId={agentId || 'main'} displayName={agentLabel} avatarUrl={agentAvatarUrl} className="h-12 w-12 rounded-xl text-lg" />

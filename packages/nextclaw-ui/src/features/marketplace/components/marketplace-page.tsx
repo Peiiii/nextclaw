@@ -150,13 +150,13 @@ export function MarketplacePage({
               <TabsList className="mb-0 h-auto flex-1 justify-start gap-4 sm:gap-6 rounded-none border-b-0 bg-transparent p-0 text-muted-foreground">
                 <TabsTrigger
                   value="all"
-                  className="rounded-none border-b-2 border-transparent bg-transparent px-0 pb-3 pt-0 shadow-none hover:bg-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-gray-950 data-[state=active]:shadow-none"
+                  className="rounded-none border-b-2 border-transparent bg-transparent px-0 pb-3 pt-0 shadow-none hover:bg-[var(--interaction-hover)] data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-gray-950 data-[state=active]:shadow-none"
                 >
                   {t("marketplaceTabMarketplaceSkills")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="installed"
-                  className="gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0 pb-3 pt-0 shadow-none hover:bg-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-gray-950 data-[state=active]:shadow-none"
+                  className="gap-1.5 rounded-none border-b-2 border-transparent bg-transparent px-0 pb-3 pt-0 shadow-none hover:bg-[var(--interaction-hover)] data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-gray-950 data-[state=active]:shadow-none"
                 >
                   {t("marketplaceTabInstalledSkills")}
                   <span className="text-[11px] font-medium text-gray-500">

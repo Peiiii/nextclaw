@@ -96,7 +96,7 @@ function ObservationRow({
             type="button"
             data-testid={`observation-${item.id}-${toggleAction}`}
             disabled={isPending}
-            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-[var(--interaction-hover)] disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => onAction(toggleAction)}
           >
             {toggleAction === 'pause' ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
@@ -107,7 +107,7 @@ function ObservationRow({
           type="button"
           data-testid={`observation-${item.id}-remove`}
           disabled={isPending}
-          className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
           onClick={() => onAction('remove')}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -179,7 +179,7 @@ export function ChatSessionContinuousAttention({ sessionKey }: { sessionKey: str
                 type="button"
                 role="tab"
                 aria-selected={activeGroup === group}
-                className={cn('flex-1 rounded-md px-3 py-2 text-xs font-medium transition-colors', activeGroup === group ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:text-gray-700')}
+                className={cn('flex-1 rounded-md px-3 py-2 text-xs font-medium transition-colors', activeGroup === group ? 'bg-[var(--interaction-selection)] text-foreground' : 'text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-foreground')}
                 onClick={() => setActiveGroup(group)}
               >
                 {getGroupLabel(group)} <span className="ml-1 tabular-nums text-gray-400">{count}</span>

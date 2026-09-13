@@ -27,7 +27,7 @@ export function ChatSessionTypeOptionItem(props: {
       onClick={onSelect}
       className={cn(
         "w-full rounded-2xl px-3 py-2.5 text-left transition-colors",
-        selected ? "bg-gray-50" : "hover:bg-gray-50",
+        selected ? "bg-[var(--interaction-selection)]" : "hover:bg-[var(--interaction-hover)]",
         disabled ? "cursor-not-allowed opacity-70" : null,
       )}
     >

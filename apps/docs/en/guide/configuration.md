@@ -43,6 +43,8 @@ Session switchers, action menus, and dropdown selectors share subtle borders, ro
 
 In the session switcher, only the list scrolls; the heading, time/project toggle, and search field stay at the top.
 
+Filters, tabs, and menus use subtle hover and selection feedback that adapts to the theme. Desktop conversation rows and sidebar navigation retain their soft gray hierarchy, while mobile conversations keep a light paper surface. Workspace tabs align with the bottom of the tab bar, and tooltips for inline session actions prefer the space above the row.
+
 Open **Settings → Appearance** to choose the interface theme, language, message layout, and SideDock visibility. Theme choices apply immediately and are kept on the current device across reloads.
 
 The `Island` theme combines a warm paper canvas, a gently swaying tropical tree, and quieter interface chrome for a calmer, more atmospheric workspace. The tree stays still when reduced motion is enabled. It changes presentation only; tasks, sessions, and tool behavior stay the same.

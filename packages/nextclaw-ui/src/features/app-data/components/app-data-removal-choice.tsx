@@ -25,7 +25,7 @@ export function AppDataRemovalChoice({
       onClick={onClick}
       className={cn(
         'flex items-start gap-3 rounded-xl border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:cursor-not-allowed disabled:opacity-50',
-        checked ? 'border-foreground/25 bg-muted/55' : 'border-border/60 hover:bg-muted/35',
+        checked ? 'border-[var(--interaction-selection-border)] bg-[var(--interaction-selection)]' : 'border-border/60 hover:bg-[var(--interaction-hover)]',
       )}
     >
       <span className={cn(

@@ -98,7 +98,7 @@ export function McpMarketplaceCard(props: {
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="rounded-xl border-blue-200 text-blue-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+                  className="rounded-xl border-blue-200 text-blue-700 hover:border-blue-300 hover:bg-[var(--interaction-hover)] hover:text-blue-700"
                   onClick={(event) => {
                     event.stopPropagation();
                     onDoctor();
@@ -112,7 +112,7 @@ export function McpMarketplaceCard(props: {
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="rounded-xl border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                  className="rounded-xl border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-destructive/10 hover:text-rose-600"
                   onClick={(event) => {
                     event.stopPropagation();
                     onRemove();

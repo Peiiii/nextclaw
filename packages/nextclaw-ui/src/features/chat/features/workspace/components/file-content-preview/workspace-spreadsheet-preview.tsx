@@ -121,8 +121,8 @@ export function WorkspaceSpreadsheetPreview({
               className={cn(
                 "h-7 shrink-0 rounded-md px-2.5 text-xs transition-colors",
                 sheet.name === activeSheet?.name
-                  ? "bg-accent font-medium text-accent-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  ? "bg-[var(--interaction-selection)] font-medium text-foreground"
+                  : "text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-foreground",
               )}
               onClick={() => setSelectedSheetName(sheet.name)}
             >

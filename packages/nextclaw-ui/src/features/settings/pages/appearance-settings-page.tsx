@@ -100,8 +100,8 @@ export function AppearanceSettingsPage() {
                     className={cn(
                       'flex min-w-0 items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
                       selected
-                        ? 'bg-card text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:bg-card/60 hover:text-foreground'
+                        ? 'bg-[var(--interaction-selection)] text-foreground'
+                        : 'text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-foreground'
                     )}
                   >
                     <span

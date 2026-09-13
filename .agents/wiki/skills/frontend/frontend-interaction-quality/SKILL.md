@@ -24,11 +24,12 @@ NextClaw 的界面与交互以至少达到 ChatGPT 的成熟度为默认质量�
 - 禁止交互元素嵌套、clickable span 和伪语义。普通文本链接默认态就有链接线索；按钮式链接只用于明确 CTA/下载/鉴权/卡片操作，底层仍保持链接语义。
 - 外链/方向图标只在语义成立时使用。重复导航收敛到 shared primitive，统一焦点、target/rel 和桌面宿主行为。
 - icon-only 控件同时提供可访问名称、tooltip/popover 和 focus-visible；tooltip 在 floating/fullscreen/portal 中仍可见。disabled 控件需要解释原因时，用可触发 tooltip 的 wrapper。
+- 行内操作 tooltip 优先上方，由 primitive 避让；纵向图标栏可侧向提示，不遮挡同级内容。
 - modal overlay/content 都高于触发面板，content 高于 overlay，不能只有遮罩可见。
 - 紧凑模式保留操作含义或当前值；直接动作优先 tooltip，选项/二级动作优先 popover/menu/select。
 - hover、focus-visible、active、disabled、selected 表达一致层级。文本输入框例外：光标和选区已表达焦点，聚焦前后容器背景、边框、阴影和 ring 不变。
-- Hover 反馈跟随承载 surface：同一背景、同一层级里的同级按钮、列表项和图标动作复用同一反馈色阶，默认在原 surface 上做轻微加深或提亮，不切换成 card、popover、background 等另一层实体表面。Shared primitive 用语义 tone 承载差异，宿主只选择 tone，不复制临时颜色；选中、危险和浮层状态按自身语义例外处理。
-- 状态强度匹配任务权重：次级视图切换、筛选和排序只在原 surface 内使用同色系 tonal fill，不获得 card/popover 级亮度、白色浮面或 elevation；只有主任务、需要持续定位的重要选择，或真实浮层对象才提升表面层级。
+- 普通 hover/按下/键盘高亮消费 `--interaction-hover`，选中消费 `--interaction-selection`，边框消费 `--interaction-selection-border`。主题定义颜色，组件承载状态，业务页不临时调色；反馈轻微，选中略强，不降级、叠加或升高表面层次。
+- 统一 owner 而非同色。例外须有理由、owner 与渲染证据：移动会话用 `--session-interaction-*`，侧栏用 `--sidebar-interaction-*`，分段用 `--sidebar-segment-selection`。主 CTA、危险、状态按语义例外；回归与明暗渲染必验。
 - hover 浮动操作默认零视觉、零占位、零 hit target，显示后恢复命中；浮层在触发面外时提供不可见 hover bridge。
 - 危险、不可逆、跨系统或可能丢数据的操作有清晰文案、确认或撤销；普通导航不滥用确认。
 

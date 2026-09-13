@@ -52,7 +52,7 @@ const HOME_ITEM_VIEW_BY_ID: Record<string, RightPanelResourceHomeItem> = {
 function resolveHomeItemView(item: RightPanelResourceHomeNavigationItem): RightPanelResourceHomeItem {
   return HOME_ITEM_VIEW_BY_ID[item.id] ?? {
     accentClassName: 'bg-gray-50 text-gray-700',
-    hoverAccentClassName: 'group-hover:bg-gray-100',
+    hoverAccentClassName: 'group-hover:bg-[var(--interaction-hover)]',
     icon: <Boxes className="h-5 w-5" />,
   };
 }

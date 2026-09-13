@@ -125,7 +125,7 @@ function MarketplaceListCardActionButtons(props: MarketplaceListCardActionProps)
             onInstall(item);
           }}
           disabled={isInstalling}
-          className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md bg-primary px-2 text-[11px] font-medium text-white transition-colors hover:bg-primary-600 disabled:opacity-50"
+          className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md bg-primary px-2 text-[11px] font-medium text-white transition-colors hover:bg-[hsl(var(--primary-hover))] disabled:opacity-50"
         >
           <Download className="h-3 w-3" />
           {isInstalling ? t("marketplaceInstalling") : t("marketplaceInstall")}
@@ -139,7 +139,7 @@ function MarketplaceListCardActionButtons(props: MarketplaceListCardActionProps)
             event.stopPropagation();
             onManage("update", record);
           }}
-          className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md border border-blue-200/80 bg-white px-2 text-[11px] font-medium text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50"
+          className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md border border-blue-200/80 bg-white px-2 text-[11px] font-medium text-blue-600 transition-colors hover:border-blue-300 hover:bg-[var(--interaction-hover)] disabled:opacity-50"
         >
           <RefreshCw className="h-3 w-3" />
           {busyAction === "update"
@@ -155,7 +155,7 @@ function MarketplaceListCardActionButtons(props: MarketplaceListCardActionProps)
             event.stopPropagation();
             onManage("uninstall", record);
           }}
-          className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200/80 bg-white px-2 text-[11px] font-medium text-gray-500 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+          className="inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200/80 bg-white px-2 text-[11px] font-medium text-gray-500 transition-colors hover:border-rose-200 hover:bg-destructive/10 hover:text-rose-600 disabled:opacity-50"
         >
           <Trash2 className="h-3 w-3" />
           {busyAction === "uninstall"
@@ -263,7 +263,7 @@ export function MarketplaceListCard(props: {
   return (
     <article
       onClick={onOpen}
-      className="group flex h-full min-h-[156px] cursor-pointer flex-col rounded-xl border border-gray-200/60 bg-white p-3.5 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50/60"
+      className="group flex h-full min-h-[156px] cursor-pointer flex-col rounded-xl border border-gray-200/60 bg-white p-3.5 shadow-sm transition-colors hover:border-gray-300 hover:bg-[var(--interaction-hover)]"
     >
       <div className="flex min-w-0 items-start gap-2.5">
         <MarketplaceItemIcon

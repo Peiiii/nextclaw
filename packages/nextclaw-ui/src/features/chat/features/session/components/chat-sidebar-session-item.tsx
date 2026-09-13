@@ -249,7 +249,7 @@ function ChatSidebarSessionDisplayView({
           label={t(
             isPinned ? "chatSidebarUnpinSession" : "chatSidebarPinSession",
           )}
-          tooltipSide="right"
+          tooltipSide="top"
           onClick={(event) => {
             event.stopPropagation();
             onTogglePinned();
@@ -260,7 +260,7 @@ function ChatSidebarSessionDisplayView({
           tone="strong"
           icon={<Pencil className="h-3.5 w-3.5" />}
           label={t("edit")}
-          tooltipSide="right"
+          tooltipSide="top"
           onClick={(event) => {
             event.stopPropagation();
             onStartEditing();
@@ -271,6 +271,7 @@ function ChatSidebarSessionDisplayView({
           sessionTitle={title}
           triggerSize="sm"
           triggerTone="strong"
+          triggerTooltipSide="top"
         >
           <ChatSessionHeaderMenuItem
             icon={Trash2}
@@ -320,8 +321,8 @@ export function ChatSidebarSessionItem(props: ChatSidebarSessionItemProps) {
           ? 'w-full border-b border-border/50 bg-background text-left'
           : cn("w-full px-3 py-2 text-left text-[13px]", SIDEBAR_ITEM_SURFACE_CLASS, active && SIDEBAR_ITEM_ACTIVE_SURFACE_CLASS),
         variant === 'mobile' && (active
-          ? "bg-background/90 font-medium text-foreground"
-          : "text-foreground/80 hover:bg-background/65 hover:text-foreground"),
+          ? "bg-[var(--session-interaction-selection)] font-medium text-foreground"
+          : "text-foreground/80 hover:bg-[var(--session-interaction-hover)] hover:text-foreground"),
         active && "font-medium",
       )}
     >

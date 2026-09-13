@@ -143,7 +143,7 @@ export function ProviderModelList(props: ProviderModelListProps) {
             return (
               <label
                 key={modelName}
-                className="inline-flex max-w-full cursor-pointer items-center gap-2 rounded-full border border-border/55 bg-muted/45 px-3 py-1.5 hover:bg-muted/70"
+                className="inline-flex max-w-full cursor-pointer items-center gap-2 rounded-full border border-border/55 bg-muted/45 px-3 py-1.5 hover:bg-[var(--interaction-hover)]"
               >
                 <input
                   type="checkbox"
@@ -180,7 +180,7 @@ export function ProviderModelList(props: ProviderModelListProps) {
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 opacity-100 transition-opacity hover:bg-muted hover:text-foreground md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 opacity-100 transition-opacity hover:bg-[var(--interaction-hover)] hover:text-foreground md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
                     aria-label={t("providerModelThinkingTitle")}
                     title={t("providerModelThinkingTitle")}
                   >
@@ -224,8 +224,8 @@ export function ProviderModelList(props: ProviderModelListProps) {
                           }
                           className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
                             selected
-                              ? "border-foreground/15 bg-foreground text-background"
-                              : "border-border/55 bg-muted/50 text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
+                              ? "border-[var(--interaction-selection-border)] bg-[var(--interaction-selection)] text-foreground"
+                              : "border-border/55 bg-muted/50 text-muted-foreground hover:border-border hover:bg-[var(--interaction-hover)] hover:text-foreground"
                           }`}
                         >
                           {formatThinkingLevelLabel(level)}
@@ -274,7 +274,7 @@ export function ProviderModelList(props: ProviderModelListProps) {
               <button
                 type="button"
                 onClick={() => onRemoveModel(modelName)}
-                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 opacity-100 transition-opacity hover:bg-muted hover:text-foreground md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 opacity-100 transition-opacity hover:bg-[var(--interaction-hover)] hover:text-foreground md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
                 aria-label={t("remove")}
               >
                 <X className="h-3 w-3" />

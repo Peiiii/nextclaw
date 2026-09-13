@@ -181,7 +181,7 @@ function RuntimeUpdateReleaseNotesHover({
           external
           icon={null}
           aria-label={label}
-          className="whitespace-nowrap rounded-md border bg-popover px-3 py-1.5 text-left text-xs font-medium text-popover-foreground shadow-md outline-none transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-gray-300"
+          className="whitespace-nowrap rounded-md border bg-popover px-3 py-1.5 text-left text-xs font-medium text-popover-foreground shadow-md outline-none transition-colors hover:bg-[var(--interaction-hover)] focus-visible:ring-2 focus-visible:ring-gray-300"
         >
           {label}
         </NavigationLink>

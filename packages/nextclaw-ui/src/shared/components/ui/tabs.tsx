@@ -89,7 +89,7 @@ export function TabsTrigger({ value, children, className }: TabsTriggerProps) {
       className={cn(
         'inline-flex max-md:min-h-[var(--control-touch-size)] items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-[13px] font-medium transition-all duration-fast focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:pointer-events-none disabled:opacity-50',
         isActive
-          ? 'bg-card text-foreground shadow-sm'
+          ? 'bg-[var(--interaction-selection)] text-foreground'
           : 'text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-accent-foreground',
         className
       )}

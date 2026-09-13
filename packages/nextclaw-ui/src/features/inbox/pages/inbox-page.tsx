@@ -120,7 +120,7 @@ function InboxListPane({
             {filteredDeliveries.map((delivery) => (
               <li key={delivery.id} className={cn(
                 "group/page-row relative rounded-lg hover:bg-[var(--interaction-hover)] focus-within:bg-[var(--interaction-hover)] has-[[data-context-menu-open]]:bg-[var(--interaction-hover)]",
-                activeDeliveryId === delivery.id && "bg-[var(--interaction-selection)]",
+                activeDeliveryId === delivery.id && "bg-[var(--interaction-selection)] hover:bg-[var(--interaction-selection)] focus-within:bg-[var(--interaction-selection)] has-[[data-context-menu-open]]:bg-[var(--interaction-selection)]",
               )}>
                 <Link
                   to={`/inbox/${encodeURIComponent(delivery.id)}`}

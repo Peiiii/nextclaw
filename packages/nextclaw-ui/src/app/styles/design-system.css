@@ -87,9 +87,16 @@
       /* Accent */
       --accent: var(--brand-50);
       --accent-foreground: var(--brand-700);
-      --interaction-hover: hsl(var(--foreground) / 0.08);
-      --interaction-selection: hsl(211 100% 92%);
-      --interaction-selection-border: hsl(211 75% 84%);
+      --interaction-hover: hsl(var(--foreground) / 0.04);
+      --interaction-selection: hsl(var(--foreground) / 0.07);
+      --interaction-selection-border: hsl(var(--foreground) / 0.12);
+      /* Desktop sidebar feedback matches the verified VPS v0.54.2 baseline. */
+      --sidebar-interaction-hover: hsl(var(--gray-200) / 0.6);
+      --sidebar-interaction-selection: hsl(var(--gray-200) / 0.8);
+      --sidebar-segment-selection: hsl(var(--gray-200) / 0.7);
+      /* Mobile conversation rows retain their separate paper surface. */
+      --session-interaction-hover: hsl(var(--background) / 0.65);
+      --session-interaction-selection: hsl(var(--background) / 0.9);
 
       /* Muted */
       --muted: var(--gray-100);
@@ -724,8 +731,6 @@
       --secondary-foreground: var(--gray-800);
       --accent: 151 32% 18%;
       --accent-foreground: 148 34% 84%;
-      --interaction-selection: hsl(211 48% 30%);
-      --interaction-selection-border: hsl(211 48% 42%);
       --muted: var(--gray-100);
       --muted-foreground: var(--gray-500);
       --destructive: 0 70% 52%;

@@ -288,8 +288,8 @@ export function McpMarketplacePage() {
                   className={cn(
                     "relative flex min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-card/60 hover:text-foreground"
+                      ? "bg-[var(--interaction-selection)] text-foreground"
+                      : "text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-foreground"
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
@@ -297,7 +297,7 @@ export function McpMarketplacePage() {
                   {tab.id === 'installed' && typeof tab.count === 'number' && (
                     <span className={cn(
                       "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold",
-                      isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                      isActive ? "bg-[var(--interaction-selection)] text-foreground" : "bg-muted text-muted-foreground"
                     )}>
                       {tab.count}
                     </span>

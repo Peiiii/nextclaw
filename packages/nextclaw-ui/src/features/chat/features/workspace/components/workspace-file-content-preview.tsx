@@ -105,7 +105,7 @@ function WorkspaceUnsupportedContent({
         <a
           href={contentUrl}
           download={label}
-          className="inline-flex h-8 items-center rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+          className="inline-flex h-8 items-center rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-[var(--interaction-hover)]"
         >
           {t("chatWorkspacePreviewDownload")}
         </a>
@@ -113,7 +113,7 @@ function WorkspaceUnsupportedContent({
           href={contentUrl}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-8 items-center rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className="inline-flex h-8 items-center rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-[hsl(var(--primary-hover))]"
         >
           {t("chatWorkspacePreviewOpenExternally")}
         </a>

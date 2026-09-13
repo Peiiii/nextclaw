@@ -69,7 +69,7 @@ export function ProviderModelSuggestionsPanel(props: ProviderModelSuggestionsPan
         <button
           type='button'
           aria-expanded={expanded}
-          className='flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground'
+          className='flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground'
           onClick={() => onExpandedChange(!expanded)}
         >
           <Sparkles className='h-3.5 w-3.5 shrink-0 text-primary' />
@@ -81,7 +81,7 @@ export function ProviderModelSuggestionsPanel(props: ProviderModelSuggestionsPan
         {models.length <= BULK_ADD_LIMIT ? (
           <button
             type='button'
-            className='shrink-0 rounded-lg px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10'
+            className='shrink-0 rounded-lg px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-[var(--interaction-hover)]'
             onClick={() => addModels(models)}
           >
             {t('providerModelsSuggestionsAddAll')}
@@ -105,7 +105,7 @@ export function ProviderModelSuggestionsPanel(props: ProviderModelSuggestionsPan
             {visibleModels.map((modelName) => (
               <label
                 key={modelName}
-                className='grid min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/70'
+                className='grid min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-[var(--interaction-hover)]'
               >
                 <input
                   type='checkbox'
@@ -137,7 +137,7 @@ export function ProviderModelSuggestionsPanel(props: ProviderModelSuggestionsPan
             <button
               type='button'
               disabled={selectedModels.length === 0}
-              className='shrink-0 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary transition-colors hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-45'
+              className='shrink-0 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary transition-colors hover:bg-[var(--interaction-hover)] disabled:cursor-not-allowed disabled:opacity-45'
               onClick={() => addModels(selectedModels)}
             >
               {t('providerModelsSuggestionsAddSelected')}

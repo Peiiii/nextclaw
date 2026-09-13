@@ -83,7 +83,7 @@ function SessionCronJobCard({
   const jobLabel = job.name || job.id;
 
   return (
-    <article className="rounded-2xl border border-border/60 bg-background px-3.5 py-3 shadow-sm transition-colors hover:bg-muted/20 focus-within:bg-muted/20">
+    <article className="rounded-2xl border border-border/60 bg-background px-3.5 py-3 shadow-sm transition-colors hover:bg-[var(--interaction-hover)] focus-within:bg-[var(--interaction-hover)]">
       <div className="flex items-start gap-3">
         <span
           className={cn(
@@ -189,7 +189,7 @@ function SessionCronJobCard({
                   setMenuOpen(false);
                   void cronActions.runJob(job);
                 }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-[var(--interaction-hover)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Play className="h-3.5 w-3.5 text-muted-foreground" />
                 {t("cronRunNow")}
@@ -201,7 +201,7 @@ function SessionCronJobCard({
                   setMenuOpen(false);
                   void cronActions.deleteJob(job);
                 }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t("delete")}
               </button>

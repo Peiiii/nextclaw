@@ -17,7 +17,7 @@ const Card = React.forwardRef<
         ? 'border-border shadow-card'
         : 'border-border/75 shadow-none',
       hover && surface === 'raised' && 'hover:border-primary/25 hover:shadow-card-hover',
-      hover && surface === 'flat' && 'hover:bg-muted/40',
+      hover && surface === 'flat' && 'hover:bg-[var(--interaction-hover)]',
       className
     )}
     {...props}

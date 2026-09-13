@@ -236,9 +236,9 @@ function CompactTabItem({
           "flex max-w-[180px] cursor-pointer items-center gap-1.5 border-r border-gray-200/70 border-b-2 px-2.5 py-2 transition-colors",
         "group relative",
         tab.active
-          ? (activeTabClassName ?? "border-b-primary bg-white text-gray-900")
+          ? (activeTabClassName ?? "border-b-primary bg-[var(--interaction-selection)] text-foreground")
           : (inactiveTabClassName ??
-            "border-b-transparent bg-gray-50/85 text-gray-500 hover:bg-gray-100"),
+            "border-b-transparent bg-transparent text-muted-foreground hover:bg-[var(--interaction-hover)]"),
       )}
     >
       <CompactTabLabelButton tab={tab} labelClassName={labelClassName} />
@@ -287,7 +287,7 @@ export function CompactTabStrip({
     >
       <div
         className={cn(
-          "min-w-0 flex-1 overflow-x-auto overflow-y-hidden",
+          "flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden",
           scrollClassName,
         )}
         onPointerDown={onScrollPointerDown}

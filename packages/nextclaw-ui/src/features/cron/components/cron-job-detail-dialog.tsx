@@ -206,7 +206,7 @@ export function CronJobDetailDialog({
         <SheetFooter className="shrink-0 border-t border-border/60 bg-background px-5 py-4 sm:px-7">
           <Button
             variant="ghost"
-            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+            className="text-red-600 hover:bg-destructive/10 hover:text-red-700"
             onClick={() => onDelete(job)}
           >
             <Trash2 className="mr-2 h-4 w-4" />

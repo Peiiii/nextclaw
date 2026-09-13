@@ -99,7 +99,7 @@ export function ServiceAppListItem({
   };
   return (
     <TooltipProvider delayDuration={250}>
-      <section className="group bg-card transition-colors hover:bg-muted/25">
+      <section className="group bg-card transition-colors hover:bg-[var(--interaction-hover)]">
         <div className="flex items-start gap-3 px-4 py-3.5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             <Server className="h-4 w-4" />
@@ -155,7 +155,7 @@ export function ServiceAppListItem({
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:opacity-50"
+                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:opacity-50"
                       aria-label={t("serviceAppsMoreActions")}
                       disabled={deletePending}
                     >
@@ -208,7 +208,7 @@ export function ServiceAppListItem({
             <button
               type="button"
               onClick={() => onActionsOpenChange(!actionsOpen)}
-              className="flex min-w-0 flex-1 items-center justify-between gap-2 px-4 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-border"
+              className="flex min-w-0 flex-1 items-center justify-between gap-2 px-4 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-border"
               aria-expanded={actionsOpen}
             >
               <div className="flex min-w-0 items-center gap-2">
@@ -228,7 +228,7 @@ export function ServiceAppListItem({
               <button
                 type="button"
                 onClick={() => setIsDiagnosticsOpen((open) => !open)}
-                className="flex shrink-0 items-center gap-1 border-l border-border/60 px-3 text-xs text-muted-foreground transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-border"
+                className="flex shrink-0 items-center gap-1 border-l border-border/60 px-3 text-xs text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-border"
                 aria-expanded={isDiagnosticsOpen}
               >
                 <span>{t("serviceAppsDetails")}</span>

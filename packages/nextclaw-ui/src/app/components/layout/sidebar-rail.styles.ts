@@ -10,13 +10,13 @@ export const SIDEBAR_RAIL_ITEM_GAP_CLASS = "gap-1";
 // Use theme neutral tokens directly so legacy gray utility overrides cannot
 // turn sidebar feedback into a content selection or accent surface.
 export const SIDEBAR_ITEM_SURFACE_CLASS =
-  "rounded-xl text-muted-foreground transition-colors duration-base hover:bg-[hsl(var(--gray-200)/0.6)] hover:text-foreground focus-within:bg-[hsl(var(--gray-200)/0.6)] has-[[data-context-menu-open]]:bg-[hsl(var(--gray-200)/0.6)]";
+  "rounded-xl text-muted-foreground transition-colors duration-base hover:bg-[var(--sidebar-interaction-hover)] hover:text-foreground focus-within:bg-[var(--sidebar-interaction-hover)] has-[[data-context-menu-open]]:bg-[var(--sidebar-interaction-hover)]";
 
 export const SIDEBAR_ITEM_ACTIVE_SURFACE_CLASS =
-  "bg-[hsl(var(--gray-200)/0.8)] text-foreground hover:bg-[hsl(var(--gray-200)/0.8)] focus-within:bg-[hsl(var(--gray-200)/0.8)] has-[[data-context-menu-open]]:bg-[hsl(var(--gray-200)/0.8)]";
+  "bg-[var(--sidebar-interaction-selection)] text-foreground hover:bg-[var(--sidebar-interaction-selection)] focus-within:bg-[var(--sidebar-interaction-selection)] has-[[data-context-menu-open]]:bg-[var(--sidebar-interaction-selection)]";
 
 export const SIDEBAR_RAIL_SURFACE_CLASS =
-  `${SIDEBAR_ITEM_SURFACE_CLASS} active:bg-[hsl(var(--gray-200)/0.8)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border`;
+  `${SIDEBAR_ITEM_SURFACE_CLASS} active:bg-[var(--sidebar-interaction-selection)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border`;
 
 export const SIDEBAR_RAIL_ACTIVE_SURFACE_CLASS = SIDEBAR_ITEM_ACTIVE_SURFACE_CLASS;
 

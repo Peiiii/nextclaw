@@ -105,7 +105,7 @@ export function CronJobRow({
   return (
     <div
       className={cn(
-        "group relative rounded-xl border-b border-border/55 transition-colors duration-150 last:border-b-0 hover:bg-muted/35 focus-within:bg-muted/35",
+        "group relative rounded-xl border-b border-border/55 transition-colors duration-150 last:border-b-0 hover:bg-[var(--interaction-hover)] focus-within:bg-[var(--interaction-hover)]",
         expanded && "bg-muted/35",
       )}
     >
@@ -206,7 +206,7 @@ export function CronJobRow({
                       setMenuOpen(false);
                       onRun(job);
                     }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-[var(--interaction-hover)]"
                   >
                     <Play className="h-3.5 w-3.5 text-muted-foreground" />
                     {t("cronRunNow")}
@@ -217,7 +217,7 @@ export function CronJobRow({
                       setMenuOpen(false);
                       onDelete(job);
                     }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 transition-colors hover:bg-destructive/10"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     {t("delete")}

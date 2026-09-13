@@ -130,8 +130,8 @@ export function DocBrowserTabStrip({
       tabsClassName="items-center gap-0.5"
       actionsClassName="h-full max-md:h-11 max-md:w-full items-center gap-0.5"
       tabBaseClassName="inline-flex cursor-pointer items-center gap-0.5 h-7 max-md:min-h-11 px-2 rounded-md text-xs max-w-[220px] shrink-0 transition-colors"
-      activeTabClassName="bg-muted/80 text-foreground"
-      inactiveTabClassName="text-muted-foreground hover:bg-muted/45 hover:text-foreground"
+      activeTabClassName="bg-[var(--interaction-selection)] text-foreground"
+      inactiveTabClassName="text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-foreground"
       labelClassName="px-0.5 text-xs font-normal"
 
     />
