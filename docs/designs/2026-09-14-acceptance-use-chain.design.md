@@ -24,7 +24,7 @@ contract-id: acceptance-use-chain-20260914；parent-goal: 完整使用链路与�
 | UC-1 | true | 设计给完整使用链路，不能自行缩减用户结果 | passed | Design/Review diff，六个场景逐项走查符合预期 |
 | UC-2 | true | 缺实际交付证据不能整体完成，正常豁免与授权不受损 | passed | Lifecycle 与 Delivery 原合同一致；未修改审批授权 |
 | UC-3 | true | 渐进加载/治理检查通过，不扩大常驻发现面 | passed | progressive-loading、governance、ratchet、diff-check 全部通过 |
-| UC-4 | true | 仅本任务规则改动合入远程主干，保护其它 WIP | not-run | 精确提交、远程祖先检查与主线回流报告 |
+| UC-4 | true | 仅本任务规则改动合入远程主干，保护其它 WIP | passed | 规则提交 070a8f8fe 已包含于 origin/master 的 7c1b9d760；主线回流由 retry worker 接管，既有 WIP 保留 |
 
 ## 代表场景走查
 
@@ -48,3 +48,7 @@ contract-id: acceptance-use-chain-20260914；parent-goal: 完整使用链路与�
 `check:skill-progressive-loading`、`lint:new-code:governance`、`check:governance-backlog-ratchet`、`git diff --check` 通过。初次发现 Design 入口超预算，压缩重复表述后通过，未提高 baseline。Review 无开放 finding；不为纯指令 Markdown 运行产品 tsc/build。
 
 AGENTS 11962 bytes 不变；顶层 Skill 15、Wiki Skill 23、discovery 2726 chars、description 1392 chars 和依赖边 51 均不变。三个入口合计增加 768 bytes（290 字符）：Design 7745 → 7926、Review 4940 → 5058、Lifecycle 7217 → 7686，均在既有预算内。Wiki、命令、脚本和 baseline 不变；内部规则不新增 changeset，不另建重复日志。
+
+## 主干交付回执
+
+规则提交 `070a8f8fe` 经 `7c1b9d760` 合入并普通 push 到 `origin/master`。`pnpm release:reconcile:mainline` 返回 `LOCAL_WORKTREE_RETRYING`：本地 master 有其它任务的 tracked WIP，自动 worker 等待安全快进；未 stash/reset 或覆盖其改动。时间 tail 功能的独立工作区仍保留未提交源码，未混入本次提交。此记录随后以纯文档提交补记交付证据。
