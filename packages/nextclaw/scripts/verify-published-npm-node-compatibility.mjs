@@ -175,7 +175,8 @@ function readArg(name) {
 function installPublishedPackage(args) {
   execFileSync(process.platform === "win32" ? "npm.cmd" : "npm", args, {
     stdio: "inherit",
-    timeout: 5 * 60_000,
+    // Windows cold installs can exceed five minutes; stay within the 12-minute job budget.
+    timeout: (process.platform === "win32" ? 10 : 5) * 60_000,
     shell: process.platform === "win32",
     env: {
       ...process.env,
