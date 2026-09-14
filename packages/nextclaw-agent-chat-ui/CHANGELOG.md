@@ -1,5 +1,15 @@
 # @nextclaw/agent-chat-ui
 
+## 0.12.0
+
+### Minor Changes
+
+- bee7625: Show YAML front matter in Markdown previews and chat as a collapsible document properties section. Keep metadata separate from body headings and preserve unreadable metadata as source text.
+
+### Patch Changes
+
+- 530b295: Restore compact mobile chat controls, menus, workspace tabs and file breadcrumbs. Give inbox reports more reading space, keep more actions rightmost, and return project details to their originating chat view. Smooth disclosure height changes as details load and use a neutral processed summary when message processing ends.
+
 ## 0.11.0
 
 ### Minor Changes
