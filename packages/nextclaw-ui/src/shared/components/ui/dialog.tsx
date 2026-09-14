@@ -4,6 +4,7 @@ import { X } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
 import { deferEscapeToNestedMenu } from './context-menu/context-menu';
+import { IconActionButton } from './actions/icon-action-button';
 
 const Dialog = DialogPrimitive.Root
 
@@ -49,9 +50,14 @@ const DialogContent = React.forwardRef<
       }}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-lg opacity-70 transition-all duration-fast hover:bg-[var(--interaction-hover)] hover:text-accent-foreground hover:opacity-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:pointer-events-none sm:right-4 sm:top-4 sm:h-6 sm:w-6">
-        <X className="h-4 w-4 text-muted-foreground" />
-        <span className="sr-only">Close</span>
+      <DialogPrimitive.Close asChild>
+        <IconActionButton
+          size="sm"
+          tooltip={false}
+          label="Close"
+          icon={<X className="h-4 w-4" />}
+          className="absolute right-1 top-1 max-md:h-11 max-md:w-11 md:right-4 md:top-4"
+        />
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>

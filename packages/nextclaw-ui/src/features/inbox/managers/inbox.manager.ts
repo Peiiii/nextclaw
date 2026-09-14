@@ -13,6 +13,7 @@ import {
 import { appQueryClient } from "@/app-query-client";
 import { useInboxStore } from "@/features/inbox/stores/inbox.store";
 import { nextclawClient } from "@/shared/lib/api";
+import { NextClawClientError } from "@nextclaw/client-sdk";
 
 export const INBOX_DELIVERIES_QUERY_KEY = ["inbox-deliveries"] as const;
 
@@ -112,13 +113,26 @@ export class InboxManager {
   prepareChatReference = async (deliveryId: string): Promise<{
     delivery: InboxDelivery;
     reference: SystemObjectResolvedReference;
+    targetSessionKey: string | null;
   }> => {
-    const reference = await nextclawClient.systemObjectReferences.resolve(
-      createSystemObjectReferenceUri(SYSTEM_OBJECT_TYPE_INBOX_DELIVERY, deliveryId),
-    );
+    const [reference, sourceDelivery] = await Promise.all([
+      nextclawClient.systemObjectReferences.resolve(
+        createSystemObjectReferenceUri(SYSTEM_OBJECT_TYPE_INBOX_DELIVERY, deliveryId),
+      ),
+      nextclawClient.inboxDeliveries.get(deliveryId),
+    ]);
+    let targetSessionKey = sourceDelivery.source.sessionId?.trim() || null;
+    if (targetSessionKey) {
+      try {
+        await nextclawClient.sessions.get(targetSessionKey);
+      } catch (error) {
+        if (!(error instanceof NextClawClientError) || error.status !== 404) throw error;
+        targetSessionKey = null;
+      }
+    }
     const delivery = await this.updateState(deliveryId, "read");
     this.closeReader();
-    return { delivery, reference };
+    return { delivery, reference, targetSessionKey };
   };
 
   private updateState = async (

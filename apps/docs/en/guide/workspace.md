@@ -55,6 +55,10 @@ Wide composers show the current model and thinking level. On phones and narrow c
 
 Mobile inbox details use one toolbar with back, title, **Continue chatting**, and **More** at the far right, leaving the remaining space for the report. On desktop, **Continue chatting** remains at the bottom. Read status, archive, and delete actions are in the **More** menu.
 
+Reports that open automatically fill the mobile screen, with compact header and footer controls around an independently scrolling body. Read later, mark as read, Inbox, and Continue retain visible text labels.
+
+**Continue chatting** returns to the conversation that produced the report and inserts an @ reference into its composer, preserving the existing draft without sending it. A new conversation opens only when the report has no source conversation or that conversation has been deleted.
+
 Model and thinking menus, workspace tabs, and file breadcrumbs use compact dimensions. Once message processing ends, the summary shows **Processed** and the recorded duration. Expand it to inspect individual tool results or errors.
 
 The session workspace uses the [same view controls](/en/guide/doc-browser#consistent-view-controls) as the global browser: float, collapse, maximize, and restore without losing tabs or navigation history. **Hide view group** preserves the workspace for reopening.

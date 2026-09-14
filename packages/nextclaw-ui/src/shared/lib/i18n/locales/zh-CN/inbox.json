@@ -20,6 +20,7 @@
   "inboxRestore": "恢复",
   "inboxDelete": "删除",
   "inboxContinueChat": "继续聊",
+  "inboxContinueChatCompact": "继续聊",
   "inboxDeleteTitle": "删除这项内容？",
   "inboxDeleteDescription": "删除后将无法从收件箱恢复，但已经创建的会话不会被删除。",
   "inboxDeleteConfirm": "删除",

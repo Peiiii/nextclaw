@@ -9,7 +9,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { PageHeader } from "@/app/components/layout/page-layout";
 import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
-import { CHAT_DRAFT_SESSION_PATH } from "@/features/chat";
+import { buildSessionPath, CHAT_DRAFT_SESSION_PATH } from "@/features/chat";
 import { InboxDeliveryContent } from "@/features/inbox/components/inbox-delivery-content";
 import { useInboxDeliveries } from "@/features/inbox/hooks/use-inbox-deliveries";
 import { Button } from "@/shared/components/ui/button";
@@ -275,7 +275,7 @@ export function InboxPage() {
   const navigate = useNavigate();
   const { deliveryId } = useParams<{ deliveryId?: string }>();
   const { isMobile } = useViewportLayout();
-  const { chatDraftIntentManager, inboxManager } = useAppPresenter();
+  const { chatComposerIntentManager, docBrowserManager, inboxManager } = useAppPresenter();
   const deliveriesQuery = useInboxDeliveries();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [selectedFilter, setSelectedFilter] = useState<InboxFilter | null>(null);
@@ -316,9 +316,10 @@ export function InboxPage() {
       return;
     }
     void runAction("continue", async () => {
-      const { reference } = await inboxManager.prepareChatReference(activeDelivery.id);
-      chatDraftIntentManager.requestSystemObjectReference(reference);
-      navigate(CHAT_DRAFT_SESSION_PATH);
+      const { reference, targetSessionKey } = await inboxManager.prepareChatReference(activeDelivery.id);
+      chatComposerIntentManager.requestSystemObjectReference({ targetSessionKey, reference });
+      if (isMobile) docBrowserManager.close();
+      navigate(targetSessionKey ? buildSessionPath(targetSessionKey) : CHAT_DRAFT_SESSION_PATH);
     });
   };
 

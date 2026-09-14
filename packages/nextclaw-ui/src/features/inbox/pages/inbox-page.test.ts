@@ -14,7 +14,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/app/components/app-presenter-provider", () => ({
   useAppPresenter: () => ({
-    chatDraftIntentManager: {
+    docBrowserManager: { close: vi.fn() },
+    chatComposerIntentManager: {
       requestSystemObjectReference: mocks.requestSystemObjectReference,
     },
     inboxManager: {
@@ -104,6 +105,7 @@ describe("InboxPage", () => {
     vi.clearAllMocks();
     mocks.isMobile = false;
     mocks.prepareChatReference.mockResolvedValue({
+      targetSessionKey: null,
       reference: {
         uri: "nextclaw://objects/inbox-delivery/delivery-1",
         label: "A considered report",
@@ -150,7 +152,7 @@ describe("InboxPage", () => {
     });
     expect(mocks.prepareChatReference).toHaveBeenCalledWith("delivery-1");
     expect(mocks.requestSystemObjectReference).toHaveBeenCalledWith(
-      expect.objectContaining({ uri: "nextclaw://objects/inbox-delivery/delivery-1" }),
+      { targetSessionKey: null, reference: expect.objectContaining({ uri: "nextclaw://objects/inbox-delivery/delivery-1" }) },
     );
   });
 });

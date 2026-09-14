@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CHAT_DRAFT_SESSION_PATH } from "@/features/chat";
+import { buildSessionPath, CHAT_DRAFT_SESSION_PATH } from "@/features/chat";
 import { InboxReaderDialog } from "@/features/inbox/components/inbox-reader-dialog";
 import { useInboxStore } from "@/features/inbox/stores/inbox.store";
 import { t } from "@/shared/lib/i18n";
@@ -17,8 +17,9 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/app/components/app-presenter-provider", () => ({
   useAppPresenter: () => ({
+    docBrowserManager: { close: vi.fn() },
     inboxManager: mocks,
-    chatDraftIntentManager: { requestSystemObjectReference: mocks.requestSystemObjectReference },
+    chatComposerIntentManager: { requestSystemObjectReference: mocks.requestSystemObjectReference },
   }),
 }));
 
@@ -59,6 +60,7 @@ describe("InboxReaderDialog", () => {
     vi.clearAllMocks();
     mocks.contentType = "markdown";
     mocks.prepareChatReference.mockResolvedValue({
+      targetSessionKey: null,
       reference: {
         uri: "nextclaw://objects/inbox-delivery/delivery-1",
         label: "A considered report",
@@ -110,8 +112,34 @@ describe("InboxReaderDialog", () => {
     });
     expect(mocks.prepareChatReference).toHaveBeenCalledWith("delivery-1");
     expect(mocks.requestSystemObjectReference).toHaveBeenCalledWith(
-      expect.objectContaining({ uri: "nextclaw://objects/inbox-delivery/delivery-1" }),
+      { targetSessionKey: null, reference: expect.objectContaining({ uri: "nextclaw://objects/inbox-delivery/delivery-1" }) },
     );
+  });
+
+  it("keeps every reader action accessible and opens the current report in Inbox", async () => {
+    render(<MemoryRouter><InboxReaderDialog /><CurrentPath /></MemoryRouter>);
+    for (const key of ["inboxReadLater", "inboxMarkRead", "inboxOpenInbox", "inboxContinueChat"] as const) {
+      expect(screen.getByRole("button", { name: t(key) })).toBeTruthy();
+    }
+    fireEvent.click(screen.getByRole("button", { name: t("inboxOpenInbox") }));
+    await waitFor(() => expect(screen.getByTestId("current-path").textContent).toBe("/inbox/delivery-1"));
+    expect(mocks.markRead).toHaveBeenCalledWith("delivery-1");
+    expect(mocks.closeReader).toHaveBeenCalled();
+  });
+
+  it("returns to the report source instead of consuming the reference in the current session", async () => {
+    const reference = { uri: "nextclaw://objects/inbox-delivery/delivery-1", label: "A considered report" };
+    mocks.prepareChatReference.mockResolvedValue({ reference, targetSessionKey: "source-session" });
+    render(<MemoryRouter initialEntries={[buildSessionPath("other-session")]}><InboxReaderDialog /><CurrentPath /></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: t("inboxContinueChat") }));
+    await waitFor(() => expect(screen.getByTestId("current-path").textContent).toBe(buildSessionPath("source-session")));
+    expect(mocks.requestSystemObjectReference).toHaveBeenCalledWith({ targetSessionKey: "source-session", reference });
+  });
+
+  it("closes through the shared icon action", () => {
+    render(<MemoryRouter><InboxReaderDialog /></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(mocks.closeReader).toHaveBeenCalledOnce();
   });
 });
 

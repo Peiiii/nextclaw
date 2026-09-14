@@ -20,6 +20,7 @@
   "inboxRestore": "Restore",
   "inboxDelete": "Delete",
   "inboxContinueChat": "Continue in chat",
+  "inboxContinueChatCompact": "Continue",
   "inboxDeleteTitle": "Delete this item?",
   "inboxDeleteDescription": "It cannot be recovered from Inbox. Any chat already created will remain.",
   "inboxDeleteConfirm": "Delete",

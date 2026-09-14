@@ -4,7 +4,8 @@ import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Inbox } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
-import { CHAT_DRAFT_SESSION_PATH } from "@/features/chat";
+import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
+import { buildSessionPath, CHAT_DRAFT_SESSION_PATH } from "@/features/chat";
 import { InboxDeliveryContent } from "@/features/inbox/components/inbox-delivery-content";
 import { useInboxDeliveries } from "@/features/inbox/hooks/use-inbox-deliveries";
 import { useInboxStore } from "@/features/inbox/stores/inbox.store";
@@ -28,7 +29,8 @@ function formatPosition(current: number, total: number): string {
 export function InboxReaderDialog() {
   const titleRef = useRef<HTMLHeadingElement>(null);
   const navigate = useNavigate();
-  const { chatDraftIntentManager, inboxManager } = useAppPresenter();
+  const { chatComposerIntentManager, docBrowserManager, inboxManager } = useAppPresenter();
+  const { isMobile } = useViewportLayout();
   const { data } = useInboxDeliveries();
   const { activeDeliveryId, readerOpen } = useInboxStore((state) => state.snapshot);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -77,9 +79,10 @@ export function InboxReaderDialog() {
       return;
     }
     void runAction("continue", async () => {
-      const { reference } = await inboxManager.prepareChatReference(activeDelivery.id);
-      chatDraftIntentManager.requestSystemObjectReference(reference);
-      navigate(CHAT_DRAFT_SESSION_PATH);
+      const { reference, targetSessionKey } = await inboxManager.prepareChatReference(activeDelivery.id);
+      chatComposerIntentManager.requestSystemObjectReference({ targetSessionKey, reference });
+      if (isMobile) docBrowserManager.close();
+      navigate(targetSessionKey ? buildSessionPath(targetSessionKey) : CHAT_DRAFT_SESSION_PATH);
     });
   };
 
@@ -96,15 +99,18 @@ export function InboxReaderDialog() {
   const positionControls = unreadDeliveries.length > 1 ? (
     <div className="flex shrink-0 items-center gap-1 pr-1">
       <span className="mr-1 text-[11px] tabular-nums text-muted-foreground">
-        {formatPosition(activeIndex + 1, unreadDeliveries.length)}
+        <span className="hidden md:inline">{formatPosition(activeIndex + 1, unreadDeliveries.length)}</span>
+        <span className="md:hidden" aria-label={formatPosition(activeIndex + 1, unreadDeliveries.length)}>{activeIndex + 1}/{unreadDeliveries.length}</span>
       </span>
       <IconActionButton
+        size="sm"
         icon={<ChevronLeft className="h-4 w-4" />}
         label={t("inboxPrevious")}
         disabled={activeIndex <= 0 || pendingAction === "select"}
         onClick={() => selectAt(activeIndex - 1)}
       />
       <IconActionButton
+        size="sm"
         icon={<ChevronRight className="h-4 w-4" />}
         label={t("inboxNext")}
         disabled={activeIndex >= unreadDeliveries.length - 1 || pendingAction === "select"}
@@ -123,7 +129,7 @@ export function InboxReaderDialog() {
       }}
     >
       <DialogContent
-        className="flex h-[min(82vh,760px)] w-[calc(100vw-2rem)] max-w-[820px] flex-col gap-0 overflow-hidden rounded-[24px] border-border/70 bg-background p-0 shadow-[0_20px_55px_-22px_rgba(15,23,42,0.32)] max-sm:h-[100dvh] max-sm:max-h-none max-sm:w-screen max-sm:rounded-none max-sm:border-0"
+        className="flex h-[min(82vh,760px)] w-[calc(100vw-2rem)] max-w-[820px] flex-col gap-0 overflow-hidden rounded-[24px] border-border/70 bg-background p-0 shadow-[0_20px_55px_-22px_rgba(15,23,42,0.32)] max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:w-screen max-md:max-w-none max-md:rounded-none max-md:border-0 max-md:pt-[env(safe-area-inset-top,0px)] max-md:pb-[env(safe-area-inset-bottom,0px)] max-md:[&>button]:top-[calc(env(safe-area-inset-top,0px)+2px)] max-md:[&>button]:right-1 max-md:[&>button]:size-11"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           titleRef.current?.focus();
@@ -131,10 +137,10 @@ export function InboxReaderDialog() {
       >
         {activeDelivery ? (
           <>
-            <header className="shrink-0 border-b border-border/50 px-5 py-3 pr-14 sm:px-6">
-              <div className="flex min-h-7 items-center justify-between gap-3">
+            <header className="shrink-0 border-b border-border/50 px-3 py-2 pr-12 md:px-6 md:py-3 md:pr-14">
+              <div className="flex min-h-8 items-center justify-between gap-1 md:gap-3">
                 <div className="flex min-w-0 items-center gap-2">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/70 text-muted-foreground">
+                  <span className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/70 text-muted-foreground md:flex">
                     <Inbox className="h-3.5 w-3.5" />
                   </span>
                   <DialogTitle
@@ -145,9 +151,9 @@ export function InboxReaderDialog() {
                   >
                     {activeDelivery.title}
                   </DialogTitle>
-                  <span className="hidden shrink-0 text-muted-foreground sm:inline" aria-hidden="true">·</span>
+                  <span className="hidden shrink-0 text-muted-foreground md:inline" aria-hidden="true">·</span>
                   <time
-                    className="hidden shrink-0 text-[11px] tabular-nums text-muted-foreground sm:block"
+                    className="hidden shrink-0 text-[11px] tabular-nums text-muted-foreground md:block"
                     dateTime={activeDelivery.createdAt}
                   >
                     {formatDateTime(activeDelivery.createdAt)}
@@ -166,8 +172,8 @@ export function InboxReaderDialog() {
             <div className={cn(
               "min-h-0 flex-1",
               isHtml
-                ? "p-3 sm:p-4"
-                : "custom-scrollbar overflow-y-auto px-6 py-5 sm:px-8 sm:py-6",
+                ? "p-0 md:p-4"
+                : "custom-scrollbar overflow-y-auto overscroll-contain px-4 py-3 md:px-8 md:py-6",
             )}>
               <InboxDeliveryContent
                 className={isHtml ? "h-full" : undefined}
@@ -178,24 +184,26 @@ export function InboxReaderDialog() {
               />
             </div>
 
-            <footer className="shrink-0 border-t border-border/50 bg-background px-5 py-3 sm:px-6">
+            <footer className="shrink-0 border-t border-border/50 bg-background px-3 py-2 md:px-6 md:py-3">
               {error ? (
                 <p role="alert" className="mb-3 text-sm text-destructive">{error}</p>
               ) : null}
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-col-reverse gap-1 sm:flex-row sm:flex-wrap">
-                  <Button size="sm" variant="ghost" onClick={inboxManager.closeReader}>
+              <div className="flex items-center justify-between gap-2 [--control-touch-size:2rem]">
+                <div className="flex items-center gap-1">
+                  <Button size="sm" className="px-2 md:px-3" variant="ghost" onClick={inboxManager.closeReader}>
                     {t("inboxReadLater")}
                   </Button>
-                  <Button size="sm" variant="outline" disabled={pendingAction !== null} onClick={markRead}>
+                  <Button size="sm" className="px-2 md:px-3" variant="outline" disabled={pendingAction !== null} onClick={markRead}>
                     {t("inboxMarkRead")}
                   </Button>
-                  <Button size="sm" variant="ghost" disabled={pendingAction !== null} onClick={openInbox}>
-                    {t("inboxOpenInbox")}
+                  <Button size="sm" className="px-2 md:px-3" variant="ghost" aria-label={t("inboxOpenInbox")} disabled={pendingAction !== null} onClick={openInbox}>
+                    <span className="md:hidden">{t("inboxTitle")}</span>
+                    <span className="hidden md:inline">{t("inboxOpenInbox")}</span>
                   </Button>
                 </div>
-                <Button size="sm" disabled={pendingAction !== null} onClick={continueInChat}>
-                  {t("inboxContinueChat")}
+                <Button size="sm" className="px-2 md:px-3" aria-label={t("inboxContinueChat")} disabled={pendingAction !== null} onClick={continueInChat}>
+                  <span className="md:hidden">{t("inboxContinueChatCompact")}</span>
+                  <span className="hidden md:inline">{t("inboxContinueChat")}</span>
                 </Button>
               </div>
             </footer>

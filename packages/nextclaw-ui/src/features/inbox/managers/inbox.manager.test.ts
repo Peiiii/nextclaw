@@ -1,10 +1,13 @@
 import { QueryClient } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { InboxDelivery } from "@nextclaw/shared";
+import { NextClawClientError } from "@nextclaw/client-sdk";
 import { InboxManager } from "@/features/inbox/managers/inbox.manager";
 import { useInboxStore } from "@/features/inbox/stores/inbox.store";
 
 const mocks = vi.hoisted(() => ({
+  getDelivery: vi.fn(),
+  getSession: vi.fn(),
   delete: vi.fn(),
   resolveReference: vi.fn(),
   list: vi.fn(),
@@ -16,6 +19,7 @@ vi.mock("@/shared/lib/api", () => ({
   nextclawClient: {
     eventBus: { on: mocks.on },
     inboxDeliveries: {
+      get: mocks.getDelivery,
       delete: mocks.delete,
       list: mocks.list,
       updateState: mocks.updateState,
@@ -23,6 +27,7 @@ vi.mock("@/shared/lib/api", () => ({
     systemObjectReferences: {
       resolve: mocks.resolveReference,
     },
+    sessions: { get: mocks.getSession },
   },
 }));
 
@@ -43,6 +48,8 @@ const delivery: InboxDelivery = {
 describe("InboxManager", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getDelivery.mockResolvedValue(delivery);
+    mocks.getSession.mockResolvedValue({ sessionId: "source-session" });
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
     useInboxStore.setState({
       snapshot: { readerOpen: false, activeDeliveryId: null },
@@ -107,5 +114,26 @@ describe("InboxManager", () => {
     );
     expect(mocks.updateState).toHaveBeenCalledWith(delivery.id, "read");
     expect(result.reference.assetUri).toBe("asset://store/report");
+    expect(result.targetSessionKey).toBeNull();
+  });
+
+  it("targets the original report session", async () => {
+    mocks.getDelivery.mockResolvedValue({ ...delivery, source: { ...delivery.source, sessionId: "source-session" } });
+    const result = await new InboxManager(new QueryClient()).prepareChatReference(delivery.id);
+    expect(mocks.getSession).toHaveBeenCalledWith("source-session");
+    expect(result.targetSessionKey).toBe("source-session");
+  });
+
+  it("falls back to a draft only when the source session was deleted", async () => {
+    mocks.getDelivery.mockResolvedValue({ ...delivery, source: { ...delivery.source, sessionId: "deleted" } });
+    mocks.getSession.mockRejectedValueOnce(new NextClawClientError({ message: "Missing", status: 404 }));
+    expect((await new InboxManager(new QueryClient()).prepareChatReference(delivery.id)).targetSessionKey).toBeNull();
+  });
+
+  it("keeps the report unread when the source session lookup fails", async () => {
+    mocks.getDelivery.mockResolvedValue({ ...delivery, source: { ...delivery.source, sessionId: "source-session" } });
+    mocks.getSession.mockRejectedValueOnce(new NextClawClientError({ message: "Offline", status: 503 }));
+    await expect(new InboxManager(new QueryClient()).prepareChatReference(delivery.id)).rejects.toThrow("Offline");
+    expect(mocks.updateState).not.toHaveBeenCalled();
   });
 });
