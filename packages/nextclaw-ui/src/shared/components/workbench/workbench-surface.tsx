@@ -265,7 +265,7 @@ export function WorkbenchSurface({
       }}
     >
       <header
-        className="flex min-h-10 shrink-0 select-none items-center gap-1 border-b border-border/60 bg-muted/30 px-2"
+        className={cn("flex shrink-0 select-none items-center gap-1 border-b border-border/60 bg-muted/30 pr-2", navigation && !state.minimized ? "min-h-8 pl-0" : "min-h-10 pl-2")}
         style={{ touchAction: floating ? "none" : undefined, paddingTop: isCompact ? "env(safe-area-inset-top, 0px)" : undefined }}
         onPointerDown={(event) => startInteraction(event)}
         onDoubleClick={(event) => {

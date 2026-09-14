@@ -2,7 +2,7 @@ import { PageResourceActionsMenu } from '@/features/right-panel-resources';
 import { pageResourceFromSystemObject } from '@/features/right-panel-resources';
 import { useEffect, useMemo, useState } from "react";
 import type { InboxDelivery } from "@nextclaw/shared";
-import { Archive, Inbox, MessageCircle, MoreVertical, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, ArrowLeft, Inbox, MessageCircle, MoreVertical, RotateCcw, Trash2 } from "lucide-react";
 import { ContextMenu, ContextMenuTrigger } from '@/shared/components/ui/context-menu/context-menu';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -167,6 +167,7 @@ function InboxListPane({
 
 function InboxDetailPane({
   delivery,
+  isMobile,
   error,
   pending,
   onArchiveToggle,
@@ -175,6 +176,7 @@ function InboxDetailPane({
   onReadToggle,
 }: {
   delivery: InboxDelivery | null;
+  isMobile: boolean;
   error: string | null;
   pending: boolean;
   onArchiveToggle: () => void;
@@ -182,38 +184,52 @@ function InboxDetailPane({
   onDelete: () => void;
   onReadToggle: () => void;
 }) {
+  const navigate = useNavigate();
+  const backButton = <IconActionButton size="sm" icon={<ArrowLeft className="h-4 w-4" />} label={t("inboxTitle")} onClick={() => navigate('/inbox')} />;
   const scrollRestoration = useScrollRestoration<HTMLDivElement>({
     restorationKey: delivery ? `inbox:delivery:${delivery.id}` : null,
   });
   const { onScroll, scrollRef } = scrollRestoration;
   if (!delivery) {
-    return <main className="flex min-h-0 flex-col"><InboxEmptyState selection /></main>;
+    return <main className="flex min-h-0 flex-col"><div className="md:hidden">{backButton}</div><InboxEmptyState selection /></main>;
   }
   const isHtml = delivery.contentType === "html";
   return (
-    <main className="flex min-h-0 flex-col">
-      <div className="shrink-0 px-4 py-2 md:border-b md:border-border/50 md:px-6 md:py-3">
-        <div className="flex min-h-7 min-w-0 items-center gap-2">
+    <main className="flex min-h-0 min-w-0 flex-col max-md:pt-[env(safe-area-inset-top,0px)] max-md:pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="shrink-0 border-b border-border/50 px-2 py-2 md:px-6 md:py-3">
+        <div className="flex min-h-7 min-w-0 items-center gap-1">
+          <div className="md:hidden">{backButton}</div>
           <h2
             title={delivery.title}
-            className="min-w-0 truncate text-sm font-medium text-foreground"
+            className="min-w-0 flex-1 truncate text-sm font-medium text-foreground md:flex-none"
           >
             {delivery.title}
           </h2>
-          <span className="hidden shrink-0 text-muted-foreground sm:inline" aria-hidden="true">·</span>
+          <span className="hidden shrink-0 text-muted-foreground md:inline" aria-hidden="true">·</span>
           <time
-            className="hidden shrink-0 text-[11px] tabular-nums text-muted-foreground sm:block"
+            className="hidden shrink-0 text-[11px] tabular-nums text-muted-foreground md:block"
             dateTime={delivery.createdAt}
           >
             {formatDateTime(delivery.createdAt)}
           </time>
+          {isMobile ? <div className="flex shrink-0 items-center">
+            <IconActionButton size="sm" icon={<MessageCircle className="h-4 w-4" />} label={t('inboxContinueChat')} disabled={pending} onClick={onContinue} />
+            <ContextMenu label={t('inboxTitle')} groups={[{ key: 'delivery', items: [
+              { key: 'read', label: delivery.readAt ? t('inboxMarkUnread') : t('inboxMarkRead'), disabled: pending, onSelect: onReadToggle },
+              { key: 'archive', label: delivery.archivedAt ? t('inboxRestore') : t('inboxArchive'), icon: <Archive className="h-4 w-4" />, disabled: pending, onSelect: onArchiveToggle },
+              { key: 'delete', label: t('inboxDelete'), icon: <Trash2 className="h-4 w-4" />, destructive: true, disabled: pending, onSelect: onDelete },
+            ] }]}>
+              <div><ContextMenuTrigger><IconActionButton size="sm" icon={<MoreVertical className="h-4 w-4" />} label={t('more')} /></ContextMenuTrigger></div>
+            </ContextMenu>
+          </div> : null}
         </div>
       </div>
+      {error ? <p role="alert" className="shrink-0 px-4 py-2 text-sm text-destructive">{error}</p> : null}
       <div className={cn(
         "min-h-0 flex-1",
         isHtml
           ? "p-0 md:p-4"
-          : "custom-scrollbar overflow-y-auto px-5 py-5 sm:px-6 sm:py-6",
+          : "custom-scrollbar overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-6",
       )}
       ref={scrollRef}
       onScroll={onScroll}
@@ -228,8 +244,7 @@ function InboxDetailPane({
           />
         </div>
       </div>
-      <div className="shrink-0 border-t border-border/50 px-4 py-2 md:px-6 md:py-3">
-        {error ? <p role="alert" className="mb-2 text-sm text-destructive">{error}</p> : null}
+      {!isMobile ? <div className="shrink-0 border-t border-border/50 px-6 py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="hidden md:flex flex-wrap items-center gap-1">
             <Button size="sm" variant="outline" disabled={pending} onClick={onReadToggle}>
@@ -246,21 +261,12 @@ function InboxDetailPane({
               {t("inboxDelete")}
             </Button>
           </div>
-          <div className="md:hidden">
-            <ContextMenu label={t('inboxTitle')} groups={[{ key: 'delivery', items: [
-              { key: 'read', label: delivery.readAt ? t('inboxMarkUnread') : t('inboxMarkRead'), disabled: pending, onSelect: onReadToggle },
-              { key: 'archive', label: delivery.archivedAt ? t('inboxRestore') : t('inboxArchive'), icon: <Archive className="h-4 w-4" />, disabled: pending, onSelect: onArchiveToggle },
-              { key: 'delete', label: t('inboxDelete'), icon: <Trash2 className="h-4 w-4" />, destructive: true, disabled: pending, onSelect: onDelete },
-            ] }]}>
-              <div><ContextMenuTrigger><IconActionButton icon={<MoreVertical className="h-4 w-4" />} label={t('more')} /></ContextMenuTrigger></div>
-            </ContextMenu>
-          </div>
           <Button size="sm" disabled={pending} onClick={onContinue}>
             <MessageCircle className="mr-2 h-4 w-4" />
             {t("inboxContinueChat")}
           </Button>
         </div>
-      </div>
+      </div> : null}
     </main>
   );
 }
@@ -359,8 +365,8 @@ export function InboxPage() {
     });
   };
 
-  const showList = !isMobile || !activeDelivery;
-  const showDetail = !isMobile || Boolean(activeDelivery);
+  const showList = !isMobile || !deliveryId;
+  const showDetail = !isMobile || Boolean(deliveryId);
 
   return (
     <div className="flex h-full min-h-0 flex-col md:gap-6">
@@ -372,7 +378,7 @@ export function InboxPage() {
 
       <div className="min-h-0 flex-1 overflow-hidden bg-background md:rounded-2xl md:border md:border-border/60">
         {deliveriesQuery.isError ? (
-          <div role="alert" className="p-6 text-sm text-destructive">{t("inboxLoadError")}</div>
+          <div className="p-4">{isMobile && deliveryId ? <IconActionButton icon={<ArrowLeft className="h-4 w-4" />} label={t("inboxTitle")} onClick={() => navigate('/inbox')} /> : null}<p role="alert" className="text-sm text-destructive">{t("inboxLoadError")}</p></div>
         ) : (
           <div className="grid h-full min-h-0 grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)]">
             {showList ? <InboxListPane
@@ -383,6 +389,7 @@ export function InboxPage() {
             /> : null}
             {showDetail ? <InboxDetailPane
               delivery={activeDelivery}
+              isMobile={isMobile}
               error={error}
               pending={pendingAction !== null}
               onArchiveToggle={toggleArchive}

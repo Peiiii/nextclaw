@@ -6,8 +6,8 @@ import { IconActionButton } from "@/shared/components/ui/actions/icon-action-but
 
 export function MobileTopbar({ leadingInset }: { leadingInset?: string }) {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const routeMeta = resolveMobileRouteMeta(pathname, t);
+  const { pathname, state } = useLocation();
+  const routeMeta = resolveMobileRouteMeta(pathname, t, typeof state?.returnTo === 'string' ? state.returnTo : undefined);
 
   return (
     <header

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import {
   isChatSessionDetailRoute,
+  isInboxDetailRoute,
   isMainWorkspaceRoute,
 } from "@/app/configs/app-navigation.config";
 import { MobileBottomNav } from "@/platforms/mobile/components/mobile-bottom-nav";
@@ -32,8 +33,9 @@ export function MobileAppShell({
   children,
 }: MobileAppShellProps) {
   const isMainRoute = isMainWorkspaceRoute(pathname);
-  const showTopbar = pathname !== '/chat' && !isChatSessionDetailRoute(pathname);
-  const showBottomNav = !isChatSessionDetailRoute(pathname);
+  const ownsDetailChrome = isChatSessionDetailRoute(pathname) || isInboxDetailRoute(pathname);
+  const showTopbar = pathname !== '/chat' && !ownsDetailChrome;
+  const showBottomNav = !ownsDetailChrome;
 
   return (
     <div className="flex h-[100svh] flex-col bg-background font-sans text-foreground supports-[height:100dvh]:h-[100dvh]">

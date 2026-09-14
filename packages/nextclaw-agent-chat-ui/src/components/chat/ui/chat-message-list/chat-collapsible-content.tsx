@@ -25,23 +25,47 @@ export function ChatCollapsibleContent({ open, children }: {
       finish();
       return;
     }
-    const from = frame.getBoundingClientRect().height;
-    const opacity = from === 0 ? 0 : Number(getComputedStyle(frame).opacity);
-    const to = open ? body.getBoundingClientRect().height : 0;
-    const animation = frame.animate([
-      { height: `${from}px`, opacity },
-      { height: `${to}px`, opacity: open ? 1 : 0 },
-    ], {
-      duration: 200,
-      easing: "cubic-bezier(0.2, 0, 0, 1)",
-      fill: "both",
-    });
-    animation.onfinish = () => { finish(); animation.cancel(); };
+    let animation: Animation | null = null;
+    let targetHeight = open ? body.getBoundingClientRect().height : 0;
+    const transition = (from: number, to: number) => {
+      const opacity = from === 0 ? 0 : Number(getComputedStyle(frame).opacity);
+      if (animation) {
+        animation.onfinish = null;
+        animation.cancel();
+      }
+      frame.style.height = `${from}px`;
+      animation = frame.animate([
+        { height: `${from}px`, opacity },
+        { height: `${to}px`, opacity: open ? 1 : 0 },
+      ], {
+        duration: 200,
+        easing: "cubic-bezier(0.2, 0, 0, 1)",
+        fill: "both",
+      });
+      animation.onfinish = () => {
+        finish();
+        animation?.cancel();
+        animation = null;
+      };
+    };
+    transition(frame.getBoundingClientRect().height, targetHeight);
+    // Details may replace their loading skeleton after opening has started or finished.
+    const observer = open && typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => {
+      const nextHeight = body.getBoundingClientRect().height;
+      if (Math.abs(nextHeight - targetHeight) < 0.5) return;
+      const from = animation ? frame.getBoundingClientRect().height : targetHeight;
+      targetHeight = nextHeight;
+      transition(from, nextHeight);
+    }) : null;
+    observer?.observe(body);
     return () => {
+      observer?.disconnect();
       frame.style.height = `${frame.getBoundingClientRect().height}px`;
       frame.style.opacity = getComputedStyle(frame).opacity;
-      animation.onfinish = null;
-      animation.cancel();
+      if (animation) {
+        animation.onfinish = null;
+        animation.cancel();
+      }
     };
   }, [open]);
 

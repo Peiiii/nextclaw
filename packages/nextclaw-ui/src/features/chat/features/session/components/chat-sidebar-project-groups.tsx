@@ -175,6 +175,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                   {group.projectId ? (
                     <Link
                       to={`/projects/${encodeURIComponent(group.projectId)}/overview`}
+                      state={{ returnTo: `${location.pathname}${location.search}` }}
                       className="flex h-full min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
                       aria-current={isSelected ? "page" : undefined}
                       title={group.projectRoot}

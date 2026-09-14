@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useProjects } from "@/shared/hooks/use-projects";
 import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { t } from "@/shared/lib/i18n";
@@ -43,6 +43,7 @@ export function ProjectsPage() {
     tab?: string;
   }>();
   const navigate = useNavigate();
+  const { state } = useLocation();
   const presenter = usePresenter();
   const { isMobile } = useViewportLayout();
   const projects = useProjects();
@@ -86,7 +87,7 @@ export function ProjectsPage() {
         <select
           id="project-home-selection"
           value=""
-          onChange={(event) => navigate(`/projects/${encodeURIComponent(event.target.value)}/overview`)}
+          onChange={(event) => navigate(`/projects/${encodeURIComponent(event.target.value)}/overview`, { state })}
           className="min-h-11 w-full rounded-xl border border-border bg-card px-3 text-base text-foreground"
         >
           <option value="" disabled>{t("projectsChoose")}</option>
@@ -117,6 +118,7 @@ export function ProjectsPage() {
             onValueChange={(value) =>
               navigate(
                 `/projects/${encodeURIComponent(selectedProject.id)}/${value}`,
+                { state },
               )
             }
           >

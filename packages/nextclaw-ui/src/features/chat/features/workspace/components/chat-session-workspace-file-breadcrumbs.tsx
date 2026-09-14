@@ -115,13 +115,13 @@ export function ChatSessionWorkspaceFileBreadcrumbs({
     <div
       data-testid="workspace-file-breadcrumbs"
       title={breadcrumb.fullPath}
-      className="flex min-w-0 items-center border-b border-gray-200/80 bg-gray-50/55"
+      className="flex h-8 min-w-0 shrink-0 items-center border-b border-gray-200/80 bg-gray-50/55"
     >
       {leading ? <div className="flex h-full shrink-0 items-center pl-1 pr-0.5">{leading}</div> : null}
       <div
         ref={scrollRef}
         data-testid="workspace-file-breadcrumb-scroll"
-        className="workspace-horizontal-scrollbar flex min-w-0 flex-1 items-center gap-2.5 overflow-x-auto overflow-y-hidden px-3 py-1.5"
+        className="workspace-horizontal-scrollbar flex h-full min-w-0 flex-1 items-center gap-1 overflow-x-auto overflow-y-hidden px-1.5"
       >
         <div className="flex min-w-0 flex-1 items-center gap-1 pr-1">
           {breadcrumb.segments.map((segment, index) => (
@@ -140,7 +140,7 @@ export function ChatSessionWorkspaceFileBreadcrumbs({
           </div>
         ) : null}
       </div>
-      {trailing ? <div className="flex shrink-0 items-center py-1.5 pr-2 pl-0.5">{trailing}</div> : null}
+      {trailing ? <div className="flex h-full shrink-0 items-center pr-1 pl-0.5">{trailing}</div> : null}
     </div>
   );
 }

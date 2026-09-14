@@ -49,11 +49,13 @@ Related: [Tasks and sessions](/en/guide/chat), [Inspect task results](/en/guide/
 
 ### On mobile
 
-The bottom navigation opens conversations, inbox, skills, agents, settings, and apps. Open the view menu above the conversation list to switch to projects or open scheduled tasks. The project home page lets you select a registered project directly; the detail page's back button returns to project selection.
+The bottom navigation opens conversations, inbox, skills, agents, settings, and apps. Open the view menu above the conversation list to switch to projects or open scheduled tasks. Project details opened from a project group return to the originating conversation page, including after switching detail tabs.
 
-The composer shows the current model. Tap it to search and switch models. On mobile, the text area starts at one line, grows with your message, and scrolls internally for longer drafts. Settings are grouped by purpose, and long forms and detail dialogs scroll within the window. Mobile previews use a compact title bar: tap the title to switch tabs, navigate back or forward, and access app actions. Hide a view and reopen it from its original entry to continue browsing.
+Wide composers show the current model and thinking level. On phones and narrow conversation panels, compact icons open the current options for viewing and switching. Copy, edit, and more actions below messages stay closely spaced. On mobile, the text area starts at one line, grows with your message, and scrolls internally for longer drafts. Settings are grouped by purpose, and long forms and detail dialogs scroll within the window. Mobile previews use a compact title bar: tap the title to switch tabs, navigate back or forward, and access app actions. Hide a view and reopen it from its original entry to continue browsing.
 
-Inbox details prioritize the content, with **Continue chatting** at the bottom. Read status, archive, and delete actions are in the **More** menu.
+Mobile inbox details use one toolbar with back, title, **Continue chatting**, and **More** at the far right, leaving the remaining space for the report. On desktop, **Continue chatting** remains at the bottom. Read status, archive, and delete actions are in the **More** menu.
+
+Model and thinking menus, workspace tabs, and file breadcrumbs use compact dimensions. Once message processing ends, the summary shows **Processed** and the recorded duration. Expand it to inspect individual tool results or errors.
 
 The session workspace uses the [same view controls](/en/guide/doc-browser#consistent-view-controls) as the global browser: float, collapse, maximize, and restore without losing tabs or navigation history. **Hide view group** preserves the workspace for reopening.
 

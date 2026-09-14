@@ -1,12 +1,10 @@
-import { readNcpAiExecutionMetadata, type NcpMessage } from "@nextclaw/ncp";
+import type { NcpMessage } from "@nextclaw/ncp";
 import type { ChatMessageProcessSummarySource } from "@/features/chat/types/chat-message.types";
 import { t, type I18nLanguage } from "@/shared/lib/i18n";
 
 type BuildChatMessageProcessSummaryParams = {
   message: NcpMessage;
   processedLabel: string;
-  failedLabel: string;
-  stoppedLabel: string;
   language: I18nLanguage;
 };
 
@@ -78,8 +76,6 @@ function formatLifecycleDuration(message: NcpMessage, language: I18nLanguage): s
  * and must not be mixed into this summary.
  */
 export function buildChatMessageProcessSummary({
-  failedLabel,
-  stoppedLabel,
   message,
   processedLabel,
   language,
@@ -88,11 +84,7 @@ export function buildChatMessageProcessSummary({
     return undefined;
   }
   const duration = formatLifecycleDuration(message, language);
-  const outcome = readNcpAiExecutionMetadata(message.metadata)?.outcome;
-  const statusLabel = message.status === "error" || outcome === "failed"
-    ? failedLabel
-    : outcome === "aborted" ? stoppedLabel : processedLabel;
   return {
-    label: duration ? `${statusLabel} ${duration}` : statusLabel,
+    label: duration ? `${processedLabel} ${duration}` : processedLabel,
   };
 }

@@ -7,6 +7,7 @@ import { InboxPage, resolveInboxFilter } from "@/features/inbox/pages/inbox-page
 import { t } from "@/shared/lib/i18n";
 
 const mocks = vi.hoisted(() => ({
+  isMobile: false,
   prepareChatReference: vi.fn(),
   requestSystemObjectReference: vi.fn(),
 }));
@@ -28,7 +29,7 @@ vi.mock("@/app/components/app-presenter-provider", () => ({
 }));
 
 vi.mock("@/app/hooks/use-viewport-layout", () => ({
-  useViewportLayout: () => ({ isMobile: false }),
+  useViewportLayout: () => ({ isMobile: mocks.isMobile }),
 }));
 
 vi.mock("@/features/inbox/hooks/use-inbox-deliveries", () => ({
@@ -101,6 +102,7 @@ describe("resolveInboxFilter", () => {
 describe("InboxPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.isMobile = false;
     mocks.prepareChatReference.mockResolvedValue({
       reference: {
         uri: "nextclaw://objects/inbox-delivery/delivery-1",
@@ -109,7 +111,8 @@ describe("InboxPage", () => {
     });
   });
 
-  it("opens a draft with the same visible system object intent as the reader dialog", async () => {
+  it.each([false, true])("opens a draft with the same system object intent (mobile=%s)", async (isMobile) => {
+    mocks.isMobile = isMobile;
     render(
       createElement(
         MemoryRouter,
@@ -134,7 +137,13 @@ describe("InboxPage", () => {
       ),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: t("inboxContinueChat") }));
+    const continueButton = screen.getByRole("button", { name: t("inboxContinueChat") });
+    if (isMobile) {
+      const moreButton = screen.getByRole("button", { name: t("more") });
+      expect(continueButton.compareDocumentPosition(moreButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(screen.getByRole("button", { name: t("inboxTitle") })).toBeTruthy();
+    }
+    fireEvent.click(continueButton);
 
     await waitFor(() => {
       expect(screen.getByTestId("current-path").textContent).toBe(CHAT_DRAFT_SESSION_PATH);

@@ -31,8 +31,6 @@ const baseAssistantMessage = {
 
 const summaryLabels = {
   processedLabel: "已处理",
-  failedLabel: "处理失败",
-  stoppedLabel: "已停止",
   language: "zh" as const,
 };
 
@@ -135,8 +133,8 @@ describe("buildChatMessageProcessSummary", () => {
   });
 
   it.each([
-    ["failed", "处理失败"], ["aborted", "已停止"], ["completed", "已处理"],
-  ] as const)("uses the recorded %s outcome", (outcome, expected) => {
+    ["failed", "已处理"], ["aborted", "已处理"], ["completed", "已处理"],
+  ] as const)("keeps the process summary neutral for a %s outcome", (outcome, expected) => {
     const message: NcpMessage = {
       ...baseAssistantMessage,
       metadata: { ai_execution: createUnavailableNcpAiExecutionMetadata({
@@ -146,9 +144,9 @@ describe("buildChatMessageProcessSummary", () => {
     expect(buildChatMessageProcessSummary({ ...summaryLabels, message })?.label).toBe(expected);
   });
 
-  it("shows failure for an error message without execution metadata", () => {
+  it("keeps the process summary neutral for an error message", () => {
     expect(buildChatMessageProcessSummary({
       ...summaryLabels, message: { ...baseAssistantMessage, status: "error" },
-    })?.label).toBe("处理失败");
+    })?.label).toBe("已处理");
   });
 });

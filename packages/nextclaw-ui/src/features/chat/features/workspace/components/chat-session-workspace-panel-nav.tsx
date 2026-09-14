@@ -218,7 +218,7 @@ export function WorkspaceTabsBar({
 
   return (
     <CompactTabStrip
-      className="h-10 min-w-0 flex-1 border-0 bg-transparent px-0"
+      className="h-8 min-w-0 flex-1 border-0 bg-transparent px-0"
       testId="workspace-tabs-bar"
       scrollTestId="workspace-tabs-scroll"
       tabs={compactTabs}

@@ -282,8 +282,6 @@
   "chatHistoryLoadFailed": "Couldn’t load earlier messages",
   "chatHistoryRetry": "Retry",
   "chatProcessSummaryProcessed": "Processed",
-  "chatProcessSummaryError": "Failed",
-  "chatProcessSummaryStopped": "Stopped",
   "chatProcessDurationHoursMinutes": "{hours}h {minutes}m",
   "chatProcessDurationHours": "{hours}h",
   "chatProcessDurationMinutesSeconds": "{minutes}m {seconds}s",

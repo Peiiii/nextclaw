@@ -3,6 +3,44 @@ import { ChatCollapsibleContent } from "./chat-collapsible-content";
 
 afterEach(() => vi.restoreAllMocks());
 
+it("animates loaded details from the skeleton height even after opening finishes", () => {
+  let resize: ResizeObserverCallback | undefined;
+  const disconnect = vi.fn();
+  vi.stubGlobal("ResizeObserver", class {
+    constructor(callback: ResizeObserverCallback) { resize = callback; }
+    observe() {}
+    disconnect = disconnect;
+  });
+  let height = 80;
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    return { height: this.classList.contains('flow-root') ? height : 0 } as DOMRect;
+  });
+  const animations: Array<{ onfinish: (() => void) | null; cancel: ReturnType<typeof vi.fn> }> = [];
+  const animate = vi.fn((_frames: Keyframe[]) => {
+    const animation = { onfinish: null, cancel: vi.fn() };
+    animations.push(animation);
+    return animation;
+  });
+  Object.defineProperty(HTMLElement.prototype, "animate", { configurable: true, value: animate });
+  try {
+    const view = render(<ChatCollapsibleContent open>{() => <span>Loading</span>}</ChatCollapsibleContent>);
+    act(() => animations.at(-1)?.onfinish?.());
+    height = 360;
+    view.rerender(<ChatCollapsibleContent open>{() => <span>Loaded detail</span>}</ChatCollapsibleContent>);
+    act(() => resize?.([], {} as ResizeObserver));
+    expect(animate.mock.calls.at(-1)?.[0]).toEqual([
+      { height: '80px', opacity: 1 }, { height: '360px', opacity: 1 },
+    ]);
+    act(() => animations.at(-1)?.onfinish?.());
+    expect((view.container.firstElementChild as HTMLElement).style.height).toBe('auto');
+    view.unmount();
+    expect(disconnect).toHaveBeenCalled();
+  } finally {
+    Reflect.deleteProperty(HTMLElement.prototype, "animate");
+    vi.unstubAllGlobals();
+  }
+});
+
 it("keeps content mounted during closing and reverses without replacing its DOM", () => {
   const animations: Array<{ onfinish: (() => void) | null; cancel: ReturnType<typeof vi.fn> }> = [];
   Object.defineProperty(HTMLElement.prototype, "animate", {

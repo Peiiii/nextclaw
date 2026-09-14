@@ -29,8 +29,10 @@ describe("panel app main navigation", () => {
 describe("project home navigation", () => {
   const translate = (key: string) => key;
 
-  it("returns project details to the project picker", () => {
-    expect(resolveMobileRouteMeta("/projects/example/overview", translate).backTarget).toBe("/projects");
+  it("returns project details to their chat source instead of the project picker", () => {
+    expect(resolveMobileRouteMeta("/projects/example/overview", translate).backTarget).toBe("/chat");
+    expect(resolveMobileRouteMeta("/projects/example/overview", translate, "/chat/session-a").backTarget).toBe("/chat/session-a");
+    expect(resolveMobileRouteMeta("/projects/example/overview", translate, "https://example.com").backTarget).toBe("/chat");
   });
 
   it("labels scheduled tasks and returns to chat", () => {

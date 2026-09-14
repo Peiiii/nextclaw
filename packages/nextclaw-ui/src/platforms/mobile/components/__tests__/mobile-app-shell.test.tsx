@@ -31,6 +31,15 @@ function renderShell(pathname: string) {
 }
 
 describe("MobileAppShell", () => {
+  it("lets inbox details own their reading chrome and restores navigation on the list", () => {
+    const detail = renderShell("/inbox/report-1");
+    expect(screen.queryByTestId("mobile-bottom-nav")).toBeNull();
+    expect(screen.queryByTestId("mobile-topbar")).toBeNull();
+    detail.unmount();
+    renderShell("/inbox");
+    expect(screen.getByTestId("mobile-bottom-nav")).toBeTruthy();
+    expect(screen.getByTestId("mobile-topbar")).toBeTruthy();
+  });
   it("shows the bottom navigation on the chat list route", () => {
     const { shell } = renderShell("/chat");
 

@@ -74,6 +74,10 @@ export function isChatSessionDetailRoute(pathname: string): boolean {
   return normalized.startsWith("/chat/") && normalized !== "/chat";
 }
 
+export function isInboxDetailRoute(pathname: string): boolean {
+  return /^\/inbox\/[^/]+\/?$/i.test(pathname);
+}
+
 export function getMobileBottomNavItems(
   translate: Translate,
 ): AppNavigationItem[] {
@@ -207,6 +211,7 @@ export function isSettingsRoute(pathname: string): boolean {
 export function resolveMobileRouteMeta(
   pathname: string,
   translate: Translate,
+  returnTo?: string,
 ): {
   title: string;
   backTarget: string | null;
@@ -259,8 +264,8 @@ export function resolveMobileRouteMeta(
   if (normalized === "/projects" || normalized.startsWith("/projects/")) {
     return {
       title: translate("projectsTitle"),
-      backTarget: normalized === "/projects" ? "/chat" : "/projects",
-      backLabel: translate(normalized === "/projects" ? "chat" : "projectsTitle"),
+      backTarget: returnTo && /^\/chat(?:[/?]|$)/.test(returnTo) ? returnTo : "/chat",
+      backLabel: translate("chat"),
     };
   }
 

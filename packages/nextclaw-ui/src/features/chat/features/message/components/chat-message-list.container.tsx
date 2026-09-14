@@ -122,8 +122,6 @@ class ChatMessageViewModelAdapter {
         message,
         processedLabel,
         language,
-        failedLabel: t("chatProcessSummaryError", language),
-        stoppedLabel: t("chatProcessSummaryStopped", language),
       });
       const processSummaryLabel = processSummary?.label ?? null;
       const executionPresentation = buildChatMessageExecutionPresentation({

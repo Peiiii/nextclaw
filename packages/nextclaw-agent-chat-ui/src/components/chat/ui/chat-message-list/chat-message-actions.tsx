@@ -236,7 +236,7 @@ export function ChatMessageActions({
   );
 
   return (
-    <div className="flex shrink-0 items-center gap-0.5 [@container_message-list_(max-width:520px)]:[&>button]:min-h-9 [@container_message-list_(max-width:520px)]:[&>button]:min-w-9">
+    <div className="flex shrink-0 items-center gap-0.5 [@container_message-list_(max-width:520px)]:[&>button]:min-h-7 [@container_message-list_(max-width:520px)]:[&>button]:min-w-7">
       {onAction
         ? message.actions?.map((action) => (
           <ChatMessageAction key={action.key} action={action} onAction={onAction} />

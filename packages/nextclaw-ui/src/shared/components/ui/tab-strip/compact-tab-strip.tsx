@@ -233,12 +233,12 @@ function CompactTabItem({
       onClick={(event) => event.target === event.currentTarget && tab.onSelect()}
       className={cn(
         tabBaseClassName ??
-          "flex max-w-[180px] cursor-pointer items-center gap-1.5 border-r border-gray-200/70 border-b-2 px-2.5 py-2 transition-colors",
+          "flex h-8 max-w-[180px] cursor-pointer items-center gap-1.5 border-r border-border/50 px-2.5 transition-colors",
         "group relative",
         tab.active
-          ? (activeTabClassName ?? "border-b-primary bg-[var(--interaction-selection)] text-foreground")
+          ? (activeTabClassName ?? "bg-background text-foreground")
           : (inactiveTabClassName ??
-            "border-b-transparent bg-transparent text-muted-foreground hover:bg-[var(--interaction-hover)]"),
+            "bg-transparent text-muted-foreground hover:bg-[var(--interaction-hover)]"),
       )}
     >
       <CompactTabLabelButton tab={tab} labelClassName={labelClassName} />
