@@ -1,5 +1,23 @@
 # nextclaw
 
+## 0.57.0
+
+### Minor Changes
+
+- 9513abc: Make automatically opened reports fill the mobile screen, with compact header and footer controls. Keep every reading action visible as text and leave more space for Markdown and HTML content.
+
+  Use consistent compact feedback for dialog close buttons. Continue chatting returns to the report's source conversation and inserts its reference into the matching composer, falling back to a new draft only when the source is absent or deleted.
+
+### Patch Changes
+
+- Updated dependencies [0510b0e]
+- Updated dependencies [f0f6a4e]
+- Updated dependencies [f76145b]
+  - @nextclaw/kernel@0.18.4
+  - @nextclaw/remote@0.3.67
+  - @nextclaw/server@0.23.10
+  - @nextclaw/service@0.7.4
+
 ## 0.56.0
 
 ### Minor Changes

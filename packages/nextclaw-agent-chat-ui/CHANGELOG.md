@@ -1,5 +1,28 @@
 # @nextclaw/agent-chat-ui
 
+## 0.12.1
+
+### Patch Changes
+
+- f2455e5: Preserve the conversation reading position when expanding details, bound expanded tool groups to half the screen with scrolling edge fades, and prevent nested expansion animations from repeatedly restarting.
+- d39728d: 修复中文输入法仍在收尾时发送消息后，已经发送的内容可能重新写回输入框草稿的问题；成功发送后的输入框在切换会话或刷新后继续保持为空，发送失败仍恢复完整草稿。
+- 0510b0e: Reduce Markdown document properties spacing and text size so front matter leaves more room for document content.
+
+  Animate document properties expansion and collapse using the shared interruptible transition, with reduced-motion support.
+
+  Support animated GitHub-style details/summary sections in chat and Markdown file previews, including nested sections and initial open state. Briefly document this capability in the agent reply-format prompt.
+
+  Tell agents that Markdown supports inline and block LaTeX formulas without expanding the reply-format prompt budget.
+
+- 6beae17: Hide the chat down arrow when the latest content is already visible, including when only reserved reply space remains or expanded details pause automatic scrolling.
+- 66421ba: 侧栏展开时，设置菜单与底部设置入口等宽；消息的更多操作图标统一为竖向三点。
+- 8f3e42d: 新增素笺与纸墨主题：默认指向暖纸与茶灰配色的素笺，纸墨保留暖墨绿配色；旧默认以素白名称保留。
+
+  所有主题统一不显示用户自己的头像，保留靠右消息气泡。
+
+- 7cdd8c1: Show file-type icons for local Markdown links, including paths with line numbers, and omit generic link icons and their empty spacing.
+- 5801368: Unify action menu surfaces, item spacing and feedback across chat messages and application menus, and add icons to run metadata and trigger details.
+
 ## 0.12.0
 
 ### Minor Changes

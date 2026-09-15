@@ -1,5 +1,58 @@
 # @nextclaw/ui
 
+## 0.27.0
+
+### Minor Changes
+
+- 8f3e42d: 新增素笺与纸墨主题：默认指向暖纸与茶灰配色的素笺，纸墨保留暖墨绿配色；旧默认以素白名称保留。
+
+  所有主题统一不显示用户自己的头像，保留靠右消息气泡。
+
+### Patch Changes
+
+- 28401ca: 将应用市场改为应用页独立标签，支持保留搜索与浏览位置、页内详情和已安装应用定位，并优化窄面板布局与安装失败反馈。
+- f2455e5: Preserve the conversation reading position when expanding details, bound expanded tool groups to half the screen with scrolling edge fades, and prevent nested expansion animations from repeatedly restarting.
+- d39728d: 修复中文输入法仍在收尾时发送消息后，已经发送的内容可能重新写回输入框草稿的问题；成功发送后的输入框在切换会话或刷新后继续保持为空，发送失败仍恢复完整草稿。
+- 0510b0e: Reduce Markdown document properties spacing and text size so front matter leaves more room for document content.
+
+  Animate document properties expansion and collapse using the shared interruptible transition, with reduced-motion support.
+
+  Support animated GitHub-style details/summary sections in chat and Markdown file previews, including nested sections and initial open state. Briefly document this capability in the agent reply-format prompt.
+
+  Tell agents that Markdown supports inline and block LaTeX formulas without expanding the reply-format prompt budget.
+
+- e2b5e94: 文件预览正文、加载和提示状态跟随主题配色；路径面包屑更紧凑简洁，并加强会话与右侧工作区的边界区分。
+- 66421ba: 侧栏展开时，设置菜单与底部设置入口等宽；消息的更多操作图标统一为竖向三点。
+- 9513abc: Make automatically opened reports fill the mobile screen, with compact header and footer controls. Keep every reading action visible as text and leave more space for Markdown and HTML content.
+
+  Use consistent compact feedback for dialog close buttons. Continue chatting returns to the report's source conversation and inserts its reference into the matching composer, falling back to a new draft only when the source is absent or deleted.
+
+- 25a1267: 优化聊天顶部布局：长标题下保留项目名称，收紧操作按钮并协调标签与操作组间距；淡化右侧工作台的分界线。
+- a0c445c: 统一弹窗标题栏、操作组和关闭按钮布局，修复收件箱更多操作与关闭按钮挤压重叠；补全关闭按钮的中英文提示与键盘焦点反馈。
+
+  修复会话悬浮窗标题贴边，统一将更多操作排列在常规窗口操作之后、关闭按钮之前，以留白区分，不增加竖向分隔线。
+
+  操作提示默认优先显示在上方，空间不足时自动避让；统一标签栏细滚动条，悬停不再增粗。
+
+- cca51d4: 新任务页支持从开放问题或项目建议开始，并提供返回相关最近会话的入口。编辑草稿时自动收起建议，工作目录、Agent 和运行方式仍可直接切换。
+
+  <!-- release-note-image: zh-CN | images/screenshots/nextclaw-companion-welcome-cn.png | NextClaw 新任务页提供从近况、想法或一件事开始的建议，并保留项目、Agent 与运行方式选择。 -->
+
+- 82c2f69: 统一概览、持续关注和项目文件的主题配色，保留清晰分组并收紧统计布局。概览入口按项目文件、定时任务、子会话、持续关注排序。
+- 7cdd8c1: Show file-type icons for local Markdown links, including paths with line numbers, and omit generic link icons and their empty spacing.
+- 59b68d2: 精简应用页面：统一添加入口，优先展示打开操作，把版本、存储路径和文件访问配置收进应用详情。统一更多菜单与弹窗交互，改善窄侧栏布局和文件夹选择后的焦点返回。
+- 5801368: Unify action menu surfaces, item spacing and feedback across chat messages and application menus, and add icons to run metadata and trigger details.
+- Updated dependencies [f2455e5]
+- Updated dependencies [d39728d]
+- Updated dependencies [0510b0e]
+- Updated dependencies [6beae17]
+- Updated dependencies [66421ba]
+- Updated dependencies [8f3e42d]
+- Updated dependencies [7cdd8c1]
+- Updated dependencies [5801368]
+  - @nextclaw/agent-chat-ui@0.12.1
+  - @nextclaw/client-sdk@0.12.10
+
 ## 0.26.5
 
 ### Patch Changes

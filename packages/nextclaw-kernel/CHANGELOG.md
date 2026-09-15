@@ -1,5 +1,20 @@
 # @nextclaw/kernel
 
+## 0.18.4
+
+### Patch Changes
+
+- 0510b0e: Reduce Markdown document properties spacing and text size so front matter leaves more room for document content.
+
+  Animate document properties expansion and collapse using the shared interruptible transition, with reduced-motion support.
+
+  Support animated GitHub-style details/summary sections in chat and Markdown file previews, including nested sections and initial open state. Briefly document this capability in the agent reply-format prompt.
+
+  Tell agents that Markdown supports inline and block LaTeX formulas without expanding the reply-format prompt budget.
+
+- f0f6a4e: Start automatic conversation-title generation as soon as a user message is durably received, using that turn's selected model in parallel with the main reply. Preserve manual names and discard stale title results when a newer user input arrives.
+- f76145b: Append fresh time and timezone context at the end of each native model request, including retries, without saving it in conversation history or rewriting the stable message prefix.
+
 ## 0.18.3
 
 ### Patch Changes
