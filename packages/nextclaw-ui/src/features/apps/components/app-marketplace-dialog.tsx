@@ -36,6 +36,7 @@ export function AppMarketplaceDialog({
   isStarting,
   onInstall,
   onOpenChange,
+  onFocusReturn,
   onUpdate,
   open,
   operations,
@@ -47,6 +48,7 @@ export function AppMarketplaceDialog({
   isStarting: boolean;
   onInstall: (source: string, registryUrl: string) => void;
   onOpenChange: (open: boolean) => void;
+  onFocusReturn?: () => void;
   onUpdate: (appId: string) => void;
   open: boolean;
   operations: AppPackageOperationView[];
@@ -98,7 +100,7 @@ export function AppMarketplaceDialog({
   return (
     <Dialog open={open} onOpenChange={closeDialog}>
       <TooltipProvider>
-        <DialogContent className="flex h-dvh w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background/95 p-0 shadow-[0_32px_100px_rgba(0,0,0,0.24)] backdrop-blur-xl sm:h-[min(680px,calc(100dvh-4rem))] sm:w-[min(920px,calc(100vw-3rem))] sm:max-w-none sm:rounded-2xl sm:border sm:border-border/55">
+        <DialogContent onCloseAutoFocus={onFocusReturn ? (event) => { event.preventDefault(); onFocusReturn(); } : undefined} className="flex h-dvh w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background/95 p-0 shadow-[0_32px_100px_rgba(0,0,0,0.24)] backdrop-blur-xl sm:h-[min(680px,calc(100dvh-4rem))] sm:w-[min(920px,calc(100vw-3rem))] sm:max-w-none sm:rounded-2xl sm:border sm:border-border/55">
           {selectedSlug ? (
             <>
               <MarketplaceDetailHeader onBack={() => setSelectedSlug(null)} />

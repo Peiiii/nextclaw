@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type { AppDataEntry, AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
-import { LoaderCircle, PackagePlus, RefreshCw, ShieldCheck, Store } from 'lucide-react';
+import { ChevronDown, LoaderCircle, PackagePlus, RefreshCw, ShieldCheck, Store } from 'lucide-react';
 import { AppArtwork } from '@/features/apps/components/app-artwork';
 import type { PanelAppEntryView } from '@/shared/lib/api';
 import { useAppPresenter } from '@/app/components/app-presenter-provider';
@@ -15,11 +15,9 @@ import {
   isAppPackageOperationActive,
   type AppPackageMutationInput,
 } from '@/features/apps/hooks/use-app-packages';
-import {
-  useGrantPanelAppClient,
-  usePanelApps,
-  useRecordPanelAppOpened,
-} from '@/features/panel-apps';
+import { useGrantPanelAppClient, usePanelApps, useRecordPanelAppOpened } from '@/features/panel-apps';
+import { ContextMenu, ContextMenuTrigger } from '@/shared/components/ui/context-menu/context-menu';
+import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { Button } from '@/shared/components/ui/button';
 import {
   Dialog,
@@ -49,14 +47,12 @@ export function AppPackagesPanel({
   const grantClient = useGrantPanelAppClient();
   const presenter = useAppPresenter();
   const libraryTitleRef = useRef<HTMLHeadingElement>(null);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
   const [installOpen, setInstallOpen] = useState(false);
   const [installSource, setInstallSource] = useState('');
   const [marketplaceOpen, setMarketplaceOpen] = useState(false);
 
-  const operations = useMemo(
-    () => appPackageOperations.data?.entries ?? [],
-    [appPackageOperations.data?.entries],
-  );
+  const operations = useMemo(() => appPackageOperations.data?.entries ?? [], [appPackageOperations.data?.entries]);
 
   useEffect(() => {
     if (!focusedPackageId || appPackages.isLoading) return;
@@ -83,12 +79,14 @@ export function AppPackagesPanel({
     if (entry.clientDeclared && !entry.clientGranted) {
       const allowed = await presenter.serviceActionAuthorizationManager.requestAuthorization({
         panelAppId: entry.appId,
-        actions: [{
-          actionId: 'nextclaw.client',
-          actionTitle: t('panelAppsClientGrantTitle'),
-          actionDescription: t('panelAppsClientGrantDescription'),
-          risk: 'dangerous',
-        }],
+        actions: [
+          {
+            actionId: 'nextclaw.client',
+            actionTitle: t('panelAppsClientGrantTitle'),
+            actionDescription: t('panelAppsClientGrantDescription'),
+            risk: 'dangerous',
+          },
+        ],
       });
       if (!allowed) return;
       await grantClient.mutateAsync(entry.appId);
@@ -118,60 +116,67 @@ export function AppPackagesPanel({
   };
 
   return (
-    <div className="@container flex h-full min-h-0 flex-col bg-card text-card-foreground">
-      <div className="flex min-h-12 shrink-0 items-center justify-end gap-1 border-b border-border/70 px-4 py-2">
-          <button
-            type="button"
-            onClick={refetch}
-            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
-            title={t('appPackagesRefresh')}
-            aria-label={t('appPackagesRefresh')}
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-          </button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              lifecycle.reset();
-              setMarketplaceOpen(true);
-            }}
-          >
-            <Store className="mr-1.5 h-3.5 w-3.5" />
-            {t('appPackagesBrowse')}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              lifecycle.reset();
-              setInstallOpen(true);
-            }}
-          >
-            <PackagePlus className="mr-1.5 h-3.5 w-3.5" />
-            {t('appPackagesInstall')}
-          </Button>
-      </div>
-
+    <div className="[container-type:inline-size] flex h-full min-h-0 flex-col bg-card text-card-foreground">
       <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-3xl p-3 sm:p-5">
-          <div className="mb-4 px-1">
-            <h1
-              ref={libraryTitleRef}
-              tabIndex={-1}
-              className="text-base font-semibold tracking-tight text-foreground"
-            >
+        <div className="mx-auto w-full max-w-3xl px-3 py-4 [@container(min-width:28rem)]:px-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
+            <h1 ref={libraryTitleRef} tabIndex={-1} className="text-base font-semibold tracking-tight text-foreground">
               {t('appPackagesLibraryTitle')}
             </h1>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              {t('appPackagesLibraryDescription')}
-            </p>
+            <div className="flex items-center gap-2">
+              <IconActionButton
+                icon={<RefreshCw className="h-3.5 w-3.5" />}
+                label={t('appPackagesRefresh')}
+                onClick={refetch}
+              />
+              <ContextMenu
+                label={t('appPackagesBrowse')}
+                groups={[
+                  {
+                    key: 'sources',
+                    items: [
+                      {
+                        key: 'marketplace',
+                        label: t('appPackagesMarketplaceSource'),
+                        icon: <Store className="h-4 w-4" />,
+                        restoreFocus: false,
+                        onSelect: () => {
+                          lifecycle.reset();
+                          setMarketplaceOpen(true);
+                        },
+                      },
+                      {
+                        key: 'source',
+                        label: t('appPackagesCustomSource'),
+                        icon: <PackagePlus className="h-4 w-4" />,
+                        restoreFocus: false,
+                        onSelect: () => {
+                          lifecycle.reset();
+                          setInstallOpen(true);
+                        },
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <div>
+                  <ContextMenuTrigger>
+                    <Button ref={addButtonRef} type="button" size="sm">
+                      <PackagePlus className="mr-1.5 h-3.5 w-3.5" />
+                      {t('appPackagesBrowse')}
+                      <ChevronDown className="ml-1.5 h-3.5 w-3.5" />
+                    </Button>
+                  </ContextMenuTrigger>
+                </div>
+              </ContextMenu>
+            </div>
           </div>
 
           {lifecycle.isError ? (
-            <div role="alert" className="mb-3 rounded-xl bg-destructive/8 px-3 py-2.5 text-xs leading-5 text-destructive ring-1 ring-destructive/15">
+            <div
+              role="alert"
+              className="mb-3 rounded-xl bg-destructive/8 px-3 py-2.5 text-xs leading-5 text-destructive ring-1 ring-destructive/15"
+            >
               {lifecycle.error instanceof Error ? lifecycle.error.message : t('appPackagesActionFailed')}
             </div>
           ) : null}
@@ -184,14 +189,14 @@ export function AppPackagesPanel({
             focusedPackageId={focusedPackageId}
             isLoading={appPackages.isLoading || panelApps.isLoading}
             isPending={lifecycle.isPending}
-            mutationAppId={'appId' in (lifecycle.variables ?? {})
-              ? (lifecycle.variables as { appId: string }).appId
-              : undefined}
+            mutationAppId={
+              'appId' in (lifecycle.variables ?? {}) ? (lifecycle.variables as { appId: string }).appId : undefined
+            }
             packages={appPackages.data?.entries ?? []}
             panelApps={panelApps.data?.entries ?? []}
             unavailablePackages={panelApps.data?.unavailablePackages ?? []}
             operations={operations}
-            onInstall={() => setInstallOpen(true)}
+            onInstall={() => setMarketplaceOpen(true)}
             onMutate={runMutation}
             onOpenPanelApp={(entry) => void openPanelApp(entry)}
           />
@@ -206,26 +211,33 @@ export function AppPackagesPanel({
       </div>
 
       <AppMarketplaceDialog
+        onFocusReturn={() => addButtonRef.current?.focus()}
         error={lifecycle.error instanceof Error ? lifecycle.error : null}
         hostTarget={appPackages.data?.hostTarget}
         installedPackages={appPackages.data?.entries ?? []}
-        startingSource={lifecycle.variables?.action === 'install'
-          ? lifecycle.variables.source
-          : undefined}
+        startingSource={lifecycle.variables?.action === 'install' ? lifecycle.variables.source : undefined}
         isStarting={lifecycle.isPending}
         operations={operations}
         open={marketplaceOpen}
         onOpenChange={setMarketplaceOpen}
-        onInstall={(source, registryUrl) => runMutation({
-          action: 'install',
-          source,
-          registryUrl,
-        })}
+        onInstall={(source, registryUrl) =>
+          runMutation({
+            action: 'install',
+            source,
+            registryUrl,
+          })
+        }
         onUpdate={(appId) => runMutation({ action: 'update', appId })}
       />
 
       <Dialog open={installOpen} onOpenChange={setInstallOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent
+          className="max-w-md"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            addButtonRef.current?.focus();
+          }}
+        >
           <form onSubmit={submitInstall}>
             <DialogHeader showClose={false}>
               <DialogTitle>{t('appPackagesInstallTitle')}</DialogTitle>
@@ -299,7 +311,7 @@ function AppPackageLibrary({
 }) {
   if (isLoading) {
     return (
-      <div className="space-y-2.5" aria-label={t('appPackagesLoading')}>
+      <div className="divide-y divide-border/50" aria-label={t('appPackagesLoading')}>
         <Skeleton className="h-44 w-full rounded-2xl" />
         <Skeleton className="h-32 w-full rounded-2xl" />
       </div>
@@ -313,44 +325,50 @@ function AppPackageLibrary({
     );
   }
   if (packages.length === 0) {
-    const activeInstalls = operations.filter((entry) =>
-      entry.action === 'install' && isAppPackageOperationActive(entry.status));
+    const activeInstalls = operations.filter(
+      (entry) => entry.action === 'install' && isAppPackageOperationActive(entry.status),
+    );
     if (activeInstalls.length > 0) {
-      return <div className="space-y-2.5">{activeInstalls.map((operation) => (
-        <PendingInstallCard key={operation.id} operation={operation} />
-      ))}</div>;
+      return (
+        <div className="divide-y divide-border/50">
+          {activeInstalls.map((operation) => (
+            <PendingInstallCard key={operation.id} operation={operation} />
+          ))}
+        </div>
+      );
     }
     return (
       <div className="flex flex-col items-center rounded-2xl border border-dashed border-border px-6 py-10 text-center">
         <PackagePlus className="h-7 w-7 text-muted-foreground" />
         <h2 className="mt-3 text-sm font-semibold text-foreground">{t('appPackagesEmptyTitle')}</h2>
-        <p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">
-          {t('appPackagesEmptyDescription')}
-        </p>
+        <p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">{t('appPackagesEmptyDescription')}</p>
         <Button type="button" size="sm" className="mt-4" onClick={onInstall}>
-          {t('appPackagesInstall')}
+          {t('appPackagesBrowse')}
         </Button>
       </div>
     );
   }
   return (
-    <div className="space-y-2.5">
-      {operations.filter((entry) =>
-        entry.action === 'install' &&
-        isAppPackageOperationActive(entry.status) &&
-        !packages.some((appPackage) => appPackage.id === entry.appId),
-      ).map((operation) => (
-        <PendingInstallCard key={operation.id} operation={operation} />
-      ))}
+    <div className="divide-y divide-border/50">
+      {operations
+        .filter(
+          (entry) =>
+            entry.action === 'install' &&
+            isAppPackageOperationActive(entry.status) &&
+            !packages.some((appPackage) => appPackage.id === entry.appId),
+        )
+        .map((operation) => (
+          <PendingInstallCard key={operation.id} operation={operation} />
+        ))}
       {packages.map((appPackage) => {
         const latestOperation = operations.find((entry) => entry.appId === appPackage.id);
-        const visibleOperation = latestOperation && (
-          isAppPackageOperationActive(latestOperation.status) ||
-          latestOperation.status === 'failed' ||
-          latestOperation.status === 'interrupted'
-        )
-          ? latestOperation
-          : undefined;
+        const visibleOperation =
+          latestOperation &&
+          (isAppPackageOperationActive(latestOperation.status) ||
+            latestOperation.status === 'failed' ||
+            latestOperation.status === 'interrupted')
+            ? latestOperation
+            : undefined;
 
         return (
           <section
@@ -358,18 +376,24 @@ function AppPackageLibrary({
             id={`app-package-${appPackage.id}`}
             aria-label={appPackage.name}
             tabIndex={-1}
-            className={focusedPackageId === appPackage.id
-              ? 'rounded-xl outline-none ring-2 ring-primary/35 ring-offset-2 ring-offset-background'
-              : 'rounded-xl outline-none'}
+            className={
+              focusedPackageId === appPackage.id
+                ? 'rounded-xl outline-none ring-2 ring-primary/35 ring-offset-2 ring-offset-background'
+                : 'outline-none'
+            }
           >
             <AppPackageCard
               appPackage={appPackage}
               unavailableMessage={unavailablePackages.find((entry) => entry.appId === appPackage.id)?.message}
-              storageUsage={appDataEntries.find((entry) =>
-                entry.source === 'package' &&
-                entry.lifecycle === 'active' &&
-                entry.appId === appPackage.id &&
-                entry.instanceId === appPackage.instanceId)?.usage ?? appPackage.storageUsage}
+              storageUsage={
+                appDataEntries.find(
+                  (entry) =>
+                    entry.source === 'package' &&
+                    entry.lifecycle === 'active' &&
+                    entry.appId === appPackage.id &&
+                    entry.instanceId === appPackage.instanceId,
+                )?.usage ?? appPackage.storageUsage
+              }
               storageUsageLoading={appDataLoading}
               storageUsageUnavailable={appDataUnavailable}
               panelApps={panelApps.filter((entry) => entry.packageId === appPackage.id)}
@@ -378,16 +402,20 @@ function AppPackageLibrary({
               onEnable={() => onMutate({ action: 'enable', appId: appPackage.id })}
               onDisable={() => onMutate({ action: 'disable', appId: appPackage.id })}
               onUpdate={() => onMutate({ action: 'update', appId: appPackage.id })}
-              onRollback={(version) => onMutate({
-                action: 'rollback',
-                appId: appPackage.id,
-                version,
-              })}
-              onUninstall={(purgeData) => onMutate({
-                action: 'uninstall',
-                appId: appPackage.id,
-                purgeData,
-              })}
+              onRollback={(version) =>
+                onMutate({
+                  action: 'rollback',
+                  appId: appPackage.id,
+                  version,
+                })
+              }
+              onUninstall={(purgeData) =>
+                onMutate({
+                  action: 'uninstall',
+                  appId: appPackage.id,
+                  purgeData,
+                })
+              }
               onOpenPanelApp={onOpenPanelApp}
             />
           </section>
@@ -401,7 +429,11 @@ function PendingInstallCard({ operation }: { operation: AppPackageOperationView 
   const label = operation.appId ?? operation.source ?? t('appPackagesInstall');
   const progress = Math.max(4, Math.round((operation.completedSteps / operation.totalSteps) * 100));
   return (
-    <div className="rounded-xl border border-border/60 bg-card px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.025)]" role="status" aria-live="polite">
+    <div
+      className="rounded-xl border border-border/60 bg-card px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.025)]"
+      role="status"
+      aria-live="polite"
+    >
       <div className="flex items-center gap-3">
         <AppArtwork name={label} />
         <div className="min-w-0 flex-1">
@@ -413,7 +445,10 @@ function PendingInstallCard({ operation }: { operation: AppPackageOperationView 
         </div>
       </div>
       <div className="ml-14 mt-2 h-1 overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${progress}%` }} />
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-300"
+          style={{ width: `${progress}%` }}
+        />
       </div>
     </div>
   );
@@ -421,15 +456,23 @@ function PendingInstallCard({ operation }: { operation: AppPackageOperationView 
 
 function operationProgressLabel(operation: AppPackageOperationView): string {
   switch (operation.status) {
-    case 'queued': return t('appPackagesPreparing');
-    case 'resolving': return t('appPackagesResolving');
-    case 'downloading': return t('appPackagesDownloading');
-    case 'verifying': return t('appPackagesVerifying');
-    case 'installing': return t('appPackagesInstalling');
-    case 'finalizing': return t('appPackagesFinalizing');
-    case 'succeeded': return t('appPackagesCompleted');
+    case 'queued':
+      return t('appPackagesPreparing');
+    case 'resolving':
+      return t('appPackagesResolving');
+    case 'downloading':
+      return t('appPackagesDownloading');
+    case 'verifying':
+      return t('appPackagesVerifying');
+    case 'installing':
+      return t('appPackagesInstalling');
+    case 'finalizing':
+      return t('appPackagesFinalizing');
+    case 'succeeded':
+      return t('appPackagesCompleted');
     case 'failed':
-    case 'interrupted': return operation.error ?? t('appPackagesActionFailed');
+    case 'interrupted':
+      return operation.error ?? t('appPackagesActionFailed');
   }
 }
 

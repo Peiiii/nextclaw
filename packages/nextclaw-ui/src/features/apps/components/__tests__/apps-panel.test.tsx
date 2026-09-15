@@ -41,7 +41,6 @@ describe('AppsPanel', () => {
 
     const navigation = screen.getByRole('tablist');
     expect(navigation.className).toContain('w-full');
-    expect(navigation.className).toContain('max-w-[390px]');
 
     await user.click(screen.getByRole('tab', { name: 'panelAppsTitle' }));
     expect(screen.getByText('panel-apps-content')).toBeTruthy();

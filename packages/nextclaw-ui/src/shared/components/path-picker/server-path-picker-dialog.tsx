@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ComponentProps } from 'react';
 import { Search } from 'lucide-react';
 import { useServerPathBrowse } from '@/shared/hooks/use-server-path-browse';
 import { useServerPathCreateDirectory } from '@/shared/hooks/use-server-path-create-directory';
@@ -25,6 +25,7 @@ type ServerPathPickerDialogProps = {
   defaultWorkspacePath?: string | null;
   isSaving: boolean;
   onOpenChange: (open: boolean) => void;
+  onCloseAutoFocus?: ComponentProps<typeof DialogContent>['onCloseAutoFocus'];
   onConfirm: (path: string) => Promise<void> | void;
   title: string;
   description?: string;
@@ -57,6 +58,7 @@ export function ServerPathPickerDialog({
   defaultWorkspacePath,
   isSaving,
   onOpenChange,
+  onCloseAutoFocus,
   onConfirm,
   title,
   description,
@@ -79,7 +81,7 @@ export function ServerPathPickerDialog({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="max-h-[92vh] overflow-hidden p-0 sm:h-[44rem] sm:max-w-5xl sm:grid-rows-[auto_minmax(0,1fr)]">
+      <DialogContent onCloseAutoFocus={onCloseAutoFocus} className="max-h-[92vh] overflow-hidden p-0 sm:h-[44rem] sm:max-w-5xl sm:grid-rows-[auto_minmax(0,1fr)]">
         <DialogHeader className="border-b border-border px-5 py-4">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className={description ? undefined : 'sr-only'}>

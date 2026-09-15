@@ -34,9 +34,9 @@ export function AppsPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-card text-card-foreground">
-      <nav className="shrink-0 border-b border-border/70 px-4 py-3" aria-label={t('appsTitle')}>
+      <nav className="shrink-0 border-b border-border/60 px-3 py-2" aria-label={t('appsTitle')}>
         <Tabs value={activeTab} onValueChange={(value) => changeTab(value as AppsPanelTab)}>
-          <TabsList className="grid h-auto w-full max-w-[390px] grid-cols-3 rounded-lg bg-muted/70 p-0.5">
+          <TabsList className="grid h-auto w-full max-w-[340px] grid-cols-3 rounded-lg bg-transparent p-0.5">
             <TabsTrigger value="apps" className="min-w-0 gap-1.5 px-2 py-1.5 text-xs">
               <Boxes className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{t('appsTitle')}</span>
