@@ -1,4 +1,6 @@
 import type { ChatMessageMoreActionsViewModel } from "@nextclaw/agent-chat-ui";
+import { createElement } from "react";
+import { Zap } from "lucide-react";
 import {
   readNcpAiExecutionMetadata,
   readNcpRunTriggerMetadata,
@@ -106,6 +108,7 @@ export function buildChatMessageTriggerDetails(params: {
     triggerLabel: labels.moreActions,
     items: [{
       key: "run-trigger-metadata",
+      icon: createElement(Zap, { className: "h-4 w-4" }),
       label: labels.viewTrigger,
       dialog: {
         title: labels.title,

@@ -112,7 +112,7 @@ export function DocBrowserTabStrip({
             <span className="truncate">{current?.title || t('docBrowserTabUntitled')}</span><ChevronDown className="h-4 w-4 shrink-0" />
           </button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="max-h-[70dvh] w-72 overflow-y-auto p-1">
+        <PopoverContent align="start" variant="menu" className="max-h-[70dvh]">
           <ContextMenuItems groups={mobileGroups} onClose={() => setMobileMenuOpen(false)} />
           {mobileToolbar}
         </PopoverContent>

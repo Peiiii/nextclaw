@@ -1,4 +1,6 @@
 import type { ChatMessageMoreActionsViewModel } from "@nextclaw/agent-chat-ui";
+import { createElement } from "react";
+import { Braces } from "lucide-react";
 import {
   readNcpAiExecutionMetadata,
   type NcpAiExecutionMetadata,
@@ -159,6 +161,7 @@ export function buildChatMessageExecutionPresentation(params: {
       items: [
         {
           key: "ai-execution-metadata",
+          icon: createElement(Braces, { className: "h-4 w-4" }),
           label: labels.viewMetadata,
           dialog: {
             title: labels.metadataTitle,

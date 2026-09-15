@@ -1,3 +1,4 @@
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
 import { useMemo, useState } from 'react';
 import { KeyRound, MoreVertical, Plus, Search, Trash2 } from 'lucide-react';
 import {
@@ -307,10 +308,10 @@ export function ProvidersConfigPage() {
                             <MoreVertical className='h-4 w-4' />
                           </button>
                         </PopoverTrigger>
-                        <PopoverContent className='w-40 p-1' align='end' onClick={(event) => event.stopPropagation()}>
+                        <PopoverContent variant='menu' align='end' onClick={(event) => event.stopPropagation()}>
                           <button
                             type='button'
-                            className='flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-red-600 hover:bg-destructive/10'
+                            className={`${ACTION_MENU_ITEM_CLASS} ${ACTION_FEEDBACK.destructive}`}
                             onClick={() => setProviderToDelete(provider.providerId)}
                           >
                             <Trash2 className='h-4 w-4' />

@@ -1,3 +1,4 @@
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
 import { NavLink } from "react-router-dom";
 import {
   Popover,
@@ -112,13 +113,13 @@ export function ChatSidebarUtilityMenu({
       <ChatPopoverContent
         side={collapsed ? "right" : "top"}
         align={collapsed ? "end" : "start"}
-        className="w-64 p-2"
+        variant="menu"
       >
-        <div className="space-y-1">
+        <div>
           <NavLink
             to="/settings"
             onClick={() => onOpenChange(false)}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-gray-900"
+            className={`${ACTION_MENU_ITEM_CLASS} text-foreground ${ACTION_FEEDBACK.item}`}
           >
             <Settings className="h-4 w-4 text-muted-foreground/70" />
             <span className="flex-1 text-left">{t("settings")}</span>
@@ -134,7 +135,7 @@ export function ChatSidebarUtilityMenu({
                 action();
                 onOpenChange(false);
               }}
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-gray-900"
+              className={`${ACTION_MENU_ITEM_CLASS} text-foreground ${ACTION_FEEDBACK.item}`}
             >
               <Icon className="h-4 w-4 text-muted-foreground/70" />
               <span className="flex-1 text-left">{label}</span>
@@ -142,7 +143,7 @@ export function ChatSidebarUtilityMenu({
           ))}
         </div>
 
-        <div className="my-2 h-px bg-border" />
+        <div className="my-1 h-px bg-border" />
 
         <ChatSidebarUtilitySelect
           icon={Palette}
@@ -197,10 +198,10 @@ function ChatSidebarUtilitySelect<Value extends string>({
     >
       <SelectTrigger
         aria-label={label}
-        className="h-auto w-full rounded-lg border-0 bg-transparent px-3 py-2 text-[13px] font-medium text-foreground shadow-none hover:bg-[var(--interaction-hover)] hover:text-gray-900 focus:ring-0"
+        className={`${ACTION_MENU_ITEM_CLASS} h-auto border-0 bg-transparent text-foreground shadow-none focus:ring-0 ${ACTION_FEEDBACK.item}`}
         indicator={<ChevronRight className="h-4 w-4 text-muted-foreground/70" />}
       >
-        <div className="flex min-w-0 items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2">
           <Icon className="h-4 w-4 shrink-0 text-muted-foreground/70" />
           <span className="text-left">{label}</span>
         </div>
