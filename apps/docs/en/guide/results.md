@@ -16,6 +16,8 @@ The right workspace exposes project files, open files, subtasks, and scheduled j
 
 ### File previews
 
+The tab strip scrolls horizontally with a slim scrollbar that keeps its thickness on hover. Action tooltips prefer the space above their buttons and reposition when space is limited.
+
 Open Markdown, code, HTML, documents, spreadsheets, and presentations without leaving the task. HTML can be inspected as source or rendered output, and code changes can be reviewed as diffs.
 
 ![An HTML data report open beside its NextClaw session](/product-screenshots/nextclaw-workspace-preview-en.png)

@@ -16,6 +16,8 @@ NextClaw 的结果不只是一段聊天回复。一个任务可能同时交付�
 
 ### 文件预览
 
+标签栏支持横向滚动，滚动条悬停时保持细度。操作提示优先显示在按钮上方，空间不足时自动调整位置。
+
 Markdown、代码、HTML、文档、表格和演示文稿可以直接打开。HTML 既可以看源码，也可以看实际渲染结果；代码修改可以结合差异查看。
 
 ![在会话旁查看 HTML 数据报告](/product-screenshots/nextclaw-workspace-preview-cn.png)

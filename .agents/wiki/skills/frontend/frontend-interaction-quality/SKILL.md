@@ -24,7 +24,7 @@ NextClaw 的界面与交互以至少达到 ChatGPT 的成熟度为默认质量�
 - 禁止交互元素嵌套、clickable span 和伪语义。普通文本链接默认态就有链接线索；按钮式链接只用于明确 CTA/下载/鉴权/卡片操作，底层仍保持链接语义。
 - 外链/方向图标只在语义成立时使用。重复导航收敛到 shared primitive，统一焦点、target/rel 和桌面宿主行为。
 - icon-only 控件同时提供可访问名称、tooltip/popover 和 focus-visible；tooltip 在 floating/fullscreen/portal 中仍可见。disabled 控件需要解释原因时，用可触发 tooltip 的 wrapper。
-- 行内操作 tooltip 优先上方，由 primitive 避让；纵向图标栏可侧向提示，不遮挡同级内容。
+- 操作 tooltip 默认上方、不足时避让；纵向栏可侧向。标签滚动条固定细度，hover 不增粗。
 - modal overlay/content 都高于触发面板，content 高于 overlay，不能只有遮罩可见。
 - 标题内边距归共享 Header：`DialogHeader` 或 `WorkbenchSurface title/moreActions`；不借导航槽、不加竖线。验收窄屏长标题、顺序、命中。
 - 紧凑模式保留操作含义或当前值；直接动作优先 tooltip，选项/二级动作优先 popover/menu/select。

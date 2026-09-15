@@ -46,3 +46,9 @@
 - 隔离 UI 普通 `tsc` 通过。初始缺失 Server 类型声明；源码 condition 不能单独解析 Server 内部 alias。最终只复用核对过来源和时间的 11 个声明文件：映射源码与隔离目录一致，仅 SessionManager 存在已审查的不改变声明的私有方法体差异；不复制运行 JS 或 node_modules，不触发后端构建。
 - `http://127.0.0.1:5186` 使用本 worktree UI 和既有兼容 API：从侧栏会话菜单实际悬浮打开，确认普通、收起/展开、375px 窄屏和 work/night 主题。标题左内边距 12px（含边框测量 13px）；更多始终紧邻关闭之前，窄屏右端不溢出。已恢复浏览器桌面视口与 work 主题。
 - 用户已授权本批修复后合入 `master` 并推送；不执行产品发布。UI 和规范共用既有 owner，无新增 skill 或发现入口，未建立额外全局治理脚本。
+
+### 标签提示与滚动条补充
+
+- tooltip 默认方向收敛到 `TooltipContent` 的 top，删除 IconActionButton 和标签标题的 bottom 默认值，保留显式方向及 Radix 碰撞避让。标签滚动样式归 CompactTabStrip；Chromium/WebKit 使用固定 2px，其他引擎保留原生 thin 回退。Island 通过颜色变量定制，不再覆盖原生 scrollbar-color；hover 规则只改变颜色。
+- 实际浏览器浮窗中新建标签提示为 top，贴顶停靠时为 bottom；截图渲染正常。两标签溢出宽度 218px / 可视 123px，scrollLeft 可从 0 移至 95，计算滚动条高度为 2px。未直接自动命中原生滑块的 hover，固定尺寸依据 CSS 规则及渲染检查；非 Chromium 引擎未运行验证。
+- UI tsc、图标按钮与标签组件 10 项回归、targeted ESLint、diff-only 维护性、渐进加载、代码治理和 backlog ratchet 通过。更新既有前端 skill、中英文用户说明及同批 changeset，无新增规则 owner。
