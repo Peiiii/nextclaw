@@ -198,4 +198,37 @@ describe('useSessionConversationInputState session preferences', () => {
     rerender({ sessionKey: null });
     expect(result.current.inputSnapshot.text).toBe('新会话草稿');
   });
+
+  it('keeps a successfully cleared draft empty after switching away and back', () => {
+    const { result, rerender } = renderHook(
+      ({ sessionKey }: { sessionKey: string }) =>
+        useSessionConversationInputState(null, sessionKey),
+      { initialProps: { sessionKey: 'session-sent' } },
+    );
+
+    act(() => {
+      result.current.inputActions.syncComposer({
+        text: '已经发送的消息',
+        nodes: [],
+        selectedSkills: [],
+        skillRecords: [],
+      });
+      result.current.inputActions.resetComposer();
+    });
+    rerender({ sessionKey: 'session-unsent' });
+    act(() => {
+      result.current.inputActions.syncComposer({
+        text: '仍未发送的草稿',
+        nodes: [],
+        selectedSkills: [],
+        skillRecords: [],
+      });
+    });
+
+    rerender({ sessionKey: 'session-sent' });
+    expect(result.current.inputSnapshot.text).toBe('');
+
+    rerender({ sessionKey: 'session-unsent' });
+    expect(result.current.inputSnapshot.text).toBe('仍未发送的草稿');
+  });
 });

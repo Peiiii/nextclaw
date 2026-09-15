@@ -18,6 +18,8 @@ On phones, your messages hide the user avatar to leave more room for content. De
 
 Continue the current session when you are refining its files, asking more questions about the same sources, adding the next step, or relying on decisions already confirmed there.
 
+Each session keeps its own unsent composer draft, so you can switch sessions or refresh and continue editing. After a message is sent successfully, the composer and its saved draft are cleared and the sent content does not return when you reopen the session. A failed send keeps the complete draft for editing or retrying.
+
 ## Processing details
 
 After a reply ends, reasoning and tool activity can collapse into a “Processed” summary. Failed runs show “Failed”; runs with a recorded stop show “Stopped”. The summary shows only status and recorded elapsed time, such as “Processed 2m 7s”, without tool counts or tool names. Click it to expand processing details. When the run records its start and end times, elapsed time remains available after a refresh. Older messages without timing records do not show an estimated duration.

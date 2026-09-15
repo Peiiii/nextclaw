@@ -1,7 +1,8 @@
 import type { LexicalEditor } from 'lexical';
 import type { ChatComposerDictationSession, ChatComposerNode } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import { replaceChatComposerSelectionWithText, type ChatComposerEditorSnapshot } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-adapter';
-import type { ChatComposerLexicalOwner, ChatComposerLexicalOwnerCallbacks } from './chat-composer-lexical-owner';
+import type { ChatComposerLexicalOwner } from './chat-composer-lexical-owner';
+import type { ChatComposerLexicalOwnerCallbacks } from './chat-composer-lexical-owner.types';
 
 /** Owns one reversible edit; completed instances ignore all late recognition results. */
 export class ChatComposerDictationOwner implements ChatComposerDictationSession {
