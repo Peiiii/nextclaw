@@ -1,5 +1,6 @@
+import { useRef, type RefObject } from 'react';
 import type { AppPackageHostTarget, AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
-import { ChevronRight, Search, Sparkles } from 'lucide-react';
+import { ChevronRight, Search, Sparkles, PackagePlus, X } from 'lucide-react';
 import { AppArtwork } from '@/features/apps/components/app-artwork';
 import { AppMarketplaceCover } from '@/features/apps/components/app-marketplace-cover';
 import {
@@ -17,11 +18,8 @@ import {
   resolveAppMarketplaceInstallability,
 } from '@/features/apps/utils/app-marketplace-platform.utils';
 import { pickLocalizedText } from '@/features/marketplace';
-import {
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/shared/components/ui/dialog';
+import { Button } from '@/shared/components/ui/button';
+import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { Input } from '@/shared/components/ui/input';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { getLanguage, t } from '@/shared/lib/i18n';
@@ -31,10 +29,13 @@ export type MarketplaceFilter = 'all' | 'featured' | 'personal' | 'local';
 
 export function AppMarketplaceCatalog({
   error,
+  onCustomInstall,
+  sourceButtonRef,
   filter,
   hostTarget,
   installedById,
   isError,
+  onRetry,
   isFetchingNextPage,
   isLoading,
   isStarting,
@@ -46,16 +47,20 @@ export function AppMarketplaceCatalog({
   onSearchChange,
   onSelect,
   onUpdate,
+  onManagePackage,
   operations,
   hasNextPage,
   search,
   startingSource,
 }: {
   error: Error | null;
+  onCustomInstall?: () => void;
+  sourceButtonRef?: RefObject<HTMLButtonElement>;
   filter: MarketplaceFilter;
   hostTarget?: AppPackageHostTarget;
   installedById: Map<string, AppPackageView>;
   isError: boolean;
+  onRetry?: () => void;
   isFetchingNextPage: boolean;
   isLoading: boolean;
   isStarting: boolean;
@@ -67,20 +72,24 @@ export function AppMarketplaceCatalog({
   onSearchChange: (value: string) => void;
   onSelect: (slug: string) => void;
   onUpdate: (appId: string) => void;
+  onManagePackage?: (appId: string) => void;
   operations: AppPackageOperationView[];
   hasNextPage: boolean;
   search: string;
   startingSource?: string;
 }) {
+  const scrollArea = useRef<HTMLDivElement>(null);
   return (
     <>
       <MarketplaceCatalogHeader
+        onCustomInstall={onCustomInstall}
+        sourceButtonRef={sourceButtonRef}
         filter={filter}
-        onFilterChange={onFilterChange}
-        onSearchChange={onSearchChange}
+        onFilterChange={(value) => { if (scrollArea.current) scrollArea.current.scrollTop = 0; onFilterChange(value); }}
+        onSearchChange={(value) => { if (scrollArea.current) scrollArea.current.scrollTop = 0; onSearchChange(value); }}
         search={search}
       />
-      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto bg-background px-4 py-4 sm:px-6 sm:py-5">
+      <div ref={scrollArea} className="custom-scrollbar min-h-0 flex-1 overflow-y-auto bg-background px-4 py-5 [@container(min-width:40rem)]:px-6">
         {error ? (
           <div role="alert" className="mb-2 rounded-xl bg-destructive/8 px-3 py-2.5 text-xs leading-5 text-destructive ring-1 ring-destructive/15">
             {error.message || t('appPackagesActionFailed')}
@@ -90,6 +99,7 @@ export function AppMarketplaceCatalog({
           installedById={installedById}
           hostTarget={hostTarget}
           isError={isError}
+          onRetry={onRetry}
           isFetchingNextPage={isFetchingNextPage}
           isLoading={isLoading}
           isStarting={isStarting}
@@ -99,6 +109,7 @@ export function AppMarketplaceCatalog({
           onLoadMore={onLoadMore}
           onSelect={onSelect}
           onUpdate={onUpdate}
+          onManagePackage={onManagePackage}
           operations={operations}
           hasNextPage={hasNextPage}
           startingSource={startingSource}
@@ -109,11 +120,15 @@ export function AppMarketplaceCatalog({
 }
 
 function MarketplaceCatalogHeader({
+  onCustomInstall,
+  sourceButtonRef,
   filter,
   onFilterChange,
   onSearchChange,
   search,
 }: {
+  onCustomInstall?: () => void;
+  sourceButtonRef?: RefObject<HTMLButtonElement>;
   filter: MarketplaceFilter;
   onFilterChange: (value: MarketplaceFilter) => void;
   onSearchChange: (value: string) => void;
@@ -126,40 +141,42 @@ function MarketplaceCatalogHeader({
     { value: 'local', label: t('appPackagesFilterLocal') },
   ];
   return (
-    <div className="shrink-0 border-b border-border/60 bg-card px-5 pb-3.5 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-6 sm:pt-5">
-      <DialogHeader>
-        <DialogTitle className="text-xl">{t('appPackagesMarketplaceTitle')}</DialogTitle>
-        <DialogDescription className="max-w-xl leading-5">
-          {t('appPackagesMarketplaceDescription')}
-        </DialogDescription>
-      </DialogHeader>
+    <div className="shrink-0 border-b border-border/60 bg-card px-4 pb-4 pt-5 [@container(min-width:40rem)]:px-6">
+      <div className="mx-auto max-w-[872px]">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold tracking-tight">{t('appPackagesMarketplaceTitle')}</h1>
+        {onCustomInstall ? <IconActionButton ref={sourceButtonRef} icon={<PackagePlus className="h-4 w-4" />} label={t('appPackagesCustomSource')} onClick={onCustomInstall} /> : null}
+      </div>
+      <p className="mt-1.5 text-sm leading-5 text-muted-foreground">{t('appPackagesMarketplaceDescription')}</p>
       <div className="relative mt-4">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          autoFocus
-          className="h-10 rounded-xl border-transparent bg-muted/65 pl-9 shadow-none focus-visible:ring-1"
+          className="h-10 rounded-xl border-0 bg-muted/65 pl-9 pr-10 ![box-shadow:none]"
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={t('appPackagesMarketplaceSearch')}
           aria-label={t('appPackagesMarketplaceSearch')}
         />
+        {search ? <div className="absolute right-1 top-1/2 -translate-y-1/2"><IconActionButton icon={<X className="h-3.5 w-3.5" />} label={t('appPackagesClearSearch')} onClick={() => onSearchChange('')} /></div> : null}
       </div>
-      <div className="mt-3 flex gap-1 overflow-x-auto" aria-label={t('appPackagesFilterLabel')}>
+      <div className="custom-scrollbar mt-3 flex gap-1 overflow-x-auto" aria-label={t('appPackagesFilterLabel')}>
         {filters.map((entry) => (
           <button
             key={entry.value}
             type="button"
+            aria-pressed={filter === entry.value}
             onClick={() => onFilterChange(entry.value)}
             className={cn(
               'shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border',
               filter === entry.value
-                ? 'bg-foreground text-background'
+                ? 'bg-[var(--interaction-selection)] text-foreground'
                 : 'text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-foreground',
             )}
           >
             {entry.label}
           </button>
         ))}
+      </div>
       </div>
     </div>
   );
@@ -169,6 +186,7 @@ function MarketplaceCatalogContent({
   installedById,
   hostTarget,
   isError,
+  onRetry,
   isFetchingNextPage,
   isLoading,
   isStarting,
@@ -178,6 +196,7 @@ function MarketplaceCatalogContent({
   onLoadMore,
   onSelect,
   onUpdate,
+  onManagePackage,
   operations,
   hasNextPage,
   startingSource,
@@ -185,6 +204,7 @@ function MarketplaceCatalogContent({
   installedById: Map<string, AppPackageView>;
   hostTarget?: AppPackageHostTarget;
   isError: boolean;
+  onRetry?: () => void;
   isFetchingNextPage: boolean;
   isLoading: boolean;
   isStarting: boolean;
@@ -194,16 +214,17 @@ function MarketplaceCatalogContent({
   onLoadMore: () => void;
   onSelect: (slug: string) => void;
   onUpdate: (appId: string) => void;
+  onManagePackage?: (appId: string) => void;
   operations: AppPackageOperationView[];
   hasNextPage: boolean;
   startingSource?: string;
 }) {
   if (isLoading) {
     return (
-      <div className="grid gap-3 sm:grid-cols-2 min-[820px]:grid-cols-3" aria-label={t('appPackagesMarketplaceLoading')}>
+      <div className="mx-auto grid max-w-[872px] gap-4 [@container(min-width:36rem)]:grid-cols-2 [@container(min-width:52rem)]:grid-cols-3" aria-label={t('appPackagesMarketplaceLoading')}>
         <Skeleton className="aspect-[16/9] w-full rounded-2xl" />
         <Skeleton className="aspect-[16/9] w-full rounded-2xl" />
-        <Skeleton className="hidden aspect-[16/9] w-full rounded-2xl min-[820px]:block" />
+        <Skeleton className="hidden aspect-[16/9] w-full rounded-2xl [@container(min-width:52rem)]:block" />
       </div>
     );
   }
@@ -211,6 +232,7 @@ function MarketplaceCatalogContent({
     return (
       <div role="alert" className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-5 text-sm text-destructive">
         {t('appPackagesMarketplaceFailed')}
+        {onRetry ? <Button className="mt-3 block" variant="outline" size="sm" onClick={onRetry}>{t('appPackagesRefresh')}</Button> : null}
       </div>
     );
   }
@@ -226,8 +248,8 @@ function MarketplaceCatalogContent({
     );
   }
   return (
-    <div>
-      <div className="grid gap-3 sm:grid-cols-2 min-[820px]:grid-cols-3">
+    <div className="mx-auto w-full max-w-[872px]">
+      <div className="grid gap-1 [@container(min-width:36rem)]:gap-4 [@container(min-width:36rem)]:grid-cols-2 [@container(min-width:52rem)]:grid-cols-3">
         {items.map((item) => (
           <MarketplaceCatalogCard
             key={item.id}
@@ -239,6 +261,7 @@ function MarketplaceCatalogContent({
             onInstall={onInstall}
             onSelect={onSelect}
             onUpdate={onUpdate}
+            onManagePackage={onManagePackage}
             operation={findLatestAppPackageOperation(operations, item.appId, item.install.spec)}
           />
         ))}
@@ -268,6 +291,7 @@ function MarketplaceCatalogCard({
   onInstall,
   onSelect,
   onUpdate,
+  onManagePackage,
   operation,
 }: {
   installedPackage?: AppPackageView;
@@ -278,6 +302,7 @@ function MarketplaceCatalogCard({
   onInstall: (source: string, registryUrl: string) => void;
   onSelect: (slug: string) => void;
   onUpdate: (appId: string) => void;
+  onManagePackage?: (appId: string) => void;
   operation?: AppPackageOperationView;
 }) {
   const displayName = installedPackage
@@ -298,16 +323,17 @@ function MarketplaceCatalogCard({
   );
   const blockAction = Boolean(compatibility && (!installedPackage || canUpdate));
   return (
-    <article className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-border hover:shadow-lg">
+    <article className="group relative overflow-hidden rounded-lg bg-card transition-colors duration-150 hover:bg-[var(--interaction-hover)] [@container(min-width:36rem)]:rounded-2xl [@container(min-width:36rem)]:border [@container(min-width:36rem)]:border-border/60 [@container(min-width:36rem)]:shadow-sm">
       <button
         type="button"
         onClick={() => onSelect(item.slug)}
-        className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        aria-label={displayName}
+        className="hidden w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [@container(min-width:36rem)]:block"
       >
-        <AppMarketplaceCover accentColor={item.accentColor} coverPreview={item.coverPreview} coverUrl={item.coverUrl} name={displayName} className="aspect-[16/9] rounded-none ring-0" />
+        <AppMarketplaceCover icon={item.iconUrl ?? installedPackage?.icon} accentColor={item.accentColor} coverPreview={item.coverPreview} coverUrl={item.coverUrl} name={displayName} className="aspect-[16/9] rounded-none ring-0" />
       </button>
-      <div className="p-3.5">
-        <div className="flex items-start gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 px-2 py-3 [@container(min-width:36rem)]:block [@container(min-width:36rem)]:p-3.5">
+        <div className="flex min-w-0 items-start gap-2.5">
           <AppArtwork icon={item.iconUrl ?? installedPackage?.icon} name={displayName} className="h-11 w-11 rounded-[13px]" />
           <button
             type="button"
@@ -319,24 +345,25 @@ function MarketplaceCatalogCard({
               {item.featured ? <Sparkles className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label={t('appPackagesMarketplaceFeatured')} /> : null}
             </span>
             <MarketplaceCompatibilityBadge presentation={compatibility} />
-            <span className="mt-1 line-clamp-2 block min-h-10 text-xs leading-5 text-muted-foreground">{summary}</span>
-            <span className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground/75">
-              <span>{item.publisher.name}</span>
-              <span aria-hidden="true">·</span>
-              <span>v{item.latestVersion}</span>
-              <span aria-hidden="true">·</span>
-              <span>{supportedPlatforms}</span>
+            <span className="mt-1 block truncate text-xs leading-5 text-muted-foreground [@container(min-width:36rem)]:line-clamp-2 [@container(min-width:36rem)]:min-h-10 [@container(min-width:36rem)]:whitespace-normal">{summary}</span>
+            <span className="mt-1 flex items-center gap-1.5 overflow-hidden text-[11px] text-muted-foreground [@container(min-width:36rem)]:mt-2 [@container(min-width:36rem)]:flex-wrap">
+              <span className="truncate">{item.publisher.name}</span>
+              <span aria-hidden="true" className="hidden [@container(min-width:36rem)]:inline">·</span>
+              <span className="hidden [@container(min-width:36rem)]:inline">v{item.latestVersion}</span>
+              <span aria-hidden="true" className="hidden [@container(min-width:36rem)]:inline">·</span>
+              <span className="hidden [@container(min-width:36rem)]:inline">{supportedPlatforms}</span>
               <ChevronRight className="ml-0.5 h-3 w-3 opacity-0 transition-opacity group-hover:opacity-60" />
             </span>
           </button>
         </div>
-        <div className="mt-3 flex items-center justify-between gap-3 border-t border-border/50 pt-3">
+        <div className="flex shrink-0 items-center justify-end gap-2 [@container(min-width:36rem)]:mt-3 [@container(min-width:36rem)]:border-t [@container(min-width:36rem)]:border-border/50 [@container(min-width:36rem)]:pt-3">
           <MarketplaceCompatibilityStatus
             blocked={blockAction}
             presentation={compatibility}
-            className="min-w-0 text-[11px] font-medium text-muted-foreground"
+            className="hidden min-w-0 text-[11px] font-medium text-muted-foreground [@container(min-width:36rem)]:block"
           />
           <MarketplaceInstallButton
+            onInstalled={onManagePackage ? () => onManagePackage(item.appId) : undefined}
             active={active}
             canUpdate={canUpdate}
             installed={Boolean(installedPackage)}
@@ -350,7 +377,7 @@ function MarketplaceCatalogCard({
           />
         </div>
       </div>
-      {operation && !blockAction && active ? <div className="px-4 pb-4"><OperationProgress operation={operation} /></div> : null}
+      {operation && !blockAction && (active || operation.status === 'failed' || operation.status === 'interrupted') ? <div className="px-4 pb-4"><OperationProgress operation={operation} /></div> : null}
     </article>
   );
 }

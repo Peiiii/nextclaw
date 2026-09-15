@@ -42,15 +42,16 @@ export function createChatUiResourceReferenceFromTab(
   });
 }
 
-export type RightPanelAppsTab = 'apps' | 'panel-apps' | 'service-apps';
+export type RightPanelAppsTab = 'apps' | 'panel-apps' | 'service-apps' | 'marketplace';
 
 const DEFAULT_RIGHT_PANEL_APPS_TAB: RightPanelAppsTab = 'apps';
 
 function isRightPanelAppsTab(value: unknown): value is RightPanelAppsTab {
-  return value === 'apps' || value === 'panel-apps' || value === 'service-apps';
+  return value === 'apps' || value === 'panel-apps' || value === 'service-apps' || value === 'marketplace';
 }
 
 export function createRightPanelAppsUrl(tab: RightPanelAppsTab = DEFAULT_RIGHT_PANEL_APPS_TAB): string {
+  if (tab === 'marketplace') return `${RIGHT_PANEL_APPS_URL}?tab=marketplace`;
   if (tab === 'panel-apps') return RIGHT_PANEL_PANEL_APPS_URL;
   if (tab === 'service-apps') return RIGHT_PANEL_SERVICE_APPS_URL;
   return RIGHT_PANEL_APPS_URL;

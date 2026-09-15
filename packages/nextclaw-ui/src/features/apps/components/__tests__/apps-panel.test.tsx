@@ -40,10 +40,13 @@ describe('AppsPanel', () => {
     render(<AppsPanelHarness />);
 
     const navigation = screen.getByRole('tablist');
-    expect(navigation.className).toContain('w-full');
+    expect(navigation.className).toContain('w-max');
 
     await user.click(screen.getByRole('tab', { name: 'panelAppsTitle' }));
     expect(screen.getByText('panel-apps-content')).toBeTruthy();
+    expect(screen.getByRole('tablist')).toBe(navigation);
+    await user.click(screen.getByRole('tab', { name: 'appPackagesMarketplaceTitle' }));
+    expect(screen.getByRole('tab', { name: 'appPackagesMarketplaceTitle' }).getAttribute('aria-selected')).toBe('true');
     expect(screen.getByRole('tablist')).toBe(navigation);
 
     await user.click(screen.getByRole('tab', { name: 'serviceAppsTitle' }));
@@ -55,7 +58,7 @@ describe('AppsPanel', () => {
     const user = userEvent.setup();
     render(<AppsPanelHarness />);
 
-    const firstTab = screen.getByRole('tab', { name: 'appsTitle' });
+    const firstTab = screen.getByRole('tab', { name: 'appPackagesLibraryTitle' });
     firstTab.focus();
     await user.keyboard('{ArrowRight}');
 

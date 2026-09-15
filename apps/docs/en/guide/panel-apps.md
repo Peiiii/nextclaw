@@ -25,7 +25,7 @@ The agent can create a `.panel.html` file or a manifest-backed app and open it f
 
 The Apps page presents installed apps in a compact list. Enabled apps with one panel offer an Open action; apps with several panels expose their individual entries. Select an app name or App details in its menu to inspect its version and data location or manage file and folder access. Disable, update, and uninstall actions live in the same menu.
 
-Use Add apps to browse the marketplace or install from a trusted file path, directory, or app ID. Installation progress and failures remain visible in the list.
+Use **Add apps** to switch to the **App marketplace** tab. Search, browse details, and install there; the top-right **Install from a source** action accepts a trusted file path, directory, or app ID. Installation progress and failures remain visible on the app.
 
 Manage existing Panel Apps from the app list and reference one from the session composer when asking for changes.
 
@@ -62,3 +62,7 @@ nextclaw app data delete <data-id> --confirm <app-id> --json
 The delete command accepts only retained data. Copy the opaque data id from the latest list output and confirm the exact App id; do not delete the storage directory manually.
 
 Related: [Service Apps](/en/guide/service-apps)
+
+### Browse the app marketplace
+
+Open the **App marketplace** tab at the end of the Apps navigation, or choose **Add apps** in **Your apps**. Search and filter apps, read details, and return without losing your search or list position. Installation progress and failures appear on the app; **View installed** takes you to its library entry to open or configure it. Use **Install from a source** at the top right for a trusted path, directory, or app ID. Panels narrower than 576px use compact rows with an icon, short description, and action. Wider panels show cover cards in two or three columns.
