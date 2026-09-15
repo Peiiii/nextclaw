@@ -234,7 +234,9 @@ export class SessionManager implements NcpSessionApi {
     if (isSessionSummaryRefreshEvent(event)) {
       await this.publishSessionChange(sessionId);
     }
-    if (event.type === NcpEventType.RunFinished) void this.titles?.schedule(sessionId);
+    if (event.type === NcpEventType.MessageSent && event.payload.message.role === 'user') {
+      void this.titles?.schedule(sessionId, event.payload.message.id);
+    }
   };
 
   applyGeneratedTitle = async (

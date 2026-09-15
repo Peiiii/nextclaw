@@ -28,25 +28,31 @@ async function waitForCondition(assertion: () => void | Promise<void>): Promise<
 afterEach(cleanupSessionFixtures);
 
 describe("SessionManager", () => {
-  it('generates a title through event ingestion without activity previews claiming the label', async () => {
-    const chat = vi.fn().mockResolvedValue({ content: '{"title":"卡片笔记整理"}' });
+  it('starts title generation from a durable user message before the run finishes', async () => {
+    let finish!: (result: { content: string }) => void;
+    const chat = vi.fn(() => new Promise(resolve => { finish = resolve; }));
     const sessionId = 'title-ingestion';
     const fixture = await createFixture([createRecord({ sessionId, metadata: {
       label: '你好，介绍一下卡片笔记法', label_source: 'fallback', preferred_model: 'test/available',
-    }, messages: [
-      createMessage({ id: 'user', sessionId, text: '你好，介绍一下卡片笔记法' }),
-      createMessage({ id: 'answer', sessionId, role: 'assistant', text: '每张卡片记录一个想法。' }),
-    ] })], createConfig(), { chat } as never);
+    } })], createConfig(), { chat } as never);
     await fixture.manager.start();
     fixture.eventBus.emit(eventKeys.ncpEvent, {
-      type: NcpEventType.RunStarted, payload: { sessionId, runId: 'title-run' },
+      type: NcpEventType.MessageSent, payload: { sessionId, message: {
+        ...createMessage({ id: 'user', sessionId, text: '你好，介绍一下卡片笔记法' }),
+        metadata: { run_spec: { model: 'test/selected' } },
+      } },
     });
     await fixture.manager.flushSessionEvents();
+    await vi.waitFor(() => expect(chat).toHaveBeenCalledWith(expect.objectContaining({
+      model: 'test/selected', requestId: 'user', sessionId,
+    })));
     expect((await fixture.manager.getSessionRecord(sessionId))?.metadata?.label_source).toBe('fallback');
     fixture.eventBus.emit(eventKeys.ncpEvent, {
       type: NcpEventType.RunFinished, payload: { sessionId, runId: 'title-run' },
     });
     await fixture.manager.flushSessionEvents();
+    expect(chat).toHaveBeenCalledOnce();
+    finish({ content: '{"title":"卡片笔记整理"}' });
     await vi.waitFor(async () => expect((await fixture.manager.getSessionRecord(sessionId))?.metadata).toMatchObject({
       label: '卡片笔记整理', label_source: 'generated', last_activity_preview: { state: 'completed' },
     }));
@@ -59,7 +65,7 @@ describe("SessionManager", () => {
     fixture.manager.dispose();
   });
 
-  it('generates titles after a durable completed run and preserves manual edits in flight', async () => {
+  it('generates titles after a durable user input and preserves manual edits in flight', async () => {
     let finish!: (result: { content: string }) => void;
     const chat = vi.fn(() => new Promise(resolve => { finish = resolve; }));
     const fixture = await createFixture([createRecord({ sessionId: 'title-session', metadata: { label: 'hello', label_source: 'fallback' }, messages: [
@@ -67,7 +73,10 @@ describe("SessionManager", () => {
       createMessage({ id: 'title-answer', sessionId: 'title-session', role: 'assistant', text: 'Discussing the weather.' }),
     ] })], createConfig(), { chat } as never);
     const applyTitle = vi.spyOn(fixture.manager, 'applyGeneratedTitle');
-    await fixture.manager.appendSessionEvent({ sessionId: 'title-session', event: { type: NcpEventType.RunFinished, payload: { sessionId: 'title-session', runId: 'title-run' } } });
+    await fixture.manager.appendSessionEvent({ sessionId: 'title-session', event: {
+      type: NcpEventType.MessageSent,
+      payload: { sessionId: 'title-session', message: createMessage({ id: 'title-user-next', sessionId: 'title-session', text: 'Will it rain tomorrow?' }) },
+    } });
     await vi.waitFor(() => expect(chat).toHaveBeenCalledOnce());
     await fixture.manager.patchSessionSettings('title-session', { label: 'My weather notes' });
     finish({ content: '{"title":"Weather summary"}' });
