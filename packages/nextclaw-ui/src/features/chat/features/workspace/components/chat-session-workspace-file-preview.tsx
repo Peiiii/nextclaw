@@ -137,8 +137,8 @@ function WorkspaceFilePreviewStatus({ text, tone = 'muted' }: { text: string; to
   return (
     <div
       className={cn(
-        'flex h-full items-center justify-center px-6 text-center text-sm',
-        tone === 'error' ? 'text-rose-600' : 'text-gray-500',
+        'flex h-full items-center justify-center bg-background px-6 text-center text-sm',
+        tone === 'error' ? 'text-destructive' : 'text-muted-foreground',
       )}
     >
       {text}
@@ -260,7 +260,7 @@ function WorkspacePreviewBody({
       <div
         ref={markdownScrollRef}
         onScroll={onMarkdownScroll}
-        className="h-full overflow-auto custom-scrollbar px-5 py-4"
+        className="h-full overflow-auto bg-background text-foreground custom-scrollbar px-5 py-4"
       >
         <ChatMessageMarkdown
           text={previewText}

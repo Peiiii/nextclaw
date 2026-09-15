@@ -20,6 +20,8 @@ Explorer 的主要操作和常见代码编辑器保持一致：
 
 ![Markdown 文档目录展示标题层级并支持章节跳转](/product-screenshots/nextclaw-markdown-outline-navigation-cn.png)
 
+预览正文、加载提示和路径栏会跟随当前主题。紧凑路径栏突出当前文件，并用轻分隔线与正文区分；会话与右侧工作区之间保留更清晰的边界。
+
 ![项目文件 Explorer 和 Markdown 预览同时打开](/product-screenshots/nextclaw-workspace-explorer-cn.png)
 
 ## 打开的文件
