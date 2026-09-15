@@ -3,11 +3,11 @@
   "platform": "linux",
   "arch": "x64",
   "hostKind": "npm-runtime-bundle",
-  "latestVersion": "0.56.0",
+  "latestVersion": "0.57.0",
   "minimumLauncherVersion": "0.18.11",
-  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/nextclaw@0.56.0/nextclaw-runtime-linux-x64-0.56.0.zip",
-  "bundleSha256": "725e034d2d7d4a8b340795358cbe8dddc68e1306ca86ab473bf87b250165b2b5",
-  "bundleSignature": "eIo0B5D/58bBLmXAmDQqSix0YbwW0zl/slonEY5b5M3OFwV/4dsN1ZbxguChdDGJCHa8bYWUYp27P8i/uEZKDg==",
-  "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/nextclaw@0.56.0",
-  "manifestSignature": "2BRZYAzoO7WmS35iMFdfO8Nmbtd6otXqfmUpgbesdSSF2oMg5XiWSMal5PUCpqK8bLr8keAifrlzqGZ/XNbpCA=="
+  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/nextclaw@0.57.0/nextclaw-runtime-linux-x64-0.57.0.zip",
+  "bundleSha256": "6228e2cb691334794d7a4497765a049508c2a5165da01438f7cd8dc924f2eec5",
+  "bundleSignature": "SY+UQtne+QgkTzcfuQGp+b6lmUdeCu2mI3Qkl0wSRAHEECDH9QSDRrYZJPUYw61zO7csS5rzWc6x5jIXnq6WCg==",
+  "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-09-16-nextclaw-v0-57-0",
+  "manifestSignature": "deRrEtgQr6/RE3ebk8g3lrlonZ5BLvKyN7wO6dx3VbGuuGPkvF8o9OaQDryWUVN8mM9ADvGbvDayfuXlyOIRAA=="
 }
