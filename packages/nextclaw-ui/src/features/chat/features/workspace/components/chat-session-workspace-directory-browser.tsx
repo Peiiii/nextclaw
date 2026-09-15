@@ -359,7 +359,7 @@ function WorkspaceDirectoryBrowserReady({
 
   const content = (
     <div
-      className="flex h-full min-h-0 flex-col bg-white"
+      className="flex h-full min-h-0 flex-col bg-background"
       onContextMenu={(event) => {
         if (!(event.target as HTMLElement).closest('[data-workspace-tree-entry]')) clearSelection();
       }}

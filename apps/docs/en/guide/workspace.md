@@ -20,6 +20,8 @@ Previews cover Markdown, code, HTML, common documents, spreadsheets, and present
 
 ![A Markdown document outline showing heading hierarchy for direct section navigation](/product-screenshots/nextclaw-markdown-outline-navigation-cn.png)
 
+Preview content, loading messages, and the path bar follow the current theme. The compact path bar highlights the current file with a subtle divider above the content, while a clearer boundary separates the conversation from the right workspace.
+
 ![Project Explorer and Markdown preview open together](/product-screenshots/nextclaw-workspace-explorer-en.png)
 
 ## Open files

@@ -36,6 +36,8 @@ When you send at or near the bottom of a conversation, your new message moves to
 
 If you are browsing earlier messages, sending a message and receiving output keep your reading position. Scrolling up during a reply also pauses following; use the return-to-bottom button to see the latest content again.
 
+The down arrow appears only when message content extends below the visible area. It stays hidden when the latest content is visible and only reserved space remains below. Pausing automatic following by expanding details does not by itself show the arrow.
+
 Processed summaries, reasoning, tool groups, and tool details share a smooth expand/collapse transition. Repeated clicks reverse from the current height. The transition is skipped when your system requests reduced motion.
 
 Nested details that are already open appear directly within the parent transition. Content changes during that transition do not repeatedly extend the animation.
@@ -77,6 +79,8 @@ New sessions initially show a short excerpt of the first message. As soon as the
 On desktop, hover over a session to see its project, child-session count, and scheduled-task count. Hover over a project to see its path, session count, and related scheduled tasks. Project rows keep the default view minimal; the expand indicator and actions appear on hover.
 
 Running child sessions show a spinner in the session workspace. Child-session management identifies each active session, while the overview and the top-level **Child sessions** tab show the same indicator whenever any child session is running, so you do not need to open each one to check.
+
+The workspace overview groups project files, scheduled tasks, child sessions, and continuous attention, in that order, on a subtle themed surface with row dividers. A separate usage section shows compact two-column metrics and individually grouped model details. The file explorer shares the overview's theme background.
 
 ## Copy a session ID
 

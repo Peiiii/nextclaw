@@ -33,6 +33,10 @@ type UseStickyBottomScrollResult = {
 
 const DEFAULT_STICKY_THRESHOLD_PX = 10;
 
+function isScrollAtBottom(element: HTMLElement, threshold = DEFAULT_STICKY_THRESHOLD_PX) {
+  return element.scrollHeight - element.scrollTop - element.clientHeight <= threshold;
+}
+
 function isExpansionActivation(event: Event): boolean {
   if (event instanceof KeyboardEvent && event.key !== "Enter" && event.key !== " ") return false;
   const target = event.target instanceof Element ? event.target : event.target instanceof Node ? event.target.parentElement : null;
@@ -102,22 +106,21 @@ export function useStickyBottomScroll({
     space.frameRef.current.style.minHeight = `${measurement.height}px`;
   }, [scrollRef]);
 
+  // Content visibility is independent of following intent and the reserved turn space.
+  const updateBottomVisibility = useCallback(() => {
+    const scroll = scrollRef.current;
+    if (!scroll) return;
+    const content = contentRef?.current;
+    const distance = content
+      ? content.getBoundingClientRect().bottom - scroll.getBoundingClientRect().top - scroll.clientTop - scroll.clientHeight
+      : scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight;
+    setIsAtBottom(distance <= (stickyThresholdPx ?? DEFAULT_STICKY_THRESHOLD_PX));
+  }, [contentRef, scrollRef, stickyThresholdPx]);
+
   const updateStickyState = useCallback((nextIsAtBottom: boolean) => {
     isStickyRef.current = nextIsAtBottom;
-    setIsAtBottom(nextIsAtBottom);
-  }, []);
-
-  const resolveIsAtBottom = useCallback(
-    (element: HTMLElement): boolean => {
-      const distanceFromBottom =
-        element.scrollHeight - element.scrollTop - element.clientHeight;
-      return (
-        distanceFromBottom <=
-        (stickyThresholdPx ?? DEFAULT_STICKY_THRESHOLD_PX)
-      );
-    },
-    [stickyThresholdPx],
-  );
+    updateBottomVisibility();
+  }, [updateBottomVisibility]);
 
   const cancelQueuedScroll = useCallback(() => {
     const scheduledScrollFrame = scheduledScrollFrameRef.current;
@@ -148,8 +151,9 @@ export function useStickyBottomScroll({
       } else {
         currentElement.scrollTop = currentElement.scrollHeight;
       }
+      updateBottomVisibility();
     });
-  }, [cancelQueuedScroll, scrollRef, updateTurnSpace]);
+  }, [cancelQueuedScroll, scrollRef, updateTurnSpace, updateBottomVisibility]);
 
   const scrollToBottom = useCallback(() => {
     updateStickyState(true);
@@ -162,12 +166,12 @@ export function useStickyBottomScroll({
       return;
     }
 
-    const nextIsAtBottom = resolveIsAtBottom(element);
+    const nextIsAtBottom = isScrollAtBottom(element, stickyThresholdPx);
     if (!nextIsAtBottom) {
       cancelQueuedScroll();
     }
     updateStickyState(nextIsAtBottom);
-  }, [cancelQueuedScroll, resolveIsAtBottom, scrollRef, updateStickyState]);
+  }, [cancelQueuedScroll, stickyThresholdPx, scrollRef, updateStickyState]);
 
   // Inspection wins over queued output, animation and lazy payload growth until scrolling resumes.
   useEffect(() => observeExpansions(scrollRef.current, () => {
@@ -210,6 +214,7 @@ export function useStickyBottomScroll({
     }
     const observer = new ResizeObserver(() => {
       updateTurnSpace();
+      updateBottomVisibility();
       if (isStickyRef.current) {
         queueScrollToBottom();
       }
@@ -217,7 +222,7 @@ export function useStickyBottomScroll({
     observer.observe(content);
     if (scrollRef.current) observer.observe(scrollRef.current);
     return () => observer.disconnect();
-  }, [contentRef, hasContent, queueScrollToBottom, resetKey, scrollRef, updateTurnSpace]);
+  }, [contentRef, hasContent, queueScrollToBottom, resetKey, scrollRef, updateTurnSpace, updateBottomVisibility]);
 
   useLayoutEffect(() => {
     if (
