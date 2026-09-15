@@ -56,7 +56,7 @@ The inbox supports self-contained static HTML reports. Inline styles render norm
 
 ## Continue working from a result
 
-After a completed reply, the configured model can generate a concise title based on the conversation's actual topic. Greetings without a topic wait for a later turn; failed generation keeps the current title. Manually renamed conversations are preserved. Older conversations still named after their first message can improve after their next completed reply; opening the list does not rename them in bulk.
+As soon as a user message is saved, the model selected for that turn starts generating a concise title from the available conversation while the main reply runs in parallel. Greetings are named by interaction type, such as “Casual greeting”; failed generation keeps the current title without affecting the reply. Manually renamed conversations are preserved. Older conversations still named after their first message can improve after their next user message; opening the list does not rename them in bulk.
 
 The conversation list's plus button opens the new-conversation screen directly. Choose a different runtime below the input area on that screen.
 

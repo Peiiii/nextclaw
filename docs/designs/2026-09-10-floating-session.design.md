@@ -99,3 +99,29 @@ AI 验收通过，待用户判断悬浮尺寸与视觉偏好。未 commit、push
 设计 Review：用户链路从“新任务 → 输入你好 → 收到回复 → 标题变为会话性质摘要 → 刷新保留”完整；失败边界、旧数据和手动改名保护明确。仅修改 title prompt 与结果合同即可闭环，不引入通用分类器或第二条标题路径。design-document: updated；design-review: passed；plan: not-required。
 
 修正后验证：标题、会话 manager 与活动预览 4 个测试文件共 43 项通过；kernel tsc、targeted ESLint 与 diff whitespace 检查通过，只有未触达测试函数的既有行数提示。开发 watcher 冷重启后，在用户同一个 5174 页面选择 `codex-sub/gpt-5.6-sol` 并发送“你好”，真实会话 `ncp-mtzqqodx-gs3otpzg` 收到回复后标题更新为「日常问候」；API 显示 `label_source=generated` 且会话模型仍为 `codex-sub/gpt-5.6-sol`，刷新后头部与侧栏均保留该标题。原会话 `ncp-mtzqk2jj-zvbaomxc` 已记录旧版空结果，不批量改写；后续新助手消息完成时可按新消息 ID重试。
+
+## 2026-09-15 标题生成前移到用户消息
+
+用户再次实测发现，标题会长期停留在首条消息截取。代码与事件链确认这不是前端刷新延迟：`SessionManager` 只在持久化 `RunFinished` 后调度 `SessionTitleService`，而服务又要求最后一条 final 消息为 assistant，因此主 AI 完整回复是标题请求的硬前置条件。与此同时，`AgentRunRequestManager` 在启动主 runtime 前已经把本轮解析后的 `model` 写入用户消息 `run_spec`，依次将 `MessageSent` 写入 session journal、发布 session summary，再启动主运行；该用户消息是足够且更早的可靠触发事实。
+
+本次采用单一路径修正：自动标题仍由 kernel 的 `SessionTitleService` 唯一拥有，但改为在 final 用户 `MessageSent` 已持久化后异步调度。标题上下文取截至该用户输入的最近 final 用户/助手文本，本轮模型优先取触发用户消息的 `run_spec.model`，旧记录才回退到 session 模型。标题请求与主回复并行，不进入回复 stream、不阻塞消息接收；成功后继续通过 journal compare-and-set 写入并发布原 session summary。生成期间若用户手动改名，旧结果仍被拒绝；若又收到更新的用户输入，旧请求不安装过时标题并按现有队列重试最新输入。移除 `RunFinished` 触发，避免形成早晚两条标题链路。
+
+不新增标题状态、provider wrapper、UI 刷新通道或配置项。失败和 25 秒超时继续保留临时标题且不影响主回复；已生成及手动标题继续稳定。旧会话不批量改名，下一条可触发的用户消息才会重试。CLI 不新增命令：标题生成是既有会话行为，`sessions` 查询与改名继续消费同一 owner。
+
+### Active acceptance contract
+
+- contract-id：`session-title-on-user-message-v1`
+- parent-goal：用户发送消息后，无需等待主 AI 回复完成即可开始生成并自动看到稳定、可持久化的会话标题。
+- scope-revision：1；由用户本轮明确修正触发时序。
+
+| ID | Required | 合同 | Status | 当前证据 |
+| --- | --- | --- | --- | --- |
+| ST-1 | true | final 用户消息持久化后即发起标题请求，且请求开始不依赖 assistant final 或 `RunFinished` | passed | event ingestion 回归；真实会话标题生成时仍为 running 且无 final assistant |
+| ST-2 | true | 标题请求使用该用户消息已解析的本轮模型，并只读取截至该输入的有界会话文本 | passed | service 模型优先级与请求边界测试；真实使用 `codex-sub/gpt-5.6-sol` |
+| ST-3 | true | 标题结果经既有 CAS、持久化和 session summary 实时投影更新，手动/已生成标题不被覆盖 | passed | manager CAS/重载回归；5174 页面实时显示并刷新保留 |
+| ST-4 | true | 标题失败、超时或与新输入竞争不阻塞主回复，也不安装过时结果 | passed | malformed/dispose/空结果、手动改名及新输入竞争回归 |
+| ST-5 | true | 中英文用户指南准确说明发送后并行生成的时序与失败边界 | passed | chat 与 background-results 双语指南及 changeset 已同步 |
+
+黄金验收：新建任务并发送一条足以命名的消息，标题请求在主回答仍未完成时已经开始；模型返回后，当前头部和侧栏自动更新，刷新仍保留标题。辅助场景覆盖主回答很慢、用户同时手动改名、标题模型失败以及标题生成期间出现更新用户输入。交付为本地源码、回归证据与同步文档；不含 commit、push、发布或部署。design-document: updated；plan: not-required（单批可闭环）。
+
+验证记录：kernel `tsc` 通过；标题 service 与 session manager 的 31 项定向/组装边界测试通过；本任务 4 个 TS 文件 targeted ESLint 0 errors，仅保留同一既有 manager 测试块的行数 warning。真实源码实例 18793 / UI 5174 中，会话 `ncp-mu2pqwx3-dcb4a146` 在发送后 5.9 秒生成「终端延迟时序验收」时仍是 running、尚无 final assistant，之后正常完成回复；会话 `ncp-mu2priiv-c896c131` 在 `sleep 20` 工具仍执行时，当前页面标题已实时变成「前端标题刷新验收」，最终回复完成后刷新页面仍保留标题与生成来源。仓库级 new-code governance 的命名、目录、文档角色、模块和公共导入检查均通过；总命令被其它未提交的 `use-sticky-bottom-scroll.test.tsx` 既有 class-method 违规阻塞，本任务未触碰或代改该 WIP。diff-only maintainability 0 errors；两个接近文件预算的 warning 经复核不应触发无 owner 收益的拆分。实现 Review 无 findings。AI 验收 ST-1 至 ST-5 全部通过，parent_status: ready-for-completion-check。
