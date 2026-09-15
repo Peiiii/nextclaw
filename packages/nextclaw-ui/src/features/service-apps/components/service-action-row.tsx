@@ -1,3 +1,4 @@
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
 import { useState } from "react";
 import type {
   AgentProfileView,
@@ -73,7 +74,7 @@ export function ServiceActionRow({
                 <ShieldPlus className="h-3.5 w-3.5" />
               </button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-56 rounded-xl p-1.5">
+            <PopoverContent align="end" variant="menu">
               <div className="px-2 py-1.5 text-[11px] font-medium text-muted-foreground">
                 {t("serviceAppsGrantToAgent")}
               </div>
@@ -85,9 +86,9 @@ export function ServiceActionRow({
                     onGrantAgent(action.id, agent.id);
                     setAgentMenuOpen(false);
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+                  className={`${ACTION_MENU_ITEM_CLASS} text-foreground ${ACTION_FEEDBACK.item}`}
                 >
-                  <Bot className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Bot className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 truncate">
                     {agent.displayName?.trim() || agent.id}
                   </span>

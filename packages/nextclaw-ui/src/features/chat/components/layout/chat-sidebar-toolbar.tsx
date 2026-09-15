@@ -93,7 +93,7 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps & {
               </button>
             </PopoverTrigger>
           </h1>
-          <ChatPopoverContent align="start" className="w-48 p-1.5">
+          <ChatPopoverContent align="start" variant="menu">
             <div onClick={() => setViewMenuOpen(false)}>
               <ChatSessionHeaderMenuItem icon={Clock3} label={t('chatSidebarViewTime')} onClick={() => onSelectMode('time-first')} />
               <ChatSessionHeaderMenuItem icon={Folder} label={t('chatSidebarViewProject')} onClick={() => onSelectMode('project-first')} />

@@ -51,11 +51,11 @@ export function ServiceAppDeleteDialog({
       onOpenChange={(nextOpen) => !deletePending && onOpenChange(nextOpen)}
     >
       <DialogContent
-        className="max-w-md [&>:last-child]:hidden"
+        className="max-w-md"
         onEscapeKeyDown={(event) => deletePending && event.preventDefault()}
         onInteractOutside={(event) => deletePending && event.preventDefault()}
       >
-        <DialogHeader>
+        <DialogHeader showClose={false}>
           <DialogTitle>{t("serviceAppsDeleteConfirmTitle")}</DialogTitle>
           <DialogDescription>
             {t("serviceAppsDeleteConfirmDescription")} {appTitle}

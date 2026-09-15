@@ -204,7 +204,7 @@ function CompactTabLabelButton({
     <TooltipProvider delayDuration={250}>
       <Tooltip>
         <TooltipTrigger asChild>{button}</TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">
+        <TooltipContent className="text-xs">
           {tooltip}
         </TooltipContent>
       </Tooltip>
@@ -287,7 +287,7 @@ export function CompactTabStrip({
     >
       <div
         className={cn(
-          "flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden",
+          "compact-tab-scrollbar flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden",
           scrollClassName,
         )}
         onPointerDown={onScrollPointerDown}

@@ -14,6 +14,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
@@ -129,7 +130,7 @@ export function InboxReaderDialog() {
       }}
     >
       <DialogContent
-        className="flex h-[min(82vh,760px)] w-[calc(100vw-2rem)] max-w-[820px] flex-col gap-0 overflow-hidden rounded-[24px] border-border/70 bg-background p-0 shadow-[0_20px_55px_-22px_rgba(15,23,42,0.32)] max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:w-screen max-md:max-w-none max-md:rounded-none max-md:border-0 max-md:pt-[env(safe-area-inset-top,0px)] max-md:pb-[env(safe-area-inset-bottom,0px)] max-md:[&>button]:top-[calc(env(safe-area-inset-top,0px)+2px)] max-md:[&>button]:right-1 max-md:[&>button]:size-11"
+        className="flex h-[min(82vh,760px)] w-[calc(100vw-2rem)] max-w-[820px] flex-col gap-0 overflow-hidden rounded-[24px] border-border/70 bg-background p-0 shadow-[0_20px_55px_-22px_rgba(15,23,42,0.32)] max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:w-screen max-md:max-w-none max-md:rounded-none max-md:border-0 max-md:pt-[env(safe-area-inset-top,0px)] max-md:pb-[env(safe-area-inset-bottom,0px)]"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           titleRef.current?.focus();
@@ -137,8 +138,13 @@ export function InboxReaderDialog() {
       >
         {activeDelivery ? (
           <>
-            <header className="shrink-0 border-b border-border/50 px-3 py-2 pr-12 md:px-6 md:py-3 md:pr-14">
-              <div className="flex min-h-8 items-center justify-between gap-1 md:gap-3">
+            <DialogHeader
+              className="items-center gap-1 border-b border-border/50 px-3 py-2 md:gap-3 md:px-6 md:py-3"
+              actions={<>
+                {positionControls}
+                <PageResourceActionsMenu page={pageResourceFromSystemObject("inbox-delivery", activeDelivery.id, activeDelivery.title)} />
+              </>}
+            >
                 <div className="flex min-w-0 items-center gap-2">
                   <span className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/70 text-muted-foreground md:flex">
                     <Inbox className="h-3.5 w-3.5" />
@@ -159,15 +165,10 @@ export function InboxReaderDialog() {
                     {formatDateTime(activeDelivery.createdAt)}
                   </time>
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  {positionControls}
-                  <PageResourceActionsMenu page={pageResourceFromSystemObject("inbox-delivery", activeDelivery.id, activeDelivery.title)} />
-                </div>
-              </div>
               <DialogDescription className="sr-only">
                 {activeDelivery.summary ?? t("inboxNoSummary")}
               </DialogDescription>
-            </header>
+            </DialogHeader>
 
             <div className={cn(
               "min-h-0 flex-1",

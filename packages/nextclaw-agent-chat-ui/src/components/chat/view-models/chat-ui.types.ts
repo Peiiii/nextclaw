@@ -522,6 +522,7 @@ export type ChatMessageToolPayloadState = "summary" | "loading" | "ready" | "err
 export type ChatMessageDetailActionViewModel = {
   key: string;
   label: string;
+  icon?: ReactNode;
   dialog: {
     title: string;
     description?: string;

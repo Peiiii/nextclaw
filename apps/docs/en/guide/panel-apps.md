@@ -23,6 +23,10 @@ The agent can create a `.panel.html` file or a manifest-backed app and open it f
 
 ## App list and references
 
+The Apps page presents installed apps in a compact list. Enabled apps with one panel offer an Open action; apps with several panels expose their individual entries. Select an app name or App details in its menu to inspect its version and data location or manage file and folder access. Disable, update, and uninstall actions live in the same menu.
+
+Use Add apps to browse the marketplace or install from a trusted file path, directory, or app ID. Installation progress and failures remain visible in the list.
+
 Manage existing Panel Apps from the app list and reference one from the session composer when asking for changes.
 
 ![The NextClaw Panel Apps list](/product-screenshots/nextclaw-panel-apps-page-en.png)

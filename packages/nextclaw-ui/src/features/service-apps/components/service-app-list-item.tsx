@@ -1,3 +1,4 @@
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
 import { PageResourceActionItems } from "@/features/right-panel-resources";
 import { pageResourceFromSystemObject } from "@/features/right-panel-resources";
 import { useState } from "react";
@@ -380,15 +381,15 @@ function ServiceAppMenuItem({
     <button
       type="button"
       className={cn(
-        "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:cursor-not-allowed disabled:opacity-50",
+        ACTION_MENU_ITEM_CLASS,
         destructive
-          ? "text-destructive hover:bg-destructive/10"
-          : "text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-accent-foreground",
+          ? ACTION_FEEDBACK.destructive
+          : `text-foreground ${ACTION_FEEDBACK.item}`,
       )}
       disabled={disabled}
       onClick={onClick}
     >
-      <Icon className="h-4 w-4 shrink-0" />
+      <Icon className={cn("h-4 w-4 shrink-0", !destructive && "text-muted-foreground")} />
       <span>{label}</span>
     </button>
   );

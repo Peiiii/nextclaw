@@ -304,7 +304,7 @@
 
   :root[data-theme="island"]
     [data-theme-surface="doc-browser"]
-    .doc-browser-tab-scrollbar {
+    .compact-tab-scrollbar {
     background-color: transparent;
   }
 
@@ -446,18 +446,20 @@
   :root[data-theme="island"]
     :is(
       .custom-scrollbar,
-      .workspace-horizontal-scrollbar,
-      .doc-browser-tab-scrollbar
+      .workspace-horizontal-scrollbar
     ) {
     scrollbar-color: hsl(var(--brand-400) / 0.35) transparent;
   }
 
   :root[data-theme="island"] .custom-scrollbar::-webkit-scrollbar-thumb,
   :root[data-theme="island"]
-    .workspace-horizontal-scrollbar::-webkit-scrollbar-thumb,
-  :root[data-theme="island"]
-    .doc-browser-tab-scrollbar::-webkit-scrollbar-thumb {
+    .workspace-horizontal-scrollbar::-webkit-scrollbar-thumb {
     background: hsl(var(--brand-400) / 0.3);
+  }
+
+  :root[data-theme="island"] .compact-tab-scrollbar {
+    --tab-scrollbar-thumb: hsl(var(--brand-400) / 0.3);
+    --tab-scrollbar-thumb-hover: hsl(var(--brand-400) / 0.4);
   }
 
   @media (max-width: 760px) {

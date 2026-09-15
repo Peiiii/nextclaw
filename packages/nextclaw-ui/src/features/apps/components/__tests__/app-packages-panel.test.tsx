@@ -303,8 +303,7 @@ vi.mock("@/features/panel-apps/hooks/use-panel-apps", () => ({
   useRecordPanelAppOpened: () => ({ mutateAsync: mocks.recordOpened }),
 }));
 
-describe("AppPackagesPanel", () => {
-  beforeEach(() => {
+beforeEach(() => {
     mocks.appDataError = false;
     mocks.enabled = false;
     mocks.includePackageStorageUsage = true;
@@ -331,6 +330,7 @@ describe("AppPackagesPanel", () => {
     mocks.requestAuthorization.mockResolvedValue(true);
   });
 
+describe("AppPackagesPanel", () => {
   it("shows a built-in package and enables it from the primary action", async () => {
     const user = userEvent.setup();
 
@@ -338,7 +338,7 @@ describe("AppPackagesPanel", () => {
 
     expect(screen.getByText("Personal Space")).toBeTruthy();
     expect(screen.getByText("Available")).toBeTruthy();
-    expect(screen.getByText("Local data service")).toBeTruthy();
+    expect(screen.queryByText("Local data service")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Enable" }));
 
@@ -362,6 +362,7 @@ describe("AppPackagesPanel", () => {
     const user = userEvent.setup();
     render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
 
+    await user.click(screen.getByRole("button", { name: "Personal Space" }));
     await user.selectOptions(
       screen.getByLabelText("Access mode"),
       "read-write",
@@ -407,9 +408,12 @@ describe("AppPackagesPanel", () => {
     expect(packageCard.className).toContain("ring-2");
   });
 
-  it("distinguishes an untouched app from an App Data query failure", () => {
+  it("distinguishes an untouched app from an App Data query failure in details", async () => {
+    const user = userEvent.setup();
     mocks.includePackageStorageUsage = false;
     const view = render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    expect(screen.queryByTitle("/tmp/data")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Personal Space" }));
     expect(screen.getByTitle("/tmp/data").textContent).toContain("No data yet");
 
     mocks.appDataError = true;
@@ -432,10 +436,45 @@ describe("AppPackagesPanel", () => {
 
     render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
 
-    await user.click(screen.getByRole("button", { name: /Todos/ }));
+    await user.click(screen.getByRole("button", { name: "Open" }));
 
     expect(mocks.recordOpened).toHaveBeenCalledWith("todos");
     expect(mocks.onOpen).toHaveBeenCalledWith(openedEntry);
+  });
+
+  it("opens details on demand, restores focus, and keeps disable in the menu", async () => {
+    const user = userEvent.setup();
+    mocks.enabled = true;
+    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    const title = screen.getByRole("button", { name: "Personal Space" });
+    expect(screen.queryByText("Local data service")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Disable" })).toBeNull();
+    await user.click(title);
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.getByText("Local data service")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(document.activeElement).toBe(title));
+    await user.click(screen.getByRole("button", { name: "More app actions" }));
+    await user.click(screen.getByRole("menuitem", { name: "Disable" }));
+    expect(mocks.lifecycleMutate).toHaveBeenCalledWith(
+      { action: "disable", appId: "nextclaw.personal-organizer" },
+      { onSuccess: undefined },
+    );
+  });
+
+  it("offers source installation from the same add menu", async () => {
+    const user = userEvent.setup();
+    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    await user.click(screen.getByRole("button", { name: "Add apps" }));
+    await user.click(screen.getByRole("menuitem", { name: "Install from a source" }));
+    await user.type(screen.getByRole("textbox", { name: "Install source" }), "/tmp/example.napp");
+    await user.click(screen.getByRole("button", { name: "Install app" }));
+    expect(mocks.lifecycleMutate).toHaveBeenCalledWith(
+      { action: "install", source: "/tmp/example.napp" },
+      { onSuccess: expect.any(Function) },
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Add apps" })));
   });
 
   it("discovers marketplace apps and installs one through its registry spec", async () => {
@@ -444,6 +483,7 @@ describe("AppPackagesPanel", () => {
     render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
 
     await user.click(screen.getByRole("button", { name: "Add apps" }));
+    await user.click(screen.getByRole("menuitem", { name: "Browse app marketplace" }));
 
     expect(screen.getByRole("heading", { name: "Add apps" })).toBeTruthy();
     expect(screen.getByText("Workspace Glance")).toBeTruthy();
@@ -473,7 +513,7 @@ describe("AppPackagesPanel", () => {
     render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
 
     await user.click(screen.getByRole("button", { name: "More app actions" }));
-    await user.click(screen.getByRole("button", { name: "Uninstall" }));
+    await user.click(screen.getByRole("menuitem", { name: "Uninstall" }));
     expect(
       screen.getByRole("heading", { name: "Uninstall this app?" }),
     ).toBeTruthy();
@@ -578,6 +618,7 @@ describe("AppPackagesPanel", () => {
     expect(screen.getByText("nextclaw.workspace-glance")).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Add apps" }));
+    await user.click(screen.getByRole("menuitem", { name: "Browse app marketplace" }));
 
     expect(screen.getByRole("heading", { name: "Add apps" })).toBeTruthy();
     expect(screen.getAllByText("Downloading")).not.toHaveLength(0);

@@ -9,6 +9,7 @@ import { t } from "@/shared/lib/i18n";
 const mocks = vi.hoisted(() => ({
   closeReader: vi.fn(),
   contentType: "markdown",
+  deliveryCount: 1,
   prepareChatReference: vi.fn(),
   requestSystemObjectReference: vi.fn(),
   markRead: vi.fn(),
@@ -26,8 +27,8 @@ vi.mock("@/app/components/app-presenter-provider", () => ({
 vi.mock("@/features/inbox/hooks/use-inbox-deliveries", () => ({
   useInboxDeliveries: () => ({
     data: {
-      deliveries: [{
-        id: "delivery-1",
+      deliveries: Array.from({ length: mocks.deliveryCount }, (_, index) => ({
+        id: `delivery-${index + 1}`,
         title: "A considered report",
         summary: "A concise summary",
         content: mocks.contentType === "html"
@@ -40,7 +41,7 @@ vi.mock("@/features/inbox/hooks/use-inbox-deliveries", () => ({
         presentedAt: "2026-08-06T00:01:00.000Z",
         readAt: null,
         archivedAt: null,
-      }],
+      })),
     },
   }),
 }));
@@ -59,6 +60,7 @@ describe("InboxReaderDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.contentType = "markdown";
+    mocks.deliveryCount = 1;
     mocks.prepareChatReference.mockResolvedValue({
       targetSessionKey: null,
       reference: {
@@ -138,8 +140,18 @@ describe("InboxReaderDialog", () => {
 
   it("closes through the shared icon action", () => {
     render(<MemoryRouter><InboxReaderDialog /></MemoryRouter>);
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: t("close") }));
     expect(mocks.closeReader).toHaveBeenCalledOnce();
+  });
+
+  it("navigates multiple reports without triggering the adjacent close action", async () => {
+    mocks.deliveryCount = 2;
+    render(<MemoryRouter><InboxReaderDialog /></MemoryRouter>);
+    expect((screen.getByRole("button", { name: t("inboxPrevious") }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: t("inboxNext") }));
+    await waitFor(() => expect(mocks.selectInReader).toHaveBeenCalledWith("delivery-2"));
+    expect(mocks.closeReader).not.toHaveBeenCalled();
+    expect(screen.getAllByRole("button", { name: t("close") })).toHaveLength(1);
   });
 });
 

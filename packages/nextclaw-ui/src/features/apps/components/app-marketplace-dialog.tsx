@@ -19,6 +19,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
 } from '@/shared/components/ui/dialog';
 import { TooltipProvider } from '@/shared/components/ui/tooltip';
 import { getLanguage, t } from '@/shared/lib/i18n';
@@ -35,6 +36,7 @@ export function AppMarketplaceDialog({
   isStarting,
   onInstall,
   onOpenChange,
+  onFocusReturn,
   onUpdate,
   open,
   operations,
@@ -46,6 +48,7 @@ export function AppMarketplaceDialog({
   isStarting: boolean;
   onInstall: (source: string, registryUrl: string) => void;
   onOpenChange: (open: boolean) => void;
+  onFocusReturn?: () => void;
   onUpdate: (appId: string) => void;
   open: boolean;
   operations: AppPackageOperationView[];
@@ -97,7 +100,7 @@ export function AppMarketplaceDialog({
   return (
     <Dialog open={open} onOpenChange={closeDialog}>
       <TooltipProvider>
-        <DialogContent className="flex h-dvh w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background/95 p-0 shadow-[0_32px_100px_rgba(0,0,0,0.24)] backdrop-blur-xl [&>button.absolute]:top-[max(1rem,env(safe-area-inset-top))] sm:h-[min(680px,calc(100dvh-4rem))] sm:w-[min(920px,calc(100vw-3rem))] sm:max-w-none sm:rounded-2xl sm:border sm:border-border/55">
+        <DialogContent onCloseAutoFocus={onFocusReturn ? (event) => { event.preventDefault(); onFocusReturn(); } : undefined} className="flex h-dvh w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background/95 p-0 shadow-[0_32px_100px_rgba(0,0,0,0.24)] backdrop-blur-xl sm:h-[min(680px,calc(100dvh-4rem))] sm:w-[min(920px,calc(100vw-3rem))] sm:max-w-none sm:rounded-2xl sm:border sm:border-border/55">
           {selectedSlug ? (
             <>
               <MarketplaceDetailHeader onBack={() => setSelectedSlug(null)} />
@@ -154,7 +157,7 @@ export function AppMarketplaceDialog({
 
 function MarketplaceDetailHeader({ onBack }: { onBack: () => void }) {
   return (
-    <div className="border-b border-border/60 bg-card px-4 pb-3 pt-[max(.75rem,env(safe-area-inset-top))] sm:px-5 sm:pt-3">
+    <DialogHeader className="items-center border-b border-border/60 bg-card px-4 pb-3 pt-[max(.75rem,env(safe-area-inset-top))] sm:px-5 sm:pt-3">
       <button
         type="button"
         onClick={onBack}
@@ -163,6 +166,6 @@ function MarketplaceDetailHeader({ onBack }: { onBack: () => void }) {
         <ArrowLeft className="h-4 w-4" />
         {t('appPackagesBackToMarketplace')}
       </button>
-    </div>
+    </DialogHeader>
   );
 }

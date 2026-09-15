@@ -1,3 +1,4 @@
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
 import { PageResourceActionItems } from '@/features/right-panel-resources';
 import { pageResourceFromSystemObject } from '@/features/right-panel-resources';
 import { useState } from "react";
@@ -206,9 +207,9 @@ export function CronJobRow({
                       setMenuOpen(false);
                       onRun(job);
                     }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-[var(--interaction-hover)]"
+                    className={`${ACTION_MENU_ITEM_CLASS} text-foreground ${ACTION_FEEDBACK.item}`}
                   >
-                    <Play className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Play className="h-4 w-4 shrink-0 text-muted-foreground" />
                     {t("cronRunNow")}
                   </button>
                   <button
@@ -217,9 +218,9 @@ export function CronJobRow({
                       setMenuOpen(false);
                       onDelete(job);
                     }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 transition-colors hover:bg-destructive/10"
+                    className={`${ACTION_MENU_ITEM_CLASS} ${ACTION_FEEDBACK.destructive}`}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4 shrink-0" />
                     {t("delete")}
                   </button>
                 <div className="my-1 h-px bg-border" />

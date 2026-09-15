@@ -1,5 +1,7 @@
 # Tasks and sessions
 
+The More menu below a message opens run metadata and trigger details when those records are available. Its actions use the same icons, spacing, and highlight feedback as session, project, and other object menus. Closing a detail dialog returns focus to the original More button.
+
 
 In the desktop sidebar, switch between Time and Project views at the top left of the conversation list. Click the search icon on the right to open a search field below the controls. Close it with the close button or Escape to clear the filter and hide the field. In Project view, Add Project appears immediately to the left of search.
 

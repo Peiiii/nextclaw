@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { cn } from '@agent-chat-ui/components/chat/internal/cn';
+import { ACTION_MENU_SURFACE_CLASS } from './action-menu';
 
 const CHAT_FLOATING_CONTENT_AVAILABLE_HEIGHT_GAP = '2rem';
 
@@ -16,17 +17,19 @@ const ChatPopoverAnchor = PopoverPrimitive.Anchor;
 
 const ChatPopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, sideOffset = 8, align = 'start', collisionPadding = 12, style, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & { variant?: 'default' | 'menu' }
+>(({ className, variant = 'default', sideOffset = 8, align = 'start', collisionPadding = 12, style, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
+      data-theme-overlay={variant === 'menu' ? 'menu' : 'popover'}
       sideOffset={sideOffset}
       align={align}
       collisionPadding={collisionPadding}
       className={cn(
         'z-[var(--z-popover,50)] w-72 overflow-x-hidden overflow-y-auto rounded-2xl border border-border bg-popover p-4 text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=top]:slide-in-from-bottom-2 data-[side=right]:slide-in-from-left-2',
-        className
+        className,
+        variant === 'menu' && ACTION_MENU_SURFACE_CLASS
       )}
       style={{ maxHeight: CHAT_POPOVER_CONTENT_MAX_HEIGHT, ...style }}
       {...props}

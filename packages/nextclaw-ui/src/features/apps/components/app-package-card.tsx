@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
 import type { AppDataEntry, AppPackageOperationView, AppPackageView } from "@nextclaw/client-sdk";
 import {
   AlertCircle,
@@ -9,27 +8,33 @@ import {
   CheckSquare2,
   ChevronRight,
   MoreVertical,
+  Info,
+  Power,
   NotebookText,
   RefreshCw,
   RotateCcw,
-  Server,
   Trash2,
   LoaderCircle,
-  HardDrive,
-  ShieldAlert,
-  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { AppArtwork } from "@/features/apps/components/app-artwork";
-import { AppDocumentAccessSection } from "@/features/apps/components/app-document-access-section";
-import { AppDataRemovalChoice, AppStorageUsageDetails, formatBytes } from "@/features/app-data";
+import { AppPackageDetailsDialog } from "@/features/apps/components/app-package-details-dialog";
+import { AppDataRemovalChoice, AppStorageUsageDetails } from "@/features/app-data";
 import { isAppPackageOperationActive } from "@/features/apps/hooks/use-app-packages";
 import { readAppPackageAvailability } from "@/features/apps/utils/app-package-readiness.utils";
 import type { PanelAppEntryView } from "@/shared/lib/api";
 import { Button } from "@/shared/components/ui/button";
+import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { Card } from "@/shared/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/dialog";
+import { ContextMenu, ContextMenuTrigger } from "@/shared/components/ui/context-menu/context-menu";
 import { getLanguage, t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
@@ -64,29 +69,49 @@ export function AppPackageCard({
   storageUsageUnavailable: boolean;
   unavailableMessage?: string;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsTriggerRef = useRef<HTMLButtonElement>(null);
   const [uninstallOpen, setUninstallOpen] = useState(false);
   const [purgeData, setPurgeData] = useState(false);
-  const skipMenuFocusRestoreRef = useRef(false);
   const uninstallCancelRef = useRef<HTMLButtonElement>(null);
   const panelComponents = appPackage.components.filter((component) => component.kind === "panel");
-  const serviceCount = appPackage.components.length - panelComponents.length;
   const rollbackVersions = appPackage.installedVersions.filter((version) => version !== appPackage.activeVersion);
   const displayName = readLocalizedText(appPackage.name, appPackage.nameI18n) ?? appPackage.id;
   const displayDescription = readLocalizedText(appPackage.description, appPackage.descriptionI18n);
   const operationActive = operation ? isAppPackageOperationActive(operation.status) : false;
   const pending = isPending || operationActive;
   const availability = readAppPackageAvailability(appPackage, unavailableMessage);
-  const storageUsageLabel = resolveStorageUsageLabel(storageUsage, storageUsageLoading, storageUsageUnavailable);
+  const singlePanel =
+    panelComponents.length === 1 ? panelApps.find((entry) => entry.appId === panelComponents[0].id) : undefined;
+  const primaryAction = !appPackage.enabled ? "enable" : panelComponents.length === 1 ? "open" : "details";
+  const primaryDisabled =
+    pending || (primaryAction !== "details" && !availability.interactive) || (primaryAction === "open" && !singlePanel);
+  const primaryLabel = { enable: "appPackagesEnable", open: "appPackagesOpen", details: "appPackagesDetails" } as const;
 
   return (
-    <Card surface="flat" hover={false} className="overflow-hidden border-border/60 shadow-[0_1px_2px_rgba(0,0,0,0.025)]">
-      <div className="flex max-md:grid max-md:grid-cols-[auto_minmax(0,1fr)] items-start gap-3.5 px-4 pb-3.5 pt-4">
+    <Card
+      surface="flat"
+      hover={false}
+      className="[container-type:inline-size] overflow-hidden rounded-none border-0 shadow-none"
+    >
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 px-3 py-4">
         <AppArtwork icon={appPackage.icon} name={displayName} />
         <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-2">
-            <h2 className="truncate max-md:whitespace-normal max-md:break-words text-sm font-semibold text-foreground">{displayName}</h2>
-            <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium", availability.className)}>{availability.label}</span>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <h2 className="min-w-0 max-w-full text-sm font-semibold text-foreground">
+              <button
+                ref={detailsTriggerRef}
+                type="button"
+                onClick={() => setDetailsOpen(true)}
+                className="block max-w-full truncate rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                title={displayName}
+              >
+                {displayName}
+              </button>
+            </h2>
+            <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium", availability.className)}>
+              {availability.label}
+            </span>
           </div>
           {availability.message ? (
             <p role="alert" className={cn("mt-2 text-xs leading-5", availability.messageClassName)}>
@@ -103,109 +128,119 @@ export function AppPackageCard({
               ))}
             </ul>
           ) : null}
-          {displayDescription ? <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{displayDescription}</p> : null}
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground/75">
-            <span>v{appPackage.activeVersion}</span>
-            {appPackage.builtIn ? <span>{t("appPackagesBuiltIn")}</span> : null}
-            {serviceCount > 0 ? (
-              <span className="inline-flex items-center gap-1">
-                <Server className="h-3 w-3" />
-                {t("appPackagesLocalService")}
-              </span>
-            ) : null}
-            <span className={cn("inline-flex items-center gap-1", appPackage.isolation === "full-user" && "text-amber-700 dark:text-amber-300")}>
-              {appPackage.isolation === "full-user" ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
-              {appPackage.isolation === "full-user" ? t("appPackagesIsolationFullUser") : appPackage.isolation === "host-mediated" ? t("appPackagesIsolationMediated") : t("appPackagesIsolationPanel")}
-            </span>
-          </div>
-          <div className="mt-2 flex min-w-0 items-center gap-1.5 rounded-md bg-muted/35 px-2 py-1 text-[10px] text-muted-foreground" title={appPackage.storage.dataDirectory}>
-            <HardDrive className="h-3 w-3 shrink-0" />
-            <span className="shrink-0">
-              {t("appPackagesDataUsage")} {storageUsageLabel}
-            </span>
-            <code className="min-w-0 truncate font-mono text-[10px]">{appPackage.storage.dataDirectory}</code>
-          </div>
+          {displayDescription ? (
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{displayDescription}</p>
+          ) : null}
         </div>
-        <div className="flex shrink-0 items-center gap-1 max-md:col-start-2 max-md:justify-end">
+        <div className="flex shrink-0 items-center justify-end gap-1">
           <Button
             type="button"
             size="sm"
-            variant={appPackage.enabled ? "outline" : "default"}
-            disabled={pending || !availability.interactive}
+            variant="outline"
+            disabled={primaryDisabled}
             title={availability.message}
-            onClick={appPackage.enabled ? onDisable : onEnable}
+            onClick={() => {
+              if (!appPackage.enabled) onEnable();
+              else if (singlePanel) onOpenPanelApp(singlePanel);
+              else setDetailsOpen(true);
+            }}
           >
-            {renderPrimaryActionLabel({
-              enabled: appPackage.enabled,
-              isPending,
-              operation,
-              operationActive,
-            })}
+            {pending
+              ? renderPrimaryActionLabel({ enabled: appPackage.enabled, isPending, operation, operationActive })
+              : t(primaryLabel[primaryAction])}
           </Button>
-          <Popover open={menuOpen} onOpenChange={setMenuOpen}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                aria-label={t("appPackagesMoreActions")}
-                title={t("appPackagesMoreActions")}
-                disabled={pending}
-                className="max-md:min-h-11 max-md:min-w-11 inline-flex items-center justify-center rounded-full p-2 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:opacity-50"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent
-              align="end"
-              className="w-52 rounded-xl p-1.5"
-              onCloseAutoFocus={(event) => {
-                if (skipMenuFocusRestoreRef.current) {
-                  event.preventDefault();
-                  skipMenuFocusRestoreRef.current = false;
-                }
-              }}
-            >
-              <AppPackageMenuItem
-                icon={RefreshCw}
-                label={t("appPackagesCheckUpdate")}
-                onClick={() => {
-                  setMenuOpen(false);
-                  onUpdate();
-                }}
-              />
-              {rollbackVersions.map((version) => (
-                <AppPackageMenuItem
-                  key={version}
-                  icon={RotateCcw}
-                  label={`${t("appPackagesRollback")} v${version}`}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onRollback(version);
-                  }}
+          <ContextMenu
+            label={t("appPackagesMoreActions")}
+            groups={
+              pending
+                ? []
+                : [
+                    {
+                      key: "manage",
+                      items: [
+                        {
+                          key: "details",
+                          icon: <Info className="h-4 w-4" />,
+                          label: t("appPackagesDetails"),
+                          restoreFocus: false,
+                          onSelect: () => setDetailsOpen(true),
+                        },
+                        ...(appPackage.enabled
+                          ? [
+                              {
+                                key: "disable",
+                                icon: <Power className="h-4 w-4" />,
+                                label: t("appPackagesDisable"),
+                                onSelect: onDisable,
+                              },
+                            ]
+                          : []),
+                        {
+                          key: "update",
+                          icon: <RefreshCw className="h-4 w-4" />,
+                          label: t("appPackagesCheckUpdate"),
+                          onSelect: onUpdate,
+                        },
+                        ...rollbackVersions.map((version) => ({
+                          key: version,
+                          icon: <RotateCcw className="h-4 w-4" />,
+                          label: `${t("appPackagesRollback")} v${version}`,
+                          onSelect: () => onRollback(version),
+                        })),
+                      ],
+                    },
+                    {
+                      key: "remove",
+                      items: [
+                        {
+                          key: "uninstall",
+                          destructive: true,
+                          icon: <Trash2 className="h-4 w-4" />,
+                          label: t("appPackagesUninstall"),
+                          restoreFocus: false,
+                          onSelect: () => {
+                            setPurgeData(false);
+                            setUninstallOpen(true);
+                          },
+                        },
+                      ],
+                    },
+                  ]
+            }
+          >
+            <div>
+              <ContextMenuTrigger>
+                <IconActionButton
+                  icon={<MoreVertical className="h-4 w-4" />}
+                  label={t("appPackagesMoreActions")}
+                  disabled={pending}
                 />
-              ))}
-              <AppPackageMenuItem
-                destructive
-                icon={Trash2}
-                label={t("appPackagesUninstall")}
-                onClick={() => {
-                  skipMenuFocusRestoreRef.current = true;
-                  setMenuOpen(false);
-                  setPurgeData(false);
-                  setUninstallOpen(true);
-                }}
-              />
-            </PopoverContent>
-          </Popover>
+              </ContextMenuTrigger>
+            </div>
+          </ContextMenu>
         </div>
       </div>
 
-      {operation && (operationActive || operation.status === "failed" || operation.status === "interrupted") ? <PackageOperationStatus operation={operation} /> : null}
+      <AppPackageDetailsDialog
+        appPackage={appPackage}
+        disabled={pending || Boolean(unavailableMessage)}
+        displayName={displayName}
+        displayDescription={displayDescription}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        onFocusReturn={() => detailsTriggerRef.current?.focus()}
+        storageUsage={storageUsage}
+        storageUsageLoading={storageUsageLoading}
+        storageUsageUnavailable={storageUsageUnavailable}
+      />
 
-      <AppDocumentAccessSection appId={appPackage.id} appName={displayName} disabled={pending || !availability.interactive} scopes={appPackage.documentAccess ?? []} />
+      {operation && (operationActive || operation.status === "failed" || operation.status === "interrupted") ? (
+        <PackageOperationStatus operation={operation} />
+      ) : null}
 
-      {panelComponents.length > 0 ? (
-        <div className="border-t border-border/60 bg-muted/20 p-2">
-          <div className="grid grid-cols-2 gap-1.5">
+      {appPackage.enabled && panelComponents.length > 1 ? (
+        <div className="px-3 pb-3 [@container(min-width:28rem)]:pl-16">
+          <div className="grid grid-cols-1 gap-1 [@container(min-width:20rem)]:grid-cols-2">
             {panelComponents.map((component) => {
               const panelApp = panelApps.find((entry) => entry.appId === component.id);
               const Icon = resolveComponentIcon(component.id);
@@ -214,7 +249,7 @@ export function AppPackageCard({
                 <button
                   key={component.id}
                   type="button"
-                  disabled={!appPackage.enabled || !panelApp || pending || !availability.interactive}
+                  disabled={!panelApp || pending || !availability.interactive}
                   onClick={() =>
                     panelApp &&
                     onOpenPanelApp({
@@ -224,13 +259,13 @@ export function AppPackageCard({
                     })
                   }
                   className="group flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:cursor-default disabled:opacity-55"
-                  title={availability.message ?? (!appPackage.enabled ? t("appPackagesEnableToOpen") : componentTitle)}
+                  title={availability.message ?? componentTitle}
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-card text-muted-foreground shadow-sm ring-1 ring-border/60">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground">
                     <ComponentIcon icon={component.icon} fallback={Icon} />
                   </span>
                   <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">{componentTitle}</span>
-                  {appPackage.enabled ? <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" /> : null}
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
                 </button>
               );
             })}
@@ -240,25 +275,51 @@ export function AppPackageCard({
 
       <Dialog open={uninstallOpen} onOpenChange={setUninstallOpen}>
         <DialogContent
-          className="max-w-md [&>:last-child]:hidden"
+          className="max-w-md"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            detailsTriggerRef.current?.focus();
+          }}
           onOpenAutoFocus={(event) => {
             event.preventDefault();
             uninstallCancelRef.current?.focus();
           }}
         >
-          <DialogHeader>
+          <DialogHeader showClose={false}>
             <DialogTitle>{t("appPackagesUninstallTitle")}</DialogTitle>
             <DialogDescription>{t("appPackagesUninstallDescription")}</DialogDescription>
           </DialogHeader>
           <div className="mt-4 grid gap-2">
-            <AppDataRemovalChoice checked={!purgeData} description={t("appPackagesKeepDataDescription")} label={t("appPackagesKeepData")} onClick={() => setPurgeData(false)} />
-            <AppDataRemovalChoice checked={purgeData} destructive description={t("appPackagesDeleteDataDescription")} label={t("appPackagesDeleteData")} onClick={() => setPurgeData(true)} />
+            <AppDataRemovalChoice
+              checked={!purgeData}
+              description={t("appPackagesKeepDataDescription")}
+              label={t("appPackagesKeepData")}
+              onClick={() => setPurgeData(false)}
+            />
+            <AppDataRemovalChoice
+              checked={purgeData}
+              destructive
+              description={t("appPackagesDeleteDataDescription")}
+              label={t("appPackagesDeleteData")}
+              onClick={() => setPurgeData(true)}
+            />
           </div>
           <div className="mt-3">
-            <AppPackageStorageUsage loading={storageUsageLoading} storage={appPackage.storage} usage={storageUsage} unavailable={storageUsageUnavailable} />
+            <AppPackageStorageUsage
+              loading={storageUsageLoading}
+              storage={appPackage.storage}
+              usage={storageUsage}
+              unavailable={storageUsageUnavailable}
+            />
           </div>
           <DialogFooter className="mt-5 gap-2 sm:gap-0">
-            <Button ref={uninstallCancelRef} autoFocus type="button" variant="outline" onClick={() => setUninstallOpen(false)}>
+            <Button
+              ref={uninstallCancelRef}
+              autoFocus
+              type="button"
+              variant="outline"
+              onClick={() => setUninstallOpen(false)}
+            >
               {t("cancel")}
             </Button>
             <Button
@@ -278,7 +339,17 @@ export function AppPackageCard({
   );
 }
 
-function AppPackageStorageUsage({ loading, storage, unavailable, usage }: { loading: boolean; storage: AppPackageView["storage"]; unavailable: boolean; usage?: AppDataEntry["usage"] }) {
+function AppPackageStorageUsage({
+  loading,
+  storage,
+  unavailable,
+  usage,
+}: {
+  loading: boolean;
+  storage: AppPackageView["storage"];
+  unavailable: boolean;
+  usage?: AppDataEntry["usage"];
+}) {
   if (usage) {
     return <AppStorageUsageDetails storage={storage} usage={usage} />;
   }
@@ -290,13 +361,17 @@ function AppPackageStorageUsage({ loading, storage, unavailable, usage }: { load
   );
 }
 
-function resolveStorageUsageLabel(usage: AppDataEntry["usage"] | undefined, loading: boolean, unavailable: boolean): string {
-  if (usage) return formatBytes(usage.totalBytes);
-  if (loading) return t("appPackagesLoading");
-  return t(unavailable ? "appPackagesDataUsageUnavailable" : "appPackagesNoDataYet");
-}
-
-function renderPrimaryActionLabel({ enabled, isPending, operation, operationActive }: { enabled: boolean; isPending: boolean; operation?: AppPackageOperationView; operationActive: boolean }) {
+function renderPrimaryActionLabel({
+  enabled,
+  isPending,
+  operation,
+  operationActive,
+}: {
+  enabled: boolean;
+  isPending: boolean;
+  operation?: AppPackageOperationView;
+  operationActive: boolean;
+}) {
   if (operationActive) {
     return (
       <>
@@ -309,24 +384,11 @@ function renderPrimaryActionLabel({ enabled, isPending, operation, operationActi
   return enabled ? t("appPackagesDisable") : t("appPackagesEnable");
 }
 
-function AppPackageMenuItem({ destructive = false, icon: Icon, label, onClick }: { destructive?: boolean; icon: LucideIcon; label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        ACTION_MENU_ITEM_CLASS,
-        destructive ? ACTION_FEEDBACK.destructive : `text-foreground ${ACTION_FEEDBACK.item}`,
-      )}
-    >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span>{label}</span>
-    </button>
-  );
-}
-
 function ComponentIcon({ fallback: Fallback, icon }: { fallback: LucideIcon; icon?: string }) {
-  if (icon && (icon.startsWith("data:") || icon.startsWith("/") || icon.startsWith("http://") || icon.startsWith("https://"))) {
+  if (
+    icon &&
+    (icon.startsWith("data:") || icon.startsWith("/") || icon.startsWith("http://") || icon.startsWith("https://"))
+  ) {
     return <img src={icon} alt="" className="h-4 w-4 rounded object-cover" />;
   }
   if (icon) {
@@ -341,11 +403,23 @@ function PackageOperationStatus({ operation }: { operation: AppPackageOperationV
   return (
     <div className="border-t border-border/50 px-4 py-2.5" role={failed ? "alert" : "status"} aria-live="polite">
       <div className="flex items-center gap-2 text-[11px]">
-        {failed ? <AlertCircle className="h-3.5 w-3.5 text-destructive" /> : <LoaderCircle className="h-3.5 w-3.5 animate-spin text-primary" />}
-        <span className={failed ? "text-destructive" : "text-muted-foreground"}>{failed ? (operation.error ?? t("appPackagesActionFailed")) : operationLabel(operation)}</span>
+        {failed ? (
+          <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+        ) : (
+          <LoaderCircle className="h-3.5 w-3.5 animate-spin text-primary" />
+        )}
+        <span className={failed ? "text-destructive" : "text-muted-foreground"}>
+          {failed ? (operation.error ?? t("appPackagesActionFailed")) : operationLabel(operation)}
+        </span>
       </div>
       <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
-        <div className={cn("h-full rounded-full transition-[width] duration-300", failed ? "bg-destructive" : "bg-primary")} style={{ width: failed ? "100%" : `${progress}%` }} />
+        <div
+          className={cn(
+            "h-full rounded-full transition-[width] duration-300",
+            failed ? "bg-destructive" : "bg-primary",
+          )}
+          style={{ width: failed ? "100%" : `${progress}%` }}
+        />
       </div>
     </div>
   );
@@ -385,7 +459,10 @@ function resolveComponentIcon(componentId: string): LucideIcon {
   return AppWindow;
 }
 
-function readLocalizedText(fallback: string | undefined, localized: Record<string, string> | undefined): string | undefined {
+function readLocalizedText(
+  fallback: string | undefined,
+  localized: Record<string, string> | undefined,
+): string | undefined {
   const languageTag = getLanguage() === "zh" ? "zh-CN" : "en-US";
   return localized?.[languageTag] ?? fallback;
 }

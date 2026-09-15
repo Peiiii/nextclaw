@@ -26,8 +26,8 @@ export function PanelAppServiceActionAuthorizationDialog() {
         }
       }}
     >
-      <DialogContent className="[&>:last-child]:hidden">
-        <DialogHeader>
+      <DialogContent>
+        <DialogHeader showClose={false}>
           <DialogTitle className="flex items-center gap-2">
             <ShieldAlert className="h-4 w-4 text-amber-600" />
             {t('serviceActionAuthorizationTitle')}
