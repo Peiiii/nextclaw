@@ -76,6 +76,8 @@ On desktop, hover over a session to see its project, child-session count, and sc
 
 Running child sessions show a spinner in the session workspace. Child-session management identifies each active session, while the overview and the top-level **Child sessions** tab show the same indicator whenever any child session is running, so you do not need to open each one to check.
 
+The workspace overview groups project files, scheduled tasks, child sessions, and continuous attention, in that order, on a subtle themed surface with row dividers. A separate usage section shows compact two-column metrics and individually grouped model details. The file explorer shares the overview's theme background.
+
 ## Copy a session ID
 
 Open **More actions** in the current session header, a session in the session list, a child session in the session workspace, or a child-session tab, then choose **Copy session ID**. This copies the complete ID for that session. Draft sessions do not have a stable ID yet, so this action is not shown for them.
