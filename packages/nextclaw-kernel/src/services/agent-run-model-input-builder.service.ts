@@ -17,7 +17,7 @@ import { stripCompactedSessionOnboardingSections } from "@kernel/utils/agent-onb
 import type { AgentRunMessageProjector } from "./agent-run-message-projector.service.js";
 import type { AgentRunModelInputBudgeter } from "./agent-run-model-input-budgeter.service.js";
 import { buildProviderTools } from "@kernel/utils/agent-model-input-budget.utils.js";
-import { serializeModelInputTail } from "@kernel/utils/agent-model-input-tail.utils.js";
+import { appendCurrentTimeContextTail, serializeModelInputTail } from "@kernel/utils/agent-model-input-tail.utils.js";
 import { buildObservationEventModelMessage } from "@kernel/features/observation/index.js";
 import type { RequestContextTailManager } from "@kernel/managers/request-context-tail.manager.js";
 
@@ -114,11 +114,9 @@ export class AgentRunModelInputBuilder implements AgentModelInputBuilder {
       model: request.spec.model,
       signal: request.signal,
     });
-    const contextTailInputTokens = contextTail
-      ? estimateInputTokens([
-          { role: "user", content: serializeModelInputTail(contextTail) },
-        ])
-      : 0;
+    const contextTailInputTokens = estimateInputTokens([
+      { role: "user", content: serializeModelInputTail(appendCurrentTimeContextTail(contextTail)) },
+    ]);
     const pruned = await this.modelInputBudgeter.prune({
       spec: request.spec,
       fixedInputTokens: estimateInputTokens(tools) + contextTailInputTokens,

@@ -12,7 +12,7 @@ import {
   type ToolCallRequest,
 } from "@nextclaw/core";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
-import { serializeModelInputTail } from "@kernel/utils/agent-model-input-tail.utils.js";
+import { appendCurrentTimeContextTail, serializeModelInputTail } from "@kernel/utils/agent-model-input-tail.utils.js";
 
 function normalizeModel(value: string | undefined): string | null {
   if (typeof value !== "string") {
@@ -104,15 +104,13 @@ export class ProviderManagerNcpLLMApi implements NcpLLMApi {
     let sawReasoningDelta = false;
     let sawToolCallDelta = false;
 
-    const messages = input.contextTail
-      ? [
-          ...input.messages,
-          {
-            role: "user" as const,
-            content: serializeModelInputTail(input.contextTail),
-          },
-        ]
-      : input.messages;
+    const messages = [
+      ...input.messages,
+      {
+        role: "user" as const,
+        content: serializeModelInputTail(appendCurrentTimeContextTail(input.contextTail)),
+      },
+    ];
     for await (const event of this.providerManager.chatStream({
       messages: messages as Array<Record<string, unknown>>,
       tools: input.tools as Array<Record<string, unknown>> | undefined,
