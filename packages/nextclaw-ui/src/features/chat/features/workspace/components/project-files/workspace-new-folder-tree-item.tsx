@@ -64,7 +64,7 @@ export function WorkspaceNewFolderTreeItem({
         {kind === 'file' ? (
           <File className="h-4 w-4 shrink-0 text-gray-500" />
         ) : (
-          <Folder className="h-4 w-4 shrink-0 text-amber-500" />
+          <Folder className="h-4 w-4 shrink-0 text-muted-foreground" />
         )}
         <Input
           density="compact"

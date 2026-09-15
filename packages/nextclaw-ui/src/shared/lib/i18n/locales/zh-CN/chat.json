@@ -609,6 +609,7 @@
   "chatMessageCopied": "已复制",
   "chatMermaidDiagram": "图表",
   "chatMarkdownFrontmatter": "文档属性",
+  "chatMarkdownDetails": "详细内容",
   "chatMermaidExpand": "放大图表",
   "chatMermaidLoading": "正在渲染图表…",
   "chatMermaidRenderError": "图表无法渲染，已显示源代码",

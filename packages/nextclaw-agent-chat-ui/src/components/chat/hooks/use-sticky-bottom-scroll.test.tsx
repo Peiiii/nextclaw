@@ -53,6 +53,41 @@ function createTurnSpaceFixture() {
 
 afterEach(() => vi.unstubAllGlobals());
 
+it("hides the arrow when only reserved turn space remains below the viewport", () => {
+  const { scroll, geometry, view, flush } = createTurnSpaceFixture();
+  geometry.height = 1320;
+  view.rerender({ key: "new", version: 1, session: "one" });
+  flush();
+  scroll.scrollTop = 800;
+  act(() => view.result.current.onScroll());
+  expect(scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight).toBeGreaterThan(80);
+  expect(view.result.current.isAtBottom).toBe(true);
+  scroll.scrollTop = 600;
+  act(() => view.result.current.onScroll());
+  expect(view.result.current.isAtBottom).toBe(false);
+  view.unmount();
+});
+
+it("updates visible content on expansion, growth and shrink without resuming following", () => {
+  const { scroll, content, geometry, view, resize, flush } = createTurnSpaceFixture();
+  content.innerHTML = '<button aria-expanded="false">Expand</button>';
+  act(() => fireEvent.click(content.firstElementChild!));
+  expect(view.result.current.isAtBottom).toBe(true);
+  geometry.height = 1500;
+  resize();
+  flush();
+  expect(view.result.current.isAtBottom).toBe(false);
+  geometry.height = 1200;
+  resize();
+  expect(view.result.current.isAtBottom).toBe(true);
+  geometry.height = 1600;
+  resize();
+  flush();
+  expect(scroll.scrollTop).toBe(600);
+  expect(view.result.current.isAtBottom).toBe(false);
+  view.unmount();
+});
+
 it.each(["click", "Enter", " ", "summary"])("preserves reading through expansion and delayed growth via %s", (activation) => {
   const { scroll, content, geometry, view, flush, resize } = createTurnSpaceFixture();
   content.innerHTML = activation === "summary"
@@ -255,6 +290,7 @@ it("does not reclaim the viewport when content resizes after the user scrolls aw
   try {
     const scrollElement = document.createElement("div");
     const contentElement = document.createElement("div");
+    contentElement.getBoundingClientRect = () => ({ bottom: 1000 - scrollElement.scrollTop } as DOMRect);
     setScrollMetrics(scrollElement, {
       clientHeight: 100,
       scrollHeight: 1000,

@@ -51,7 +51,7 @@ function ObservationRow({
     : t('chatWorkspaceContinuousAttentionResume');
 
   return (
-    <article className="rounded-xl border border-gray-200/80 bg-white p-3 shadow-sm">
+    <article className="rounded-lg border border-border bg-muted/30 p-3">
       <div className="flex min-w-0 items-start gap-3">
         <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
           {item.kind === 'context' ? <Eye className="h-4 w-4" /> : <Inbox className="h-4 w-4" />}
@@ -148,11 +148,11 @@ export function ChatSessionContinuousAttention({ sessionKey }: { sessionKey: str
   };
 
   return (
-    <div className="h-full overflow-auto bg-gray-50/45 px-4 py-5 custom-scrollbar">
+    <div className="h-full overflow-auto bg-background px-4 py-5 custom-scrollbar">
       <div className="mx-auto max-w-xl">
         <ConfirmDialog />
         <div className="flex items-start gap-3">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
             <Eye className="h-4 w-4" />
           </span>
           <div className="min-w-0">
@@ -162,7 +162,7 @@ export function ChatSessionContinuousAttention({ sessionKey }: { sessionKey: str
         </div>
 
         {view ? (
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-1.5 rounded-lg border border-border p-2">
             <SummaryCard label={t('chatWorkspaceContinuousAttentionTotal')} value={view.counts.total} />
             <SummaryCard label={t('chatWorkspaceContinuousAttentionState')} value={view.counts.context} />
             <SummaryCard label={t('chatWorkspaceContinuousAttentionEvents')} value={view.counts.events} />
@@ -170,7 +170,7 @@ export function ChatSessionContinuousAttention({ sessionKey }: { sessionKey: str
           </div>
         ) : null}
 
-        <div className="mt-4 flex rounded-lg border border-gray-200 bg-white p-1" role="tablist">
+        <div className="mt-3 flex rounded-lg border border-border bg-muted/40 p-1" role="tablist">
           {(['context', 'events'] as const).map((group) => {
             const count = group === 'context' ? (view?.counts.context ?? 0) : (view?.counts.events ?? 0);
             return (
@@ -191,7 +191,7 @@ export function ChatSessionContinuousAttention({ sessionKey }: { sessionKey: str
 
         {query.isPending ? (
           <div className="mt-3 space-y-2" aria-label={t('chatWorkspaceContinuousAttentionLoading')}>
-            {[0, 1].map((item) => <div key={item} className="h-28 animate-pulse rounded-xl border border-gray-200 bg-white" />)}
+            {[0, 1].map((item) => <div key={item} className="h-28 animate-pulse rounded-lg border border-border bg-muted/40" />)}
           </div>
         ) : query.isError ? (
           <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-5 text-center">
@@ -202,8 +202,8 @@ export function ChatSessionContinuousAttention({ sessionKey }: { sessionKey: str
             </button>
           </div>
         ) : items.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-dashed border-gray-300 bg-white px-4 py-8 text-center">
-            <Clock3 className="mx-auto h-5 w-5 text-gray-300" />
+          <div className="mt-3 rounded-lg border border-border bg-muted/30 px-4 py-6 text-center">
+            <Clock3 className="mx-auto h-5 w-5 text-muted-foreground" />
             <p className="mt-2 text-sm font-medium text-gray-700">{t('chatWorkspaceContinuousAttentionEmpty')}</p>
             <p className="mt-1 text-xs leading-5 text-gray-500">{t('chatWorkspaceContinuousAttentionEmptyDescription')}</p>
           </div>
@@ -226,9 +226,9 @@ export function ChatSessionContinuousAttention({ sessionKey }: { sessionKey: str
 
 function SummaryCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-gray-200/80 bg-white px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wide text-gray-400">{label}</div>
-      <div className="mt-1 text-lg font-semibold tabular-nums text-gray-900">{value}</div>
+    <div className="rounded-md bg-muted/60 px-2.5 py-2">
+      <div className="text-[11px] text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-base font-medium tabular-nums text-foreground">{value}</div>
     </div>
   );
 }

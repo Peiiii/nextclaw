@@ -66,17 +66,17 @@ function WorkspaceOverviewEntry({
   return (
     <button
       type="button"
-      className="group flex w-full items-center gap-3 rounded-lg border border-gray-200/80 bg-white px-3 py-3 text-left transition-colors hover:border-gray-300 hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+      className="group flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors first:rounded-t-lg last:rounded-b-lg hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/25"
       onClick={onClick}
     >
-      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
+      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-muted-foreground">
         {icon}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2 text-sm font-medium text-gray-900">
           <span className="truncate">{title}</span>
           {typeof count === 'number' ? (
-            <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-gray-500">
+            <span className="min-w-5 rounded bg-background px-1.5 py-0.5 text-center text-[11px] font-medium tabular-nums text-muted-foreground">
               {count}
             </span>
           ) : null}
@@ -84,7 +84,7 @@ function WorkspaceOverviewEntry({
         </span>
         <span className="mt-0.5 block text-xs leading-5 text-gray-500">{description}</span>
       </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-gray-500" />
+      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60 group-hover:text-muted-foreground" />
     </button>
   );
 }
@@ -102,19 +102,29 @@ function WorkspaceOverview({
   const observationsQuery = useNcpSessionObservations(sessionKey);
 
   return (
-    <div className="h-full overflow-auto bg-gray-50/45 px-4 py-5 custom-scrollbar">
+    <div className="h-full overflow-auto bg-background px-4 py-5 custom-scrollbar">
       <div className="mx-auto max-w-xl">
         <h2 className="text-base font-semibold text-gray-900">{t('chatWorkspaceOverview')}</h2>
         <p className="mt-1 text-xs leading-5 text-gray-500">{t('chatWorkspaceOverviewDescription')}</p>
-        <div className="mt-4 space-y-2">
+        <div className="mt-3 divide-y divide-border rounded-lg border border-border bg-muted/40">
           <WorkspaceOverviewEntry
-            count={observationsQuery.data?.counts.total ?? 0}
-            description={t('chatWorkspaceContinuousAttentionDescription')}
-            icon={<Eye className="h-4 w-4" />}
-            title={t('chatWorkspaceContinuousAttention')}
+            description={t('chatWorkspaceProjectFilesDescription')}
+            icon={<FolderTree className="h-4 w-4" />}
+            title={t('chatWorkspaceProjectFiles')}
             onClick={() => {
               if (sessionKey) {
-                presenter.chatThreadManager.openContinuousAttention(sessionKey);
+                presenter.chatThreadManager.openProjectFiles(sessionKey);
+              }
+            }}
+          />
+          <WorkspaceOverviewEntry
+            count={sessionCronJobs.length}
+            description={t('chatWorkspaceSessionCronJobsDescription')}
+            icon={<AlarmClock className="h-4 w-4" />}
+            title={t('chatWorkspaceSessionCronJobs')}
+            onClick={() => {
+              if (sessionKey) {
+                presenter.chatThreadManager.openSessionCronPanel(sessionKey);
               }
             }}
           />
@@ -131,23 +141,13 @@ function WorkspaceOverview({
             }}
           />
           <WorkspaceOverviewEntry
-            count={sessionCronJobs.length}
-            description={t('chatWorkspaceSessionCronJobsDescription')}
-            icon={<AlarmClock className="h-4 w-4" />}
-            title={t('chatWorkspaceSessionCronJobs')}
+            count={observationsQuery.data?.counts.total ?? 0}
+            description={t('chatWorkspaceContinuousAttentionDescription')}
+            icon={<Eye className="h-4 w-4" />}
+            title={t('chatWorkspaceContinuousAttention')}
             onClick={() => {
               if (sessionKey) {
-                presenter.chatThreadManager.openSessionCronPanel(sessionKey);
-              }
-            }}
-          />
-          <WorkspaceOverviewEntry
-            description={t('chatWorkspaceProjectFilesDescription')}
-            icon={<FolderTree className="h-4 w-4" />}
-            title={t('chatWorkspaceProjectFiles')}
-            onClick={() => {
-              if (sessionKey) {
-                presenter.chatThreadManager.openProjectFiles(sessionKey);
+                presenter.chatThreadManager.openContinuousAttention(sessionKey);
               }
             }}
           />
@@ -372,7 +372,7 @@ export function ChatSessionWorkspacePanelContent({
         data-theme-surface="workspace-explorer"
         data-mode={projectFilesActive ? 'full' : explorerOverlay ? 'overlay' : 'side'}
         className={cn(
-          'relative min-h-0 shrink-0 flex-col border-r border-gray-200/80 bg-white',
+          'relative min-h-0 shrink-0 flex-col border-r border-border bg-background',
           showExplorer ? 'flex' : 'hidden',
           projectFilesActive ? 'flex-1 border-r-0' : null,
           explorerOverlay ? 'absolute inset-y-0 left-0 z-20 w-[min(320px,86%)] shadow-xl' : null,

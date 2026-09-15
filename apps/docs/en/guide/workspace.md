@@ -1,6 +1,25 @@
 # Session workspace
 
-YAML front matter enclosed by `---` at the start of a Markdown file appears in a separate, collapsible **Document properties** section. Properties stay out of the document outline. Nested values retain their YAML representation; invalid metadata remains readable as source text. Switch to source view to inspect the complete file. Complete Markdown documents in chat use the same presentation.
+## Collapsible Markdown sections
+
+Chat and Markdown file previews support GitHub-style collapsible sections with smooth transitions. Add `open` to expand initially; nesting is supported. Summaries display plain text, and bodies support lists, code and math. Keep blank lines around the body:
+
+```markdown
+<details>
+<summary>Read more</summary>
+
+Supporting information goes here.
+
+</details>
+```
+
+Scripts, event attributes and unsafe HTML are filtered out.
+
+## Document properties
+
+Document properties expand and collapse with a smooth transition that respects the system's reduced-motion preference.
+
+YAML front matter enclosed by `---` at the start of a Markdown file appears in a compact, collapsible **Document properties** section with reduced top and field spacing. Properties stay out of the document outline. Nested values retain their YAML representation; invalid metadata remains readable as source text. Switch to source view to inspect the complete file. Complete Markdown documents in chat use the same presentation.
 
 The session workspace keeps the current project's files and follow-up work beside the conversation. For local documents, codebases, and generated apps, this is often where the real deliverable lives.
 
@@ -19,6 +38,8 @@ The Explorer follows familiar code-editor conventions:
 Previews cover Markdown, code, HTML, common documents, spreadsheets, and presentations. In a rendered Markdown file, use the outline button at the right of the path bar to review its heading structure and jump directly to a section. HTML can switch between source and rendered output, while code changes can be reviewed as diffs.
 
 ![A Markdown document outline showing heading hierarchy for direct section navigation](/product-screenshots/nextclaw-markdown-outline-navigation-cn.png)
+
+Preview content, loading messages, and the path bar follow the current theme. The compact path bar highlights the current file with a subtle divider above the content, while a clearer boundary separates the conversation from the right workspace.
 
 ![Project Explorer and Markdown preview open together](/product-screenshots/nextclaw-workspace-explorer-en.png)
 
