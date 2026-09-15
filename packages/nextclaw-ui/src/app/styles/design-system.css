@@ -65,6 +65,8 @@
 
       /* Foreground (Text) */
       --foreground: var(--gray-800);
+      --welcome-title-foreground: var(--foreground);
+      --welcome-title-weight: 600;
       --foreground-secondary: var(--gray-700);
       --foreground-tertiary: var(--gray-500);
       --foreground-muted: var(--gray-400);
@@ -94,6 +96,13 @@
       --sidebar-interaction-hover: hsl(var(--gray-200) / 0.6);
       --sidebar-interaction-selection: hsl(var(--gray-200) / 0.8);
       --sidebar-segment-selection: hsl(var(--gray-200) / 0.7);
+      --sidebar-create-background: hsl(var(--primary) / 0.1);
+      --sidebar-create-hover: hsl(var(--primary) / 0.15);
+      --sidebar-create-foreground: hsl(var(--primary));
+      --sidebar-create-hover-foreground: hsl(var(--accent-foreground));
+      --sidebar-create-radius: 0.5rem;
+      --sidebar-create-weight: 500;
+      --sidebar-create-shadow: none;
       /* Mobile conversation rows retain their separate paper surface. */
       --session-interaction-hover: hsl(var(--background) / 0.65);
       --session-interaction-selection: hsl(var(--background) / 0.9);
@@ -394,7 +403,9 @@
 }
 
 @layer base {
-   :root[data-theme="warm"] {
+   :root[data-theme="warm"],
+   :root[data-theme="plain-paper"],
+   :root[data-theme="paper-ink"] {
       /* ========================================
        BRAND COLORS (Paper Taupe)
        ======================================== */
@@ -466,6 +477,79 @@
 }
 
 @layer base {
+   :root[data-theme="paper-ink"] {
+      /* Warm paper and olive ink with restrained contrast. */
+      --brand-50: 70 15% 95%;
+      --brand-100: 75 13% 90%;
+      --brand-200: 85 12% 80%;
+      --brand-300: 100 10% 65%;
+      --brand-400: 88 13% 44%;
+      --brand-500: 86 14% 32%;
+      --brand-600: 86 15% 27%;
+      --brand-700: 86 15% 22%;
+      --brand-800: 86 13% 16%;
+      --brand-900: 86 11% 10%;
+      --primary-foreground: 42 35% 94%;
+      --welcome-title-foreground: 105 4% 32%;
+      --welcome-title-weight: 500;
+      --gray-700: 45 8% 27%;
+      --gray-800: 45 9% 18%;
+      --gray-900: 45 10% 11%;
+      --accent: 70 12% 90%;
+      --link-foreground: 86 16% 29%;
+      --link-foreground-hover: 86 16% 23%;
+      --sidebar-create-background: hsl(38 27% 90%);
+      --sidebar-create-hover: hsl(38 25% 87%);
+      --sidebar-create-foreground: hsl(var(--brand-500));
+      --sidebar-create-hover-foreground: hsl(var(--brand-600));
+      --sidebar-create-radius: 0.5rem;
+      --sidebar-create-weight: 400;
+      --sidebar-create-shadow: none;
+   }
+
+   :root[data-theme="paper-ink"] .nextclaw-chat-message-user {
+      background-color: hsl(var(--brand-500));
+      border-color: transparent;
+      color: hsl(var(--primary-foreground));
+   }
+
+   :root[data-theme="plain-paper"] {
+      /* Paper, tea-gray washes and soft graphite: one warm neutral family. */
+      --brand-50: 38 25% 95%;
+      --brand-100: 36 22% 91%;
+      --brand-200: 34 17% 83%;
+      --brand-300: 32 12% 70%;
+      --brand-400: 30 8% 51%;
+      --brand-500: 28 7% 35%;
+      --brand-600: 28 8% 29%;
+      --brand-700: 28 8% 24%;
+      --brand-800: 28 7% 18%;
+      --brand-900: 28 6% 12%;
+      --gray-700: 30 6% 28%;
+      --gray-800: 30 5% 22%;
+      --gray-900: 30 5% 14%;
+      --primary-foreground: 40 38% 97%;
+      --welcome-title-foreground: 30 5% 33%;
+      --welcome-title-weight: 500;
+      --accent: 36 20% 91%;
+      --border: 35 18% 86%;
+      --card-border: var(--border);
+      --input-border: var(--border);
+      --link-foreground: 28 18% 34%;
+      --link-foreground-hover: 28 18% 26%;
+      --sidebar-create-background: hsl(36 22% 90%);
+      --sidebar-create-hover: hsl(36 20% 87%);
+      --sidebar-create-foreground: hsl(var(--brand-600));
+      --sidebar-create-hover-foreground: hsl(var(--brand-700));
+      --sidebar-create-weight: 400;
+   }
+
+   :root[data-theme="plain-paper"] .nextclaw-chat-message-user {
+      background-color: hsl(var(--brand-100));
+      border-color: transparent;
+      color: hsl(var(--foreground));
+   }
+
    :root[data-theme="cool"] {
       /* ========================================
        BRAND COLORS (Mist Blue)

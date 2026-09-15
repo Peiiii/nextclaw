@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ChatMessageRole } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
-import { Bot, User, Wrench } from 'lucide-react';
+import { Bot, Wrench } from 'lucide-react';
 import { cn } from '@agent-chat-ui/components/chat/internal/cn';
 
 export function ChatMessageAvatar({
@@ -16,17 +16,7 @@ export function ChatMessageAvatar({
   const frameSize = compact ? 'h-7 w-7' : 'h-8 w-8';
   const iconSize = compact ? 'h-3.5 w-3.5' : 'h-4 w-4';
   if (role === 'user') {
-    return (
-      <div
-        data-testid="chat-message-avatar-user"
-        className={cn(
-          'nextclaw-chat-message-avatar-user hidden shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm md:flex [@container_message-list_(max-width:520px)]:hidden',
-          frameSize,
-        )}
-      >
-        <User className={iconSize} />
-      </div>
-    );
+    return null;
   }
   if (role === 'tool') {
     return (

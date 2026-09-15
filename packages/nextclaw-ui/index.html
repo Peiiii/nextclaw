@@ -17,7 +17,7 @@
     html,
     body,
     #root {
-      background: #ffffff;
+      background: #faf8f4;
     }
 
     html[data-theme="minimal"],
@@ -80,71 +80,20 @@
       background: #fefcf6;
     }
   </style>
-  <script>
-    (() => {
-      const storageKey = 'nextclaw.ui.theme';
-      const storedTheme = window.localStorage.getItem(storageKey);
-      const themeColors = {
-        natural: '#FAF9F7',
-        work: '#FFFFFF',
-        minimal: '#FFFFFF',
-        warm: '#FAF8F4',
-        cool: '#F8FAFC',
-        dawn: '#FAF7F4',
-        graphite: '#F8F8F7',
-        night: '#101318',
-        charcoal: '#1C1C1C',
-        island: '#FBF8ED',
-        probe: '#FEFCF6'
-      };
-      const themeAppearances = {
-        natural: 'light',
-        work: 'light',
-        minimal: 'light',
-        warm: 'light',
-        cool: 'light',
-        dawn: 'light',
-        graphite: 'light',
-        night: 'dark',
-        charcoal: 'dark',
-        island: 'light',
-        probe: 'light'
-      };
-      const legacyThemeAliases = {
-        leaf: 'warm'
-      };
-      const normalizedStoredTheme = typeof storedTheme === 'string' && Object.prototype.hasOwnProperty.call(legacyThemeAliases, storedTheme)
-        ? legacyThemeAliases[storedTheme]
-        : storedTheme;
-      const nextTheme = Object.prototype.hasOwnProperty.call(themeColors, normalizedStoredTheme)
-        ? normalizedStoredTheme
-        : 'work';
-      if (storedTheme !== nextTheme) {
-        window.localStorage.setItem(storageKey, nextTheme);
-      }
-      if (nextTheme === 'island') {
-        const islandBackgroundPreload = document.createElement('link');
-        islandBackgroundPreload.rel = 'preload';
-        islandBackgroundPreload.as = 'image';
-        islandBackgroundPreload.href = '/themes/island/island-atmosphere-7a037243.webp';
-        islandBackgroundPreload.fetchPriority = 'high';
-        document.head.appendChild(islandBackgroundPreload);
-      }
-      const themeColor = themeColors[nextTheme];
-      const themeAppearance = themeAppearances[nextTheme];
-      document.documentElement.setAttribute('data-theme', nextTheme);
-      document.documentElement.setAttribute('data-theme-appearance', themeAppearance);
-      document.documentElement.style.backgroundColor = themeColor;
-      document.documentElement.style.colorScheme = themeAppearance;
-      const themeMeta = document.querySelector('meta[name="theme-color"]');
-      if (themeMeta) {
-        themeMeta.setAttribute('content', themeColor);
-      }
-      const colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
-      if (colorSchemeMeta) {
-        colorSchemeMeta.setAttribute('content', themeAppearance);
-      }
-    })();
+  <script type="module">
+    import { initializeTheme, resolveTheme } from '/src/shared/lib/theme/index.ts';
+    import { pwaShellThemeManager } from '/src/features/pwa/managers/pwa-shell-theme.manager.ts';
+
+    const theme = initializeTheme();
+    pwaShellThemeManager.syncTheme(theme);
+    if (resolveTheme(theme) === 'island') {
+      const preload = document.createElement('link');
+      preload.rel = 'preload';
+      preload.as = 'image';
+      preload.href = '/themes/island/island-atmosphere-7a037243.webp';
+      preload.fetchPriority = 'high';
+      document.head.appendChild(preload);
+    }
   </script>
   <script>
     (() => {

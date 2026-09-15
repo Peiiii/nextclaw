@@ -29,7 +29,7 @@ export function ChatSidebarDesktopToolbar({ onCreateSession, collapsed }: Pick<C
   }
   return <>
     <div className="px-4 pb-2">
-      <Button variant="ghost" className="w-full rounded-lg bg-primary/10 text-primary hover:bg-primary/15" onClick={onCreateSession}>
+      <Button variant="ghost" className="w-full rounded-[var(--sidebar-create-radius)] [box-shadow:var(--sidebar-create-shadow)] bg-[var(--sidebar-create-background)] font-[number:var(--sidebar-create-weight)] text-[var(--sidebar-create-foreground)] hover:bg-[var(--sidebar-create-hover)] hover:text-[var(--sidebar-create-hover-foreground)]" onClick={onCreateSession}>
         <Plus className="mr-1.5 h-4 w-4" />{t('chatSidebarNewTask')}
       </Button>
     </div>

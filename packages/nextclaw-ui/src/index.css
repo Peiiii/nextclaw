@@ -680,6 +680,32 @@
   --md-table-head-bg: rgba(191, 219, 254, 0.16);
 }
 
+:root[data-theme="paper-ink"] .chat-markdown-user {
+  --md-text: hsl(var(--primary-foreground));
+  --md-muted: hsl(42 20% 80%);
+  --md-border: hsl(42 20% 80% / 0.24);
+  --md-link: hsl(45 42% 84%);
+  --md-inline-code-bg: hsl(45 20% 90% / 0.1);
+  --md-inline-code-color: hsl(var(--primary-foreground));
+  --md-blockquote-border: hsl(45 30% 80% / 0.5);
+  --md-blockquote-bg: hsl(45 20% 90% / 0.06);
+  --md-table-head-bg: hsl(45 20% 90% / 0.08);
+}
+
+:root[data-theme="plain-paper"] .chat-markdown-user,
+:root[data-theme="plain-paper"] .chat-markdown-assistant,
+:root[data-theme="paper-ink"] .chat-markdown-assistant {
+  --md-text: hsl(var(--foreground));
+  --md-muted: hsl(var(--gray-600));
+  --md-border: hsl(var(--border));
+  --md-link: hsl(var(--link-foreground));
+  --md-inline-code-bg: hsl(var(--gray-200) / 0.5);
+  --md-inline-code-color: hsl(var(--gray-800));
+  --md-blockquote-border: hsl(var(--brand-400) / 0.5);
+  --md-blockquote-bg: hsl(var(--brand-100) / 0.4);
+  --md-table-head-bg: hsl(var(--gray-200) / 0.4);
+}
+
 :root[data-theme="work"] .chat-markdown-assistant {
   --md-link: #1f73c9;
   --md-border: rgba(0, 0, 0, 0.11);

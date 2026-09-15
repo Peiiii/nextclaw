@@ -64,8 +64,7 @@ describe("ChatMessageList layout", () => {
     ).toContain("h-7");
     expect(
       container.querySelector('[data-testid="chat-message-avatar-user"]')
-        ?.className,
-    ).toContain("h-8");
+    ).toBeNull();
     expect(within(flatHeader).getByText("Assistant")).toBeTruthy();
     expect(within(flatHeader).queryByText("10:01")).toBeNull();
     expect(

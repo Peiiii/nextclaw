@@ -90,9 +90,7 @@ it("renders user, assistant, and tool content and supports code copy", async () 
   expect(screen.queryByText("Input Summary")).toBeNull();
   expect(screen.queryByText("Call ID")).toBeNull();
   expect(screen.getByText("Typing...")).toBeTruthy();
-  expect(screen.getByTestId("chat-message-avatar-user").className).toContain(
-    "nextclaw-chat-message-avatar-user",
-  );
+  expect(screen.queryByTestId("chat-message-avatar-user")).toBeNull();
   expect(container.querySelector(".nextclaw-chat-message-user")).toBeTruthy();
   expect(
     screen.getAllByTestId("chat-message-avatar-assistant").length,

@@ -47,6 +47,8 @@ Filters, tabs, and menus use subtle hover and selection feedback that adapts to 
 
 Open **Settings → Appearance** to choose the interface theme, language, message layout, and SideDock visibility. Theme choices apply immediately and are kept on the current device across reloads.
 
+“Default” follows the recommended theme, currently “Plain Paper”: warm paper surfaces, light tea-gray user bubbles, deep warm-gray text, and quiet neutral controls for extended reading. The olive-green “Paper & Ink” remains available, alongside Soft White, Minimal, Warm, Natural, and the other themes. Choose a specific name to keep that theme, or Default to follow future recommendations.
+
 The `Island` theme combines a warm paper canvas, a gently swaying tropical tree, and quieter interface chrome for a calmer, more atmospheric workspace. The tree stays still when reduced motion is enabled. It changes presentation only; tasks, sessions, and tool behavior stay the same.
 
 ### Privacy and anonymous analytics
@@ -70,3 +72,5 @@ Most users should prefer the UI.
 Use `nextclaw config` when you need scripting, remote maintenance, or exact path-level edits.
 
 For all commands, see [Command Index](/en/guide/commands).
+
+User avatars are hidden in every theme; right-aligned bubbles identify user messages.

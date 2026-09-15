@@ -1,4 +1,7 @@
 export type UiTheme =
+  | 'default'
+  | 'paper-ink'
+  | 'plain-paper'
   | 'natural'
   | 'work'
   | 'minimal'
@@ -19,9 +22,17 @@ type UiThemeDefinition = {
 };
 
 const THEME_STORAGE_KEY = 'nextclaw.ui.theme';
-export const DEFAULT_UI_THEME: UiTheme = 'work';
+export const DEFAULT_UI_THEME: UiTheme = 'default';
+export const DEFAULT_THEME_TARGET = 'plain-paper';
+
+export function resolveTheme(theme: UiTheme): Exclude<UiTheme, 'default'> {
+  return theme === 'default' ? DEFAULT_THEME_TARGET : theme;
+}
 
 const THEME_DEFINITIONS: readonly UiThemeDefinition[] = [
+  { value: 'default', labelKey: 'themeDefault', appearance: 'light' },
+  { value: 'plain-paper', labelKey: 'themePlainPaper', appearance: 'light' },
+  { value: 'paper-ink', labelKey: 'themePaperInk', appearance: 'light' },
   { value: 'work', labelKey: 'themeWork', appearance: 'light' },
   { value: 'night', labelKey: 'themeNight', appearance: 'dark' },
   { value: 'charcoal', labelKey: 'themeCharcoal', appearance: 'dark' },
@@ -59,7 +70,7 @@ export function normalizeTheme(value: unknown): UiTheme | null {
 
 export function getThemeAppearance(theme: UiTheme): UiThemeAppearance {
   return (
-    THEME_DEFINITIONS.find((definition) => definition.value === theme)
+    THEME_DEFINITIONS.find((definition) => definition.value === resolveTheme(theme))
       ?.appearance ?? 'light'
   );
 }
@@ -123,7 +134,7 @@ class UiThemeOwner {
       return;
     }
     const appearance = getThemeAppearance(theme);
-    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-theme', resolveTheme(theme));
     document.documentElement.setAttribute('data-theme-appearance', appearance);
     document.documentElement.style.colorScheme = appearance;
   };

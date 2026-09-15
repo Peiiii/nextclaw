@@ -64,7 +64,7 @@ export function ChatWelcome({
     <div className="flex min-h-full items-center justify-center px-4 py-10 sm:p-8">
       <div className="w-full min-w-0 max-w-[min(680px,100%)]">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold leading-tight text-foreground sm:text-[2rem]">
+          <h2 className="text-2xl font-[number:var(--welcome-title-weight)] leading-tight text-[hsl(var(--welcome-title-foreground))] sm:text-[2rem]">
             {t('chatWelcomeTitle')}
           </h2>
         </div>

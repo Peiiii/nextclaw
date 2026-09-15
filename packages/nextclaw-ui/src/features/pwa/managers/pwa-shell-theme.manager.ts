@@ -2,10 +2,13 @@ import {
   DEFAULT_UI_THEME,
   getThemeAppearance,
   normalizeTheme,
+  resolveTheme,
   type UiTheme,
 } from '@/shared/lib/theme';
 
-const PWA_SHELL_THEME_COLORS: Record<UiTheme, string> = {
+const PWA_SHELL_THEME_COLORS: Record<Exclude<UiTheme, 'default'>, string> = {
+  'paper-ink': '#FAF8F4',
+  'plain-paper': '#FAF8F4',
   natural: '#FAF9F7',
   work: '#FFFFFF',
   minimal: '#FFFFFF',
@@ -25,10 +28,12 @@ export class PwaShellThemeManager {
       return;
     }
 
-    const themeColor = PWA_SHELL_THEME_COLORS[theme];
+    const themeColor = PWA_SHELL_THEME_COLORS[resolveTheme(theme)];
     this.updateThemeMeta(themeColor);
     this.updateSurfaceBackgrounds(themeColor);
-    document.documentElement.style.colorScheme = getThemeAppearance(theme);
+    const appearance = getThemeAppearance(theme);
+    document.documentElement.style.colorScheme = appearance;
+    document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', appearance);
   };
 
   syncCurrentTheme = () => {

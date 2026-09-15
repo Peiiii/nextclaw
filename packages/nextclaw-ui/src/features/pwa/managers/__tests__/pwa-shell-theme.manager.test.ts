@@ -12,12 +12,12 @@ describe('PwaShellThemeManager', () => {
     document.body.style.backgroundColor = '';
   });
 
-  it('applies default work shell colors when no theme is selected', () => {
+  it('applies plain paper shell colors when no theme is selected', () => {
     pwaShellThemeManager.syncCurrentTheme();
 
     const meta = document.querySelector('meta[name="theme-color"]');
-    expect(meta?.getAttribute('content')).toBe('#FFFFFF');
-    expect(document.body.style.backgroundColor).toBe('rgb(255, 255, 255)');
+    expect(meta?.getAttribute('content')).toBe('#FAF8F4');
+    expect(document.body.style.backgroundColor).toBe('rgb(250, 248, 244)');
   });
 
   it('applies natural shell colors explicitly', () => {
