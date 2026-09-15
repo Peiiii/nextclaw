@@ -21,8 +21,11 @@ const PopoverAnchor = PopoverPrimitive.Anchor;
 
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & { variant?: 'default' | 'menu' }
->(({ className, variant = 'default', sideOffset = 8, align = 'start', collisionPadding = 12, style, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & {
+    variant?: 'default' | 'menu';
+    matchTriggerWidth?: boolean;
+  }
+>(({ className, variant = 'default', matchTriggerWidth = false, sideOffset = 8, align = 'start', collisionPadding = 12, style, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
@@ -35,7 +38,15 @@ const PopoverContent = React.forwardRef<
         className,
         variant === 'menu' && CONTEXT_MENU_SURFACE_CLASS
       )}
-      style={{ maxHeight: POPOVER_CONTENT_MAX_HEIGHT, ...style }}
+      style={{
+        maxHeight: POPOVER_CONTENT_MAX_HEIGHT,
+        ...(matchTriggerWidth && {
+          width: 'var(--radix-popover-trigger-width)',
+          minWidth: 0,
+          maxWidth: 'var(--radix-popover-content-available-width)',
+        }),
+        ...style,
+      }}
       {...props}
       onEscapeKeyDown={(event) => {
         if (!deferEscapeToNestedMenu(event)) props.onEscapeKeyDown?.(event);

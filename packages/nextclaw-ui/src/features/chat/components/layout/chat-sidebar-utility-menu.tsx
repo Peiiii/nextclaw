@@ -114,6 +114,7 @@ export function ChatSidebarUtilityMenu({
         side={collapsed ? "right" : "top"}
         align={collapsed ? "end" : "start"}
         variant="menu"
+        matchTriggerWidth={!collapsed}
       >
         <div>
           <NavLink

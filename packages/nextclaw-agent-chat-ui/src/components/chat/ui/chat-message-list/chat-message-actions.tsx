@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type RefObject } from "react";
-import { Check, CirclePlay, Copy, MoreHorizontal, Pencil } from "lucide-react";
+import { Check, CirclePlay, Copy, MoreVertical, Pencil } from "lucide-react";
 import { useCopyFeedback } from "@agent-chat-ui/components/chat/hooks/use-copy-feedback";
 import type {
   ChatMessageDetailActionViewModel,
@@ -175,7 +175,7 @@ function ChatMessageActionMore({ message }: { message: ChatMessageViewModel }) {
                   aria-label={moreActions.triggerLabel}
                   className="flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
                 >
-                  <MoreHorizontal className="h-3.5 w-3.5" />
+                  <MoreVertical className="h-3.5 w-3.5" />
                 </button>
               </PopoverTrigger>
             </TooltipTrigger>
