@@ -437,6 +437,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
         onEditMessage={(payload) => controllerRef.current.editMessage(payload)}
         welcomeSlot={
           <ChatConversationWelcome
+            hasDraftContent={Boolean(inputSnapshot.text.trim() || inputSnapshot.attachments.length || inputSnapshot.selectedSkills.length)}
             inputSlot={
               <div className="space-y-2">
                 {renderInput("embedded", t("chatWelcomeInputPlaceholder"))}

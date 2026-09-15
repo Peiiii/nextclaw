@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bot, ChevronDown } from 'lucide-react';
+import { Cpu, ChevronDown } from 'lucide-react';
 import { SessionContextIconNode } from '@/features/chat/features/session/components/session-context-icon';
 import { ChatSessionTypeOptionItem } from '@/features/chat/features/session-type/components/chat-session-type-option-item';
 import type { ChatSessionTypeOption } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
@@ -39,7 +39,7 @@ export function ChatWelcomeSessionTypePicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left font-medium text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+          className="inline-flex h-9 min-w-0 max-w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm font-medium text-foreground/80 transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
           aria-label={t('chatWelcomeSessionTypePickerLabel')}
         >
           {selectedOption.icon?.src ? (
@@ -53,7 +53,7 @@ export function ChatWelcomeSessionTypePicker({
               className="h-4 w-4"
             />
           ) : (
-            <Bot className="h-4 w-4 shrink-0" />
+            <Cpu className="h-3.5 w-3.5 shrink-0" />
           )}
           <span className="truncate">{selectedOption.label}</span>
           <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />

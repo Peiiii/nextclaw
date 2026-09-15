@@ -11,6 +11,10 @@ In Time view, Pinned and date groups start expanded. Click a group heading to co
 
 ## Start a new task when
 
+The welcome page asks “Where shall we start today?” and welcomes both goals and open questions. Start with “Talk about how I’ve been”, “Help me think through an idea”, or “Start something together”; choosing a project changes the third suggestion to “Move this project forward”. Suggestions fill an editable draft without sending it. They hide while the draft contains text, attachments, or selected skills and return when it is cleared. Working directory, agent, and runtime remain directly accessible as separate controls.
+
+When the loaded session list contains a titled, non-empty, non-child conversation in the same working directory with the same agent, the page offers the most recent one below the starting suggestions under “Pick up where you left off”. Open it to return to its original context and settings, or hide the suggestion for now. Hiding it does not delete the conversation or remove ways to start something new. This entry does not infer whether the task is complete.
+
 On phones, your messages hide the user avatar to leave more room for content. Desktop messages keep the avatar.
 
 - you move to another project or working directory;

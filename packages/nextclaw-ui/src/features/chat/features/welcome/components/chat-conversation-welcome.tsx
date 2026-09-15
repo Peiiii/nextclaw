@@ -19,11 +19,13 @@ import { useAgents } from "@/shared/hooks/use-agents";
 import { useProjects } from "@/shared/hooks/use-projects";
 import type { NcpSessionSummaryView } from "@/shared/lib/api";
 import { normalizeSessionProjectRootValue } from "@/shared/lib/session-project";
+import { resolveChatWelcomeContinuation } from "@/features/chat/features/welcome/utils/chat-welcome-continuation.utils";
 
 const EMPTY_NCP_SESSION_SUMMARIES: NcpSessionSummaryView[] = [];
 
 type ChatConversationWelcomeProps = {
   inputSlot: ReactNode;
+  hasDraftContent?: boolean;
   pendingProjectRoot: string | null;
   pendingSessionType: string;
   selectedSessionTypeValue: string | null;
@@ -34,6 +36,7 @@ type ChatConversationWelcomeProps = {
 
 export function ChatConversationWelcome({
   inputSlot,
+  hasDraftContent = false,
   pendingProjectRoot,
   pendingSessionType,
   selectedSessionTypeValue,
@@ -50,7 +53,9 @@ export function ChatConversationWelcome({
     (state) => state.snapshot.configQuery?.data ?? null,
   );
   const sessionSummaries = useChatQueryStore(
-    (state) => state.snapshot.sessionsQuery?.data?.sessions ?? EMPTY_NCP_SESSION_SUMMARIES,
+    (state) => state.snapshot.sessionsQuery?.isSuccess
+      ? state.snapshot.sessionsQuery.data?.sessions ?? EMPTY_NCP_SESSION_SUMMARIES
+      : EMPTY_NCP_SESSION_SUMMARIES,
   );
   const sessionTypesData = useChatQueryStore(
     (state) => state.snapshot.sessionTypesQuery?.data ?? null,
@@ -104,6 +109,13 @@ export function ChatConversationWelcome({
       agents={availableAgents}
       defaultProjectRoot={defaultProjectRoot}
       inputSlot={inputSlot}
+      hasDraftContent={hasDraftContent}
+      continuation={resolveChatWelcomeContinuation({
+        sessions: sessionSummaries,
+        projectRoot: selectedProjectRoot ?? defaultProjectRoot,
+        defaultProjectRoot,
+        agentId: draftAgentId,
+      })}
       projectOptions={projectOptions}
       selectedAgentId={draftAgentId}
       selectedProjectRoot={selectedProjectRoot}

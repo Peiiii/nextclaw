@@ -9,12 +9,15 @@ import type { ChatWelcomeProjectOption } from '@/features/chat/features/welcome/
 import type { ChatSessionTypeOption } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 import type { AgentProfileView } from '@/shared/lib/api';
 import { t } from '@/shared/lib/i18n';
+import type { ChatWelcomeContinuation } from '@/features/chat/features/welcome/utils/chat-welcome-continuation.utils';
 
 type SessionTypeOption = ChatSessionTypeOption;
 
 type ChatWelcomeProps = {
   agents: AgentProfileView[];
   inputSlot?: ReactNode;
+  hasDraftContent?: boolean;
+  continuation?: ChatWelcomeContinuation | null;
   defaultProjectRoot?: string | null;
   projectOptions: readonly ChatWelcomeProjectOption[];
   selectedAgentId: string;
@@ -31,6 +34,8 @@ export function ChatWelcome({
   agents,
   defaultProjectRoot,
   inputSlot,
+  hasDraftContent = false,
+  continuation,
   projectOptions,
   selectedAgentId,
   selectedProjectRoot,
@@ -64,18 +69,18 @@ export function ChatWelcome({
     <div className="flex min-h-full items-center justify-center px-4 py-10 sm:p-8">
       <div className="w-full min-w-0 max-w-[min(680px,100%)]">
         <div className="text-center">
-          <h2 className="text-2xl font-[number:var(--welcome-title-weight)] leading-tight text-[hsl(var(--welcome-title-foreground))] sm:text-[2rem]">
+          <h2 className="text-2xl font-[number:var(--welcome-title-weight)] leading-tight text-[hsl(var(--welcome-title-foreground))] sm:text-[1.75rem]">
             {t('chatWelcomeTitle')}
           </h2>
         </div>
 
         {inputSlot ? <div className="mt-6">{inputSlot}</div> : null}
 
-        <div className="mt-2 flex justify-center px-1">
+        <div className="mt-1.5 flex justify-center px-1">
           <div
             role="group"
             aria-label={t('chatWelcomeContextLabel')}
-            className="flex min-w-0 max-w-full flex-wrap items-center justify-center gap-0.5 rounded-xl bg-muted/40 p-1 text-sm text-muted-foreground"
+            className="flex min-w-0 max-w-full flex-wrap items-center justify-center gap-x-1 gap-y-0.5 text-xs text-muted-foreground"
           >
             {onSelectProjectRoot ? (
               <ChatWelcomeProjectPicker
@@ -101,7 +106,12 @@ export function ChatWelcome({
           </div>
         </div>
 
-        <ChatWelcomePromptSuggestions onSelectPrompt={onSelectPrompt} />
+        <ChatWelcomePromptSuggestions
+          hasDraftContent={hasDraftContent}
+          hasProject={Boolean(selectedProjectRoot)}
+          continuation={continuation}
+          onSelectPrompt={onSelectPrompt}
+        />
       </div>
 
       {onSelectProjectRoot ? (

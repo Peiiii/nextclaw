@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ChatWelcome } from '@/features/chat/features/welcome/components/chat-welcome';
+import { MemoryRouter } from 'react-router-dom';
+import { buildSessionPath } from '@/features/chat/features/session/utils/chat-session-route.utils';
 
 vi.mock(
   '@/features/chat/features/session/components/session-header/chat-session-project-dialog',
@@ -18,12 +20,14 @@ function renderWelcome(
   overrides: Partial<Parameters<typeof ChatWelcome>[0]> = {},
 ) {
   return render(
+    <MemoryRouter>
     <ChatWelcome
       agents={[
         { id: 'main', displayName: 'Main' },
         { id: 'engineer', displayName: 'Engineer' },
       ]}
       projectOptions={[]}
+      selectedProjectRoot="/tmp/project"
       selectedAgentId="main"
       selectedSessionType="native"
       sessionTypeOptions={sessionTypeOptions}
@@ -31,11 +35,34 @@ function renderWelcome(
       onSelectPrompt={vi.fn()}
       onSelectSessionType={vi.fn()}
       {...overrides}
-    />,
+    />
+    </MemoryRouter>,
   );
 }
 
 describe('ChatWelcome', () => {
+  it('offers an open-ended starting point outside an explicit project', () => {
+    renderWelcome({ selectedProjectRoot: null });
+    expect(screen.getByRole('button', { name: 'Talk about how I’ve been' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Move this project forward' })).toBeNull();
+  });
+
+  it('links to the original session and can dismiss it without removing history', () => {
+    renderWelcome({ continuation: { sessionKey: 'session/one', title: 'A real conversation' } });
+    const link = screen.getByRole('link', { name: /A real conversation/ });
+    expect(link.getAttribute('href')).toBe(buildSessionPath('session/one'));
+    expect(screen.getByRole('button', { name: 'Talk about how I’ve been' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide this conversation suggestion for now' }));
+    expect(screen.queryByRole('link')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Move this project forward' })).toBeTruthy();
+  });
+
+  it('hides starting suggestions while composing but keeps context controls available', () => {
+    renderWelcome({ hasDraftContent: true });
+    expect(screen.queryByRole('button', { name: 'Move this project forward' })).toBeNull();
+    expect(screen.getByRole('combobox', { name: 'Draft agent' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Choose session type' })).toBeTruthy();
+  });
   it('renders a lightweight draft agent select and allows switching', () => {
     const onSelectAgent = vi.fn();
 
@@ -53,12 +80,10 @@ describe('ChatWelcome', () => {
   it('renders a single-purpose welcome surface with compact prompt suggestions', () => {
     renderWelcome({ agents: [{ id: 'main', displayName: 'Main' }] });
 
-    expect(screen.getByRole('heading', { name: 'What would you like to get done?' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Where shall we start today?' })).toBeTruthy();
     expect(screen.queryByText(/Describe the goal/)).toBeNull();
     expect(screen.getByRole('group', { name: 'Task context' })).toBeTruthy();
-    const suggestion = screen.getByRole('button', { name: 'Review this project' });
-    expect(suggestion.className).toContain('rounded-full');
-    expect(suggestion.className).not.toContain('border');
+    const suggestion = screen.getByRole('button', { name: 'Move this project forward' });
     expect(suggestion.parentElement?.className).toContain('flex-wrap');
   });
 
@@ -67,7 +92,7 @@ describe('ChatWelcome', () => {
 
     renderWelcome({ onSelectPrompt });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Review this project' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Move this project forward' }));
 
     expect(onSelectPrompt).toHaveBeenCalledWith(
       expect.stringContaining('next three concrete things'),

@@ -43,7 +43,7 @@ export function ChatWelcomeProjectPicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left font-medium text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+          className="inline-flex h-9 min-w-0 max-w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-sm font-medium text-foreground/80 transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
           title={projectRoot ?? undefined}
           aria-label={t('chatWelcomeProjectPickerLabel')}
           disabled={!selectable || isSaving}

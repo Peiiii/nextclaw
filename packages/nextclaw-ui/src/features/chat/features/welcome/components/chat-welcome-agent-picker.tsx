@@ -28,7 +28,7 @@ export function ChatWelcomeAgentPicker({
     <Select value={selectedAgentId} onValueChange={onSelectAgent}>
       <SelectTrigger
         aria-label={t('chatDraftAgentTitle')}
-        className="h-auto w-auto min-w-0 gap-1 rounded-lg border-0 bg-transparent px-2 py-1.5 text-muted-foreground shadow-none hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus:ring-0"
+        className="h-9 w-auto min-w-0 gap-1.5 rounded-lg border-0 bg-transparent px-2 py-1.5 text-sm font-medium text-foreground/80 shadow-none hover:bg-[var(--interaction-hover)] hover:text-foreground focus:ring-1 focus:ring-border"
       >
         <span className="sr-only">{t('chatDraftAgentTitle')}</span>
         <div className="flex min-w-0 items-center gap-1.5">
