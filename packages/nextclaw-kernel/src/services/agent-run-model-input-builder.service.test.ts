@@ -13,6 +13,7 @@ import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { AgentRunMessageProjector } from "./agent-run-message-projector.service.js";
 import { AgentRunModelInputBudgeter } from "./agent-run-model-input-budgeter.service.js";
 import { AgentRunModelInputBuilder } from "./agent-run-model-input-builder.service.js";
+import { serializeModelInputTail } from "@kernel/utils/agent-model-input-tail.utils.js";
 
 const SESSION_ID = "session-compacted-model-input";
 
@@ -751,6 +752,10 @@ describe("AgentRunModelInputBuilder observation projection", () => {
       expect.objectContaining({ fixedInputTokens: expect.any(Number) }),
     );
     expect(prune.mock.calls[0]?.[0].fixedInputTokens).toBeGreaterThan(0);
+    expect(prune.mock.calls[0]?.[0].fixedInputTokens).toBeGreaterThan(
+      estimateInputTokens([{ role: "user", content: serializeModelInputTail(input.contextTail!) }]),
+    );
+    expect(JSON.stringify(input)).not.toContain('"source":"current-time"');
     const projectedEvent = input.messages.find(
       (message) =>
         message.role === "user" && String(message.content).includes("event-1"),
