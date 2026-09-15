@@ -7,6 +7,7 @@ export function ChatCollapsibleContent({ open, children }: {
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(false);
   const [present, setPresent] = useState(open);
   // Retain newly opened children if the user reverses before the animation ends.
   if (open && !present) setPresent(true);
@@ -15,17 +16,20 @@ export function ChatCollapsibleContent({ open, children }: {
     const frame = frameRef.current;
     const body = bodyRef.current;
     if (!frame || !body) return;
+    const isMount = !mountedRef.current;
+    mountedRef.current = true;
     frame.inert = !open;
     const finish = () => {
       frame.style.height = open ? "auto" : "0px";
       frame.style.opacity = open ? "1" : "0";
       setPresent(open);
     };
-    if (typeof frame.animate !== "function" || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    if (isMount || typeof frame.animate !== "function" || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       finish();
       return;
     }
     let animation: Animation | null = null;
+    const deadline = performance.now() + 200;
     let targetHeight = open ? body.getBoundingClientRect().height : 0;
     const transition = (from: number, to: number) => {
       const opacity = from === 0 ? 0 : Number(getComputedStyle(frame).opacity);
@@ -38,7 +42,7 @@ export function ChatCollapsibleContent({ open, children }: {
         { height: `${from}px`, opacity },
         { height: `${to}px`, opacity: open ? 1 : 0 },
       ], {
-        duration: 200,
+        duration: Math.max(0, deadline - performance.now()),
         easing: "cubic-bezier(0.2, 0, 0, 1)",
         fill: "both",
       });
@@ -49,11 +53,12 @@ export function ChatCollapsibleContent({ open, children }: {
       };
     };
     transition(frame.getBoundingClientRect().height, targetHeight);
-    // Details may replace their loading skeleton after opening has started or finished.
+    // Retarget only this toggle; open ancestors must not replay their children's animation.
     const observer = open && typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => {
+      if (!animation) return;
       const nextHeight = body.getBoundingClientRect().height;
       if (Math.abs(nextHeight - targetHeight) < 0.5) return;
-      const from = animation ? frame.getBoundingClientRect().height : targetHeight;
+      const from = frame.getBoundingClientRect().height;
       targetHeight = nextHeight;
       transition(from, nextHeight);
     }) : null;

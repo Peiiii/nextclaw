@@ -43,20 +43,10 @@ import {
 } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-controller';
 import { ChatComposerClipboardOwner } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/owners/chat-composer-clipboard.owner';
 import { ChatComposerDictationOwner } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/owners/chat-composer-dictation.owner';
+import { ChatComposerExternalStateOwner } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/owners/chat-composer-external-state.owner';
+import type { ChatComposerLexicalOwnerCallbacks } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/owners/chat-composer-lexical-owner.types';
 
 type ComposerActions = Pick<ChatInputBarActionsProps, 'onSend' | 'onStop' | 'isSending' | 'canStopGeneration'>;
-
-export type ChatComposerLexicalOwnerCallbacks = {
-  onInputSurfaceItemSelect?: (item: ChatInputSurfaceItem) => void;
-  onInputSurfaceKeyDown?: (event: KeyboardEvent) => boolean;
-  onInputSurfaceOpenChange?: (open: boolean) => void;
-  onInputSurfaceSnapshotChange?: (
-    nodes: ChatComposerNode[],
-    selection: ChatComposerSelection | null,
-    reason: ChatInputSurfaceTriggerChangeReason,
-  ) => void;
-  onNodesChange: (nodes: ChatComposerNode[]) => void;
-};
 
 type ComposerRuntime = {
   actions: ComposerActions;
@@ -83,6 +73,7 @@ export class ChatComposerLexicalOwner {
   readonly shouldFocusAfterSyncRef = createMutableRef(false);
 
   private readonly editorSignatureRef = createMutableRef('');
+  private readonly externalStateOwner = new ChatComposerExternalStateOwner();
   private readonly lastPublishedSignatureRef = createMutableRef('');
   private readonly pendingInputSurfaceReasonRef = createMutableRef<ChatInputSurfaceTriggerChangeReason | null>(null);
   private editor: LexicalEditor | null = null;
@@ -102,6 +93,7 @@ export class ChatComposerLexicalOwner {
     return () => {
       if (this.editor === editor) {
         this.dictation?.cancel();
+        this.externalStateOwner.reset();
         this.editor = null;
       }
     };
@@ -148,9 +140,7 @@ export class ChatComposerLexicalOwner {
   };
 
   syncExternalState = (editor: LexicalEditor, nodes: ChatComposerNode[]): void => {
-    if (editor.isComposing()) {
-      return;
-    }
+    if (this.externalStateOwner.deferWhileComposing(editor, nodes, this.editorSignatureRef.current)) return;
     const nextSignature = getChatComposerNodesSignature(nodes);
     if (this.dictation?.isActive() && nextSignature !== this.editorSignatureRef.current &&
       nextSignature !== this.lastPublishedSignatureRef.current) {
@@ -438,6 +428,12 @@ export class ChatComposerLexicalOwner {
     const expectedExternalSignature = this.editorSignatureRef.current;
 
     this.editorSignatureRef.current = signature;
+
+    if (this.externalStateOwner.flushAfterCompositionEnd(
+      tags.has(COMPOSITION_END_TAG),
+      this.editor,
+      this.syncExternalState,
+    )) return;
 
     if (
       (tags.has(CHAT_COMPOSER_EXTERNAL_UPDATE_TAG) && signature === expectedExternalSignature) ||

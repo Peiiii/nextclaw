@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, fireEvent, renderHook } from "@testing-library/react";
 import { useRef } from "react";
 import { useStickyBottomScroll } from "./use-sticky-bottom-scroll";
 
@@ -7,6 +7,13 @@ function createTurnSpaceFixture() {
   const content = document.createElement("div");
   const anchor = document.createElement("div");
   const spacer = document.createElement("div");
+  scroll.append(content);
+  let resize: ResizeObserverCallback | undefined;
+  vi.stubGlobal("ResizeObserver", class {
+    constructor(callback: ResizeObserverCallback) { resize = callback; }
+    observe = vi.fn();
+    disconnect = vi.fn();
+  });
   const geometry = { height: 1200, anchor: 1200, viewport: 600 };
   scroll.scrollTop = 600;
   Object.defineProperties(scroll, {
@@ -40,10 +47,77 @@ function createTurnSpaceFixture() {
     turnSpace: { key, anchorRef: { current: anchor }, frameRef: { current: spacer } },
   }), { initialProps: { key: "old", version: 0, session: "one" } });
   flush();
-  return { scroll, spacer, geometry, view, flush };
+  return { scroll, content, spacer, geometry, view, flush,
+    resize: () => act(() => resize?.([], {} as ResizeObserver)) };
 }
 
 afterEach(() => vi.unstubAllGlobals());
+
+it.each(["click", "Enter", " ", "summary"])("preserves reading through expansion and delayed growth via %s", (activation) => {
+  const { scroll, content, geometry, view, flush, resize } = createTurnSpaceFixture();
+  content.innerHTML = activation === "summary"
+    ? "<details><summary>Metadata</summary></details>"
+    : '<div role="button" tabindex="0" aria-expanded="false"><span>Tools</span></div>';
+  const trigger = content.querySelector("summary, [role=button]")!;
+  geometry.height += 20;
+  resize(); // A streaming frame is already queued when the user expands.
+  act(() => {
+    if (activation === "click" || activation === "summary") fireEvent.click(trigger.firstChild ?? trigger);
+    else fireEvent.keyDown(trigger, { key: activation });
+  });
+  for (const growth of [30, 400, 1200]) {
+    geometry.height += growth;
+    resize();
+    view.rerender({ key: "old", version: growth, session: "one" });
+    flush();
+    expect(scroll.scrollTop).toBe(600);
+  }
+  expect(view.result.current.isAtBottom).toBe(false);
+  act(() => view.result.current.scrollToBottom());
+  flush();
+  expect(scroll.scrollTop).toBe(geometry.height - 600);
+  geometry.height += 100;
+  resize();
+  flush();
+  expect(scroll.scrollTop).toBe(geometry.height - 600);
+  view.unmount();
+});
+
+it.each([
+  '<button aria-expanded="true">Collapse</button>',
+  '<button aria-haspopup="menu" aria-expanded="false">Menu</button>',
+  '<div role="button" aria-expanded="false"><button>Copy</button></div>',
+])("keeps following for actions that do not expand content: %s", (html) => {
+  const { content, scroll, geometry, resize, flush, view } = createTurnSpaceFixture();
+  content.innerHTML = html;
+  fireEvent.click(content.querySelector("button")!);
+  geometry.height += 100;
+  resize();
+  flush();
+  expect(scroll.scrollTop).toBe(700);
+  view.unmount();
+});
+
+it("resumes after scrolling near the bottom and resets inspection across sessions", () => {
+  const { content, scroll, geometry, resize, flush, view } = createTurnSpaceFixture();
+  content.innerHTML = '<button aria-expanded="false">Expand</button>';
+  act(() => fireEvent.click(content.firstElementChild!));
+  geometry.height = 1800;
+  resize();
+  flush();
+  expect(scroll.scrollTop).toBe(600);
+  scroll.scrollTop = 1150;
+  act(() => view.result.current.onScroll());
+  geometry.height += 100;
+  resize();
+  flush();
+  expect(scroll.scrollTop).toBe(1300);
+  act(() => fireEvent.click(content.firstElementChild!));
+  view.rerender({ key: "old", version: 1, session: "two" });
+  flush();
+  expect(view.result.current.isAtBottom).toBe(true);
+  view.unmount();
+});
 
 it("reserves one turn of reading space, consumes it during output, and keeps short completed replies stable", () => {
   const { scroll, spacer, geometry, view, flush } = createTurnSpaceFixture();

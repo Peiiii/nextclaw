@@ -10,7 +10,7 @@ import { ToolCardHeader } from './tool-card-header';
 import { ToolCardFileOperationContent } from './tool-card-file-operation';
 import { ToolExecutionDuration } from './terminal/tool-execution-duration';
 import { ChatTerminalSurface } from './terminal/terminal-panes';
-import { ChatCollapsibleContent } from '../chat-collapsible-content';
+import { ChatCollapsibleContent } from '@agent-chat-ui/components/chat/ui/chat-message-list/chat-collapsible-content';
 
 const TOOL_CARD_AUTO_EXPAND_DELAY_MS = 200;
 
@@ -134,7 +134,7 @@ export function useToolCardExpandedState({
   expandOnError?: boolean;
   statusTone: ChatToolPartViewModel['statusTone'];
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(canExpand && expandOnError && statusTone === 'error');
   const [hasUserToggled, setHasUserToggled] = useState(false);
   const expandTimerRef = useRef<number | null>(null);
   const prevRunningRef = useRef(isRunning);
