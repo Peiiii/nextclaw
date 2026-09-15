@@ -44,11 +44,7 @@ function WorkspaceBreadcrumbSegmentButton({
           aria-current={segment.isCurrent ? 'page' : undefined}
           className={cn(
             'inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-sm px-1 text-[11px] leading-none transition-colors hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border',
-            segment.kind === 'workspace'
-              ? 'bg-[var(--interaction-selection)] text-foreground hover:bg-[var(--interaction-selection)]'
-              : segment.isCurrent
-                ? 'bg-gray-200/70 text-gray-900'
-                : 'text-gray-500',
+            segment.isCurrent ? 'font-medium text-foreground' : 'text-muted-foreground',
           )}
           disabled={!segment.browsePath}
         >
@@ -115,7 +111,7 @@ export function ChatSessionWorkspaceFileBreadcrumbs({
     <div
       data-testid="workspace-file-breadcrumbs"
       title={breadcrumb.fullPath}
-      className="flex h-8 min-w-0 shrink-0 items-center border-b border-gray-200/80 bg-gray-50/55"
+      className="flex h-7 min-w-0 shrink-0 items-center border-b border-border/40 bg-muted text-foreground"
     >
       {leading ? <div className="flex h-full shrink-0 items-center pl-1 pr-0.5">{leading}</div> : null}
       <div
@@ -128,7 +124,7 @@ export function ChatSessionWorkspaceFileBreadcrumbs({
             <Fragment key={segment.key}>
               <WorkspaceBreadcrumbSegmentButton segment={segment} onFileOpen={onFileOpen} />
               {index < breadcrumb.segments.length - 1 ? (
-                <ChevronRight className="h-3 w-3 shrink-0 text-gray-300" />
+                <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/65" />
               ) : null}
             </Fragment>
           ))}

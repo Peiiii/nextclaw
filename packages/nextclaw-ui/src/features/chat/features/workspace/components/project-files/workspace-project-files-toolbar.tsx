@@ -19,9 +19,9 @@ export function WorkspaceProjectFilesToolbar({
   onRefresh: () => void;
 }) {
   return (
-    <div className="flex h-9 shrink-0 items-center gap-0.5 border-b border-gray-200/80 bg-gray-50/55 px-1.5">
+    <div className="flex h-9 shrink-0 items-center gap-0.5 border-b border-border bg-background px-1.5">
       <span
-        className="min-w-0 flex-1 truncate px-0.5 text-[11px] font-semibold uppercase tracking-[0.03em] text-gray-800"
+        className="min-w-0 flex-1 truncate px-1 text-xs font-medium text-muted-foreground"
         title={rootLabel}
       >
         {rootLabel}

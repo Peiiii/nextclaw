@@ -22,7 +22,6 @@ import {
   Github,
   Globe,
   LayoutDashboard,
-  Link2,
   MessageSquare,
   PanelsTopLeft,
   Plus,
@@ -44,7 +43,7 @@ const RESOURCE_ICONS = {
   app: AppWindow,
   docs: BookOpen,
   website: Globe,
-  generic: Link2,
+  generic: null,
   page: PanelsTopLeft,
   overview: LayoutDashboard,
   "child-sessions": GitBranch,
@@ -94,7 +93,8 @@ function resourceTypeIcon(
   if (
     uri.startsWith("nextclaw://workspace-file") ||
     uri.startsWith("file:") ||
-    uri.startsWith("nextclaw://file/")
+    uri.startsWith("nextclaw://file/") ||
+    (!/^[a-z][a-z0-9+.-]*:/i.test(uri.replace(/:\d+(?::\d+)?$/, "")) && /\.[a-z0-9]{1,16}(?::\d+(?::\d+)?)?(?:[?#]|$)/i.test(uri))
   )
     return "file";
   if (
@@ -104,7 +104,7 @@ function resourceTypeIcon(
   )
     return "app";
   if (uri.startsWith("nextclaw://docs")) return "docs";
-  return /^https?:/.test(uri) ? "website" : "generic";
+  return "generic";
 }
 
 function appIcon(value?: string): DocBrowserDockIcon | undefined {
@@ -222,20 +222,28 @@ function ResourceIcon({
         {specific.value}
       </span>
     );
-  let pathname = uri;
+  let pathname = uri.replace(/:\d+(?::\d+)?$/, "");
   try {
-    pathname = new URL(uri).searchParams.get("path") ?? new URL(uri).pathname;
+    const url = new URL(pathname);
+    pathname = url.searchParams.get("path") ?? url.pathname;
   } catch {
     /* Local file link. */
   }
+  pathname = pathname.split(/[?#]/, 1)[0].replace(/:\d+(?::\d+)?$/, "");
+  try {
+    pathname = decodeURIComponent(pathname);
+  } catch {
+    /* Keep malformed percent escapes as literal file name characters. */
+  }
   if (
     resourceTypeIcon(uri, appId) === "file" &&
-    /\.[a-z0-9]{1,8}(?:[?#]|$)/i.test(pathname)
+    /\.[a-z0-9]{1,16}$/i.test(pathname)
   )
     return <FileTypeIcon fileName={pathname} size="compact" />;
   const Icon =
     (specific?.type === "builtin" && BUILTIN_ICONS[specific.name]) ||
     RESOURCE_ICONS[resourceTypeIcon(uri, appId)];
+  if (!Icon) return null;
   return (
     <Icon
       aria-hidden="true"

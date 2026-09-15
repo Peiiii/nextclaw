@@ -77,9 +77,9 @@ function EntryIcon({
     return <FileTypeIcon fileName={fileName} />;
   }
   return isExpanded ? (
-    <FolderOpen className="h-4 w-4 shrink-0 text-amber-500" />
+    <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
   ) : (
-    <Folder className="h-4 w-4 shrink-0 text-amber-500" />
+    <Folder className="h-4 w-4 shrink-0 text-muted-foreground" />
   );
 }
 
