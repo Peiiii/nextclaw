@@ -256,7 +256,7 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
         target={external ? "_blank" : undefined}
         rel={external ? "noreferrer noopener" : undefined}
       >
-        {resourceIcon && <span aria-hidden="true" style={{ display: 'inline-flex', marginInlineEnd: '0.25em', verticalAlign: '-0.1em' }}>{resourceIcon}</span>}{children}
+        {resourceIcon && <span aria-hidden="true" className="inline-flex empty:hidden" style={{ marginInlineEnd: '0.25em', verticalAlign: '-0.1em' }}>{resourceIcon}</span>}{children}
       </a>
     );
   },

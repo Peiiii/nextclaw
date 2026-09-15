@@ -23,7 +23,7 @@ NextClaw 界面与交互以 ChatGPT 成熟度为基线：清晰、稳定、一�
 - 更多操作默认用竖向三点 `MoreVertical`，用户指定或平台约定可例外。
 - URL、路由、文档和来源使用 `<a>`/`Link`/`NavLink`，状态修改、命令和无稳定 URL 面板使用 `<button>`。站内目标保留真实 href 并由 Router 接管普通左键，避免整页刷新。
 - 禁止交互元素嵌套、clickable span 和伪语义。普通文本链接默认态就有链接线索；按钮式链接只用于明确 CTA/下载/鉴权/卡片操作，底层仍保持链接语义。
-- 外链/方向图标只在语义成立时使用。重复导航收敛到 shared primitive，统一焦点、target/rel 和桌面宿主行为。
+- 链接图标须增加语义（如 Markdown 类型）；否则无图标、无占位。共享导航统一焦点、target/rel 和宿主行为。
 - icon-only 控件同时提供可访问名称、tooltip/popover 和 focus-visible；tooltip 在 floating/fullscreen/portal 中仍可见。disabled 控件需要解释原因时，用可触发 tooltip 的 wrapper。
 - 操作 tooltip 默认上方、不足时避让；纵向栏可侧向。标签滚动条固定细度，hover 不增粗。
 - modal overlay/content 都高于触发面板，content 高于 overlay，不能只有遮罩可见。

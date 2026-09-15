@@ -44,9 +44,9 @@ describe("resource icon precedence", () => {
     );
     expect(view.container.textContent).toBe("✎");
     view.rerender(<PageResourceIcon uri="https://example.com" />);
-    expect(view.container.querySelector(".lucide-globe")).not.toBeNull();
+    expect(view.container.childElementCount).toBe(0);
     view.rerender(<PageResourceIcon uri="nextclaw://unknown/item" />);
-    expect(view.container.querySelector(".lucide-link2")).not.toBeNull();
+    expect(view.container.childElementCount).toBe(0);
   });
   it("uses Panel object identity for its installed icon and falls back to the application icon", () => {
     const view = render(<PageResourceIcon uri="nextclaw://objects/panel-app/source%3Anotes" />);
@@ -63,5 +63,16 @@ describe("resource icon precedence", () => {
       />,
     );
     expect(view.container.querySelector(".lucide-github")).not.toBeNull();
+  });
+  it.each([
+    "/workspace/frontmatter-test.md",
+    "./frontmatter-test.md",
+    "frontmatter-test.md:12:3",
+    "file:///workspace/frontmatter-test.md#L12",
+    "nextclaw://workspace-file?path=%2Fworkspace%2Ffrontmatter-test.md",
+  ])("shows Markdown identity for %s", (uri) => {
+    const view = render(<PageResourceIcon uri={uri} />);
+    expect(view.container.querySelector('[data-file-type-icon="markdown"]')).not.toBeNull();
+    expect(view.container.querySelector('.lucide-link2')).toBeNull();
   });
 });

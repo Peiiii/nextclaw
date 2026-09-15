@@ -11,6 +11,8 @@ In Time view, Pinned and date groups start expanded. Click a group heading to co
 
 ## Start a new task when
 
+File links in messages show file-type icons, such as Markdown. Ordinary links use text styling without a generic chain icon.
+
 On phones, your messages hide the user avatar to leave more room for content. Desktop messages keep the avatar.
 
 - you move to another project or working directory;
