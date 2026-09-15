@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.57.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-09-16",
+  "title": {
+    "zh-CN": "NextClaw v0.57.0",
+    "en-US": "NextClaw v0.57.0"
+  },
+  "summary": {
+    "zh-CN": "从近况、想法或一件事自然开始，并让最近会话、项目与工具继续服务长期协作。",
+    "en-US": "Start naturally from an update, an idea or an action, while recent conversations, projects and tools keep long-term work connected."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-09-16-nextclaw-v0-57-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-09-16-nextclaw-v0-57-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "长期搭档的新起点",
+        "en-US": "A starting point for long-term work"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "从近况、想法或行动开始",
+            "en-US": "Start from an update, idea or action"
+          },
+          "body": {
+            "zh-CN": "新任务页提供开放式建议和相关最近会话；输入后自动收起建议，项目、Agent 与运行方式仍可随时切换。",
+            "en-US": "The new-task page offers open-ended suggestions and relevant recent conversations. Suggestions clear as you type while project, Agent and runtime choices remain available."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "新主题与独立应用页",
+            "en-US": "New themes and a dedicated Apps page"
+          },
+          "body": {
+            "zh-CN": "新增素笺与纸墨主题，并将应用市场改为保留搜索、浏览位置和页内详情的独立标签。",
+            "en-US": "Plain Paper and Ink Paper themes arrive alongside a dedicated marketplace tab that preserves search, browsing position and inline details."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "更连续的阅读与工作台",
+        "en-US": "More continuous reading and workspace flow"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "会话、Markdown 与报告",
+            "en-US": "Conversations, Markdown and reports"
+          },
+          "body": {
+            "zh-CN": "展开详情时保持阅读位置，Markdown 支持动画 details、本地文件图标与公式提示；移动端报告全屏显示，并可回到来源会话继续聊天。",
+            "en-US": "Expanded details preserve reading position, Markdown gains animated details, local file icons and formula guidance, and mobile reports fill the screen with a route back to the source conversation."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "统一界面反馈",
+            "en-US": "Consistent interface feedback"
+          },
+          "body": {
+            "zh-CN": "聊天标题栏、弹窗、菜单、工作区面板、文件预览和侧栏控件采用更一致的间距、配色与键盘反馈。",
+            "en-US": "Chat headers, dialogs, menus, workspace panels, file previews and sidebar controls now share more consistent spacing, color and keyboard feedback."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "输入、标题与滚动修复",
+        "en-US": "Input, title and scrolling fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "保持输入与会话状态准确",
+            "en-US": "Keep input and conversation state accurate"
+          },
+          "body": {
+            "zh-CN": "已发送的中文输入不再写回草稿；位于底部时不再显示向下箭头；会话标题更早生成，并保护手动命名与更新较晚的输入。",
+            "en-US": "Sent Chinese IME text no longer returns to the draft, the down arrow stays hidden at the bottom, and titles generate earlier while preserving manual names and newer input."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "兼容性",
+        "en-US": "Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需迁移",
+            "en-US": "No migration required"
+          },
+          "body": {
+            "zh-CN": "现有配置和本地数据保持兼容；本版本同步提供 NPM、Runtime 与五平台桌面更新。",
+            "en-US": "Existing configuration and local data remain compatible. This release ships through NPM, Runtime and five Desktop platforms."
+          }
+        }
+      ]
+    }
+  ]
+}

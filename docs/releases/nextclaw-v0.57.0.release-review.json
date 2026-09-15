@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.57.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-09-16-nextclaw-v0-57-0.md",
+        "apps/docs/en/notes/2026-09-16-nextclaw-v0-57-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.57.0.json",
+        "apps/docs/zh/notes/index.md",
+        "apps/docs/en/notes/index.md",
+        "apps/docs/public/release-notes/nextclaw-companion-welcome-cn.png",
+        "images/screenshots/nextclaw-companion-welcome-cn.png"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "The release improves the existing new-task, conversation, app, report and workspace surfaces; current positioning, pricing and download entry points remain accurate."
+    },
+    "socialPost": {
+      "decision": "publish",
+      "account": "@XiaotiaoWang",
+      "channel": "x",
+      "text": "NextClaw v0.57.0：新任务页更像长期搭档的起点——你可以从近况、一个想法或一件事开始，也能直接回到相关会话。全新的素笺/纸墨主题、应用页和更顺滑的 Markdown、报告阅读与会话细节同步上线。\n\nhttps://docs.nextclaw.io/zh/notes/2026-09-16-nextclaw-v0-57-0",
+      "imagePath": "images/screenshots/nextclaw-companion-welcome-cn.png",
+      "imageAlt": "NextClaw 桌面端新任务页，展示从近况、想法或一件事开始的建议，以及可随时切换的项目、Agent 和运行方式。",
+      "releaseNotesUrl": "https://docs.nextclaw.io/zh/notes/2026-09-16-nextclaw-v0-57-0"
+    }
+  }
+}
