@@ -70,6 +70,7 @@ export function MarketplaceInstallButton({
   installed,
   isStarting,
   onAction,
+  onInstalled,
   operation,
   unavailableLabel,
   unavailableReason,
@@ -79,21 +80,22 @@ export function MarketplaceInstallButton({
   installed: boolean;
   isStarting: boolean;
   onAction: () => void;
+  onInstalled?: () => void;
   operation?: AppPackageOperationView;
   unavailableLabel?: string;
   unavailableReason?: string;
 }) {
-  const disabled = Boolean(unavailableReason) || installed && !canUpdate || active || isStarting;
+  const disabled = Boolean(unavailableReason) || installed && !canUpdate && !onInstalled || active || isStarting;
   const button = (
     <Button
       type="button"
       size="sm"
       variant={installed && !canUpdate || active ? 'secondary' : 'default'}
       disabled={disabled}
-      onClick={onAction}
+      onClick={installed && !canUpdate && onInstalled ? onInstalled : onAction}
       className="shrink-0 rounded-full px-4"
     >
-      {renderInstallButtonContent({
+      {installed && !canUpdate && onInstalled && !active && !isStarting ? t('appPackagesViewInstalled') : renderInstallButtonContent({
         active,
         canUpdate,
         installed,
@@ -153,6 +155,9 @@ function renderInstallButtonContent({
 }
 
 export function OperationProgress({ operation }: { operation: AppPackageOperationView }) {
+  if (operation.status === 'failed' || operation.status === 'interrupted') {
+    return <p role="alert" className="mt-2 text-xs leading-5 text-destructive">{operation.error || t('appPackagesActionFailed')}</p>;
+  }
   const progress = Math.max(4, Math.round((operation.completedSteps / operation.totalSteps) * 100));
   return (
     <div className="mt-2" role="status" aria-live="polite">

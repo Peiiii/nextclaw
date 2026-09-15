@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type { AppDataEntry, AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
-import { ChevronDown, LoaderCircle, PackagePlus, RefreshCw, ShieldCheck, Store } from 'lucide-react';
+import { LoaderCircle, PackagePlus, RefreshCw, ShieldCheck } from 'lucide-react';
 import { AppArtwork } from '@/features/apps/components/app-artwork';
 import type { PanelAppEntryView } from '@/shared/lib/api';
 import { useAppPresenter } from '@/app/components/app-presenter-provider';
-import { AppMarketplaceDialog } from '@/features/apps/components/app-marketplace-dialog';
+import { AppMarketplacePanel } from '@/features/apps/components/app-marketplace-panel';
 import { AppPackageCard } from '@/features/apps/components/app-package-card';
 import { AppRetainedDataSection, useAppData } from '@/features/app-data';
 import {
@@ -16,7 +16,6 @@ import {
   type AppPackageMutationInput,
 } from '@/features/apps/hooks/use-app-packages';
 import { useGrantPanelAppClient, usePanelApps, useRecordPanelAppOpened } from '@/features/panel-apps';
-import { ContextMenu, ContextMenuTrigger } from '@/shared/components/ui/context-menu/context-menu';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { Button } from '@/shared/components/ui/button';
 import {
@@ -33,9 +32,15 @@ import { t } from '@/shared/lib/i18n';
 
 export function AppPackagesPanel({
   focusedPackageId,
+  marketplaceActive = false,
+  onBrowseMarketplace,
+  onManagePackage,
   onOpenPanelApp,
 }: {
   focusedPackageId?: string;
+  marketplaceActive?: boolean;
+  onBrowseMarketplace: () => void;
+  onManagePackage: (appId: string) => void;
   onOpenPanelApp: (entry: PanelAppEntryView) => void;
 }) {
   const appPackages = useAppPackages();
@@ -50,7 +55,6 @@ export function AppPackagesPanel({
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const [installOpen, setInstallOpen] = useState(false);
   const [installSource, setInstallSource] = useState('');
-  const [marketplaceOpen, setMarketplaceOpen] = useState(false);
 
   const operations = useMemo(() => appPackageOperations.data?.entries ?? [], [appPackageOperations.data?.entries]);
 
@@ -117,7 +121,7 @@ export function AppPackagesPanel({
 
   return (
     <div className="[container-type:inline-size] flex h-full min-h-0 flex-col bg-card text-card-foreground">
-      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto">
+      <div hidden={marketplaceActive} className={marketplaceActive ? 'hidden' : 'custom-scrollbar min-h-0 flex-1 overflow-y-auto'}>
         <div className="mx-auto w-full max-w-3xl px-3 py-4 [@container(min-width:28rem)]:px-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
             <h1 ref={libraryTitleRef} tabIndex={-1} className="text-base font-semibold tracking-tight text-foreground">
@@ -129,46 +133,10 @@ export function AppPackagesPanel({
                 label={t('appPackagesRefresh')}
                 onClick={refetch}
               />
-              <ContextMenu
-                label={t('appPackagesBrowse')}
-                groups={[
-                  {
-                    key: 'sources',
-                    items: [
-                      {
-                        key: 'marketplace',
-                        label: t('appPackagesMarketplaceSource'),
-                        icon: <Store className="h-4 w-4" />,
-                        restoreFocus: false,
-                        onSelect: () => {
-                          lifecycle.reset();
-                          setMarketplaceOpen(true);
-                        },
-                      },
-                      {
-                        key: 'source',
-                        label: t('appPackagesCustomSource'),
-                        icon: <PackagePlus className="h-4 w-4" />,
-                        restoreFocus: false,
-                        onSelect: () => {
-                          lifecycle.reset();
-                          setInstallOpen(true);
-                        },
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <div>
-                  <ContextMenuTrigger>
-                    <Button ref={addButtonRef} type="button" size="sm">
-                      <PackagePlus className="mr-1.5 h-3.5 w-3.5" />
-                      {t('appPackagesBrowse')}
-                      <ChevronDown className="ml-1.5 h-3.5 w-3.5" />
-                    </Button>
-                  </ContextMenuTrigger>
-                </div>
-              </ContextMenu>
+              <Button type="button" size="sm" onClick={onBrowseMarketplace}>
+                <PackagePlus className="mr-1.5 h-3.5 w-3.5" />
+                {t('appPackagesBrowse')}
+              </Button>
             </div>
           </div>
 
@@ -196,7 +164,7 @@ export function AppPackagesPanel({
             panelApps={panelApps.data?.entries ?? []}
             unavailablePackages={panelApps.data?.unavailablePackages ?? []}
             operations={operations}
-            onInstall={() => setMarketplaceOpen(true)}
+            onInstall={onBrowseMarketplace}
             onMutate={runMutation}
             onOpenPanelApp={(entry) => void openPanelApp(entry)}
           />
@@ -210,25 +178,29 @@ export function AppPackagesPanel({
         </div>
       </div>
 
-      <AppMarketplaceDialog
-        onFocusReturn={() => addButtonRef.current?.focus()}
-        error={lifecycle.error instanceof Error ? lifecycle.error : null}
-        hostTarget={appPackages.data?.hostTarget}
-        installedPackages={appPackages.data?.entries ?? []}
-        startingSource={lifecycle.variables?.action === 'install' ? lifecycle.variables.source : undefined}
-        isStarting={lifecycle.isPending}
-        operations={operations}
-        open={marketplaceOpen}
-        onOpenChange={setMarketplaceOpen}
-        onInstall={(source, registryUrl) =>
-          runMutation({
-            action: 'install',
-            source,
-            registryUrl,
-          })
-        }
-        onUpdate={(appId) => runMutation({ action: 'update', appId })}
-      />
+      <div hidden={!marketplaceActive} className={marketplaceActive ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
+        <AppMarketplacePanel
+          sourceButtonRef={addButtonRef}
+          onCustomInstall={() => { lifecycle.reset(); setInstallOpen(true); }}
+          onManagePackage={onManagePackage}
+          error={lifecycle.error instanceof Error ? lifecycle.error : null}
+          hostTarget={appPackages.data?.hostTarget}
+          installedPackages={appPackages.data?.entries ?? []}
+          startingSource={lifecycle.variables?.action === 'install' ? lifecycle.variables.source : undefined}
+          isStarting={lifecycle.isPending}
+          operations={operations}
+          active={marketplaceActive}
+          onInstall={(source, registryUrl) =>
+            runMutation({
+              action: 'install',
+              source,
+              registryUrl,
+            })
+          }
+          onUpdate={(appId) => runMutation({ action: 'update', appId })}
+        />
+
+      </div>
 
       <Dialog open={installOpen} onOpenChange={setInstallOpen}>
         <DialogContent

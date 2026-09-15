@@ -92,7 +92,7 @@ describe('AppMarketplaceCatalog compatibility actions', () => {
     expect(onSelect).toHaveBeenCalledWith('rust-todo');
   });
 
-  it('does not project a persisted terminal failure back into a compatible card', () => {
+  it('shows the latest failure while allowing a compatible app to be installed again', () => {
     setLanguage('zh');
     const onInstall = vi.fn();
 
@@ -147,7 +147,7 @@ describe('AppMarketplaceCatalog compatibility actions', () => {
       </TooltipProvider>,
     );
 
-    expect(screen.queryByText('persisted registry failure')).toBeNull();
+    expect(screen.getByRole('alert').textContent).toBe('persisted registry failure');
     expect(screen.queryByRole('button', { name: '重试' })).toBeNull();
     const installButton = screen.getByRole('button', { name: '安装应用' });
     expect((installButton as HTMLButtonElement).disabled).toBe(false);

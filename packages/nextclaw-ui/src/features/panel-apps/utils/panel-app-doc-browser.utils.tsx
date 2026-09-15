@@ -2,16 +2,15 @@ import { AppWindow, Boxes } from 'lucide-react';
 import type { DocBrowserContextValue } from '@/shared/components/doc-browser/doc-browser-context';
 import type { DocBrowserCustomTabRenderers } from '@/shared/components/doc-browser/doc-browser-renderer.types';
 import { getPresenter } from '@/app/presenters/app.presenter';
-import { AppsPanel, type AppsPanelTab } from '@/features/apps';
+import { AppsPanel } from '@/features/apps';
 import { PanelAppDocBrowserToolbar } from '@/features/panel-apps/components/panel-app-toolbar';
 import {
   createPanelAppRightPanelResourceTarget,
   RIGHT_PANEL_APPS_TAB_KIND,
-  RIGHT_PANEL_APPS_URL,
+  createRightPanelAppsUrl,
+  getRightPanelAppsTabFromUrl,
   RIGHT_PANEL_HOME_TAB_KIND,
   RIGHT_PANEL_PANEL_APP_TAB_KIND,
-  RIGHT_PANEL_PANEL_APPS_URL,
-  RIGHT_PANEL_SERVICE_APPS_URL,
   RightPanelResourceHomePage,
 } from '@/features/right-panel-resources';
 import { t } from '@/shared/lib/i18n';
@@ -19,26 +18,8 @@ import { PANEL_APP_IFRAME_SANDBOX, focusPanelAppIframe } from './panel-app-ifram
 
 export const APPS_TAB_KIND = RIGHT_PANEL_APPS_TAB_KIND;
 export const PANEL_APP_TAB_KIND = RIGHT_PANEL_PANEL_APP_TAB_KIND;
-const DEFAULT_APPS_PANEL_TAB: AppsPanelTab = 'apps';
-
-function isAppsPanelTab(value: unknown): value is AppsPanelTab {
-  return value === 'apps' || value === 'panel-apps' || value === 'service-apps';
-}
-
-export function createAppsPanelUrl(tab: AppsPanelTab = DEFAULT_APPS_PANEL_TAB): string {
-  if (tab === 'panel-apps') return RIGHT_PANEL_PANEL_APPS_URL;
-  if (tab === 'service-apps') return RIGHT_PANEL_SERVICE_APPS_URL;
-  return RIGHT_PANEL_APPS_URL;
-}
-
-export function getAppsPanelTabFromUrl(url: string): AppsPanelTab {
-  try {
-    const tab = new URL(url).searchParams.get('tab');
-    return isAppsPanelTab(tab) ? tab : DEFAULT_APPS_PANEL_TAB;
-  } catch {
-    return DEFAULT_APPS_PANEL_TAB;
-  }
-}
+export const createAppsPanelUrl = createRightPanelAppsUrl;
+export const getAppsPanelTabFromUrl = getRightPanelAppsTabFromUrl;
 
 export function openApps(docBrowser: Pick<DocBrowserContextValue, 'open'>): void {
   docBrowser.open(createAppsPanelUrl(), {

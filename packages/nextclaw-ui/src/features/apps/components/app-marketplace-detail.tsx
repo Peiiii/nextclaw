@@ -29,6 +29,7 @@ export function MarketplaceDetail({
   localeFallbacks,
   onInstall,
   onUpdate,
+  onManagePackage,
   operation,
 }: {
   detail?: AppMarketplaceDetailView;
@@ -40,6 +41,7 @@ export function MarketplaceDetail({
   localeFallbacks: string[];
   onInstall: (source: string, registryUrl: string) => void;
   onUpdate: (appId: string) => void;
+  onManagePackage?: (appId: string) => void;
   operation?: AppPackageOperationView;
 }) {
   if (isLoading) {
@@ -69,9 +71,9 @@ export function MarketplaceDetail({
   );
   const blockAction = Boolean(compatibility && (!installedPackage || canUpdate));
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-5 sm:px-7 sm:py-6">
-      <div className="grid items-stretch gap-5 sm:grid-cols-[minmax(0,1.18fr)_minmax(240px,0.82fr)]">
-        <AppMarketplaceCover accentColor={detail.accentColor} coverPreview={detail.coverPreview} coverUrl={detail.coverUrl} name={detail.name} className="aspect-[16/9] rounded-2xl" />
+    <div className="mx-auto w-full max-w-3xl px-5 py-5 [@container(min-width:40rem)]:px-7 [@container(min-width:40rem)]:py-6">
+      <div className="grid items-stretch gap-5 [@container(min-width:40rem)]:grid-cols-[minmax(0,1.18fr)_minmax(240px,0.82fr)]">
+        <AppMarketplaceCover icon={detail.iconUrl ?? installedPackage?.icon} accentColor={detail.accentColor} coverPreview={detail.coverPreview} coverUrl={detail.coverUrl} name={detail.name} className="aspect-[16/9] rounded-2xl" />
         <div className="flex min-w-0 flex-col rounded-2xl border border-border/60 bg-card p-4">
           <div className="flex items-start gap-3">
             <AppArtwork icon={detail.iconUrl ?? installedPackage?.icon} name={detail.name} className="h-14 w-14 rounded-2xl" />
@@ -92,6 +94,7 @@ export function MarketplaceDetail({
               className="mb-2 text-xs font-medium text-muted-foreground"
             />
             <MarketplaceInstallButton
+              onInstalled={onManagePackage ? () => onManagePackage(detail.appId) : undefined}
               active={active}
               canUpdate={canUpdate}
               installed={Boolean(installedPackage)}
@@ -106,14 +109,14 @@ export function MarketplaceDetail({
           </div>
         </div>
       </div>
-      {operation && !blockAction && active ? <OperationProgress operation={operation} /> : null}
+      {operation && !blockAction && (active || operation.status === 'failed' || operation.status === 'interrupted') ? <OperationProgress operation={operation} /> : null}
 
       <section className="mt-7">
         <h3 className="text-sm font-semibold text-foreground">{t('appPackagesAboutApp')}</h3>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
       </section>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+      <div className="mt-6 grid gap-3 [@container(min-width:40rem)]:grid-cols-2">
         <DetailFact
           icon={Monitor}
           label={t('appPackagesPlatformsLabel')}
@@ -155,7 +158,7 @@ export function MarketplaceDetail({
         href={detail.webUrl}
         target="_blank"
         rel="noreferrer"
-        className="mt-6 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+        className="mt-6 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
       >
         {t('appPackagesOpenPublicDetails')}
         <ExternalLink className="h-3.5 w-3.5" />

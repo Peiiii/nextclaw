@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { RightPanelResourceRouteResolver } from '@/features/right-panel-resources';
 
 describe('RightPanelResourceRouteResolver', () => {
+  it('preserves the app marketplace through resource normalization', () => {
+    expect(new RightPanelResourceRouteResolver().resolve('nextclaw://apps?tab=marketplace')).toMatchObject({
+      kind: 'apps', dedupeKey: 'apps', url: 'nextclaw://apps?tab=marketplace', resourceUri: 'nextclaw://apps?tab=marketplace',
+    });
+  });
   it.each(['cron-job', 'inbox-delivery', 'skill', 'agent', 'project'])('resolves %s as an object, not an unsupported website', (type) => {
     const uri = 'nextclaw://objects/' + type + '/' + encodeURIComponent('workspace:项目/对象');
     expect(new RightPanelResourceRouteResolver().resolve(uri)).toMatchObject({ kind: 'system-object', url: uri, resourceUri: uri });

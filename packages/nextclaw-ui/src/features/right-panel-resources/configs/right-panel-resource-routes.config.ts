@@ -198,7 +198,7 @@ export const RIGHT_PANEL_RESOURCE_ROUTE_DEFINITIONS: RightPanelResourceRouteDefi
         historyPolicy: 'managed',
         kind: RIGHT_PANEL_APPS_TAB_KIND,
         resourceUri: url,
-        title: url === RIGHT_PANEL_APPS_URL ? t('appsTitle') : t('serviceAppsTitle'),
+        title: t('appsTitle'),
         url,
       };
     },

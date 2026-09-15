@@ -43,8 +43,8 @@
   "appPackagesMarketplaceSource": "Browse app marketplace",
   "appPackagesCustomSource": "Install from a source",
   "appPackagesBrowse": "Add apps",
-  "appPackagesMarketplaceTitle": "Add apps",
-  "appPackagesMarketplaceDescription": "Choose apps that fit the way you use NextClaw. You can keep browsing or leave while an install continues.",
+  "appPackagesMarketplaceTitle": "App marketplace",
+  "appPackagesMarketplaceDescription": "Discover apps that make your everyday work easier.",
   "appPackagesMarketplaceSearch": "Search apps, features, or tags",
   "appPackagesMarketplaceLoading": "Loading the app marketplace…",
   "appPackagesMarketplaceLoadMore": "Load more",
@@ -79,7 +79,6 @@
   "appPackagesAllPlatforms": "All platforms",
   "appPackagesPlatformOnly": "{platforms} only",
   "appPackagesUnavailableOnDevice": "Unavailable on this device",
-  "appPackagesUnavailable": "Unavailable",
   "appPackagesTemporarilyUnavailable": "Temporarily unavailable",
   "appPackagesCompatibilityUnknown": "Compatibility could not be confirmed",
   "appPackagesCompatibilityUnknownReason": "NextClaw could not confirm whether this app supports this device. Refresh and try again.",
@@ -108,7 +107,7 @@
   "appPackagesFilterAll": "All",
   "appPackagesFilterPersonal": "Personal",
   "appPackagesFilterLocal": "Local-first",
-  "appPackagesBackToMarketplace": "Back to apps",
+  "appPackagesBackToMarketplace": "Back to marketplace",
   "appPackagesAboutApp": "About this app",
   "appPackagesPanelsAdded": "App views",
   "appPackagesServicesAdded": "Local services",
@@ -215,5 +214,7 @@
   "appPackagesDocumentAccessChooseDescription": "Choose the folder this app may access.",
   "appPackagesDocumentAccessPath": "Granted folder",
   "appPackagesDocumentAccessWriteWarning": "Read and write access lets this app modify the original files in this folder. You can revoke it from the app card at any time.",
-  "appPackagesDocumentAccessReadHint": "Read-only access lets this app view the folder but not modify files through this mount."
+  "appPackagesDocumentAccessReadHint": "Read-only access lets this app view the folder but not modify files through this mount.",
+  "appPackagesViewInstalled": "View installed",
+  "appPackagesClearSearch": "Clear search"
 }

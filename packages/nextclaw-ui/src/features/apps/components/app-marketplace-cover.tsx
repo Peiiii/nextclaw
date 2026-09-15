@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import { cn } from '@/shared/lib/utils';
+import { AppArtwork } from './app-artwork';
 
 const COVER_PREVIEW_LABEL = import.meta.env.VITE_APP_MARKETPLACE_PREVIEW_LABEL;
 
@@ -9,12 +10,14 @@ export function AppMarketplaceCover({
   coverPreview,
   coverUrl,
   name,
+  icon,
 }: {
   accentColor?: string;
   className?: string;
   coverPreview?: boolean;
   coverUrl?: string;
   name: string;
+  icon?: string;
 }) {
   const [failedUrl, setFailedUrl] = useState<string>();
   const visibleCover = coverUrl && failedUrl !== coverUrl ? coverUrl : undefined;
@@ -46,9 +49,9 @@ export function AppMarketplaceCover({
           aria-label={`${name} 暂无封面`}
           className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_30%_25%,color-mix(in_srgb,var(--app-accent)_28%,transparent),transparent_50%),linear-gradient(145deg,var(--muted),var(--background))]"
         >
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-background/65 text-xl font-semibold text-foreground/65 shadow-sm ring-1 ring-black/[0.05] backdrop-blur-sm">
+          {icon ? <AppArtwork icon={icon} name={name} className="h-16 w-16 rounded-2xl" /> : <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-background/65 text-xl font-semibold text-foreground/65 shadow-sm ring-1 ring-black/[0.05] backdrop-blur-sm">
             {readCoverMonogram(name)}
-          </span>
+          </span>}
         </span>
       )}
     </span>

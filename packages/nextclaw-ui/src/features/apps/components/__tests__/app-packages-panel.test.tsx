@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { AppPackageOperationView } from "@nextclaw/client-sdk";
@@ -330,13 +331,18 @@ beforeEach(() => {
     mocks.requestAuthorization.mockResolvedValue(true);
   });
 
+function PackagePanelHarness() {
+  const [marketplaceActive, setMarketplaceActive] = useState(false);
+  return <AppPackagesPanel onOpenPanelApp={mocks.onOpen} marketplaceActive={marketplaceActive} onBrowseMarketplace={() => setMarketplaceActive(true)} onManagePackage={() => setMarketplaceActive(false)} />;
+}
+
 describe("AppPackagesPanel", () => {
   it("shows a built-in package and enables it from the primary action", async () => {
     const user = userEvent.setup();
 
-    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    render(<PackagePanelHarness />);
 
-    expect(screen.getByText("Personal Space")).toBeTruthy();
+    expect(screen.getAllByText("Personal Space")[0]).toBeTruthy();
     expect(screen.getByText("Available")).toBeTruthy();
     expect(screen.queryByText("Local data service")).toBeNull();
 
@@ -360,7 +366,7 @@ describe("AppPackagesPanel", () => {
       },
     ];
     const user = userEvent.setup();
-    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    render(<PackagePanelHarness />);
 
     await user.click(screen.getByRole("button", { name: "Personal Space" }));
     await user.selectOptions(
@@ -384,7 +390,7 @@ describe("AppPackagesPanel", () => {
   it("explains missing external setup and does not offer an unusable enable action", () => {
     mocks.readinessStatus = "needs-configuration";
 
-    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    render(<PackagePanelHarness />);
 
     expect(screen.getByText("Needs setup")).toBeTruthy();
     expect(screen.getByText(/Shared workspace connection/)).toBeTruthy();
@@ -398,6 +404,8 @@ describe("AppPackagesPanel", () => {
   it("scrolls and transfers focus to a package selected from Service Apps", async () => {
     render(
       <AppPackagesPanel
+        onBrowseMarketplace={vi.fn()}
+        onManagePackage={vi.fn()}
         focusedPackageId="nextclaw.personal-organizer"
         onOpenPanelApp={mocks.onOpen}
       />,
@@ -411,13 +419,13 @@ describe("AppPackagesPanel", () => {
   it("distinguishes an untouched app from an App Data query failure in details", async () => {
     const user = userEvent.setup();
     mocks.includePackageStorageUsage = false;
-    const view = render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    const view = render(<PackagePanelHarness />);
     expect(screen.queryByTitle("/tmp/data")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Personal Space" }));
     expect(screen.getByTitle("/tmp/data").textContent).toContain("No data yet");
 
     mocks.appDataError = true;
-    view.rerender(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    view.rerender(<PackagePanelHarness />);
 
     expect(screen.getByTitle("/tmp/data").textContent).toContain(
       "Size unavailable",
@@ -434,7 +442,7 @@ describe("AppPackagesPanel", () => {
     };
     mocks.recordOpened.mockResolvedValue(openedEntry);
 
-    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    render(<PackagePanelHarness />);
 
     await user.click(screen.getByRole("button", { name: "Open" }));
 
@@ -445,7 +453,7 @@ describe("AppPackagesPanel", () => {
   it("opens details on demand, restores focus, and keeps disable in the menu", async () => {
     const user = userEvent.setup();
     mocks.enabled = true;
-    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    render(<PackagePanelHarness />);
     const title = screen.getByRole("button", { name: "Personal Space" });
     expect(screen.queryByText("Local data service")).toBeNull();
     expect(screen.queryByRole("button", { name: "Disable" })).toBeNull();
@@ -464,9 +472,9 @@ describe("AppPackagesPanel", () => {
 
   it("offers source installation from the same add menu", async () => {
     const user = userEvent.setup();
-    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    render(<PackagePanelHarness />);
     await user.click(screen.getByRole("button", { name: "Add apps" }));
-    await user.click(screen.getByRole("menuitem", { name: "Install from a source" }));
+    await user.click(screen.getByRole("button", { name: "Install from a source" }));
     await user.type(screen.getByRole("textbox", { name: "Install source" }), "/tmp/example.napp");
     await user.click(screen.getByRole("button", { name: "Install app" }));
     expect(mocks.lifecycleMutate).toHaveBeenCalledWith(
@@ -474,23 +482,22 @@ describe("AppPackagesPanel", () => {
       { onSuccess: expect.any(Function) },
     );
     await user.click(screen.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Add apps" })));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Install from a source" })));
   });
 
   it("discovers marketplace apps and installs one through its registry spec", async () => {
     const user = userEvent.setup();
 
-    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    render(<PackagePanelHarness />);
 
     await user.click(screen.getByRole("button", { name: "Add apps" }));
-    await user.click(screen.getByRole("menuitem", { name: "Browse app marketplace" }));
 
-    expect(screen.getByRole("heading", { name: "Add apps" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "App marketplace" })).toBeTruthy();
     expect(screen.getByText("Workspace Glance")).toBeTruthy();
     expect(
-      (screen.getByRole("button", { name: "Installed" }) as HTMLButtonElement)
+      (screen.getByRole("button", { name: "View installed" }) as HTMLButtonElement)
         .disabled,
-    ).toBe(true);
+    ).toBe(false);
 
     const installButtons = screen.getAllByRole("button", {
       name: "Install app",
@@ -507,10 +514,11 @@ describe("AppPackagesPanel", () => {
     );
   });
 
+
   it("allows a built-in app to be uninstalled while keeping its data by default", async () => {
     const user = userEvent.setup();
 
-    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    render(<PackagePanelHarness />);
 
     await user.click(screen.getByRole("button", { name: "More app actions" }));
     await user.click(screen.getByRole("menuitem", { name: "Uninstall" }));
@@ -565,7 +573,7 @@ describe("AppPackagesPanel", () => {
         actions: { deleteRetainedData: true },
       },
     ];
-    const view = render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    const view = render(<PackagePanelHarness />);
 
     expect(
       screen.getByRole("heading", { name: "Saved app data" }),
@@ -587,7 +595,7 @@ describe("AppPackagesPanel", () => {
     const onSuccess = mocks.deleteRetained.mock.calls[0]?.[1]
       .onSuccess as () => void;
     mocks.retainedEntries = [];
-    view.rerender(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    view.rerender(<PackagePanelHarness />);
     await act(async () => onSuccess());
     await waitFor(() => {
       expect(document.activeElement).toBe(
@@ -612,15 +620,14 @@ describe("AppPackagesPanel", () => {
       },
     ];
 
-    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    render(<PackagePanelHarness />);
 
     expect(screen.getByRole("status").textContent).toContain("Downloading");
     expect(screen.getByText("nextclaw.workspace-glance")).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Add apps" }));
-    await user.click(screen.getByRole("menuitem", { name: "Browse app marketplace" }));
 
-    expect(screen.getByRole("heading", { name: "Add apps" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "App marketplace" })).toBeTruthy();
     expect(screen.getAllByText("Downloading")).not.toHaveLength(0);
     expect(
       (screen.getByRole("button", { name: "Downloading" }) as HTMLButtonElement)
@@ -655,9 +662,32 @@ describe("AppPackagesPanel", () => {
       },
     ];
 
-    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    render(<PackagePanelHarness />);
 
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.queryByText("name 必须是非空字符串。")).toBeNull();
   });
+});
+
+
+describe("App marketplace navigation", () => {
+  it("retains the catalog DOM and search when returning from details", async () => {
+    const user = userEvent.setup();
+    render(<PackagePanelHarness />);
+    await user.click(screen.getByRole("button", { name: "Add apps" }));
+    const search = screen.getByRole("textbox", { name: "Search apps, features, or tags" });
+    await user.type(search, "workspace");
+    const card = screen.getByRole("button", { name: /Workspace Glance A local/ });
+    await user.click(card);
+    expect(screen.queryByRole("textbox", { name: "Search apps, features, or tags" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Back to marketplace" }));
+    expect(screen.getByRole("textbox", { name: "Search apps, features, or tags" })).toBe(search);
+    expect((search as HTMLInputElement).value).toBe("workspace");
+    await waitFor(() => expect(document.activeElement).toBe(card));
+    await user.click(screen.getByRole("button", { name: "View installed" }));
+    expect(screen.getByRole("heading", { name: "Your apps" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Add apps" }));
+    expect(screen.getByRole("textbox", { name: "Search apps, features, or tags" })).toBe(search);
+  });
+
 });

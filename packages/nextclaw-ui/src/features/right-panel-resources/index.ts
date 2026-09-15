@@ -1,4 +1,7 @@
 export {
+  createRightPanelAppsUrl,
+  getRightPanelAppsTabFromUrl,
+  type RightPanelAppsTab,
   createChatUiResourceReferenceFromTab,
   createPanelAppContentPath,
   createPanelAppResourceUri,
