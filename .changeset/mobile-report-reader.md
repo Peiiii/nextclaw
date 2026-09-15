@@ -1,5 +1,5 @@
 ---
-"nextclaw": patch
+"nextclaw": minor
 "@nextclaw/ui": patch
 ---
 
