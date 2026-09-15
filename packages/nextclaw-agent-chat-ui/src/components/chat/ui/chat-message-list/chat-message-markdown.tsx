@@ -14,6 +14,10 @@ import { remarkFrontmatterDisplay } from "./utils/chat-frontmatter.utils";
 import { ChatMarkdownFrontmatter } from "./chat-markdown-frontmatter";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
+import { chatMarkdownHtmlSchema } from "./utils/chat-markdown-html.utils";
+import { ChatMarkdownDetails } from "./markdown/chat-markdown-details";
 import "katex/dist/katex.min.css";
 import { createRemarkLatexDelimitersPlugin } from "./utils/chat-latex-delimiters.utils";
 import { createRemarkStreamingMathPlugin, rehypeStreamingMath } from "./utils/chat-streaming-math.utils";
@@ -66,6 +70,7 @@ type ChatMessageMarkdownProps = {
     ChatMessageTexts,
     | "copyCodeLabel"
     | "frontmatterLabel"
+    | "detailsLabel"
     | "copiedCodeLabel"
     | "attachmentExpandLabel"
     | "attachmentCloseLabel"
@@ -138,6 +143,11 @@ function useChatMessageMarkdownRuntime(): ChatMessageMarkdownRuntime {
 }
 
 const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
+  details: function ChatMarkdownDisclosure({ node, children, open }) {
+    const { texts } = useChatMessageMarkdownRuntime();
+    return <ChatMarkdownDetails node={node} open={open} label={texts.detailsLabel ?? "Details"}>{children}</ChatMarkdownDetails>;
+  },
+  summary: () => null,
   div: function ChatMarkdownBlock({ node: _node, children, ...rest }) {
     const { texts } = useChatMessageMarkdownRuntime();
     const source = (rest as Record<string, unknown>)["data-frontmatter"];
@@ -400,9 +410,10 @@ export function ChatMessageMarkdown({
         )}
       >
         <ReactMarkdown
-          skipHtml
+          skipHtml={inline}
           remarkPlugins={remarkPlugins}
           rehypePlugins={[
+            ...(!inline ? [rehypeRaw, [rehypeSanitize, chatMarkdownHtmlSchema]] as NonNullable<Options["rehypePlugins"]> : []),
             [rehypeKatex, { trust: false, maxExpand: 1000, ...(isStreaming ? { errorColor: "currentColor" } : {}) }],
             ...(isStreaming ? [rehypeStreamingMath] : []),
           ]}

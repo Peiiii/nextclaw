@@ -12,14 +12,20 @@ it("renders front matter as document properties without polluting body headings"
     text={'---\ntitle: A document\ndraft: false\ncount: 0\ntags: [one, two]\nsummary: |\n  First line\n  Second line\nowner:\n  name: Ada\n---\n# Body\n\nText $x$'}
     role="assistant" texts={{ ...defaultTexts, frontmatterLabel: "文档属性" }}
   />);
-  expect(screen.getByText("文档属性").tagName).toBe("SUMMARY");
-  expect(container.querySelector("details")?.open).toBe(true);
+  const toggle = screen.getByRole("button", { name: "文档属性" });
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
   expect(Array.from(container.querySelectorAll("dt")).map(node => node.textContent)).toEqual(["title", "draft", "count", "tags", "summary", "owner"]);
   expect(container.querySelector("dl")?.textContent).toContain("false");
   expect(container.querySelector("dl")?.textContent).toContain("name: Ada");
   expect(container.querySelectorAll("h1,h2")).toHaveLength(1);
   expect(screen.getByRole("heading", { name: "Body" })).toBeTruthy();
   expect(container.querySelector(".katex")).not.toBeNull();
+  fireEvent.click(toggle);
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  expect(container.querySelector("dl")).toBeNull();
+  fireEvent.click(toggle);
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  expect(container.querySelectorAll("dt")).toHaveLength(6);
 });
 
 it.each([
@@ -27,13 +33,13 @@ it.each([
   "```yaml\n---\ntitle: Example\n---\n```",
   "---\ntitle: Unfinished",
 ])("does not reinterpret ordinary Markdown as properties: %s", text => {
-  const { container } = render(<ChatMessageMarkdown text={text} role="assistant" texts={defaultTexts} />);
-  expect(container.querySelector("details")).toBeNull();
+  render(<ChatMessageMarkdown text={text} role="assistant" texts={defaultTexts} />);
+  expect(screen.queryByRole("button", { name: "Document properties" })).toBeNull();
 });
 
 it.each(["title: [broken", "title: one\ntitle: two", "- one\n- two", "cycle: &cycle\n  self: *cycle", "value: !unknown tag"])("preserves unsupported YAML and the following body: %s", source => {
   const { container } = render(<ChatMessageMarkdown text={`---\n${source}\n---\n# Body`} role="assistant" texts={defaultTexts} />);
-  expect(container.querySelector("details pre")?.textContent).toBe(source);
+  expect(container.querySelector("pre")?.textContent).toBe(source);
   expect(screen.getByRole("heading", { name: "Body" })).toBeTruthy();
 });
 

@@ -1,6 +1,25 @@
 # Session workspace
 
-YAML front matter enclosed by `---` at the start of a Markdown file appears in a separate, collapsible **Document properties** section. Properties stay out of the document outline. Nested values retain their YAML representation; invalid metadata remains readable as source text. Switch to source view to inspect the complete file. Complete Markdown documents in chat use the same presentation.
+## Collapsible Markdown sections
+
+Chat and Markdown file previews support GitHub-style collapsible sections with smooth transitions. Add `open` to expand initially; nesting is supported. Summaries display plain text, and bodies support lists, code and math. Keep blank lines around the body:
+
+```markdown
+<details>
+<summary>Read more</summary>
+
+Supporting information goes here.
+
+</details>
+```
+
+Scripts, event attributes and unsafe HTML are filtered out.
+
+## Document properties
+
+Document properties expand and collapse with a smooth transition that respects the system's reduced-motion preference.
+
+YAML front matter enclosed by `---` at the start of a Markdown file appears in a compact, collapsible **Document properties** section with reduced top and field spacing. Properties stay out of the document outline. Nested values retain their YAML representation; invalid metadata remains readable as source text. Switch to source view to inspect the complete file. Complete Markdown documents in chat use the same presentation.
 
 The session workspace keeps the current project's files and follow-up work beside the conversation. For local documents, codebases, and generated apps, this is often where the real deliverable lives.
 
