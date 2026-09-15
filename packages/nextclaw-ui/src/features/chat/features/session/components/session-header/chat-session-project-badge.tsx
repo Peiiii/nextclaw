@@ -56,8 +56,8 @@ export function ChatSessionProjectBadge({
         <PopoverTrigger asChild>
           <button
             type="button"
-            title={projectRoot ?? undefined}
-            className="min-w-0 max-w-[320px] shrink rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/35 hover:bg-[var(--interaction-hover)] hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            title={projectRoot ? `${projectName}\n${projectRoot}` : projectName}
+            className="min-w-0 max-w-[40%] shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:cursor-not-allowed disabled:opacity-60"
             aria-label={t('chatSessionSetProject')}
             disabled={isProjectPending}
           >

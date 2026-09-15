@@ -242,7 +242,7 @@ export function WorkbenchSurface({
         hidden ? "hidden" : "flex",
         (floating || state.minimized) && !overlay
           ? "rounded-xl border border-border shadow-2xl"
-          : "border-l border-border",
+          : "border-l border-border/40",
         className,
       )}
       style={style}

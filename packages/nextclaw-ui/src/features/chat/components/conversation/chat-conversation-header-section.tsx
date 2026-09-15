@@ -150,7 +150,7 @@ export function ChatConversationHeaderSection({
         ) : null
       }
       actions={
-        <IconActionGroup>
+        <IconActionGroup className="[--icon-control-size:2rem] [--icon-feedback-size:1.75rem]">
           {layoutMode === "mobile" && sessionKey ? (
             <IconActionButton
               icon={<SquarePen className="h-4 w-4" />}
