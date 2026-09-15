@@ -1,6 +1,7 @@
 import { useId, useMemo, useRef, useState, type KeyboardEventHandler } from 'react';
 import { Check, ChevronLeft, ChevronRight, ExternalLink, Paperclip, Plus, Search, Sparkles } from 'lucide-react';
 import { useActiveItemScroll } from '@agent-chat-ui/components/chat/hooks/use-active-item-scroll';
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@agent-chat-ui/components/chat/default-skin/action-menu';
 import {
   ChatUiPrimitives,
   createChatPopoverAvailableHeightLimit,
@@ -27,7 +28,7 @@ function filterOptions(options: ChatSkillPickerOption[], query: string): ChatSki
 }
 
 const ADD_MENU_MAX_HEIGHT = createChatPopoverAvailableHeightLimit('20rem');
-const ADD_MENU_ACTION_CLASS_NAME = 'flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm text-foreground transition-colors hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-50';
+const ADD_MENU_ACTION_CLASS_NAME = `${ACTION_MENU_ITEM_CLASS} text-foreground ${ACTION_FEEDBACK.item}`;
 
 function ChatInputBarSkillPickerContent(props: { onBack: () => void; picker: ChatSkillPickerProps }) {
   const { Input } = ChatUiPrimitives;
@@ -253,9 +254,10 @@ export function ChatInputBarAddMenu(props: {
       <PopoverContent
         side="top"
         align="start"
+        variant={view === 'actions' ? 'menu' : 'default'}
         className={view === 'skills'
           ? 'flex w-[min(340px,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border-border/80 p-0 shadow-md'
-          : 'w-[min(220px,calc(100vw-1rem))] rounded-xl border-border/80 p-1.5 shadow-md'}
+          : undefined}
         style={{ maxHeight: ADD_MENU_MAX_HEIGHT }}
       >
         {view === 'actions' ? (

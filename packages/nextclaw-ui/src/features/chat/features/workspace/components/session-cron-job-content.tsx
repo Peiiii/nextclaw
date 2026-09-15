@@ -1,3 +1,5 @@
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
+import { Trash2 } from 'lucide-react';
 import { useState } from "react";
 import {
   CalendarClock,
@@ -181,7 +183,7 @@ function SessionCronJobCard({
               </TooltipTrigger>
               <TooltipContent>{t("cronMoreActions")}</TooltipContent>
             </Tooltip>
-            <PopoverContent align="end" sideOffset={4} className="w-40 p-1">
+            <PopoverContent align="end" sideOffset={4} variant="menu">
               <button
                 type="button"
                 disabled={isPending}
@@ -189,9 +191,9 @@ function SessionCronJobCard({
                   setMenuOpen(false);
                   void cronActions.runJob(job);
                 }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-[var(--interaction-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                className={`${ACTION_MENU_ITEM_CLASS} text-foreground ${ACTION_FEEDBACK.item}`}
               >
-                <Play className="h-3.5 w-3.5 text-muted-foreground" />
+                <Play className="h-4 w-4 shrink-0 text-muted-foreground" />
                 {t("cronRunNow")}
               </button>
               <button
@@ -201,8 +203,9 @@ function SessionCronJobCard({
                   setMenuOpen(false);
                   void cronActions.deleteJob(job);
                 }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className={`${ACTION_MENU_ITEM_CLASS} ${ACTION_FEEDBACK.destructive}`}
               >
+                <Trash2 className="h-4 w-4 shrink-0" />
                 {t("delete")}
               </button>
             </PopoverContent>

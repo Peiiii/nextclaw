@@ -5,8 +5,8 @@ import { cn } from "@/shared/lib/utils";
 import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from '@/shared/components/ui/actions/action-feedback';
 import type { ContextMenuGroup, ContextMenuItem } from "./context-menu";
 
-export const CONTEXT_MENU_SURFACE_CLASS =
-  "w-max min-w-52 max-w-[min(18rem,calc(100vw-16px))] overflow-y-auto rounded-xl border border-border/40 bg-popover p-1 text-popover-foreground shadow-floating outline-none";
+import { ACTION_MENU_SURFACE_CLASS as CONTEXT_MENU_SURFACE_CLASS } from '@nextclaw/agent-chat-ui';
+export { CONTEXT_MENU_SURFACE_CLASS };
 
 function MenuItemContent({ item }: { item: ContextMenuItem }) {
   return <>

@@ -8,6 +8,7 @@ import type {
   ChatMessageViewModel,
 } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
 import { ChatUiPrimitives } from "@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives";
+import { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS } from "@agent-chat-ui/components/chat/default-skin/action-menu";
 
 function ChatMessageActionCopy({
   messageText,
@@ -183,20 +184,23 @@ function ChatMessageActionMore({ message }: { message: ChatMessageViewModel }) {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <PopoverContent align="end" className="w-52 p-1" role="menu">
+        <PopoverContent align="end" variant="menu" role="menu" onCloseAutoFocus={(event) => {
+          if (detailOpen) event.preventDefault();
+        }}>
           {moreActions.items.map((action) => (
             <button
               key={action.key}
               type="button"
               role="menuitem"
-              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-[var(--interaction-hover)] focus-visible:bg-accent focus-visible:outline-none"
+              className={`${ACTION_MENU_ITEM_CLASS} text-foreground ${ACTION_FEEDBACK.item}`}
               onClick={() => {
                 setMenuOpen(false);
                 setSelectedAction(action);
                 setDetailOpen(true);
               }}
             >
-              {action.label}
+              {action.icon ? <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-muted-foreground">{action.icon}</span> : null}
+              <span className="min-w-0 flex-1 truncate">{action.label}</span>
             </button>
           ))}
         </PopoverContent>

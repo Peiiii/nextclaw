@@ -262,7 +262,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                         onClick={(event) => event.stopPropagation()}
                       />
                     </PopoverTrigger>
-                    <ChatPopoverContent align="end" className="w-56 p-2">
+                    <ChatPopoverContent align="end" variant="menu">
                       <ChatSessionHeaderMenuItem
                         icon={FolderMinus}
                         label={t("projectsRemoveFromList")}

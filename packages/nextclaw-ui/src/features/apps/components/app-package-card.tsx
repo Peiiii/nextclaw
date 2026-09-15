@@ -156,7 +156,7 @@ export function AppPackageCard({
             </PopoverTrigger>
             <PopoverContent
               align="end"
-              className="w-52 rounded-xl p-1.5"
+              variant="menu"
               onCloseAutoFocus={(event) => {
                 if (skipMenuFocusRestoreRef.current) {
                   event.preventDefault();
