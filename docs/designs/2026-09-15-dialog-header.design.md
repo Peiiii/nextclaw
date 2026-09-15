@@ -1,0 +1,54 @@
+# 弹窗 Header 统一布局
+
+## 问题与用户链路
+
+用户打开收件箱阅读弹窗，浏览上一条/下一条、打开更多菜单，再关闭返回原页面。现状中业务 header 以 padding 避让 `DialogContent` 的绝对定位关闭按钮；响应式 padding 和按钮尺寸各自变化，更多与关闭会挤在一起。成功条件是桌面、窄屏和长标题下各操作独立可点击，菜单 Escape 先退菜单，关闭弹窗后焦点正常返回。
+
+## 冻结方案
+
+- flow=bugfix，风险 L2。共享 owner 为现有 `shared/components/ui/dialog.tsx`。
+- `DialogContent` 只管浮层、尺寸与 Radix 生命周期；删除其悬浮关闭按钮。
+- `DialogHeader` 管标题区域、`actions` 插槽和默认关闭按钮。同一普通流布局中标题允许收缩，业务操作与关闭独立占位；关闭复用 `IconActionButton`，提供本地化名称、tooltip 与键盘焦点。
+- `showClose={false}` 表达原有必须从底部选择的弹窗，替代 `last-child` CSS 隐藏。无需注册、DOM 检测、context 或业务状态迁移。
+- 用户体验确认：操作组与关闭按钮只用留白区分，不加竖向分隔线；该选择直接落实到共享 Header，所有消费者一致。
+- 迁移本 UI 包所有现有 Dialog 消费者，包括收件箱自制 header 和市场详情返回栏；删除旧避让与关闭按钮定位补丁。
+- 比较过继续统一绝对定位留白：仍要求不同 header 密度与触控尺寸同步，不能从结构上消除冲突，因此采用普通流。
+- 不更改其它独立应用的弹窗协议，不增加 CLI：这是纯视觉与直接操作规范。
+
+## 会话浮窗补充
+
+用户要求先修复会话浮窗标题贴边和更多操作顺序，再将本批合入主干。根因是 `FloatingSessionConversation` 自制标题/更多组合占用了无左 padding 的 `navigation` 槽。复用 `WorkbenchSurface` 已有的标准 `title` 区域（累计 12px 左内边距），删除自制标题；`navigation` 继续只服务文档标签导航。共享 `WorkbenchSurfaceToolbar` 增加有当前消费者的 `moreActions` 槽，固定在打开主界面、停靠、收起、最大化之后，关闭之前，不加竖线。
+
+用户链路：侧栏会话更多→悬浮打开→读取有边距的长标题→窗口操作/更多→关闭或停靠，编辑器实例与草稿不随布局操作重建。覆盖浮动、停靠、收起/展开、窄屏及无更多操作的文档工作区。该边界已有正确 owner，无需新建 Header、窗口状态机或通用注册机制。补充方案审查通过，验证采用公共组件状态转换回归与真实浮窗渲染。
+
+## 验收与交付
+
+1. 收件箱弹窗：长标题、多条导航、更多和关闭独立；切换条目、菜单、关闭链路保持原语义。
+2. 普通表单、含说明的 Header、市场列表/详情：只有一个关闭按钮；底部确认类弹窗不出现额外关闭按钮。
+3. 定向组件回归、UI TypeScript 检查，以及真实页面桌面/窄屏、明暗主题布局与操作验证。修前依据用户截图和源码，不宣称已自动复现修前页面。
+
+方案审查：保留现有 Radix 与图标按钮 owner，消费方全量迁移，无新增业务状态；上述反例纳入验收。design-review=passed。单批实施，plan=not-required。交付工作区改动和本地验证入口，不提交或发布。
+
+## 实施与验证结果
+
+- 收件箱、Agent 详情的更多操作统一进入 `actions`；市场列表/详情和普通弹窗均由 Header 提供关闭，七处确认类调用迁为显式隐藏。
+- UI `tsc`、本次文件 targeted ESLint 通过；六个测试文件共 34 项通过，覆盖独立业务操作/关闭、多条导航、焦点返回、确认弹窗、菜单 Escape、路径选择与桌面授权。
+- 本地源码入口 `http://127.0.0.1:5174`：实际操作 Agent 更多→查看详情→关闭，以及应用→添加应用→详情→返回→关闭；无需写入业务数据。
+- 首轮收件箱无未读数据，使用隔离浏览器内存中的两条阅读状态验证，不修改后端。1280px 和 320px 下更多与关闭相距 17px，320px 下所有 Header 按钮中心命中自身。后续按用户反馈去掉 1px 竖线，保留 16px 留白。work/night 主题、关闭焦点/tooltip、Enter 关闭及菜单 Escape 分层行为有效。修前证据为用户截图与源码，未自动生成修前基线。
+- diff-only 维护性检查无错误，原有文件/目录预算告警没有恶化；补迁移文件单独复查通过。渐进加载审计通过，AGENTS、发现入口、description 均不变；原交互 skill 合并表达后为 7990 bytes，无新增 skill 或脚本。
+- 本次范围治理检查曾全部通过；最后全工作区检查被并行任务的 `use-sticky-bottom-scroll.test.tsx` 非箭头 class 方法拦截，未改动该文件。其它并行任务的聊天源码和设计不属于本次交付。
+- 已同步中英文用户说明与 patch changeset。普通 UI 修复不新增博客或迭代日志；保留未提交工作区交付，未发布。
+
+### 补充修复与合入验证
+
+- 草稿完整迁入 `codex/unified-window-headers`；源区共享 skill 的并行滚动规范按内容拆分保留，其它任务文件未混入。
+- 新增工具栏顺序回归，公共窗口状态测试、真实浮动会话组件测试、Dialog 和 Inbox 共 16 项通过；UI targeted ESLint、diff-only 维护性、代码治理、规则渐进加载与 backlog ratchet 通过。
+- 隔离 UI 普通 `tsc` 通过。初始缺失 Server 类型声明；源码 condition 不能单独解析 Server 内部 alias。最终只复用核对过来源和时间的 11 个声明文件：映射源码与隔离目录一致，仅 SessionManager 存在已审查的不改变声明的私有方法体差异；不复制运行 JS 或 node_modules，不触发后端构建。
+- `http://127.0.0.1:5186` 使用本 worktree UI 和既有兼容 API：从侧栏会话菜单实际悬浮打开，确认普通、收起/展开、375px 窄屏和 work/night 主题。标题左内边距 12px（含边框测量 13px）；更多始终紧邻关闭之前，窄屏右端不溢出。已恢复浏览器桌面视口与 work 主题。
+- 用户已授权本批修复后合入 `master` 并推送；不执行产品发布。UI 和规范共用既有 owner，无新增 skill 或发现入口，未建立额外全局治理脚本。
+
+### 标签提示与滚动条补充
+
+- tooltip 默认方向收敛到 `TooltipContent` 的 top，删除 IconActionButton 和标签标题的 bottom 默认值，保留显式方向及 Radix 碰撞避让。标签滚动样式归 CompactTabStrip；Chromium/WebKit 使用固定 2px，其他引擎保留原生 thin 回退。Island 通过颜色变量定制，不再覆盖原生 scrollbar-color；hover 规则只改变颜色。
+- 实际浏览器浮窗中新建标签提示为 top，贴顶停靠时为 bottom；截图渲染正常。两标签溢出宽度 218px / 可视 123px，scrollLeft 可从 0 移至 95，计算滚动条高度为 2px。未直接自动命中原生滑块的 hover，固定尺寸依据 CSS 规则及渲染检查；非 Chromium 引擎未运行验证。
+- UI tsc、图标按钮与标签组件 10 项回归、targeted ESLint、diff-only 维护性、渐进加载、代码治理和 backlog ratchet 通过。更新既有前端 skill、中英文用户说明及同批 changeset，无新增规则 owner。

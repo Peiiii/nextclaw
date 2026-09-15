@@ -225,9 +225,9 @@ export function AppPackagesPanel({
       />
 
       <Dialog open={installOpen} onOpenChange={setInstallOpen}>
-        <DialogContent className="max-w-md [&>:last-child]:hidden">
+        <DialogContent className="max-w-md">
           <form onSubmit={submitInstall}>
-            <DialogHeader>
+            <DialogHeader showClose={false}>
               <DialogTitle>{t('appPackagesInstallTitle')}</DialogTitle>
               <DialogDescription>{t('appPackagesInstallDescription')}</DialogDescription>
             </DialogHeader>

@@ -93,27 +93,35 @@
     background: hsl(var(--gray-400) / 0.48);
   }
 
-  .doc-browser-tab-scrollbar {
+  .compact-tab-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--gray-300) / 0.34) transparent;
+    scrollbar-color: var(--tab-scrollbar-thumb, hsl(var(--gray-300) / 0.34)) transparent;
   }
 
-  .doc-browser-tab-scrollbar::-webkit-scrollbar {
+  /* Native thin scrollbars override pixel sizes and may expand on hover. */
+  @supports selector(::-webkit-scrollbar) {
+    .compact-tab-scrollbar {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+    }
+  }
+
+  .compact-tab-scrollbar::-webkit-scrollbar {
     width: 2px;
     height: 2px;
   }
 
-  .doc-browser-tab-scrollbar::-webkit-scrollbar-track {
+  .compact-tab-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
 
-  .doc-browser-tab-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(var(--gray-300) / 0.34);
+  .compact-tab-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--tab-scrollbar-thumb, hsl(var(--gray-300) / 0.34));
     border-radius: 999px;
   }
 
-  .doc-browser-tab-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--gray-400) / 0.44);
+  .compact-tab-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--tab-scrollbar-thumb-hover, hsl(var(--gray-400) / 0.44));
   }
 
   /* ========================================

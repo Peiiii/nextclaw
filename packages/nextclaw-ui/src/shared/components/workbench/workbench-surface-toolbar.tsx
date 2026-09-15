@@ -7,6 +7,7 @@ import {
   PictureInPicture2,
   X,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { IconActionButton, IconActionGroup } from "@/shared/components/ui/actions/icon-action-button";
 import { t } from "@/shared/lib/i18n";
 import type { WorkbenchSurfaceState } from "./types/workbench-surface.types";
@@ -21,6 +22,7 @@ export function WorkbenchSurfaceToolbar({
   onClose,
   closeLabel,
   onOpenMain,
+  moreActions,
 }: {
   state: WorkbenchSurfaceState;
   compact: boolean;
@@ -31,6 +33,7 @@ export function WorkbenchSurfaceToolbar({
   onClose: () => void;
   closeLabel: string;
   onOpenMain?: () => void;
+  moreActions?: ReactNode;
 }) {
   return (
     <IconActionGroup
@@ -90,6 +93,7 @@ export function WorkbenchSurfaceToolbar({
           onClick={onMaximize}
         />
       )}
+      {moreActions}
       <IconActionButton
         size="sm"
         icon={<X className="h-4 w-4" />}

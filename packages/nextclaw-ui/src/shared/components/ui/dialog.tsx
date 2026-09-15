@@ -5,6 +5,7 @@ import { X } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { deferEscapeToNestedMenu } from './context-menu/context-menu';
 import { IconActionButton } from './actions/icon-action-button';
+import { t } from '@/shared/lib/i18n';
 
 const Dialog = DialogPrimitive.Root
 
@@ -50,15 +51,6 @@ const DialogContent = React.forwardRef<
       }}
     >
       {children}
-      <DialogPrimitive.Close asChild>
-        <IconActionButton
-          size="sm"
-          tooltip={false}
-          label="Close"
-          icon={<X className="h-4 w-4" />}
-          className="absolute right-1 top-1 max-md:h-11 max-md:w-11 md:right-4 md:top-4"
-        />
-      </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>
 ))
@@ -66,15 +58,39 @@ DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({
   className,
+  children,
+  actions,
+  showClose = true,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+}: React.HTMLAttributes<HTMLDivElement> & {
+  actions?: React.ReactNode;
+  showClose?: boolean;
+}) => (
   <div
+    data-slot="dialog-header"
     className={cn(
-      "flex flex-col space-y-2 pr-7 text-left",
+      "grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3 text-left",
       className
     )}
     {...props}
-  />
+  >
+    <div className="min-w-0 space-y-2 break-words">{children}</div>
+    <div className="flex shrink-0 items-center gap-2" data-slot="dialog-header-controls">
+      {actions ? <div className="flex items-center gap-1" data-slot="dialog-header-actions">{actions}</div> : null}
+      {showClose ? (
+        <div className={cn("flex shrink-0", actions && "pl-2")}>
+          <DialogPrimitive.Close asChild>
+            <IconActionButton
+              size="sm"
+              label={t('close')}
+              icon={<X className="h-4 w-4" />}
+              className="max-md:h-11 max-md:w-11"
+            />
+          </DialogPrimitive.Close>
+        </div>
+      ) : null}
+    </div>
+  </div>
 )
 DialogHeader.displayName = "DialogHeader"
 

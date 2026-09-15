@@ -11,13 +11,13 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
 import { appQueryClient } from "@/app-query-client";
-import { nextclawClient } from "@/shared/lib/api/managers/client.manager";
+import { nextclawClient } from "@/shared/lib/api";
 import { t } from "@/shared/lib/i18n";
-import { desktopCapabilityManager } from "../managers/desktop-capability.manager";
+import { desktopCapabilityManager } from "@/features/desktop-capabilities/managers/desktop-capability.manager";
 import {
   type DesktopAuthorizationRequest,
   useDesktopAuthorizationStore,
-} from "../stores/desktop-authorization.store";
+} from "@/features/desktop-capabilities/stores/desktop-authorization.store";
 
 const AUTHORIZATION_EVENT_TYPE = "desktop.authorization.required";
 
@@ -61,8 +61,8 @@ export function DesktopAuthorizationDialog() {
         if (!open && !isGranting) clear();
       }}
     >
-      <DialogContent className="[&>:last-child]:hidden">
-        <DialogHeader>
+      <DialogContent>
+        <DialogHeader showClose={false}>
           <DialogTitle className="flex items-center gap-2">
             <ShieldAlert className="h-4 w-4 text-amber-600" />
             {t("desktopAuthorizationTitle")}

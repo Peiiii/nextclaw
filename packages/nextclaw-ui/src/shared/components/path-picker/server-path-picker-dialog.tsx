@@ -80,7 +80,7 @@ export function ServerPathPickerDialog({
       }}
     >
       <DialogContent className="max-h-[92vh] overflow-hidden p-0 sm:h-[44rem] sm:max-w-5xl sm:grid-rows-[auto_minmax(0,1fr)]">
-        <DialogHeader className="border-b border-border px-5 py-4 pr-12">
+        <DialogHeader className="border-b border-border px-5 py-4">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className={description ? undefined : 'sr-only'}>
             {description ?? title}

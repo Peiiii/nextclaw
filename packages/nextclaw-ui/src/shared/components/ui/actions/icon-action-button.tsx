@@ -44,7 +44,7 @@ const IconActionButton = React.forwardRef<HTMLButtonElement, IconActionButtonPro
       size = 'md',
       tone = 'default',
       tooltip,
-      tooltipSide = 'bottom',
+      tooltipSide,
       ...buttonProps
     },
     ref

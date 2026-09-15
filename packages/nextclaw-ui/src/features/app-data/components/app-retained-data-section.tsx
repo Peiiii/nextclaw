@@ -113,13 +113,13 @@ export function AppRetainedDataSection({
 
       <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent
-          className="max-w-md [&>:last-child]:hidden"
+          className="max-w-md"
           onEscapeKeyDown={(event) => deletion.isPending && event.preventDefault()}
           onInteractOutside={(event) => deletion.isPending && event.preventDefault()}
         >
           {selected ? (
             <>
-              <DialogHeader>
+              <DialogHeader showClose={false}>
                 <DialogTitle>{t('appDataDeleteTitle')}</DialogTitle>
                 <DialogDescription>{t('appDataDeleteDescription')}</DialogDescription>
               </DialogHeader>

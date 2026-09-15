@@ -127,7 +127,7 @@ function MarketplaceCatalogHeader({
   ];
   return (
     <div className="shrink-0 border-b border-border/60 bg-card px-5 pb-3.5 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-6 sm:pt-5">
-      <DialogHeader className="pr-8">
+      <DialogHeader>
         <DialogTitle className="text-xl">{t('appPackagesMarketplaceTitle')}</DialogTitle>
         <DialogDescription className="max-w-xl leading-5">
           {t('appPackagesMarketplaceDescription')}
