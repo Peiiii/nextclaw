@@ -74,8 +74,11 @@ export function AgentDetailsDialog({
     <Dialog open={agent !== null} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden border-none bg-popover p-0 sm:max-h-[720px] sm:max-w-2xl">
         <div className="shrink-0 px-5 pb-3 pt-5">
-          <DialogHeader className="text-left">
-            <div className="flex min-w-0 items-center gap-3 pr-7">
+          <DialogHeader
+            className="items-center"
+            actions={<PageResourceActionsMenu page={pageResourceFromSystemObject('agent', agent.id, agent.displayName || agent.id)} />}
+          >
+            <div className="flex min-w-0 items-center gap-3">
               <AgentAvatar
                 agentId={agent.id}
                 displayName={agent.displayName}
@@ -90,7 +93,6 @@ export function AgentDetailsDialog({
                   @{agent.id}
                 </DialogDescription>
               </div>
-              <PageResourceActionsMenu page={pageResourceFromSystemObject('agent', agent.id, agent.displayName || agent.id)} />
             </div>
           </DialogHeader>
         </div>

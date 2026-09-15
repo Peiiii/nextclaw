@@ -10,6 +10,8 @@ Use the conversation for conclusions, status, and questions that need your decis
 
 ### Session workspace
 
+Floating conversations keep consistent space around the title. Standard window controls are followed by more actions, with close always last and separated by spacing.
+
 The right workspace exposes project files, open files, subtasks, and scheduled jobs related to the session. Generated files should also exist in the agreed output directory.
 
 ### File previews
@@ -19,6 +21,8 @@ Open Markdown, code, HTML, documents, spreadsheets, and presentations without le
 ![An HTML data report open beside its NextClaw session](/product-screenshots/nextclaw-workspace-preview-en.png)
 
 ### Inbox deliveries
+
+The reader header shows the title, followed by item navigation, more actions, and a separate close button. Narrow screens shorten supporting text while keeping the controls available. Hover or focus an icon to see its action name. With the actions menu open, Escape dismisses the menu first; press Escape again to close the dialog.
 
 Scheduled work, background Agents, and long-running monitors can deliver Markdown or static HTML reports to the inbox. HTML is displayed in isolation without running scripts or loading remote resources. Closing the reader keeps the item unread, and you can start a linked conversation when the result needs follow-up work.
 

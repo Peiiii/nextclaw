@@ -48,14 +48,13 @@ export const ConfirmDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="[&>:last-child]:hidden"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           confirmButtonRef.current?.focus();
         }}
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
-        <DialogHeader>
+        <DialogHeader showClose={false}>
           <DialogTitle>{title}</DialogTitle>
           {description ? <DialogDescription>{description}</DialogDescription> : null}
         </DialogHeader>

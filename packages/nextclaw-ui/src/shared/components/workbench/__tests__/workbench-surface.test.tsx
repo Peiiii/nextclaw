@@ -13,6 +13,27 @@ beforeEach(() => {
   });
 });
 
+it("keeps more actions immediately before close across window states", () => {
+  render(<WorkbenchSurface id="resource" manager={manager} title="A long session title"
+    onClose={vi.fn()} onOpenMain={vi.fn()} moreActions={<button>More actions</button>}>
+    <textarea aria-label="Draft" />
+  </WorkbenchSurface>);
+  const assertOrder = () => {
+    const toolbar = screen.getByRole("button", { name: "More actions" }).parentElement!;
+    const buttons = within(toolbar).getAllByRole("button");
+    expect(buttons.slice(-2).map((button) => button.getAttribute("aria-label") || button.textContent))
+      .toEqual(["More actions", "Close view"]);
+  };
+  assertOrder();
+  fireEvent.click(screen.getByRole("button", { name: "Float view group" }));
+  assertOrder();
+  fireEvent.click(screen.getByRole("button", { name: "Collapse view" }));
+  assertOrder();
+  fireEvent.click(screen.getByRole("button", { name: "Expand view" }));
+  expect(screen.getByTitle("A long session title")).toBeTruthy();
+  assertOrder();
+});
+
 it("retains the exact input and iframe nodes through every presentation transition and hiding", () => {
   const props = {
     id: "resource",

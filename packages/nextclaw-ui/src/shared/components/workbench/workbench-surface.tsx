@@ -22,6 +22,7 @@ type WorkbenchSurfaceProps = {
   title: string;
   children: ReactNode;
   navigation?: ReactNode;
+  moreActions?: ReactNode;
   icon?: ReactNode;
   onClose: () => void;
   closeLabel?: string;
@@ -67,6 +68,7 @@ export function WorkbenchSurface({
   title,
   icon,
   navigation,
+  moreActions,
   children,
   onClose,
   closeLabel = t("workbenchCloseView"),
@@ -290,7 +292,7 @@ export function WorkbenchSurface({
           )}
         >
           {icon}
-          <span className="truncate">{title}</span>
+          <span className="truncate" title={title}>{title}</span>
         </span>
         <WorkbenchSurfaceToolbar
           state={state}
@@ -308,6 +310,7 @@ export function WorkbenchSurface({
           onClose={close}
           closeLabel={closeLabel}
           onOpenMain={onOpenMain}
+          moreActions={moreActions}
         />
       </header>
       <div

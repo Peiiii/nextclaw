@@ -240,13 +240,13 @@ export function AppPackageCard({
 
       <Dialog open={uninstallOpen} onOpenChange={setUninstallOpen}>
         <DialogContent
-          className="max-w-md [&>:last-child]:hidden"
+          className="max-w-md"
           onOpenAutoFocus={(event) => {
             event.preventDefault();
             uninstallCancelRef.current?.focus();
           }}
         >
-          <DialogHeader>
+          <DialogHeader showClose={false}>
             <DialogTitle>{t("appPackagesUninstallTitle")}</DialogTitle>
             <DialogDescription>{t("appPackagesUninstallDescription")}</DialogDescription>
           </DialogHeader>

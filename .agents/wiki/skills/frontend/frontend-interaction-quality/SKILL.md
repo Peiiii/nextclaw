@@ -5,14 +5,14 @@ description: 当设计、修改或评估前端交互、链接/按钮语义、控
 
 # 前端交互体验质量
 
-先确定 primitive、共享组件、业务组件或页面编排 owner。重复操作骨架复用 shared primitive；紧凑、hover、禁用或图标态归组件，不由宿主 CSS 补洞。
+重复操作与状态归 shared primitive，宿主不补 CSS。
 
 ## 参考体验
 
 NextClaw 的界面与交互以至少达到 ChatGPT 的成熟度为默认质量基线，不以“功能能用”作为完成标准。对齐的是清晰、稳定、一致和低操作负担，非照搬配色、布局或功能；工作台停靠等特有场景可参考 VS Code、Notion 的对应交互，但不能降低同类基础体验要求。
 
 - **一致性**：同一 surface 上的同级入口复用组件及状态样式，统一密度、圆角、对齐、hover、焦点与选中反馈；排查调用处覆盖，不能只证明用了同名组件。
-- **操作层级**：主任务与高频业务动作优先，更多位于业务操作尾部，关闭等容器控件独立；低频布局操作按语义收进二级菜单，危险操作分组置后。普通设置页不因通用资源能力多出工具栏或停靠操作。
+- **操作顺序**：常规操作 → 更多 → 关闭；无关闭时更多最后，DOM/键盘顺序一致。共享工具栏固定槽位，业务不自排。低频布局入二级菜单，危险操作置后；普通设置页不加停靠工具栏。
 - **交互完整性**：行内更多与内容共用整行反馈和边界，点击互不误触；鼠标、键盘和触控均可达，菜单开关、焦点返回、滚动与窄容器不丢失主任务。
 - **验收证据**：在真实页面完成代表任务，检查默认、hover、焦点、选中、菜单展开及适用的加载/错误状态；横向对照相邻入口、相关明暗主题和窄容器。共享组件变更抽查不同消费者，不只看被指出的截图。功能或样式存在可复现偏差时先修复，不以用户未逐页检查作为完成依据。
 
@@ -26,6 +26,7 @@ NextClaw 的界面与交互以至少达到 ChatGPT 的成熟度为默认质量�
 - icon-only 控件同时提供可访问名称、tooltip/popover 和 focus-visible；tooltip 在 floating/fullscreen/portal 中仍可见。disabled 控件需要解释原因时，用可触发 tooltip 的 wrapper。
 - 行内操作 tooltip 优先上方，由 primitive 避让；纵向图标栏可侧向提示，不遮挡同级内容。
 - modal overlay/content 都高于触发面板，content 高于 overlay，不能只有遮罩可见。
+- 标题内边距归共享 Header：`DialogHeader` 或 `WorkbenchSurface title/moreActions`；不借导航槽、不加竖线。验收窄屏长标题、顺序、命中。
 - 紧凑模式保留操作含义或当前值；直接动作优先 tooltip，选项/二级动作优先 popover/menu/select。
 - hover、focus-visible、active、disabled、selected 表达一致层级。文本输入框例外：光标和选区已表达焦点，聚焦前后容器背景、边框、阴影和 ring 不变。
 - 普通 hover/按下/键盘高亮消费 `--interaction-hover`，选中消费 `--interaction-selection`，边框消费 `--interaction-selection-border`。主题定义颜色，组件承载状态，业务页不临时调色；反馈轻微，选中略强，不降级、叠加或升高表面层次。
