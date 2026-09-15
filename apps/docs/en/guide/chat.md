@@ -34,6 +34,10 @@ If you are browsing earlier messages, sending a message and receiving output kee
 
 Processed summaries, reasoning, tool groups, and tool details share a smooth expand/collapse transition. Repeated clicks reverse from the current height. The transition is skipped when your system requests reduced motion.
 
+Nested details that are already open appear directly within the parent transition. Content changes during that transition do not repeatedly extend the animation.
+
+Expanding content pauses automatic following and preserves your reading position through detail loading and further output. Scroll near the bottom or use the return-to-bottom button to resume following. Expanded tool groups occupy at most about half the screen and scroll internally when longer. Faded edges indicate more content in that direction and disappear when you reach the edge.
+
 Expanding a completed process immediately shows a spinner and skeleton placeholders while its details load. You can collapse it while waiting; completion will not reopen it. If loading fails, click the retry message to load the details again.
 
 ## Voice input

@@ -101,7 +101,7 @@ export function ProviderModelSuggestionsPanel(props: ProviderModelSuggestionsPan
               />
             </div>
           ) : null}
-          <div className='custom-scrollbar max-h-44 overflow-y-auto overscroll-contain'>
+          <div className='custom-scrollbar max-h-44 overflow-y-auto'>
             {visibleModels.map((modelName) => (
               <label
                 key={modelName}

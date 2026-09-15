@@ -9,6 +9,7 @@ import { Workflow } from "lucide-react";
 import { ChatToolCard } from "./chat-tool-card";
 import { ChatCollapsibleMetaSummary } from "./chat-collapsible-meta-summary";
 import { ChatCollapsibleContent } from "./chat-collapsible-content";
+import { ChatToolActivityScrollArea } from "./chat-tool-activity-scroll-area";
 import { ChatReasoningBlock } from "./chat-reasoning-block";
 import { ChatProcessWorkflowRail } from "./chat-process-meta-row";
 import type { ChatToolActivityGroupViewModel } from "./chat-tool-activity-group.utils";
@@ -64,7 +65,7 @@ export function ChatToolActivityGroup({
         onClick={() => onOpenChange(!open)}
       />
       <ChatCollapsibleContent open={open}>{() => (
-        <div className="text-[0.925rem] leading-[1.72]">
+        <ChatToolActivityScrollArea label={group.label}>
           {visibleParts.map((part, index) => {
             const isLast = index === visibleParts.length - 1;
             return (
@@ -111,7 +112,7 @@ export function ChatToolActivityGroup({
               {showMoreLabel}
             </button>
           ) : null}
-        </div>
+        </ChatToolActivityScrollArea>
       )}</ChatCollapsibleContent>
     </div>
   );

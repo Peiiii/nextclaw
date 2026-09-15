@@ -33,6 +33,25 @@ type UseStickyBottomScrollResult = {
 
 const DEFAULT_STICKY_THRESHOLD_PX = 10;
 
+function isExpansionActivation(event: Event): boolean {
+  if (event instanceof KeyboardEvent && event.key !== "Enter" && event.key !== " ") return false;
+  const target = event.target instanceof Element ? event.target : event.target instanceof Node ? event.target.parentElement : null;
+  const control = target?.closest('button, a, input, textarea, select, [role="button"], summary');
+  return Boolean(control?.matches(
+    '[aria-expanded="false"]:not([aria-haspopup]):not(:disabled), details:not([open]) > summary',
+  ));
+}
+
+function observeExpansions(element: HTMLElement | null, onExpand: () => void) {
+  const activate = (event: Event) => { if (isExpansionActivation(event)) onExpand(); };
+  element?.addEventListener("click", activate, true);
+  element?.addEventListener("keydown", activate, true);
+  return () => {
+    element?.removeEventListener("click", activate, true);
+    element?.removeEventListener("keydown", activate, true);
+  };
+}
+
 function measureTurnSpace(
   scroll: HTMLElement,
   frame: HTMLElement,
@@ -150,6 +169,13 @@ export function useStickyBottomScroll({
     updateStickyState(nextIsAtBottom);
   }, [cancelQueuedScroll, resolveIsAtBottom, scrollRef, updateStickyState]);
 
+  // Inspection wins over queued output, animation and lazy payload growth until scrolling resumes.
+  useEffect(() => observeExpansions(scrollRef.current, () => {
+    pendingInitialScrollRef.current = false;
+    cancelQueuedScroll();
+    updateStickyState(false);
+  }), [cancelQueuedScroll, hasContent, resetKey, scrollRef, updateStickyState]);
+
   useLayoutEffect(() => {
     if (previousResetKeyRef.current === resetKey) {
       return;
@@ -175,9 +201,7 @@ export function useStickyBottomScroll({
     queueScrollToBottom();
   }, [isLoading, queueScrollToBottom, turnSpace?.key, updateTurnSpace]);
 
-  useEffect(() => {
-    return cancelQueuedScroll;
-  }, [cancelQueuedScroll]);
+  useEffect(() => cancelQueuedScroll, [cancelQueuedScroll]);
 
   useEffect(() => {
     const content = contentRef?.current;
