@@ -23,6 +23,8 @@ The agent can create a `.panel.html` file or a manifest-backed app and open it f
 
 ## App list and references
 
+The app list, retained data, and app marketplace use compact icon and text placeholders while loading. They follow the current theme and respect your system's reduced motion preference, then give way to the loaded content.
+
 The Apps page presents installed apps in a compact list. Enabled apps with one panel offer an Open action; apps with several panels expose their individual entries. Select an app name or App details in its menu to inspect its version and data location or manage file and folder access. Disable, update, and uninstall actions live in the same menu.
 
 Use **Add apps** to switch to the **App marketplace** tab. Search, browse details, and install there; the top-right **Install from a source** action accepts a trusted file path, directory, or app ID. Installation progress and failures remain visible on the app.

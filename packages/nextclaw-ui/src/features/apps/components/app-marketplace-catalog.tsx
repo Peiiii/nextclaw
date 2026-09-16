@@ -21,7 +21,7 @@ import { pickLocalizedText } from '@/features/marketplace';
 import { Button } from '@/shared/components/ui/button';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { Input } from '@/shared/components/ui/input';
-import { Skeleton } from '@/shared/components/ui/skeleton';
+import { SkeletonContent } from '@/shared/components/ui/skeleton';
 import { getLanguage, t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
 
@@ -221,10 +221,10 @@ function MarketplaceCatalogContent({
 }) {
   if (isLoading) {
     return (
-      <div className="mx-auto grid max-w-[872px] gap-4 [@container(min-width:36rem)]:grid-cols-2 [@container(min-width:52rem)]:grid-cols-3" aria-label={t('appPackagesMarketplaceLoading')}>
-        <Skeleton className="aspect-[16/9] w-full rounded-2xl" />
-        <Skeleton className="aspect-[16/9] w-full rounded-2xl" />
-        <Skeleton className="hidden aspect-[16/9] w-full rounded-2xl [@container(min-width:52rem)]:block" />
+      <div className="mx-auto grid max-w-[872px] gap-4 [@container(min-width:36rem)]:grid-cols-2 [@container(min-width:52rem)]:grid-cols-3" role="status" aria-label={t('appPackagesMarketplaceLoading')}>
+        <SkeletonContent />
+        <SkeletonContent />
+        <SkeletonContent className="hidden [@container(min-width:52rem)]:flex" />
       </div>
     );
   }
