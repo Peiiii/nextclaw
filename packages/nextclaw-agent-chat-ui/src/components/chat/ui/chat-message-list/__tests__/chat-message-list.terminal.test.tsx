@@ -9,6 +9,51 @@ const defaultTexts = {
   typingLabel: "Typing...",
 };
 
+it.each(["shell", "read_file", "write_file", "custom_tool"])(
+  "keeps failed %s details collapsed and respects manual expansion",
+  (toolName) => {
+    const view = (statusTone: "running" | "error") => (
+      <ChatMessageList
+        messages={[{
+          id: "failed-tool",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:11",
+          parts: [{ type: "tool-card", card: {
+            kind: "result",
+            toolName,
+            summary: "path: example.txt",
+            output: "Tool failure details",
+            hasResult: statusTone === "error",
+            statusTone,
+            statusLabel: statusTone === "error" ? "Failed" : "Running",
+            titleLabel: "Tool Result",
+            outputLabel: "View Output",
+            emptyLabel: "No output",
+          } }],
+        }]}
+        isSending={false}
+        hasAssistantDraft={false}
+        texts={defaultTexts}
+      />
+    );
+    const { container, rerender } = render(view("error"));
+    const header = () => container.querySelector<HTMLElement>('[role="button"][aria-expanded]')!;
+    expect(header().getAttribute("aria-expanded")).toBe("false");
+    rerender(view("running"));
+    rerender(view("error"));
+    expect(header().getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(header());
+    expect(header().getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByText("Tool failure details")).toBeTruthy();
+    rerender(view("running"));
+    rerender(view("error"));
+    expect(header().getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(header());
+    expect(header().getAttribute("aria-expanded")).toBe("false");
+  },
+);
+
 it("resets completed terminal cards to collapsed when the list remounts", () => {
   const message = {
     id: "assistant-tool-remount",

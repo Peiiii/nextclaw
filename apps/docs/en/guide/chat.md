@@ -94,6 +94,8 @@ Open **More actions** in the current session header, a session in the session li
 
 Multiple rounds of tool calls remain part of the same reply. Refreshing or reopening a session does not execute the tools again, and loading a completed reply does not add another message showing tools as still running.
 
+Failed tool calls do not automatically expand their details; they follow the same expand and collapse behavior as other states. Click the tool card header to inspect inputs, outputs, or error details when needed.
+
 ## Add files and selected text to a message
 
 Type `@` to reference a file, folder, project, or Panel App. You can also open a file in the session workspace and choose **Add to chat** from its action menu. In a text file, select a passage first when only that excerpt should be included.

@@ -7,7 +7,7 @@ import type {
 import { ToolCardRoot, ToolCardContent, ToolCardDetailSection } from './tool-card-root';
 import { ToolCardHeader, ToolCardHeaderAction } from './tool-card-header';
 import { formatToolCardPayload, useToolCardExpandedState } from './tool-card-views';
-import { ChatCollapsibleContent } from '../chat-collapsible-content';
+import { ChatCollapsibleContent } from '@agent-chat-ui/components/chat/ui/chat-message-list/chat-collapsible-content';
 
 function buildToolActionSlot(
   card: ChatToolPartViewModel,
@@ -45,7 +45,6 @@ export function GenericToolCard({
     canExpand: hasContent || isRunning,
     isRunning,
     autoExpandWhileRunning: false,
-    statusTone: card.statusTone,
   });
 
   return (

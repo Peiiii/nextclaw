@@ -125,20 +125,24 @@ export function useToolCardExpandedState({
   canExpand,
   isRunning,
   autoExpandWhileRunning = true,
-  expandOnError = false,
-  statusTone,
 }: {
   canExpand: boolean;
   isRunning: boolean;
   autoExpandWhileRunning?: boolean;
-  expandOnError?: boolean;
-  statusTone: ChatToolPartViewModel['statusTone'];
 }) {
-  const [expanded, setExpanded] = useState(canExpand && expandOnError && statusTone === 'error');
+  const [expanded, setExpanded] = useState(false);
   const [hasUserToggled, setHasUserToggled] = useState(false);
+  const [wasRunning, setWasRunning] = useState(isRunning);
   const expandTimerRef = useRef<number | null>(null);
   const prevRunningRef = useRef(isRunning);
   const isFirstRenderRef = useRef(true);
+
+  if (wasRunning !== isRunning) {
+    setWasRunning(isRunning);
+    if (!isRunning && !hasUserToggled) {
+      setExpanded(false);
+    }
+  }
 
   useEffect(() => {
     return () => {
@@ -149,17 +153,6 @@ export function useToolCardExpandedState({
   }, []);
 
   useEffect(() => {
-    if (expandOnError && statusTone === 'error' && canExpand && !hasUserToggled) {
-      if (expandTimerRef.current !== null) {
-        window.clearTimeout(expandTimerRef.current);
-        expandTimerRef.current = null;
-      }
-      setExpanded(true);
-      prevRunningRef.current = isRunning;
-      isFirstRenderRef.current = false;
-      return;
-    }
-
     if (
       autoExpandWhileRunning &&
       isRunning &&
@@ -179,14 +172,11 @@ export function useToolCardExpandedState({
         window.clearTimeout(expandTimerRef.current);
         expandTimerRef.current = null;
       }
-      if (prevRunningRef.current && !hasUserToggled) {
-        setExpanded(false);
-      }
     }
 
     prevRunningRef.current = isRunning;
     isFirstRenderRef.current = false;
-  }, [autoExpandWhileRunning, canExpand, expandOnError, expanded, hasUserToggled, isRunning, statusTone]);
+  }, [autoExpandWhileRunning, canExpand, expanded, hasUserToggled, isRunning]);
 
   const onToggle = () => {
     if (!canExpand) {
@@ -244,8 +234,6 @@ export function TerminalExecutionView({ card, toolLabel }: { card: ChatToolPartV
     canExpand,
     isRunning,
     autoExpandWhileRunning: false,
-    expandOnError: canExpand,
-    statusTone: card.statusTone,
   });
 
   return (
@@ -344,8 +332,6 @@ export function FileOperationView({
     canExpand: hasContent || isRunning,
     isRunning,
     autoExpandWhileRunning: shouldAutoExpandWhileRunning,
-    expandOnError: hasContent,
-    statusTone: card.statusTone,
   });
 
   const isEdit = isFileEditTool(card.toolName);
@@ -408,7 +394,6 @@ export function SearchSnippetView({
     canExpand: hasOutput || isRunning,
     isRunning,
     autoExpandWhileRunning: false,
-    statusTone: card.statusTone,
   });
 
   return (
