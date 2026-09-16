@@ -23,7 +23,7 @@ export const RUNTIME_SHOWCASE_COPY: Record<Locale, RuntimeShowcase> = {
     runtimeLabel: "Runtime",
     runtimeDescription: "决定这次会话如何执行",
     runtimeNames: ["Native", "Codex", "Claude Code", "OpenCode", "Hermes"],
-    imageSrc: '/screenshots/nextclaw-codex-runtime-markdown-preview-cn.png',
-    imageAlt: "NextClaw 使用 Codex 推进项目并在右侧预览 Markdown 架构文档",
+    imageSrc: '/screenshots/nextclaw-agent-runtime-picker-cn.png',
+    imageAlt: "NextClaw 新任务页分别选择 Agent 和执行引擎",
   },
 };

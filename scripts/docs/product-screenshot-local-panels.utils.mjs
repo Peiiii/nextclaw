@@ -351,7 +351,7 @@ function createWorkspacePanelStorage({ htmlPath, htmlText, repoRoot }) {
         workspaceNavigationHistoryIndex: 0
       }
     },
-    version: 2
+    version: 3
   });
 }
 

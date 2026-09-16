@@ -14,6 +14,10 @@ export function resolveScreenshotViewport(env) {
   return viewport;
 }
 const binaryWorkspacePreviewExtensions = new Set([
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
   '.docx',
   '.ods',
   '.pptx',
@@ -45,7 +49,7 @@ function buildSessionRoute(sessionId) {
   return `/chat/sid_${routeId}`;
 }
 
-function createWorkspacePreviewStorage(previewPath, sessionId) {
+function createWorkspacePreviewStorage(previewPath, sessionId, showExplorer) {
   const resolvedPath = path.resolve(previewPath);
   const isBinaryPreview = binaryWorkspacePreviewExtensions.has(
     path.extname(resolvedPath).toLowerCase()
@@ -66,6 +70,7 @@ function createWorkspacePreviewStorage(previewPath, sessionId) {
       state: {
         snapshot: {
           workspacePanelParentKey: sessionId,
+          workspaceExplorerOpen: showExplorer,
           activeWorkspacePanelKind: 'file',
           activeChildSessionKey: null,
           workspaceFileTabs: [{
@@ -82,7 +87,7 @@ function createWorkspacePreviewStorage(previewPath, sessionId) {
           workspaceNavigationHistoryIndex: 0
         }
       },
-      version: 2
+      version: 3
     })
   };
 }
@@ -144,7 +149,7 @@ async function waitForCuratedSession(page, options) {
 
   if (maximizeWorkspace) {
     const maximizeButton = page.getByRole('button', {
-      name: /^(最大化工作区侧栏|Maximize workspace panel)$/
+      name: /^(最大化|Maximize|最大化工作区侧栏|Maximize workspace panel)$/
     }).first();
     await maximizeButton.waitFor({ state: 'visible', timeout: 20_000 });
     await maximizeButton.click();
@@ -183,8 +188,7 @@ async function waitForCuratedSession(page, options) {
   }
 
   await target.evaluate((element) => {
-    const message = element.closest('[data-message-id], article') || element;
-    message.scrollIntoView({ block: 'start', inline: 'nearest' });
+    element.scrollIntoView({ block: 'start', inline: 'nearest' });
   });
   await page.waitForTimeout(1_000);
 }
@@ -208,7 +212,7 @@ export function createCuratedScreenshotScenes(options) {
   }
   const route = buildSessionRoute(sessionId);
   const storageItems = workspacePreviewPath
-    ? createWorkspacePreviewStorage(workspacePreviewPath, sessionId)
+    ? createWorkspacePreviewStorage(workspacePreviewPath, sessionId, options.showExplorer)
     : undefined;
   const afterLoad = async ({ page }) => waitForCuratedSession(page, {
     keepSidebar,
@@ -243,6 +247,7 @@ export function createScreenshotModeState({ argv, env, sceneFilter, stableScenes
           assetName: String(env.SCREENSHOT_CURATED_ASSET || 'nextclaw-image-generation-result').trim(),
           keepSidebar: parseBooleanEnv(env.SCREENSHOT_KEEP_SIDEBAR),
           maximizeWorkspace: parseBooleanEnv(env.SCREENSHOT_MAXIMIZE_WORKSPACE),
+          showExplorer: parseBooleanEnv(env.SCREENSHOT_SHOW_EXPLORER),
           sessionId: curatedSessionId,
           sidebarSearch: String(env.SCREENSHOT_SIDEBAR_SEARCH || '').trim(),
           targetSelector: String(env.SCREENSHOT_TARGET_SELECTOR || '').trim(),

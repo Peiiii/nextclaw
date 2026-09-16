@@ -104,7 +104,7 @@ export const LANDING_EN_COPY: LandingCopy = {
     }
   ],
   docsButton: 'Read the Docs',
-  screenshotChatSrc: '/screenshots/nextclaw-workspace-explorer-en.png',
+  screenshotChatSrc: '/nextclaw-hero-workbench-en.png',
   showcaseTitle: 'Start work in one connected workspace.',
   showcaseSubtitle:
     'Use conversations, skills, browser panels, and task context together without switching between separate tools.',

@@ -11,7 +11,7 @@ pnpm install
 pnpm exec playwright install chromium
 ```
 
-截图默认使用雾蓝主题 `cool`、`1512 x 828` CSS 视口和 `2x` 输出，最终图片为 `3024 x 1656`。同一批公开素材不得混用主题。
+截图统一使用产品默认主题 `default`、`1512 x 828` CSS 视口和 `2x` 输出，最终图片为 `3024 x 1656`。`default` 跟随产品当前默认外观，不受本地主题偏好影响。同一批公开素材不得混用主题。
 
 ## 稳定场景
 
@@ -84,9 +84,11 @@ pnpm run screenshots:capture-curated
 - `SCREENSHOT_TARGET_TEXT=<unique-text>`：滚动到包含该文字的可见结果。
 - `SCREENSHOT_TARGET_SELECTOR=<css-selector>`：复杂界面使用明确 CSS 选择器。
 - `SCREENSHOT_SCENES=<asset-en,asset-zh>`：只生成一个语言版本。
-- `SCREENSHOT_UI_THEME=natural`：明确需要默认主题时覆盖雾蓝；同批次不得混用。
+- `SCREENSHOT_UI_THEME=<theme>`：仅在用户明确要求展示其他主题时覆盖；正式产品截图保持 `default`，同批次不得混用。
 - `SCREENSHOT_KEEP_SIDEBAR=1`：保留会话侧栏，适合展示完整工作台构图。
+- `SCREENSHOT_COLLAPSE_SIDEBAR=1`：稳定场景收起侧栏，避免无关会话进入公开截图。
 - `SCREENSHOT_MAXIMIZE_WORKSPACE=1`：采集前最大化会话工作区，适合同时展示目录树与文件预览。
+- `SCREENSHOT_SHOW_EXPLORER=1`：为文件预览同时打开项目目录树。
 - `SCREENSHOT_SIDEBAR_SEARCH=<text>`：只显示与宣传场景相关的真实会话，不改写会话数据。
 - `SCREENSHOT_WORKSPACE_PREVIEW_PATH=<absolute-path>`：在会话右侧打开真实 Markdown、HTML、DOCX、XLSX 或 PPTX 文件；HTML/Markdown 使用渲染模式，Office 文件使用内置预览器。
 

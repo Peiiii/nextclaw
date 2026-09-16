@@ -51,8 +51,7 @@ const realMarketplaceBase = normalizeBaseUrl(
 );
 
 const languageStorageKey = 'nextclaw.ui.language';
-const themeStorageKey = 'nextclaw.ui.theme';
-const screenshotTheme = process.env.SCREENSHOT_UI_THEME || 'cool';
+const screenshotTheme = process.env.SCREENSHOT_UI_THEME || 'default';
 const viewport = resolveScreenshotViewport(process.env);
 
 function normalizeBaseUrl(raw) {
@@ -83,7 +82,7 @@ const uiText = {
     agents: 'Agent Gallery',
     apps: 'Panel Apps',
     skillMarketplace: 'Skill Market',
-    cron: 'Cron Jobs',
+    cron: 'Scheduled Tasks',
     chatWelcome: 'Hello, how can I help you?'
   },
   zh: {
@@ -680,15 +679,10 @@ async function captureScene(browser, scene, uiOrigin) {
     await context.addInitScript(initializeScreenshotDocument, {
       key: languageStorageKey,
       value: scene.language,
+      theme: screenshotTheme,
+      collapseSidebar: parseBooleanEnv(process.env.SCREENSHOT_COLLAPSE_SIDEBAR),
       useMockRealtime: !useRealAppData
     });
-    await context.addInitScript(({ key, value }) => {
-      try {
-        window.localStorage.setItem(key, value);
-      } catch {
-        // Screenshot init should continue even when storage is unavailable.
-      }
-    }, { key: themeStorageKey, value: screenshotTheme });
     if (scene.storageItems) {
       await context.addInitScript((items) => {
         for (const [key, value] of Object.entries(items)) {

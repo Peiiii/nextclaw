@@ -4,7 +4,7 @@ const notificationProfiles = {
     description: "Today's report is ready with the stories and signals worth reviewing.",
     ariaLabel: "Open completed background session: Daily AI & Tech Brief",
     dismissLabel: "Dismiss notification",
-    waitText: "What would you like to get done?",
+    waitText: "Where shall we start today?",
     outputSuffix: "en",
   },
   zh: {
@@ -12,7 +12,7 @@ const notificationProfiles = {
     description: "今天的热点已经整理好，可以查看值得关注的新闻与信号。",
     ariaLabel: "打开已完成的后台会话：每日 AI 与科技简报",
     dismissLabel: "关闭通知",
-    waitText: "今天想完成什么？",
+    waitText: "今天，想从哪里开始？",
     outputSuffix: "cn",
   },
 };

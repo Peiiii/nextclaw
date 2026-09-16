@@ -99,9 +99,15 @@ export async function waitForAgentCardAvatars(page) {
   }, undefined, { timeout: 20_000 });
 }
 
-export function initializeScreenshotDocument({ key, value, useMockRealtime }) {
+export function initializeScreenshotDocument({ key, value, useMockRealtime, theme = 'default', collapseSidebar = false }) {
   try {
     window.localStorage.setItem(key, value);
+    window.localStorage.setItem('nextclaw.ui.theme', theme);
+    if (collapseSidebar) {
+      window.localStorage.setItem('nextclaw.app.viewport-layout', JSON.stringify({
+        state: { isSidebarCollapsed: true }, version: 1
+      }));
+    }
   } catch {
     // Screenshot init should continue even when storage is unavailable.
   }

@@ -184,7 +184,6 @@ async function main() {
   const context = await browser.newContext({ viewport, deviceScaleFactor: 2, colorScheme: "light", recordVideo: { dir: videoDirectory, size: viewport } });
   try {
     await context.addInitScript(initializeScreenshotDocument, { key: "nextclaw.ui.language", value: "zh", useMockRealtime: true });
-    await context.addInitScript(() => globalThis.localStorage.setItem("nextclaw.ui.theme", "cool"));
     const page = await context.newPage();
     const video = page.video();
     await installScreenshotApiRoutes(page, { resolveMock: (pathname, searchParams, method) => resolveMock(pathname, searchParams, method, "inline-engineering-zh"), resolveRealMarketplace: async () => null, useMockApi: true, useRealMarketplace: false });
