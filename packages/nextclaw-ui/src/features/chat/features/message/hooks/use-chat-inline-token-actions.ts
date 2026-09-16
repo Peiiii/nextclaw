@@ -30,8 +30,13 @@ export function useChatInlineTokenActions(params: {
   const projectRoot = selectedSession?.projectRoot ?? selectedSession?.workingDir;
 
   const handleInlineTokenClick = useCallback((token: ChatInlineTokenViewModel) => {
-    if ((token.kind === CHAT_UI_RESOURCE_TOKEN_KIND || token.kind === CHAT_SYSTEM_OBJECT_TOKEN_KIND) && "key" in token) {
-      const page = appPresenter.pageResourceManager.resolve(token.key);
+    const resourceUri = (token.kind === CHAT_UI_RESOURCE_TOKEN_KIND || token.kind === CHAT_SYSTEM_OBJECT_TOKEN_KIND) && "key" in token
+      ? token.key
+      : token.kind === CHAT_WORKSPACE_EXCERPT_TOKEN_KIND && "excerpt" in token && token.path.startsWith("nextclaw://")
+        ? token.path
+        : null;
+    if (resourceUri) {
+      const page = appPresenter.pageResourceManager.resolve(resourceUri);
       if (page) appPresenter.pageResourceManager.open(page, 'default', navigate);
       return;
     }

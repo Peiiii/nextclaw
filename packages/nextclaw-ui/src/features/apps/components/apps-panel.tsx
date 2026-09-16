@@ -18,10 +18,12 @@ export function AppsPanel({
   activeTab,
   onActiveTabChange,
   onOpenPanelApp,
+  serviceResourceId,
 }: {
   activeTab: AppsPanelTab;
   onActiveTabChange: (tab: AppsPanelTab) => void;
   onOpenPanelApp: (entry: PanelAppEntryView) => void;
+  serviceResourceId?: string;
 }) {
   const [focusedPackageId, setFocusedPackageId] = useState<string>();
   const navigationRef = useRef<HTMLElement>(null);
@@ -88,7 +90,7 @@ export function AppsPanel({
           <PanelAppsList onOpenPanelApp={onOpenPanelApp} />
         ) : activeTab === 'service-apps' ? (
           <Suspense fallback={null}>
-            <ServiceAppsPanel onManagePackage={managePackage} />
+            <ServiceAppsPanel resourceId={serviceResourceId} onManagePackage={managePackage} />
           </Suspense>
         ) : null}
       </div>

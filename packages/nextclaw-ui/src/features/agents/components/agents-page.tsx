@@ -48,6 +48,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { useNavigate } from "react-router-dom";
 
 const AGENT_CREATION_PROMPT =
   "请直接创建一个默认示例 Agent，不要问我问题。创建完成后，简单告诉我它能做什么。";
@@ -200,19 +202,19 @@ function AgentListCard(props: {
               <AgentActionMenuItem
                 icon={Eye}
                 label={t("agentsViewDetailsAction")}
-                onClick={onView}
+                onClick={() => { setMenuOpen(false); onView(); }}
               />
               <AgentActionMenuItem
                 icon={Pencil}
                 label={t("agentsEditAction")}
-                onClick={onEdit}
+                onClick={() => { setMenuOpen(false); onEdit(); }}
                 disabled={updatePending}
               />
               {!agent.builtIn ? (
                 <AgentActionMenuItem
                   icon={Trash2}
                   label={t("agentsRemoveAction")}
-                  onClick={onDelete}
+                  onClick={() => { setMenuOpen(false); onDelete(); }}
                   disabled={deletePending}
                   destructive
                 />
@@ -245,7 +247,9 @@ function AgentListCard(props: {
   );
 }
 
-export function AgentsPage() {
+export function AgentsPage({ resourceId }: { resourceId?: string } = {}) {
+  const app = useAppPresenter();
+  const navigate = useNavigate();
   const presenter = usePresenter();
   const agentsQuery = useAgents();
   const configQuery = useConfig();
@@ -254,9 +258,6 @@ export function AgentsPage() {
   const sessionTypesQuery = useNcpChatSessionTypes();
   const updateAgent = useUpdateAgent();
   const deleteAgent = useDeleteAgent();
-  const [viewingAgent, setViewingAgent] = useState<AgentProfileView | null>(
-    null,
-  );
   const [editingAgent, setEditingAgent] = useState<AgentProfileView | null>(
     null,
   );
@@ -300,7 +301,7 @@ export function AgentsPage() {
   const agentDefaults = configQuery.data?.agents.defaults;
 
   const handleStartView = (agent: AgentProfileView) => {
-    setViewingAgent(agent);
+    app.pageResourceManager.open(pageResourceFromSystemObject("agent", agent.id, agent.displayName || agent.id), "default", navigate);
   };
 
   const handleStartEdit = (agent: AgentProfileView) => {
@@ -340,6 +341,23 @@ export function AgentsPage() {
     );
   };
 
+  const editDialog = <AgentEditDialog
+    agent={editingAgent} pending={updateAgent.isPending} providerCatalog={providerCatalog}
+    runtimeOptions={runtimeOptions} defaultRuntime={defaultRuntime}
+    onOpenChange={(open) => { if (!open && !updateAgent.isPending) setEditingAgent(null); }}
+    onSubmit={handleUpdate} />;
+  if (resourceId) {
+    const agent = agents.find((item) => item.id === resourceId) ?? null;
+    if (agentsQuery.isPending) return <p role="status" className="p-4">{t("loading")}</p>;
+    if (agentsQuery.isError) return <div className="p-4"><p role="alert">{t("resourceLoadFailed")}</p><button onClick={() => void agentsQuery.refetch()}>{t("resourceRetry")}</button></div>;
+    if (!agent) return <p role="alert" className="p-4">{t(agentsQuery.isError ? "resourceLoadFailed" : "resourceNotFound")}</p>;
+    return <>
+      <AgentDetailsDialog embedded agent={agent} defaults={agentDefaults} runtimeOptions={runtimeOptions}
+        defaultRuntime={defaultRuntime} defaultRuntimeLabel={defaultRuntimeLabel}
+        onOpenChange={() => {}} onEdit={handleStartEdit} onChat={startChatWithAgent} />
+      {editDialog}
+    </>;
+  }
   return (
     <PageLayout className="space-y-6">
       <PageHeader
@@ -408,36 +426,7 @@ export function AgentsPage() {
         )}
       </div>
 
-      <AgentDetailsDialog
-        agent={viewingAgent}
-        defaults={agentDefaults}
-        runtimeOptions={runtimeOptions}
-        defaultRuntime={defaultRuntime}
-        defaultRuntimeLabel={defaultRuntimeLabel}
-        onOpenChange={(open) => {
-          if (!open) {
-            setViewingAgent(null);
-          }
-        }}
-        onEdit={(agent) => {
-          setViewingAgent(null);
-          setEditingAgent(agent);
-        }}
-      />
-
-      <AgentEditDialog
-        agent={editingAgent}
-        pending={updateAgent.isPending}
-        providerCatalog={providerCatalog}
-        runtimeOptions={runtimeOptions}
-        defaultRuntime={defaultRuntime}
-        onOpenChange={(open) => {
-          if (!open && !updateAgent.isPending) {
-            setEditingAgent(null);
-          }
-        }}
-        onSubmit={handleUpdate}
-      />
+      {editDialog}
     </PageLayout>
   );
 }

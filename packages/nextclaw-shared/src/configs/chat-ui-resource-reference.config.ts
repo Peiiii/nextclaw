@@ -1,6 +1,42 @@
 import type { UiContentParams } from "../types/ui-show-content.types.js";
 import { readUiContentParams } from "../utils/ui-content-params.utils.js";
 
+/** Public conversation identity, shared by tool results and every UI placement. */
+export function createSessionResourceUri(sessionId: string): string {
+  if (!sessionId.trim()) throw new Error("Session ID must not be empty");
+  return `nextclaw://sessions/${encodeURIComponent(sessionId)}`;
+}
+
+/** Historical message links are accepted only here and normalized by callers. */
+export function parseSessionResourceUri(uri: string): string | null {
+  try {
+    const url = new URL(uri);
+    if (url.protocol !== "nextclaw:" || url.username || url.password || url.port || url.search || url.hash) return null;
+    const match = /^\/([^/]+)$/.exec(url.pathname);
+    if (url.hostname === "sessions" && match) {
+      const id = decodeURIComponent(match[1]);
+      return id.trim() ? id : null;
+    }
+    if (url.hostname === "chat-session" && match) {
+      const value = decodeURIComponent(match[1]);
+      if (!value.startsWith("sid_")) return value.trim() ? value : null;
+      const encoded = value.slice(4);
+      if (!/^[A-Za-z0-9_-]+$/.test(encoded)) return null;
+      const binary = atob(encoded.replace(/-/g, "+").replace(/_/g, "/"));
+      const id = new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
+      return id.trim() ? id : null;
+    }
+    if (url.hostname === "objects") {
+      const legacy = /^\/(?:chat-session|chat-sessions)\/([^/]+)$/.exec(url.pathname);
+      const id = legacy ? decodeURIComponent(legacy[1]) : null;
+      return id?.trim() ? id : null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /** Canonical Panel App identity in the NextClaw Resource Protocol; placement is not identity. */
 export function createPanelAppResourceUri(appId: string, sourcePath?: string): string {
   const uri = `nextclaw://panel-app/${encodeURIComponent(appId)}`;

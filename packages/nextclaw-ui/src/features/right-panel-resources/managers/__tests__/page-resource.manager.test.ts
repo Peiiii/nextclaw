@@ -17,7 +17,7 @@ import {
 function setup() {
   const app = {
     rightPanelResourceRouteResolver: new RightPanelResourceRouteResolver(),
-    docBrowserManager: { openTarget: vi.fn() },
+    docBrowserManager: { openTarget: vi.fn(), setActiveTab: vi.fn() },
     workbenchSurfaceManager: {
       restore: vi.fn(),
       toggleMaximize: vi.fn(),
@@ -28,6 +28,7 @@ function setup() {
       requestUiResourceReference: vi.fn(),
       requestFileReference: vi.fn(),
       requestSystemObjectReference: vi.fn(),
+      requestExcerptReference: vi.fn(),
     },
   };
   return {
@@ -38,6 +39,16 @@ function setup() {
 }
 
 describe("shared resource opening policy", () => {
+  it.each(["/chat/current-session", "/chat", "/agents"])("routes a selected resource excerpt from %s to its chat composer", (pathname) => {
+    const { manager, app, navigate } = setup();
+    const excerpt = { path: "nextclaw://objects/agent/philosopher", label: "灵魂哲学家", excerpt: "Runtime: native", startLine: null, endLine: null };
+    manager.addExcerptToChat(excerpt, pathname, navigate);
+    expect(app.chatComposerIntentManager.requestExcerptReference).toHaveBeenCalledWith({
+      ...excerpt, targetSessionKey: pathname === "/chat/current-session" ? "current-session" : null,
+    });
+    if (pathname === "/agents") expect(navigate).toHaveBeenCalledWith("/chat");
+    else expect(navigate).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     usePageNavigationStore.setState({ pinned: [] });
     useDocBrowserStore.setState({ snapshot: createDefaultDocBrowserState() });
@@ -74,9 +85,8 @@ describe("shared resource opening policy", () => {
       },
     });
     manager.open(page, "default", navigate);
-    expect(app.docBrowserManager.openTarget).toHaveBeenCalledWith(page.target, {
-      newTab: true,
-    });
+    expect(app.docBrowserManager.setActiveTab).toHaveBeenCalledWith(page.uri);
+    expect(app.docBrowserManager.openTarget).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
     manager.open(page, "main", navigate);
     expect(navigate).toHaveBeenCalledWith("/apps/panel/example-notes");

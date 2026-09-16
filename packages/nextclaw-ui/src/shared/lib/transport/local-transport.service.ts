@@ -178,11 +178,13 @@ export class LocalAppTransport implements AppTransport {
   request = async <T>(input: RequestInput): Promise<T> => {
     const timeoutMs = Number.isFinite(input.timeoutMs) && (input.timeoutMs ?? 0) > 0
       ? Math.trunc(input.timeoutMs as number)
-      : null;
-    const controller = timeoutMs ? new AbortController() : null;
-    const timeoutId = timeoutMs
-      ? window.setTimeout(() => controller?.abort(`Request timed out after ${timeoutMs}ms: ${input.method} ${input.path}`), timeoutMs)
-      : null;
+      : 30_000;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(
+      () => controller.abort(`Request timed out after ${timeoutMs}ms: ${input.method} ${input.path}`),
+      timeoutMs,
+    );
+    const signal = input.signal ? AbortSignal.any([controller.signal, input.signal]) : controller.signal;
     const requestBody = normalizeRequestBody(input.body);
 
     try {
@@ -190,7 +192,7 @@ export class LocalAppTransport implements AppTransport {
         method: input.method,
         ...(requestBody !== undefined ? { body: requestBody } : {}),
         ...(input.headers ? { headers: input.headers } : {}),
-        signal: controller?.signal ?? input.signal
+        signal
       });
       if (!response.ok) {
         throw createTransportError(response, `Request failed for ${input.method} ${input.path}`);

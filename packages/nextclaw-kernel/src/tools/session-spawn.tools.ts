@@ -5,6 +5,7 @@ import {
   type ToolExecutionContext,
 } from "@nextclaw/core";
 import type { NcpRunTriggerInput, NcpTool } from "@nextclaw/ncp";
+import { createSessionResourceUri } from "@nextclaw/shared";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { SessionRequestManager } from "@kernel/features/session-request/index.js";
 import { attachSourceToolCall } from "@kernel/utils/agent-run-trigger.utils.js";
@@ -194,7 +195,7 @@ export class SessionSpawnTool implements NcpTool {
     );
 
     if (start) {
-      return this.sessionRequestManager.spawnSessionAndRequest({
+      const result = await this.sessionRequestManager.spawnSessionAndRequest({
         sourceSessionId: this.sourceSessionId,
         sourceToolCallId: toolCallId,
         sourceSessionMetadata: this.sourceSessionMetadata,
@@ -210,6 +211,7 @@ export class SessionSpawnTool implements NcpTool {
         wait,
         trigger,
       });
+      return { ...result, resourceUri: createSessionResourceUri(result.sessionId) };
     }
 
     const session = await this.sessionManager.createSession({
@@ -230,6 +232,7 @@ export class SessionSpawnTool implements NcpTool {
     return {
       kind: "nextclaw.session",
       sessionId: session.sessionId,
+      resourceUri: createSessionResourceUri(session.sessionId),
       agentId: session.agentId,
       parentSessionId: session.parentSessionId,
       isChildSession: Boolean(session.parentSessionId),

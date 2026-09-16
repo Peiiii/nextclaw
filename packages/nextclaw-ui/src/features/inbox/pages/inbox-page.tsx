@@ -271,9 +271,10 @@ function InboxDetailPane({
   );
 }
 
-export function InboxPage() {
+export function InboxPage({ resourceId }: { resourceId?: string } = {}) {
   const navigate = useNavigate();
-  const { deliveryId } = useParams<{ deliveryId?: string }>();
+  const { deliveryId: routeDeliveryId } = useParams<{ deliveryId?: string }>();
+  const deliveryId = resourceId ?? routeDeliveryId;
   const { isMobile } = useViewportLayout();
   const { chatComposerIntentManager, docBrowserManager, inboxManager } = useAppPresenter();
   const deliveriesQuery = useInboxDeliveries();
@@ -366,12 +367,14 @@ export function InboxPage() {
     });
   };
 
-  const showList = !isMobile || !deliveryId;
+  const showList = !resourceId && (!isMobile || !deliveryId);
   const showDetail = !isMobile || Boolean(deliveryId);
+  if (resourceId && deliveriesQuery.isPending) return <p role="status" className="p-4">{t("loading")}</p>;
+  if (resourceId && !deliveriesQuery.isError && !activeDelivery) return <p role="alert" className="p-4">{t("resourceNotFound")}</p>;
 
   return (
     <div className="flex h-full min-h-0 flex-col md:gap-6">
-      {!isMobile ? <PageHeader
+      {!isMobile && !resourceId ? <PageHeader
         headingLevel={1}
         title={t("inboxTitle")}
         className="px-4 sm:px-0"
@@ -381,7 +384,7 @@ export function InboxPage() {
         {deliveriesQuery.isError ? (
           <div className="p-4">{isMobile && deliveryId ? <IconActionButton icon={<ArrowLeft className="h-4 w-4" />} label={t("inboxTitle")} onClick={() => navigate('/inbox')} /> : null}<p role="alert" className="text-sm text-destructive">{t("inboxLoadError")}</p></div>
         ) : (
-          <div className="grid h-full min-h-0 grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)]">
+          <div className={cn("grid h-full min-h-0 grid-cols-1", !resourceId && "md:grid-cols-[300px_minmax(0,1fr)]")}>
             {showList ? <InboxListPane
               activeDeliveryId={activeDelivery?.id ?? null}
               deliveries={deliveries}

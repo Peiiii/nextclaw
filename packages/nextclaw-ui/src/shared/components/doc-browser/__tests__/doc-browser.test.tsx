@@ -505,7 +505,7 @@ describe("DocBrowser", () => {
 
     render(<DocBrowser />);
 
-    expect(screen.getByTitle("Local App").getAttribute("tabindex")).toBeNull();
+    expect(screen.getAllByTitle("Local App").find((element) => element.tagName === 'IFRAME')!.getAttribute("tabindex")).toBeNull();
   });
 });
 
@@ -875,7 +875,7 @@ describe("DocBrowser content tabs", () => {
     render(<DocBrowser />);
 
     const addressInput = screen.getByRole("textbox", { name: "Address" }) as HTMLInputElement;
-    const iframe = screen.getByTitle("Local App") as HTMLIFrameElement;
+    const iframe = screen.getAllByTitle("Local App").find((element) => element.tagName === 'IFRAME') as HTMLIFrameElement;
     const externalLink = screen.getByRole("link", { name: /Open in Browser/i }) as HTMLAnchorElement;
 
     expect(addressInput.value).toBe("http://127.0.0.1:5173/dashboard");

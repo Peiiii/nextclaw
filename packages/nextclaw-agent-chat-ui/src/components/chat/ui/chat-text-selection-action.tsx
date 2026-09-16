@@ -226,7 +226,7 @@ export function ChatTextSelectionAction({
         <button
           ref={captureMenuButton}
           type="button"
-          className="fixed z-[var(--z-popover,10100)] inline-flex max-w-[calc(100vw-24px)] items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-xl border border-border bg-popover px-3 py-2 text-xs font-medium text-popover-foreground shadow-lg transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:text-muted-foreground"
+          className="fixed z-[var(--z-popover,10100)] inline-flex max-w-[calc(100vw-24px)] items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-xl border border-border bg-popover px-3 py-2 text-xs font-medium text-popover-foreground shadow-lg transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:text-muted-foreground"
           style={{
             left: menuPosition?.left ?? 0,
             top: menuPosition?.top ?? 0,

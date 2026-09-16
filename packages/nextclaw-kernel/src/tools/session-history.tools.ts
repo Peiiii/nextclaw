@@ -1,4 +1,5 @@
 import { normalizeToolParams } from "@nextclaw/core";
+import { createSessionResourceUri } from "@nextclaw/shared";
 import type { NcpMessage, NcpSessionSummary, NcpTool } from "@nextclaw/ncp";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 
@@ -51,7 +52,7 @@ function sessionLabel(summary: NcpSessionSummary): string | undefined {
 
 export class SessionsListTool implements NcpTool {
   readonly name = "sessions_list";
-  readonly description = "List available sessions with timestamps.";
+  readonly description = "List available sessions with timestamps and a resourceUri. Reuse resourceUri verbatim for clickable Markdown conversation links.";
   readonly parameters = {
     type: "object",
     properties: {
@@ -78,6 +79,7 @@ export class SessionsListTool implements NcpTool {
       const entry: Record<string, unknown> = {
         key: summary.sessionId,
         sessionId: summary.sessionId,
+        resourceUri: createSessionResourceUri(summary.sessionId),
         agentId: summary.agentId,
         label: sessionLabel(summary),
         createdAt: summary.createdAt,
@@ -123,6 +125,7 @@ export class SessionsHistoryTool implements NcpTool {
     const filtered = includeTools === true ? messages : messages.filter((message) => message.role !== "tool");
     return JSON.stringify({
       sessionKey: session.sessionId,
+      resourceUri: createSessionResourceUri(session.sessionId),
       messages: capHistory(filtered.slice(-toInt(limit, DEFAULT_LIMIT)).map(sanitizeMessage)),
     }, null, 2);
   };

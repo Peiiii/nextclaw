@@ -7,8 +7,10 @@ import type { CronJobView } from "@/shared/lib/api";
 import { setLanguage } from "@/shared/lib/i18n";
 import { buildSessionPath } from "@/features/chat";
 import { CronConfig } from "@/features/cron";
+import { CronJobResource } from "@/features/cron/components/cron-job-resource";
 
 const mocks = vi.hoisted(() => ({
+  openResource: vi.fn(),
   confirm: vi.fn(async () => true),
   createSession: vi.fn(),
   deleteJob: vi.fn(),
@@ -26,6 +28,7 @@ const mocks = vi.hoisted(() => ({
     isLoading: false,
   },
 }));
+vi.mock("@/app/components/app-presenter-provider", () => ({ useAppPresenter: () => ({ pageResourceManager: { open: mocks.openResource } }) }));
 
 vi.mock("@/features/chat", async () => {
   const routeUtils = await vi.importActual<{
@@ -275,12 +278,15 @@ describe("CronConfig", () => {
 
   it("exposes the bound session destination from task details", async () => {
     const user = userEvent.setup();
-    renderCronConfig();
+    const view = renderCronConfig();
 
     await user.click(
       screen.getByRole("button", { name: "查看任务详情 Agent 产品雷达" }),
     );
-    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(mocks.openResource).toHaveBeenCalled();
+    view.unmount();
+    render(<MemoryRouter><CronJobResource jobId="agent-radar" /></MemoryRouter>);
+    expect(screen.getByTestId("cron-job-detail")).toBeTruthy();
     expect(screen.getByText("当前系统只保存最近一次执行快照。")).toBeTruthy();
 
     expect(

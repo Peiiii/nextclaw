@@ -28,6 +28,8 @@ import {
   type ProjectHomeTab,
 } from "@/features/projects/presenters/project-home.presenter";
 import { joinProjectPath } from "@/features/projects/utils/project-artifact-view.utils";
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { pageResourceFromSystemObject } from "@/features/right-panel-resources";
 
 const PROJECT_TABS: ProjectHomeTab[] = [
   "overview",
@@ -37,19 +39,21 @@ const PROJECT_TABS: ProjectHomeTab[] = [
   "agreement",
 ];
 
-export function ProjectsPage() {
-  const { projectId, tab: tabParam } = useParams<{
+export function ProjectsPage({ resourceId, resourceWorkId }: { resourceId?: string; resourceWorkId?: string } = {}) {
+  const app = useAppPresenter();
+  const { projectId: routeProjectId, tab: routeTab } = useParams<{
     projectId?: string;
     tab?: string;
   }>();
+  const projectId = resourceId ?? routeProjectId;
+  const [resourceTab, setResourceTab] = useState<ProjectHomeTab>("overview");
+  const tabParam = resourceId ? resourceTab : routeTab;
   const navigate = useNavigate();
   const { state } = useLocation();
   const presenter = usePresenter();
   const { isMobile } = useViewportLayout();
   const projects = useProjects();
-  const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(
-    null,
-  );
+  const openWorkItem = (id: string) => app.pageResourceManager.open(pageResourceFromSystemObject("project-work", JSON.stringify([projectId, id]), id), "default", navigate);
   const registered = projects.data?.projects ?? [];
   const selectedProject =
     registered.find((project) => project.id === projectId) ?? null;
@@ -74,6 +78,7 @@ export function ProjectsPage() {
         {t("projectsLoadFailed")}: {projects.error.message}
       </main>
     );
+  if (resourceId && !selectedProject) return <p role="alert" className="p-4">{t("resourceNotFound")}</p>;
   if (!registered.length)
     return (
       <main className="p-6 text-sm text-muted-foreground">
@@ -103,6 +108,8 @@ export function ProjectsPage() {
       viewMode: "preview",
       previewViewer: "rendered",
     });
+  if (resourceWorkId) return <ProjectWorkItemDrawer embedded projectId={selectedProject.id} projectRoot={selectedProject.rootPath}
+    workItemId={resourceWorkId} onOpenChange={(open) => { if (!open) navigate(`/projects/${encodeURIComponent(selectedProject.id)}/work`); }} onOpenArtifact={openProjectFile} />;
   return (
     <>
       <main className="h-full min-w-0 flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
@@ -116,7 +123,7 @@ export function ProjectsPage() {
           <Tabs
             value={tab}
             onValueChange={(value) =>
-              navigate(
+              resourceId && isProjectHomeTab(value) ? setResourceTab(value) : navigate(
                 `/projects/${encodeURIComponent(selectedProject.id)}/${value}`,
                 { state },
               )
@@ -140,13 +147,13 @@ export function ProjectsPage() {
                     label,
                   )
                 }
-                onOpenWorkItem={setSelectedWorkItemId}
+                onOpenWorkItem={openWorkItem}
               />
             </TabsContent>
             <TabsContent value="work" className="mt-4">
               <ProjectWorkItems
                 projectId={selectedProject.id}
-                onOpenWorkItem={setSelectedWorkItemId}
+                onOpenWorkItem={openWorkItem}
               />
             </TabsContent>
             <TabsContent value="artifacts" className="mt-4">
@@ -166,10 +173,7 @@ export function ProjectsPage() {
                 isLoading={skills.isLoading}
                 isError={skills.isError}
                 onOpen={(skill) =>
-                  openProjectFile(
-                    joinProjectPath(selectedProject.rootPath, skill.path),
-                    skill.name,
-                  )
+                  app.pageResourceManager.open(pageResourceFromSystemObject("skill", skill.ref, skill.name), "default", navigate)
                 }
               />
             </TabsContent>
@@ -189,20 +193,11 @@ export function ProjectsPage() {
           </Tabs>
         </div>
       </main>
-      <ProjectWorkItemDrawer
-        projectId={selectedProject.id}
-        projectRoot={selectedProject.rootPath}
-        workItemId={selectedWorkItemId}
-        onOpenChange={(open) => {
-          if (!open) setSelectedWorkItemId(null);
-        }}
-        onOpenArtifact={openProjectFile}
-      />
-      <ChatConversationWorkspaceSection
+      {!resourceId && <ChatConversationWorkspaceSection
         layoutMode={isMobile ? "mobile" : "desktop"}
         sessionKey={null}
         projectRoot={selectedProject.rootPath}
-      />
+      />}
     </>
   );
 }

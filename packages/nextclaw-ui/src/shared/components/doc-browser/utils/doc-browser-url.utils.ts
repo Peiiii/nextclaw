@@ -112,7 +112,8 @@ export function getDocsUrl(pathOrUrl: string): string {
 
 export function normalizeDocUrl(url: string): string {
   try {
-    return new URL(url).pathname.replace(/\.html$/, '').replace(/\/$/, '');
+    const parsed = new URL(url);
+    return `${parsed.pathname.replace(/\.html$/, '').replace(/\/$/, '')}${parsed.search}${parsed.hash}`;
   } catch {
     return url;
   }

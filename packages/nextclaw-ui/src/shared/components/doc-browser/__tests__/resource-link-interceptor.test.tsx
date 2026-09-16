@@ -54,7 +54,7 @@ describe("ordinary Markdown resource links end to end", () => {
       </QueryClientProvider>,
     );
   }
-  it.each(["cron-job", "skill", "agent", "project", "inbox-delivery"])(
+  it.each(["cron-job", "skill", "agent", "project", "inbox-delivery", "panel-app", "service-app", "mcp-server", "project-work"])(
     "opens a normal Markdown %s object link in the shared resource viewer",
     (kind) => {
       const uri = "nextclaw://objects/" + kind + "/existing-object";
@@ -70,6 +70,34 @@ describe("ordinary Markdown resource links end to end", () => {
         title: "Object",
       });
       expect(screen.getByTestId("route").textContent).toBe("/chat");
+    },
+  );
+  it.each(['sessions/ncp-mu2x4zdy-9wzl0otb', 'chat-session/ncp-mu2x4zdy-9wzl0otb',
+    'chat-session/sid_bmNwLW11Mng0emR5LTl3emwwb3Ri', 'objects/chat-session/ncp-mu2x4zdy-9wzl0otb',
+    'objects/chat-sessions/ncp-mu2x4zdy-9wzl0otb'])(
+    'opens the actual conversation route from %s', (path) => {
+      setup(`[Conversation](nextclaw://${path})`);
+      fireEvent.click(screen.getByRole('link', { name: 'Conversation' }));
+      expect(screen.getByTestId('route').textContent).toBe('/chat/ncp-mu2x4zdy-9wzl0otb');
+      expect(useDocBrowserStore.getState().snapshot.isOpen).toBe(false);
+    },
+  );
+  it.each([
+    ['nextclaw://docs/guide/getting-started', 'docs'],
+    ['nextclaw://apps?tab=service-apps', 'apps'],
+    ['nextclaw://marketplace-detail/skill%3Aexample', 'marketplace-detail'],
+    ['nextclaw://file/absolute/tmp/readme.md', 'workspace-file'],
+  ])('opens the %s resource family through ordinary Markdown', (uri, kind) => {
+    setup(`[Resource](${uri})`);
+    fireEvent.click(screen.getByRole('link', { name: 'Resource' }));
+    const { snapshot } = useDocBrowserStore.getState();
+    expect(snapshot.tabs.find((item) => item.id === snapshot.activeTabId)?.kind).toBe(kind);
+  });
+  it.each([['nextclaw://marketplace', '/skills'], ['nextclaw://page?path=%2Fagents', '/agents']])(
+    'navigates built-in page %s', (uri, path) => {
+      setup(`[Page](${uri})`);
+      fireEvent.click(screen.getByRole('link', { name: 'Page' }));
+      expect(screen.getByTestId('route').textContent).toBe(path);
     },
   );
   it("opens a normal Panel App link in the global sidebar without a catalog lookup", () => {

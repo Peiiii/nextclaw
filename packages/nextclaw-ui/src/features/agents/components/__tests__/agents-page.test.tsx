@@ -10,6 +10,7 @@ import {
 import { setLanguage } from "@/shared/lib/i18n";
 
 const mocks = vi.hoisted(() => ({
+  openResource: vi.fn(),
   createAgent: vi.fn(),
   updateAgent: vi.fn(),
   deleteAgent: vi.fn(),
@@ -99,6 +100,7 @@ const mocks = vi.hoisted(() => ({
     },
   },
 }));
+vi.mock("@/app/components/app-presenter-provider", () => ({ useAppPresenter: () => ({ pageResourceManager: { open: mocks.openResource } }) }));
 const persistStorage = new Map<string, unknown>();
 
 function createPersistStorage() {
@@ -290,18 +292,19 @@ describe("AgentsPage", () => {
   it("separates read-only details from editing and keeps advanced config collapsed until requested", async () => {
     const user = userEvent.setup();
 
-    renderAgentsPage();
+    const view = renderAgentsPage();
 
     await user.click(screen.getAllByRole("button", { name: "更多操作" })[1]);
     await user.click(screen.getByRole("button", { name: "查看详情" }));
+    expect(mocks.openResource).toHaveBeenCalled();
+    view.rerender(<MemoryRouter><AgentsPage resourceId="researcher" /></MemoryRouter>);
 
     expect(screen.getByText("身份")).toBeTruthy();
     expect(screen.getByText("上下文窗口大小")).toBeTruthy();
     expect(screen.getByText("128,000")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "保存编辑" })).toBeNull();
-    const detailsDialog = screen.getByText("身份").closest("[role='dialog']");
-    expect(detailsDialog?.className).toContain("sm:max-w-2xl");
-    expect(detailsDialog?.className).toContain("bg-popover");
+    const detailsDialog = screen.getByTestId("agent-detail");
+    expect(screen.queryByRole("dialog")).toBeNull();
     const detailLists = Array.from(detailsDialog?.querySelectorAll("dl") ?? []);
     expect(detailLists.length).toBeGreaterThan(0);
     expect(
@@ -327,7 +330,7 @@ describe("AgentsPage", () => {
         (term) => {
           const item = term.parentElement;
           return Boolean(
-            item?.className.includes("grid-cols-[10rem_minmax(0,1fr)]") &&
+            item?.className.includes("grid-cols-[minmax(0,30%)_minmax(0,1fr)]") &&
               !item.className.includes("space-y"),
           );
         },

@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectsPage } from "./project-home-page";
 
 const mocks = vi.hoisted(() => ({
+  openResource: vi.fn(),
   agreementProps: vi.fn(),
   artifactsProps: vi.fn(),
   drawerProps: vi.fn(),
@@ -13,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   useProjectSkills: vi.fn(),
   useProjects: vi.fn(),
 }));
+vi.mock("@/app/components/app-presenter-provider", () => ({ useAppPresenter: () => ({ pageResourceManager: { open: mocks.openResource } }) }));
+vi.mock("@/features/right-panel-resources", () => ({ pageResourceFromSystemObject: (type: string, id: string) => ({ type, id }) }));
 
 vi.mock("@/shared/hooks/use-projects", () => ({
   useProjects: mocks.useProjects,
@@ -117,7 +120,7 @@ describe("ProjectsPage", () => {
     expect(mocks.useProjectSkills).toHaveBeenCalledWith(null);
     expect(screen.getAllByRole("tab")).toHaveLength(5);
     fireEvent.click(screen.getByRole("button", { name: "Overview work" }));
-    expect(screen.getByTestId("work-drawer").textContent).toBe("work-overview");
+    expect(mocks.openResource).toHaveBeenCalledWith({ type: "project-work", id: JSON.stringify(["project-1", "work-overview"]) }, "default", expect.any(Function));
   });
 
   it("loads artifacts from project work without material observation", () => {

@@ -50,12 +50,17 @@ import { useInfiniteScrollLoader } from "@/shared/hooks/use-infinite-scroll-load
 import { cn } from "@/shared/lib/utils";
 import { Sparkles, PackageCheck } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { useNavigate } from "react-router-dom";
+import { pageResourceFromSystemObject } from "@/features/right-panel-resources";
 
 type ScopeType = "catalog" | "installed";
 
 const PAGE_SIZE = 12;
 
-export function McpMarketplacePage() {
+export function McpMarketplacePage({ resourceId }: { resourceId?: string } = {}) {
+  const app = useAppPresenter();
+  const navigate = useNavigate();
   const [scope, setScope] = useState<ScopeType>("catalog");
   const [searchText, setSearchText] = useState("");
   const [query, setQuery] = useState("");
@@ -142,6 +147,10 @@ export function McpMarketplacePage() {
     item?: MarketplaceItemSummary,
     record?: MarketplaceInstalledRecord,
   ) => {
+    if (record?.id) {
+      app.pageResourceManager.open(pageResourceFromSystemObject("mcp-server", record.id, record.label || record.id), "default", navigate);
+      return;
+    }
     const title = item?.name ?? record?.label ?? record?.id ?? "MCP";
     const detailId = createMarketplaceDetailDocId(
       item ? "mcp" : "mcp-local",
@@ -260,6 +269,19 @@ export function McpMarketplacePage() {
     });
   };
 
+  if (resourceId) {
+    const record = installedQuery.data?.records.find((item) => item.id === resourceId);
+    if (installedQuery.isPending) return <p role="status" className="p-4">{t("loading")}</p>;
+    if (!record) return <p role="alert" className="p-4">{t(installedQuery.isError ? "resourceLoadFailed" : "resourceNotFound")}</p>;
+    return <div className="h-full overflow-auto p-4">
+      <McpMarketplaceCard record={record} localeFallbacks={localeFallbacks}
+        onToggle={() => void handleManage(record.enabled === false ? "enable" : "disable", record)}
+        onDoctor={() => { setDoctorTarget(record.id ?? null); setDoctorResult(null); void doctorMutation.mutateAsync(record.id ?? ""); }}
+        onRemove={() => void handleManage("remove", record)} />
+      <DoctorDialog open={Boolean(doctorTarget)} targetName={doctorTarget} result={doctorResult} pending={doctorMutation.isPending} onOpenChange={(open) => !open && setDoctorTarget(null)} />
+      <ConfirmDialog />
+    </div>;
+  }
   const scopeTabs = [
     { id: "catalog", label: t("marketplaceMcpTabCatalog"), icon: Sparkles },
     {

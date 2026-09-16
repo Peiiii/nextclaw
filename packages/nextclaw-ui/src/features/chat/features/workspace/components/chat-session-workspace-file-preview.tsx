@@ -455,7 +455,7 @@ export function ChatSessionWorkspaceFilePreview({
       <div className="flex-1 min-h-0 overflow-hidden">
         {file.viewMode === 'diff' ? (
           <WorkspaceDiffBody diffBlock={diffBlock} fileKey={file.key} />
-        ) : excerptPath && previewText ? (
+        ) : excerptPath && previewText && onTextExcerptAdd ? (
           <WorkspaceTextSelectionMenu
             fileLabel={file.label?.trim() || excerptPath.split('/').at(-1) || excerptPath}
             filePath={excerptPath}

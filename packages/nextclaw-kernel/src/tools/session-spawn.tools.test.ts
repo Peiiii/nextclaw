@@ -40,6 +40,12 @@ function createTool() {
 }
 
 describe("SessionSpawnTool", () => {
+  it.each([true, false])('returns a ready-to-use resource link when start=%s', async (start) => {
+    const { tool } = createTool();
+    expect(await tool.execute({ task: 'link regression', start })).toMatchObject({
+      sessionId: 'child-session', resourceUri: 'nextclaw://sessions/child-session',
+    });
+  });
   it("advertises independent start, wait, and notify controls", () => {
     const { tool } = createTool();
 

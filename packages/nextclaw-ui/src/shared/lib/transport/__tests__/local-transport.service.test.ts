@@ -102,4 +102,28 @@ describe('LocalAppTransport browser connection recovery', () => {
     expect(handler).toHaveBeenLastCalledWith({ type: 'connection.open', payload: {} });
     unsubscribe();
   });
+
+  it('bounds a stalled request without requiring each caller to supply a timeout', async () => {
+    vi.stubGlobal('fetch', vi.fn((_url, options: RequestInit) => new Promise((_resolve, reject) => {
+      options.signal?.addEventListener('abort', () => reject(options.signal?.reason), { once: true });
+    })));
+    const transport = new LocalAppTransport({ apiBase: 'http://localhost' });
+    const result = transport.request({ method: 'GET', path: '/api/projects' });
+    const rejected = expect(result).rejects.toThrow('Request timed out after 30000ms');
+    await vi.advanceTimersByTimeAsync(30_000);
+    await rejected;
+  });
+
+  it('preserves caller cancellation when a request also has a timeout', async () => {
+    vi.stubGlobal('fetch', vi.fn((_url, options: RequestInit) => new Promise((_resolve, reject) => {
+      options.signal?.addEventListener('abort', () => reject(new Error('caller cancelled')), { once: true });
+    })));
+    const controller = new AbortController();
+    const transport = new LocalAppTransport({ apiBase: 'http://localhost' });
+    const result = transport.request({ method: 'GET', path: '/api/projects', signal: controller.signal, timeoutMs: 5000 });
+    const rejected = expect(result).rejects.toThrow('caller cancelled');
+    controller.abort();
+    await rejected;
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });

@@ -11,8 +11,13 @@ import {
 import { pickLocalizedText } from "@/features/marketplace/components/marketplace-localization";
 import { t } from "@/shared/lib/i18n";
 import { useRef } from "react";
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export function useMarketplaceItemDetail(localeFallbacks: string[]) {
+  const app = useAppPresenter();
+  const navigate = useNavigate();
   const docBrowser = useDocBrowser();
   const detailRequestRef = useRef({ byKey: new Map<string, number>(), seq: 0 });
 
@@ -20,6 +25,12 @@ export function useMarketplaceItemDetail(localeFallbacks: string[]) {
     item?: MarketplaceItemSummary,
     record?: MarketplaceInstalledRecord,
   ) => {
+    if (record?.resourceUri) {
+      const page = app.pageResourceManager.resolve(record.resourceUri);
+      if (page) app.pageResourceManager.open(page, "default", navigate);
+      else toast.error(t("pageUnavailable"));
+      return;
+    }
     const title =
       item?.name ??
       record?.label ??

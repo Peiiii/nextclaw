@@ -55,6 +55,22 @@ async function resetMemoryThenRehydrate(savedState: string | null) {
 }
 
 describe('DocBrowserManager layout notifications', () => {
+  it.each(['nextclaw://objects/chat-session/example', 'nextclaw://chat-session/sid_ZXhhbXBsZQ'])(
+    'restores historical conversation tabs as real session views: %s', async (uri) => {
+      window.localStorage.setItem(docBrowserStorageKey, JSON.stringify({ version: 1, state: { snapshot: {
+        isOpen: true, activeTabId: 'old',
+        tabs: [{ id: 'old', kind: 'system-object', title: 'Conversation', currentUrl: uri, resourceUri: uri }],
+        activeHistory: [{ tabId: 'old', kind: 'system-object', url: uri, resourceUri: uri }],
+      } } }));
+      await rehydrateDocBrowserFromStorage();
+      expect(useDocBrowserStore.getState().snapshot.tabs[0]).toMatchObject({
+        kind: 'chat-session', currentUrl: 'nextclaw://sessions/example', resourceUri: 'nextclaw://sessions/example',
+      });
+      expect(useDocBrowserStore.getState().snapshot.activeHistory[0]).toMatchObject({
+        kind: 'chat-session', url: 'nextclaw://sessions/example',
+      });
+    },
+  );
   it('notifies the app layout coordinator after opening the docked browser', () => {
     const onRightPanelOpened = vi.fn();
     const manager = new DocBrowserManager(new WorkbenchSurfaceManager(),

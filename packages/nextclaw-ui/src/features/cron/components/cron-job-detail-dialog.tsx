@@ -43,6 +43,7 @@ function DetailRow({
 }
 
 type CronJobDetailDialogProps = {
+  readonly embedded?: boolean;
   readonly job: CronJobView | null;
   readonly open: boolean;
   readonly onDelete: (job: CronJobView) => void;
@@ -52,6 +53,7 @@ type CronJobDetailDialogProps = {
 };
 
 export function CronJobDetailDialog({
+  embedded = false,
   job,
   open,
   onDelete,
@@ -74,13 +76,8 @@ export function CronJobDetailDialog({
       )
     : t("cronNeverRun");
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        closeLabel={t("cronCloseDetails")}
-        className="flex w-full flex-col overflow-hidden p-0 sm:max-w-[510px]"
-      >
+  const content = (
+    <>
         <SheetHeader className="shrink-0 border-b border-border/60 px-5 pb-5 pt-6 pr-14 sm:px-7 sm:pt-7">
           <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>{describeCronSchedule(job)}</span>
@@ -232,7 +229,11 @@ export function CronJobDetailDialog({
             {t("cronRunNow")}
           </Button>
         </SheetFooter>
-      </SheetContent>
-    </Sheet>
+    </>
   );
+  return <Sheet open={!embedded && open} onOpenChange={onOpenChange}>
+    {embedded ? <div className="flex h-full min-h-0 flex-col" data-testid="cron-job-detail">{content}</div> : (
+      <SheetContent side="right" closeLabel={t("cronCloseDetails")} className="flex w-full flex-col overflow-hidden p-0 sm:max-w-[510px]">{content}</SheetContent>
+    )}
+  </Sheet>;
 }

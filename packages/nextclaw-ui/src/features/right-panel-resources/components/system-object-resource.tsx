@@ -9,11 +9,63 @@ import type {
   DocBrowserCustomTabRenderers,
 } from "@/shared/components/doc-browser/doc-browser-renderer.types";
 import { t } from "@/shared/lib/i18n";
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { useLocation, useNavigate } from "react-router-dom";
+import { parseSystemObjectReferenceUri } from "@nextclaw/shared";
+import { NativeObjectResource } from "./native-object-resource";
+import { ChatTextSelectionAction } from "@nextclaw/agent-chat-ui";
+import { WORKSPACE_TEXT_EXCERPT_MAX_CHARACTERS } from "@/features/chat";
 
 function SystemObjectResource({
   tab,
   openTarget,
 }: DocBrowserCustomTabRenderParams) {
+  const app = useAppPresenter();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const uri = tab.resourceUri ?? tab.currentUrl;
+  const identity = parseSystemObjectReferenceUri(uri);
+  if (!identity)
+    return (
+      <p role="alert" className="p-4">
+        {t("resourceInvalid")}
+      </p>
+    );
+  if (identity.objectType !== "skill") {
+    return (
+      <ChatTextSelectionAction
+        actionLabel={t("chatWorkspaceAddToChat")}
+        className="h-full min-h-0"
+        maxCharacters={WORKSPACE_TEXT_EXCERPT_MAX_CHARACTERS}
+        selectionTooLongLabel={t("chatWorkspaceExcerptSelectionTooLong")}
+        onAddToChat={({ text }) =>
+          app.pageResourceManager.addExcerptToChat(
+            {
+              path: uri,
+              label: tab.title,
+              excerpt: text,
+              startLine: null,
+              endLine: null,
+            },
+            pathname,
+            navigate,
+          )
+        }
+      >
+        <NativeObjectResource key={uri} {...identity} openTarget={openTarget} />
+      </ChatTextSelectionAction>
+    );
+  }
+  return <SystemObjectDocument tab={tab} openTarget={openTarget} />;
+}
+
+function SystemObjectDocument({
+  tab,
+  openTarget,
+}: Pick<DocBrowserCustomTabRenderParams, "tab" | "openTarget">) {
+  const app = useAppPresenter();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
   const uri = tab.resourceUri ?? tab.currentUrl;
   const query = useQuery({
     queryKey: ["resource-object-snapshot", uri],
@@ -22,7 +74,7 @@ function SystemObjectResource({
         await nextclawClient.systemObjectReferences.resolve(uri);
       const response = await fetch(
         buildNcpAssetContentUrl(reference.assetUri),
-        { signal },
+        { signal: AbortSignal.any([signal, AbortSignal.timeout(30_000)]) },
       );
       if (!response.ok)
         throw new Error(`Unable to read resource (${response.status})`);
@@ -77,6 +129,19 @@ function SystemObjectResource({
       file={{ ...file, key: uri }}
       sessionWorkingDir={null}
       sessionProjectRoot={null}
+      onTextExcerptAdd={(excerpt) =>
+        app.pageResourceManager.addExcerptToChat(
+          {
+            ...excerpt,
+            path: uri,
+            label: reference.label,
+            startLine: null,
+            endLine: null,
+          },
+          pathname,
+          navigate,
+        )
+      }
       onFileOpen={(action) => {
         const next = createWorkspaceFileTab(action, null);
         if (next)

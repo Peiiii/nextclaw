@@ -6,6 +6,7 @@ import { GLOBAL_WORKBENCH_SURFACE } from "@/shared/components/workbench/types/wo
 import { useChatThreadStore } from "@/features/chat";
 import type { ChatThreadManager } from "@/features/chat";
 import type { AppPresenter } from "@/app/presenters/app.presenter";
+import type { WorkspaceTextExcerpt } from "@/features/chat";
 import { useDocBrowserStore } from "@/shared/components/doc-browser/stores/doc-browser.store";
 import { useFloatingSessionStore } from "@/features/chat";
 import { sessionSurfaceManager } from "@/features/chat";
@@ -61,29 +62,28 @@ export class PageResourceManager {
   };
 
   resolve = (
-    uri: string,
+    rawUri: string,
     context?: { workingDir?: string | null; sessionKey?: string | null },
   ): PageResource | null => {
-    if (!/^(nextclaw:\/\/|https?:\/\/)/i.test(uri)) return null;
-    if (uri.startsWith("nextclaw://file/")) {
-      try {
+    if (!/^(nextclaw:\/\/|https?:\/\/)/i.test(rawUri)) return null;
+    try {
+      const uri = this.app.rightPanelResourceRouteResolver.normalize(rawUri);
+      if (uri.startsWith("nextclaw://file/")) {
         const target = resolveFileResourceTarget(uri, context);
         return target ? pageResourceFromTarget(target) : null;
-      } catch {
-        return null;
       }
-    }
-    const saved =
-      this.remembered.get(uri) ??
-      usePageNavigationStore.getState().pinned.find((page) => page.uri === uri);
-    if (saved) return saved;
-    const tab = useDocBrowserStore
-      .getState()
-      .snapshot.tabs.find(
-        (item) => (item.resourceUri ?? item.currentUrl) === uri,
-      );
-    if (tab) return pageResourceFromTab(tab);
-    try {
+      const saved =
+        this.remembered.get(uri) ??
+        usePageNavigationStore
+          .getState()
+          .pinned.find((page) => page.uri === uri);
+      if (saved) return saved;
+      const tab = useDocBrowserStore
+        .getState()
+        .snapshot.tabs.find(
+          (item) => (item.resourceUri ?? item.currentUrl) === uri,
+        );
+      if (tab) return pageResourceFromTab(tab);
       if (uri.startsWith("nextclaw://page?")) {
         const path = new URL(uri).searchParams.get("path");
         if (
@@ -190,7 +190,9 @@ export class PageResourceManager {
         location === "floating" ? "floating" : "docked",
       );
       if (location === "main")
-        this.app.workbenchSurfaceManager.toggleMaximize(`session-workspace:${parent ?? "draft"}`);
+        this.app.workbenchSurfaceManager.toggleMaximize(
+          `session-workspace:${parent ?? "draft"}`,
+        );
       return;
     }
     const sessionKey = parseSessionKeyFromPanelUrl(page.uri);
@@ -208,7 +210,7 @@ export class PageResourceManager {
         (item) => (item.resourceUri ?? item.currentUrl) === page.uri,
       );
       if (existing.isOpen && tab) {
-        this.app.docBrowserManager.openTarget(page.target, { newTab: true });
+        this.app.docBrowserManager.setActiveTab(tab.id);
         this.app.workbenchSurfaceManager.restore(GLOBAL_WORKBENCH_SURFACE);
         return;
       }
@@ -216,7 +218,9 @@ export class PageResourceManager {
     if (
       location === "main" ||
       page.target.kind === "route" ||
-      (location === "default" && page.mainPath && page.target.kind !== "panel-app")
+      (location === "default" &&
+        page.mainPath &&
+        page.target.kind !== "panel-app")
     ) {
       navigate(pageResourceMainPath(page));
     } else if (location === "floating" && sessionKey) {
@@ -293,6 +297,19 @@ export class PageResourceManager {
       this.app.docBrowserManager.setActiveTab(tab.id);
       this.app.docBrowserManager.openTarget(next.target);
     } else this.open(next, "default", navigate);
+  };
+
+  addExcerptToChat = (
+    excerpt: WorkspaceTextExcerpt,
+    pathname: string,
+    navigate: (path: string) => void,
+  ): void => {
+    const isChat = pathname === "/chat" || pathname.startsWith("/chat/");
+    this.app.chatComposerIntentManager.requestExcerptReference({
+      ...excerpt,
+      targetSessionKey: isChat ? parseSessionKeyFromRoute(pathname.slice("/chat/".length)) : null,
+    });
+    if (!isChat) navigate("/chat");
   };
 
   addToChat = (

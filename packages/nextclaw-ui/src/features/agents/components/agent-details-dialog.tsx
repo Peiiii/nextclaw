@@ -20,6 +20,8 @@ import { Bot, Brain, Gauge, Pencil, Sparkles, type LucideIcon } from "lucide-rea
 type AgentDefaultsView = ConfigView["agents"]["defaults"];
 
 type AgentDetailsDialogProps = {
+  embedded?: boolean;
+  onChat?: (agent: AgentProfileView) => void;
   agent: AgentProfileView | null;
   defaults?: AgentDefaultsView;
   runtimeOptions: { value: string; label: string }[];
@@ -32,6 +34,8 @@ type AgentDetailsDialogProps = {
 const numberFormatter = new Intl.NumberFormat();
 
 export function AgentDetailsDialog({
+  embedded = false,
+  onChat,
   agent,
   defaults,
   runtimeOptions,
@@ -70,11 +74,11 @@ export function AgentDetailsDialog({
   );
   const models = resolveRecordValue(agent.models, defaults?.models);
 
-  return (
-    <Dialog open={agent !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden border-none bg-popover p-0 sm:max-h-[720px] sm:max-w-2xl">
+  const content = (
+    <>
         <div className="shrink-0 px-5 pb-3 pt-5">
           <DialogHeader
+            showClose={!embedded}
             className="items-center"
             actions={<PageResourceActionsMenu page={pageResourceFromSystemObject('agent', agent.id, agent.displayName || agent.id)} />}
           >
@@ -113,13 +117,11 @@ export function AgentDetailsDialog({
             <DetailItem
               label={t("agentsDetailsFieldDescription")}
               value={agent.description?.trim() || t("agentsDetailsEmptyValue")}
-              wide
             />
             <DetailItem
               label={t("agentsDetailsFieldWorkspace")}
               value={agent.workspace ?? t("agentsDetailsUnsetValue")}
               mono
-              wide
             />
           </DetailSection>
 
@@ -186,13 +188,14 @@ export function AgentDetailsDialog({
           </DetailSection>
         </div>
         <DialogFooter className="shrink-0 px-5 pb-4 pt-2">
-          <Button
+          {!embedded && <Button
             type="button"
             variant="ghost"
             onClick={() => onOpenChange(false)}
           >
             {t("cancel")}
-          </Button>
+          </Button>}
+          {onChat && <Button onClick={() => onChat(agent)}>{t("agentsCardStartChat")}</Button>}
           <Button
             type="button"
             variant="primary"
@@ -203,9 +206,13 @@ export function AgentDetailsDialog({
             {t("agentsDetailsEditAction")}
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </>
   );
+  return <Dialog open={!embedded && agent !== null} onOpenChange={onOpenChange}>
+    {embedded ? <div className="flex h-full min-h-0 flex-col" data-testid="agent-detail">{content}</div> : (
+      <DialogContent className="flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden border-none bg-popover p-0 sm:max-h-[720px] sm:max-w-2xl">{content}</DialogContent>
+    )}
+  </Dialog>;
 }
 
 type DetailSource = "default" | "override";
@@ -322,7 +329,7 @@ function DetailSection(props: {
         <Icon className="h-3.5 w-3.5 text-muted-foreground" />
         {title}
       </h3>
-      <dl className="grid min-w-0 gap-x-6 gap-y-2.5 pl-5 sm:grid-cols-2">
+      <dl className="grid min-w-0 gap-y-2.5 pl-5">
         {children}
       </dl>
     </section>
@@ -335,7 +342,6 @@ function DetailItem(props: {
   source?: DetailSource;
   mono?: boolean;
   prewrap?: boolean;
-  wide?: boolean;
 }) {
   const {
     label,
@@ -343,7 +349,6 @@ function DetailItem(props: {
     source,
     mono = false,
     prewrap = false,
-    wide = false,
   } = props;
 
   const isStructuredValue = prewrap && value.trim().startsWith("{");
@@ -352,12 +357,11 @@ function DetailItem(props: {
   return (
     <div
       className={cn(
-        "grid min-w-0 grid-cols-1 sm:grid-cols-[10rem_minmax(0,1fr)] items-baseline gap-x-2 gap-y-1",
-        (wide || isStructuredValue) && "sm:col-span-2",
+        "grid min-w-0 grid-cols-[minmax(0,30%)_minmax(0,1fr)] items-baseline gap-x-3 gap-y-1",
       )}
     >
       <dt className="flex min-w-0 items-baseline leading-5">
-        <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">
+        <span className="text-xs font-medium text-muted-foreground">
           {label}
         </span>
       </dt>

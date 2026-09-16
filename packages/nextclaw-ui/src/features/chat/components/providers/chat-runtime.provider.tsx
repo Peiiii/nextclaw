@@ -21,7 +21,7 @@ function ChatRuntime({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const match = useMatch('/chat/:sessionId');
-  const sessionKey = parseSessionKeyFromRoute(match?.params.sessionId);
+  const sessionKey = parseSessionKeyFromRoute(match ? location.pathname.slice('/chat/'.length) : undefined);
   const workspaceMinimized = useWorkbenchSurfaceStore((state) => state.surfaces[`session-workspace:${sessionKey ?? 'draft'}`]?.minimized ?? false);
   const workspaceSessionKey = useChatThreadStore(({ snapshot }) =>
     snapshot.workspacePanelParentKey === sessionKey && sessionKey && !snapshot.workspacePanelHidden && !workspaceMinimized &&

@@ -39,3 +39,4 @@ export { ChatSessionWorkspaceFilePreview } from './features/workspace/components
 export { createWorkspaceFileTab, createWorkspaceFileViewerTab } from './features/workspace/utils/chat-workspace-file-tab.utils';
 export { WORKSPACE_FILE_PANEL_KIND, resolveFileResourceTarget, createWorkspaceFilePanelTarget, readWorkspaceFilePanelView } from './features/workspace/utils/workspace-file-panel-route.utils';
 export { resolveAlternateWorkspaceFileViewer } from './features/workspace/utils/chat-workspace-file-viewer.utils';
+export { WORKSPACE_TEXT_EXCERPT_MAX_CHARACTERS, type WorkspaceTextExcerpt } from './features/workspace/utils/workspace-text-excerpt.utils';

@@ -1,4 +1,5 @@
 import { ViewMemoryStorage } from '@/shared/lib/navigation-history';
+import { createSessionResourceUri, parseSessionResourceUri } from '@nextclaw/shared';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type {
@@ -80,16 +81,19 @@ function normalizePersistedDocBrowserTab(value: unknown): DocBrowserTab | null {
     ? value.resourceUri.trim()
     : undefined;
   const dockIcon = normalizePersistedDockIcon(value.dockIcon);
+  const currentUrl = history[historyIndex] ?? value.currentUrl;
+  const sessionId = parseSessionResourceUri(resourceUri ?? currentUrl);
+  const sessionUri = sessionId ? createSessionResourceUri(sessionId) : undefined;
 
   return {
     id: value.id,
-    kind: value.kind,
+    kind: sessionUri ? 'chat-session' : value.kind,
     title: value.title,
-    currentUrl: history[historyIndex] ?? value.currentUrl,
-    resourceUri,
+    currentUrl: sessionUri ?? currentUrl,
+    resourceUri: sessionUri ?? resourceUri,
     dockIcon,
     viewState: value.viewState,
-    dedupeKey,
+    dedupeKey: sessionUri ?? dedupeKey,
     history,
     historyIndex,
     navVersion,
@@ -123,12 +127,14 @@ function normalizePersistedActiveHistoryEntry(
   const resourceUri = typeof value.resourceUri === 'string' && value.resourceUri.trim().length > 0
     ? value.resourceUri.trim()
     : undefined;
+  const sessionId = parseSessionResourceUri(resourceUri ?? value.url);
+  const sessionUri = sessionId ? createSessionResourceUri(sessionId) : undefined;
 
   return {
-    kind: value.kind,
-    resourceUri,
+    kind: sessionUri ? 'chat-session' : value.kind,
+    resourceUri: sessionUri ?? resourceUri,
     tabId: value.tabId,
-    url: value.url,
+    url: sessionUri ?? value.url,
   };
 }
 

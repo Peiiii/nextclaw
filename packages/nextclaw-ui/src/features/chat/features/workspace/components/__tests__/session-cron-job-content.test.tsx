@@ -8,10 +8,14 @@ import { setLanguage } from "@/shared/lib/i18n";
 import { SessionCronJobContent } from "@/features/chat/features/workspace/components/session-cron-job-content";
 
 const mocks = vi.hoisted(() => ({
+  openResource: vi.fn(),
   deleteJob: vi.fn(),
   runJob: vi.fn(),
   toggleJob: vi.fn(),
 }));
+vi.mock("@/app/components/app-presenter-provider", () => ({ useAppPresenter: () => ({ pageResourceManager: { open: mocks.openResource } }) }));
+vi.mock("react-router-dom", () => ({ useNavigate: () => vi.fn() }));
+vi.mock("@/features/right-panel-resources", () => ({ pageResourceFromSystemObject: (type: string, id: string) => ({ uri: `nextclaw://objects/${type}/${id}` }) }));
 
 vi.mock("@/features/cron", () => ({
   CronJobDetailDialog: ({ job, open }: { job: CronJobView | null; open: boolean }) => (
@@ -73,6 +77,6 @@ describe("SessionCronJobContent", () => {
     expect(mocks.runJob).toHaveBeenCalledWith(job);
 
     await user.click(screen.getByRole("button", { name: "查看任务详情" }));
-    expect(screen.getByRole("dialog").textContent).toContain(job.payload.message);
+    expect(mocks.openResource).toHaveBeenCalledWith({ uri: "nextclaw://objects/cron-job/paint-daily" }, "default", expect.any(Function));
   });
 });

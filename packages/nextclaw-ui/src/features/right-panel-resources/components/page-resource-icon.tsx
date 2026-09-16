@@ -81,6 +81,7 @@ function resourceTypeIcon(
       ? (kind as keyof typeof RESOURCE_ICONS)
       : "page";
   }
+  if (parseSessionKeyFromPanelUrl(uri)) return "session";
   const object = parseSystemObjectReferenceUri(uri);
   if (object) return OBJECT_TYPE_ICONS[object.objectType] ?? "generic";
   if (
@@ -89,7 +90,6 @@ function resourceTypeIcon(
   )
     return "skill";
   if (uri.startsWith("nextclaw://page?")) return "page";
-  if (uri.startsWith("nextclaw://chat-session")) return "session";
   if (
     uri.startsWith("nextclaw://workspace-file") ||
     uri.startsWith("file:") ||

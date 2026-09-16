@@ -11,11 +11,16 @@ import {
 } from "@/features/chat";
 import { createWorkspaceFileTab } from "@/features/chat";
 import { t } from "@/shared/lib/i18n";
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { useLocation, useNavigate } from "react-router-dom";
 
 function WorkspaceFilePanelContent({
   tab,
   openTarget,
 }: DocBrowserCustomTabRenderParams) {
+  const app = useAppPresenter();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
   const view = readWorkspaceFilePanelView(tab);
   if (!view)
     return (
@@ -32,6 +37,10 @@ function WorkspaceFilePanelContent({
         file={view.file}
         sessionWorkingDir={view.workingDir}
         sessionProjectRoot={view.projectRoot}
+        onTextExcerptAdd={(excerpt) => app.pageResourceManager.addExcerptToChat({
+          ...excerpt,
+          path: tab.resourceUri ?? tab.currentUrl,
+        }, pathname, navigate)}
         onFileOpen={(action) => {
           const file = createWorkspaceFileTab(
             action,

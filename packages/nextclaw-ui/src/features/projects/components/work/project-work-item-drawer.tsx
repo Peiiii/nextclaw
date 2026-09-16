@@ -39,12 +39,14 @@ import { getProjectWorkStateLabel } from "@/features/projects/utils/project-work
 import { joinProjectPath } from "@/features/projects/utils/project-artifact-view.utils";
 
 export function ProjectWorkItemDrawer({
+  embedded = false,
   onOpenArtifact,
   onOpenChange,
   projectId,
   projectRoot,
   workItemId,
 }: {
+  embedded?: boolean;
   onOpenArtifact: (path: string, label: string) => void;
   onOpenChange: (open: boolean) => void;
   projectId: string;
@@ -55,13 +57,7 @@ export function ProjectWorkItemDrawer({
   const activity = useProjectWorkActivity(projectId, workItemId);
   useProjectWorkEvents(projectId);
   const states = useProjectWorkStates(projectId);
-  return (
-    <Sheet open={Boolean(workItemId)} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        closeLabel={t("projectsCloseDetails")}
-        className="flex h-full w-full flex-col overflow-hidden p-0 sm:max-w-[680px]"
-      >
+  const content = <>
         {item.isLoading ? (
           <div className="p-6 text-sm text-muted-foreground">
             {t("projectsLoading")}
@@ -84,9 +80,10 @@ export function ProjectWorkItemDrawer({
             onClose={() => onOpenChange(false)}
           />
         ) : null}
-      </SheetContent>
-    </Sheet>
-  );
+  </>;
+  return <Sheet open={!embedded && Boolean(workItemId)} onOpenChange={onOpenChange}>
+    {embedded ? <div className="flex h-full min-h-0 flex-col">{content}</div> : <SheetContent side="right" closeLabel={t("projectsCloseDetails")} className="flex h-full w-full flex-col overflow-hidden p-0 sm:max-w-[680px]">{content}</SheetContent>}
+  </Sheet>;
 }
 
 function ProjectWorkItemEditor({

@@ -2,6 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { RightPanelResourceRouteResolver } from '@/features/right-panel-resources';
 
 describe('RightPanelResourceRouteResolver', () => {
+  it('does not treat different document sections as the same destination', () => {
+    const resolver = new RightPanelResourceRouteResolver();
+    expect(resolver.areUrlsEquivalent('https://docs.nextclaw.io/en/guide/commands#one',
+      'https://docs.nextclaw.io/en/guide/commands#two', 'docs', 'docs')).toBe(false);
+  });
+  it.each(['nextclaw://docs/guide/commands?source=chat#sessions', 'https://docs.nextclaw.io/zh/guide/commands?source=chat#sessions'])(
+    'keeps document query and anchor in the resource and final destination: %s', (uri) => {
+      const target = new RightPanelResourceRouteResolver().resolve(uri);
+      expect(target.url).toContain('?source=chat#sessions');
+      expect(target.resourceUri).toContain('?source=chat#sessions');
+    },
+  );
   it('preserves the app marketplace through resource normalization', () => {
     expect(new RightPanelResourceRouteResolver().resolve('nextclaw://apps?tab=marketplace')).toMatchObject({
       kind: 'apps', dedupeKey: 'apps', url: 'nextclaw://apps?tab=marketplace', resourceUri: 'nextclaw://apps?tab=marketplace',

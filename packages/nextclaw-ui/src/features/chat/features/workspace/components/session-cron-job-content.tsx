@@ -11,9 +11,11 @@ import {
 } from "lucide-react";
 
 import {
-  CronJobDetailDialog,
   useCronJobActions,
 } from "@/features/cron";
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { useNavigate } from "react-router-dom";
+import { pageResourceFromSystemObject } from "@/features/right-panel-resources";
 import type { CronJobView } from "@/shared/lib/api";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -227,9 +229,9 @@ export function SessionCronJobContent({
   readonly isLoading?: boolean;
   readonly onRetry?: () => void;
 }) {
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const app = useAppPresenter();
+  const navigate = useNavigate();
   const cronActions = useCronJobActions();
-  const selectedJob = jobs.find((job) => job.id === selectedJobId) ?? null;
 
   return (
     <div className="h-full overflow-y-auto custom-scrollbar px-4 py-4">
@@ -271,29 +273,11 @@ export function SessionCronJobContent({
               key={job.id}
               cronActions={cronActions}
               job={job}
-              onOpenDetails={(item) => setSelectedJobId(item.id)}
+              onOpenDetails={(item) => app.pageResourceManager.open(pageResourceFromSystemObject("cron-job", item.id, item.name || item.id), "default", navigate)}
             />
           ))}
         </div>
       )}
-      <CronJobDetailDialog
-        job={selectedJob}
-        open={Boolean(selectedJob)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedJobId(null);
-          }
-        }}
-        onDelete={(job) => {
-          void cronActions.deleteJob(job, () => setSelectedJobId(null));
-        }}
-        onRun={(job) => {
-          void cronActions.runJob(job);
-        }}
-        onToggle={(job, enabled) => {
-          void cronActions.toggleJob(job, enabled);
-        }}
-      />
       <cronActions.ConfirmDialog />
     </div>
   );

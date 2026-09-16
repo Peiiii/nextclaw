@@ -6,6 +6,8 @@ import type {
   MarketplaceListView,
 } from "@/shared/lib/api";
 import type * as ReactQueryModule from "@tanstack/react-query";
+vi.mock("@/app/components/app-presenter-provider", () => ({ useAppPresenter: () => ({ pageResourceManager: { open: vi.fn() } }) }));
+vi.mock("react-router-dom", () => ({ useNavigate: () => vi.fn() }));
 
 type ItemsQueryState = {
   data?: MarketplaceListView;

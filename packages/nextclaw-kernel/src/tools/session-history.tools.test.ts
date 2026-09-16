@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { NcpMessage, NcpSessionSummary } from "@nextclaw/ncp";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import { SessionsHistoryTool, SessionsListTool } from "./session-history.tools.js";
+import { SessionSearchTool } from "./session-search.tools.js";
+import { parseSessionResourceUri } from "@nextclaw/shared";
 
 function createMessage(params: {
   content: string;
@@ -35,6 +37,15 @@ function createSessionsFixture(params: {
 }
 
 describe("session history tools", () => {
+  it('returns consumable resource identities for search results', async () => {
+    const sessionId = 'agent:main:会话/one %2F';
+    const tool = new SessionSearchTool({ search: async () => ({ query: 'one', totalHits: 1,
+      hits: [{ sessionId, label: 'one', updatedAt: '', snippet: '', matchSource: 'label', rank: 1 }],
+    }) }, {});
+    const result = await tool.execute({ query: 'one' }) as { hits: Array<{ resourceUri: string }> };
+    expect(result.hits[0].resourceUri).toBe(`nextclaw://sessions/${encodeURIComponent(sessionId)}`);
+    expect(parseSessionResourceUri(result.hits[0].resourceUri)).toBe(sessionId);
+  });
   it("resolves an exact sessions_list query before applying the default limit", async () => {
     const summaries = Array.from({ length: 30 }, (_, index): NcpSessionSummary => ({
       sessionId: `session-${index}`,
@@ -48,7 +59,7 @@ describe("session history tools", () => {
       sessions: Array<{ sessionId: string }>;
     };
 
-    expect(result.sessions).toEqual([expect.objectContaining({ sessionId: "session-29" })]);
+    expect(result.sessions).toEqual([expect.objectContaining({ sessionId: "session-29", resourceUri: "nextclaw://sessions/session-29" })]);
   });
 
   it("keeps sessions_history label lookup and includeTools behavior on NCP sessions", async () => {
@@ -72,6 +83,7 @@ describe("session history tools", () => {
     const withoutTools = JSON.parse(await tool.execute({ sessionKey: "Labeled Session" })) as {
       messages: Array<{ role: string }>;
       sessionKey: string;
+      resourceUri: string;
     };
     const withTools = JSON.parse(await tool.execute({
       includeTools: true,
@@ -79,6 +91,7 @@ describe("session history tools", () => {
     })) as { messages: Array<{ role: string }> };
 
     expect(withoutTools.sessionKey).toBe(sessionId);
+    expect(withoutTools.resourceUri).toBe(`nextclaw://sessions/${encodeURIComponent(sessionId)}`);
     expect(withoutTools.messages.map((message) => message.role)).toEqual(["user"]);
     expect(withTools.messages.map((message) => message.role)).toEqual(["user", "tool"]);
   });

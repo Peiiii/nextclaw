@@ -33,7 +33,8 @@ function isUrlWithPrefix(url: string, prefix: string): boolean {
 function resolveNextclawDocsUrl(uri: ParsedResourceUri): string {
   const docsPath = uri.pathSegments.join('/');
   const rawPath = docsPath ? `/${docsPath}` : '/';
-  return normalizeUrlByKind(rawPath, 'docs');
+  const parsed = new URL(uri.raw);
+  return normalizeUrlByKind(`${rawPath}${parsed.search}${parsed.hash}`, 'docs');
 }
 
 function createDocsResourceUriFromSegments(pathSegments: string[]): string {
@@ -45,20 +46,9 @@ function createDocsResourceUriFromSegments(pathSegments: string[]): string {
 }
 
 function createDocsResourceUriFromUrl(url: string): string {
-  const normalized = normalizeDocUrl(url);
-  const pathname = normalized.startsWith('/')
-    ? normalized
-    : (() => {
-        try {
-          return new URL(url).pathname;
-        } catch {
-          return '';
-        }
-      })();
-  if (!pathname) {
-    return 'nextclaw://docs';
-  }
-  return createDocsResourceUriFromSegments(pathname.split('/'));
+  const parsed = new URL(url);
+  const pathname = parsed.pathname.replace(/\.html$/, '').replace(/\/$/, '');
+  return `${createDocsResourceUriFromSegments(pathname.split('/'))}${parsed.search}${parsed.hash}`;
 }
 
 function isPanelAppContentUri(uri: ParsedResourceUri): boolean {
@@ -97,7 +87,7 @@ function arePanelAppUrlsEquivalent(left: string, right: string): boolean {
 export const RIGHT_PANEL_RESOURCE_ROUTE_DEFINITIONS: RightPanelResourceRouteDefinition[] = [
   {
     id: 'system-object', kind: 'system-object', defaultUrl: () => 'nextclaw://objects',
-    match: (uri) => Boolean(parseSystemObjectReferenceUri(uri.raw)),
+    match: (uri) => !parseSessionKeyFromPanelUrl(uri.raw) && Boolean(parseSystemObjectReferenceUri(uri.raw)),
     resolve: (uri) => ({ kind: 'system-object', title: parseSystemObjectReferenceUri(uri.raw)!.objectId, url: uri.raw, resourceUri: uri.raw, historyPolicy: 'none' }),
     areEquivalent: (left, right) => left === right,
   },
@@ -120,10 +110,10 @@ export const RIGHT_PANEL_RESOURCE_ROUTE_DEFINITIONS: RightPanelResourceRouteDefi
     areEquivalent: (left, right) => left === right,
   },
   {
-    defaultUrl: () => 'nextclaw://chat-session/',
+    defaultUrl: () => 'nextclaw://sessions/',
     id: CHAT_SESSION_PANEL_KIND,
     kind: CHAT_SESSION_PANEL_KIND,
-    match: (uri) => uri.scheme === 'nextclaw' && uri.authority === 'chat-session',
+    match: (uri) => parseSessionKeyFromPanelUrl(uri.raw) !== null,
     resolve: (uri) => {
       const sessionKey = parseSessionKeyFromPanelUrl(uri.raw);
       const url = sessionKey ? buildSessionPanelUrl(sessionKey) : uri.raw;
@@ -136,7 +126,7 @@ export const RIGHT_PANEL_RESOURCE_ROUTE_DEFINITIONS: RightPanelResourceRouteDefi
         historyPolicy: 'none',
       };
     },
-    areEquivalent: (left, right) => left === right,
+    areEquivalent: (left, right) => parseSessionKeyFromPanelUrl(left) === parseSessionKeyFromPanelUrl(right),
   },
   {
     defaultUrl: () => RIGHT_PANEL_HOME_URL,
@@ -179,7 +169,7 @@ export const RIGHT_PANEL_RESOURCE_ROUTE_DEFINITIONS: RightPanelResourceRouteDefi
       return {
         historyPolicy: 'managed',
         kind: 'docs',
-        resourceUri: createDocsResourceUriFromSegments(uri.pathSegments),
+        resourceUri: `${createDocsResourceUriFromSegments(uri.pathSegments)}${new URL(uri.raw).search}${new URL(uri.raw).hash}`,
         title: t('docBrowserHelp'),
         url,
       };
@@ -198,7 +188,7 @@ export const RIGHT_PANEL_RESOURCE_ROUTE_DEFINITIONS: RightPanelResourceRouteDefi
         historyPolicy: 'managed',
         kind: RIGHT_PANEL_APPS_TAB_KIND,
         resourceUri: url,
-        title: t('appsTitle'),
+        title: t(new URL(url).searchParams.get('tab') === 'service-apps' ? 'serviceAppsTitle' : 'appsTitle'),
         url,
       };
     },

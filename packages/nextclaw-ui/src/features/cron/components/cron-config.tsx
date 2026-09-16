@@ -11,7 +11,9 @@ import {
 
 import { PageHeader, PageLayout } from "@/app/components/layout/page-layout";
 import { usePresenter } from "@/features/chat";
-import { CronJobDetailDialog } from "@/features/cron/components/cron-job-detail-dialog";
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { useNavigate } from "react-router-dom";
+import { pageResourceFromSystemObject } from "@/features/right-panel-resources";
 import { CronJobRow } from "@/features/cron/components/cron-job-row";
 import {
   CronTaskComposer,
@@ -146,12 +148,13 @@ function CronPagination({
 }
 
 export function CronConfig() {
+  const app = useAppPresenter();
+  const navigate = useNavigate();
   const [composerPrompt, setComposerPrompt] = useState("");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<CronListStatus>("all");
   const [page, setPage] = useState(0);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const deferredQuery = useDeferredValue(query.trim());
   const composerRef = useRef<HTMLInputElement>(null);
   const presenter = usePresenter();
@@ -166,7 +169,6 @@ export function CronConfig() {
   const jobs = cronQuery.data?.jobs ?? [];
   const total = cronQuery.data?.total ?? 0;
   const summary = cronQuery.data?.summary;
-  const selectedJob = jobs.find((job) => job.id === selectedJobId) ?? null;
 
   const startDraftConversation = () => {
     const prompt = composerPrompt.trim();
@@ -185,7 +187,6 @@ export function CronConfig() {
   const handleDelete = (job: CronJobView) => {
     void cronActions.deleteJob(job, () => {
       setExpandedJobId(null);
-      setSelectedJobId(null);
       if (jobs.length === 1 && page > 0) {
         setPage(page - 1);
       }
@@ -333,7 +334,7 @@ export function CronConfig() {
                       expanded={expandedJobId === job.id}
                       job={job}
                       onDelete={handleDelete}
-                      onEdit={(item) => setSelectedJobId(item.id)}
+                      onEdit={(item) => app.pageResourceManager.open(pageResourceFromSystemObject("cron-job", item.id, item.name || item.id), "default", navigate)}
                       onRun={handleRun}
                       onToggleExpanded={handleToggleExpanded}
                       onToggle={handleToggle}
@@ -409,18 +410,6 @@ export function CronConfig() {
         </>
       )}
 
-      <CronJobDetailDialog
-        job={selectedJob}
-        open={Boolean(selectedJob)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedJobId(null);
-          }
-        }}
-        onDelete={handleDelete}
-        onRun={handleRun}
-        onToggle={handleToggle}
-      />
       <cronActions.ConfirmDialog />
     </PageLayout>
   );

@@ -1,5 +1,19 @@
 # Doc Browser
 
+## Conversation and resource links
+
+Use Retry when a resource fails to load. System object resolution and content reads have time limits, so connection failures end with an error instead of indefinite loading.
+
+Select text in a system object or file preview and choose Add to chat to place the excerpt and its source in the current composer. From other pages, this opens a new chat draft. Adding a reference does not send a message.
+
+Resource links open the object itself. Agents show identity, configuration, chat and edit actions; scheduled tasks show settings, the latest run and task controls. Management lists and chat links share these detail views. Projects open their workspace, work items use the same editor, Panel apps run directly, service apps and MCP connections show their management views, and inbox deliveries show their original content. Skills display the actual `SKILL.md`. Main, sidebar and floating placement share the same content. References supplied to AI still use object snapshots.
+
+Conversation links use readable session IDs: `nextclaw://sessions/<sessionID>`. Ordinary IDs no longer use Base64; special characters such as spaces and slashes use standard URL escaping. The address bar also uses `/chat/<sessionID>`. Existing `sid_...` addresses and historical conversation resource links remain readable.
+
+Conversation list, history, search, and creation tools return `resourceUri`. AI replies should reuse it verbatim instead of guessing a resource type from a tool name. Clicking a conversation reuses an existing view when available, otherwise opening its conversation page.
+
+Other resources keep their own entry points: catalog-supplied `nextclaw://objects/...` for system objects, `nextclaw://panel-app/...` for interactive apps, paths or file resource URIs for files, and documentation URLs or `nextclaw://docs/...` for documentation. Document query parameters and section anchors are preserved. Unknown resource types are not guessed into another page.
+
 Doc Browser is the global browsing area in NextClaw's right dock. Keep websites, documentation, and multiple tabs open while you continue working in the main task. The browser can be docked or floated.
 
 ![Documentation open beside the Skill marketplace](/product-screenshots/nextclaw-skills-doc-browser-en.png)

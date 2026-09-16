@@ -13,7 +13,7 @@ export function McpMarketplaceCard(props: {
   item?: MarketplaceItemSummary;
   record?: MarketplaceInstalledRecord;
   localeFallbacks: string[];
-  onOpen: () => void;
+  onOpen?: () => void;
   onInstall?: () => void;
   onToggle?: () => void;
   onDoctor?: () => void;
@@ -42,7 +42,7 @@ export function McpMarketplaceCard(props: {
   return (
     <article
       onClick={onOpen}
-      className="cursor-pointer rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm transition hover:border-blue-300 hover:shadow-md"
+      className={`rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm transition${onOpen ? " cursor-pointer hover:border-blue-300 hover:shadow-md" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

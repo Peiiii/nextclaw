@@ -1,4 +1,5 @@
 import type { NcpTool } from "@nextclaw/ncp";
+import { createSessionResourceUri } from "@nextclaw/shared";
 import {
   DEFAULT_SESSION_SEARCH_LIMIT,
   MAX_SESSION_SEARCH_LIMIT,
@@ -92,11 +93,12 @@ export class SessionSearchTool implements NcpTool {
       throw new Error(issues.join(" "));
     }
 
-    return this.queryService.search({
+    const result = await this.queryService.search({
       query: normalizeString(args.query) ?? "",
       limit: readOptionalInteger(args.limit),
       includeCurrentSession: readOptionalBoolean(args.includeCurrentSession),
       currentSessionId: this.context.currentSessionId,
     });
+    return { ...result, hits: result.hits.map((hit) => ({ ...hit, resourceUri: createSessionResourceUri(hit.sessionId) })) };
   };
 }

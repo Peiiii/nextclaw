@@ -31,8 +31,10 @@ type ServiceActionView = ServiceActionListView["actions"][number];
 
 export function ServiceAppsPanel({
   onManagePackage,
+  resourceId,
 }: {
   onManagePackage: (packageId: string) => void;
+  resourceId?: string;
 }) {
   const serviceApps = useServiceApps();
   const appData = useAppData();
@@ -84,7 +86,8 @@ export function ServiceAppsPanel({
     );
   }
 
-  const apps: ServiceAppRecordView[] = serviceApps.data?.entries ?? [];
+  const apps: ServiceAppRecordView[] = (serviceApps.data?.entries ?? []).filter((app) => !resourceId || app.id === resourceId);
+  if (resourceId && !apps.length) return <p role="alert" className="p-4">{t("resourceNotFound")}</p>;
   const diagnostics = serviceApps.data?.diagnostics ?? [];
   const actions: ServiceActionView[] = serviceActions.data?.actions ?? [];
   const grants: ServiceActionGrantView[] =
@@ -165,7 +168,7 @@ export function ServiceAppsPanel({
                   discoveredActionsByApp[app.id] ??
                   actions.filter((action) => action.appId === app.id)
                 }
-                actionsOpen={Boolean(expandedActionsByApp[app.id])}
+                actionsOpen={expandedActionsByApp[app.id] ?? Boolean(resourceId)}
                 grants={grants}
                 agents={agents.data?.agents ?? []}
                 deletePending={deleteServiceApp.isPending}

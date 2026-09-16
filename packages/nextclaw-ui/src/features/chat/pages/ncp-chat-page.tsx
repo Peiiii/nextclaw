@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   ChatPageLayout,
   type ChatPageProps,
@@ -10,9 +10,9 @@ import { useUiShowContentEvent } from "@/features/chat/features/ncp/hooks/use-ui
 
 export function NcpChatPage({ view }: ChatPageProps) {
   const presenter = usePresenter();
-  const { sessionId } = useParams<{ sessionId?: string }>();
+  const { pathname } = useLocation();
   useChatSessionSync({
-    routeSessionKey: parseSessionKeyFromRoute(sessionId),
+    routeSessionKey: parseSessionKeyFromRoute(pathname.startsWith('/chat/') ? pathname.slice('/chat/'.length) : undefined),
     syncRouteSessionSelection: presenter.chatSessionListManager.syncRouteSessionSelection,
   });
   useUiShowContentEvent();

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChatSessionWorkspaceFilePreview } from "@/features/chat/features/workspace/components/chat-session-workspace-file-preview";
 
 const onTextExcerptAdd = vi.fn();
@@ -37,6 +37,18 @@ vi.mock("@nextclaw/agent-chat-ui", () => ({
 }));
 
 describe("ChatSessionWorkspaceFilePreview selection", () => {
+  afterEach(cleanup);
+
+  it("does not offer an action when no composer callback is connected", () => {
+    render(<ChatSessionWorkspaceFilePreview
+      file={{ key: "boot", parentSessionKey: null, path: "BOOT.md", label: "BOOT.md", viewMode: "preview" }}
+      sessionProjectRoot={null}
+      sessionWorkingDir={null}
+      onFileOpen={vi.fn()}
+    />);
+    expect(screen.queryByRole("button", { name: "select excerpt" })).toBeNull();
+  });
+
   it("uses the resolved absolute path when a shell-style workspace root cannot be compared in the browser", () => {
     render(
       <ChatSessionWorkspaceFilePreview

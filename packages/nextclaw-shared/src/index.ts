@@ -85,6 +85,8 @@ export {
 export {
   CHAT_UI_RESOURCE_TOKEN_KIND,
   createPanelAppResourceUri,
+  createSessionResourceUri,
+  parseSessionResourceUri,
   readChatUiResourceReference,
 } from "./configs/chat-ui-resource-reference.config.js";
 export {

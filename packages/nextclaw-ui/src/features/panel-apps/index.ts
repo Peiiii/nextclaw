@@ -1,4 +1,5 @@
 export { PanelAppsList } from './components/panel-apps-list';
+export { PanelAppRuntimeSurface } from './components/panel-app-runtime-surface';
 export { PanelAppMainPage } from './pages/panel-app-main-page';
 export { PanelAppStandalonePage } from './pages/panel-app-standalone-page';
 export { PanelAppServiceActionAuthorizationDialog } from './components/panel-app-service-action-authorization-dialog';

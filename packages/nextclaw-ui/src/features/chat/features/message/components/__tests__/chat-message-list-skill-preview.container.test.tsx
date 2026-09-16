@@ -23,6 +23,8 @@ function ChatMessageListContainer({
 }
 
 const captures = vi.hoisted(() => ({
+  resolveResource: vi.fn(),
+  openResource: vi.fn(),
   renders: [] as Array<{
     onInlineTokenClick?: (token: unknown) => void;
   }>,
@@ -98,6 +100,8 @@ vi.mock("@/shared/lib/i18n", () => ({
 }));
 
 beforeEach(() => {
+  captures.resolveResource.mockReset();
+  captures.openResource.mockReset();
   captures.renders = [];
   captures.openFilePreview.mockReset();
   captures.fetchSessionSkills.mockReset();
@@ -115,6 +119,15 @@ function clickSkill(token: Record<string, unknown>, sessionKey?: string): void {
   );
   captures.renders[captures.renders.length - 1]?.onInlineTokenClick?.(token);
 }
+
+it("opens a quoted object through the resource opener instead of treating its URI as a local path", () => {
+  const page = { uri: "nextclaw://objects/agent/philosopher" };
+  captures.resolveResource.mockReturnValue(page);
+  clickSkill({ kind: "workspace_excerpt", path: page.uri, excerpt: "Description", label: "Philosopher", startLine: null, endLine: null });
+  expect(captures.resolveResource).toHaveBeenCalledWith(page.uri);
+  expect(captures.openResource).toHaveBeenCalledWith(page, "default", expect.any(Function));
+  expect(captures.openFilePreview).not.toHaveBeenCalled();
+});
 
 it("opens a persisted skill path without consulting the session catalog", () => {
   clickSkill({
@@ -170,4 +183,4 @@ it("shows an error when a persisted v1 skill is no longer resolvable", async () 
 });
 
 vi.mock("react-router-dom", async (importOriginal) => ({ ...(await importOriginal<object>()), useNavigate: () => vi.fn() }));
-vi.mock("@/app/components/app-presenter-provider", () => ({ useAppPresenter: () => ({ pageResourceManager: { resolve: vi.fn(), open: vi.fn() } }) }));
+vi.mock("@/app/components/app-presenter-provider", () => ({ useAppPresenter: () => ({ pageResourceManager: { resolve: captures.resolveResource, open: captures.openResource } }) }));

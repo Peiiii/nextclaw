@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => ({
   fetchMarketplaceSkillContent: vi.fn(),
 }));
 
+vi.mock("@/app/components/app-presenter-provider", () => ({ useAppPresenter: () => ({ pageResourceManager: { resolve: vi.fn(), open: vi.fn() } }) }));
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {
