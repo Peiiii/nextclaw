@@ -27,7 +27,7 @@ import {
   DialogTitle,
 } from '@/shared/components/ui/dialog';
 import { Input } from '@/shared/components/ui/input';
-import { Skeleton } from '@/shared/components/ui/skeleton';
+import { SkeletonContent } from '@/shared/components/ui/skeleton';
 import { t } from '@/shared/lib/i18n';
 
 export function AppPackagesPanel({
@@ -283,9 +283,9 @@ function AppPackageLibrary({
 }) {
   if (isLoading) {
     return (
-      <div className="divide-y divide-border/50" aria-label={t('appPackagesLoading')}>
-        <Skeleton className="h-44 w-full rounded-2xl" />
-        <Skeleton className="h-32 w-full rounded-2xl" />
+      <div className="divide-y divide-border/50" role="status" aria-label={t('appPackagesLoading')}>
+        <SkeletonContent />
+        <SkeletonContent />
       </div>
     );
   }

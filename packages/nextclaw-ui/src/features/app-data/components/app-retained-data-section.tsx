@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/components/ui/dialog';
-import { Skeleton } from '@/shared/components/ui/skeleton';
+import { SkeletonContent } from '@/shared/components/ui/skeleton';
 import { t } from '@/shared/lib/i18n';
 
 export function AppRetainedDataSection({
@@ -57,7 +57,7 @@ export function AppRetainedDataSection({
           {t('appDataRetainedDescription')}
         </p>
       </div>
-      {isLoading ? <Skeleton className="h-28 w-full rounded-xl" /> : null}
+      {isLoading ? <div role="status" aria-label={t('appPackagesLoading')}><SkeletonContent /></div> : null}
       {error ? (
         <div role="alert" className="rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs text-destructive">
           {error instanceof Error ? error.message : t('appDataLoadFailed')}

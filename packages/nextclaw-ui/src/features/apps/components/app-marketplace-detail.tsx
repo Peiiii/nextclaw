@@ -16,7 +16,7 @@ import {
   resolveAppMarketplaceInstallability,
 } from '@/features/apps/utils/app-marketplace-platform.utils';
 import { pickLocalizedText } from '@/features/marketplace';
-import { Skeleton } from '@/shared/components/ui/skeleton';
+import { Skeleton, SkeletonContent } from '@/shared/components/ui/skeleton';
 import { t } from '@/shared/lib/i18n';
 
 export function MarketplaceDetail({
@@ -45,7 +45,16 @@ export function MarketplaceDetail({
   operation?: AppPackageOperationView;
 }) {
   if (isLoading) {
-    return <div className="space-y-4 p-6"><Skeleton className="h-24 w-full rounded-2xl" /><Skeleton className="h-40 w-full rounded-2xl" /></div>;
+    return (
+      <div className="mx-auto max-w-3xl space-y-6 px-5 py-5" role="status" aria-label={t('appPackagesMarketplaceLoading')}>
+        <SkeletonContent />
+        <div className="space-y-3">
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-5/6" />
+          <Skeleton className="h-3 w-2/3" />
+        </div>
+      </div>
+    );
   }
   if (error || !detail) {
     return <div role="alert" className="m-6 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-5 text-sm text-destructive">{error?.message ?? t('appPackagesMarketplaceFailed')}</div>;
