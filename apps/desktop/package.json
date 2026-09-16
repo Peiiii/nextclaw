@@ -58,6 +58,7 @@
   "build": {
     "appId": "io.nextclaw.desktop",
     "productName": "NextClaw Desktop",
+    "compression": "maximum",
     "directories": {
       "output": "release",
       "buildResources": "build"
