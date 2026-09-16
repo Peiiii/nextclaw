@@ -403,7 +403,11 @@ export class CollaborationService {
     if (command === "cancel")
       status = await this.cancelStatus(connection.id, key);
     Object.assign(context, { paused, closedPause, status });
-    if (!(await this.source(connection.id).check()).editableStatus)
+    const source = this.source(connection.id);
+    if (
+      source.editableStatus === false ||
+      (source.editableStatus === undefined && !(await source.check()).editableStatus)
+    )
       this.output.enqueue(context, `control:${input.key}`, status, "status", 0);
     this.saveContext(context);
     this.finishEvent(input, "done");

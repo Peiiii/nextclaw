@@ -58,6 +58,7 @@ export type DiscussionThreadPage = {
 export type DiscussionEventPage = {
   items: DiscussionEvent[];
   nextCursor: number;
+  coverage?: "participant-visible-v1";
 };
 
 export type DiscussionThreadCreateInput = {

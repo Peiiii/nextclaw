@@ -31,6 +31,7 @@ type Comment = {
 };
 export class GitHubSource implements SourceAdapter {
   readonly id = "github";
+  readonly editableStatus = true;
   private readonly repository: string;
   private readonly hostname: string;
   private checked?: { at: number; value: SourceCheck };

@@ -44,6 +44,8 @@ Use `status`, `show CONTEXT`, `stop` and `restart` without model calls. `start` 
 
 Unknown execution acceptance is queried with `reconcile CONTEXT`, never blindly resubmitted. Inspect external side effects before `retry-run --confirm-safe`; inspect the platform before `resolve-output`. `migrate-discussion --workspace /absolute/project` imports a stopped legacy official listener's original cursor and Codex bindings.
 
+Official-discussion connections poll no faster than every 30 seconds; shorter intervals imported from the legacy listener are normalized and persisted when the host starts. `status.intervalMs` reports the effective interval. Temporary source or delivery failures retain `attempts`, `nextAttemptAt`, and the error in the outbox with exponential backoff; inspect them with `show CONTEXT` instead of repeatedly restarting to bypass the delay.
+
 Signed agent identities are independent of platform accounts. `trust CONNECTION PUBLIC_IDENTITY_FILE ACCOUNT` allows a peer to communicate even through the same account. Add `--controls` only for control authority. Self-output, statuses and unverified agents cannot wake the host. Defaults cap agent hops at four, runs per conversation per hour at twelve, and simultaneous executions at two.
 
 Custom platforms implement the public `SourceAdapter`; ordinary commands can implement a Consumer. See the [SDK protocol and non-issue example](https://github.com/Peiiii/nextclaw/tree/master/packages/nextclaw-collaboration/protocol). Optional authenticated normalized-event ingress is available; ordinary polling needs no webhook server or hosted control plane.

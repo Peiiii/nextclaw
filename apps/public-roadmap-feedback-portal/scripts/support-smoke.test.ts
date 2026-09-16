@@ -169,14 +169,22 @@ test("FB-20/21/26 authenticated actors and direct discussions share the generic 
   assert.deepEqual(view.posts[0]!.author.roles, ["administrator"]);
   assert.equal(view.posts[0]!.author.authenticated, true);
   const events = await discussionRequest("participant", "/events?after=0");
-  const createdEvent = (events.payload.data as DiscussionEventPage).items.find(event => event.threadId === id && event.type === "thread-created");
+  const eventPage = events.payload.data as DiscussionEventPage;
+  assert.equal(eventPage.coverage, "participant-visible-v1");
+  const createdEvent = eventPage.items.find(event => event.threadId === id && event.type === "thread-created");
   assert.equal(createdEvent?.audienceRole, "participant");
+  const eventCursor = eventPage.nextCursor;
   const agentPost = await discussionRequest("participant", "/" + id + "/posts", { operationId: crypto.randomUUID(), body: "已收到，正在检查。" });
   assert.equal((agentPost.payload.data as DiscussionThreadView).posts.at(-1)!.author.kind, "agent");
   const adminPost = await discussionRequest("admin", "/" + id + "/posts", {
     operationId: crypto.randomUUID(), body: "优先核对桌面端任务是否可见。", _actor: { id: "admin-a", displayName: "平台管理员" },
   });
   assert.equal((adminPost.payload.data as DiscussionThreadView).posts.at(-1)!.author.displayName, "平台管理员");
+  const updates = await discussionRequest("participant", "/events?after=" + eventCursor);
+  const updateRoles = new Set((updates.payload.data as DiscussionEventPage).items
+    .filter(event => event.threadId === id)
+    .map(event => event.audienceRole));
+  assert.deepEqual(updateRoles, new Set(["administrator", "participant"]));
   assert.equal((await discussionRequest("participant", "/" + id)).status, 200);
 });
 
@@ -184,7 +192,8 @@ test("FB-20/22 trusted administrator and discussion participant remain distingui
   let report = (await request("", submission())).payload.data;
   const beforeApproval = await discussionRequest("participant", "/events?after=0");
   const participantCursor = (beforeApproval.payload.data as DiscussionEventPage).nextCursor;
-  assert.equal((beforeApproval.payload.data as DiscussionEventPage).items.some(event => event.threadId === report.id), false);
+  assert.equal((beforeApproval.payload.data as DiscussionEventPage).items.some(event =>
+    event.threadId === report.id && event.audienceRole === "administrator"), true);
   const reviewed = await request("/review/" + report.id, op(report, {
     action: "review", decision: "repair", body: "批准修复，并先反馈收到。", _actor: { id: "admin-b", displayName: "审批管理员" },
   }), administratorHeaders);

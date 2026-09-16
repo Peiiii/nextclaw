@@ -9,7 +9,10 @@ import type { CollaborationStore } from "../stores/collaboration.store.js";
 import { CollaborationService } from "./collaboration.service.js";
 import { CodexConsumer } from "./codex-consumer.service.js";
 import { CommandConsumer } from "./command-consumer.service.js";
-import { loadSource } from "../utils/source-registry.utils.js";
+import {
+  applyMinimumPollInterval,
+  loadSource,
+} from "../utils/source-registry.utils.js";
 import { startGitHubWebhooks } from "../utils/github-webhook.utils.js";
 
 export class CollaborationHost {
@@ -106,7 +109,10 @@ export class CollaborationHost {
     consumers: Map<string, Consumer>,
   ): Promise<void> => {
     for (const connection of this.store.list<Connection>("connection")) {
-      sources.set(connection.id, await loadSource(connection));
+      const source = await loadSource(connection);
+      sources.set(connection.id, source);
+      if (applyMinimumPollInterval(connection, source))
+        this.store.put("connection", connection.id, connection);
       consumers.set(
         connection.id,
         connection.consumer.kind === "codex"

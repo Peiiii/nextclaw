@@ -43,7 +43,17 @@ discussionController.post("/admin/:id/posts", async c => {
 
 discussionController.get("/participant/events", async c => {
   await requireParticipant(c);
-  return c.json({ ok: true, data: await service(c.env).events(cursor(c.req.query("after")), ["support", "direct"], "participant") });
+  return c.json({
+    ok: true,
+    data: {
+      ...await service(c.env).events(
+        cursor(c.req.query("after")),
+        ["support", "direct"],
+        ["participant", "administrator"],
+      ),
+      coverage: "participant-visible-v1" as const,
+    },
+  });
 });
 discussionController.get("/participant", async c => {
   await requireParticipant(c);

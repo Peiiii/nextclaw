@@ -179,6 +179,7 @@ function registerInspectionCommands(
             account: c.account,
             agent: c.agent.id,
             enabled: c.enabled,
+            intervalMs: c.intervalMs,
             lastScan: c.lastScan,
             error: c.error,
           })),
@@ -323,6 +324,8 @@ function registerDeliveryCommands(program: Command, context: CliContext): void {
             "No matching output found; inspect the platform before confirming absence",
           );
         entry.error = undefined;
+        entry.attempts = undefined;
+        entry.nextAttemptAt = undefined;
         store.put("outbox", id, entry);
         print({ id, state: entry.state, messageId: entry.messageId });
       } finally {

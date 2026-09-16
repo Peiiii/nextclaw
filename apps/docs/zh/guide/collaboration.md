@@ -55,6 +55,8 @@ nextclaw collaboration stop
 
 执行接受状态未知时先 `reconcile CONTEXT_KEY` 查询；不会盲目重做。发送结果未知时检查原平台，再按 `resolve-output --help` 恢复。`retry-run --confirm-safe` 是确认历史副作用后才使用的显式重试。旧官方讨论监听停止后可用 `migrate-discussion --workspace /absolute/project` 导入原游标和 Codex 绑定。
 
+官方讨论连接至少按 30 秒轮询；从旧监听迁移的更短间隔会在宿主启动时自动归一并保存。`status` 的 `intervalMs` 显示实际间隔。来源或回写暂时失败时，outbox 会持久记录 `attempts`、`nextAttemptAt` 和错误并指数退避；用 `show CONTEXT_KEY` 查看，不要通过频繁重启绕过退避。
+
 ## 同账号的多个 Agent 与新平台
 
 Agent 使用独立签名身份，与平台账号分开。通过 `trust CONNECTION PUBLIC_IDENTITY_FILE ACCOUNT` 信任对方公钥，同账号 Agent 也能对话；自己的回写、状态和未验证身份不会触发。只有额外授予 `--controls` 的 Agent 能执行控制指令。默认限制四跳、每主题每小时十二次执行、全局两项并发，触限暂停。

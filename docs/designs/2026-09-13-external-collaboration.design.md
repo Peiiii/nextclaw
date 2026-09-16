@@ -616,3 +616,56 @@ GitHub 使用 gh api，Linear 固定支持 schpet linear-cli 1.11.1 的 api/vari
 方案审查：保留唯一 journal/consumer，新增模块只负责 GitHub 转发边界；控制事件不假定以 webhook header 为可信身份，可信正文按原模型处理；不以 Smee 投递成功冒充本地完成。design-review: passed；单批实现，plan: not-required。本节交付状态待下方证据闭合。
 
 当前实测：独立 hook 678511014、本地 installed CLI 构建（基于 0.1.3，未发布）、宿主 PID 92868。#64 评论 5652377950 于 09:10:26Z 创建，09:10:28.679Z 持久化，09:10:34Z 添加 👀，09:10:38.719Z 在原任务 01a099a3… 提交。GitHub intervalMs=0，未轮询；24 个包测试、包 tsc 与维护性检查通过（仅原 CLI 文件接近预算提示）。此前仅核验有回执，没有记录端到端等待成本；本次记录消息时间、接收时间和 reaction 时间，避免再以缩短轮询代替实际延迟证据。不扩大为全局流程规则。
+
+## 15. Cloudflare 免费请求耗尽修复（2026-09-16）
+
+### 15.1 事故事实与用户目标
+
+用户要求先停止当前 collaboration 宿主止血，再继续优化到可恢复运行。宿主已停止，原连接、上下文、游标和 outbox 均保留。Cloudflare 与本机状态的端到端证据如下：
+
+- Workers 免费计划按 UTC 日提供 100,000 次请求。2026-09-15 账户共 101,976 次；其中 roadmap portal Worker 88,957 次。
+- `roadmap.nextclaw.io` 当日约 89,398 次请求来自 `undici`，主要集中在 participant 列表、两个主题详情、support workflow 与事件页；每小时稳定约 3,000–4,100 次，不符合真人访问形态。
+- 本机 `official-discussions` 是由旧 listener 迁移的连接，持久配置仍是 5 秒。官方适配每轮先读事件，再对所有已关注主题分别读取详情；support 主题还读一次审批状态，两个主题的固定成本已经超过免费额度。
+- 当官方来源不支持可编辑状态且 `statusPublished` 不一致时，output owner 又在宿主 1.5 秒循环里调用远端 `check()`；一次 `fetch failed` 会让这个差异持续存在，形成独立热循环。
+
+修复目标不是把一个常量从 5 秒改成 30 秒，而是让空闲请求量具有与已关注主题数量无关的明确上界，让失败重试有持久退避，并让迁移状态和运行状态如实反映实际节奏。
+
+### 15.2 唯一主链路与兼容边界
+
+继续由 `SourceAdapter`、`CollaborationHost` 和 `CollaborationOutputService` 分别拥有来源能力、扫描调度和输出恢复，不新增 quota service、第二个 listener、消息代理或平台专用后台进程。
+
+1. 来源静态能力：适配器可声明 `editableStatus` 与 `minimumPollIntervalMs`。静态能力只描述实现合同，不取代 `check()` 的动态身份、账号和写权限检查。官方来源声明状态不可编辑、最小轮询 30 秒；旧的第三方适配器未声明时保持原动态检查兼容。
+2. 轮询下限：宿主装载来源后，将已有连接的 `intervalMs` 持久归一到适配器下限；迁移入口同样在写入前归一。这样旧的 5 秒配置只迁移一次，不在每次调度临时覆盖而留下错误状态。
+3. 状态收敛：对于静态声明不可编辑状态的来源，已有首次状态回执后，output owner 将当前值记为 `statusSuppressed`，不伪装成已发布、不做 capability 探测，也不创建后续远端 status outbox；尚无任何回执时仍允许既有的一次首次状态提示。显式控制可通过一次普通回复给出结果，但不依赖可编辑状态。未声明静态能力的旧第三方适配器只做一次 capability 探测并缓存，探测失败也有内存退避，不把兼容逻辑放进每 1.5 秒主循环。
+4. 输出退避：outbox 持久保存 attempts 与 nextAttemptAt。发送或查证失败后指数退避，起点 5 秒、上限 15 分钟；到期前宿主循环不触网。`sending` 状态到期后先按 operation ID 查找，确认不存在且平台有幂等/可更新目标时才继续既有发送路径；无法证明安全的输出保持 unknown，不盲目重发。
+5. 事件完整性：participant 事件页返回参与者可读取的两种受众事件（participant、administrator），并携带 `coverage: participant-visible-v1`。这不扩大主题读取权限，只把参与者本来可在主题详情看到的变化纳入增量通知。
+6. 旧服务兼容：在 portal 新端点尚未部署或响应没有 coverage 标记时，官方适配最多每 15 分钟执行一次已关注主题 reconciliation；正常 30 秒扫描只读取健康检查与事件页，不再每轮按主题补扫。coverage 标记出现后立即退出兼容补扫。该 fallback 的删除条件是最低受支持 portal 版本保证 `participant-visible-v1`，届时移除旧响应兼容和对应测试。
+
+WebSocket / Durable Object 本轮不采用：一次连接可进一步减少请求，但会新增 Cloudflare 部署状态、连接恢复、DO 计费与迁移面，不能替代上述事件覆盖和退避正确性。先把 30 秒 polling 的上界降到约 5,760 次/日；旧端点兼容补扫在两个主题时额外约 384 次/日。新端点部署后请求量不随已关注主题数线性增长。若真实遥测仍需要更低延迟或更少请求，再以独立设计评估长连接，不把它塞进事故修复。
+
+### 15.3 故障边界与可观察性
+
+- `check()` 仍在采集批次和真实外部输出前验证来源身份、账号与写权限；删除的只是把动态请求当静态能力发现的重复调用。
+- 事件页成功但主题详情或审批读取失败时，不推进到错误完成状态；沿现有批次失败合同保留 checkpoint，下一次按连接节奏重试。
+- outbox 的 attempts、nextAttemptAt 与最后错误保留在 SQLite，进程重启不会重新进入 1.5 秒热循环。成功后清除错误与退避字段。
+- 当前修复可在未部署 portal 的情况下安全恢复宿主，因为旧响应进入 15 分钟 reconciliation；但完整事件覆盖只有 portal 部署后成立。本任务未经用户授权不部署 Cloudflare，不把本地验证写成线上完成。
+- status 至少展示连接配置的实际 `intervalMs`；show/outbox 保留退避字段，使后续排查能区分“等待退避”“未知输出”和“扫描失败”。不新增监控面板或通用费用预算系统。
+
+### 15.4 Active acceptance ledger 增量
+
+本节重新打开该设计 owner 的运行可靠性目标；不使已完成的 COL-001 至 COL-016 失效。
+
+| ID | Required | 可观察合同 | Status | 当前证据 / 失效原因 |
+| --- | --- | --- | --- | --- |
+| COL-017 | true | 旧的 5 秒官方连接启动时持久归一为至少 30 秒；空闲扫描成本不随已关注主题数增长，旧端点补采最多每 15 分钟一次 | passed | 冷启动隔离实例把 5,000ms 持久改为 30,000ms；正式状态同样为 30,000ms；legacy/coverage 两种适配测试通过 |
+| COL-018 | true | 官方不可编辑状态不触发 capability 热循环；输出失败持久退避，丢响应恢复先查 operation ID 且不重复发送 | passed | 状态差异连续 publish 零 capability 请求；outbox 记录 attempts/nextAttemptAt，立即重复 publish 不触网，到期先 findReply；真实旧错误已清除并保留真实 statusPublished/statusSuppressed |
+| COL-019 | true | participant 事件页覆盖参与者可读取更新并显式声明 coverage；新端点下不需要逐主题补扫 | code-passed-deploy-pending | portal 组装 HTTP 测试同时返回 participant/administrator 与 coverage；official adapter coverage 跳过补扫。Cloudflare 未获部署授权，生产暂走 15 分钟兼容补采 |
+| COL-020 | true | 修复后的本地宿主恢复运行，原连接、游标、绑定和上下文保留；状态可见真实扫描间隔与失败 | passed | 本机 0.1.4 覆盖三个实际包入口；正式 PID 42559，webhook connected；官方 lastScan 01:24:48 → 01:25:19 → 01:26:24，心跳存活且无连接错误 |
+
+黄金验收：① 用 5 秒旧连接状态启动，持久状态变为 30 秒，连续空闲扫描只有固定健康检查与事件页，两个已关注主题不会每 30 秒各发详情请求；② 制造状态差异与输出网络失败，1.5 秒主循环内请求不增长，重启后仍等待 nextAttemptAt，恢复时不重复回复；③ 新事件页同时返回管理员与参与者产生的参与者可见更新，official adapter 只按事件读取对应主题，原绑定继续同一 Codex 任务。
+
+`parent_status: local-fix-complete-portal-deploy-pending`。当前生产宿主的免费请求风险已闭合；portal 新 coverage 端点已具备代码与契约证据，但未经授权未部署，不声称线上已启用。
+
+方案 Review（mode=design）：`design-review: passed`。独立核对后没有开放 finding：修复覆盖用户要求的先止血、保留状态和恢复运行；请求上界、身份检查、旧端点兼容、丢响应与线上未部署边界均有明确 owner 和可观察验收。剩余风险是旧 portal 下参与者对参与者的更新最多延迟 15 分钟，这是降低免费额度风险的显式过渡，不冒充最终实时体验；部署新端点需另有授权。
+
+实现与验证结论：shared / collaboration / portal 的 tsc 通过；三包 lint 零错误，最终 collaboration lint 零 warning；collaboration 26 项、portal support/release 16 项通过；隔离冷启动与正式本机实例均消费当前构建。implementation review 首轮发现“被抑制状态冒充已发布”和人工恢复未清退避两个问题，返工后 `statusSuppressed` 与恢复字段语义分离；真实运行再发现并修复历史 capability error 未清理。最终 diff-only maintainability 复核无阻塞 finding，既有两个大文件仅接近预算，没有为消除提示新增无收益模块。`implementation-review: passed`。

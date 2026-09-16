@@ -9,6 +9,7 @@ import type { CollaborationStore } from "../stores/collaboration.store.js";
 import { digest } from "./identity.utils.js";
 import { OfficialSource } from "../services/official-source.service.js";
 import { CodexConsumer } from "../services/codex-consumer.service.js";
+import { applyMinimumPollInterval } from "./source-registry.utils.js";
 
 export async function migrateDiscussion(
   store: CollaborationStore,
@@ -93,7 +94,9 @@ export async function migrateDiscussion(
     maxAgentHops: 4,
     maxRunsPerHour: 12,
   };
-  await new OfficialSource(connection).check();
+  const source = new OfficialSource(connection);
+  applyMinimumPollInterval(connection, source);
+  await source.check();
   // Disable the old configuration before the transaction: a crash cannot revive two listeners.
   retireLegacyConfig(legacyRoot);
   store.transaction(() => {

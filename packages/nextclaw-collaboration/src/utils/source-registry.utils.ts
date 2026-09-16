@@ -35,3 +35,18 @@ export async function loadSource(
     throw new Error("Adapter ID does not match installed module");
   return source;
 }
+
+export function applyMinimumPollInterval(
+  connection: Connection,
+  source: SourceAdapter,
+): boolean {
+  const minimum = source.minimumPollIntervalMs;
+  if (
+    connection.intervalMs <= 0 ||
+    minimum === undefined ||
+    connection.intervalMs >= minimum
+  )
+    return false;
+  connection.intervalMs = minimum;
+  return true;
+}

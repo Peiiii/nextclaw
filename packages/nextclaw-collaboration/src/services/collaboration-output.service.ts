@@ -10,6 +10,11 @@ import { digest, signMessage } from "../utils/identity.utils.js";
 
 /** Owns durable platform output and the single editable status receipt. */
 export class CollaborationOutputService {
+  private readonly editableStatus = new Map<string, boolean>();
+  private readonly capabilityRetries = new Map<
+    string,
+    { attempts: number; nextAttemptAt: number }
+  >();
   constructor(
     private readonly store: CollaborationStore,
     private readonly sources: Map<string, SourceAdapter>,
@@ -31,6 +36,13 @@ export class CollaborationOutputService {
   publish = async (): Promise<void> => {
     for (const context of this.store.list<ContextState>("context")) {
       if (context.status === context.statusPublished) continue;
+      if (context.status === context.statusSuppressed) {
+        if (context.error) {
+          context.error = undefined;
+          this.saveContext(context);
+        }
+        continue;
+      }
       if (
         this.store
           .list<OutboxEntry>("outbox")
@@ -49,8 +61,17 @@ export class CollaborationOutputService {
           this.saveContext(context);
           continue;
         }
-        const check = await source.check();
-        if (!check.editableStatus && context.statusMessageId) continue;
+        const editableStatus = await this.resolveEditableStatus(
+          context.connectionId,
+          source,
+        );
+        if (editableStatus === undefined) continue;
+        if (!editableStatus && context.statusMessageId) {
+          context.statusSuppressed = context.status;
+          context.error = undefined;
+          this.saveContext(context);
+          continue;
+        }
         const body = `${context.status}\n\nAgent: ${context.agentId}${context.threadId ? `\nCodex 任务：\`${context.threadId}\`` : ""}\n控制：\`/agent status\` · \`/agent pause\` · \`/agent resume\` · \`/agent cancel\``;
         this.enqueue(
           context,
@@ -67,7 +88,11 @@ export class CollaborationOutputService {
     }
     const outputs = this.store
       .list<OutboxEntry>("outbox")
-      .filter((e) => e.state === "pending" || e.state === "sending");
+      .filter(
+        (e) =>
+          (e.state === "pending" || e.state === "sending") &&
+          (!e.nextAttemptAt || Date.parse(e.nextAttemptAt) <= Date.now()),
+      );
     outputs.sort(
       (a, b) =>
         Number(b.operation.purpose === "status") -
@@ -142,24 +167,11 @@ export class CollaborationOutputService {
           "Output identity/permission changed; reconnect before replying",
         );
       await this.sendOutput(source, entry);
-      if (entry.state === "sent" && entry.messageId) {
-        context.error = undefined;
-        entry.error = undefined;
-        this.store.put(
-          "own-output",
-          `${context.connectionId}:${entry.messageId}`,
-          { operationId: entry.id },
-        );
-        if (entry.operation.purpose === "reply")
-          context.status = "已完成，结果已回复";
-        else if (entry.id.startsWith("status:")) {
-          context.statusMessageId = entry.messageId;
-          context.statusPublished = entry.statusValue;
-        }
-      }
+      if (entry.state === "sent" && entry.messageId)
+        this.recordDelivered(context, entry, entry.messageId);
       if (entry.state === "unknown") context.status = "回复是否发送成功待核实";
     } catch (error) {
-      entry.error = errorMessage(error);
+      this.defer(entry, error);
     }
     this.store.put("outbox", entry.id, entry);
     this.saveContext(context);
@@ -193,11 +205,66 @@ export class CollaborationOutputService {
   private saveContext = (context: ContextState): void => {
     this.store.putContext(context);
   };
+  private recordDelivered = (
+    context: ContextState,
+    entry: OutboxEntry,
+    messageId: string,
+  ): void => {
+    const { connectionId } = context;
+    Object.assign(context, { error: undefined });
+    entry.error = undefined;
+    entry.attempts = undefined;
+    entry.nextAttemptAt = undefined;
+    this.store.put("own-output", `${connectionId}:${messageId}`, {
+      operationId: entry.id,
+    });
+    if (entry.operation.purpose === "reply")
+      Object.assign(context, { status: "已完成，结果已回复" });
+    else
+      Object.assign(context, {
+        statusMessageId: messageId,
+        statusPublished: entry.statusValue,
+        statusSuppressed: undefined,
+      });
+  };
+  private defer = (entry: OutboxEntry, error: unknown): void => {
+    entry.error = errorMessage(error);
+    entry.attempts = (entry.attempts || 0) + 1;
+    entry.nextAttemptAt = new Date(
+      Date.now() + retryDelay(entry.attempts),
+    ).toISOString();
+  };
+  private resolveEditableStatus = async (
+    id: string,
+    source: SourceAdapter,
+  ): Promise<boolean | undefined> => {
+    if (source.editableStatus !== undefined) return source.editableStatus;
+    const cached = this.editableStatus.get(id);
+    if (cached !== undefined) return cached;
+    const retry = this.capabilityRetries.get(id);
+    if (retry && retry.nextAttemptAt > Date.now()) return undefined;
+    try {
+      const editableStatus = (await source.check()).editableStatus;
+      this.editableStatus.set(id, editableStatus);
+      this.capabilityRetries.delete(id);
+      return editableStatus;
+    } catch (error) {
+      const attempts = (retry?.attempts || 0) + 1;
+      this.capabilityRetries.set(id, {
+        attempts,
+        nextAttemptAt: Date.now() + retryDelay(attempts),
+      });
+      throw error;
+    }
+  };
   private source = (id: string): SourceAdapter => {
     const source = this.sources.get(id);
     if (!source) throw new Error(`Source ${id} is not loaded`);
     return source;
   };
+}
+function retryDelay(attempts: number): number {
+  return Math.min(5_000 * 2 ** Math.min(attempts - 1, 8), 15 * 60_000);
 }
 function errorMessage(error: unknown): string {
   return (error instanceof Error ? error.message : String(error)).slice(0, 500);

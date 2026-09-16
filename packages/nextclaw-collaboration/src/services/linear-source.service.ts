@@ -35,6 +35,7 @@ const issueFields =
   "id identifier title description url updatedAt creator { id } state { type } labels { nodes { name } }";
 export class LinearSource implements SourceAdapter {
   readonly id = "linear";
+  readonly editableStatus = true;
   private checked?: { at: number; value: SourceCheck };
   constructor(private readonly connection: Connection) {}
   check = async (): Promise<SourceCheck> => {

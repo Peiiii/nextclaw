@@ -27,8 +27,11 @@ type View = {
 };
 export class OfficialSource implements SourceAdapter {
   private readonly dispatcher = new EnvHttpProxyAgent();
+  private lastLegacyReconciliationAt = 0;
   readonly id = "official";
   readonly maxMessageChars = 4000;
+  readonly editableStatus = false;
+  readonly minimumPollIntervalMs = 30_000;
   constructor(private readonly connection: Connection) {
     const url = new URL(connection.options.endpoint);
     if (
@@ -63,14 +66,31 @@ export class OfficialSource implements SourceAdapter {
         createdAt: string;
       }>;
       nextCursor: number;
+      coverage?: "participant-visible-v1";
     }>(`/api/discussions/participant/events?after=${Number(checkpoint || 0)}`);
     const events: CollaborationEvent[] = [];
+    const views = new Map<string, Promise<View>>();
+    const approvals = new Map<string, Promise<boolean>>();
+    const viewFor = (subject: string): Promise<View> => {
+      const existing = views.get(subject);
+      if (existing) return existing;
+      const pending = this.view(subject);
+      views.set(subject, pending);
+      return pending;
+    };
+    const approvedFor = (subject: string): Promise<boolean> => {
+      const existing = approvals.get(subject);
+      if (existing) return existing;
+      const pending = this.approved(subject);
+      approvals.set(subject, pending);
+      return pending;
+    };
     for (const event of page.items) {
       if (event.createdAt < since) continue;
-      const view = await this.view(event.threadId);
+      const view = await viewFor(event.threadId);
       if (
         view.thread.space === "support" &&
-        !(await this.approved(event.threadId))
+        !(await approvedFor(event.threadId))
       )
         continue;
       const post =
@@ -96,33 +116,40 @@ export class OfficialSource implements SourceAdapter {
         },
       });
     }
-    // The legacy event stream targets the opposite role, so participant-to-participant
-    // messages must be collected from already-followed conversations as well.
-    for (const subject of subjects) {
-      const view = await this.view(subject);
-      if (view.thread.space === "support" && !(await this.approved(subject)))
-        continue;
-      for (const post of view.posts) {
-        if (
-          post.createdAt < since ||
-          !post.body.includes("<!-- nextclaw-collaboration:")
-        )
+    // Old portal versions omit participant-authored events. Reconcile them slowly
+    // until the event response explicitly guarantees participant-visible coverage.
+    const reconcileLegacy =
+      page.coverage !== "participant-visible-v1" &&
+      subjects.length > 0 &&
+      Date.now() - this.lastLegacyReconciliationAt >= 15 * 60_000;
+    if (reconcileLegacy) {
+      this.lastLegacyReconciliationAt = Date.now();
+      for (const subject of subjects) {
+        const view = await viewFor(subject);
+        if (view.thread.space === "support" && !(await approvedFor(subject)))
           continue;
-        events.push({
-          specversion: "1.0",
-          source: this.connection.source,
-          subject,
-          id: `official-post:${post.id}`,
-          type: "official.signed-message",
-          time: post.createdAt,
-          data: {
-            resourceId: post.id,
-            body: post.body,
-            actor: { account: post.author.id },
-            change: "message",
-            invited: true,
-          },
-        });
+        for (const post of view.posts) {
+          if (
+            post.createdAt < since ||
+            !post.body.includes("<!-- nextclaw-collaboration:")
+          )
+            continue;
+          events.push({
+            specversion: "1.0",
+            source: this.connection.source,
+            subject,
+            id: `official-post:${post.id}`,
+            type: "official.signed-message",
+            time: post.createdAt,
+            data: {
+              resourceId: post.id,
+              body: post.body,
+              actor: { account: post.author.id },
+              change: "message",
+              invited: true,
+            },
+          });
+        }
       }
     }
     return { events, checkpoint: String(page.nextCursor) };

@@ -60,8 +60,8 @@ export class DiscussionService {
   list = async (space: string, before: number): Promise<DiscussionThreadPage> =>
     this.repository.list(space, before);
 
-  events = async (after: number, spaces: string[], audienceRole: string): Promise<DiscussionEventPage> =>
-    this.repository.events(after, spaces, audienceRole);
+  events = async (after: number, spaces: string[], audienceRoles: string[]): Promise<DiscussionEventPage> =>
+    this.repository.events(after, spaces, audienceRoles);
 
   private requireThread = async (id: string): Promise<DiscussionThreadView> => {
     const value = await this.repository.get(id);

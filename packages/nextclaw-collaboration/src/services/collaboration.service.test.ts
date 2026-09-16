@@ -60,6 +60,7 @@ function fixture() {
   let quiet = false;
   const source: SourceAdapter = {
     id: "test",
+    editableStatus: true,
     check: async () => ({
       source: "urn:test",
       account: "shared",
@@ -256,6 +257,11 @@ describe("durable collaboration contract", () => {
         .list<OutboxEntry>("outbox")
         .find((e) => e.operation.purpose === "reply")?.state,
     ).toBe("pending");
+    expect(
+      f.store
+        .list<OutboxEntry>("outbox")
+        .find((e) => e.operation.purpose === "reply")?.nextAttemptAt,
+    ).toBeTruthy();
   });
   it("keeps the full local result when a platform requires a shorter signed reply", async () => {
     const f = fixture();
@@ -461,6 +467,20 @@ describe("execution recovery and control", () => {
     await f.service.advance();
     f.lose();
     await f.service.publish();
+    const delayed = f.store
+      .list<OutboxEntry>("outbox")
+      .find((e) => e.operation.purpose === "reply")!;
+    expect(delayed.state).toBe("sending");
+    expect(delayed.attempts).toBe(1);
+    expect(Date.parse(delayed.nextAttemptAt!)).toBeGreaterThan(Date.now());
+    await f.service.publish();
+    expect(
+      f.store
+        .list<OutboxEntry>("outbox")
+        .find((e) => e.operation.purpose === "reply")?.state,
+    ).toBe("sending");
+    delayed.nextAttemptAt = "1970-01-01T00:00:00.000Z";
+    f.store.put("outbox", delayed.id, delayed);
     await f.service.publish();
     expect(f.messages.filter((m) => m.body.includes("Result"))).toHaveLength(1);
     expect(
@@ -468,6 +488,65 @@ describe("execution recovery and control", () => {
         .list<OutboxEntry>("outbox")
         .filter((e) => e.operation.purpose === "reply")[0].state,
     ).toBe("sent");
+  });
+  it("converges non-editable status locally without a capability request loop", async () => {
+    const f = fixture();
+    let checks = 0;
+    Object.assign(f.source, {
+      editableStatus: false,
+      check: async () => {
+        checks++;
+        throw new Error("offline");
+      },
+    });
+    const context: ContextState = {
+      key: "existing-context",
+      connectionId: f.connection.id,
+      source: f.connection.source,
+      subject: "ticket",
+      agentId: f.agent.id,
+      title: "Test",
+      url: "https://example.com/test",
+      paused: false,
+      status: "已完成，结果已回复",
+      statusPublished: "回复是否发送成功待核实",
+      statusMessageId: "existing-status",
+      error: "fetch failed",
+    };
+    f.store.put("context", context.key, context);
+    await f.service.publish();
+    await f.service.publish();
+    expect(checks).toBe(0);
+    const saved = f.store.get<ContextState>("context", context.key);
+    expect(saved?.statusPublished).toBe("回复是否发送成功待核实");
+    expect(saved?.statusSuppressed).toBe(context.status);
+    expect(saved?.error).toBeUndefined();
+  });
+  it("backs off legacy capability discovery failures", async () => {
+    const f = fixture();
+    let checks = 0;
+    delete (f.source as { editableStatus?: boolean }).editableStatus;
+    f.source.check = async () => {
+      checks++;
+      throw new Error("offline");
+    };
+    const context: ContextState = {
+      key: "legacy-context",
+      connectionId: f.connection.id,
+      source: f.connection.source,
+      subject: "ticket",
+      agentId: f.agent.id,
+      title: "Test",
+      url: "https://example.com/test",
+      paused: false,
+      status: "working",
+      statusPublished: "queued",
+    };
+    f.store.put("context", context.key, context);
+    await f.service.publish();
+    await f.service.publish();
+    expect(checks).toBe(1);
+    expect(f.store.get<ContextState>("context", context.key)?.error).toBe("offline");
   });
   it("recovers accepted runs across coordinator restart, never blindly resubmits unknown work", async () => {
     const f = fixture();

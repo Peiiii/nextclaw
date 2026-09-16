@@ -9,7 +9,10 @@ import type {
 } from "../types/collaboration.types.js";
 import type { CliContext } from "../types/cli.types.js";
 import { createIdentity } from "../utils/identity.utils.js";
-import { loadSource } from "../utils/source-registry.utils.js";
+import {
+  applyMinimumPollInterval,
+  loadSource,
+} from "../utils/source-registry.utils.js";
 import { migrateDiscussion } from "../utils/migration.utils.js";
 const print = (value: unknown) => console.log(JSON.stringify(value, null, 2));
 export function registerConnectionCommands(
@@ -125,6 +128,7 @@ export function registerConnectionCommands(
           maxRunsPerHour: 12,
         };
         const source = await loadSource(connection);
+        applyMinimumPollInterval(connection, source);
         const check = await source.check();
         if (source.reply && !check.writable)
           throw new Error("Account lacks the required write permission");

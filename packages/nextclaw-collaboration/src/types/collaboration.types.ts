@@ -60,6 +60,8 @@ export type OutputOperation = {
 export interface SourceAdapter {
   readonly id: string;
   readonly maxMessageChars?: number;
+  readonly editableStatus?: boolean;
+  readonly minimumPollIntervalMs?: number;
   check(): Promise<SourceCheck>;
   collect(
     checkpoint: string | undefined,
@@ -111,6 +113,7 @@ export type ContextState = {
   statusVersion?: number;
   statusMessageId?: string;
   statusPublished?: string;
+  statusSuppressed?: string;
   error?: string;
 };
 export type Execution = {
@@ -170,5 +173,7 @@ export type OutboxEntry = {
   statusValue?: string;
   messageId?: string;
   error?: string;
+  attempts?: number;
+  nextAttemptAt?: string;
 };
 export type SourceFactory = (connection: Connection) => SourceAdapter;

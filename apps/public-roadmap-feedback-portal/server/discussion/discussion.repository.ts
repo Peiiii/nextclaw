@@ -63,17 +63,18 @@ export class DiscussionRepository {
     return { items, nextCursor: result.results.length > limit ? items.at(-1)!.lastEventCursor : null };
   };
 
-  events = async (after: number, spaces: string[], audienceRole: string, limit = 100): Promise<DiscussionEventPage> => {
-    if (!spaces.length) return { items: [], nextCursor: after };
-    const placeholders = spaces.map(() => "?").join(",");
+  events = async (after: number, spaces: string[], audienceRoles: string[], limit = 100): Promise<DiscussionEventPage> => {
+    if (!spaces.length || !audienceRoles.length) return { items: [], nextCursor: after };
+    const spacePlaceholders = spaces.map(() => "?").join(",");
+    const audiencePlaceholders = audienceRoles.map(() => "?").join(",");
     const result = await this.db.prepare(`SELECT e.* FROM discussion_events e
       JOIN discussion_threads t ON t.id=e.thread_id
-      WHERE e.cursor>? AND e.audience_role=? AND t.space IN (${placeholders})
-      ORDER BY e.cursor LIMIT ?`).bind(after, audienceRole, ...spaces, limit + 1).all<EventRow>();
+      WHERE e.cursor>? AND e.audience_role IN (${audiencePlaceholders}) AND t.space IN (${spacePlaceholders})
+      ORDER BY e.cursor LIMIT ?`).bind(after, ...audienceRoles, ...spaces, limit + 1).all<EventRow>();
     const items = result.results.slice(0, limit).map(this.event);
     if (result.results.length > limit) return { items, nextCursor: items.at(-1)!.cursor };
     const highWater = await this.db.prepare(`SELECT COALESCE(MAX(e.cursor), ?) AS cursor FROM discussion_events e
-      JOIN discussion_threads t ON t.id=e.thread_id WHERE t.space IN (${placeholders})`)
+      JOIN discussion_threads t ON t.id=e.thread_id WHERE t.space IN (${spacePlaceholders})`)
       .bind(after, ...spaces).first<{ cursor: number }>();
     return { items, nextCursor: highWater?.cursor ?? after };
   };

@@ -69,3 +69,12 @@
 - 前一批 [34746046090](https://github.com/Peiiii/nextclaw/actions/runs/34746046090) 最终 success；0.54.1/0.54.2 双语 Release 正文均已更新。最终公共用户指南已核对 presentation 配置与 reaction 说明。桌面和额外宣传仍不在本次范围。
 - 复盘：首轮用明确执行任务验证过关，遗漏用户自然测试输入与最终渲染正文；后续验收需同时核对自然输入、原消息接收反馈、原始结果到签名正文的渲染边界。显示名与项目规则不属于公共协议；已从框架常量改为接入方配置，不新增服务或包。
 - 设计 ledger 的 COL-010/COL-011/COL-015 已重新闭合。此前 78% 暂停 checkpoint 为历史记录；用户随后授权继续，当前不存在待发布修正。最终文档通过同一主线回流 owner 交接。
+
+### Cloudflare 请求预算事故修复 checkpoint（2026-09-16）
+
+- 根因不是正常用户流量：2026-09-15 Cloudflare 账户 101,976 次请求，roadmap portal Worker 88,957 次；`undici` 对 participant 列表、事件、两个主题详情和 support workflow 形成稳定机器流量。旧 listener 迁移保留 5 秒间隔，official adapter 每轮对所有绑定逐主题补扫；一次 status `fetch failed` 又让 1.5 秒宿主循环持续远端 capability 探测。Cloudflare 分时、路径/UA、本机 SQLite 状态与三段源码调用链互相印证，修复针对三条根因而非只提高套餐或改一个常量。
+- 宿主先停机止血，再以单一 source/host/output 主链落地：官方最小 30 秒并持久归一；事件批次按主题复用详情/审批请求；新 portal 事件页覆盖 participant 与 administrator 并声明 `participant-visible-v1`；旧端点每 15 分钟兼容补采；outbox 持久指数退避并在丢响应后先按 operation ID 查询；不可编辑状态用 `statusSuppressed` 记录，不冒充已发布。
+- 验证：shared、collaboration、portal 的 tsc 与 lint 通过；collaboration 26 项、portal 16 项组装 HTTP 契约测试通过；隔离冷启动把 5,000ms 改为 30,000ms。正式本机 bundle/内嵌/独立三个 collaboration 入口覆盖当前 0.1.4 构建，PID 42559 连续三个官方扫描点 01:24:48、01:25:19、01:26:24 均成功，GitHub webhook connected，原连接、七个绑定和任务 ID 保留。
+- 用户验收入口仍是 `nextclaw collaboration status` 与 `show CONTEXT_KEY`：官方连接应显示 `intervalMs: 30000`；网络输出失败时 show 出现 attempts/nextAttemptAt；不可编辑状态保留真实 statusPublished 并单列 statusSuppressed。当前正式宿主持久在线。
+- 可维护性：没有新增 quota service、第二 listener、broker 或平台专用调度器；静态能力和轮询下限归 SourceAdapter，调度归 Host，发送恢复归 Output。diff-only guard 0 errors；cli/service 两个既有大文件接近预算，仅有必要的 3/4 行增长，主观复核无 finding。重要根因与证据更新到既有迭代，不新建碎片目录，也不增加全局 Skill 规则。
+- 发布/部署：用户后续已授权将本次源码提交并合入、推送 `origin/master`；NPM publish 与 Cloudflare deploy 未获授权，均不执行，changeset 已准备。生产宿主已通过本地已验证包止血；portal 新 coverage 端点尚未部署，暂由低频兼容补采保证完整性。NPM 包发布记录：`@nextclaw/collaboration` 与 `@nextclaw/shared` 需要后续 patch 统一发布，当前为 `待统一发布`。

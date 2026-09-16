@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { OfficialSource } from "./official-source.service.js";
 import { createIdentity, signMessage } from "../utils/identity.utils.js";
 import type { Connection } from "../types/collaboration.types.js";
+import { applyMinimumPollInterval } from "../utils/source-registry.utils.js";
 
 it("adapts official operation IDs and sees signed participant messages omitted by the legacy event audience", async () => {
   const root = mkdtempSync(join(tmpdir(), "official-adapter-"));
@@ -18,6 +19,8 @@ it("adapts official operation IDs and sees signed participant messages omitted b
     author: { id: string };
     createdAt: string;
   }> = [];
+  let eventCoverage: "participant-visible-v1" | undefined;
+  let viewRequests = 0;
   const view = () => ({
     thread: {
       id: subject,
@@ -49,12 +52,14 @@ it("adapts official operation IDs and sees signed participant messages omitted b
           createdAt: new Date().toISOString(),
         });
     }
+    if (req.method === "GET" && req.url === `/api/discussions/participant/${subject}`)
+      viewRequests++;
     res.setHeader("content-type", "application/json");
     res.end(
       JSON.stringify({
         ok: true,
         data: req.url?.includes("/events?")
-          ? { items: [], nextCursor: 7 }
+          ? { items: [], nextCursor: 7, coverage: eventCoverage }
           : view(),
       }),
     );
@@ -81,6 +86,10 @@ it("adapts official operation IDs and sees signed participant messages omitted b
       maxRunsPerHour: 12,
     };
     const source = new OfficialSource(connection);
+    expect(source.editableStatus).toBe(false);
+    connection.intervalMs = 5_000;
+    expect(applyMinimumPollInterval(connection, source)).toBe(true);
+    expect(connection.intervalMs).toBe(30_000);
     const operation = {
       id: "reply:" + "x".repeat(90),
       subject,
@@ -97,9 +106,18 @@ it("adapts official operation IDs and sees signed participant messages omitted b
     expect(await source.reply(operation)).toBe(id);
     expect(await source.findReply(subject, operation.id)).toBe(id);
     expect(posts).toHaveLength(1);
+    const viewsBeforeLegacyCollection = viewRequests;
     const batch = await source.collect("6", "1970-01-01T00:00:00Z", [subject]);
     expect(batch.events.map((e) => e.id)).toEqual([`official-post:${id}`]);
     expect(batch.checkpoint).toBe("7");
+    expect(viewRequests).toBe(viewsBeforeLegacyCollection + 1);
+    await source.collect("7", "1970-01-01T00:00:00Z", [subject]);
+    expect(viewRequests).toBe(viewsBeforeLegacyCollection + 1);
+
+    eventCoverage = "participant-visible-v1";
+    const coveredSource = new OfficialSource(connection);
+    await coveredSource.collect("7", "1970-01-01T00:00:00Z", [subject]);
+    expect(viewRequests).toBe(viewsBeforeLegacyCollection + 1);
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
     rmSync(root, { recursive: true, force: true });
