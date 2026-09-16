@@ -310,24 +310,40 @@ export class PlatformAuthCommands {
   };
 
   startBrowserAuth = async (opts: Pick<LoginCommandOptions, "apiBase"> = {}): Promise<PlatformBrowserAuthStartResult> => {
-    const { platformBase, v1Base, inputApiBase } = resolveProviderConfig(opts);
-    const response = await fetch(`${platformBase}/platform/auth/browser/start`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({})
-    });
-    const raw = await response.text();
-    if (!response.ok) {
-      throw new Error(buildPlatformApiBaseErrorMessage(inputApiBase, readPlatformErrorMessage(raw, response.status)));
+    const { platformBase, v1Base, inputApiBase, platformBaseCandidates } = resolveProviderConfig(opts);
+    let lastError: Error | null = null;
+    let lastEndpoint = "";
+    for (const candidate of platformBaseCandidates) {
+      const endpoint = `${candidate}/platform/auth/browser/start`;
+      lastEndpoint = endpoint;
+      let response: Response;
+      try {
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({})
+        });
+      } catch (error) {
+        // 网络层失败（DNS/连接/代理），记录后尝试下一个候选地址。
+        lastError = error instanceof Error ? error : new Error(String(error));
+        continue;
+      }
+      const raw = await response.text();
+      if (!response.ok) {
+        throw new Error(buildPlatformApiBaseErrorMessage(inputApiBase, readPlatformErrorMessage(raw, response.status)));
+      }
+      const result = readBrowserAuthStartPayload(raw);
+      return {
+        ...result,
+        platformBase: candidate,
+        v1Base,
+      };
     }
-    const result = readBrowserAuthStartPayload(raw);
-    return {
-      ...result,
-      platformBase,
-      v1Base
-    };
+    throw new Error(
+      `Failed to reach the platform auth endpoint (${lastEndpoint})${lastError ? `: ${lastError.message}` : ""}. Check the network or configure a reachable platform API base.`,
+    );
   };
 
   pollBrowserAuth = async (params: {
