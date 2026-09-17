@@ -41,10 +41,6 @@ description: NextClaw 是一个开源、可以自己部署的 Codex / WorkBuddy�
 
 Agent 会把它做成一个小应用，直接在聊天右侧打开。
 
-比如这个唐诗卡片：左边继续和 Agent 改，右边直接翻诗、随机切换或复制。做好以后也可以固定在右侧，随时再打开。
-
-![NextClaw 左侧继续与 Agent 修改唐诗卡片，右侧运行可随时使用的小应用](/product-screenshots/nextclaw-panel-app-running-cn.png)
-
 Panel App 也可以直接承载每天都会打开的信息和工具。下面是实际使用中的豆包日报：日报、服务器监控和其他常用应用都留在同一个工作台，需要时从顶部标签或右侧应用栏直接切换。
 
 ![NextClaw 中打开豆包日报，并在顶部切换日报和服务器监控，右侧应用栏固定多个常用 Panel App](/product-screenshots/nextclaw-panel-app-daily-reader-cn.png)

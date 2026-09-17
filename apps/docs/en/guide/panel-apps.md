@@ -2,8 +2,6 @@
 
 A Panel App is a lightweight local application that runs in NextClaw's right side. Dashboards, forms, calculators, data browsers, and temporary workbenches can remain interactive instead of ending as a screenshot or static response.
 
-![A Panel App running beside a session](/product-screenshots/nextclaw-panel-app-running-en.png)
-
 ## When to use one
 
 - A data report needs filters and metric switching.

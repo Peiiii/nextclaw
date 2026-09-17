@@ -96,16 +96,10 @@ NextClaw 的使命是做好你的长期搭档。1.0 将围绕理解用户与目�
 
 专用 Agent 可以保留身份、主目录、记忆、技能和运行时。跑通的步骤可以整理成 Skill，需要外部系统时接入 MCP；如果结果适合长期操作，还可以做成留在右侧的 Panel App。
 
-<div class="nc-docs-showcase-grid">
-  <figure class="nc-docs-product-shot">
-    <img src="/product-screenshots/nextclaw-agents-page-cn.png" alt="NextClaw Agent 管理界面中的多个专业 Agent">
-    <figcaption>为不同工作准备独立 Agent。</figcaption>
-  </figure>
-  <figure class="nc-docs-product-shot">
-    <img src="/product-screenshots/nextclaw-panel-app-running-cn.png" alt="NextClaw 会话旁运行本地 Panel App">
-    <figcaption>把一次生成的页面变成可以继续使用的小应用。</figcaption>
-  </figure>
-</div>
+<figure class="nc-docs-product-shot nc-docs-product-shot--wide">
+  <img src="/product-screenshots/nextclaw-agents-page-cn.png" alt="NextClaw Agent 管理界面中的多个专业 Agent">
+  <figcaption>为不同工作准备独立 Agent。</figcaption>
+</figure>
 
 <div class="nc-docs-link-grid">
   <a class="nc-docs-link" href="/zh/guide/multi-agent"><strong>Agents</strong><span>隔离角色、目录、技能和执行环境。</span></a>

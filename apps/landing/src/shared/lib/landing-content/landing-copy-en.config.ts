@@ -140,12 +140,6 @@ export const LANDING_EN_COPY: LandingCopy = {
     'Open a small app, preview local files, render HTML, generate images, or keep references on the side while the conversation continues.',
   appSurfaceItems: [
     {
-      eyebrow: 'Panel App',
-      title: 'Run a small app while the chat stays open',
-      description: 'Use a reading card, market board, Markdown editor, or generated page directly on the side.',
-      imageSrc: '/nextclaw-panel-app-running-en.png', imageAlt: 'A running NextClaw Panel App'
-    },
-    {
       eyebrow: 'Project files',
       title: 'Manage files without leaving the preview',
       description: 'Keep the project tree beside code, Markdown, HTML, Word, Excel, and PowerPoint. Create, upload, rename, download, or add files to the conversation in place.',
