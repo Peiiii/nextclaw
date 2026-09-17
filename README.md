@@ -109,8 +109,6 @@ Open code, Markdown, HTML, Word, Excel, and PowerPoint without losing the task t
 
 Build a page with an Agent, run it beside the conversation, and keep it as a Panel App you can open and improve later.
 
-[![A Panel App running beside a NextClaw conversation](images/screenshots/nextclaw-panel-app-running-en.png)](images/screenshots/nextclaw-panel-app-running-en.png)
-
 ### More of the workspace
 
 <table>

@@ -138,12 +138,6 @@ export const LANDING_ZH_COPY: LandingCopy = {
   appSurfaceSubtitle: '做网页、看源码、查资料、生成图片或打开自己的小工具时，右侧工作区会和当前会话一起留着。',
   appSurfaceItems: [
     {
-      eyebrow: '面板应用',
-      title: '小工具可以边聊边用',
-      description: '阅读卡片、行情看板、Markdown 编辑器或临时做出来的页面，可以直接放在右侧运行。',
-      imageSrc: '/nextclaw-panel-app-running-cn.png', imageAlt: '正在运行的 NextClaw 面板应用'
-    },
-    {
       eyebrow: '项目文件',
       title: '目录和预览同时留在工作区',
       description: '项目目录可以和代码、Markdown、HTML、Word、Excel、PowerPoint 预览同时打开，并就地新建、上传、重命名、下载或添加到聊天。',

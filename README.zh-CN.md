@@ -107,8 +107,6 @@ Agent 保留自己的身份、主目录、记忆和技能，再由 Native、Code
 
 和 Agent 边聊边做页面，完成后可以直接运行，也可以保存为 Panel App，以后随时打开和继续修改。
 
-[![NextClaw 会话右侧运行 Agent 制作的唐诗卡片应用](images/screenshots/nextclaw-panel-app-running-cn.png)](images/screenshots/nextclaw-panel-app-running-cn.png)
-
 ### 工作台里的更多界面
 
 <table>

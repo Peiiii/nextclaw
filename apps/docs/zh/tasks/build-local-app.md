@@ -25,8 +25,6 @@
 
 把代码放在独立目录，说明启动方式。页面或 HTML 结果可以在右侧预览；需要查看源码时切换到对应文件。
 
-![左侧继续与 Agent 修改，右侧直接运行 Panel App](/product-screenshots/nextclaw-panel-app-running-cn.png)
-
 ### 3. 用真实样例测试
 
 至少测试正常文件、空文件、字段不一致和重复文件。不要只看页面是否打开。

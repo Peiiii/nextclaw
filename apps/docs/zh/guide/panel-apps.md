@@ -2,8 +2,6 @@
 
 Panel App 是在 NextClaw 右侧使用的轻量本地应用。它适合承载仪表盘、表单、计算器、数据浏览器和临时工作台，让一次任务生成的结果可以继续操作，而不只是留下一张图或一份静态文件。
 
-![会话旁运行的 Panel App](/product-screenshots/nextclaw-panel-app-running-cn.png)
-
 ## 什么时候使用
 
 - 数据报告需要筛选、切换指标或查看详情。

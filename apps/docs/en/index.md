@@ -73,16 +73,10 @@ Scheduled tasks, background agents, and long-running monitors can place reports 
 
 Dedicated agents can keep an identity, home directory, memory, skills, and runtime. Package proven work as a skill, connect external tools through MCP, or keep an interactive result as a Panel App.
 
-<div class="nc-docs-showcase-grid">
-  <figure class="nc-docs-product-shot">
-    <img src="/product-screenshots/nextclaw-agents-page-en.png" alt="Multiple dedicated agents in the NextClaw agent management page">
-    <figcaption>Give different work its own agent.</figcaption>
-  </figure>
-  <figure class="nc-docs-product-shot">
-    <img src="/product-screenshots/nextclaw-panel-app-running-en.png" alt="A local Panel App running beside a NextClaw session">
-    <figcaption>Keep a generated page as an app you can continue using.</figcaption>
-  </figure>
-</div>
+<figure class="nc-docs-product-shot nc-docs-product-shot--wide">
+  <img src="/product-screenshots/nextclaw-agents-page-en.png" alt="Multiple dedicated agents in the NextClaw agent management page">
+  <figcaption>Give different work its own agent.</figcaption>
+</figure>
 
 <div class="nc-docs-link-grid">
   <a class="nc-docs-link" href="/en/guide/multi-agent"><strong>Agents</strong><span>Separate roles, directories, skills, and runtimes.</span></a>
