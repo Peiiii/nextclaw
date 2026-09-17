@@ -719,6 +719,9 @@ jobs:
           git -C .tmp/gh-pages config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ${GH_PAGES_AUTH_HEADER}"
 
       - name: Stage desktop update channel files
+        env:
+          DESKTOP_RELEASE_TAG: ${{ inputs.release_tag }}
+          DESKTOP_UPDATE_CHANNEL: ${{ contains(inputs.release_tag, 'desktop-beta') && 'beta' || 'stable' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -741,6 +744,13 @@ jobs:
             cp "dist/desktop-release/update-bundle-public.pem" ".tmp/gh-pages/desktop-updates/update-bundle-public.pem"
           fi
 
+          if [ "$DESKTOP_UPDATE_CHANNEL" = "stable" ]; then
+            node .tmp/publisher/scripts/release/desktop-download-metadata.mjs \
+              --tag "$DESKTOP_RELEASE_TAG" \
+              --desktop-package apps/desktop/package.json \
+              --output .tmp/gh-pages/desktop-downloads/stable.json
+          fi
+
           touch .tmp/gh-pages/.nojekyll
 
       - name: Publish desktop update channels to gh-pages
@@ -751,6 +761,9 @@ jobs:
           git -C .tmp/gh-pages config user.name "github-actions[bot]"
           git -C .tmp/gh-pages config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git -C .tmp/gh-pages add desktop-updates .nojekyll
+          if [ -f ".tmp/gh-pages/desktop-downloads/stable.json" ]; then
+            git -C .tmp/gh-pages add desktop-downloads/stable.json
+          fi
           if git -C .tmp/gh-pages diff --cached --quiet; then
             echo "No desktop update channel changes to publish."
             exit 0

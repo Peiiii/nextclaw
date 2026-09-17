@@ -183,7 +183,7 @@
     "release": "pnpm changeset && pnpm release:version && pnpm release:publish",
     "docker:start": "bash scripts/dev/docker-start.sh",
     "docker:stop": "docker compose -p nextclaw-docker -f docker/compose.yml down",
-    "deploy:landing": "pnpm --filter @nextclaw/landing build && pnpm dlx wrangler pages deploy apps/landing/dist --project-name nextclaw-landing --branch master",
+    "deploy:landing": "pnpm --filter @nextclaw/landing build && cd apps/landing && pnpm dlx wrangler pages deploy dist --project-name nextclaw-landing --branch master",
     "deploy:docs": "gh workflow run docs-deploy.yml --ref master",
     "deploy:docs:verify": "node scripts/deploy/docs/verify-docs-deployment.mjs",
     "deploy:platform:console": "pnpm -C apps/platform-console build && pnpm dlx wrangler pages deploy apps/platform-console/dist --project-name nextclaw-platform-console --branch master --commit-dirty=true",

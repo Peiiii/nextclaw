@@ -8,11 +8,13 @@ export type DesktopReleaseInfo = {
   windowsPortableZipUrl: string | null;
 };
 
-const STABLE_DESKTOP_RELEASE_TAG = 'v0.39.0-desktop.1';
-const STABLE_DESKTOP_VERSION = '0.0.255';
+const STABLE_DESKTOP_RELEASE_TAG = 'v0.57.0-desktop.1';
+const STABLE_DESKTOP_VERSION = '0.0.296';
 const STABLE_DESKTOP_RELEASE_URL = `https://github.com/Peiiii/nextclaw/releases/tag/${STABLE_DESKTOP_RELEASE_TAG}`;
 const STABLE_DESKTOP_ASSET_BASE_URL = `https://github.com/Peiiii/nextclaw/releases/download/${STABLE_DESKTOP_RELEASE_TAG}`;
-const STABLE_DESKTOP_RELEASE_TAG_PATTERN = /^(?:v\d+\.\d+\.\d+-desktop\.\d+|nextclaw@\d+\.\d+\.\d+)$/;
+const STABLE_DESKTOP_RELEASE_METADATA_URL = '/api/desktop-release';
+const STABLE_DESKTOP_RELEASE_TAG_PATTERN = /^v\d+\.\d+\.\d+-desktop\.\d+$/;
+const DESKTOP_VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
 export const DESKTOP_RELEASE_FALLBACK: DesktopReleaseInfo = {
   tag: STABLE_DESKTOP_RELEASE_TAG,
@@ -27,20 +29,9 @@ export const DESKTOP_RELEASE_FALLBACK: DesktopReleaseInfo = {
   windowsPortableZipUrl: `${STABLE_DESKTOP_ASSET_BASE_URL}/NextClaw-Portable-${STABLE_DESKTOP_VERSION}-win-x64.zip`
 };
 
-const GITHUB_RELEASES_API = 'https://api.github.com/repos/Peiiii/nextclaw/releases?per_page=20';
-
-const DESKTOP_ASSET_PATTERNS: Record<DownloadAssetKey, RegExp> = {
-  macArm64Dmg: /NextClaw\.Desktop-(\d+\.\d+\.\d+)-arm64\.dmg$/,
-  macX64Dmg: /NextClaw\.Desktop-(\d+\.\d+\.\d+)(?:-x64)?\.dmg$/,
-  windowsX64Installer: /NextClaw\.Desktop-Setup-(\d+\.\d+\.\d+)-x64\.exe$/,
-  linuxX64AppImage: /NextClaw(?:\.Desktop| Desktop)-(\d+\.\d+\.\d+)(?:-linux-x64)?\.AppImage$/i
-};
-
-const WINDOWS_PORTABLE_ZIP_PATTERN = /NextClaw-Portable-(\d+\.\d+\.\d+)-win-x64\.zip$/;
-
-function inferDesktopVersionFromAssetName(assetName: string): string | null {
-  const match = assetName.match(DESKTOP_ASSET_PATTERNS.macArm64Dmg) ?? assetName.match(DESKTOP_ASSET_PATTERNS.macX64Dmg);
-  return match?.[1] ?? null;
+function readRequiredString(record: Record<string, unknown>, key: string): string | null {
+  const value = record[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 function resolveDesktopReleaseInfo(input: unknown): DesktopReleaseInfo | null {
@@ -48,66 +39,49 @@ function resolveDesktopReleaseInfo(input: unknown): DesktopReleaseInfo | null {
     return null;
   }
 
-  const release = input as {
-    draft?: boolean;
-    prerelease?: boolean;
-    tag_name?: string;
-    html_url?: string;
-    assets?: Array<{ name?: string; browser_download_url?: string }>;
-  };
-
-  if (release.draft || release.prerelease) {
+  const release = input as Record<string, unknown>;
+  const tag = readRequiredString(release, 'tag');
+  const version = readRequiredString(release, 'version');
+  const url = readRequiredString(release, 'url');
+  if (!tag || !STABLE_DESKTOP_RELEASE_TAG_PATTERN.test(tag) || !version || !DESKTOP_VERSION_PATTERN.test(version) || !url) {
     return null;
   }
 
-  if (typeof release.tag_name !== 'string' || !STABLE_DESKTOP_RELEASE_TAG_PATTERN.test(release.tag_name)) {
+  if (!release.assets || typeof release.assets !== 'object' || Array.isArray(release.assets)) {
+    return null;
+  }
+  const assets = release.assets as Record<string, unknown>;
+  const macArm64Dmg = readRequiredString(assets, 'macArm64Dmg');
+  const macX64Dmg = readRequiredString(assets, 'macX64Dmg');
+  const windowsX64Installer = readRequiredString(assets, 'windowsX64Installer');
+  const linuxX64AppImage = readRequiredString(assets, 'linuxX64AppImage');
+
+  if (!macArm64Dmg || !macX64Dmg || !windowsX64Installer || !linuxX64AppImage) {
     return null;
   }
 
-  const assets = Array.isArray(release.assets) ? release.assets : [];
-  const macArmAsset = assets.find((item) => typeof item.name === 'string' && DESKTOP_ASSET_PATTERNS.macArm64Dmg.test(item.name));
-  const macX64Asset = assets.find((item) => typeof item.name === 'string' && DESKTOP_ASSET_PATTERNS.macX64Dmg.test(item.name));
-  const windowsInstallerAsset = assets.find(
-    (item) => typeof item.name === 'string' && DESKTOP_ASSET_PATTERNS.windowsX64Installer.test(item.name)
-  );
-  const windowsPortableZipAsset = assets.find(
-    (item) => typeof item.name === 'string' && WINDOWS_PORTABLE_ZIP_PATTERN.test(item.name)
-  );
-  const linuxAsset = assets.find(
-    (item) => typeof item.name === 'string' && DESKTOP_ASSET_PATTERNS.linuxX64AppImage.test(item.name)
-  );
-
-  if (
-    !macArmAsset?.browser_download_url ||
-    !macX64Asset?.browser_download_url ||
-    (!windowsInstallerAsset?.browser_download_url && !windowsPortableZipAsset?.browser_download_url) ||
-    !linuxAsset?.browser_download_url ||
-    !macArmAsset.name
-  ) {
-    return null;
-  }
-
-  const version = inferDesktopVersionFromAssetName(macArmAsset.name) ?? DESKTOP_RELEASE_FALLBACK.version;
+  const windowsPortableZipUrl =
+    release.windowsPortableZipUrl === null ? null : readRequiredString(release, 'windowsPortableZipUrl');
 
   return {
-    tag: release.tag_name,
+    tag,
     version,
-    url: release.html_url ?? `https://github.com/Peiiii/nextclaw/releases/tag/${release.tag_name}`,
+    url,
     assets: {
-      macArm64Dmg: macArmAsset.browser_download_url,
-      macX64Dmg: macX64Asset.browser_download_url,
-      windowsX64Installer: windowsInstallerAsset?.browser_download_url ?? windowsPortableZipAsset?.browser_download_url ?? '',
-      linuxX64AppImage: linuxAsset.browser_download_url
+      macArm64Dmg,
+      macX64Dmg,
+      windowsX64Installer,
+      linuxX64AppImage
     },
-    windowsPortableZipUrl: windowsPortableZipAsset?.browser_download_url ?? null
+    windowsPortableZipUrl
   };
 }
 
 export async function fetchLatestStableDesktopRelease(): Promise<DesktopReleaseInfo | null> {
   try {
-    const response = await fetch(GITHUB_RELEASES_API, {
+    const response = await fetch(STABLE_DESKTOP_RELEASE_METADATA_URL, {
       headers: {
-        Accept: 'application/vnd.github+json'
+        Accept: 'application/json'
       }
     });
 
@@ -115,17 +89,7 @@ export async function fetchLatestStableDesktopRelease(): Promise<DesktopReleaseI
       return null;
     }
 
-    const releases: unknown = await response.json();
-    if (!Array.isArray(releases)) {
-      return null;
-    }
-
-    for (const candidate of releases) {
-      const resolved = resolveDesktopReleaseInfo(candidate);
-      if (resolved) {
-        return resolved;
-      }
-    }
+    return resolveDesktopReleaseInfo(await response.json());
   } catch (error) {
     console.warn('Failed to fetch desktop release metadata', error);
   }
