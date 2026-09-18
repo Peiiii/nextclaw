@@ -40,6 +40,8 @@ Built-in providers use an explicit capability allowlist: **Fetch model list** an
 
 Open the model selector in the chat input. Favorites and recently used models appear first; remaining models are grouped by provider. Provider groups show model names, while favorites and recent entries retain the provider name to distinguish models with matching names.
 
+When you start a new conversation, NextClaw prefers the model and corresponding thinking level from the most recent conversation using the same agent runtime. It restores them as one preference. If that model is no longer available, NextClaw selects an available model and uses that model's own default thinking level instead of carrying over a level from another model.
+
 ## Discover newly available models automatically
 
 After NextClaw starts, it reads the catalogs of enabled providers and refreshes them every 12 hours. Automatic refresh only updates an in-memory snapshot of upstream facts. It never adds, removes, reorders, or switches configured models on its own.

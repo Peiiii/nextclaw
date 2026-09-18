@@ -12,7 +12,7 @@ import {
   filterNcpChatModelOptionsBySessionType,
 } from '@/features/chat/features/ncp/utils/ncp-chat-query-derived.utils';
 import { adaptNcpSessionSummaries } from '@/features/chat/features/session/utils/ncp-session-adapter.utils';
-import { resolveRecentSessionPreferredValue } from '@/features/chat/features/session/utils/chat-session-preference-governance.utils';
+import { resolveRecentSessionPreferenceSnapshot } from '@/features/chat/features/session/utils/chat-session-preference-governance.utils';
 import { useChatSessionTypeState } from '@/features/chat/features/session-type/hooks/use-chat-session-type-state';
 import { chatRecentModelsManager } from '@/features/chat/managers/chat-recent-models.manager';
 import { useChatQueryStore } from '@/features/chat/stores/ncp-chat-query.store';
@@ -112,27 +112,17 @@ export function useSessionConversationInputQuery(params: UseSessionConversationI
   const recentSessionTypeModel = chatRecentModelsManager
     .read({ namespace: sessionTypeState.selectedSessionType })
     .find((value) => availableModelValueSet.has(value));
-  const fallbackPreferredModel = useMemo(
+  const recentSessionPreferences = useMemo(
     () =>
-      recentSessionTypeModel ??
-      resolveRecentSessionPreferredValue<string>({
+      resolveRecentSessionPreferenceSnapshot({
         sessions,
         selectedSessionKey,
         sessionType: sessionTypeState.selectedSessionType,
-        readPreference: (session) => session.preferredModel?.trim() || undefined,
-      }),
-    [recentSessionTypeModel, selectedSessionKey, sessionTypeState.selectedSessionType, sessions],
-  );
-  const fallbackPreferredThinking = useMemo(
-    () =>
-      resolveRecentSessionPreferredValue({
-        sessions,
-        selectedSessionKey,
-        sessionType: sessionTypeState.selectedSessionType,
-        readPreference: (session) => session.preferredThinking ?? undefined,
       }),
     [selectedSessionKey, sessionTypeState.selectedSessionType, sessions],
   );
+  const fallbackPreferredModel = recentSessionPreferences?.model ?? recentSessionTypeModel;
+  const fallbackPreferredThinking = recentSessionPreferences?.thinking;
 
   const defaultProjectRoot = normalizeSessionProjectRootValue(
     config?.agents.defaults.workspace,

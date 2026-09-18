@@ -129,15 +129,17 @@ export function resolveSelectedThinkingLevelValue(params: {
   });
 }
 
-export function resolveRecentSessionPreferredValue<T>(params: {
+export function resolveRecentSessionPreferenceSnapshot(params: {
   sessions: readonly SessionEntryView[];
   selectedSessionKey?: string | null;
   sessionType?: string | null;
-  readPreference: (session: SessionEntryView) => T | null | undefined;
-}): T | undefined {
-  const { sessions, selectedSessionKey, sessionType, readPreference } = params;
+}): {
+  model: string;
+  thinking?: ThinkingLevel;
+} | undefined {
+  const { sessions, selectedSessionKey, sessionType } = params;
   const targetSessionType = normalizeSessionType(sessionType);
-  let bestValue: T | undefined;
+  let bestValue: { model: string; thinking?: ThinkingLevel } | undefined;
   let bestTimestamp = Number.NEGATIVE_INFINITY;
   for (const session of sessions) {
     if (session.key === selectedSessionKey) {
@@ -146,14 +148,18 @@ export function resolveRecentSessionPreferredValue<T>(params: {
     if (normalizeSessionType(session.sessionType) !== targetSessionType) {
       continue;
     }
-    const value = readPreference(session);
-    if (value === null || value === undefined) {
+    const model = session.preferredModel?.trim() || undefined;
+    const thinking = session.preferredThinking ?? undefined;
+    if (model === undefined) {
       continue;
     }
     const updatedAtTimestamp = Date.parse(session.updatedAt);
     const comparableTimestamp = Number.isFinite(updatedAtTimestamp) ? updatedAtTimestamp : Number.NEGATIVE_INFINITY;
     if (bestValue === undefined || comparableTimestamp > bestTimestamp) {
-      bestValue = value;
+      bestValue = {
+        model,
+        ...(thinking ? { thinking } : {}),
+      };
       bestTimestamp = comparableTimestamp;
     }
   }
