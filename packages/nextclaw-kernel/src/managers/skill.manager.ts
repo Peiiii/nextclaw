@@ -1,14 +1,12 @@
 import { readFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import {
-  SkillsLoader,
-  type SkillInfo as CoreSkillInfo,
-} from "@nextclaw/core";
-import {
   parseSkillFrontmatter,
+  SkillsLoader,
   stripSkillFrontmatter,
   type LocalizedTextMap,
-} from "@kernel/utils/skill-frontmatter.utils.js";
+  type SkillInfo as CoreSkillInfo,
+} from "@nextclaw/core";
 
 export type { SkillInfo, SkillScope } from "@nextclaw/core";
 

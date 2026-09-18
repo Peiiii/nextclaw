@@ -155,6 +155,7 @@ For the user workflow, restart-continuation behavior, and complete limits, see [
 | `nextclaw projects list`                 | List registered projects, including projects without sessions                                                  |
 | `nextclaw projects templates`            | List built-in project templates                                                                                |
 | `nextclaw projects create`               | Create and register a project                                                                                  |
+| `nextclaw projects register`             | Register an existing directory without modifying its contents; accepts optional `--name`                       |
 | `nextclaw projects remove`               | Remove a project from the list while preserving its folder, sessions, and work; requires exact ID confirmation |
 | `nextclaw projects work list`            | Page through work items by project ID with `--state`, `--cursor`, `--limit`, and `--include-deleted`           |
 | `nextclaw projects work get`             | Show work-item details                                                                                         |

@@ -46,6 +46,7 @@
     "sharp": "0.34.5",
     "socket.io-msgpack-parser": "^3.0.2",
     "undici": "^6.21.0",
+    "yaml": "^2.8.1",
     "zod": "^3.23.8",
     "zod-to-json-schema": "^3.23.5"
   },

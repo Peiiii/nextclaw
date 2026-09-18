@@ -28,7 +28,13 @@ export * from "@kernel/features/desktop-host/index.js";
 export * from "@kernel/features/feature-controls/index.js";
 export { readLearningLoopRuntimeConfig } from "@kernel/contributions/learning-loop/config.js";
 export type { LearningLoopRuntimeConfig } from "@kernel/contributions/learning-loop/config.js";
-export * from "@kernel/utils/skill-frontmatter.utils.js";
+export {
+  buildLocalizedTextMap,
+  parseSkillFrontmatter,
+  stripSkillFrontmatter,
+  type LocalizedTextMap,
+  type SkillFrontmatter,
+} from "@nextclaw/core";
 export * from "@kernel/utils/automatic-update-check.utils.js";
 export * from "@kernel/features/runtime-registry/index.js";
 export * from "@kernel/features/runtime-instance/index.js";

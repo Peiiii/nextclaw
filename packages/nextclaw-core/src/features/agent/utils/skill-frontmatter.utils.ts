@@ -13,19 +13,24 @@ export type SkillFrontmatter = {
 };
 
 export function parseSkillFrontmatter(raw: string): SkillFrontmatter {
-  const frontmatter = parseFrontmatterBlock(raw);
-  if (!frontmatter) {
-    return {};
-  }
-
-  const parsed = parseYamlFrontmatter(frontmatter);
-  const summaryI18n = readLocalizedTextMap(parsed, "summaryi18n", "summary_i18n");
-  const descriptionI18n = readLocalizedTextMap(parsed, "descriptioni18n", "description_i18n");
+  const parsed = parseSkillFrontmatterMetadata(raw) ?? {};
+  const summaryI18n = readLocalizedTextMap(
+    parsed,
+    "summaryi18n",
+    "summary_i18n",
+  );
+  const descriptionI18n = readLocalizedTextMap(
+    parsed,
+    "descriptioni18n",
+    "description_i18n",
+  );
 
   return {
     name: readString(parsed, "name"),
     summary: readString(parsed, "summary"),
-    summaryI18n: mergeLocalizedTextMap(summaryI18n, { zh: readString(parsed, "summaryzh", "summary_zh") }),
+    summaryI18n: mergeLocalizedTextMap(summaryI18n, {
+      zh: readString(parsed, "summaryzh", "summary_zh"),
+    }),
     description: readString(parsed, "description"),
     descriptionI18n: mergeLocalizedTextMap(descriptionI18n, {
       zh: readString(parsed, "descriptionzh", "description_zh"),
@@ -33,6 +38,23 @@ export function parseSkillFrontmatter(raw: string): SkillFrontmatter {
     author: readString(parsed, "author"),
     tags: readTags(parsed),
   };
+}
+
+export function parseSkillFrontmatterMetadata(
+  raw: string,
+): Record<string, unknown> | null {
+  const frontmatter = parseFrontmatterBlock(raw);
+  if (!frontmatter) {
+    return null;
+  }
+
+  try {
+    const parsed = parseYaml(frontmatter);
+    return isRecord(parsed) ? parsed : {};
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid SKILL.md frontmatter: ${message}`);
+  }
 }
 
 export function stripSkillFrontmatter(raw: string): string {
@@ -56,22 +78,18 @@ function parseFrontmatterBlock(raw: string): string | null {
   return match?.[1] ?? null;
 }
 
-function parseYamlFrontmatter(raw: string): Record<string, unknown> {
-  try {
-    const parsed = parseYaml(raw);
-    return isRecord(parsed) ? parsed : {};
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Invalid SKILL.md frontmatter: ${message}`);
-  }
-}
-
-function readString(record: Record<string, unknown>, ...names: string[]): string | undefined {
+function readString(
+  record: Record<string, unknown>,
+  ...names: string[]
+): string | undefined {
   const value = readValue(record, names);
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-function readLocalizedTextMap(record: Record<string, unknown>, ...names: string[]): LocalizedTextMap | undefined {
+function readLocalizedTextMap(
+  record: Record<string, unknown>,
+  ...names: string[]
+): LocalizedTextMap | undefined {
   const value = readValue(record, names);
   if (!isRecord(value)) {
     return undefined;
@@ -79,7 +97,10 @@ function readLocalizedTextMap(record: Record<string, unknown>, ...names: string[
 
   const localized = Object.fromEntries(
     Object.entries(value)
-      .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].trim().length > 0)
+      .filter(
+        (entry): entry is [string, string] =>
+          typeof entry[1] === "string" && entry[1].trim().length > 0,
+      )
       .map(([locale, text]) => [normalizeLocaleTag(locale), text.trim()]),
   );
   return Object.keys(localized).length > 0 ? localized : undefined;
@@ -87,7 +108,11 @@ function readLocalizedTextMap(record: Record<string, unknown>, ...names: string[
 
 function readTags(record: Record<string, unknown>): string[] | undefined {
   const value = readValue(record, ["tags"]);
-  const tags = Array.isArray(value) ? value : typeof value === "string" ? value.split(",") : [];
+  const tags = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(",")
+      : [];
   const normalized = tags
     .filter((entry): entry is string => typeof entry === "string")
     .map((entry) => entry.trim())
@@ -101,7 +126,10 @@ function mergeLocalizedTextMap(
   const localized = Object.fromEntries(
     maps.flatMap((map) =>
       Object.entries(map ?? {})
-        .filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].trim().length > 0)
+        .filter(
+          (entry): entry is [string, string] =>
+            typeof entry[1] === "string" && entry[1].trim().length > 0,
+        )
         .map(([locale, text]) => [normalizeLocaleTag(locale), text.trim()]),
     ),
   );

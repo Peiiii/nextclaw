@@ -1,5 +1,12 @@
 export * from "./services/route-resolver.service.js";
 export * from "./utils/tool-catalog.utils.js";
+export {
+  buildLocalizedTextMap,
+  parseSkillFrontmatter,
+  stripSkillFrontmatter,
+  type LocalizedTextMap,
+  type SkillFrontmatter,
+} from "./utils/skill-frontmatter.utils.js";
 export { SkillsLoader } from "./services/skills-loader.service.js";
 export type {
   SkillInfo,

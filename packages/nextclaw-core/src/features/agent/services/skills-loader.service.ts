@@ -4,6 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DEFAULT_SKILLS_DIR, SKILL_METADATA_KEY } from "@core/features/config/index.js";
 import { DEFAULT_PROJECT_SKILLS_DIR_NAME } from "@core/features/session/index.js";
+import { parseSkillFrontmatterMetadata } from "@core/features/agent/utils/skill-frontmatter.utils.js";
 
 export type SkillScope = "builtin" | "global" | "project" | "workspace";
 
@@ -156,25 +157,21 @@ export class SkillsLoader {
       return null;
     }
 
-    const content = readFileSync(skill.path, "utf-8");
-    if (!content.startsWith("---")) {
+    let parsed: Record<string, unknown> | null;
+    try {
+      parsed = parseSkillFrontmatterMetadata(readFileSync(skill.path, "utf-8"));
+    } catch {
       return null;
     }
+    if (!parsed) return null;
 
-    const match = content.match(/^---\n(.*?)\n---/s);
-    if (!match) {
-      return null;
-    }
-
-    const metadata: Record<string, string> = {};
-    for (const line of match[1].split("\n")) {
-      const [key, ...rest] = line.split(":");
-      if (!key || rest.length === 0) {
-        continue;
-      }
-      metadata[key.trim()] = rest.join(":").trim().replace(/^['"]|['"]$/g, "");
-    }
-    return metadata;
+    return Object.fromEntries(
+      Object.entries(parsed).flatMap(([key, value]) => {
+        if (typeof value === "string") return [[key, value]];
+        const serialized = JSON.stringify(value);
+        return serialized === undefined ? [] : [[key, serialized]];
+      }),
+    );
   };
 
   buildSkillsManifest = (selectors: string[]): string => {

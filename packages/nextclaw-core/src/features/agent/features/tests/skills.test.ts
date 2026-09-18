@@ -142,6 +142,66 @@ describe("SkillsLoader skill sources", () => {
     expect(summary).not.toContain("<location>");
   });
 
+  it("folds YAML block scalar descriptions into the Agent skill catalog", () => {
+    const workspace = createWorkspace();
+    const globalSkillsRoot = join(workspace, "global-agent-skills");
+    const skillDir = join(globalSkillsRoot, "folded-description");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, "SKILL.md"),
+      [
+        "---",
+        "name: folded-description",
+        "description: >-",
+        "  First trigger sentence.",
+        "  Second trigger sentence.",
+        'metadata: {"nextclaw":{"always":true}}',
+        "---",
+        "# Folded description",
+      ].join("\n"),
+    );
+    const loader = new SkillsLoader({
+      workspace,
+      includeBuiltin: false,
+      includeWorkspace: false,
+      includeGlobal: true,
+      globalSkillsRoot,
+    });
+
+    expect(loader.getSkillMetadata("folded-description")).toMatchObject({
+      description: "First trigger sentence. Second trigger sentence.",
+      metadata: '{"nextclaw":{"always":true}}',
+    });
+    expect(loader.buildSkillsSummary()).toContain(
+      "- folded-description — First trigger sentence. Second trigger sentence.",
+    );
+    expect(loader.buildSkillsSummary()).not.toContain(" — >-");
+    expect(loader.getAlwaysSkills()).toContainEqual(
+      expect.stringContaining("folded-description"),
+    );
+  });
+
+  it("keeps one malformed third-party Skill from blocking the catalog", () => {
+    const workspace = createWorkspace();
+    const globalSkillsRoot = join(workspace, "global-agent-skills");
+    const skillDir = join(globalSkillsRoot, "malformed-skill");
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(
+      join(skillDir, "SKILL.md"),
+      "---\ndescription: invalid: yaml\n---\n# Malformed\n",
+    );
+    const loader = new SkillsLoader({
+      workspace,
+      includeBuiltin: false,
+      includeWorkspace: false,
+      includeGlobal: true,
+      globalSkillsRoot,
+    });
+
+    expect(loader.getSkillMetadata("malformed-skill")).toBeNull();
+    expect(loader.buildSkillsSummary()).toContain("- malformed-skill");
+  });
+
   it("can isolate project skills without collecting workspace skills", () => {
     const workspace = createWorkspace();
     const projectRoot = join(workspace, "project");

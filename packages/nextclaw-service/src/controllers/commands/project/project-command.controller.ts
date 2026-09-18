@@ -21,6 +21,10 @@ export type ProjectCreateCommandOptions = ProjectCommandOptions & {
   template?: "empty" | "knowledge-base";
 };
 
+export type ProjectRegisterCommandOptions = ProjectCommandOptions & {
+  name?: string;
+};
+
 export type ProjectRemoveCommandOptions = ProjectCommandOptions & {
   confirm: string;
 };
@@ -108,7 +112,25 @@ export class ProjectCommands {
         ...(options.template ? { template: options.template } : {}),
       };
       const project = await kernel.projectManager.createProject(input);
-      this.printCreatedProject(project, Boolean(options.json));
+      this.printProject(project, Boolean(options.json), "Created");
+    });
+  };
+
+  register = async (
+    directory: string,
+    options: ProjectRegisterCommandOptions = {},
+  ): Promise<void> => {
+    await this.withKernel(async (kernel) => {
+      const project = await kernel.projectManager.addExistingProject(
+        directory,
+        options.name,
+      );
+      if (!project) {
+        throw new Error(
+          "The default workspace cannot be registered as a project.",
+        );
+      }
+      this.printProject(project, Boolean(options.json), "Registered");
     });
   };
 
@@ -385,15 +407,16 @@ export class ProjectCommands {
     else console.log(`Deleted state ${stateId}`);
   };
 
-  private printCreatedProject = (
+  private printProject = (
     project: ProjectRecord,
     json: boolean,
+    verb: "Created" | "Registered",
   ): void => {
     if (json) {
       console.log(JSON.stringify(project, null, 2));
       return;
     }
-    console.log(`Created project "${project.name}" at ${project.rootPath}`);
+    console.log(`${verb} project "${project.name}" at ${project.rootPath}`);
   };
 
   private api = async <T>(

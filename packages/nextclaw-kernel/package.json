@@ -49,8 +49,7 @@
     "@nextclaw/runtime": "workspace:*",
     "@nextclaw/shared": "workspace:*",
     "rxjs": "^7.8.2",
-    "sql.js": "^1.14.2",
-    "yaml": "^2.8.1"
+    "sql.js": "^1.14.2"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",

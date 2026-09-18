@@ -63,7 +63,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - For Agent creation/update/removal, treat `nextclaw agents list|new|update|remove --json` as the default path and follow the Agent management section in the self-management guide.
 - For runtime context injection, use `nextclaw agents runtime config <runtime-id> --json` to inspect and `--inject-nextclaw-context <true|false>` to update. Apply the authorized restart using the lifecycle guidance above.
 - Automatic continuation requires a supported managed/foreground host or NextClaw systemd service and plain `nextclaw restart`, without port/open/timeout overrides. Desktop/other-supervisor exits and legacy stop/start transitions do not carry this handoff. If the restart request times out, inspect status before retrying; an interrupted tool result is not proof that the restart failed.
-- For project creation, discovery, or removal, use `nextclaw projects list|templates|create|remove --json`; project removal also requires `--confirm <project-id>` and preserves the local folder, sessions, and Project Work. Do not synthesize placeholder sessions or edit the project registry file directly.
+- For project creation, existing-directory registration, discovery, or removal, use `nextclaw projects list|templates|create|register|remove --json`; `register <directory>` preserves directory contents and accepts optional `--name`, while project removal requires `--confirm <project-id>` and preserves the local folder, sessions, and Project Work. Do not synthesize placeholder sessions or edit the project registry file directly.
 - For session naming, project binding, or deletion, use `nextclaw sessions rename|set-project|clear-project|delete --json`; deletion also requires `--confirm <session-id>`. Do not edit session journal metadata directly.
 - Do not edit `config.json` or `agents.list` directly for normal Agent CRUD; only do that when the user explicitly wants a manual recovery path.
 - When creating an Agent, prefer an explicit non-text avatar and avoid text-based styles such as DiceBear `initials`.
@@ -112,7 +112,7 @@ When the user reports missing messages, missing replies, intermittent failures, 
 - Search: `nextclaw search show|configure|provider`
 - Uncovered configuration or explicit recovery only: `nextclaw config get|set|unset`
 - Agents: `nextclaw agents list|runtimes|runtime config|new|update|remove`
-- Projects: `nextclaw projects list|templates|create|remove`
+- Projects: `nextclaw projects list|templates|create|register|remove`
 - Sessions: `nextclaw sessions rename|set-project|clear-project|delete`
 - Automation: `nextclaw cron list|add|remove|enable|run`
 - Installed skills: `nextclaw skills installed|info`

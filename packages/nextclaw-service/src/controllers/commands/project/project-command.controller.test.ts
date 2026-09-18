@@ -32,6 +32,56 @@ describe("ProjectCommands", () => {
     expect(dispose).toHaveBeenCalledOnce();
   });
 
+  it("registers an existing directory through the kernel owner", async () => {
+    const addExistingProject = vi.fn(async () => ({
+      id: "project-1",
+      name: "Existing Repository",
+      rootPath: "/tmp/existing-repository",
+    }));
+    const dispose = vi.fn(async () => undefined);
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const commands = new ProjectCommands(
+      () =>
+        ({
+          projectManager: {
+            initialize: vi.fn(async () => undefined),
+            addExistingProject,
+          },
+          dispose,
+        }) as never,
+    );
+
+    await commands.register("/tmp/existing-repository", {
+      name: "Existing Repository",
+    });
+
+    expect(addExistingProject).toHaveBeenCalledWith(
+      "/tmp/existing-repository",
+      "Existing Repository",
+    );
+    expect(log).toHaveBeenCalledWith(
+      'Registered project "Existing Repository" at /tmp/existing-repository',
+    );
+    expect(dispose).toHaveBeenCalledOnce();
+  });
+
+  it("rejects registering the default workspace explicitly", async () => {
+    const commands = new ProjectCommands(
+      () =>
+        ({
+          projectManager: {
+            initialize: vi.fn(async () => undefined),
+            addExistingProject: vi.fn(async () => null),
+          },
+          dispose: vi.fn(async () => undefined),
+        }) as never,
+    );
+
+    await expect(commands.register("/tmp/default-workspace")).rejects.toThrow(
+      "default workspace cannot be registered",
+    );
+  });
+
   it("routes work mutations through the running service with an explicit project id", async () => {
     const request = vi.fn(async () => ({
       id: "work-1",

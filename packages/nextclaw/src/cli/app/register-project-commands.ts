@@ -35,6 +35,13 @@ export function registerProjectCommands(
     .action((name, options) => commands.create(name, options));
 
   projects
+    .command("register <directory>")
+    .description("Register an existing project directory without modifying it")
+    .option("--name <name>", "Project display name")
+    .option("--json", "Output JSON", false)
+    .action((directory, options) => commands.register(directory, options));
+
+  projects
     .command("remove <project-id>")
     .description(
       "Remove a project from the project list without deleting files or sessions",

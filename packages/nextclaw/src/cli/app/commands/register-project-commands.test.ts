@@ -41,6 +41,31 @@ describe("registerProjectCommands", () => {
     );
   });
 
+  it("forwards an existing directory and optional project name for registration", async () => {
+    const register = vi.fn(async () => undefined);
+    const program = new Command();
+    program.exitOverride();
+    registerProjectCommands(program, {
+      commands: { projects: { register } },
+    } as never);
+
+    await program.parseAsync([
+      "node",
+      "nextclaw",
+      "projects",
+      "register",
+      "/tmp/existing-repository",
+      "--name",
+      "Existing Repository",
+      "--json",
+    ]);
+
+    expect(register).toHaveBeenCalledWith(
+      "/tmp/existing-repository",
+      expect.objectContaining({ name: "Existing Repository", json: true }),
+    );
+  });
+
   it("forwards bounded work-list pagination options", async () => {
     const workList = vi.fn(async () => undefined);
     const program = new Command();

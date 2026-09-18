@@ -432,6 +432,9 @@ nextclaw projects create research --template empty --json
 # Create a knowledge-base project at an explicit path
 nextclaw projects create knowledge --path ~/Projects/knowledge --template knowledge-base --json
 
+# Register an existing non-empty directory without modifying its contents
+nextclaw projects register ~/Projects/existing-repository --name existing-repository --json
+
 # Remove a project from the list without deleting its folder, sessions, or work
 nextclaw projects remove <project-id> --confirm <project-id> --json
 
@@ -724,6 +727,7 @@ Feedback release status identifies its version and channel. Query it before repo
 | `nextclaw projects list`                                     | List registered projects, including projects without sessions                                                                                                |
 | `nextclaw projects templates`                                | List built-in project templates                                                                                                                              |
 | `nextclaw projects create <name>`                            | Create an empty or knowledge-base project                                                                                                                    |
+| `nextclaw projects register <directory>`                     | Register an existing directory without modifying its contents; accepts optional `--name`                                                                    |
 | `nextclaw projects remove <project-id>`                      | Remove a project from the list while preserving its folder, sessions, and work; requires `--confirm <project-id>`                                            |
 | `nextclaw sessions rename <session-id> <label>`              | Rename a session                                                                                                                                             |
 | `nextclaw sessions set-project <session-id> <directory>`     | Bind a session to an existing project directory                                                                                                              |
