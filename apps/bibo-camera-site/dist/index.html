@@ -16,13 +16,13 @@
     <header>
       <a class="brand" href="#" aria-label="Bibo 首页">bibo<span>●</span></a>
       <p>你的云端个人 AI 搭档</p>
-      <button id="about">认识 Bibo <span>＋</span></button>
+      <button id="about" aria-haspopup="dialog" aria-controls="info">认识 Bibo <span>＋</span></button>
     </header>
     <main>
       <div class="intro">
         <div>
           <p class="eyebrow">SOMEONE IN YOUR CORNER.</p>
-          <h1><span id="headline-start">你说一件事。</span><span id="headline-end">我多想几步。</span></h1>
+          <h1><span id="headline-start">想到一起。</span><span id="headline-end">安排妥当。</span></h1>
         </div>
         <p class="intro-note">懂你的全局，自己接着做。<br />也会回头想，怎样做得更好。</p>
       </div>
@@ -89,20 +89,7 @@
 <button id="close-plan" aria-label="收起补充说明">×</button>
 <p class="plan-intro">从回看，到改变做法</p><h2 id="plan-title">少打扰，信息却不漏。</h2><p>发现：同一项目的几次小变化，被拆成了多次提醒。</p><p>调整：后续合并相关变化；只有影响当前决定的内容才单独提醒。</p><p>继续观察：下一次复盘检查是否减少重复、是否漏掉重要信息。</p><p class="plan-boundary">这里用预设内容展示产品方向，不代表已读取你的信息或具备真实长期记忆。</p>
 </section>
-              <section id="info" hidden aria-label="认识 Bibo">
-      <button id="close" aria-label="关闭介绍">×</button>
-      <p class="eyebrow">HELLO, I'M BIBO.</p>
-      <h2>能一起想，<br />也能接着做。</h2>
-      <p>
-        Bibo 是你的个人 AI
-        搭档。帮你查资料、做计划、持续跟进，逐渐熟悉你的背景和偏好。
-      </p>
-      <p>产品计划由官方云端托管。你决定它能做什么、哪些事需要先确认。</p>
-      <p class="disclosure">
-        这是四帧交互概念，使用预设内容；没有访问摄像头，也没有执行真实 AI 任务。
-      </p>
-      <button class="back" id="back">回到我们的一天 ↗</button>
-    </section>
+
           <div class="film-progress" aria-hidden="true">
             <i></i><i></i><i></i><i></i>
           </div>
@@ -132,5 +119,19 @@
       </footer>
     </main>
 
+              <dialog id="info" aria-label="认识 Bibo">
+      <button id="close" aria-label="关闭介绍">×</button>
+      <p class="eyebrow">HELLO, I'M BIBO.</p>
+      <h2>能一起想，<br />也能接着做。</h2>
+      <p>
+        Bibo 是你的个人 AI
+        搭档。帮你查资料、做计划、持续跟进，逐渐熟悉你的背景和偏好。
+      </p>
+      <p>产品计划由官方云端托管。你决定它能做什么、哪些事需要先确认。</p>
+      <p class="disclosure">
+        这是四帧交互概念，使用预设内容；没有访问摄像头，也没有执行真实 AI 任务。
+      </p>
+      <button class="back" id="back">回到我们的一天 ↗</button>
+    </dialog>
   </body>
 </html>

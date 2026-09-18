@@ -10,10 +10,10 @@ const planPanel = document.querySelector("#plan-panel");
 const openPlan = document.querySelector("#open-plan");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 const frames = [
-  { time: "01 / 看全局", headline: ["你说一件事。", "我多想几步。"], theme: "把你的事情，放在一起考虑", caption: "你的新计划，与已有项目和空闲时间一起安排。", action: "看看下一面", speech: "周四收尾，周五做成作品。帮你接上了。", content: ".request" },
-  { time: "02 / 自己接着做", headline: ["不用一直催。", "我有下一步。"], theme: "自己规划，按时接着做", caption: "安排检查、发现变化、调整下一步。每一步都不必等你重新开口。", action: "再看一面", speech: "发现延期了。我会重新核查，再告诉你影响。", content: ".focus-note" },
-  { time: "03 / 当下修正", headline: ["发现想偏了。", "自己改回来。"], theme: "发现问题，更新自己的工作准则", caption: "这次发现的偏差，写进自己的工作手册，改变下一次的做法。", action: "它还会复盘", speech: "我给自己补了一条：先确认期限，再展开方案。", content: ".away" },
-  { time: "04 / 主动复盘", headline: ["没人提醒。", "也会复盘。"], theme: "回看结果，改善下一次", caption: "自己发现反复出现的问题，让下一次的做法真正不同。", action: "再看一遍", speech: "这周重复提醒太多。以后合并，只报重要变化。", content: ".result" }
+  { time: "01 / 看全局", headline: ["想到一起。", "安排妥当。"], theme: "把你的事情，放在一起考虑", caption: "新想法，接上你已有的安排。", action: "看看下一面", speech: "周四收尾，周五做成作品。帮你接上了。", content: ".request" },
+  { time: "02 / 自己接着做", headline: ["不用一直催。", "我有下一步。"], theme: "自己规划，按时接着做", caption: "到点自己看，有变化接着办。", action: "再看一面", speech: "发现延期了。我会重新核查，再告诉你影响。", content: ".focus-note" },
+  { time: "03 / 当下修正", headline: ["发现想偏了。", "自己改回来。"], theme: "发现问题，更新自己的工作准则", caption: "这次的教训，变成下次的准则。", action: "它还会复盘", speech: "我给自己补了一条：先确认期限，再展开方案。", content: ".away" },
+  { time: "04 / 主动复盘", headline: ["没人提醒。", "也会复盘。"], theme: "回看结果，改善下一次", caption: "回头看，是为了下次做得更好。", action: "再看一遍", speech: "这周重复提醒太多。以后合并，只报重要变化。", content: ".result" }
 ];
 let frame = 0;
 let exposing = false;
@@ -82,6 +82,10 @@ function clearSceneAnimations() {
   sceneAnimations.forEach((animation) => animation.cancel());
   sceneAnimations = [];
 }
+function acknowledgeSceneChange() {
+      companion.getAnimations().forEach(animation => animation.cancel());
+      companion.animate([{ translate: "0 0" }, { translate: "0 4px", offset: .32 }, { translate: "0 -2px", offset: .7 }, { translate: "0 0" }], { duration: 650, easing: "cubic-bezier(.22,.8,.3,1)" });
+}
 let playbackId;
 function stopPlayback() {
   cancelAnimationFrame(playbackId);
@@ -115,12 +119,15 @@ function playCurrentScene() {
   let elapsed = 0;
   let previousTime;
   function draw(time) {
-    if (previousTime !== undefined && !document.hidden) elapsed += Math.min(time - previousTime, 100);
+    if (previousTime !== undefined && !document.hidden && !dialog.open) elapsed += Math.min(time - previousTime, 100);
     previousTime = time;
     const done = reduced.matches || elapsed >= stages[4];
     const stage = done ? 5 : stages.filter(at => elapsed >= at).length;
     const changed = scene.dataset.step !== String(stage);
     scene.dataset.step = String(stage);
+    if (changed && stage >= 2 && !reduced.matches) {
+      acknowledgeSceneChange();
+    }
     if (changed || elapsed === 0) {
       speech.textContent = stage >= 4 ? frames[frame].speech : ["在呢，想聊什么？", "我看看今天的安排。", "让我再看一眼这个方案。", "翻开今天的复盘笔记。 "][frame];
     }
@@ -169,7 +176,7 @@ function render() {
   playCurrentScene();
   openPlan.hidden = frame !== 3;
   planPanel.hidden = true;
-  dialog.hidden = true;
+  if (dialog.open) dialog.close();
   openPlan.setAttribute("aria-expanded", "false");
   document.querySelector("#keyboard-hint").hidden = frame === 3;
   camera.dataset.frame = String(frame);
@@ -383,15 +390,19 @@ document.addEventListener("pointermove", (event) => {
   );
 });
 document.querySelector("#about").addEventListener("click", () => {
-  dialog.hidden = false;
+  dialog.showModal();
   document.querySelector("#close").focus({ preventScroll: true });
 });
 function closeInfo() {
-  dialog.hidden = true;
+  if (dialog.open) dialog.close();
   document.querySelector("#about").focus({ preventScroll: true });
 }
 for (const id of ["close", "back"]) document.querySelector("#" + id).addEventListener("click", closeInfo);
-dialog.addEventListener("keydown", event => { if (event.key === "Escape") { event.stopPropagation(); closeInfo(); } });
+dialog.addEventListener("click", event => {
+  const rect = dialog.getBoundingClientRect();
+  if (event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) closeInfo();
+});
+dialog.addEventListener("close", () => document.querySelector("#about").focus({ preventScroll: true }));
 window.addEventListener("pagehide", () => {
   stopPlayback();
   cancelHandoff();
