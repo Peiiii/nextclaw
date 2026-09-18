@@ -2,7 +2,7 @@ name = "bibo-bot"
 account_id = "adb27b39051202962038992eeaf8f6bb"
 compatibility_date = "2026-09-18"
 workers_dev = true
-routes = [{ pattern = "bibo.bot", custom_domain = true }]
+routes = [{ pattern = "bibo.bot/*", zone_name = "bibo.bot" }]
 
 [assets]
 directory = ".publish"

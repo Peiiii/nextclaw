@@ -25,9 +25,9 @@ node apps/bibo-camera-site/site-build.controller.mjs
 pnpm exec wrangler deploy --config apps/bibo-camera-site/wrangler.toml
 ```
 
-生成目录 `.publish` 不提交。正式站使用 Cloudflare Worker `bibo-bot` 的静态资源与自定义域名，域名由 Wrangler 管理。Pages 项目 `bibo-bot` 保留作为已验收的预览，生产发布以本文件中的 Worker 命令为准。`bibo.bot` 从 `nextclaw-landing` 独立出来，其他域名和旧项目保持原状。
+生成目录 `.publish` 不提交。正式站使用 Cloudflare Worker `bibo-bot` 的静态资源，通过精确 zone route `bibo.bot/*` 接管全部路径。现有根 CNAME 保持 proxied；请求由 Worker 直接响应，不回源到历史 Pages 项目。当前 OAuth 没有 DNS 写权限，因此不使用要求替换 CNAME 的 Custom Domain。Pages 项目 `bibo-bot` 保留作为已验收的预览，生产发布以本文件中的 Worker 命令为准。其他域名和旧项目保持原状。
 
-回滚：普通更新使用 Workers 的上一版本回滚；首次域名迁移如需撤销，先解除 Worker 自定义域名，将 `bibo.bot` 重新绑定 Pages 的 `nextclaw-landing`，并恢复 CNAME `nextclaw-landing.pages.dev`。
+回滚：普通更新使用 Workers 的上一版本回滚；首次迁移如需撤销，先将 `bibo.bot` 重新绑定 Pages 的 `nextclaw-landing` 并等待 active，再移除 `bibo.bot/*` Worker route。根 CNAME 仍为 `nextclaw-landing.pages.dev`，无需改动。
 
 发布验收：根路径与六个候选均返回对应 HTML；样式、控制器及图片可加载；无尾斜杠路径正确重定向；未知路径返回 404；默认版完成前进、后退、重播、键盘与弹窗操作。手机无横向溢出。
 
