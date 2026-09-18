@@ -1,0 +1,252 @@
+diff --git a/apps/bibo-camera-site/dist/bibo-site.controller.js b/apps/bibo-camera-site/dist/bibo-site.controller.js
+index 8903196b3..87967854e 100644
+--- a/apps/bibo-camera-site/dist/bibo-site.controller.js
++++ b/apps/bibo-camera-site/dist/bibo-site.controller.js
+@@ -43,6 +43,8 @@ let changeTimer;
+ let releaseTimer;
+ let greetingTimer;
+ let sceneAnimations = [];
++let gestureStart = null;
++let suppressTouchClick = false;
+ function animateScene(index, entering, direction) {
+   const selectors = [frames[index].content];
+   if (index === 1) selectors.push(".sources");
+@@ -99,6 +101,10 @@ function render() {
+   document.querySelector("#caption").textContent = current.caption;
+   document.querySelector("#next-label").textContent =
+     frame === 3 ? "再看我们的一天" : "按一下，下一帧";
++  const touchHint = matchMedia("(pointer: coarse)").matches;
++  document.querySelector("#screen-hint").textContent = frame === 3
++    ? `${touchHint ? "轻点或左滑" : "轻点"}重看 ↻ · 示例`
++    : `${touchHint ? "轻点或左滑" : "轻点继续"} → · 示例`;
+   shutter.setAttribute(
+     "aria-label",
+     frame === 3 ? "按快门，从第一帧重看" : "按快门，看下一帧",
+@@ -108,7 +114,7 @@ function render() {
+     frame === 3 ? "点击取景画面，从第一帧重看" : "点击取景画面，看下一帧",
+   );
+   speech.textContent = current.speech;
+-  previous.disabled = frame === 0 || exposing;
++  previous.disabled = frame === 0;
+   for (const item of frames)
+     document
+       .querySelector(item.content)
+@@ -124,9 +130,8 @@ function moveTo(next, direction = next > frame ? 1 : -1) {
+     return;
+   }
+   exposing = true;
+-  shutter.disabled = true;
+-  tapScreen.disabled = true;
+-  previous.disabled = true;
++  for (const control of [shutter, tapScreen, previous])
++    control.setAttribute("aria-disabled", "true");
+   camera.style.setProperty("--turn", String(direction));
+   camera.classList.add("exposing");
+   animateScene(frame, false, direction);
+@@ -139,8 +144,8 @@ function moveTo(next, direction = next > frame ? 1 : -1) {
+   releaseTimer = setTimeout(() => {
+     exposing = false;
+     camera.classList.remove("exposing");
+-    shutter.disabled = false;
+-    tapScreen.disabled = false;
++    for (const control of [shutter, tapScreen, previous])
++      control.removeAttribute("aria-disabled");
+     previous.disabled = frame === 0;
+     clearSceneAnimations();
+   }, 600);
+@@ -149,7 +154,31 @@ function advance() {
+   moveTo((frame + 1) % frames.length, 1);
+ }
+ shutter.addEventListener("click", advance);
+-tapScreen.addEventListener("click", advance);
++tapScreen.addEventListener("click", (event) => {
++  if (suppressTouchClick && event.detail !== 0) return;
++  advance();
++});
++tapScreen.addEventListener("pointerdown", (event) => {
++  suppressTouchClick = false;
++  gestureStart = null;
++  if (event.pointerType !== "touch" || !event.isPrimary || exposing) return;
++  gestureStart = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp };
++  tapScreen.setPointerCapture(event.pointerId);
++});
++tapScreen.addEventListener("pointerup", (event) => {
++  const start = gestureStart;
++  gestureStart = null;
++  if (!start || event.pointerId !== start.id) return;
++  const dx = event.clientX - start.x;
++  const dy = event.clientY - start.y;
++  if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy) * 1.3 || event.timeStamp - start.time > 700) return;
++  suppressTouchClick = true;
++  if (dx < 0) advance();
++  else moveTo(frame - 1);
++});
++tapScreen.addEventListener("pointercancel", () => {
++  gestureStart = null;
++});
+ previous.addEventListener("click", () => moveTo(frame - 1));
+ camera.addEventListener("keydown", (event) => {
+   if (dialog.open || event.altKey || event.ctrlKey || event.metaKey) return;
+@@ -200,6 +229,8 @@ dialog.addEventListener("close", () =>
+   document.querySelector("#about").focus({ preventScroll: true }),
+ );
+ window.addEventListener("pagehide", () => {
++  gestureStart = null;
++  suppressTouchClick = false;
+   clearSceneAnimations();
+   clearTimeout(changeTimer);
+   clearTimeout(releaseTimer);
+@@ -209,8 +240,8 @@ window.addEventListener("pageshow", (event) => {
+   if (!event.persisted) return;
+   exposing = false;
+   camera.classList.remove("exposing");
+-  shutter.disabled = false;
+-  tapScreen.disabled = false;
++  for (const control of [shutter, tapScreen, previous])
++    control.removeAttribute("aria-disabled");
+   render();
+ });
+ render();
+diff --git a/apps/bibo-camera-site/dist/index.html b/apps/bibo-camera-site/dist/index.html
+index 074820a49..4fd459e16 100644
+--- a/apps/bibo-camera-site/dist/index.html
++++ b/apps/bibo-camera-site/dist/index.html
+@@ -68,7 +68,7 @@
+             </div>
+             <div class="sources" aria-hidden="true">
+               <div class="source source-one">
+-                <span>01 / 产品更新</span><i></i><i></i><b>新引导流程</b>
++                <span>01 / 产品更新</span><i></i><i></i><b>3 步引导</b>
+               </div>
+               <div class="source source-two">
+                 <span>02 / 发布说明</span><i></i><i></i><b>企业功能</b>
+@@ -88,17 +88,17 @@
+             </div>
+             <div class="result">
+               <span class="result-label">BIBO → 你</span>
+-              <h2>这一个，值得你看。</h2>
+-              <p>竞品简化了首次使用流程，<br />与你下周的发布有关。</p>
++              <h2>首发，先做减法。</h2>
++              <p>竞品把首次引导缩到 3 步。<br />你的小团队，也可以先做轻一点。</p>
+               <div class="result-bottom">
+-                <span>建议看看：首次引导</span><span>↗</span>
++                <span>下周首发：先跑通，再加功能。</span>
+               </div>
+               <span class="filtered">另外两项无关变化，就不打扰你了。</span>
+             </div>
+           </div>
+           <div class="frame-bottom">
+             <span id="frame-theme">01 / 一句交代</span
+-            ><span>点击画面 · 示例故事</span>
++            ><span id="screen-hint">轻点继续 → · 示例</span>
+           </div>
+           <button
+             class="tap-screen"
+diff --git a/apps/bibo-camera-site/dist/styles.css b/apps/bibo-camera-site/dist/styles.css
+index 684d178f9..1d090ad27 100644
+--- a/apps/bibo-camera-site/dist/styles.css
++++ b/apps/bibo-camera-site/dist/styles.css
+@@ -233,6 +233,7 @@ h1 span {
+   animation: nod 0.6s;
+ }
+ .tap-screen {
++  touch-action: pan-y pinch-zoom;
+   position: absolute;
+   inset: 0;
+   border: 0;
+@@ -292,7 +293,8 @@ h1 span {
+   letter-spacing: 0.5px;
+ }
+ .frame-bottom span:last-child {
+-  font-size: 9px;
++  font-size: 11px;
++  color: #655279;
+ }
+ .corner {
+   position: absolute;
+@@ -604,6 +606,9 @@ h1 span {
+ [data-frame="2"] .frame-bottom {
+   color: #b6a6c6;
+ }
++[data-frame="2"] .frame-bottom span:last-child {
++  color: #dfd4ee;
++}
+ [data-frame="2"] .context-note {
+   left: 6%;
+   top: 133px;
+@@ -734,7 +739,7 @@ h1 span {
+ .camera.exposing .shutter {
+   animation: shutter-feedback 0.6s ease;
+ }
+-.camera.exposing button:disabled {
++.camera.exposing button[aria-disabled="true"] {
+   opacity: 1;
+   cursor: progress;
+ }
+@@ -941,7 +946,7 @@ dialog .back {
+ @media (max-width: 700px) {
+   header {
+     width: calc(100% - 40px);
+-    height: 78px;
++    height: 68px;
+   }
+   .brand {
+     font-size: 35px;
+@@ -950,7 +955,7 @@ dialog .back {
+     font-size: 10px;
+     position: absolute;
+     left: 21px;
+-    top: 80px;
++    top: 68px;
+   }
+   header > button {
+     font-size: 12px;
+@@ -962,16 +967,16 @@ dialog .back {
+     width: calc(100% - 30px);
+   }
+   .intro {
+-    padding: 47px 6px 0;
++    padding: 20px 6px 0;
+   }
+   .intro .eyebrow {
+     display: none;
+   }
+   h1 {
+-    font-size: 32px;
++    font-size: 28px;
+     letter-spacing: -1px;
+     margin: 0;
+-    line-height: 1.5;
++    line-height: 1.35;
+   }
+   h1 span {
+     display: block;
+@@ -1061,7 +1066,7 @@ dialog .back {
+     bottom: 15px;
+   }
+   .frame-bottom span:last-child {
+-    font-size: 8px;
++    font-size: 10px;
+   }
+   .corner {
+     width: 12px;
+@@ -1226,7 +1231,7 @@ dialog .back {
+   .camera-bar {
+     padding: 18px 5px 0;
+     gap: 10px;
+-    align-items: center;
++    align-items: flex-start;
+   }
+   .frame-caption > span {
+     font-size: 9px;
+@@ -1241,8 +1246,8 @@ dialog .back {
+     gap: 10px;
+   }
+   .previous {
+-    width: 30px;
+-    height: 30px;
++    width: 44px;
++    height: 44px;
+     font-size: 16px;
+   }
+   .shutter {

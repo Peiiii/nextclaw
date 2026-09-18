@@ -1,0 +1,117 @@
+diff --git a/apps/bibo-camera-site/dist/bibo-site.controller.js b/apps/bibo-camera-site/dist/bibo-site.controller.js
+index 8903196b3..bd1279ebc 100644
+--- a/apps/bibo-camera-site/dist/bibo-site.controller.js
++++ b/apps/bibo-camera-site/dist/bibo-site.controller.js
+@@ -99,6 +99,8 @@ function render() {
+   document.querySelector("#caption").textContent = current.caption;
+   document.querySelector("#next-label").textContent =
+     frame === 3 ? "再看我们的一天" : "按一下，下一帧";
++  document.querySelector("#screen-hint").textContent =
++    frame === 3 ? "轻点重看 ↻ · 示例" : "轻点继续 → · 示例";
+   shutter.setAttribute(
+     "aria-label",
+     frame === 3 ? "按快门，从第一帧重看" : "按快门，看下一帧",
+diff --git a/apps/bibo-camera-site/dist/index.html b/apps/bibo-camera-site/dist/index.html
+index 074820a49..da98b686d 100644
+--- a/apps/bibo-camera-site/dist/index.html
++++ b/apps/bibo-camera-site/dist/index.html
+@@ -98,7 +98,7 @@
+           </div>
+           <div class="frame-bottom">
+             <span id="frame-theme">01 / 一句交代</span
+-            ><span>点击画面 · 示例故事</span>
++            ><span id="screen-hint">轻点继续 → · 示例</span>
+           </div>
+           <button
+             class="tap-screen"
+diff --git a/apps/bibo-camera-site/dist/styles.css b/apps/bibo-camera-site/dist/styles.css
+index 684d178f9..78f3a66a7 100644
+--- a/apps/bibo-camera-site/dist/styles.css
++++ b/apps/bibo-camera-site/dist/styles.css
+@@ -292,7 +292,8 @@ h1 span {
+   letter-spacing: 0.5px;
+ }
+ .frame-bottom span:last-child {
+-  font-size: 9px;
++  font-size: 11px;
++  color: #655279;
+ }
+ .corner {
+   position: absolute;
+@@ -604,6 +605,9 @@ h1 span {
+ [data-frame="2"] .frame-bottom {
+   color: #b6a6c6;
+ }
++[data-frame="2"] .frame-bottom span:last-child {
++  color: #dfd4ee;
++}
+ [data-frame="2"] .context-note {
+   left: 6%;
+   top: 133px;
+@@ -941,7 +945,7 @@ dialog .back {
+ @media (max-width: 700px) {
+   header {
+     width: calc(100% - 40px);
+-    height: 78px;
++    height: 68px;
+   }
+   .brand {
+     font-size: 35px;
+@@ -950,7 +954,7 @@ dialog .back {
+     font-size: 10px;
+     position: absolute;
+     left: 21px;
+-    top: 80px;
++    top: 68px;
+   }
+   header > button {
+     font-size: 12px;
+@@ -962,16 +966,16 @@ dialog .back {
+     width: calc(100% - 30px);
+   }
+   .intro {
+-    padding: 47px 6px 0;
++    padding: 20px 6px 0;
+   }
+   .intro .eyebrow {
+     display: none;
+   }
+   h1 {
+-    font-size: 32px;
++    font-size: 28px;
+     letter-spacing: -1px;
+     margin: 0;
+-    line-height: 1.5;
++    line-height: 1.35;
+   }
+   h1 span {
+     display: block;
+@@ -1061,7 +1065,7 @@ dialog .back {
+     bottom: 15px;
+   }
+   .frame-bottom span:last-child {
+-    font-size: 8px;
++    font-size: 10px;
+   }
+   .corner {
+     width: 12px;
+@@ -1226,7 +1230,7 @@ dialog .back {
+   .camera-bar {
+     padding: 18px 5px 0;
+     gap: 10px;
+-    align-items: center;
++    align-items: flex-start;
+   }
+   .frame-caption > span {
+     font-size: 9px;
+@@ -1241,8 +1245,8 @@ dialog .back {
+     gap: 10px;
+   }
+   .previous {
+-    width: 30px;
+-    height: 30px;
++    width: 44px;
++    height: 44px;
+     font-size: 16px;
+   }
+   .shutter {
