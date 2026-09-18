@@ -25,7 +25,13 @@
 
 ## 发布/部署方式
 
-产品候选本地预览；体系合同验证后自动合入主干，产品改动不混入。
+实验阶段产品候选只在本地预览；体系合同先独立合入主干。
+
+2026-09-18 用户验收后明确“合入主干发布上线”，正式采用第三轮。产品源码与逐轮证据提交 `b84081223c64cb47296bbc6d2274a50393916eaa` 已推送 origin/master；冻结该 SHA，干净工作区执行既有 site-build + Wrangler deploy，Worker `bibo-bot`、route `bibo.bot/*`、version `e8ceb72a-e1bc-413d-9bed-f671118bb55b`。正式入口：https://bibo.bot/ 。六个历史候选仍在 `/concepts/a/` 至 `/concepts/f/`；本批每轮源码继续以累计补丁保留。
+
+生产 Chromium 验证：根 HTML/CSS/JS 与冻结源码逐字一致；拖纸条进入研究、Enter 连续四帧与重播、介绍关闭返回焦点、360px无横向溢出；六个历史路径200且noindex，未知路径404，无pageerror。此前本地减少动态效果及触摸验证继续适用，生产未重复所有输入组合。
+
+Wrangler 报告上传8.94秒、触发部署2.64秒，合计11.58秒，最慢为上传（只上传3个变化文件）。沿用增量上传，不重复上传历史资源。无发布重试、无 owner 外人工恢复，`AUTOMATION_INTERVENTIONS: 0`。首次主线协调返回 `LOCAL_MAINLINE_SYNCED`，发布记录随后同样回流；无NPM/Runtime/Desktop/数据迁移，本网站无需对应发布。回滚沿用 README 的 Worker 上一版本方式。
 
 ## 用户/产品视角的验收步骤
 

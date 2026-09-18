@@ -18,6 +18,8 @@
 
 ## 构建与发布
 
+2026-09-18 发布状态：用户验收通过的整体设计第三轮已正式采用并部署到 [bibo.bot](https://bibo.bot/)，发布源码 `b84081223c64cb47296bbc6d2274a50393916eaa`，Cloudflare version `e8ceb72a-e1bc-413d-9bed-f671118bb55b`。下方“尚未部署”描述保留为实验阶段历史，当前状态以本段与[发布记录](../../docs/logs/v0.56.4-bibo-design-leap/README.md)为准。
+
 本地候选优化：手机标题区更紧凑，画面底部显示“轻点继续 / 轻点重看”，上一帧触控区扩大；360×740 可在首屏看见完整快门。此次候选尚未发布到正式站；[Loop 设计](../../docs/loops/2026-09-18-bibo-optimization.loop.md)与[执行日志](../../docs/logs/v0.56.2-bibo-loop-pilot/README.md)分别维护。
 
 后续[三轮候选](../../docs/logs/v0.56.3-bibo-loop-three-rounds/README.md)：键盘 Enter 换帧后保留焦点，可继续方向键；手机画面左滑前进、右滑回看，末帧左滑重看，纵向滚动和缩放保留；末帧预设示例提供具体变化与首发建议。所有内容仍为概念演示，候选尚未部署。
