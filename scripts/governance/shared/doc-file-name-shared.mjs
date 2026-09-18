@@ -8,7 +8,12 @@ import { isKebabSegment, toKebabSegment } from "./file-name-kebab-shared.mjs";
 
 const DOC_EXTENSIONS = new Set([".md", ".mdx"]);
 const DATE_PREFIX_PATTERN = /^\d{4}-\d{2}-\d{2}-/;
-const KNOWLEDGE_DOC_ROLE_BY_ROOT = { "docs/thoughts": "thought", "docs/designs": "design", "docs/plans": "plan" };
+const KNOWLEDGE_DOC_ROLE_BY_ROOT = {
+  "docs/thoughts": "thought",
+  "docs/designs": "design",
+  "docs/plans": "plan",
+  "docs/loops": "loop"
+};
 const DOC_EXACT_STEM_ALLOWLIST = new Set(
   ["README", "CHANGELOG", "RELEASE", "VALIDATION", "ACCEPTANCE", "ITERATION", "TODO", "ROADMAP", "USAGE", "VISION", "ARCHITECTURE", "SKILL", "index"]
 );
@@ -70,8 +75,8 @@ export const inspectDocKebabFilePath = (filePath) => {
   }
   if (!invalidSegment) {
     const reason = [
-      missingDatePrefix && "thought/design/plan document file name must start with 'YYYY-MM-DD-'",
-      missingRoleSuffix && `thought/design/plan document file name must end with '.${knowledgeRole}'`
+      missingDatePrefix && `${knowledgeRole} document file name must start with 'YYYY-MM-DD-'`,
+      missingRoleSuffix && `${knowledgeRole} document file name must end with '.${knowledgeRole}'`
     ].filter(Boolean).join(" and ");
 
     return {

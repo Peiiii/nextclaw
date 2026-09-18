@@ -34,7 +34,7 @@ test("blocks touched legacy doc files too", () => {
   assert.match(violations[0].message, /touched doc file name is not governed/);
 });
 
-test("blocks thought, design, and plan docs without date prefixes", () => {
+test("blocks thought, design, plan, and loop docs without date prefixes", () => {
   const violations = collectDocFileNameDiffViolations([
     {
       filePath: "docs/thoughts/agent-os-entry.md",
@@ -47,17 +47,22 @@ test("blocks thought, design, and plan docs without date prefixes", () => {
     {
       filePath: "docs/plans/runtime-control-plan.md",
       status: "A"
+    },
+    {
+      filePath: "docs/loops/autonomous-polish-loop.md",
+      status: "A"
     }
   ]);
 
-  assert.equal(violations.length, 3);
+  assert.equal(violations.length, 4);
   assert.match(violations[0].message, /must start with 'YYYY-MM-DD-'/);
   assert.equal(violations[0].suggestedPath, "docs/designs/YYYY-MM-DD-runtime-control.design.md");
-  assert.equal(violations[1].suggestedPath, "docs/plans/YYYY-MM-DD-runtime-control.plan.md");
-  assert.equal(violations[2].suggestedPath, "docs/thoughts/YYYY-MM-DD-agent-os-entry.thought.md");
+  assert.equal(violations[1].suggestedPath, "docs/loops/YYYY-MM-DD-autonomous-polish.loop.md");
+  assert.equal(violations[2].suggestedPath, "docs/plans/YYYY-MM-DD-runtime-control.plan.md");
+  assert.equal(violations[3].suggestedPath, "docs/thoughts/YYYY-MM-DD-agent-os-entry.thought.md");
 });
 
-test("blocks thought, design, and plan docs without dotted role suffixes", () => {
+test("blocks thought, design, plan, and loop docs without dotted role suffixes", () => {
   const violations = collectDocFileNameDiffViolations([
     {
       filePath: "docs/thoughts/2026-05-09-agent-os-entry.md",
@@ -70,17 +75,22 @@ test("blocks thought, design, and plan docs without dotted role suffixes", () =>
     {
       filePath: "docs/plans/2026-05-09-runtime-control-plan.md",
       status: "A"
+    },
+    {
+      filePath: "docs/loops/2026-05-09-autonomous-polish-loop.md",
+      status: "A"
     }
   ]);
 
-  assert.equal(violations.length, 3);
+  assert.equal(violations.length, 4);
   assert.match(violations[0].message, /must end with '.design'/);
   assert.equal(violations[0].suggestedPath, "docs/designs/2026-05-09-runtime-control.design.md");
-  assert.equal(violations[1].suggestedPath, "docs/plans/2026-05-09-runtime-control.plan.md");
-  assert.equal(violations[2].suggestedPath, "docs/thoughts/2026-05-09-agent-os-entry.thought.md");
+  assert.equal(violations[1].suggestedPath, "docs/loops/2026-05-09-autonomous-polish.loop.md");
+  assert.equal(violations[2].suggestedPath, "docs/plans/2026-05-09-runtime-control.plan.md");
+  assert.equal(violations[3].suggestedPath, "docs/thoughts/2026-05-09-agent-os-entry.thought.md");
 });
 
-test("allows date-prefixed thought, design, and plan docs with dotted role suffixes", () => {
+test("allows date-prefixed thought, design, plan, and loop docs with dotted role suffixes", () => {
   const violations = collectDocFileNameDiffViolations([
     {
       filePath: "docs/thoughts/2026-05-09-agent-os-entry.thought.md"
@@ -90,6 +100,9 @@ test("allows date-prefixed thought, design, and plan docs with dotted role suffi
     },
     {
       filePath: "docs/plans/2026-05-09-runtime-control.plan.md"
+    },
+    {
+      filePath: "docs/loops/2026-05-09-autonomous-polish.loop.md"
     }
   ]);
 

@@ -13,6 +13,8 @@ description: 仅当用户明确要求 AI 对已有或正在形成的产物持续
 
 大型、多阶段任务若已有[验收合同方法](../acceptance-contract-governance/SKILL.md)产出的验收契约，直接把其中的必须项、代表性场景和阶段门作为质量模型输入；本方法不另建一套完成标准。
 
+用户明确要求把持续优化作为独立、跨轮或跨上下文任务，且下一步需要根据每轮证据重新选择时，按[项目知识治理](../project-knowledge-governance/SKILL.md)建立或恢复 `docs/loops/YYYY-MM-DD-<topic>.loop.md`。Loop 只拥有跨轮状态、资源与选择结果，不取代本方法或开发生命周期；普通单批收敛不创建。
+
 ## 进入条件
 
 开始前确认：
