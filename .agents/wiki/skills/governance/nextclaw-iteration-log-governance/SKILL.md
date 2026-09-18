@@ -33,13 +33,14 @@ The user can explicitly request logging at any time. Otherwise, prefer one batch
 
 Thought/design/plan/PRD documents normally belong under `docs/thoughts`, `docs/plans`, `docs/designs`, or `docs/prd`, not `docs/logs`.
 
-## Thought / Design / Plan Date Prefix
+## Thought / Design / Plan / Loop Date Prefix
 
-The iteration mechanism requires dated anchors and dotted role suffixes for thought, design, and plan deposits:
+The iteration mechanism requires dated anchors and dotted role suffixes for thought, design, plan, and loop deposits:
 
 - files under `docs/thoughts` must use `YYYY-MM-DD-<topic>.thought.md`,
 - files under `docs/designs` must use `YYYY-MM-DD-<topic>.design.md`,
 - files under `docs/plans` must use `YYYY-MM-DD-<topic>.plan.md`,
+- files under `docs/loops` must use `YYYY-MM-DD-<topic>.loop.md`,
 - this rule applies even when the work does not need a `docs/logs` iteration record.
 
 ## Same-Batch Rule
@@ -114,6 +115,16 @@ Cover:
 - or `不适用` with reason when no code maintainability evaluation applies.
 
 ## Work Notes
+
+### Loop 批次与逐轮记录
+
+明确执行 `.loop.md` 任务时，其合同约定的逐轮可追踪性构成日志需求，可在启动时建立批次记录，不受“普通小改动不建日志”限制。复用本规范的 `docs/logs/v<semver>-<slug>/README.md` 与版本分配；一次执行批次一个目录，同批返工不新建版本。新批次重新分配版本，不覆盖旧批次。版本号是文档迭代号，不代表 NPM 发布。
+
+- README 复用上述六个必需章节，在完成说明内维护批次状态、合同相对链接与版本（commit；未提交修订用只读快照或补丁固定）、授权、基准/当前最佳、预算起点/实耗、轮次索引及下一步/停止原因；运行中明确“进行中”，不得预填完成。运行状态使用 `draft / active / paused / blocked / stopped / completed`，只有明确启动或恢复才设为 `active`。
+- 每轮使用 `work/YYYY-MM-DD-<topic>-round-<NNN>.md`，日期为该轮开始日期，轮次在批次内递增；返工写回同一文件。沿用 work notes 的 `.md`，不新增文档类型或平行日志根目录。
+- 轮次记录包含问题证据、假设与预设判定、实际改动/返工、结果证据、保留/放弃依据、可测成本及限制。动手前记录判定，结束后补结果；失败也保留，事后补录必须注明来源及未知，禁止编造时间、指标或过程。
+- 图片等证据放批次 `evidence/`，使用 `YYYY-MM-DD-round-<NNN>-<description>.<ext>` 并相对链接；仅保留支撑结论的必要证据，不把临时绝对路径当长期记录。
+- 合同只定义设计；当前恢复状态唯一归 README，逐轮历史归轮次文件。完成记录不随新实验改写，纠错追加说明；合同修订只影响明确采用新版本的后续轮次。恢复默认读取合同、批次摘要及最近相关轮次。
 
 For complex, long-running, or cross-context tasks, create process notes only inside an existing or required iteration:
 
