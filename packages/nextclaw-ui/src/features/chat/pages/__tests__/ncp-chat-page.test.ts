@@ -7,7 +7,7 @@ import {
 import type { SessionEntryView, ThinkingLevel } from '@/shared/lib/api';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import {
-  resolveRecentSessionPreferredValue,
+  resolveRecentSessionPreferenceSnapshot,
   resolveSelectedModelValue,
   resolveSelectedThinkingLevelValue
 } from '@/features/chat/features/session/utils/chat-session-preference-governance.utils';
@@ -461,50 +461,54 @@ describe('shouldClearPendingProjectRootOverride', () => {
   });
 });
 
-describe('resolveRecentSessionPreferredModel', () => {
-  it('returns the most recent preferred model from the same runtime', () => {
+describe('resolveRecentSessionPreferenceSnapshot', () => {
+  it('returns the model and thinking level from the same recent runtime session', () => {
     const sessions = [
       createSession({
         key: 'native-1',
         sessionType: 'native',
         preferredModel: 'anthropic/claude-sonnet-4',
+        preferredThinking: 'low',
         updatedAt: '2026-03-18T01:00:00.000Z'
       }),
       createSession({
         key: 'codex-1',
         sessionType: 'codex',
         preferredModel: 'openai/gpt-5',
+        preferredThinking: 'high',
         updatedAt: '2026-03-18T03:00:00.000Z'
       }),
       createSession({
         key: 'codex-2',
         sessionType: 'codex',
         preferredModel: 'anthropic/claude-sonnet-4',
+        preferredThinking: 'medium',
         updatedAt: '2026-03-18T02:00:00.000Z'
       })
     ];
 
     expect(
-      resolveRecentSessionPreferredValue<string>({
+      resolveRecentSessionPreferenceSnapshot({
         sessions,
         selectedSessionKey: 'draft',
-        sessionType: 'codex',
-        readPreference: (session) => session.preferredModel?.trim() || undefined
+        sessionType: 'codex'
       })
-    ).toBe('openai/gpt-5');
+    ).toEqual({ model: 'openai/gpt-5', thinking: 'high' });
   });
 
-  it('ignores the currently selected session and sessions without preferred models', () => {
+  it('ignores the current session and does not borrow thinking from an older model', () => {
     const sessions = [
       createSession({
         key: 'codex-current',
         sessionType: 'codex',
         preferredModel: 'openai/gpt-5',
+        preferredThinking: 'high',
         updatedAt: '2026-03-18T03:00:00.000Z'
       }),
       createSession({
-        key: 'codex-empty',
+        key: 'codex-thinking-only',
         sessionType: 'codex',
+        preferredThinking: 'high',
         updatedAt: '2026-03-18T04:00:00.000Z'
       }),
       createSession({
@@ -512,17 +516,37 @@ describe('resolveRecentSessionPreferredModel', () => {
         sessionType: 'codex',
         preferredModel: 'anthropic/claude-sonnet-4',
         updatedAt: '2026-03-18T02:00:00.000Z'
+      }),
+      createSession({
+        key: 'codex-older-thinking',
+        sessionType: 'codex',
+        preferredModel: 'openai/gpt-5',
+        preferredThinking: 'medium',
+        updatedAt: '2026-03-18T01:00:00.000Z'
       })
     ];
 
     expect(
-      resolveRecentSessionPreferredValue<string>({
+      resolveRecentSessionPreferenceSnapshot({
         sessions,
         selectedSessionKey: 'codex-current',
-        sessionType: 'codex',
-        readPreference: (session) => session.preferredModel?.trim() || undefined
+        sessionType: 'codex'
       })
-    ).toBe('anthropic/claude-sonnet-4');
+    ).toEqual({ model: 'anthropic/claude-sonnet-4' });
+  });
+
+  it('returns no fallback when the runtime has no persisted model', () => {
+    expect(
+      resolveRecentSessionPreferenceSnapshot({
+        sessions: [createSession({
+          key: 'codex-thinking-only',
+          sessionType: 'codex',
+          preferredThinking: 'high'
+        })],
+        selectedSessionKey: 'draft',
+        sessionType: 'codex'
+      })
+    ).toBeUndefined();
   });
 });
 
@@ -585,39 +609,5 @@ describe('resolveSelectedThinkingLevelValue', () => {
         defaultThinkingLevel: 'medium'
       })
     ).toBe('medium');
-  });
-});
-
-describe('resolveRecentSessionPreferredThinking', () => {
-  it('returns the most recent preferred thinking from the same runtime', () => {
-    const sessions = [
-      createSession({
-        key: 'native-1',
-        sessionType: 'native',
-        preferredThinking: 'low',
-        updatedAt: '2026-03-18T01:00:00.000Z'
-      }),
-      createSession({
-        key: 'codex-1',
-        sessionType: 'codex',
-        preferredThinking: 'high',
-        updatedAt: '2026-03-18T03:00:00.000Z'
-      }),
-      createSession({
-        key: 'codex-2',
-        sessionType: 'codex',
-        preferredThinking: 'medium',
-        updatedAt: '2026-03-18T02:00:00.000Z'
-      })
-    ];
-
-    expect(
-      resolveRecentSessionPreferredValue<ThinkingLevel>({
-        sessions,
-        selectedSessionKey: 'draft',
-        sessionType: 'codex',
-        readPreference: (session) => session.preferredThinking ?? undefined
-      })
-    ).toBe('high');
   });
 });
