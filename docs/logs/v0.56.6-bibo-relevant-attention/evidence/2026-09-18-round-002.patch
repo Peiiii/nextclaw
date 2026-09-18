@@ -1,0 +1,467 @@
+diff --git a/apps/bibo-camera-site/dist/bibo-site.controller.js b/apps/bibo-camera-site/dist/bibo-site.controller.js
+index 623c10ffc..e9174bb3d 100644
+--- a/apps/bibo-camera-site/dist/bibo-site.controller.js
++++ b/apps/bibo-camera-site/dist/bibo-site.controller.js
+@@ -6,38 +6,45 @@ const shutter = document.querySelector("#shutter");
+ const tapScreen = document.querySelector("#tap-screen");
+ const previous = document.querySelector("#previous");
+ const dialog = document.querySelector("#info");
++const planPanel = document.querySelector("#plan-panel");
++const openPlan = document.querySelector("#open-plan");
+ const reduced = matchMedia("(prefers-reduced-motion: reduce)");
++const memoryCompare = document.querySelector("#memory-compare");
+ const frames = [
+   {
+     time: "09:12 AM",
+-    headline: ["交给我。", "你去忙。"],
++    headline: ["你忙你的。", "我接着做。"],
+     theme: "一句交代",
+-    caption: "你说方向，我记住重点。",
++    caption: "先交代一件事，看看它怎么接着做。",
++    action: "交给 Bibo",
+     speech: "把这件事，交给我。",
+     content: ".request",
+   },
+   {
+-    time: "10:08 AM",
+-    headline: ["记得你。", "才懂重点。"],
++    time: "FRIDAY / 10:08",
++    headline: ["你说过的。", "我记着呢。"],
+     theme: "结合你的背景",
+-    caption: "不是多找一点，是找对重点。",
+-    speech: "记得。小团队，先把首发做好。",
++    caption: "点快门，模拟离开一会儿。",
++    action: "我先去忙了",
++    speech: "记得，给团队讲，只留三分钟。",
+     content: ".focus-note",
+   },
+   {
+     time: "02:36 PM",
+-    headline: ["你去生活。", "我在留意。"],
++    headline: ["你没追问。", "我也在跟进。"],
+     theme: "你忙你的",
+-    caption: "你不在场，事情也往前走。",
+-    speech: "你忙。我还在看着呢。",
++    caption: "要求变了，我接着改，你不用重说一遍。",
++    action: "直接看初稿",
++    speech: "临时只有一分钟？我再压短一版。",
+     content: ".away",
+   },
+   {
+     time: "05:20 PM",
+-    headline: ["有了进展。", "带给你看。"],
++    headline: ["带回初稿。", "等你拍板。"],
+     theme: "带着结果回来",
+-    caption: "有值得知道的，再来找你。",
+-    speech: "这条，与你有关。",
++    caption: "有开场、有主张，也有下一步。",
++    action: "再看一遍",
++    speech: "稿子在这。你看看，像不像你想说的。",
+     content: ".result",
+   },
+ ];
+@@ -46,6 +53,7 @@ let exposing = false;
+ let changeTimer;
+ let releaseTimer;
+ let greetingTimer;
++let followupTimer;
+ let sceneAnimations = [];
+ let gestureStart = null;
+ let suppressTouchClick = false;
+@@ -79,14 +87,26 @@ function animateScene(index, entering, direction) {
+           },
+         ];
+     if (!entering && index === 0 && direction === 1) {
++      const paper = element.getBoundingClientRect();
++      const target = creature.getBoundingClientRect();
++      const dx = target.left + target.width / 2 - paper.left - paper.width / 2;
++      const dy = target.top + target.height / 2 - paper.top - paper.height / 2;
+       keyframes = [
+-        { opacity: 1, translate: "0px 0px", scale: 1 },
+-        { opacity: 0, translate: "90px -160px", scale: .2 },
++        { opacity: 1, translate: "0px 0px", scale: 1, rotate: "0deg" },
++        { opacity: 1, translate: "-8px 5px", scale: 1.025, rotate: "-3deg", offset: .18 },
++        { opacity: 0, translate: `${dx}px ${dy}px`, scale: .08, rotate: "12deg" },
++      ];
++    }
++    if (entering && index === 3) {
++      keyframes = [
++        { opacity: 0, translate: "25px -28px", rotate: "-7deg", scale: .94 },
++        { opacity: 1, translate: "-3px 5px", rotate: "1deg", scale: 1.01, offset: .72 },
++        { opacity: 1, translate: "0px 0px", rotate: "0deg", scale: 1 },
+       ];
+     }
+     sceneAnimations.push(
+       element.animate(keyframes, {
+-        duration: entering ? 440 : 160,
++        duration: entering ? 540 : 240,
+         easing: entering ? "cubic-bezier(.2,.75,.2,1)" : "ease-in",
+         fill: "both",
+       }),
+@@ -99,7 +119,13 @@ function clearSceneAnimations() {
+ }
+ function render() {
+   const current = frames[frame];
++  openPlan.hidden = frame !== 3;
++  planPanel.hidden = true;
++  openPlan.setAttribute("aria-expanded", "false");
++  document.querySelector("#keyboard-hint").hidden = frame === 3;
+   camera.dataset.frame = String(frame);
++  memoryCompare.hidden = frame !== 1;
++  memoryCompare.open = false;
+   document.body.dataset.scene = String(frame);
+   document.querySelector("#headline-start").textContent = current.headline[0];
+   document.querySelector("#headline-end").textContent = current.headline[1];
+@@ -115,18 +141,18 @@ function render() {
+     String(frame + 1).padStart(2, "0") + " — 04";
+   document.querySelector("#caption").textContent = current.caption;
+   document.querySelector("#next-label").textContent =
+-    frame === 0 ? "交给 Bibo" : frame === 3 ? "再看我们的一天" : "按一下，下一帧";
++    current.action;
+   const touchHint = matchMedia("(pointer: coarse)").matches;
+   document.querySelector("#screen-hint").textContent = frame === 3
+-    ? `${touchHint ? "轻点或左滑" : "轻点"}重看 ↻ · 示例`
++    ? "轻点，重看故事 ↻ · 示例"
+     : `${touchHint ? "轻点或左滑" : "轻点继续"} → · 示例`;
+   shutter.setAttribute(
+     "aria-label",
+-    frame === 3 ? "按快门，从第一帧重看" : "按快门，看下一帧",
++    current.action,
+   );
+   tapScreen.setAttribute(
+     "aria-label",
+-    frame === 3 ? "点击取景画面，从第一帧重看" : "点击取景画面，看下一帧",
++    frame === 3 ? "从第一帧重看故事" : "点击取景画面，看下一帧",
+   );
+   speech.textContent = current.speech;
+   creature.setAttribute("aria-label", frame === 0 ? "把这件事交给 Bibo" : "和 Bibo 打个招呼");
+@@ -138,6 +164,7 @@ function render() {
+ }
+ function moveTo(next, direction = next > frame ? 1 : -1) {
+   if (exposing || next < 0 || next >= frames.length) return;
++  clearTimeout(followupTimer);
+   cancelHandoff();
+   clearTimeout(greetingTimer);
+   companion.classList.remove("hello");
+@@ -157,7 +184,7 @@ function moveTo(next, direction = next > frame ? 1 : -1) {
+     render();
+     clearSceneAnimations();
+     animateScene(frame, true, direction);
+-  }, 160);
++  }, 240);
+   releaseTimer = setTimeout(() => {
+     exposing = false;
+     camera.classList.remove("exposing");
+@@ -165,11 +192,46 @@ function moveTo(next, direction = next > frame ? 1 : -1) {
+       control.removeAttribute("aria-disabled");
+     previous.disabled = frame === 0;
+     clearSceneAnimations();
+-  }, 600);
++  }, 800);
+ }
+ function advance() {
+-  moveTo((frame + 1) % frames.length, 1);
++  if (exposing) return;
++  if (frame === 3) {
++    moveTo(0, 1);
++    return;
++  }
++  const leaving = frame === 1;
++  moveTo(frame + 1, 1);
++  if (leaving) {
++    followupTimer = setTimeout(() => {
++      if (frame === 2 && !document.hidden && !dialog.open) moveTo(3, 1);
++    }, reduced.matches ? 1400 : 2200);
++  }
+ }
++openPlan.addEventListener("click", () => {
++  planPanel.hidden = !planPanel.hidden;
++  openPlan.setAttribute("aria-expanded", String(!planPanel.hidden));
++  document.querySelector("#copy-status").textContent = "";
++  if (!planPanel.hidden) document.querySelector("#close-plan").focus({ preventScroll: true });
++});
++function closePlan() {
++  planPanel.hidden = true;
++  openPlan.setAttribute("aria-expanded", "false");
++  openPlan.focus({ preventScroll: true });
++}
++document.querySelector("#close-plan").addEventListener("click", closePlan);
++planPanel.addEventListener("keydown", event => {
++  if (event.key === "Escape") { event.stopPropagation(); closePlan(); }
++});
++document.querySelector("#copy-plan").addEventListener("click", async () => {
++  const status = document.querySelector("#copy-status");
++  try {
++    await navigator.clipboard.writeText(document.querySelector("#plan-content").innerText);
++    status.textContent = "已复制示例初稿，改成你的实际情况再用。";
++  } catch {
++    status.textContent = "未能访问剪贴板。你可以选中上方初稿，手动复制。";
++  }
++});
+ shutter.addEventListener("click", advance);
+ tapScreen.addEventListener("click", (event) => {
+   if (suppressTouchClick && event.detail !== 0) return;
+@@ -232,7 +294,7 @@ tapScreen.addEventListener("pointermove", (event) => {
+   if (!handoff.ghost) {
+     handoff.ghost = document.createElement("div");
+     handoff.ghost.className = "handoff-note";
+-    handoff.ghost.textContent = "给 Bibo\n帮我盯住这三个竞品。";
++    handoff.ghost.textContent = "给 Bibo\n把零散资料，理成明天能讲的。";
+     handoff.ghost.setAttribute("aria-hidden", "true");
+     document.body.append(handoff.ghost);
+     camera.classList.add("handing-over");
+@@ -300,6 +362,7 @@ dialog.addEventListener("close", () =>
+   document.querySelector("#about").focus({ preventScroll: true }),
+ );
+ window.addEventListener("pagehide", () => {
++  clearTimeout(followupTimer);
+   cancelHandoff();
+   gestureStart = null;
+   suppressTouchClick = false;
+@@ -316,4 +379,7 @@ window.addEventListener("pageshow", (event) => {
+     control.removeAttribute("aria-disabled");
+   render();
+ });
++document.addEventListener("visibilitychange", () => {
++  if (document.hidden) clearTimeout(followupTimer);
++});
+ render();
+diff --git a/apps/bibo-camera-site/dist/index.html b/apps/bibo-camera-site/dist/index.html
+index 33ff9d01d..5bcc08698 100644
+--- a/apps/bibo-camera-site/dist/index.html
++++ b/apps/bibo-camera-site/dist/index.html
+@@ -21,10 +21,10 @@
+     <main>
+       <div class="intro">
+         <div>
+-          <p class="eyebrow">LESS ON YOUR MIND. MORE IN YOUR DAY.</p>
+-          <h1><span id="headline-start">交给我。</span><span id="headline-end">你去忙。</span></h1>
++          <p class="eyebrow">A LITTLE LESS TO KEEP IN MIND.</p>
++          <h1><span id="headline-start">你忙你的。</span><span id="headline-end">我接着做。</span></h1>
+         </div>
+-        <p class="intro-note">记住你的重点，接着往下做。<br />一个云端 AI 搭档，一段有回应的日常。</p>
++        <p class="intro-note">交代过的事，有后续。<br />重要的决定，仍由你来。</p>
+       </div>
+       <section
+         class="camera"
+@@ -49,7 +49,7 @@
+         </div>
+         <div class="viewfinder" id="viewfinder">
+           <div class="frame-chrome">
+-            <span class="record">BIBO / EVERYDAY</span
++            <span class="record">先看一件小事 / 互动示例</span
+             ><span id="timecode">09:12 AM</span>
+           </div>
+           <i class="corner tl" aria-hidden="true"></i
+@@ -59,42 +59,42 @@
+           <div class="scene">
+             <span class="scene-number" id="scene-number" aria-hidden="true">01</span>
+             <div class="context-note">
+-              <span>记在心上</span><b>下周发布</b
+-              ><small>小团队 · 先把首发做好</small>
++              <span>你提前说过</span><b>只讲三分钟</b
++              ><small>给团队讲 · 别写成长报告</small>
+             </div>
+             <div class="request">
+-              <span class="sender">给 Bibo 的一句话 <span class="drag-hint">↗ 拖给上面的我</span></span>
+-              <p>下周要发布了。<br />帮我盯住这三个竞品。</p>
+-              <span class="message-time">有值得关注的变化，再告诉我。 <span>✓✓</span></span>
++              <span class="sender">比如，你随口交代 <span class="drag-hint">↗ 拖给上面的我</span></span>
++              <p>明天要讲怎么改周会。<br />资料有点乱，帮我理成能讲的。</p>
++              <span class="message-time">会议记录、随手记的想法，都在这里。 <span>✓✓</span></span>
+             </div>
+             <div class="sources" aria-hidden="true">
+               <div class="source source-one">
+-                <span>01 / 产品更新</span><i></i><i></i><b>3 步引导</b>
++                <span>会议记录</span><i></i><i></i><b>一开就一小时</b>
+               </div>
+               <div class="source source-two">
+-                <span>02 / 发布说明</span><i></i><i></i><b>企业功能</b>
++                <span>聊天里的反馈</span><i></i><i></i><b>重复同步进展</b>
+               </div>
+               <div class="source source-three">
+-                <span>03 / 版本变化</span><i></i><i></i><b>小幅修复</b>
++                <span>随手记的想法</span><i></i><i></i><b>只讨论待决策</b>
+               </div>
+             </div>
+             <div class="focus-note">
+               <span class="focus-icon">⌕</span>
+-              <p>不是每条更新都与你有关。<br /><b>3 条变化，找到你的那一条。</b></p>
++              <p>散在几个地方的东西，<br /><b>串成一条能讲清的线。</b></p>
+             </div>
+             <div class="away">
+-              <span class="away-time">14<span>:</span>36</span>
+-              <p>世界很忙。你可以不必。</p>
+-              <span class="working-pill"><i></i> Bibo 还在留意</span>
++              <span class="away-time">01:00</span>
++              <p>新要求：明天只留一分钟。</p>
++              <span class="working-pill"><i></i> 模拟继续修改 · 保留重点，压短初稿</span>
+             </div>
+             <div class="result">
+-              <span class="result-label">给你的今日回执 / 01</span>
+-              <h2>首发，先做减法。</h2>
+-              <p>竞品把首次引导缩到 3 步。<br />你的小团队，也可以先做轻一点。</p>
++              <span class="result-label">明天能讲的一分钟 / 示例初稿</span>
++              <h2>把周会，留给决定。</h2>
++              <p>进展放在会前同步。<br />会上只讨论卡点和要一起做的决定。</p>
+               <div class="result-bottom">
+-                <span>下周首发：先跑通，再加功能。</span>
++                <span>从零散资料，到开场、主张和下一步。</span>
+               </div>
+-              <span class="filtered">另外两项无关变化，就不打扰你了。</span>
++              <span class="filtered">初稿给你改，没有替你发送。</span>
+             </div>
+           </div>
+           <div class="frame-bottom">
+@@ -106,6 +106,25 @@
+             id="tap-screen"
+             aria-label="点击取景画面，看下一帧"
+           ></button>
++          <details class="memory-compare" id="memory-compare" hidden>
++            <summary>这段演示用了哪些材料？</summary>
++            <p>会议记录：每周例会约一小时。<br />反馈：花了很多时间重复汇报。<br />想法：提前同步，集中讨论待决策事项。</p>
++          </details>
++          <section id="plan-panel" aria-labelledby="plan-title" hidden>
++            <button id="close-plan" aria-label="收起初稿">×</button>
++            <div id="plan-content">
++              <p class="plan-intro">明天能讲的一分钟 · 示例初稿</p>
++              <h2 id="plan-title">把周会，留给决定。</h2>
++              <ol class="itinerary">
++                <li><time>开场</time><div><strong>一小时，花在哪里了？</strong><p>我们每周花一小时开会，但不少时间在重复同步已经写过的进展。</p></div></li>
++                <li><time>主张</time><div><strong>进展提前发，会上做决定。</strong><p>建议把进展放到会前，会上只讨论卡住的事和需要一起决定的问题。</p></div></li>
++                <li><time>行动</time><div><strong>先试两周，再看效果。</strong><p>每次记下会议耗时、是否形成明确结论，再决定要不要长期保留。</p></div></li>
++              </ol>
++              <p class="plan-boundary">以上使用预设材料演示，不是实际会议记录；没有读取文件或发送消息。</p>
++            </div>
++            <button id="copy-plan" class="back">复制这份初稿 ↗</button>
++            <p id="copy-status" role="status"></p>
++          </section>
+           <div class="film-progress" aria-hidden="true">
+             <i></i><i></i><i></i><i></i>
+           </div>
+@@ -114,6 +133,7 @@
+           <div class="frame-caption" aria-live="polite">
+             <span id="frame-counter">01 — 04</span>
+             <p id="caption">你说方向，我记住重点。</p>
++            <button id="open-plan" aria-controls="plan-panel" aria-expanded="false" hidden>在画面里看看初稿 ↗</button>
+           </div>
+           <div class="transport">
+             <button class="previous" id="previous" aria-label="上一帧" disabled>
+@@ -123,14 +143,14 @@
+             </button>
+             <div class="shutter-label">
+               <strong id="next-label">按一下，下一帧</strong
+-              ><span>也可以按 →</span>
++              ><span id="keyboard-hint">也可以按 →</span>
+             </div>
+           </div>
+         </div>
+       </section>
+       <footer>
+-        <span>一个 Bibo，接着你的日常往下做。</span
+-        ><span>手动播放 · 无真实 AI 执行</span>
++        <span>生活里的小事，工作里的下一步。</span
++        ><span>互动概念 · 预设内容，未执行真实任务</span>
+       </footer>
+     </main>
+     <dialog id="info">
+diff --git a/apps/bibo-camera-site/dist/styles.css b/apps/bibo-camera-site/dist/styles.css
+index 6b823f201..6feb246ea 100644
+--- a/apps/bibo-camera-site/dist/styles.css
++++ b/apps/bibo-camera-site/dist/styles.css
+@@ -723,17 +723,17 @@ h1 span {
+   background: #8270bd;
+ }
+ .camera.exposing .body {
+-  animation: lean-into-frame 0.6s cubic-bezier(0.2, 0.7, 0.3, 1);
++  animation: lean-into-frame .8s cubic-bezier(.22,.8,.3,1);
+ }
+ .camera.exposing .eyes {
+-  animation: watch-frame 0.6s ease;
++  animation: watch-frame .8s ease;
+ }
+ .camera.exposing .hand-left,
+ .camera.exposing .hand-right {
+-  animation: pull-frame 0.6s cubic-bezier(0.2, 0.7, 0.3, 1);
++  animation: pull-frame .72s cubic-bezier(.22,.8,.3,1);
+ }
+ .camera.exposing .hand-right {
+-  animation-delay: 0.035s;
++  animation-delay: .065s;
+ }
+ .camera.exposing .shutter {
+   animation: shutter-feedback 0.6s ease;
+@@ -778,10 +778,9 @@ footer {
+     rotate: 0deg;
+     translate: 0 0;
+   }
+-  40% {
+-    rotate: calc(var(--turn) * -5deg);
+-    translate: calc(var(--turn) * -5px) 4px;
+-  }
++  16% { rotate: calc(var(--turn) * 2deg); translate: 0 -3px; scale: .98 1.02; }
++  43% { rotate: calc(var(--turn) * -5deg); translate: calc(var(--turn) * -5px) 5px; scale: 1.025 .975; }
++  72% { rotate: calc(var(--turn) * 1deg); translate: 0 -1px; scale: .995 1.005; }
+ }
+ @keyframes watch-frame {
+   0%,
+@@ -1495,6 +1494,59 @@ body[data-scene="3"] { background: #eff2db; }
+   [data-frame="3"] .context-note { left: 8%; top: 45px; }
+   .filtered { position: static; display: block; margin-top: 8px; font-size: 8px; }
+ }
++/* The story is an itinerary, with connected stops rather than filtered sources. */
++.sources::before { content: ""; position: absolute; top: 145px; left: 25%; width: 54%; border-top: 3px dashed #a29a78; transform: rotate(2deg); }
++.source-two, .source-three { opacity: 1; }
++.source-one::after { content: "理出重点"; }
++.source { background: #fffdf6; }
++.away-time { font-family: sans-serif; }
++@media (max-width: 700px) {
++  .sources::before { top: 168px; left: 16%; width: 65%; }
++  .source b { padding: 3px 0; }
++  .away p { font-size: 13px; }
++}
++.memory-compare { position: absolute; z-index: 6; left: 30%; right: 15%; bottom: 47px; color: #504065; }
++.memory-compare[hidden] { display: none; }
++.memory-compare label { display: flex; justify-content: space-between; font-size: 11px; }
++.memory-compare input { width: 100%; height: 30px; margin: 4px 0 0; accent-color: #7960c5; cursor: ew-resize; }
++.memory-compare > div { display: flex; justify-content: space-between; font-size: 10px; color: #81718f; }
++[data-frame="1"] .focus-note { display: flex; top: 215px; }
++.memory-compare { background: #f8f5ed; border-radius: 12px; padding: 10px 15px; box-shadow: 0 2px 8px #302d3c08; }
++.memory-compare summary { font-size: 11px; cursor: pointer; text-align: center; }
++.memory-compare p { font-size: 11px; line-height: 1.8; margin: 10px 0 0; }
++.memory-compare[open] summary { margin-bottom: 12px; }
++.camera:has(.memory-compare[open]) .focus-note { visibility: hidden; }
++.source-one { translate: calc(var(--route-spread, 0) * -45px) 0; }
++.source-three { translate: calc(var(--route-spread, 0) * 40px) 0; }
++.source { transition: translate 180ms ease-out, opacity 300ms; }
++@media (max-width: 700px) {
++  .memory-compare { left: 8%; right: 8%; bottom: 48px; }
++  [data-frame="1"] .focus-note { top: 222px; font-size: 10px; }
++  [data-frame="1"] .focus-note b { font-size: 12px; }
++  .memory-compare label, .memory-compare > div { font-size: 9px; }
++  [data-frame="1"] .context-note { top: 165px; left: 3%; transform: rotate(-7deg) scale(.45); }
++  .source-one { translate: calc(var(--route-spread, 0) * -8px) 0; }
++  .source-three { translate: calc(var(--route-spread, 0) * 8px) 0; }
++}
++#open-plan { border: 0; padding: 8px 0; background: none; color: #7960c5; font: inherit; font-size: 11px; cursor: pointer; }
++#open-plan[hidden] { display: none; }
++#keyboard-hint[hidden] { display: none; }
++.plan-changes s { color: #aaa0ad; font-size: .85em; text-decoration-thickness: 1px; }
++.plan-changes { line-height: 1.9; }
++#plan-panel { position: absolute; inset: 34px 22px 28px; z-index: 8; overflow: auto; overscroll-behavior: contain; background: #fcfaef; color: #302d3c; padding: 20px 26px; border-radius: 8px 8px 24px 8px; box-shadow: 0 3px 18px #302d3c15; }
++#plan-panel[hidden] { display: none; }
++#close-plan { position: absolute; top: 12px; right: 16px; border: 0; background: none; font-size: 25px; cursor: pointer; color: inherit; }
++#plan-panel h2 { font-size: 26px; line-height: 1.1; margin: 8px 0; color: #7960c5; }
++#plan-panel .plan-intro { font-size: 10px; margin: 0; }
++.itinerary { list-style: none; padding: 0; margin: 12px 0; }
++.itinerary li { display: flex; gap: 18px; border-top: 1px dashed #d5cddd; padding: 10px 0; }
++.itinerary time { color: #7960c5; font-size: 12px; padding-top: 3px; }
++.itinerary time { flex: 0 0 28px; }
++.itinerary strong { font-size: 16px; }
++#plan-panel .itinerary p { font-size: 12px; line-height: 1.7; margin: 6px 0 0; }
++#plan-panel .plan-boundary, #copy-status { font-size: 11px; line-height: 1.8; color: #80748b; }
++#copy-status { min-height: 2em; margin-bottom: 0; }
++@media (max-width: 700px) { #plan-panel { inset: 32px 10px 28px; padding: 16px; } #plan-panel h2 { font-size: 23px; } .itinerary li { gap: 10px; } }
+ .drag-hint { float: right; color: #7960c5; font-size: 10px; }
+ .handoff-note {
+   position: fixed; z-index: 100; pointer-events: none;

@@ -6,40 +6,14 @@ const shutter = document.querySelector("#shutter");
 const tapScreen = document.querySelector("#tap-screen");
 const previous = document.querySelector("#previous");
 const dialog = document.querySelector("#info");
+const planPanel = document.querySelector("#plan-panel");
+const openPlan = document.querySelector("#open-plan");
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 const frames = [
-  {
-    time: "09:12 AM",
-    headline: ["交给我。", "你去忙。"],
-    theme: "一句交代",
-    caption: "你说方向，我记住重点。",
-    speech: "把这件事，交给我。",
-    content: ".request",
-  },
-  {
-    time: "10:08 AM",
-    headline: ["记得你。", "才懂重点。"],
-    theme: "结合你的背景",
-    caption: "不是多找一点，是找对重点。",
-    speech: "记得。小团队，先把首发做好。",
-    content: ".focus-note",
-  },
-  {
-    time: "02:36 PM",
-    headline: ["你去生活。", "我在留意。"],
-    theme: "你忙你的",
-    caption: "你不在场，事情也往前走。",
-    speech: "你忙。我还在看着呢。",
-    content: ".away",
-  },
-  {
-    time: "05:20 PM",
-    headline: ["有了进展。", "带给你看。"],
-    theme: "带着结果回来",
-    caption: "有值得知道的，再来找你。",
-    speech: "这条，与你有关。",
-    content: ".result",
-  },
+  { time: "01 / 看全局", headline: ["你说一件事。", "我多想几步。"], theme: "把你的事情，放在一起考虑", caption: "你的新计划，与已有项目和空闲时间一起安排。", action: "看看下一面", speech: "周四收尾，周五做成作品。帮你接上了。", content: ".request" },
+  { time: "02 / 自己接着做", headline: ["不用一直催。", "我有下一步。"], theme: "自己规划，按时接着做", caption: "安排检查、发现变化、调整下一步。每一步都不必等你重新开口。", action: "再看一面", speech: "发现延期了。我会重新核查，再告诉你影响。", content: ".focus-note" },
+  { time: "03 / 当下修正", headline: ["发现想偏了。", "自己改回来。"], theme: "发现问题，更新自己的工作准则", caption: "这次发现的偏差，写进自己的工作手册，改变下一次的做法。", action: "它还会复盘", speech: "我给自己补了一条：先确认期限，再展开方案。", content: ".away" },
+  { time: "04 / 主动复盘", headline: ["没人提醒。", "也会复盘。"], theme: "回看结果，改善下一次", caption: "自己发现反复出现的问题，让下一次的做法真正不同。", action: "再看一遍", speech: "这周重复提醒太多。以后合并，只报重要变化。", content: ".result" }
 ];
 let frame = 0;
 let exposing = false;
@@ -52,7 +26,6 @@ let suppressTouchClick = false;
 let handoff = null;
 function animateScene(index, entering, direction) {
   const selectors = [frames[index].content];
-  if (index === 1) selectors.push(".sources");
   for (const selector of selectors) {
     const element = document.querySelector(selector);
     let keyframes = entering
@@ -79,14 +52,26 @@ function animateScene(index, entering, direction) {
           },
         ];
     if (!entering && index === 0 && direction === 1) {
+      const paper = element.getBoundingClientRect();
+      const target = creature.getBoundingClientRect();
+      const dx = target.left + target.width / 2 - paper.left - paper.width / 2;
+      const dy = target.top + target.height / 2 - paper.top - paper.height / 2;
       keyframes = [
-        { opacity: 1, translate: "0px 0px", scale: 1 },
-        { opacity: 0, translate: "90px -160px", scale: .2 },
+        { opacity: 1, translate: "0px 0px", scale: 1, rotate: "0deg" },
+        { opacity: 1, translate: "-8px 5px", scale: 1.025, rotate: "-3deg", offset: .18 },
+        { opacity: 0, translate: `${dx}px ${dy}px`, scale: .08, rotate: "12deg" },
+      ];
+    }
+    if (entering && index === 3) {
+      keyframes = [
+        { opacity: 0, translate: "25px -28px", rotate: "-7deg", scale: .94 },
+        { opacity: 1, translate: "-3px 5px", rotate: "1deg", scale: 1.01, offset: .72 },
+        { opacity: 1, translate: "0px 0px", rotate: "0deg", scale: 1 },
       ];
     }
     sceneAnimations.push(
       element.animate(keyframes, {
-        duration: entering ? 440 : 160,
+        duration: entering ? 540 : 240,
         easing: entering ? "cubic-bezier(.2,.75,.2,1)" : "ease-in",
         fill: "both",
       }),
@@ -97,8 +82,96 @@ function clearSceneAnimations() {
   sceneAnimations.forEach((animation) => animation.cancel());
   sceneAnimations = [];
 }
+let playbackId;
+function stopPlayback() {
+  cancelAnimationFrame(playbackId);
+}
+function playCurrentScene() {
+  stopPlayback();
+  const scene = document.querySelector(frames[frame].content);
+  const title = scene.querySelector("h2");
+  const fullText = title.dataset.fullText || title.textContent;
+  title.dataset.fullText = fullText;
+  const userInput = frame === 0 || frame === 2;
+  let text;
+  if (userInput) {
+    title.setAttribute("aria-label", fullText);
+    const conversation = title.closest(".chat-conversation");
+    text = conversation.querySelector(".typed-text");
+    if (!text) {
+      const composer = document.createElement("div");
+      composer.className = "chat-composer";
+      composer.setAttribute("aria-hidden", "true");
+      text = document.createElement("span");
+      text.className = "typed-text";
+      const send = document.createElement("span");
+      send.className = "demo-send";
+      send.textContent = "发送 ↑";
+      composer.append(text, send);
+      conversation.append(composer);
+    }
+  }
+  const stages = [[2000,2700,4100,5400,6800],[1200,2300,3500,4800,6200],[1100,2000,3000,3900,4800],[1200,2600,4000,5400,6800]][frame];
+  let elapsed = 0;
+  let previousTime;
+  function draw(time) {
+    if (previousTime !== undefined && !document.hidden) elapsed += Math.min(time - previousTime, 100);
+    previousTime = time;
+    const done = reduced.matches || elapsed >= stages[4];
+    const stage = done ? 5 : stages.filter(at => elapsed >= at).length;
+    const changed = scene.dataset.step !== String(stage);
+    scene.dataset.step = String(stage);
+    if (changed || elapsed === 0) {
+      speech.textContent = stage >= 4 ? frames[frame].speech : ["在呢，想聊什么？", "我看看今天的安排。", "让我再看一眼这个方案。", "翻开今天的复盘笔记。 "][frame];
+    }
+    if (frame === 1) {
+      document.querySelector("#desk-time").textContent = stage === 0 ? "08:59" : "09:00";
+      document.querySelector("#desk-status").textContent = stage === 0 ? "还有一分钟" : stage < 3 ? "到点，开始检查" : "本次检查完成";
+      document.querySelector("#desk-result").textContent = stage < 2 ? "等待检查" : stage < 3 ? "正在核查…" : "素材延期了";
+      document.querySelector("#desk-message").textContent = stage < 3 ? "到点我会自己检查，你不用守着。" : stage < 4 ? "发现延期。让我把后续重新安排一下。" : "新的检查已安排，我先做不用等的部分。";
+    }
+    if (frame === 3) {
+      const lines = [...scene.querySelectorAll(".journal-line")];
+      const pen = scene.querySelector(".journal-pen");
+      let active;
+      lines.forEach((line, index) => {
+        const progress = done ? 1 : Math.max(0, Math.min(1, (elapsed - 2000 - index * 1200) / 1000));
+        line.style.opacity = progress > 0 ? "1" : "0";
+        line.style.clipPath = "none";
+        const paragraph = line.querySelector("p");
+        paragraph.style.clipPath = `inset(0 ${(1-progress)*100}% 0 0)`;
+        if (progress > 0 && progress < 1) active = { paragraph, progress };
+      });
+      pen.style.opacity = active ? "1" : "0";
+      if (active) {
+        const paper = scene.querySelector(".notebook-paper");
+        const line = active.paragraph;
+        pen.style.left = `${line.offsetLeft + line.clientWidth * active.progress}px`;
+        pen.style.top = `${line.offsetTop + line.clientHeight - 3}px`;
+        paper.style.position = "relative";
+      }
+    }
+    if (userInput) {
+      text.textContent = done ? fullText : fullText.slice(0, Math.floor(fullText.length * Math.min(1, elapsed / 1700)));
+
+    }
+    if (!done) playbackId = requestAnimationFrame(draw);
+  }
+  draw(performance.now());
+}
+const replay = document.createElement("button");
+replay.id = "replay-scene";
+replay.textContent = "↻ 重播这一幕";
+replay.addEventListener("click", () => { if (!exposing) playCurrentScene(); });
+document.querySelector("#viewfinder").append(replay);
 function render() {
   const current = frames[frame];
+  playCurrentScene();
+  openPlan.hidden = frame !== 3;
+  planPanel.hidden = true;
+  dialog.hidden = true;
+  openPlan.setAttribute("aria-expanded", "false");
+  document.querySelector("#keyboard-hint").hidden = frame === 3;
   camera.dataset.frame = String(frame);
   document.body.dataset.scene = String(frame);
   document.querySelector("#headline-start").textContent = current.headline[0];
@@ -115,20 +188,20 @@ function render() {
     String(frame + 1).padStart(2, "0") + " — 04";
   document.querySelector("#caption").textContent = current.caption;
   document.querySelector("#next-label").textContent =
-    frame === 0 ? "交给 Bibo" : frame === 3 ? "再看我们的一天" : "按一下，下一帧";
+    current.action;
   const touchHint = matchMedia("(pointer: coarse)").matches;
   document.querySelector("#screen-hint").textContent = frame === 3
-    ? `${touchHint ? "轻点或左滑" : "轻点"}重看 ↻ · 示例`
+    ? "轻点，重看故事 ↻ · 示例"
     : `${touchHint ? "轻点或左滑" : "轻点继续"} → · 示例`;
   shutter.setAttribute(
     "aria-label",
-    frame === 3 ? "按快门，从第一帧重看" : "按快门，看下一帧",
+    current.action,
   );
   tapScreen.setAttribute(
     "aria-label",
-    frame === 3 ? "点击取景画面，从第一帧重看" : "点击取景画面，看下一帧",
+    frame === 3 ? "从第一帧重看故事" : "点击取景画面，看下一帧",
   );
-  speech.textContent = current.speech;
+  if (reduced.matches) speech.textContent = current.speech;
   creature.setAttribute("aria-label", frame === 0 ? "把这件事交给 Bibo" : "和 Bibo 打个招呼");
   previous.disabled = frame === 0;
   for (const item of frames)
@@ -138,6 +211,7 @@ function render() {
 }
 function moveTo(next, direction = next > frame ? 1 : -1) {
   if (exposing || next < 0 || next >= frames.length) return;
+  stopPlayback();
   cancelHandoff();
   clearTimeout(greetingTimer);
   companion.classList.remove("hello");
@@ -157,7 +231,7 @@ function moveTo(next, direction = next > frame ? 1 : -1) {
     render();
     clearSceneAnimations();
     animateScene(frame, true, direction);
-  }, 160);
+  }, 240);
   releaseTimer = setTimeout(() => {
     exposing = false;
     camera.classList.remove("exposing");
@@ -165,11 +239,30 @@ function moveTo(next, direction = next > frame ? 1 : -1) {
       control.removeAttribute("aria-disabled");
     previous.disabled = frame === 0;
     clearSceneAnimations();
-  }, 600);
+  }, 800);
 }
 function advance() {
-  moveTo((frame + 1) % frames.length, 1);
+  if (exposing) return;
+  if (frame === 3) {
+    moveTo(0, 1);
+    return;
+  }
+  moveTo(frame + 1, 1);
 }
+openPlan.addEventListener("click", () => {
+  planPanel.hidden = !planPanel.hidden;
+  openPlan.setAttribute("aria-expanded", String(!planPanel.hidden));
+  if (!planPanel.hidden) document.querySelector("#close-plan").focus({ preventScroll: true });
+});
+function closePlan() {
+  planPanel.hidden = true;
+  openPlan.setAttribute("aria-expanded", "false");
+  openPlan.focus({ preventScroll: true });
+}
+document.querySelector("#close-plan").addEventListener("click", closePlan);
+planPanel.addEventListener("keydown", event => {
+  if (event.key === "Escape") { event.stopPropagation(); closePlan(); }
+});
 shutter.addEventListener("click", advance);
 tapScreen.addEventListener("click", (event) => {
   if (suppressTouchClick && event.detail !== 0) return;
@@ -232,7 +325,7 @@ tapScreen.addEventListener("pointermove", (event) => {
   if (!handoff.ghost) {
     handoff.ghost = document.createElement("div");
     handoff.ghost.className = "handoff-note";
-    handoff.ghost.textContent = "给 Bibo\n帮我盯住这三个竞品。";
+    handoff.ghost.textContent = "给 Bibo\n想学做网站，也想做好眼前的项目。";
     handoff.ghost.setAttribute("aria-hidden", "true");
     document.body.append(handoff.ghost);
     camera.classList.add("handing-over");
@@ -251,7 +344,7 @@ camera.addEventListener("keydown", (event) => {
     cancelHandoff();
     return;
   }
-  if (dialog.open || event.altKey || event.ctrlKey || event.metaKey) return;
+  if (event.altKey || event.ctrlKey || event.metaKey) return;
   if (event.key === "ArrowRight") {
     event.preventDefault();
     advance();
@@ -289,17 +382,18 @@ document.addEventListener("pointermove", (event) => {
     ) + "px",
   );
 });
-document
-  .querySelector("#about")
-  .addEventListener("click", () => dialog.showModal());
-for (const id of ["close", "back"])
-  document
-    .querySelector("#" + id)
-    .addEventListener("click", () => dialog.close());
-dialog.addEventListener("close", () =>
-  document.querySelector("#about").focus({ preventScroll: true }),
-);
+document.querySelector("#about").addEventListener("click", () => {
+  dialog.hidden = false;
+  document.querySelector("#close").focus({ preventScroll: true });
+});
+function closeInfo() {
+  dialog.hidden = true;
+  document.querySelector("#about").focus({ preventScroll: true });
+}
+for (const id of ["close", "back"]) document.querySelector("#" + id).addEventListener("click", closeInfo);
+dialog.addEventListener("keydown", event => { if (event.key === "Escape") { event.stopPropagation(); closeInfo(); } });
 window.addEventListener("pagehide", () => {
+  stopPlayback();
   cancelHandoff();
   gestureStart = null;
   suppressTouchClick = false;
@@ -316,4 +410,5 @@ window.addEventListener("pageshow", (event) => {
     control.removeAttribute("aria-disabled");
   render();
 });
+
 render();

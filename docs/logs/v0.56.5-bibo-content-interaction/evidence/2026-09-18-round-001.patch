@@ -1,0 +1,178 @@
+diff --git a/apps/bibo-camera-site/dist/bibo-site.controller.js b/apps/bibo-camera-site/dist/bibo-site.controller.js
+index 623c10ffc..ae5832136 100644
+--- a/apps/bibo-camera-site/dist/bibo-site.controller.js
++++ b/apps/bibo-camera-site/dist/bibo-site.controller.js
+@@ -12,32 +12,36 @@ const frames = [
+     time: "09:12 AM",
+     headline: ["交给我。", "你去忙。"],
+     theme: "一句交代",
+-    caption: "你说方向，我记住重点。",
++    caption: "你说心愿，我把小事记在心上。",
++    action: "把心愿交给 Bibo",
+     speech: "把这件事，交给我。",
+     content: ".request",
+   },
+   {
+-    time: "10:08 AM",
++    time: "FRIDAY / 10:08",
+     headline: ["记得你。", "才懂重点。"],
+     theme: "结合你的背景",
+-    caption: "不是多找一点，是找对重点。",
+-    speech: "记得。小团队，先把首发做好。",
++    caption: "妈妈走不远，路线就排近一点。",
++    action: "让 Bibo 接着留意",
++    speech: "记得，妈妈走不远。",
+     content: ".focus-note",
+   },
+   {
+     time: "02:36 PM",
+     headline: ["你去生活。", "我在留意。"],
+     theme: "你忙你的",
+-    caption: "你不在场，事情也往前走。",
+-    speech: "你忙。我还在看着呢。",
++    caption: "情况变了，我接着调整。",
++    action: "看看调整后的安排",
++    speech: "午后有雨？那就上午看海。",
+     content: ".away",
+   },
+   {
+     time: "05:20 PM",
+     headline: ["有了进展。", "带给你看。"],
+     theme: "带着结果回来",
+-    caption: "有值得知道的，再来找你。",
+-    speech: "这条，与你有关。",
++    caption: "把你的心愿，变成轻松的一天。",
++    action: "再看这个故事",
++    speech: "安排好了。你来决定。",
+     content: ".result",
+   },
+ ];
+@@ -115,14 +119,14 @@ function render() {
+     String(frame + 1).padStart(2, "0") + " — 04";
+   document.querySelector("#caption").textContent = current.caption;
+   document.querySelector("#next-label").textContent =
+-    frame === 0 ? "交给 Bibo" : frame === 3 ? "再看我们的一天" : "按一下，下一帧";
++    current.action;
+   const touchHint = matchMedia("(pointer: coarse)").matches;
+   document.querySelector("#screen-hint").textContent = frame === 3
+     ? `${touchHint ? "轻点或左滑" : "轻点"}重看 ↻ · 示例`
+     : `${touchHint ? "轻点或左滑" : "轻点继续"} → · 示例`;
+   shutter.setAttribute(
+     "aria-label",
+-    frame === 3 ? "按快门，从第一帧重看" : "按快门，看下一帧",
++    current.action,
+   );
+   tapScreen.setAttribute(
+     "aria-label",
+@@ -232,7 +236,7 @@ tapScreen.addEventListener("pointermove", (event) => {
+   if (!handoff.ghost) {
+     handoff.ghost = document.createElement("div");
+     handoff.ghost.className = "handoff-note";
+-    handoff.ghost.textContent = "给 Bibo\n帮我盯住这三个竞品。";
++    handoff.ghost.textContent = "给 Bibo\n周六，带妈妈去看海。";
+     handoff.ghost.setAttribute("aria-hidden", "true");
+     document.body.append(handoff.ghost);
+     camera.classList.add("handing-over");
+diff --git a/apps/bibo-camera-site/dist/index.html b/apps/bibo-camera-site/dist/index.html
+index 33ff9d01d..37218e03a 100644
+--- a/apps/bibo-camera-site/dist/index.html
++++ b/apps/bibo-camera-site/dist/index.html
+@@ -24,7 +24,7 @@
+           <p class="eyebrow">LESS ON YOUR MIND. MORE IN YOUR DAY.</p>
+           <h1><span id="headline-start">交给我。</span><span id="headline-end">你去忙。</span></h1>
+         </div>
+-        <p class="intro-note">记住你的重点，接着往下做。<br />一个云端 AI 搭档，一段有回应的日常。</p>
++        <p class="intro-note">记得你在意的人和事。<br />把一句心愿，接着做成安排。</p>
+       </div>
+       <section
+         class="camera"
+@@ -59,42 +59,42 @@
+           <div class="scene">
+             <span class="scene-number" id="scene-number" aria-hidden="true">01</span>
+             <div class="context-note">
+-              <span>记在心上</span><b>下周发布</b
+-              ><small>小团队 · 先把首发做好</small>
++              <span>你提过的小事</span><b>妈妈走不远</b
++              ><small>少走一点 · 多坐一会儿</small>
+             </div>
+             <div class="request">
+               <span class="sender">给 Bibo 的一句话 <span class="drag-hint">↗ 拖给上面的我</span></span>
+-              <p>下周要发布了。<br />帮我盯住这三个竞品。</p>
+-              <span class="message-time">有值得关注的变化，再告诉我。 <span>✓✓</span></span>
++              <p>周六，带妈妈去看海。<br />帮我安排轻松一点。</p>
++              <span class="message-time">不用赶景点，能好好待在一起就好。 <span>✓✓</span></span>
+             </div>
+             <div class="sources" aria-hidden="true">
+               <div class="source source-one">
+-                <span>01 / 产品更新</span><i></i><i></i><b>3 步引导</b>
++                <span>10:00 / 展馆</span><i></i><i></i><b>慢慢逛</b>
+               </div>
+               <div class="source source-two">
+-                <span>02 / 发布说明</span><i></i><i></i><b>企业功能</b>
++                <span>12:00 / 午餐</span><i></i><i></i><b>就在附近</b>
+               </div>
+               <div class="source source-three">
+-                <span>03 / 版本变化</span><i></i><i></i><b>小幅修复</b>
++                <span>14:00 / 海边</span><i></i><i></i><b>坐着看海</b>
+               </div>
+             </div>
+             <div class="focus-note">
+               <span class="focus-icon">⌕</span>
+-              <p>不是每条更新都与你有关。<br /><b>3 条变化，找到你的那一条。</b></p>
++              <p>不是把景点排满。<br /><b>是让妈妈，也能轻松看海。</b></p>
+             </div>
+             <div class="away">
+-              <span class="away-time">14<span>:</span>36</span>
+-              <p>世界很忙。你可以不必。</p>
+-              <span class="working-pill"><i></i> Bibo 还在留意</span>
++              <span class="away-time">☂</span>
++              <p>午后可能下雨，我把看海提前。</p>
++              <span class="working-pill"><i></i> 你不用从头安排一遍</span>
+             </div>
+             <div class="result">
+-              <span class="result-label">给你的今日回执 / 01</span>
+-              <h2>首发，先做减法。</h2>
+-              <p>竞品把首次引导缩到 3 步。<br />你的小团队，也可以先做轻一点。</p>
++              <span class="result-label">给你和妈妈的周六 / 行程草案</span>
++              <h2>海要看，路少走。</h2>
++              <p>上午看海，午后留在室内。<br />三个地方挨着，累了随时坐坐。</p>
+               <div class="result-bottom">
+-                <span>下周首发：先跑通，再加功能。</span>
++                <span>记得走不远，也留意了天气。</span>
+               </div>
+-              <span class="filtered">另外两项无关变化，就不打扰你了。</span>
++              <span class="filtered">安排先给你看，没有替你预订。</span>
+             </div>
+           </div>
+           <div class="frame-bottom">
+@@ -130,7 +130,7 @@
+       </section>
+       <footer>
+         <span>一个 Bibo，接着你的日常往下做。</span
+-        ><span>手动播放 · 无真实 AI 执行</span>
++        ><span>互动示例 · 天气与路线为示意</span>
+       </footer>
+     </main>
+     <dialog id="info">
+diff --git a/apps/bibo-camera-site/dist/styles.css b/apps/bibo-camera-site/dist/styles.css
+index 6b823f201..f61e8e5a9 100644
+--- a/apps/bibo-camera-site/dist/styles.css
++++ b/apps/bibo-camera-site/dist/styles.css
+@@ -1495,6 +1495,17 @@ body[data-scene="3"] { background: #eff2db; }
+   [data-frame="3"] .context-note { left: 8%; top: 45px; }
+   .filtered { position: static; display: block; margin-top: 8px; font-size: 8px; }
+ }
++/* The story is an itinerary, with connected stops rather than filtered sources. */
++.sources::before { content: ""; position: absolute; top: 145px; left: 25%; width: 54%; border-top: 3px dashed #a29a78; transform: rotate(2deg); }
++.source-two, .source-three { opacity: 1; }
++.source-one::after { content: "少走路"; }
++.source { background: #fffdf6; }
++.away-time { font-family: sans-serif; }
++@media (max-width: 700px) {
++  .sources::before { top: 168px; left: 16%; width: 65%; }
++  .source b { padding: 3px 0; }
++  .away p { font-size: 13px; }
++}
+ .drag-hint { float: right; color: #7960c5; font-size: 10px; }
+ .handoff-note {
+   position: fixed; z-index: 100; pointer-events: none;
