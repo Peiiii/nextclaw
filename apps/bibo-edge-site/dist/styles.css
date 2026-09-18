@@ -1,0 +1,945 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap");
+:root {
+  font-family: "DM Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #f5efca;
+  color: #343126;
+  --ink: #343126;
+  --accent: #6455ba;
+  --muted: #7b775e;
+}
+* {
+  box-sizing: border-box;
+}
+[hidden] {
+  display: none !important;
+}
+body {
+  margin: 0;
+}
+button,
+a {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #c67532;
+  outline-offset: 6px;
+}
+h1,
+h2,
+p {
+  margin: 0;
+}
+.world {
+  min-height: 800px;
+  height: 100svh;
+  position: relative;
+  overflow: hidden;
+  background: #f5efca;
+  transition:
+    background 1s,
+    color 1s;
+}
+header,
+footer {
+  position: absolute;
+  left: 48px;
+  right: 48px;
+  display: flex;
+  align-items: center;
+  z-index: 10;
+}
+header {
+  top: 27px;
+  justify-content: space-between;
+}
+.brand {
+  font-size: 42px;
+  line-height: 1;
+  letter-spacing: -3px;
+  font-weight: 700;
+}
+.brand span {
+  color: var(--accent);
+  margin-left: 3px;
+}
+.identity {
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+.about {
+  border: 0;
+  background: transparent;
+  font-size: 13px;
+  padding: 12px 0 12px 16px;
+}
+.about span {
+  margin-left: 20px;
+}
+main {
+  height: 100%;
+  position: relative;
+}
+.scene-detail {
+  position: absolute;
+  left: 49px;
+  top: 139px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.copy {
+  position: absolute;
+  left: 17%;
+  top: 24%;
+  z-index: 3;
+  transition:
+    opacity 0.55s,
+    transform 0.7s;
+}
+.kicker {
+  font-size: 15px;
+  margin-bottom: 23px;
+  color: var(--accent);
+}
+h1 {
+  font-size: clamp(54px, 5.7vw, 87px);
+  letter-spacing: -3px;
+  line-height: 1.2;
+  font-weight: 500;
+}
+h1 span {
+  color: var(--accent);
+}
+.subline {
+  font-size: 15px;
+  margin-top: 29px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.creature-area {
+  position: absolute;
+  right: -145px;
+  top: 28%;
+  width: 510px;
+  height: 400px;
+  z-index: 4;
+  transition:
+    transform 0.85s cubic-bezier(0.2, 0.7, 0.1, 1),
+    opacity 0.6s;
+}
+.creature {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  transform: rotate(-18deg);
+  transition: transform 0.55s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+.body {
+  position: absolute;
+  inset: 20px 0;
+  background: #8071cd;
+  border-radius: 48% 43% 45% 50%;
+  display: block;
+  transform: rotate(6deg);
+  transition:
+    border-radius 0.5s,
+    background 0.7s;
+}
+.face {
+  display: flex;
+  gap: 22px;
+  position: absolute;
+  left: 62px;
+  top: 91px;
+  transform: rotate(-5deg);
+  transition: transform 0.35s;
+}
+.eye {
+  background: #f7f5e9;
+  width: 91px;
+  height: 119px;
+  border-radius: 51%;
+  display: block;
+  position: relative;
+  overflow: hidden;
+  transform: rotate(6deg);
+  transition: height 0.2s;
+}
+.eye:nth-child(2) {
+  height: 106px;
+  margin-top: 4px;
+}
+.pupil {
+  position: absolute;
+  background: #332752;
+  width: 41px;
+  height: 57px;
+  left: 18px;
+  top: 34px;
+  border-radius: 50%;
+  transform: translate(var(--eye-x, 0px), var(--eye-y, 0px));
+  transition: transform 0.1s;
+}
+.cheek {
+  position: absolute;
+  left: 100px;
+  top: 236px;
+  width: 35px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6553b0;
+  transform: rotate(9deg);
+}
+.creature-area:hover .creature,
+.creature:focus-visible {
+  transform: rotate(-8deg) translateX(-48px);
+}
+.creature-area:hover .body {
+  border-radius: 44% 49% 46% 45%;
+}
+.speech {
+  position: absolute;
+  top: -8px;
+  left: -63px;
+  padding: 13px 21px;
+  background: #fffdf0;
+  border-radius: 21px 21px 2px 21px;
+  font-size: 14px;
+  white-space: nowrap;
+  transform: rotate(-7deg);
+  z-index: 2;
+  transition: opacity 0.4s;
+}
+.hello-hint {
+  position: absolute;
+  bottom: 8px;
+  left: 66px;
+  font-size: 12px;
+  color: #746f55;
+  transform: rotate(-9deg);
+}
+.experience {
+  position: absolute;
+  left: 17%;
+  bottom: 14%;
+  z-index: 5;
+  transition: transform 0.6s;
+}
+.task-context {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 13px;
+}
+.primary {
+  border: 0;
+  border-radius: 50px;
+  background: var(--ink);
+  color: #fffdf0;
+  padding: 18px 26px;
+  display: inline-flex;
+  gap: 35px;
+  font-size: 15px;
+  align-items: center;
+  transition:
+    transform 0.25s,
+    background 0.25s;
+}
+.primary:hover {
+  transform: translateY(-3px);
+  background: #4e4939;
+}
+.primary span {
+  font-size: 21px;
+}
+.preview-label {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 12px;
+}
+.reset {
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  font-size: 13px;
+  padding: 12px;
+  color: var(--muted);
+}
+footer {
+  bottom: 27px;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 12px;
+}
+.foot-right {
+  display: flex;
+  gap: 32px;
+}
+.foot-right > span {
+  font-size: 10px;
+}
+.halo {
+  position: absolute;
+  right: -110px;
+  top: 18%;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  border: 1px solid #dcd5ab;
+  pointer-events: none;
+}
+.track {
+  position: absolute;
+  left: 50%;
+  bottom: -210px;
+  width: 560px;
+  height: 400px;
+  border: 1px solid #dcd5ab;
+  border-radius: 50%;
+  transform: rotate(-30deg);
+  pointer-events: none;
+}
+.arrival {
+  position: absolute;
+  left: 17%;
+  top: 32%;
+  max-width: 470px;
+  z-index: 7;
+  animation: arrive 0.7s ease-out;
+}
+.arrival-label {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--accent);
+}
+.arrival h2 {
+  font-size: 43px;
+  font-weight: 500;
+  letter-spacing: -1.5px;
+  margin: 22px 0;
+}
+.arrival p {
+  font-size: 17px;
+  line-height: 1.9;
+  color: var(--muted);
+}
+.arrival button {
+  border: 0;
+  border-bottom: 1px solid var(--ink);
+  padding: 13px 0;
+  margin-top: 24px;
+  background: none;
+  font-size: 15px;
+  display: flex;
+  gap: 50px;
+}
+.quiet-message {
+  position: absolute;
+  left: 17%;
+  top: 37%;
+  font-size: 42px;
+  letter-spacing: -1px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s;
+}
+.world[data-state="waiting"] {
+  background: #ecead7;
+}
+.world[data-state="waiting"] .copy,
+.world[data-state="done"] .copy {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-16px);
+}
+.world[data-state="waiting"] .creature-area {
+  transform: translateX(290px) rotate(10deg);
+}
+.world[data-state="waiting"] .quiet-message {
+  opacity: 1;
+}
+.world[data-state="waiting"] .speech {
+  opacity: 0;
+}
+.world[data-state="done"] .creature-area {
+  transform: translateX(-50px) rotate(-5deg);
+}
+.world[data-state="done"] .experience {
+  opacity: 0;
+  pointer-events: none;
+}
+.greeting .face {
+  animation: blink 0.65s;
+}
+@keyframes blink {
+  50% {
+    transform: scaleY(0.15);
+  }
+}
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+dialog {
+  border: 0;
+  border-radius: 22px;
+  max-width: 470px;
+  width: calc(100% - 40px);
+  padding: 43px;
+  background: #fffdf2;
+  color: #343126;
+  box-shadow: 0 30px 100px #0003;
+}
+dialog::backdrop {
+  background: #1b193c66;
+  backdrop-filter: blur(8px);
+}
+.dialog-close {
+  position: absolute;
+  right: 19px;
+  top: 13px;
+  border: 0;
+  background: none;
+  font-size: 27px;
+  padding: 8px;
+}
+.dialog-kicker {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #6455ba;
+}
+dialog h2 {
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 23px 0;
+}
+dialog p {
+  font-size: 14px;
+  line-height: 1.9;
+  margin-top: 15px;
+  color: #676658;
+}
+dialog .disclosure {
+  font-size: 12px;
+  border-top: 1px solid #dedbcc;
+  padding-top: 17px;
+}
+.dialog-back {
+  margin-top: 24px;
+  border: 0;
+  border-radius: 25px;
+  background: #343126;
+  color: white;
+  padding: 13px 22px;
+}
+.orbit {
+  --ink: #e9f1ff;
+  --accent: #9dccfc;
+  --muted: #a7b8d0;
+  background: #101d34;
+  color: var(--ink);
+}
+.orbit .world {
+  background: #101d34;
+}
+.orbit .brand span {
+  color: #a1d7ff;
+}
+.orbit .scene-detail {
+  top: auto;
+  bottom: 118px;
+  left: 48px;
+  color: #6e88ac;
+}
+.orbit .copy {
+  top: 16%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+}
+.orbit .kicker {
+  font-size: 13px;
+  margin-bottom: 17px;
+}
+.orbit h1 {
+  font-size: clamp(45px, 4.2vw, 64px);
+  letter-spacing: -2px;
+  line-height: 1.28;
+}
+.orbit h1 br {
+  display: none;
+}
+.orbit .subline {
+  font-size: 14px;
+  margin-top: 18px;
+}
+.orbit .creature-area {
+  right: auto;
+  left: 50%;
+  top: 36%;
+  width: 330px;
+  height: 235px;
+  transform: translateX(-50%);
+}
+.orbit .creature {
+  transform: rotate(-4deg);
+}
+.orbit .body {
+  inset: 8px 14px;
+  border-radius: 49% 51% 46% 47%;
+  background: #a0d6f6;
+  transform: rotate(0);
+}
+.orbit .face {
+  left: 61px;
+  top: 57px;
+  gap: 27px;
+  transform: none;
+}
+.orbit .eye {
+  width: 67px;
+  height: 85px;
+  transform: rotate(-7deg);
+  background: #153456;
+}
+.orbit .eye:nth-child(2) {
+  height: 85px;
+  transform: rotate(7deg);
+  margin: 0;
+}
+.orbit .pupil {
+  background: #ebf8ff;
+  width: 26px;
+  height: 39px;
+  left: 24px;
+  top: 22px;
+}
+.orbit .cheek {
+  left: 143px;
+  top: 167px;
+  width: 15px;
+  height: 5px;
+  background: #6faccd;
+}
+.orbit .creature-area:hover .creature,
+.orbit .creature:focus-visible {
+  transform: rotate(4deg) translateY(-9px);
+}
+.orbit .speech {
+  top: 95px;
+  left: 310px;
+  background: #213a58;
+  color: #c6e1ff;
+  border-radius: 18px 18px 18px 2px;
+  font-size: 13px;
+  transform: rotate(5deg);
+}
+.orbit .hello-hint {
+  left: 130px;
+  bottom: -17px;
+  color: #94abc5;
+  transform: none;
+}
+.orbit .halo {
+  left: 50%;
+  right: auto;
+  top: 30%;
+  width: 470px;
+  height: 330px;
+  transform: translateX(-50%) rotate(-18deg);
+  border-color: #304561;
+  border-radius: 50%;
+}
+.orbit .track {
+  left: 50%;
+  bottom: auto;
+  top: 26%;
+  width: 600px;
+  height: 420px;
+  transform: translateX(-50%) rotate(-18deg);
+  border-color: #213751;
+}
+.orbit .experience {
+  left: 0;
+  bottom: 13%;
+  text-align: center;
+  width: 100%;
+}
+.orbit .primary {
+  background: #c2e3fb;
+  color: #17344e;
+}
+.orbit .primary:hover {
+  background: #e2f1ff;
+}
+.orbit .quiet-message {
+  left: 0;
+  width: 100%;
+  text-align: center;
+  top: 26%;
+  font-size: 35px;
+}
+.orbit .world[data-state="waiting"] {
+  background: #091526;
+}
+.orbit .world[data-state="waiting"] .creature-area {
+  transform: translateX(-50%) translateY(50px) scale(0.65);
+}
+.orbit .world[data-state="done"] {
+  background: #183956;
+}
+.orbit .world[data-state="done"] .creature-area {
+  transform: translateX(-50%) translate(-245px, 18px) scale(0.7);
+}
+.orbit .world[data-state="done"] .speech {
+  opacity: 0;
+}
+.orbit .arrival {
+  left: calc(50% - 70px);
+  top: 37%;
+  max-width: 440px;
+}
+.orbit .arrival h2 {
+  font-size: 38px;
+}
+.orbit .arrival p {
+  font-size: 16px;
+}
+.orbit .world[data-state="done"] .halo {
+  opacity: 0.3;
+}
+@media (max-height: 800px) and (min-width: 761px) {
+  .world {
+    min-height: 700px;
+  }
+  .copy {
+    top: 22%;
+  }
+  h1 {
+    font-size: 60px;
+  }
+  .creature-area {
+    top: 26%;
+    transform: scale(0.88);
+    transform-origin: right center;
+  }
+  .experience {
+    bottom: 11%;
+  }
+  .orbit .creature-area {
+    top: 34%;
+    transform: translateX(-50%) scale(0.85);
+  }
+  .orbit .experience {
+    bottom: 10%;
+  }
+  .orbit .copy {
+    top: 15%;
+  }
+}
+@media (max-width: 760px) {
+  .world {
+    min-height: 760px;
+    height: 100svh;
+  }
+  header,
+  footer {
+    left: 24px;
+    right: 24px;
+  }
+  header {
+    top: 23px;
+  }
+  .brand {
+    font-size: 36px;
+  }
+  .identity {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    font-size: 11px;
+  }
+  .about {
+    font-size: 12px;
+  }
+  .about span {
+    margin-left: 12px;
+  }
+  .scene-detail {
+    display: none;
+  }
+  .copy {
+    left: 25px;
+    top: 20%;
+  }
+  .kicker {
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: clamp(45px, 9vw, 65px);
+    letter-spacing: -1.5px;
+  }
+  .subline {
+    font-size: 12px;
+    max-width: 165px;
+    margin-top: 21px;
+  }
+  .creature-area {
+    width: 220px;
+    height: 190px;
+    right: -75px;
+    top: 46%;
+  }
+  .body {
+    inset: 15px 0;
+  }
+  .face {
+    left: 34px;
+    top: 44px;
+    gap: 12px;
+  }
+  .eye {
+    width: 53px;
+    height: 77px;
+  }
+  .eye:nth-child(2) {
+    height: 69px;
+  }
+  .pupil {
+    width: 25px;
+    height: 36px;
+    left: 12px;
+    top: 20px;
+  }
+  .cheek {
+    left: 61px;
+    top: 139px;
+    width: 21px;
+  }
+  .speech {
+    font-size: 11px;
+    left: 0;
+    top: -4px;
+    padding: 11px 13px;
+    max-width: 230px;
+    white-space: normal;
+  }
+  .hello-hint {
+    font-size: 10px;
+    left: 29px;
+    bottom: -8px;
+  }
+  .creature-area:hover .creature,
+  .creature:focus-visible {
+    transform: rotate(-8deg) translateX(-20px);
+  }
+  .experience {
+    left: 25px;
+    right: 25px;
+    bottom: 12%;
+  }
+  .task-context {
+    font-size: 11px;
+    max-width: 220px;
+    line-height: 1.7;
+  }
+  .primary {
+    font-size: 13px;
+    padding: 16px 20px;
+    gap: 26px;
+  }
+  .preview-label {
+    font-size: 9px;
+  }
+  .halo {
+    width: 340px;
+    height: 340px;
+    top: 33%;
+    right: -145px;
+  }
+  .track {
+    width: 300px;
+    height: 260px;
+    left: 20%;
+    bottom: -160px;
+  }
+  footer {
+    font-size: 10px;
+    bottom: 23px;
+  }
+  .foot-right {
+    gap: 12px;
+  }
+  .foot-right > span {
+    display: none;
+  }
+  .arrival {
+    left: 25px;
+    right: 25px;
+    top: 25%;
+    max-width: 290px;
+  }
+  .arrival-label {
+    font-size: 10px;
+  }
+  .arrival h2 {
+    font-size: 34px;
+    margin: 18px 0;
+  }
+  .arrival p {
+    font-size: 14px;
+  }
+  .arrival button {
+    font-size: 13px;
+  }
+  .world[data-state="done"] .creature-area {
+    top: 53%;
+    transform: translateX(-30px);
+  }
+  .quiet-message {
+    left: 25px;
+    top: 30%;
+    font-size: 30px;
+  }
+  .orbit .copy {
+    top: 19%;
+    padding: 0 20px;
+  }
+  .orbit h1 {
+    font-size: 36px;
+    line-height: 1.4;
+    letter-spacing: -1px;
+  }
+  .orbit h1 br {
+    display: block;
+  }
+  .orbit .subline {
+    font-size: 12px;
+    max-width: 270px;
+    margin: 17px auto 0;
+  }
+  .orbit .creature-area {
+    top: 41%;
+    width: 245px;
+    height: 183px;
+  }
+  .orbit .body {
+    inset: 8px;
+  }
+  .orbit .face {
+    left: 45px;
+    top: 42px;
+    gap: 20px;
+  }
+  .orbit .eye,
+  .orbit .eye:nth-child(2) {
+    width: 50px;
+    height: 65px;
+  }
+  .orbit .pupil {
+    width: 20px;
+    height: 29px;
+    left: 17px;
+    top: 17px;
+  }
+  .orbit .cheek {
+    top: 127px;
+    left: 104px;
+  }
+  .orbit .speech {
+    left: 165px;
+    top: 174px;
+    width: 110px;
+    max-width: 110px;
+    font-size: 11px;
+  }
+  .orbit .hello-hint {
+    left: 89px;
+    bottom: -16px;
+  }
+  .orbit .halo {
+    top: 36%;
+    width: 330px;
+    height: 270px;
+  }
+  .orbit .track {
+    top: 31%;
+    width: 420px;
+    height: 360px;
+  }
+  .orbit .experience {
+    left: 20px;
+    right: 20px;
+    width: auto;
+    bottom: 11%;
+  }
+  .orbit .task-context {
+    max-width: none;
+    font-size: 11px;
+  }
+  .orbit .world[data-state="done"] .creature-area {
+    top: 48%;
+    transform: translateX(-50%) translate(-84px, 70px) scale(0.55);
+  }
+  .orbit .arrival {
+    left: 30px;
+    right: 25px;
+    top: 25%;
+    max-width: none;
+  }
+  .orbit .arrival h2 {
+    font-size: 32px;
+  }
+  .orbit .arrival p {
+    font-size: 14px;
+  }
+  .orbit .world[data-state="done"] .hello-hint {
+    display: none;
+  }
+  .orbit .quiet-message {
+    top: 25%;
+    font-size: 28px;
+  }
+  .orbit .world[data-state="waiting"] .creature-area {
+    transform: translateX(-50%) scale(0.65);
+  }
+  dialog {
+    padding: 34px 26px;
+  }
+  dialog h2 {
+    font-size: 29px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *:before,
+  *:after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .pupil {
+    transform: none !important;
+  }
+}

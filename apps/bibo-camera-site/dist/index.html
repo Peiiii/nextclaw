@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#f5f1df" />
+    <meta
+      name="description"
+      content="Bibo，你的云端个人 AI 搭档。按一下快门，看见有它参与的日常。"
+    />
+    <title>Bibo · 日常，多一个我。</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="bibo-site.controller.js"></script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="#" aria-label="Bibo 首页">bibo<span>●</span></a>
+      <p>你的云端个人 AI 搭档</p>
+      <button id="about">认识 Bibo <span>＋</span></button>
+    </header>
+    <main>
+      <div class="intro">
+        <div>
+          <p class="eyebrow">A LITTLE MORE TOGETHER.</p>
+          <h1>你的日常，<span>多一个我。</span></h1>
+        </div>
+        <p class="intro-note">不用讲完所有故事。<br />我们从一句话开始。</p>
+      </div>
+      <section
+        class="camera"
+        id="camera"
+        data-frame="0"
+        aria-label="Bibo 搭档相机，四帧交互故事"
+        tabindex="0"
+      >
+        <div class="companion">
+          <button id="creature" aria-label="和 Bibo 打个招呼">
+            <span class="body"
+              ><span class="eyes"
+                ><span class="eye"><span class="pupil"></span></span
+                ><span class="eye"><span class="pupil"></span></span></span
+              ><span class="mouth"></span
+            ></span></button
+          ><span class="hand hand-left" aria-hidden="true"><i></i><i></i></span
+          ><span class="hand hand-right" aria-hidden="true"><i></i><i></i></span
+          ><span class="speech" id="speech" role="status"
+            >来，看我们的一天。</span
+          >
+        </div>
+        <div class="viewfinder" id="viewfinder">
+          <div class="frame-chrome">
+            <span class="record">BIBO / EVERYDAY</span
+            ><span id="timecode">09:12 AM</span>
+          </div>
+          <i class="corner tl" aria-hidden="true"></i
+          ><i class="corner tr" aria-hidden="true"></i
+          ><i class="corner bl" aria-hidden="true"></i
+          ><i class="corner br" aria-hidden="true"></i>
+          <div class="scene">
+            <div class="context-note">
+              <span>记在心上</span><b>下周发布</b
+              ><small>小团队 · 先把首发做好</small>
+            </div>
+            <div class="request">
+              <span class="sender">你，随口一说</span>
+              <p>“帮我盯一下这三个竞品。<br />有值得关注的变化，再告诉我。”</p>
+              <span class="message-time">09:12 <span>✓✓</span></span>
+            </div>
+            <div class="sources" aria-hidden="true">
+              <div class="source source-one">
+                <span>01 / 产品更新</span><i></i><i></i><b>新引导流程</b>
+              </div>
+              <div class="source source-two">
+                <span>02 / 发布说明</span><i></i><i></i><b>企业功能</b>
+              </div>
+              <div class="source source-three">
+                <span>03 / 版本变化</span><i></i><i></i><b>小幅修复</b>
+              </div>
+            </div>
+            <div class="focus-note">
+              <span class="focus-icon">⌕</span>
+              <p>对照你的发布重点，<br /><b>找真正相关的变化。</b></p>
+            </div>
+            <div class="away">
+              <span class="away-time">14<span>:</span>36</span>
+              <p>你去忙了。</p>
+              <span class="working-pill"><i></i> Bibo 还在留意</span>
+            </div>
+            <div class="result">
+              <span class="result-label">BIBO → 你</span>
+              <h2>这一个，值得你看。</h2>
+              <p>竞品简化了首次使用流程，<br />与你下周的发布有关。</p>
+              <div class="result-bottom">
+                <span>建议看看：首次引导</span><span>↗</span>
+              </div>
+              <span class="filtered">另外两项无关变化，就不打扰你了。</span>
+            </div>
+          </div>
+          <div class="frame-bottom">
+            <span id="frame-theme">01 / 一句交代</span
+            ><span>点击画面 · 示例故事</span>
+          </div>
+          <button
+            class="tap-screen"
+            id="tap-screen"
+            aria-label="点击取景画面，看下一帧"
+          ></button>
+          <div class="film-progress" aria-hidden="true">
+            <i></i><i></i><i></i><i></i>
+          </div>
+        </div>
+        <div class="camera-bar">
+          <div class="frame-caption" aria-live="polite">
+            <span id="frame-counter">01 — 04</span>
+            <p id="caption">你说方向，我记住重点。</p>
+          </div>
+          <div class="transport">
+            <button class="previous" id="previous" aria-label="上一帧" disabled>
+              ←</button
+            ><button id="shutter" class="shutter" aria-label="按快门，看下一帧">
+              <span></span>
+            </button>
+            <div class="shutter-label">
+              <strong id="next-label">按一下，下一帧</strong
+              ><span>也可以按 →</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <footer>
+        <span>一个 Bibo，接着你的日常往下做。</span
+        ><span>手动播放 · 无真实 AI 执行</span>
+      </footer>
+    </main>
+    <dialog id="info">
+      <button id="close" aria-label="关闭介绍">×</button>
+      <p class="eyebrow">HELLO, I'M BIBO.</p>
+      <h2>能一起想，<br />也能接着做。</h2>
+      <p>
+        Bibo 是你的个人 AI
+        搭档。帮你查资料、做计划、持续跟进，逐渐熟悉你的背景和偏好。
+      </p>
+      <p>产品计划由官方云端托管。你决定它能做什么、哪些事需要先确认。</p>
+      <p class="disclosure">
+        这是四帧交互概念，使用预设内容；没有访问摄像头，也没有执行真实 AI 任务。
+      </p>
+      <button class="back" id="back">回到我们的一天 ↗</button>
+    </dialog>
+  </body>
+</html>

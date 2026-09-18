@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#f5efca" />
+    <meta
+      name="description"
+      content="Bibo，你的云端个人 AI 搭档。一个会接着做事的数字伙伴。交互概念预览。"
+    />
+    <title>Bibo · 有我在呢</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="bibo-site.controller.js" defer></script>
+  </head>
+  <body class="edge">
+    <div class="world" data-state="idle">
+      <header>
+        <a class="brand" href="#" aria-label="Bibo 首页">bibo<span>•</span></a
+        ><span class="identity">你的云端个人 AI 搭档</span
+        ><button class="about" id="about">认识一下 <span>＋</span></button>
+      </header>
+      <main>
+        <div class="scene-detail" aria-hidden="true">
+          THERE’S A LITTLE<br />SOMEONE ON YOUR SIDE.
+        </div>
+        <div class="halo" aria-hidden="true"></div>
+        <div class="track" aria-hidden="true"></div>
+        <div class="copy">
+          <p class="kicker">有我在呢。</p>
+          <h1>有些事，<br />不用一直<br /><span>放在心上。</span></h1>
+          <p class="subline">你去过你的生活。Bibo 帮你接着往下做。</p>
+        </div>
+        <div class="creature-area">
+          <button id="creature" class="creature" aria-label="和 Bibo 打个招呼">
+            <span class="body"
+              ><span class="face"
+                ><span class="eye"><span class="pupil"></span></span
+                ><span class="eye"><span class="pupil"></span></span></span
+              ><span class="cheek" aria-hidden="true"></span
+            ></span></button
+          ><span class="speech" id="speech" role="status">嘘，发现我了？</span
+          ><span class="hello-hint">点点我</span>
+        </div>
+        <div class="experience">
+          <p class="task-context" id="context">
+            比如，把「帮我留意新品发布」交给它。
+          </p>
+          <button class="primary" id="begin">
+            Bibo，这件事交给你 <span>↗</span></button
+          ><button class="reset" id="reset" hidden>取消演示</button>
+          <p class="preview-label">约 2 秒的概念演示 · 无真实任务执行</p>
+        </div>
+        <section class="arrival" id="arrival" aria-live="polite" hidden>
+          <span class="arrival-label">BIBO 带回一条消息 · 示例</span>
+          <h2>这条，值得你看。</h2>
+          <p>你关注的产品开放了试用。<br />其他 4 条常规更新，先不打扰你。</p>
+          <button id="acknowledge">收到了，你继续 <span>✓</span></button>
+        </section>
+        <div class="quiet-message" aria-hidden="true">你不必一直在场。</div>
+      </main>
+      <footer>
+        <span class="foot-note">一个 Bibo。一直站在你这边。</span
+        ><span class="foot-right">bibo.bot <span>© 2026</span></span>
+      </footer>
+    </div>
+    <dialog id="info">
+      <button class="dialog-close" id="close" aria-label="关闭介绍">×</button
+      ><span class="dialog-kicker">HELLO, I'M BIBO.</span>
+      <h2>一个能干的<br />个人 AI 搭档。</h2>
+      <p>帮你查资料、想方案、持续跟进。逐渐熟悉你的背景，也接受你的纠正。</p>
+      <p>官方云端托管是产品方向。你决定它能连接哪些工具、哪些操作需要确认。</p>
+      <p class="disclosure">
+        当前是设计预览。账号、真实 AI 与后台执行尚未接入；页面消息为预设示例。
+      </p>
+      <button class="dialog-back" id="back">好，认识了 ↗</button>
+    </dialog>
+  </body>
+</html>

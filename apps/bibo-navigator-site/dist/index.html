@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#171d29" />
+    <meta
+      name="description"
+      content="Bibo，你的云端个人 AI 搭档。帮你查资料、做计划、持续跟进。这是可交互的产品概念预览。"
+    />
+    <title>Bibo · 任务领航员</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="bibo-site.controller.js"></script>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%20320%20280%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%3Cpath%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20fill%3D%22%23d4ef91%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20d%3D%22M56%20191%20133%2044Q144%2023%20156%2047L176%2091%20251%2065Q276%2055%20264%2083L218%20210Q213%20227%20193%20226L80%20225Q40%20226%2056%20191Z%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20/%3E%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%3Cpath%20fill%3D%22%23d4ef91%22%20d%3D%22m176%2091%2042%20119-65-37Z%22%20/%3E%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%3Cg%20fill%3D%22%2325372b%22%20color%3D%22%2325372b%22%3E%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%3Cpath%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20d%3D%22M122%20137v12m63-16v12%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20stroke%3D%22currentColor%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20stroke-width%3D%2214%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20stroke-linecap%3D%22round%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20/%3E%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%3C/g%3E%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%3Cpath%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20stroke%3D%22%2325372b%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20d%3D%22m118%20191%2016%206%2024-7%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20fill%3D%22none%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20stroke-width%3D%224%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20stroke-linecap%3D%22round%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20/%3E%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%3C/svg%3E"
+    />
+  </head>
+  <body class="navigator">
+    <a class="skip" href="#playground">跳到互动演示</a>
+    <header class="header wrap">
+      <a class="logo" href="#"
+        >bibo<svg
+          viewBox="0 0 320 280"
+          aria-hidden="true"
+          class="brand-creature"
+        >
+          <path
+            class="body-shape"
+            d="M56 191 133 44Q144 23 156 47L176 91 251 65Q276 55 264 83L218 210Q213 227 193 226L80 225Q40 226 56 191Z"
+          />
+          <path class="body-shade" d="m176 91 42 119-65-37Z" />
+          <g class="eyes">
+            <path
+              d="M122 137v12m63-16v12"
+              stroke="currentColor"
+              stroke-width="14"
+              stroke-linecap="round"
+            />
+          </g>
+          <path
+            class="accent-stroke"
+            d="m118 191 16 6 24-7"
+            fill="none"
+            stroke-width="4"
+            stroke-linecap="round"
+          /></svg
+      ></a>
+      <nav aria-label="主要导航">
+        <a href="#abilities">它能做什么</a><a href="#relationship">如何相处</a>
+      </nav>
+      <a class="header-cta" href="#playground">交给它一件事 <span>↗</span></a>
+    </header>
+    <main>
+      <section class="hero wrap">
+        <div class="hero-copy">
+          <p class="eyebrow"><i></i> 你的个人 AI 搭档 · 官方云端托管</p>
+          <h1>你掌舵。<br />Bibo <em>跑全程。</em></h1>
+          <p class="description">
+            从一句想法，到一份能用的结果。帮你研究问题、准备方案、盯住变化。你离开页面，它也能接着做。
+          </p>
+          <a class="primary" href="#playground"
+            >派出第一个任务 <span>↗</span></a
+          >
+          <p class="hero-foot">无需安装 · 一个 Bibo · 你决定它能做什么</p>
+          <div class="small-proof">
+            <span class="proof-symbol">↳</span>
+            <p>清楚的目标。看得见的进展。<br />最后，带着结果回来。</p>
+          </div>
+        </div>
+        <div class="playground" id="playground" data-state="idle">
+          <div class="stage-top">
+            <span>BIBO / MISSION CONTROL</span
+            ><span class="stage-indicator"
+              >● <span id="stage-label">等待你的任务</span></span
+            >
+          </div>
+          <div class="character-space">
+            <div class="orbit orbit-one"></div>
+            <div class="orbit orbit-two"></div>
+            <span class="coordinate">01 / READY TO EXPLORE</span
+            ><button
+              class="character"
+              id="character"
+              aria-label="和 Bibo 打个招呼"
+              title="和 Bibo 打个招呼"
+            >
+              <svg viewBox="0 0 320 280" aria-hidden="true">
+                <path
+                  class="body-shape"
+                  d="M56 191 133 44Q144 23 156 47L176 91 251 65Q276 55 264 83L218 210Q213 227 193 226L80 225Q40 226 56 191Z"
+                />
+                <path class="body-shade" d="m176 91 42 119-65-37Z" />
+                <g class="eyes">
+                  <path
+                    d="M122 137v12m63-16v12"
+                    stroke="currentColor"
+                    stroke-width="14"
+                    stroke-linecap="round"
+                  />
+                </g>
+                <path
+                  class="accent-stroke"
+                  d="m118 191 16 6 24-7"
+                  fill="none"
+                  stroke-width="4"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+            <div class="character-shadow"></div>
+            <div class="speech" id="speech" role="status">
+              目标给我。路线，我来找。
+            </div>
+            <span class="greet-hint">点点它，打个招呼 ↗</span>
+            <div class="flying-note" aria-hidden="true">↗</div>
+          </div>
+          <div class="task-area">
+            <div class="task-heading">
+              <span>选一件事，看看它怎么做</span><span>↓</span>
+            </div>
+            <div class="task-options">
+              <button data-task="research"><span>⌕</span> 查一查竞品</button
+              ><button data-task="trip"><span>↗</span> 计划个周末</button
+              ><button data-task="follow"><span>◎</span> 盯住新变化</button>
+            </div>
+            <div class="delivery" aria-live="polite" aria-atomic="true">
+              <div class="delivery-top">
+                <span class="delivery-icon">↳</span
+                ><span id="delivery-label">给它方向，它会带着结果回来。</span>
+              </div>
+              <h2 id="result-title">想法不用排队，现在就能开始。</h2>
+              <p id="result-detail">
+                点上面任意一项，体验从交办到交付。这里使用预设示例，不执行真实任务。
+              </p>
+              <div id="result-tags"></div>
+            </div>
+            <div class="stage-footer">
+              <span>互动概念演示 · 非真实 AI 执行</span
+              ><button id="reset">重新开始 ↺</button>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="abilities wrap" id="abilities">
+        <div class="section-top">
+          <p class="eyebrow">LESS ON YOUR MIND. MORE GETTING DONE.</p>
+          <h2>有方向，也有执行力。</h2>
+          <p>把具体的事交出去，把注意力留给真正需要你的地方。</p>
+        </div>
+        <div class="ability-grid">
+          <article>
+            <span class="number">01 / 研究</span>
+            <h3>资料很多，重点很少。</h3>
+            <p>比较产品、读资料、整理来源。把一堆链接变成值得你看的结论。</p>
+            <div class="example">「这三款产品，哪款适合我的团队？」</div>
+          </article>
+          <article>
+            <span class="number">02 / 规划</span>
+            <h3>从一个念头，到下一步。</h3>
+            <p>结合你的时间、偏好和限制，准备可比较、能执行的方案。</p>
+            <div class="example">「周末想出去走走，别排太满。」</div>
+          </article>
+          <article>
+            <span class="number">03 / 跟进</span>
+            <h3>你不用一直惦记。</h3>
+            <p>在你授权的范围里关注变化，有值得知道的进展再来找你。</p>
+            <div class="example">「有影响这次发布的新消息，再告诉我。」</div>
+          </article>
+        </div>
+      </section>
+      <section class="relationship wrap" id="relationship">
+        <div class="relationship-copy">
+          <p class="eyebrow">ONE BIBO. YOUR BIBO.</p>
+          <h2>相处久了，<br />不用从头说起。</h2>
+          <p>
+            记得你的背景，也听得进纠正。<br />只有一个
+            Bibo，陪你处理工作与生活里的不同事情。
+          </p>
+          <a href="#playground">再交给它一件事 ↗</a>
+        </div>
+        <div class="memory-card">
+          <span class="memory-label">一次次合作，慢慢有默契</span>
+          <p class="user-bubble">我喜欢安静一点，周末不想赶路。</p>
+          <p class="bibo-bubble">
+            <b>bibo ✦</b> 收到。下次做计划，我会把「留白」也安排进去。
+          </p>
+          <div class="memory-footer">✓ 你可以查看、修改或删除它记住的内容</div>
+        </div>
+      </section>
+      <section class="boundaries wrap">
+        <h2>能干，也懂分寸。</h2>
+        <div>
+          <p>
+            <b>云端托管</b><span>产品方向：打开就能用，不用自己部署。</span>
+          </p>
+          <p>
+            <b>由你授权</b><span>你决定连接哪些工具，什么操作要先确认。</span>
+          </p>
+          <p>
+            <b>当前是设计预览</b><span>账号、真实任务执行与定价尚未开放。</span>
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer class="wrap footer">
+      <a class="logo" href="#"
+        >bibo<svg
+          viewBox="0 0 320 280"
+          aria-hidden="true"
+          class="brand-creature"
+        >
+          <path
+            class="body-shape"
+            d="M56 191 133 44Q144 23 156 47L176 91 251 65Q276 55 264 83L218 210Q213 227 193 226L80 225Q40 226 56 191Z"
+          />
+          <path class="body-shade" d="m176 91 42 119-65-37Z" />
+          <g class="eyes">
+            <path
+              d="M122 137v12m63-16v12"
+              stroke="currentColor"
+              stroke-width="14"
+              stroke-linecap="round"
+            />
+          </g>
+          <path
+            class="accent-stroke"
+            d="m118 191 16 6 24-7"
+            fill="none"
+            stroke-width="4"
+            stroke-linecap="round"
+          /></svg></a
+      ><span>你的方向，值得被认真推进。</span
+      ><a href="#playground">和 Bibo 再玩一次 ↑</a>
+    </footer>
+  </body>
+</html>
