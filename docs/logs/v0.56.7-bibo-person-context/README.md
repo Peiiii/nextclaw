@@ -101,3 +101,11 @@ completed，3/3（本地实验完成，待用户审美与内容验收）。采�
 用户明确授权提交、推送与部署；静态源码与4201快照逐字节一致。恢复发布，仅Bibo官网，原六个concepts路径保留，不涉及NPM/runtime/desktop。
 
 发布前补充：用户要求“认识Bibo”改独立抽屉，body级原生dialog；桌面/手机右侧定位、Esc与焦点恢复、点击遮罩、循环无自动弹窗验证通过。播放在打开期间暂停。最新发布范围为4201加该抽屉修复。
+
+## 正式发布完成
+
+- 源码：490a9824b217d4e0a3138415ac1d0b3399235729，已推送origin/master并同步本地主干。
+- Cloudflare Worker：bibo-bot；version：b3315566-aba6-41a7-9dc1-9b31be4604eb；正式入口 https://bibo.bot/。
+- 从干净远程主干构建根站+六个独立候选。上传3个变更静态资源，Worker上传6.06秒、路由部署3.29秒，合计9.35秒（不含准备及线上验收）；部署阶段最慢为上传。沿用增量资产上传，无需额外发布工具。AUTOMATION_INTERVENTIONS: 0。
+- 正式域名逐字节hash比对HTML/CSS/controller匹配发布源码；真实浏览器四幕循环、介绍抽屉、Esc与焦点恢复、无自动弹窗、无JS错误通过。六个concepts入口均200且noindex；未知路径404。
+- NPM/desktop/runtime/migration不适用；独立官网无NextClaw changeset。讨论、设计、所有原始实验记录已入库；真实AI能力仍为概念演示。
