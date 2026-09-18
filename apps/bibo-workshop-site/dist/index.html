@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#234bdd" />
+    <meta
+      name="description"
+      content="Bibo，你的云端 AI 搭档。帮你理清想法、推进任务、持续跟进。体验思绪工作桌。"
+    />
+    <title>Bibo · 想到的，一起做到。</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="bibo-site.controller.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#desk">跳到互动工作桌</a>
+    <header class="header">
+      <a class="brand" href="#" aria-label="Bibo 首页"
+        >bibo<span class="brand-dot">●</span></a
+      >
+      <nav aria-label="主导航">
+        <a href="#why">认识 Bibo</a><a href="#boundaries">你的决定权</a>
+      </nav>
+      <a class="header-link" href="#desk">给脑袋腾点地方 <span>↘</span></a>
+    </header>
+    <main>
+      <section class="intro">
+        <p class="eyebrow">你的个人 AI 搭档 / 官方云端托管</p>
+        <h1>脑袋很满？<br />给 <span>Bibo</span> 一点事做。</h1>
+        <p class="intro-copy">
+          帮你查清楚、理出下一步、把进展盯下去。<br />一个有行动力的小搭档，接住工作和生活里的大大小小。
+        </p>
+        <a href="#desk" class="desk-invite">把下面的念头交给它 <span>↓</span></a
+        ><span class="margin-note">thoughts in.<br />things done.</span>
+      </section>
+      <section
+        class="desk"
+        id="desk"
+        data-phase="scattered"
+        aria-labelledby="desk-title"
+      >
+        <div class="desk-top">
+          <h2 id="desk-title">先从你惦记的事开始。</h2>
+          <span>01 — 给点方向</span>
+        </div>
+        <div class="workspace">
+          <div class="thoughts" aria-label="选择要交给 Bibo 的念头">
+            <button
+              class="thought note-yellow"
+              data-thought="research"
+              aria-pressed="true"
+            >
+              <span class="note-type">工作 / 想查清楚</span
+              ><strong>这三个竞品，<br />到底差在哪？</strong
+              ><span class="note-footer">需要一份靠谱的比较 <i>✓</i></span>
+            </button>
+            <button
+              class="thought note-white"
+              data-thought="weekend"
+              aria-pressed="true"
+            >
+              <span class="note-type">生活 / 想安排好</span
+              ><strong>周末想出去，<br />但不想赶路。</strong
+              ><span class="note-footer">最好有咖啡，也有留白 <i>✓</i></span>
+            </button>
+            <button
+              class="thought note-blue"
+              data-thought="follow"
+              aria-pressed="false"
+            >
+              <span class="note-type">进展 / 想有人盯</span
+              ><strong>发布前的变化，<br />别让我漏掉。</strong
+              ><span class="note-footer">有重要消息再告诉我 <i>+</i></span>
+            </button>
+            <button
+              class="thought note-pink"
+              data-thought="learn"
+              aria-pressed="false"
+            >
+              <span class="note-type">兴趣 / 想迈出一步</span
+              ><strong>相机吃灰了。<br />想重新开始拍。</strong
+              ><span class="note-footer">每天一点点就好 <i>+</i></span>
+            </button>
+          </div>
+          <div class="bibo-presence">
+            <span class="orbit-label">BIBO / ON YOUR SIDE</span
+            ><button
+              id="greet"
+              class="bibo-character"
+              aria-label="和 Bibo 打个招呼"
+            >
+              <img
+                src="bibo.png"
+                alt="蓝色夹持式机械精灵 Bibo，伸手接住一张纸片"
+                width="1024"
+                height="1024"
+                fetchpriority="high"
+              />
+            </button>
+            <div class="speech" id="speech" role="status">
+              不用先想清楚。我们可以一起理。
+            </div>
+            <span class="character-hint">碰一下，认识它 ↗</span>
+          </div>
+          <div class="organized" id="organized" hidden aria-live="polite">
+            <div class="result-heading">
+              <span>你的下一步，有着落了。</span
+              ><button id="reopen">重新摊开 ↺</button>
+            </div>
+            <div id="result-list"></div>
+            <p class="result-note">
+              以上是交互示例，不代表已查询信息、创建提醒或执行真实任务。
+            </p>
+          </div>
+        </div>
+        <div class="desk-controls">
+          <div>
+            <span id="selection-count">已选 2 个念头</span>
+            <p id="selection-help">点纸片增减。杂一点，也没关系。</p>
+          </div>
+          <button id="organize" class="organize">
+            Bibo，帮我理一理 <span>↗</span>
+          </button>
+        </div>
+        <div class="demo-label">
+          可交互的产品概念 · 预设示例 · 不执行真实 AI 任务
+        </div>
+      </section>
+      <section class="meaning" id="why">
+        <div>
+          <p class="eyebrow">多一个搭档，少一点挂心。</p>
+          <h2>不只接住一句话。<br />也接着往下做。</h2>
+        </div>
+        <div class="meaning-copy">
+          <p>
+            Bibo 是你的云端个人 AI
+            搭档。你说目标，它结合你的背景查资料、准备方案、跟进变化。你离开页面，交办的事情也能继续推进。
+          </p>
+          <p>它逐渐熟悉你喜欢的节奏。下次合作，可以从上次的理解接着开始。</p>
+        </div>
+      </section>
+      <section class="capabilities">
+        <article>
+          <span>01 / 想清楚</span>
+          <h3>一堆资料，<br />几个真正有用的结论。</h3>
+          <p>比较选择，保留依据，把取舍讲明白。</p>
+        </article>
+        <article>
+          <span>02 / 做下去</span>
+          <h3>一个念头，<br />变成能开始的下一步。</h3>
+          <p>结合时间和偏好，准备可以执行的计划。</p>
+        </article>
+        <article>
+          <span>03 / 记在心上</span>
+          <h3>值得关注的变化，<br />不用你一直刷新。</h3>
+          <p>按你的授权持续跟进，在有价值时找你。</p>
+        </article>
+      </section>
+      <section class="boundaries" id="boundaries">
+        <p class="eyebrow">能干，也知道分寸。</p>
+        <div>
+          <details>
+            <summary>它会自己做决定吗？<span>+</span></summary>
+            <p>
+              你决定哪些事可以交给它、哪些操作需要确认。Bibo
+              可以给建议，决定权仍在你。
+            </p>
+          </details>
+          <details>
+            <summary>它会记住我的什么？<span>+</span></summary>
+            <p>
+              产品设计目标是保留对合作有用的背景与偏好，并允许你查看、修改和删除。不是无差别收集你的数据。
+            </p>
+          </details>
+          <details>
+            <summary>现在能开始用吗？<span>+</span></summary>
+            <p>
+              目前是官网交互概念预览。真实
+              AI、账号与云端执行尚未接入；工作桌上的内容都是预设示例。
+            </p>
+          </details>
+        </div>
+      </section>
+      <footer>
+        <a class="brand" href="#">bibo<span class="brand-dot">●</span></a
+        ><span>想到的，一起做到。</span><a href="#desk">再交给它一点事 ↑</a>
+      </footer>
+    </main>
+  </body>
+</html>

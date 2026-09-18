@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f56736" />
+    <meta
+      name="description"
+      content="Meet Bibo. One personal AI companion to remember what matters, move things forward, and make room for more life. Explore the product concept."
+    />
+    <title>Bibo — Your ideas. In good hands.</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='21' fill='%23f56736'/%3E%3Cpath d='M20 15v34h14c21 0 21-28 0-28h-4v-6zm10 17h4c7 0 7 8 0 8h-4z' fill='white'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="bibo-site.controller.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main" data-zh="跳至正文">Skip to content</a>
+    <header class="site-header">
+      <a class="wordmark" href="#" aria-label="Bibo home"
+        >bibo<span class="brand-period">.</span></a
+      >
+      <nav id="navigation" aria-label="Main navigation">
+        <a href="#how" data-zh="如何帮你">How it works</a>
+        <a href="#together" data-zh="越来越懂你">Better together</a>
+        <a href="#questions" data-zh="你可能想问">Questions</a>
+      </nav>
+      <div class="header-actions">
+        <button class="language-button" id="language" aria-label="切换为中文">
+          中文
+        </button>
+        <a class="button button-dark nav-cta" href="#meet"
+          ><span data-zh="认识 Bibo">Meet Bibo</span
+          ><span aria-hidden="true">↗</span></a
+        >
+        <button
+          class="menu-button"
+          id="menu"
+          aria-controls="navigation"
+          aria-expanded="false"
+          aria-label="Open navigation"
+        >
+          <span></span><span></span>
+        </button>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero shell" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <div class="eyebrow">
+            <span class="small-spark" aria-hidden="true">↗</span
+            ><span data-zh="懂你的意图，也有行动力"
+              >A sharp mind. On your side.</span
+            >
+          </div>
+          <h1 id="hero-title">
+            <span data-zh="你的想法，">Your ideas.</span><br /><em
+              data-zh="交给好搭档。"
+              >In good hands.</em
+            >
+          </h1>
+          <p
+            class="hero-description"
+            data-zh="和你一起想清楚，也能接手往下做。Bibo 理解你的目标，连接你的工具，把交办的事情推进到有结果。"
+          >
+            An AI partner that thinks with you, works across your tools, and
+            follows through. One Bibo. Built to move your world forward.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-orange" href="#meet"
+              ><span data-zh="和 Bibo 认识一下">Meet your Bibo</span
+              ><span aria-hidden="true">↗</span></a
+            ><a class="text-link" href="#how"
+              ><span data-zh="看看它怎么帮忙">See how it works</span
+              ><span aria-hidden="true">↓</span></a
+            >
+          </div>
+          <p class="quiet-note">
+            <span class="note-line" aria-hidden="true"></span
+            ><span data-zh="一个搭档。慢慢熟悉。一直相伴。"
+              >One companion. More in tune with you, over time.</span
+            >
+          </p>
+        </div>
+        <div class="hero-art">
+          <div class="art-topline">
+            <span>BIBO, BY YOUR SIDE</span><span aria-hidden="true">↗</span>
+          </div>
+          <img
+            class="companion-image"
+            id="companion"
+            src="bibo-companion.png"
+            alt="Sculptural Bibo ribbon mark in a focused orange composition"
+            width="1536"
+            height="1024"
+            fetchpriority="high"
+          />
+          <div class="hero-message">
+            <span class="message-avatar">b.</span>
+            <div>
+              <span class="message-label">Bibo</span>
+              <p data-zh="重点我清楚了。接下来，我来推进。">
+                Clear on the goal.<br />On to the work.
+              </p>
+            </div>
+          </div>
+          <div class="result-peek">
+            <span class="done-icon" aria-hidden="true">✓</span>
+            <div>
+              <strong data-zh="发布简报，已整理。"
+                >Launch brief. Ready for you.</strong
+              >
+              <p data-zh="关键变化 · 来源依据 · 下一步建议">
+                Key changes. Sources. Next steps.
+              </p>
+            </div>
+            <span class="peek-arrow" aria-hidden="true">↗</span>
+          </div>
+          <span class="art-caption" data-zh="产品概念示意 · 示例内容"
+            >Product concept · Illustrative example</span
+          >
+        </div>
+      </section>
+
+      <section class="promise-strip shell" aria-label="The Bibo promise">
+        <p data-zh="你的人生很丰富。你的搭档，始终是同一个。">
+          Many sides to your life.<br />One companion for all of them.
+        </p>
+        <span
+          ><span class="strip-icon" aria-hidden="true">⌁</span
+          ><span data-zh="记得你在意什么">Remembers what matters</span></span
+        >
+        <span
+          ><span class="strip-icon" aria-hidden="true">↗</span
+          ><span data-zh="离开以后，接着推进">Keeps things moving</span></span
+        >
+        <span
+          ><span class="strip-icon" aria-hidden="true">✳</span
+          ><span data-zh="需要你的时候，再找你"
+            >Knows when to check in</span
+          ></span
+        >
+      </section>
+
+      <section class="how-section shell" id="how">
+        <div class="section-heading">
+          <p class="eyebrow" data-zh="理解目标，推进到结果">
+            UNDERSTANDS THE GOAL. DOES THE WORK.
+          </p>
+          <h2>
+            <span data-zh="从「我得做」">From “I need to”</span><br /><em
+              data-zh="到「已经好了」。"
+              >to “it's taken care of.”</em
+            >
+          </h2>
+          <p
+            data-zh="把想法说出来，把事情交给它。你随时可以补充、调整，或让它停一下。"
+          >
+            Start with a thought. Hand over a task.<br />Stay in the loop,
+            without staying on the clock.
+          </p>
+        </div>
+        <div class="steps">
+          <article>
+            <span class="step-number">01 /</span>
+            <h3 data-zh="告诉它，你在想什么。">Tell it what's on your mind.</h3>
+            <p
+              data-zh="一项工作、一个还没成形的想法，或者一件一直惦记的事。像和搭档说话一样自然。"
+            >
+              A task, a half-formed idea, or that thing you've been putting off.
+              Just say it your way.
+            </p>
+          </article>
+          <article>
+            <span class="step-number">02 /</span>
+            <h3 data-zh="让 Bibo 接着推进。">Let Bibo take it from here.</h3>
+            <p
+              data-zh="整理资料，比较选择，准备结果。即使你离开页面，交办的事也能继续。"
+            >
+              Research, compare, organize, prepare. Your work can keep moving,
+              even after you close the tab.
+            </p>
+          </article>
+          <article>
+            <span class="step-number">03 /</span>
+            <h3 data-zh="带着结果，再来找你。">
+              Come back to something useful.
+            </h3>
+            <p
+              data-zh="一份可读的总结、几个值得选的方案。需要你的决定时，它会说清楚。"
+            >
+              A clear brief. A thoughtful shortlist. And a check-in when a
+              decision needs to be yours.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="demo-section" id="meet">
+        <div class="shell demo-grid">
+          <div class="demo-intro">
+            <p class="eyebrow" data-zh="看它怎样推进">INTENT INTO ACTION</p>
+            <h2>
+              <span data-zh="你定方向。">Your direction.</span><br /><em
+                data-zh="它来推进。"
+                >Bibo's initiative.</em
+              >
+            </h2>
+            <p
+              data-zh="研究一个问题，准备一份方案，持续跟进一件事。看 Bibo 怎样理解背景，再给出有用的结果。"
+            >
+              Research a question. Prepare a plan. Stay on top of what matters.
+              See how Bibo turns your context into useful work.
+            </p>
+            <div
+              class="scenario-tabs"
+              role="tablist"
+              aria-label="Example scenarios"
+            >
+              <button
+                id="tab-work"
+                role="tab"
+                aria-selected="true"
+                aria-controls="scenario-panel"
+                data-scenario="work"
+              >
+                <span aria-hidden="true">↗</span
+                ><span data-zh="工作，多一点从容">Room to focus</span></button
+              ><button
+                id="tab-life"
+                role="tab"
+                aria-selected="false"
+                aria-controls="scenario-panel"
+                data-scenario="life"
+                tabindex="-1"
+              >
+                <span aria-hidden="true">☼</span
+                ><span data-zh="生活，多一点期待">Room to live</span></button
+              ><button
+                id="tab-learn"
+                role="tab"
+                aria-selected="false"
+                aria-controls="scenario-panel"
+                data-scenario="learn"
+                tabindex="-1"
+              >
+                <span aria-hidden="true">⌁</span
+                ><span data-zh="兴趣，多一点进展">Room to grow</span>
+              </button>
+            </div>
+            <p
+              class="demo-disclaimer"
+              data-zh="交互演示 · 使用示例内容，不执行真实任务"
+            >
+              Interactive walkthrough · Example content, not a live AI session
+            </p>
+          </div>
+          <div
+            class="demo-window"
+            id="scenario-panel"
+            role="tabpanel"
+            aria-labelledby="tab-work"
+            tabindex="0"
+          >
+            <div class="window-header">
+              <div class="window-brand">
+                <span class="mini-brand">b.</span><span>Bibo</span>
+              </div>
+              <span class="preview-label" data-zh="产品预览"
+                >PRODUCT PREVIEW</span
+              ><span class="window-menu" aria-hidden="true">···</span>
+            </div>
+            <div class="demo-content" aria-live="polite" aria-atomic="true">
+              <span class="conversation-date" data-zh="你和 Bibo"
+                >YOU & BIBO</span
+              >
+              <p class="user-bubble" id="demo-prompt"></p>
+              <div class="bibo-response">
+                <span class="response-mark">b.</span>
+                <div>
+                  <span class="response-label">Bibo</span>
+                  <p id="demo-response"></p>
+                </div>
+              </div>
+              <div class="demo-result" id="demo-result"></div>
+            </div>
+            <div class="demo-controls">
+              <div class="step-indicator" aria-label="Walkthrough progress">
+                <span class="active"></span><span></span><span></span>
+              </div>
+              <button class="demo-next" id="demo-next">
+                <span id="next-label">See Bibo at work</span
+                ><span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="together-section shell" id="together">
+        <div class="together-visual">
+          <span class="eyebrow" data-zh="从第一次，到每一次"
+            >FROM DAY ONE TO EVERY DAY</span
+          >
+          <div class="memory-thread">
+            <div
+              class="memory-bubble"
+              data-zh="我喜欢安静一点的地方，不想把周末排太满。"
+            >
+              I like quieter places. And weekends without a packed schedule.
+            </div>
+            <div class="memory-reply">
+              <span class="mini-brand">b.</span>
+              <p data-zh="记住了。下次计划，我会给你多留一点空白。">
+                Noted. A little less itinerary.<br />A little more breathing
+                room.
+              </p>
+            </div>
+            <div class="memory-saved">
+              <span aria-hidden="true">⌁</span
+              ><span data-zh="你的偏好 · 你可以随时修改"
+                >Your preferences · Always yours to change</span
+              >
+            </div>
+          </div>
+          <span class="handwritten" data-zh="越熟悉，越合拍。"
+            >A little more you, every day.</span
+          >
+        </div>
+        <div class="together-copy">
+          <p class="eyebrow" data-zh="好的默契，慢慢长出来">
+            FAMILIAR FEELS DIFFERENT
+          </p>
+          <h2>
+            <span data-zh="不必每次，">Less explaining.</span><br /><em
+              data-zh="都从头说起。"
+              >More understanding.</em
+            >
+          </h2>
+          <p
+            data-zh="你在做的项目，你喜欢的节奏，你上次改变的主意。Bibo 的目标，是把这些理解带进下一次合作。"
+          >
+            Your projects. Your pace. The thing you changed your mind about.
+            Bibo is designed to bring that understanding into the next
+            conversation.
+          </p>
+          <div class="principle">
+            <span>01</span>
+            <div>
+              <h3 data-zh="记得，也接受纠正">Remembers. And listens.</h3>
+              <p data-zh="让你查看、纠正和删除它记住的内容。">
+                See, correct, and remove what it remembers.
+              </p>
+            </div>
+          </div>
+          <div class="principle">
+            <span>02</span>
+            <div>
+              <h3 data-zh="主动，但懂得分寸">Proactive. Not pushy.</h3>
+              <p data-zh="在有帮助的时候出现，也知道什么时候安静。">
+                A useful nudge when it matters. Quiet when it doesn't.
+              </p>
+            </div>
+          </div>
+          <div class="principle">
+            <span>03</span>
+            <div>
+              <h3 data-zh="能帮忙，决定权仍在你">
+                Capable. With you in control.
+              </h3>
+              <p data-zh="你决定可以做什么，哪些事情要先问。">
+                You set the boundaries. Bibo checks before crossing them.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq-section shell" id="questions">
+        <div>
+          <p class="eyebrow" data-zh="先认识，再信任">A LITTLE MORE TO KNOW</p>
+          <h2 data-zh="你可能想问。">Good questions.</h2>
+          <p data-zh="好的搭档关系，从说清楚开始。">
+            Good partnerships start with clarity.
+          </p>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>
+              <span data-zh="Bibo 是什么？">What is Bibo?</span
+              ><span aria-hidden="true">+</span>
+            </summary>
+            <p
+              data-zh="Bibo 是正在设计中的个人 AI 搭档：通过对话理解你，在云端处理你交办的工作，并逐渐学会你的偏好。这个网站展示的是产品方向与交互示例。"
+            >
+              Bibo is a personal AI companion in development: a place to think
+              things through, hand off work, and build understanding over time.
+              This site introduces the product direction through interactive
+              examples.
+            </p>
+          </details>
+          <details>
+            <summary>
+              <span data-zh="我需要创建很多 Agent 吗？"
+                >Do I need to set up different agents?</span
+              ><span aria-hidden="true">+</span>
+            </summary>
+            <p
+              data-zh="不用。你面对的始终是同一个 Bibo。不同的对话、项目和任务可以分别整理，无需创建一支 AI 团队。"
+            >
+              No. You have one Bibo. Conversations, projects, and tasks can stay
+              organized without creating a team of separate AI personalities.
+            </p>
+          </details>
+          <details>
+            <summary>
+              <span data-zh="我关掉电脑以后呢？"
+                >What happens when I close my laptop?</span
+              ><span aria-hidden="true">+</span>
+            </summary>
+            <p
+              data-zh="Bibo 的产品方向是云端持续运行：你交办的工作不依赖电脑一直开着。正式上线后，任务进展与需要你决定的事项会在产品中清楚呈现。"
+            >
+              Bibo is being designed to work in the cloud, so a handed-off task
+              won't depend on keeping your laptop open. The product will make
+              progress and decisions that need you visible.
+            </p>
+          </details>
+          <details>
+            <summary>
+              <span data-zh="Bibo 能访问我的所有东西吗？"
+                >Will Bibo have access to everything?</span
+              ><span aria-hidden="true">+</span>
+            </summary>
+            <p
+              data-zh="不会。计划中的访问范围由你授权的连接决定，你应当能查看并撤销权限。这一版演示不连接账号、不访问个人文件，也不提交任何任务。"
+            >
+              No. Access is intended to follow the connections you explicitly
+              authorize, with permission controls you can review and revoke.
+              This preview connects no accounts, accesses no personal files, and
+              submits no tasks.
+            </p>
+          </details>
+          <details>
+            <summary>
+              <span data-zh="现在可以开始使用吗？"
+                >Can I start using Bibo today?</span
+              ><span aria-hidden="true">+</span>
+            </summary>
+            <p
+              data-zh="目前可以体验本页的交互演示。账号注册、真实任务执行和价格尚未开放；演示里的回复与结果都是示例，不代表真实服务已上线。"
+            >
+              You can explore the interactive walkthrough here. Account
+              registration, real task execution, and pricing are not available
+              in this preview. Responses and results are illustrative examples.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <section class="closing shell">
+        <span class="closing-spark" aria-hidden="true">↗</span>
+        <p class="eyebrow" data-zh="有想法，就向前">PUT YOUR IDEAS IN MOTION</p>
+        <h2>
+          <span data-zh="你的下一步，">Your next move.</span><br /><em
+            data-zh="有 Bibo 一起。"
+            >With Bibo.</em
+          >
+        </h2>
+        <a class="button button-dark" href="#meet"
+          ><span data-zh="认识你的 Bibo">Meet your Bibo</span
+          ><span aria-hidden="true">↗</span></a
+        >
+        <p class="closing-note" data-zh="一个搭档。从理解你，到和你做成事情。">
+          One partner. From understanding you to following through.
+        </p>
+      </section>
+    </main>
+    <footer class="site-footer shell">
+      <a class="wordmark" href="#" aria-label="Bibo home"
+        >bibo<span class="brand-period">.</span></a
+      ><span data-zh="你的生活，你的节奏。">Your life. Your pace.</span
+      ><a href="#questions" data-zh="关于这份产品预览">About this preview ↗</a
+      ><span>© 2026 Bibo</span>
+    </footer>
+  </body>
+</html>
