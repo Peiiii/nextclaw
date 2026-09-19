@@ -1,0 +1,4 @@
+interface:
+  display_name: "Idea 搜索漏斗"
+  short_description: "用高召回头脑风暴与批量证据逐层筛选高风险 idea"
+  default_prompt: "请使用搜索漏斗广泛探索这个 idea 空间，先提高候选覆盖率和前置证据质量，再逐层收敛；不要想到一个候选就立即投入验证。"
