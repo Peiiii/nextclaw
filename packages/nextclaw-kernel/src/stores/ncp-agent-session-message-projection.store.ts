@@ -29,6 +29,20 @@ export class NcpAgentSessionMessageProjectionStore {
       this.degradedSessionIds.has(sessionId) ? null : await this.persistence.readMeta(sessionId),
     );
 
+  // The journal source calls this while projection operations may already hold
+  // the per-session queue. Keep it lock-free; validation failures fall back to
+  // bounded journal streaming.
+  readAllSnapshot = async (sessionId: string) => {
+    if (this.degradedSessionIds.has(sessionId)) return null;
+    try {
+      return await this.persistence.readAll(sessionId);
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+      this.degrade(sessionId, "readAllSnapshot", error as FileSystemError);
+      return null;
+    }
+  };
+
   rebuild = async (params: ProjectionRebuildParams): Promise<void> => {
     await this.mutate(params.sessionId, "rebuild", async () => {
       await this.persistence.rebuild(params);

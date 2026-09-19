@@ -81,6 +81,37 @@ describe("NcpAgentSessionMessageProjectionStore synchronization", () => {
     });
   });
 
+  it("keeps stable message order when a cold full-session read merges an updated tail message", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-message-projection-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    await store.importSessionSnapshot({
+      sessionId,
+      messages: [message(1), message(2, "partial"), message(3)],
+      createdAt: "2026-07-18T00:00:00.000Z",
+      updatedAt: "2026-07-18T00:00:03.000Z",
+      metadata: {},
+    });
+    await appendFile(join(tempDir, `${sessionId}.jsonl`), `${JSON.stringify({
+      _type: "event",
+      version: 1,
+      seq: 4,
+      timestamp: "2026-07-18T00:00:04.000Z",
+      event: {
+        type: NcpEventType.MessageCompleted,
+        payload: { sessionId, message: message(2, "complete") },
+      },
+    })}\n`, "utf-8");
+
+    const cold = new NcpAgentSessionJournalStore(tempDir);
+    await expect(cold.getSession(sessionId)).resolves.toMatchObject({
+      messages: [
+        { id: "message-1" },
+        { id: "message-2", parts: [{ text: "complete" }] },
+        { id: "message-3" },
+      ],
+    });
+  });
+
 });
 
 describe("NcpAgentSessionMessageProjectionStore", () => {

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { appendFile, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -117,6 +117,35 @@ describe("tool ownership across journal checkpoints", () => {
     expect(page?.messages[1].status).toBe("final");
     expect(page?.messages[1].parts).toContainEqual(expect.objectContaining({ toolCallId: "call-9", result: "late result" }));
     expect(page?.messages).toEqual(await store.listSessionMessages(sessionId));
+  });
+
+  it("resolves a late tool owner without parsing unrelated historical journal lines", async () => {
+    await setup();
+    for (const event of multiRoundEvents()) await store.appendSessionEvent({ sessionId, event });
+    const journalPath = join(directory, `${sessionId}.jsonl`);
+    await appendFile(journalPath, "unrelated-corrupt-history\n", "utf-8");
+    const persistence = new NcpAgentSessionMessageProjectionPersistenceStore(directory);
+    await persistence.synchronize({
+      sessionId,
+      messages: [],
+      projectedJournalOffset: (await stat(journalPath)).size,
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: E.MessageToolCallResult,
+        payload: { sessionId, toolCallId: "call-9", content: "bounded late result", final: true },
+      },
+    });
+
+    const page = await store.listSessionMessagePage({ sessionId, limit: 10 });
+    expect(page?.messages[1].parts).toContainEqual(expect.objectContaining({
+      toolCallId: "call-9",
+      result: "bounded late result",
+    }));
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("rebuilds a corrupt version 7 projection without changing or executing journal events", async () => {

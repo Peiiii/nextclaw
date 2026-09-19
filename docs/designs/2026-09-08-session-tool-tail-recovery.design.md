@@ -1,6 +1,60 @@
 # 会话刷新后重复工具消息：定位与恢复方案
 
-日期：2026-09-08。状态：修复与真实实例验证完成，已合入并推送主干。
+日期：2026-09-08。状态：原修复与真实实例验证完成，已合入并推送主干；2026-09-19 因低内存 VPS 暴露的无界完整重放补充修复已合入、部署并完成生产复验。
+
+## 2026-09-19：大会话 tail 同步不得退化为无界完整重放
+
+### 事故与验收契约
+
+生产 VPS 的日报专用会话 `ncp-mttygc4l-8213285c` 已增长到约 157 MB journal、118 MB message projection 和 10 万余条事件。一次中断恢复在增量 tail 中看到 seed 无法证明归属的旧工具事件后，`readNcpAgentSessionProjectionTail` 按原设计读取完整 journal；实现同时分配完整 Buffer、UTF-8 字符串、`split("\n")` 行数组和事件对象，V8 heap 在约 650 MB 触顶。NextClaw 主进程于 2026-09-19 09:07:50 CST 崩溃，systemd 重启后，同进程内另一条普通前台会话被标记为失败。整机当时仍有约 1 GiB available memory、1.9 GiB 可用 swap 和 13 GiB 可用磁盘，因此根因不是宿主资源耗尽，而是恢复路径的无界瞬时分配。
+
+contract-id: session-tool-tail-bounded-recovery；parent-goal: 大会话恢复与普通前台会话可以共存，不因任何 session 加载路径触发进程级 OOM；scope-revision: 2（用户要求统一修复整份 session 加载）。
+
+| ID | Required | 合同 | Status | 当前证据 |
+| --- | --- | --- | --- | --- |
+| BOUNDED-01 | true | 增量 tail 缺失工具归属时不读取并解析整份 journal | passed | 历史 owner 逐行定位回归通过；旧 `Buffer(size) + split + events[]` fallback 已删除 |
+| BOUNDED-02 | true | journal 中可定位的旧工具归属仍恢复到原消息，增量与完整语义一致 | passed | 跨 checkpoint 迟到工具结果与 48 项 journal/projection 定向回归通过 |
+| BOUNDED-03 | true | journal 中无法定位或投影已不含 owner 时明确诊断并忽略不安全事件，不合成虚假消息 | passed | unknown tail、终态迟到事件与损坏投影回归通过 |
+| BOUNDED-04 | true | 原 journal、消息投影和用户历史不删除、不改写、不丢失 | passed | 损坏投影重建测试核对 journal 不变；实现只替换派生投影，不改写恢复源 |
+| BOUNDED-05 | true | 同一生产大会话边界复验后服务不重启，健康检查与普通 AI 请求正常 | passed | 0.57.0 生产大会话完成 `run.finished` 且固定回复命中，随后普通前台会话同样完成；应用 PID `218395`、systemd `NRestarts=0`、内外健康 200、部署后 OOM 日志 0 条 |
+| BOUNDED-06 | true | 正常 get/list/run 恢复优先读取当前消息投影，不完整读取 journal；投影缺失或损坏时仅逐行流式恢复 | passed | projection-first loader 与两遍流式 fallback 已实现；130.8 MB 合成 journal 在 192 MB heap 下恢复成功 |
+| BOUNDED-07 | true | projection tail 本身按行增量读取，单次同步不分配 `journalSize - offset` 大 Buffer | passed | tail 两遍逐行扫描；消息顺序、活动态、完成/取消/中断回归通过 |
+| BOUNDED-08 | true | 首次追加、元数据更新和投影重建等间接入口不得为取得 seq/metadata 隐式完整加载消息历史 | passed | 尾部反向 seq 读取、sidecar 时间戳与 metadata 回归、损坏投影流式重建通过 |
+
+### 范围判定
+
+这是原恢复能力面的统一有界加载合同缺口，不是新的状态模型。最先命中的工具归属 fallback 只是其中一个入口；同一 journal 还会被 `loadSession()`、投影损坏 fallback、首次追加和元数据更新完整物化。唯一事实 owner、事件合同、projection schema、消息身份与前端行为均不需要改变；修复留在 kernel 的 journal/projection 读取 owner。
+
+### 修订方案
+
+1. `getSession`、无分页 `listSessionMessages` 和 run 启动优先从有效 message projection 读取当前消息，再逐行同步固定边界内的 journal tail。它们不再把已经折叠进投影的历史事件重新物化；内存下界仍包含模型实际需要的当前消息集合，但不再同时持有原始 journal、拆分行和全部事件对象。
+2. 投影缺失、版本过期或损坏时，对固定 journal size 做两遍逐行扫描：第一遍只收集 replay 为判断“中断错误是否被后续事件覆盖”所需的小型索引和 session 活动元数据；第二遍把单个事件喂给同一个 stateful replay owner。完整数组 replay 与流式 replay 共用状态迁移，不维护两套恢复语义。
+3. 增量 tail 同样逐行扫描，不再 `Buffer.alloc(size - offset)`。第一遍建立必要的终态覆盖索引和 seed/message/tool 归属需求，第二遍按现有 replay 语义恢复；当前同步固定到打开文件时观察到的 size，并发追加交给下一轮。
+4. 未知 toolCallId 的历史 owner 在已投影前缀 `[0, projectedJournalOffset)` 中逐行定位，只解析匹配的 `message.tool-call-start`，再从 projection 逐条读取 owner seed。无法定位或 owner 已不在 projection 时保留原 journal、输出结构化诊断并忽略不安全 tail 事件，不完整回放、不合成虚假消息。
+5. projection 的 messageId→ordinal 索引逐条读取消息建立，只保留 ID/ordinal，不为查一个 owner 同时物化全部消息。读取完整当前消息时逐条解析并合并 tail；这是调用模型所需的语义数据，不包含被历史增量替代的旧版本。
+6. 首次 append 的 next seq 由有界 journal 扫描取得；metadata 更新使用 sidecar/catalog 活动快照，不因改一个字段加载消息正文。投影损坏重建复用流式 journal 恢复结果，禁止回到旧的 `readFile + split + events[]`。
+
+不采用提高 V8 heap 或 systemd 内存上限：它只推迟无界分配并挤压共存服务。不采用删除/截断大会话或关闭日报任务：这会牺牲用户数据或功能，且不能防止其它长会话复发。不新增完整 tool ownership 数据库：现有 journal 与 projection 已能闭环，新增持久化 owner 会引入迁移和双写一致性问题。
+
+### 状态与验证补充
+
+| 场景 | 必须证明 |
+| --- | --- |
+| owner 位于旧 journal、消息仍在投影 | 有界扫描定位原 messageId，tail 工具结果进入原消息，结果与完整恢复一致 |
+| tool start 不存在 | 返回既有安全状态并产生诊断，不完整 replay、不合成消息 |
+| owner 消息已被 projection 淘汰 | 不猜测归属；其它消息、终态和 projection offset 正常推进 |
+| 大 journal + 小 tail | 峰值不随完整 journal 线性物化，原 `readFile(size) -> split -> events[]` 路径不可达 |
+| 有效 projection + 冷启动 run | 只物化当前消息与小 tail，157 MB 历史 journal 不进入 heap |
+| projection 缺失或损坏 | 两遍逐行恢复与数组 replay 语义等价，并重建派生 projection；损坏行仍安全跳过 |
+| 首次 append / metadata 更新 | seq 与活动元数据正确，且不触发消息历史完整加载 |
+| 并发追加 | 当前同步使用固定 size 前缀，后续事件由下一轮同步接续，无丢失或重复 owner |
+| 生产热更新 | 备份可回滚；同一大会话触发同步时 MainPID/NRestarts 不变，health 正常，普通新会话完整回复 |
+
+黄金验收链路：用户从真实公网聊天入口发送普通消息；即使后台大会话恢复并触发旧工具归属查找，服务仍持续连接并返回完整回复，页面不再把请求显示为无原因取消。AI 先用生产大会话副本和定向测试证明语义与内存边界，再在备份可回滚的前提下更新 VPS active runtime；用户只需判断最终聊天体验是否符合预期。
+
+本地验证记录：会话恢复、projection、timeline、compaction 原定向 48 项通过，提交门扩大复跑为 56 项通过；排除一个与本改动无文件交集的既有 context-provider 固定文案失败后，kernel 其余测试通过；匹配 TypeScript、定向 ESLint、kernel build 与 diff-only maintainability 通过。低内存验证使用本地合成数据，不包含生产会话正文。
+
+生产部署记录：修复提交 `4fe335f75` 已快进推送 `origin/master`。部署产物以正式 `nextclaw@0.57.0` 标签为基线移植该修复；纯净标签重建 kernel SHA-256 与线上原文件逐字节一致，避免再次混入未发布的 core 合同。仅替换 active runtime 的 kernel bundle，原文件、修复文件和可执行 `rollback.sh` 保存在 `/home/admin/.nextclaw/hotfix-deployments/20260919-session-bounded-4fe335f75`。生产大会话从 seq 107568 继续到 107581，依次产生 `message.sent`、`run.started`、`message.completed`、`run.finished`，固定回复校验通过；用户给出的普通前台会话随后也 `run.finished` 且固定回复校验通过。两轮后应用 PID、systemd 主 PID 均保持不变，`NRestarts=0`，本机及公网健康均为 200，部署以来无 `FATAL ERROR`、heap OOM 或 allocation failed。17321 的无关进程仍为原 PID 669。用户已在知悉凭据暴露后明确要求继续并部署；生产验收通过不改变既有凭据仍须另行轮换的事实。
 
 ## Active acceptance ledger
 

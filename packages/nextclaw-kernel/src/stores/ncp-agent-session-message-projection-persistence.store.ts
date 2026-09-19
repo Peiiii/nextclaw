@@ -29,6 +29,10 @@ export type ReadProjectionPageParams = {
   cursor?: string;
   tailMessages?: readonly NcpMessage[];
 };
+export type ReadProjectionMessagesResult = {
+  messages: NcpMessage[];
+  meta: NcpAgentSessionMessageProjectionMeta;
+};
 export class NcpAgentSessionMessageProjectionPersistenceStore {
   private readonly messageOrdinals = new Map<string, Map<string, number>>();
   constructor(private readonly journalDir: string) {}  readMeta = async (sessionId: string): Promise<NcpAgentSessionMessageProjectionMeta | null> => {
@@ -213,6 +217,19 @@ export class NcpAgentSessionMessageProjectionPersistenceStore {
       tailMessages: await this.readJournalTailMessages(sessionId, meta),
     });
   };
+  readAll = async (sessionId: string): Promise<ReadProjectionMessagesResult | null> => {
+    let meta = await this.readMeta(sessionId);
+    const journalStat = await stat(this.journalPath(sessionId));
+    if (meta && meta.projectedJournalOffset > journalStat.size) meta = null;
+    if (!meta) return null;
+    const tailMessages = await this.readJournalTailMessages(sessionId, meta);
+    const stableMessages = meta.total > 0 ? await this.readMessages(sessionId, 1, meta.total) : [];
+    const byId = new Map(stableMessages.map((message) => [message.id, message]));
+    for (const message of tailMessages) {
+      byId.set(message.id, message);
+    }
+    return { messages: [...byId.values()], meta };
+  };
   readPage = async (params: ReadProjectionPageParams): Promise<SessionMessagePage | null> => {
     const { cursor, limit: requestedLimit, sessionId, tailMessages } = params;
     const meta = await this.readMeta(sessionId);
@@ -271,8 +288,11 @@ export class NcpAgentSessionMessageProjectionPersistenceStore {
     if (cached) {
       return cached;
     }
-    const messages = meta.total > 0 ? await this.readMessages(sessionId, 1, meta.total) : [];
-    const ordinals = new Map(messages.map((message, index) => [message.id, index + 1]));
+    const ordinals = new Map<string, number>();
+    for (let ordinal = 1; ordinal <= meta.total; ordinal += 1) {
+      const message = (await this.readMessages(sessionId, ordinal, ordinal))[0];
+      if (message) ordinals.set(message.id, ordinal);
+    }
     this.messageOrdinals.set(sessionId, ordinals);
     return ordinals;
   };
