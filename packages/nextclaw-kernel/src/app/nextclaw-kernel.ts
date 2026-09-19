@@ -50,6 +50,7 @@ import {
   type DesktopHost,
 } from "@kernel/features/desktop-host/index.js";
 import { FeatureControlsService } from "@kernel/features/feature-controls/index.js";
+import { CoreHealthCheckService } from "@kernel/features/core-health/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
@@ -178,6 +179,7 @@ export class NextclawKernel {
   readonly observations: ObservationManager;
   readonly capabilityGrants: CapabilityGrantManager;
   readonly featureControls: FeatureControlsService;
+  readonly coreHealth: CoreHealthCheckService;
   readonly verificationRecords: VerificationRecordService;
   readonly portableRuntimeAcceptance: PortableRuntimeAcceptanceManager;
   readonly plannedRestartRecovery: PlannedRestartRecoveryManager;
@@ -205,6 +207,11 @@ export class NextclawKernel {
       providerModelCatalogManager: this.providerModelCatalog,
     }));
     this.assetStore = new LocalAssetStore({ rootDir: resolve(getDataDir(), "assets") });
+    this.coreHealth = new CoreHealthCheckService({
+      getConfig: () => this.configManager.config,
+      getWorkspacePath: () => getWorkspacePath(this.configManager.config.agents.defaults.workspace),
+      sessionsDir,
+    });
     this.control = new NextclawKernelControlManager<unknown, unknown, unknown>();
     this.agents = new AgentManager(this.configManager);
     this.agentContextWindowManager = new AgentContextWindowManager(
