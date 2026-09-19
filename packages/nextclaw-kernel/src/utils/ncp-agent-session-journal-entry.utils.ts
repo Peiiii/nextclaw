@@ -1,4 +1,6 @@
 import { NcpEventType } from "@nextclaw/ncp";
+import { open } from "node:fs/promises";
+import { createInterface } from "node:readline";
 import {
   isRecord,
   NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE,
@@ -57,7 +59,7 @@ export function attachNcpAgentSessionJournalTimestamp(
   } as unknown as NcpAgentSessionJournalReplayEvent;
 }
 
-class NcpAgentSessionJournalParser {
+export class NcpAgentSessionJournalParser {
   private metadata: Record<string, unknown> = {};
   private agentId: string | undefined;
   private createdAt = new Date().toISOString();
@@ -66,21 +68,24 @@ class NcpAgentSessionJournalParser {
   private projectedJournalOffset = 0;
   private readonly events: NcpAgentSessionJournalReplayEvent[] = [];
 
-  append = (line: string, index: number, lineEndOffset: number): void => {
+  constructor(private readonly collectEvents = true) {}
+
+  append = (line: string, index: number, lineEndOffset: number): NcpAgentSessionJournalReplayEvent | null => {
     if (!line.trim()) {
-      return;
+      return null;
     }
     const parsed = this.parseLine(line, index);
     if (!parsed) {
-      return;
+      return null;
     }
     if (parsed._type === "metadata") {
       this.applyMetadata(parsed);
-      return;
+      return null;
     }
     if (parsed._type === "event" && isRecord(parsed.event)) {
-      this.applyEvent(parsed, lineEndOffset);
+      return this.applyEvent(parsed, lineEndOffset);
     }
+    return null;
   };
 
   finish = (): ParsedNcpAgentSessionJournal => ({
@@ -112,17 +117,18 @@ class NcpAgentSessionJournalParser {
     this.updatedAt = toIsoString(entry.updated_at, this.updatedAt);
   };
 
-  private applyEvent = (entry: Record<string, unknown>, lineEndOffset: number): void => {
+  private applyEvent = (entry: Record<string, unknown>, lineEndOffset: number): NcpAgentSessionJournalReplayEvent => {
     const seq = Number(entry.seq);
     this.nextSeq = Math.max(this.nextSeq, Number.isFinite(seq) ? Math.trunc(seq) + 1 : this.nextSeq);
     const eventTimestamp = toIsoString(entry.timestamp, this.updatedAt);
     this.updatedAt = eventTimestamp;
     const event = structuredClone(entry.event) as NcpAgentSessionJournalReplayEvent;
     const replayEvent = attachNcpAgentSessionJournalTimestamp(event, eventTimestamp);
-    this.events.push(replayEvent);
+    if (this.collectEvents) this.events.push(replayEvent);
     if (isNcpAgentSessionMessageProjectionBoundaryEvent(replayEvent)) {
       this.projectedJournalOffset = lineEndOffset;
     }
+    return replayEvent;
   };
 }
 
@@ -136,4 +142,43 @@ export function parseNcpAgentSessionJournal(raw: string): ParsedNcpAgentSessionJ
     byteOffset = lineEndOffset;
   }
   return parser.finish();
+}
+
+export async function scanSessionJournal(params: {
+  path: string;
+  startOffset?: number;
+  endOffset: number;
+  onEvent?: (event: NcpAgentSessionJournalReplayEvent, eventIndex: number) => Promise<void> | void;
+}): Promise<ParsedNcpAgentSessionJournal> {
+  const { endOffset, onEvent, path } = params;
+  const startOffset = Math.max(0, params.startOffset ?? 0);
+  const parser = new NcpAgentSessionJournalParser(false);
+  if (endOffset <= startOffset) return parser.finish();
+  const file = await open(path, "r");
+  const stream = file.createReadStream({
+    start: startOffset,
+    end: endOffset - 1,
+    encoding: "utf-8",
+    autoClose: false,
+  });
+  const lines = createInterface({ input: stream, crlfDelay: Infinity });
+  let lineIndex = 0;
+  let byteOffset = startOffset;
+  try {
+    for await (const line of lines) {
+      const lineEndOffset = Math.min(
+        endOffset,
+        byteOffset + Buffer.byteLength(line, "utf-8") + 1,
+      );
+      const event = parser.append(line, lineIndex, lineEndOffset);
+      if (event) await onEvent?.(event, lineIndex);
+      byteOffset = lineEndOffset;
+      lineIndex += 1;
+    }
+    return parser.finish();
+  } finally {
+    lines.close();
+    stream.destroy();
+    await file.close();
+  }
 }

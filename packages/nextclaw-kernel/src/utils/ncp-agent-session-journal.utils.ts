@@ -18,6 +18,7 @@ export type NcpAgentSessionJournalMetadataEntry = {
   _type: "metadata";
   version: typeof NCP_AGENT_SESSION_JOURNAL_ENTRY_VERSION;
   created_at: string;
+  updated_at?: string;
   agent_id?: string;
   metadata: Record<string, unknown>;
 };
@@ -126,6 +127,7 @@ export function createNcpAgentSessionJournalMetadataEntry(
     _type: "metadata",
     version: NCP_AGENT_SESSION_JOURNAL_ENTRY_VERSION,
     created_at: record.createdAt ?? record.updatedAt,
+    updated_at: record.updatedAt,
     ...(normalizeNcpAgentId(record.agentId) ? { agent_id: normalizeNcpAgentId(record.agentId) } : {}),
     metadata: structuredClone(record.metadata ?? {})
   };
