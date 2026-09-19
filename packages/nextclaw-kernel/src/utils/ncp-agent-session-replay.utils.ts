@@ -66,13 +66,48 @@ export async function replayNcpAgentSessionEvents(
   activeMessageId?: string | null,
   allowUnknownStreamingBootstrap = true,
 ): Promise<NcpMessage[]> {
-  const context = await createReplayContext(seedMessages, activeMessageId);
-  await replayJournalEvents(context, events, allowUnknownStreamingBootstrap);
-  const snapshot = context.stateManager.getSnapshot();
-  const messages = snapshot.streamingMessage
-    ? insertMessageByTimeline(snapshot.messages, snapshot.streamingMessage)
-    : snapshot.messages;
-  return messages.map(context.compactionRecovery.terminalize);
+  const replayer = await SessionEventReplayer.create(seedMessages, activeMessageId, allowUnknownStreamingBootstrap);
+  const supersededSyntheticRecoveryIndexes = readSupersededSyntheticRecoveryIndexes(events);
+  for (const [eventIndex, event] of events.entries()) {
+    await replayer.append(event, eventIndex, supersededSyntheticRecoveryIndexes);
+  }
+  return replayer.finish();
+}
+
+export class SessionEventReplayer {
+  private constructor(
+    private readonly context: ReplayContext,
+    private readonly allowUnknownStreamingBootstrap: boolean,
+  ) {}
+
+  static create = async (
+    seedMessages: readonly NcpMessage[] = [],
+    activeMessageId?: string | null,
+    allowUnknownStreamingBootstrap = true,
+  ): Promise<SessionEventReplayer> => new SessionEventReplayer(
+    await createReplayContext(seedMessages, activeMessageId),
+    allowUnknownStreamingBootstrap,
+  );
+
+  append = async (
+    event: NcpAgentSessionJournalReplayEvent,
+    eventIndex: number,
+    supersededSyntheticRecoveryIndexes: ReadonlySet<number>,
+  ): Promise<void> => {
+    if (isJournalOnlyEvent(event)) return;
+    const replayEvent = createReplayEvent(event, this.context.toolResultsByCallId);
+    updateActiveTailRunIds(this.context.activeTailRunIds, replayEvent, eventIndex);
+    if (supersededSyntheticRecoveryIndexes.has(eventIndex)) return;
+    await replayJournalEvent(this.context, replayEvent, this.allowUnknownStreamingBootstrap);
+  };
+
+  finish = (): NcpMessage[] => {
+    const snapshot = this.context.stateManager.getSnapshot();
+    const messages = snapshot.streamingMessage
+      ? insertMessageByTimeline(snapshot.messages, snapshot.streamingMessage)
+      : snapshot.messages;
+    return messages.map(this.context.compactionRecovery.terminalize);
+  };
 }
 
 async function createReplayContext(
@@ -100,25 +135,6 @@ async function createReplayContext(
     });
   }
   return new ReplayContext(stateManager, seedMessages);
-}
-
-async function replayJournalEvents(
-  context: ReplayContext,
-  events: readonly NcpAgentSessionJournalReplayEvent[],
-  allowUnknownStreamingBootstrap: boolean,
-): Promise<void> {
-  const supersededSyntheticRecoveryIndexes = readSupersededSyntheticRecoveryIndexes(events);
-  for (const [eventIndex, event] of events.entries()) {
-    if (isJournalOnlyEvent(event)) {
-      continue;
-    }
-    const replayEvent = createReplayEvent(event, context.toolResultsByCallId);
-    updateActiveTailRunIds(context.activeTailRunIds, replayEvent, eventIndex);
-    if (supersededSyntheticRecoveryIndexes.has(eventIndex)) {
-      continue;
-    }
-    await replayJournalEvent(context, replayEvent, allowUnknownStreamingBootstrap);
-  }
 }
 
 function updateActiveTailRunIds(
