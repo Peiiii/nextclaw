@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-09-18T07:23:34.677Z",
+  "generatedAt": "2026-09-19T07:17:55.847Z",
   "hero": {
-    "currentLoc": 306659,
-    "testLoc": 131812,
-    "trackedFiles": 3259,
-    "recentCommitCount": 706,
+    "currentLoc": 307071,
+    "testLoc": 132036,
+    "trackedFiles": 3261,
+    "recentCommitCount": 718,
     "activeDays30": 30,
     "recentReleaseCount": 50,
     "latestReleaseDate": "2026-09-15",
     "latestNoteDate": "2026-09-16",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 3117465,
-    "basePercentOfBenchmark": 9.84,
-    "lighterByPercent": 90.16
+    "benchmarkCodeLines": 3154297,
+    "basePercentOfBenchmark": 9.74,
+    "lighterByPercent": 90.26
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-05-22",
-        "label": "05-22",
-        "value": 173317
-      },
       {
         "key": "2026-05-23",
         "label": "05-23",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-09-18",
         "label": "09-18",
         "value": 306659
+      },
+      {
+        "key": "2026-09-19",
+        "label": "09-19",
+        "value": 307071
       }
     ],
     "testLocDaily": [
@@ -1272,14 +1272,14 @@ export default {
         "key": "2026-09-18",
         "label": "09-18",
         "value": 131812
+      },
+      {
+        "key": "2026-09-19",
+        "label": "09-19",
+        "value": 132036
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-08-20",
-        "label": "08-20",
-        "value": 23
-      },
       {
         "key": "2026-08-21",
         "label": "08-21",
@@ -1423,7 +1423,12 @@ export default {
       {
         "key": "2026-09-18",
         "label": "09-18",
-        "value": 6
+        "value": 28
+      },
+      {
+        "key": "2026-09-19",
+        "label": "09-19",
+        "value": 13
       }
     ],
     "commitWeekly": [
@@ -1485,7 +1490,7 @@ export default {
       {
         "key": "2026-09-14",
         "label": "09-14",
-        "value": 74
+        "value": 109
       }
     ],
     "releaseMonthly": [
@@ -1555,31 +1560,31 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 75901,
-        "testCodeLines": 42450,
+        "codeLines": 75897,
+        "testCodeLines": 42441,
         "files": 932,
-        "sharePercent": 24.8
+        "sharePercent": 24.7
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 48637,
-        "testCodeLines": 26043,
+        "codeLines": 48882,
+        "testCodeLines": 26098,
         "files": 464,
         "sharePercent": 15.9
       },
       {
         "name": "packages/nextclaw-service",
-        "codeLines": 17086,
-        "testCodeLines": 9066,
+        "codeLines": 17107,
+        "testCodeLines": 9111,
         "files": 175,
         "sharePercent": 5.6
       },
       {
         "name": "packages/nextclaw-core",
-        "codeLines": 16602,
-        "testCodeLines": 6829,
-        "files": 176,
-        "sharePercent": 5.4
+        "codeLines": 16746,
+        "testCodeLines": 6940,
+        "files": 178,
+        "sharePercent": 5.5
       },
       {
         "name": "workers/nextclaw-provider-gateway-api",
@@ -1600,7 +1605,7 @@ export default {
         "codeLines": 13654,
         "testCodeLines": 10891,
         "files": 159,
-        "sharePercent": 4.5
+        "sharePercent": 4.4
       },
       {
         "name": "packages/nextclaw-app-runtime",
@@ -1612,9 +1617,9 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 3117465,
-      "basePercentOfBenchmark": 9.84,
-      "lighterByPercent": 90.16
+      "benchmarkCodeLines": 3154297,
+      "basePercentOfBenchmark": 9.74,
+      "lighterByPercent": 90.26
     },
     "recentReleaseBatches": [
       {
@@ -3089,7 +3094,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-09-18T07:23:32.579Z",
+    "locGeneratedAt": "2026-09-19T07:17:54.477Z",
     "sourceCount": {
       "notes": 71,
       "scopes": 8
