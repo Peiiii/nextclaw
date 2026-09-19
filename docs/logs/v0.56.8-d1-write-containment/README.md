@@ -5,7 +5,7 @@
 生产账号的 D1 每日写入额度快速接近上限。只读查询确认，分发采用量同步对
 `distribution_download_assets` 执行无变更条件的 upsert：即使上游累计值不变，每两小时仍重写资产记录。
 
-本批次从 `nextclaw-provider-gateway-api` 的 Wrangler 配置移除 Cron Trigger，暂停自动同步，从写入源头止血；未删除 D1 数据、未改 schema、未改变 HTTP/API 行为。恢复条件记录在
+本批次把 `nextclaw-provider-gateway-api` 的 Wrangler Cron Trigger 显式设为空列表，暂停自动同步并让部署删除生产环境已有调度，从写入源头止血；未删除 D1 数据、未改 schema、未改变 HTTP/API 行为。恢复条件记录在
 [`../../designs/2026-09-19-d1-write-containment.design.md`](../../designs/2026-09-19-d1-write-containment.design.md)。
 
 ## 测试/验证/验收方式
