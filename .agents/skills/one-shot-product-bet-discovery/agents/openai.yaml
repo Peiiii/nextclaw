@@ -1,0 +1,4 @@
+interface:
+  display_name: "单次重注产品方向发现"
+  short_description: "为只有一次重注机会的创始人筛选并证伪高胜率方向"
+  default_prompt: "使用 $one-shot-product-bet-discovery 持续比较和证伪创业方向，直到找到越过最低胜率的候选或明确尚未找到。"
