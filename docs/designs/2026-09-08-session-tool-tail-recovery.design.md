@@ -1,6 +1,6 @@
 # 会话刷新后重复工具消息：定位与恢复方案
 
-日期：2026-09-08。状态：原修复与真实实例验证完成，已合入并推送主干；2026-09-19 因低内存 VPS 暴露的无界完整重放补充正在修复。
+日期：2026-09-08。状态：原修复与真实实例验证完成，已合入并推送主干；2026-09-19 因低内存 VPS 暴露的无界完整重放补充修复已合入、部署并完成生产复验。
 
 ## 2026-09-19：大会话 tail 同步不得退化为无界完整重放
 
@@ -16,7 +16,7 @@ contract-id: session-tool-tail-bounded-recovery；parent-goal: 大会话恢复�
 | BOUNDED-02 | true | journal 中可定位的旧工具归属仍恢复到原消息，增量与完整语义一致 | passed | 跨 checkpoint 迟到工具结果与 48 项 journal/projection 定向回归通过 |
 | BOUNDED-03 | true | journal 中无法定位或投影已不含 owner 时明确诊断并忽略不安全事件，不合成虚假消息 | passed | unknown tail、终态迟到事件与损坏投影回归通过 |
 | BOUNDED-04 | true | 原 journal、消息投影和用户历史不删除、不改写、不丢失 | passed | 损坏投影重建测试核对 journal 不变；实现只替换派生投影，不改写恢复源 |
-| BOUNDED-05 | true | 同一生产大会话边界复验后服务不重启，健康检查与普通 AI 请求正常 | unverified | 本地已闭合；用户已明确恢复部署授权，线上验证仍待执行；既有凭据视为已暴露并须另行轮换 |
+| BOUNDED-05 | true | 同一生产大会话边界复验后服务不重启，健康检查与普通 AI 请求正常 | passed | 0.57.0 生产大会话完成 `run.finished` 且固定回复命中，随后普通前台会话同样完成；应用 PID `218395`、systemd `NRestarts=0`、内外健康 200、部署后 OOM 日志 0 条 |
 | BOUNDED-06 | true | 正常 get/list/run 恢复优先读取当前消息投影，不完整读取 journal；投影缺失或损坏时仅逐行流式恢复 | passed | projection-first loader 与两遍流式 fallback 已实现；130.8 MB 合成 journal 在 192 MB heap 下恢复成功 |
 | BOUNDED-07 | true | projection tail 本身按行增量读取，单次同步不分配 `journalSize - offset` 大 Buffer | passed | tail 两遍逐行扫描；消息顺序、活动态、完成/取消/中断回归通过 |
 | BOUNDED-08 | true | 首次追加、元数据更新和投影重建等间接入口不得为取得 seq/metadata 隐式完整加载消息历史 | passed | 尾部反向 seq 读取、sidecar 时间戳与 metadata 回归、损坏投影流式重建通过 |
@@ -52,7 +52,9 @@ contract-id: session-tool-tail-bounded-recovery；parent-goal: 大会话恢复�
 
 黄金验收链路：用户从真实公网聊天入口发送普通消息；即使后台大会话恢复并触发旧工具归属查找，服务仍持续连接并返回完整回复，页面不再把请求显示为无原因取消。AI 先用生产大会话副本和定向测试证明语义与内存边界，再在备份可回滚的前提下更新 VPS active runtime；用户只需判断最终聊天体验是否符合预期。
 
-本地验证记录：会话恢复、projection、timeline、compaction 共 48 项通过；排除一个与本改动无文件交集的既有 context-provider 固定文案失败后，kernel 其余 695 项通过；匹配 TypeScript、定向 ESLint、kernel build 与 diff-only maintainability 通过。低内存验证使用本地合成数据，不包含生产会话正文。用户已在知悉凭据暴露后明确要求继续并部署；线上 BOUNDED-05 仍须独立执行，不能用本地证据冒充，部署完成后也不改变既有凭据需要轮换的事实。
+本地验证记录：会话恢复、projection、timeline、compaction 原定向 48 项通过，提交门扩大复跑为 56 项通过；排除一个与本改动无文件交集的既有 context-provider 固定文案失败后，kernel 其余测试通过；匹配 TypeScript、定向 ESLint、kernel build 与 diff-only maintainability 通过。低内存验证使用本地合成数据，不包含生产会话正文。
+
+生产部署记录：修复提交 `4fe335f75` 已快进推送 `origin/master`。部署产物以正式 `nextclaw@0.57.0` 标签为基线移植该修复；纯净标签重建 kernel SHA-256 与线上原文件逐字节一致，避免再次混入未发布的 core 合同。仅替换 active runtime 的 kernel bundle，原文件、修复文件和可执行 `rollback.sh` 保存在 `/home/admin/.nextclaw/hotfix-deployments/20260919-session-bounded-4fe335f75`。生产大会话从 seq 107568 继续到 107581，依次产生 `message.sent`、`run.started`、`message.completed`、`run.finished`，固定回复校验通过；用户给出的普通前台会话随后也 `run.finished` 且固定回复校验通过。两轮后应用 PID、systemd 主 PID 均保持不变，`NRestarts=0`，本机及公网健康均为 200，部署以来无 `FATAL ERROR`、heap OOM 或 allocation failed。17321 的无关进程仍为原 PID 669。用户已在知悉凭据暴露后明确要求继续并部署；生产验收通过不改变既有凭据仍须另行轮换的事实。
 
 ## Active acceptance ledger
 
