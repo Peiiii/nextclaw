@@ -43,12 +43,16 @@ export class NcpAgentSessionMetadataStore {
         throw new Error(`invalid ncp agent session metadata sidecar: ${sessionId}`);
       }
       const createdAt = toIsoString(parsed.created_at, activitySnapshot.createdAt);
+      const sidecarUpdatedAt = toIsoString(parsed.updated_at, activitySnapshot.updatedAt);
+      const updatedAt = Date.parse(sidecarUpdatedAt) > Date.parse(activitySnapshot.updatedAt)
+        ? sidecarUpdatedAt
+        : activitySnapshot.updatedAt;
       const agentId = normalizeNcpAgentId(typeof parsed.agent_id === "string" ? parsed.agent_id : undefined);
       return {
         metadata: structuredClone(parsed.metadata),
         ...(agentId ? { agentId } : {}),
         createdAt,
-        updatedAt: activitySnapshot.updatedAt,
+        updatedAt,
       };
     } catch (error) {
       const code = error && typeof error === "object" && "code" in error ? error.code : undefined;

@@ -27,11 +27,19 @@ export function needsReplayToolHistory(
   events: readonly NcpAgentSessionJournalReplayEvent[],
   seeds: readonly NcpMessage[],
 ): boolean {
+  return readMissingReplayToolCallIds(events, seeds).size > 0;
+}
+
+export function readMissingReplayToolCallIds(
+  events: readonly NcpAgentSessionJournalReplayEvent[],
+  seeds: readonly NcpMessage[],
+): Set<string> {
   const owners = seedReplayToolOwners(seeds);
+  const missing = new Set<string>();
   for (const event of events) {
     const toolCallId = readEventToolCallId(event);
-    if (toolCallId && !readEventMessageId(event) && !owners.has(toolCallId)) return true;
+    if (toolCallId && !readEventMessageId(event) && !owners.has(toolCallId)) missing.add(toolCallId);
     for (const [callId, messageId] of readReplayToolOwners(event)) owners.set(callId, messageId);
   }
-  return false;
+  return missing;
 }
