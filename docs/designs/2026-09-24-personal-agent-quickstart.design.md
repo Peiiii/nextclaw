@@ -30,12 +30,18 @@
 
 | ID | Required | 验收 | Status |
 | --- | --- | --- | --- |
-| B1 | true | Bibo 独立注册与登录可用，未登录请求被拒绝 | not-run |
-| B2 | true | 真实调用 NextClaw Harness 并返回首个任务结果 | not-run |
-| B3 | true | 两账号隔离；重启与刷新后记忆和会话连续 | not-run |
-| B4 | true | 限流、时限、失败恢复和成本上限生效 | not-run |
-| B5 | true | `app.bibo.bot` 公开可达；既有产品入口未受影响 | not-run |
-| B6 | true | 用户文档、类型检查、真实冒烟、Review 和发布记录完成 | not-run |
+| B1 | true | Bibo 独立注册与登录可用，未登录请求被拒绝 | passed |
+| B2 | true | 真实调用 NextClaw Harness 并返回首个任务结果 | passed |
+| B3 | true | 两账号隔离；重启与刷新后记忆和会话连续 | passed |
+| B4 | true | 限流、时限、失败恢复和成本上限生效 | passed（额度与休眠线上实测；时限与并发按代码和配置审查） |
+| B5 | true | `app.bibo.bot` 公开可达；既有产品入口未受影响 | passed |
+| B6 | true | 用户文档、类型检查、真实冒烟、Review 和发布记录完成 | passed |
+
+## 线上验收与交付记录
+
+2026-09-25（北京时间），Worker `9112c3d3-761a-47bd-8054-2bac7150b53d`、容器版本 6 已部署至 `app.bibo.bot`。公开注册创建的测试账号登录成功；未登录访问 `/api/history` 返回 401。真实 NextClaw 对话返回 200，刷新后的历史包含原对话，另一个账号的历史为空。容器滚动替换后先出现一次 503，替换完成后恢复请求成功；新版容器空闲后变为 inactive，再次冷启动的首个请求返回 200，并正确回答此前要求回复的内容。旧 `bibo.bot/` 与新 `app.bibo.bot/` 均返回 200。
+
+模型代理已返回真实答复；测试账号达到每日 30 次限额时返回 429。每账号每小时 12 次、请求 85 秒、容器最多 5 个以及快照容量限制由源码和 Cloudflare 配置审查，未逐一耗尽生产额度。SQLite WAL 持续写入时的快照完整性与 SIGTERM 退出由本地测试通过；`@nextclaw/bibo-hosted` 的 TypeScript 检查、定向 ESLint 和 diff-only maintainability 检查通过。用户说明见 `apps/bibo-hosted/public/help.html` 与文档站 Bibo 页；部署命令和恢复说明见 `apps/bibo-hosted/README.md`。本次首发超过原定两小时目标，原因包括 Cloudflare 容器错误可观测性不足和旧版 Wrangler 的配置校验失败；已用快照回归测试与固定可用 Wrangler 命令降低重复排障成本。
 
 ## 方案 Review 自审
 

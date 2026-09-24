@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "tsc": "tsc -p tsconfig.json --noEmit",
-    "deploy": "wrangler deploy",
+    "deploy": "pnpm dlx wrangler@4.138.0 deploy",
     "dev": "wrangler dev"
   },
   "dependencies": {
