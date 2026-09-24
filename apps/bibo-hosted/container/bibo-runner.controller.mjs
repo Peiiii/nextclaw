@@ -39,7 +39,7 @@ function configure(token) {
     nextclaw: {
       ...config.providers?.nextclaw,
       enabled: true,
-      apiBase: "https://bibo-hosted.15353764479037.workers.dev/app/api/model/v1",
+      apiBase: "https://bibo-hosted.15353764479037.workers.dev/api/model/v1",
       apiKey: token,
       models: [model],
     },

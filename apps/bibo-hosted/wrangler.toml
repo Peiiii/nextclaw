@@ -4,7 +4,7 @@ main = "src/app/bibo-hosted.app.ts"
 compatibility_date = "2026-09-24"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
-routes = [{ pattern = "bibo.bot/app/*", zone_name = "bibo.bot" }]
+routes = [{ pattern = "app.bibo.bot", custom_domain = true }, { pattern = "bibo.bot/app/*", zone_name = "bibo.bot" }]
 
 [assets]
 directory = "./public"

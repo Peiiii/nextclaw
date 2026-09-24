@@ -1,9 +1,9 @@
 # Bibo 托管个人搭档
 
-[Bibo](https://bibo.bot/app/) 是独立网页服务，底层使用 NextClaw Agent。你无需安装 NextClaw：用邮箱验证码注册，登录后从一件具体的事开始对话。
+[Bibo](https://app.bibo.bot/) 是独立网页服务，底层使用 NextClaw Agent。你无需安装 NextClaw：用邮箱验证码注册，登录后从一件具体的事开始对话。
 
 首发提供文字对话和会话继续。你可以告诉 Bibo 当前目标、补充背景、检查回答，并在下次登录后继续同一段对话。每个账号有独立的运行环境。个人空间可在网页里清空。
 
 当前每小时最多 12 次对话，每次最多 4000 字；每个账号每天最多 30 次模型调用，首发服务每天最多 200 次模型调用。账号使用 NextClaw 平台身份服务，模型调用由 Bibo 单独提供免费试用额度。Bibo 暂不提供离线定时执行或主动通知；请核对重要结果。
 
-使用和数据说明见 [Bibo 帮助页](https://bibo.bot/app/help.html)。本地优先工作台仍可按[安装指南](/zh/guide/install)使用 NextClaw。
+使用和数据说明见 [Bibo 帮助页](https://app.bibo.bot/help.html)。本地优先工作台仍可按[安装指南](/zh/guide/install)使用 NextClaw。

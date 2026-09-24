@@ -192,7 +192,7 @@ async function authRoute(request: Request, path: string): Promise<Response> {
     "/api/auth/register": "/platform/auth/register/complete",
     "/api/auth/login": "/platform/auth/login",
   };
-  if (path === "/api/auth/logout" && request.method === "POST") return json({ ok: true }, 200, { "set-cookie": "bibo_session=; Path=/app; HttpOnly; Secure; SameSite=Lax; Max-Age=0" });
+  if (path === "/api/auth/logout" && request.method === "POST") return json({ ok: true }, 200, { "set-cookie": "bibo_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0" });
   if (path === "/api/auth/me") {
     if (request.method !== "GET") return publicError("Not found", 404);
     const user = await currentUser(cookieToken(request));
@@ -206,7 +206,7 @@ async function authRoute(request: Request, path: string): Promise<Response> {
   if (!value.ok) return publicError(value.error?.message ?? "账号服务暂时不可用。", status);
   const token = value.data?.token;
   if (token) {
-    return json({ user: value.data?.user }, status, { "set-cookie": `bibo_session=${encodeURIComponent(token)}; Path=/app; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000` });
+    return json({ user: value.data?.user }, status, { "set-cookie": `bibo_session=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000` });
   }
   return json(value.data, status);
 }
@@ -214,9 +214,12 @@ async function authRoute(request: Request, path: string): Promise<Response> {
 export default {
   fetch: async (request: Request, env: Env): Promise<Response> => {
     const url = new URL(request.url);
-    if (url.pathname === "/app") return Response.redirect(`${url.origin}/app/`, 308);
-    if (!url.pathname.startsWith("/app/")) return publicError("Not found", 404);
-    const path = url.pathname.slice(4);
+    if (url.hostname === "bibo.bot") {
+      if (request.method !== "GET" && request.method !== "HEAD") return publicError("Not found", 404);
+      const path = url.pathname.replace(/^\/app\/?/, "/");
+      return Response.redirect(`https://app.bibo.bot${path}${url.search}`, 308);
+    }
+    const path = url.pathname;
     if (path.startsWith("/api/")) {
       if (path === "/api/model/v1/chat/completions") {
         try { return await modelRoute(request, env); }
@@ -248,8 +251,6 @@ export default {
         return publicError("Bibo 暂时无法连接，请稍后重试。", 503);
       }
     }
-    const assetUrl = new URL(request.url);
-    assetUrl.pathname = path === "/" ? "/index.html" : path;
-    return await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+    return await env.ASSETS.fetch(request);
   },
 };

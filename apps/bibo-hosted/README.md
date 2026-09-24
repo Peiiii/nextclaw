@@ -1,6 +1,6 @@
 # Bibo hosted companion
 
-Independent Cloudflare Worker and Container service at `https://bibo.bot/app/`. The existing `bibo-bot` Worker keeps handling `bibo.bot/*`; the more specific `bibo.bot/app/*` route belongs to this service. No NextClaw service, account database, or existing Bibo concept-site route is changed.
+Independent Cloudflare Worker and Container service at `https://app.bibo.bot/`. The existing `bibo-bot` Worker keeps handling `bibo.bot/*`; the previous `bibo.bot/app/*` route redirects to this service. No NextClaw service, account database, or existing Bibo concept-site route is changed.
 
 ## Runtime
 
@@ -15,6 +15,6 @@ Independent Cloudflare Worker and Container service at `https://bibo.bot/app/`. 
 1. Use a Cloudflare account on the Workers Paid plan. Ensure the `bibo-user-snapshots` R2 bucket exists and `BIBO_DEEPSEEK_API_KEY` is configured as a Wrangler Secret. Never store the key in a file or commit it.
 2. Run `pnpm -C apps/bibo-hosted exec wrangler types --include-runtime false` and `pnpm -C apps/bibo-hosted tsc`.
 3. From a clean checkout of the frozen remote `master`, run `pnpm -C apps/bibo-hosted exec wrangler deploy`. Docker must be running. Wrangler builds and pushes the Docker image.
-4. Wait for Container provisioning, then smoke `https://bibo.bot/app/`, registration, a real NextClaw response, refresh/continuation, account isolation, and `https://bibo.bot/`.
+4. Wait for Container provisioning, then smoke `https://app.bibo.bot/`, registration, a real NextClaw response, refresh/continuation, account isolation, and `https://bibo.bot/`.
 
-Rollback the `bibo-hosted` Worker to its previous version using Wrangler if a release fails. If this is the first deployment, remove only the `bibo.bot/app/*` route to return that path to the existing site. Retain R2 snapshots until the data handling decision is explicit.
+Rollback the `bibo-hosted` Worker to its previous version using Wrangler if a release fails. If this is the first deployment, remove only the `app.bibo.bot` Custom Domain and `bibo.bot/app/*` redirect route. Retain R2 snapshots until the data handling decision is explicit.

@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 const state = { user: null, busy: false, mode: "register" };
 
 async function api(path, body) {
-  const response = await fetch(`/app/api/${path}`, {
+  const response = await fetch(`/api/${path}`, {
     method: body === undefined ? "GET" : "POST",
     headers: body === undefined ? {} : { "content-type": "application/json" },
     credentials: "same-origin",
