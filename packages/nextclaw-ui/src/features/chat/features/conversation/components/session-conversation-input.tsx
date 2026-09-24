@@ -7,7 +7,6 @@ import {
 } from 'react';
 import {
   ChatInputBar,
-  type ChatContextWindowIndicator,
   type ChatInputBarHandle,
 } from '@nextclaw/agent-chat-ui';
 import { isRuntimeDefaultModelValue } from '@nextclaw/shared';
@@ -56,40 +55,18 @@ import { useSystemObjectReferenceSelect } from '@/features/chat/features/convers
 import { ChatConversationTrack } from '@/features/chat/components/conversation/chat-conversation-track';
 import { useChatMessageLayoutStore } from '@/features/chat/stores/chat-message-layout.store';
 import type { useSessionConversationInputQuery } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-query';
-import type {
-  SessionConversationQueuedInput,
-} from '@/features/chat/features/conversation/hooks/use-session-conversation-controller';
-import type {
-  SessionConversationInputActions,
-  SessionConversationInputSnapshot,
-} from '@/features/chat/features/conversation/hooks/use-session-conversation-input-state';
 import {
   buildSessionConversationSkillPicker,
   buildSessionConversationToolbarSelects,
   resolveThinkingForConversationModel,
 } from '@/features/chat/features/conversation/utils/session-conversation-input-toolbar.utils';
-import { SessionQueuedInputRows } from './session-queued-input-rows';
+import { SessionConversationInputTopSlot } from './session-conversation-input-top-slot';
+import type { SessionConversationInputProps } from '@/features/chat/features/conversation/types/session-conversation-input.types';
+export type { SessionConversationInputController } from '@/features/chat/features/conversation/types/session-conversation-input.types';
 import { toast } from 'sonner';
 
 type SessionConversationInputQuery = ReturnType<typeof useSessionConversationInputQuery>;
 type SkillSource = SessionSkillEntryView['source'];
-
-export type SessionConversationInputController = {
-  readonly canEditQueuedInput: boolean;
-  readonly canStopGeneration: boolean;
-  readonly deleteQueuedInput: (id: string) => void;
-  readonly editQueuedInput: (id: string) => void;
-  readonly isSending: boolean;
-  readonly queuedInputs: readonly SessionConversationQueuedInput[];
-  readonly primaryAction: 'continue' | 'send';
-  readonly sendDisabled: boolean;
-  readonly stopDisabled: boolean;
-  readonly send: () => Promise<void> | void;
-  readonly sendSteering: () => Promise<void> | void;
-  readonly sendPresetMessage: (message: string) => Promise<void> | void;
-  readonly stop: () => Promise<void> | void;
-  readonly steerQueuedInput: (id: string) => void;
-};
 
 function toSkillRecords(
   snapshotRecords: SessionSkillEntryView[],
@@ -180,17 +157,6 @@ function useSessionConversationInputCollections(params: {
     }),
   };
 }
-
-type SessionConversationInputProps = {
-  readonly contextWindow: ChatContextWindowIndicator | null;
-  readonly controller: SessionConversationInputController;
-  readonly inputActions: SessionConversationInputActions;
-  readonly inputQuery: SessionConversationInputQuery;
-  readonly inputSnapshot: SessionConversationInputSnapshot;
-  readonly onContextCompactingChange?: (sessionId: string, isCompacting: boolean) => void;
-  readonly placeholder?: string;
-  readonly surface?: 'default' | 'embedded';
-};
 
 export const SessionConversationInput = memo(function SessionConversationInput(props: SessionConversationInputProps) {
   const {
@@ -431,7 +397,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     <ChatInputBar
       ref={inputBarRef}
       surface={useReadingTrack ? 'embedded' : surface}
-      topSlot={controller.queuedInputs.length > 0 ? <SessionQueuedInputRows controller={controller} /> : null}
+      topSlot={<SessionConversationInputTopSlot inputSnapshot={inputSnapshot} controller={controller} />}
       floatingSlot={voice.phase !== 'idle' ? <ChatVoiceInputPanel manager={voiceManager} snapshot={voice}
         desktop={!isMobile} onStart={startVoice} /> : null}
       composer={{

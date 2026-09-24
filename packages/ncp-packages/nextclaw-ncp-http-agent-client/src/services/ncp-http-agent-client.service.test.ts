@@ -6,6 +6,7 @@ import {
   NcpEventType,
 } from "@nextclaw/ncp";
 import { NcpHttpAgentClientEndpoint } from "./ncp-http-agent-client.service.js";
+import type { NcpHttpSendError } from "./ncp-http-agent-client.service.js";
 
 const now = "2026-03-12T00:00:00.000Z";
 
@@ -180,6 +181,27 @@ describe("createNcpHttpAgentClient stream behavior", () => {
     await client.send(envelope);
 
     expect(calls[0]?.init?.body).toBe(JSON.stringify(envelope));
+  });
+
+  it.each([
+    [422, true],
+    [503, false],
+  ])('marks HTTP %i send responses by whether the request was rejected', async (status, rejected) => {
+    const client = new NcpHttpAgentClientEndpoint({
+      baseUrl: 'https://api.example.com',
+      fetchImpl: async () => new Response('send failed', { status }),
+    });
+    const envelope: NcpAgentSendEnvelope = {
+      sessionId: 'session-1',
+      message: {
+        id: 'user-1', sessionId: 'session-1', role: 'user', status: 'final',
+        parts: [{ type: 'text', text: 'ping' }], timestamp: now,
+      },
+    };
+    await expect(client.send(envelope)).rejects.toMatchObject({
+      sendRejected: rejected,
+      name: expect.stringContaining('NcpHttpAgentClientError'),
+    } satisfies Partial<NcpHttpSendError>);
   });
 });
 

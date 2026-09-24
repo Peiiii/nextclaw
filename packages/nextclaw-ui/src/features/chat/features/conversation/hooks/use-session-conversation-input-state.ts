@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, type SetStateAction } from 'react';
 import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
+import type { NcpAgentSendEnvelope } from '@nextclaw/ncp';
 
 import type { ThinkingLevel } from '@/shared/lib/api';
 import { DEFAULT_SESSION_TYPE } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
@@ -10,6 +11,7 @@ import {
   resolveChatComposerDraftKey,
   useChatComposerDraftStore,
   type ChatComposerDraftSnapshot,
+  type ChatComposerSubmission,
 } from '@/features/chat/stores/chat-composer-draft.store';
 import {
   useSessionConversationPreferenceActions,
@@ -38,6 +40,7 @@ export type SessionConversationInputSnapshot = SessionConversationComposerState 
   readonly pendingProjectRoot: string | null;
   readonly composerFocusRequestId: number;
   readonly sendError: string | null;
+  readonly pendingSubmission?: ChatComposerSubmission | null;
 };
 
 type SessionConversationOwnedInputSnapshot = ChatComposerDraftSnapshot;
@@ -49,7 +52,11 @@ export type SessionConversationInputPatch =
 export type SessionConversationInputActions = {
   readonly update: (patch: SessionConversationInputPatch) => void;
   readonly syncComposer: (composer: SessionConversationComposerState) => void;
-  readonly resetComposer: () => void;
+  readonly beginSubmission: (envelope: NcpAgentSendEnvelope, composer: ChatComposerSubmission['composer']) => void;
+  readonly acceptSubmission: (messageId: string) => void;
+  readonly failSubmission: (messageId: string, status: 'uncertain' | 'rejected', message: string) => void;
+  readonly restoreSubmission: (messageId: string) => void;
+  readonly discardSubmission: (messageId: string) => void;
   readonly restoreComposer: (
     composer: SessionConversationComposerState & {
       readonly attachments?: readonly NcpDraftAttachment[];
@@ -176,6 +183,7 @@ function usePersistedConversationInputSnapshot(
   const snapshot = useChatComposerDraftStore(
     (state) => state.drafts[draftKey] ?? initialSnapshot,
   );
+  const pendingSubmission = useChatComposerDraftStore((state) => state.submissions[draftKey] ?? null);
 
   useEffect(() => {
     useChatComposerDraftStore.getState().ensureDraft(draftKey, initialSnapshot);
@@ -196,7 +204,35 @@ function usePersistedConversationInputSnapshot(
     });
   }, [draftKey, initialSnapshot]);
 
-  return { draftKey, snapshot, update };
+  const beginSubmission = useCallback((
+    envelope: NcpAgentSendEnvelope,
+    composer: ChatComposerSubmission['composer'],
+  ) => {
+    useChatComposerDraftStore.getState().beginSubmission(draftKey, snapshot, {
+      envelope, composer, status: 'sending',
+    });
+  }, [draftKey, snapshot]);
+  const acceptSubmission = useCallback((messageId: string) => {
+    useChatComposerDraftStore.getState().acceptSubmission(draftKey, messageId);
+  }, [draftKey]);
+  const failSubmission = useCallback((
+    messageId: string,
+    status: 'uncertain' | 'rejected',
+    message: string,
+  ) => {
+    useChatComposerDraftStore.getState().failSubmission(draftKey, messageId, status, message);
+  }, [draftKey]);
+  const restoreSubmission = useCallback((messageId: string) => {
+    useChatComposerDraftStore.getState().restoreSubmission(draftKey, messageId);
+  }, [draftKey]);
+  const discardSubmission = useCallback((messageId: string) => {
+    useChatComposerDraftStore.getState().discardSubmission(draftKey, messageId);
+  }, [draftKey]);
+
+  return {
+    draftKey, snapshot, pendingSubmission, update,
+    beginSubmission, acceptSubmission, failSubmission, restoreSubmission, discardSubmission,
+  };
 }
 
 export const useSessionConversationInputState = (
@@ -204,7 +240,10 @@ export const useSessionConversationInputState = (
   sessionKey: string | null = null,
 ) => {
   const pendingProjectRoot = useChatThreadStore((state) => state.snapshot.draftProjectRoot);
-  const { draftKey, snapshot, update } = usePersistedConversationInputSnapshot(
+  const {
+    draftKey, snapshot, pendingSubmission, update,
+    beginSubmission, acceptSubmission, failSubmission, restoreSubmission, discardSubmission,
+  } = usePersistedConversationInputSnapshot(
     initialPrompt,
     sessionKey,
   );
@@ -215,14 +254,6 @@ export const useSessionConversationInputState = (
       nodes: composer.nodes,
       selectedSkills: composer.selectedSkills,
       skillRecords: composer.skillRecords,
-      sendError: null,
-    });
-  }, [update]);
-
-  const resetComposer = useCallback(() => {
-    update({
-      ...EMPTY_COMPOSER_STATE,
-      attachments: [],
       sendError: null,
     });
   }, [update]);
@@ -309,7 +340,11 @@ export const useSessionConversationInputState = (
   const actions = useMemo<SessionConversationInputActions>(() => ({
     update,
     syncComposer,
-    resetComposer,
+    beginSubmission,
+    acceptSubmission,
+    failSubmission,
+    restoreSubmission,
+    discardSubmission,
     restoreComposer,
     applyPromptSuggestion,
     requestComposerFocusAtEnd,
@@ -325,7 +360,11 @@ export const useSessionConversationInputState = (
   }), [
     update,
     syncComposer,
-    resetComposer,
+    beginSubmission,
+    acceptSubmission,
+    failSubmission,
+    restoreSubmission,
+    discardSubmission,
     restoreComposer,
     applyPromptSuggestion,
     requestComposerFocusAtEnd,
@@ -344,6 +383,7 @@ export const useSessionConversationInputState = (
     inputSnapshot: {
       ...snapshot,
       pendingProjectRoot,
+      pendingSubmission,
     },
     inputActions: actions,
   };
