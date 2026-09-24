@@ -1,5 +1,38 @@
 # @nextclaw/kernel
 
+## 0.18.5
+
+### Patch Changes
+
+- 4fe335f: Prevent large session histories from exhausting runtime memory by loading current message projections first and streaming journal recovery with bounded memory.
+- 19cfea0: Render YAML folded and literal block scalar descriptions correctly in Agent Skill catalogs.
+
+  Add `nextclaw projects register <directory>` with optional `--name` so existing non-empty project directories can be registered without modifying their contents.
+
+- 1943c9f: Use readable session IDs in conversation links and return ready-to-use resource URIs from conversation tools. Restore historical conversation links and saved views, and preserve documentation query parameters and section anchors.
+
+  Bound stalled local API and resource-content requests so resource views can show an error and offer a retry instead of loading indefinitely.
+
+  Connect text selections in global object and file previews to the chat composer, retaining their source and hiding unavailable selection actions.
+
+  Keep the floating Add to chat button opaque on hover so underlying text does not show through.
+
+  Open object resource links with their native agent, scheduled-task, project, work-item, application, connection and inbox views. Reuse domain detail components and operations across management lists and chat links instead of displaying generated Markdown descriptions.
+
+- Updated dependencies [a35f153]
+- Updated dependencies [19cfea0]
+- Updated dependencies [1943c9f]
+  - @nextclaw/shared@0.8.3
+  - @nextclaw/core@0.18.4
+  - @nextclaw/app-runtime@0.16.10
+  - @nextclaw/mcp@0.3.54
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.54
+  - @nextclaw/runtime@0.4.53
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.26
+  - @nextclaw/channel-extension-feishu@0.2.41
+  - @nextclaw/channel-extension-weixin@0.2.41
+  - @nextclaw/ncp-mcp@0.2.54
+
 ## 0.18.4
 
 ### Patch Changes

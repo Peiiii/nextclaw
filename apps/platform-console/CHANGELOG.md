@@ -1,5 +1,13 @@
 # @nextclaw/platform-console
 
+## 0.0.12
+
+### Patch Changes
+
+- Updated dependencies [a35f153]
+- Updated dependencies [1943c9f]
+  - @nextclaw/shared@0.8.3
+
 ## 0.0.11
 
 ### Patch Changes

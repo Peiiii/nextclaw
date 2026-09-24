@@ -1,5 +1,34 @@
 # @nextclaw/ui
 
+## 0.27.1
+
+### Patch Changes
+
+- f179475: Allow chat sends when runtime readiness is stale, and restore the draft when a send receives no acceptance handle.
+- c873e92: Keep the reading position steady while a streamed reply grows after sending, and resume bottom following only after explicit user scrolling.
+- 260eae4: Keep submitted chat content separate from persisted drafts, and safely reconcile or retry sends whose acceptance result is unknown.
+- 1943c9f: Use readable session IDs in conversation links and return ready-to-use resource URIs from conversation tools. Restore historical conversation links and saved views, and preserve documentation query parameters and section anchors.
+
+  Bound stalled local API and resource-content requests so resource views can show an error and offer a retry instead of loading indefinitely.
+
+  Connect text selections in global object and file previews to the chat composer, retaining their source and hiding unavailable selection actions.
+
+  Keep the floating Add to chat button opaque on hover so underlying text does not show through.
+
+  Open object resource links with their native agent, scheduled-task, project, work-item, application, connection and inbox views. Reuse domain detail components and operations across management lists and chat links instead of displaying generated Markdown descriptions.
+
+- 57be7b4: Replace large loading blocks in Apps, retained app data, and the app marketplace with compact, consistent placeholders. Loading placeholders now follow the current theme and respect reduced motion preferences.
+- c3d2ca1: Reuse the thinking level together with the model from the same recent agent runtime session when starting a new conversation.
+- Updated dependencies [a35f153]
+- Updated dependencies [c873e92]
+- Updated dependencies [260eae4]
+- Updated dependencies [1943c9f]
+- Updated dependencies [28f69aa]
+  - @nextclaw/shared@0.8.3
+  - @nextclaw/agent-chat-ui@0.12.2
+  - @nextclaw/ncp-http-agent-client@0.4.26
+  - @nextclaw/client-sdk@0.12.11
+
 ## 0.27.0
 
 ### Minor Changes

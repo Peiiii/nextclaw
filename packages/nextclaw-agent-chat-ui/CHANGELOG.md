@@ -1,5 +1,22 @@
 # @nextclaw/agent-chat-ui
 
+## 0.12.2
+
+### Patch Changes
+
+- c873e92: Keep the reading position steady while a streamed reply grows after sending, and resume bottom following only after explicit user scrolling.
+- 1943c9f: Use readable session IDs in conversation links and return ready-to-use resource URIs from conversation tools. Restore historical conversation links and saved views, and preserve documentation query parameters and section anchors.
+
+  Bound stalled local API and resource-content requests so resource views can show an error and offer a retry instead of loading indefinitely.
+
+  Connect text selections in global object and file previews to the chat composer, retaining their source and hiding unavailable selection actions.
+
+  Keep the floating Add to chat button opaque on hover so underlying text does not show through.
+
+  Open object resource links with their native agent, scheduled-task, project, work-item, application, connection and inbox views. Reuse domain detail components and operations across management lists and chat links instead of displaying generated Markdown descriptions.
+
+- 28f69aa: Keep failed tool calls collapsed like ordinary tool results, with details available through manual expansion.
+
 ## 0.12.1
 
 ### Patch Changes
