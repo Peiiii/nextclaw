@@ -25,17 +25,7 @@ description: 通用开发的 Review 方法 owner；mode=design 审查实现前�
 
 ## 自动检查
 
-源码、脚本、测试或运行链路配置改动先运行一次 diff-only 检查：
-
-    node .agents/skills/development-review/scripts/check-maintainability.mjs
-
-范围明确时优先缩窄：
-
-    node .agents/skills/development-review/scripts/check-maintainability.mjs --paths <touched-files...>
-
-`--non-feature` 只用于明确把非测试净增 `<= 0` 设为交付合同的治理/减债任务，普通 bugfix、refactor 或 cleanup 不默认启用。
-
-脚本默认阻塞本次新增或恶化的文件/函数/目录预算违规、新复杂度、eslint-disable 绕过、职责错配、红区缺少记录和治理违规；历史债务、接近预算线和普通净增长只作为信号。不得为消除普通净增长扩大无关范围、压缩可读性或删除类型/协议保护。
+源码、脚本、测试或运行链路配置改动先运行一次项目已有的 diff-only maintainability 检查；项目没有该检查时直接按下面的 findings-first 方法审查，不为满足流程临时发明脚本。项目检查的预算、参数与阻塞级别由项目自身定义。不得为消除普通净增长扩大无关范围、压缩可读性或删除类型/协议保护。
 
 ## Findings-first 审查
 

@@ -47,19 +47,15 @@ description: 通用开发生命周期的「验证与测试」阶段 owner；当�
 
 ### L4：发布与不可逆变更
 
-读取[发布与不可逆变更验证](references/release-validation.md)；涉及 runtime update 时同时读取[Runtime Update 验证](references/runtime-update-validation.md)。
+按目标项目的发布、迁移和恢复合同验证真实目标环境、产物身份、回退入口及已授权范围；项目没有可靠执行入口时不能宣称发布验证通过。
 
 ## 条件验证
 
-<!-- model-capability-patch: gap=用组件和类名证据代替交互视觉结果; review-on=model-change; remove-when=无提示也能稳定匹配状态与渲染证据 -->
-- 触达控件视觉状态、共享反馈或主题颜色时，按[交互质量合同](../../wiki/skills/frontend/frontend-interaction-quality/SKILL.md)选择渲染证据；L1/L2 的低成本证据原则不能将视觉正确性降为类名或事件断言。纯逻辑和文案改动不触发。
+- 触达控件视觉状态、共享反馈或主题颜色时，选择真实渲染证据；L1/L2 的低成本证据原则不能将视觉正确性降为类名或事件断言。项目有交互质量合同时按其补充判定。
 
 - 分页/懒加载、虚拟列表瞬态、IME/选区、结构化输入、附件消费闭环或外部主题复刻：读取[复杂 UI 验证](references/ui-validation.md)。普通 CSS 和审美修改不读取。
-- 用户已在真实实例复现，或任务触达冷/热启动、重复状态转换、journal/projection/hydrate、accepted run handle 或启动恢复：读取[真实运行实例验证](references/runtime-instance-validation.md)。
-- 需要隔离全局安装版验证时，按 diff 过构建资格门并读取[本地源码运行验证](references/local-source-runtime.md)；纯前端不得触发未变化的 Runtime/Cargo/CLI 构建。
-- 验证 `packages/extensions/*` 未发布源码：读取[本地 Extension 源码验证](references/local-extension-source.md)。
-- 触达 Desktop 内嵌 Runtime 的文件集合、native resources、bundle 复制规则或产物预算：开发收尾先在当前平台运行一次 `pnpm -C apps/desktop bundle:build -- --channel stable`，用本地 bundle 的文件数、缺失资产和产物形状作快速门；通过后才运行远端多平台 Desktop 验证。不得等正式发布首次发现这类确定性打包错误。
-- 对指定 session/model 执行真实 NCP chat：读取[NCP Chat 冒烟](references/ncp-chat-smoke.md)。
+- 用户已在真实实例复现，或任务触达启动、重复状态转换、持久化恢复和运行实例时，使用目标项目的当前源码与隔离运行入口验证；不能用全局旧版本或相邻实例证明本次改动。
+- 项目有扩展构建、桌面打包、模型对话或发布渠道的专项验证合同，且本次确实触达时，读取对应项目方法。
 
 仅读当前风险所需参考。
 
@@ -69,9 +65,8 @@ description: 通用开发生命周期的「验证与测试」阶段 owner；当�
 - 相关实现未变化时，不重复运行已经通过的同一验证。
 - 自主验收按预定标准完成可控验证，不因用户离线升级全套端到端；浏览器仅证明低成本证据无法覆盖的风险。环境缺口披露，不能冒充通过或阻断其余可做工作。
 - 目标能力的实现或装配链路继续变化后，旧证据立即失效。
-- 按上述风险分级和 AGENTS 执行 tsc/lint，不以测试替代类型检查。
-- `lint:new-code:governance` 只在新增/移动/重命名文件、改变 owner/目录/跨包依赖、触达治理敏感规则或提交前运行。
-- `check:governance-backlog-ratchet` 只在治理规则、baseline、相关脚本变化或提交/发布闭环时运行。
+- 按上述风险分级和项目 `AGENTS.md` 执行适用的类型与静态检查，不以测试替代类型检查。
+- 项目治理检查只在对应文件、owner、目录或规则发生变化时运行，不机械执行无关全量检查。
 - 长日志只保留结论、失败切片和 artifact 路径。
 
 本地验证产生非交付生成物时，收尾前使用既有 clean/check 入口恢复或确认干净；只有发布、打包或用户明确要求刷新产物时才保留。
