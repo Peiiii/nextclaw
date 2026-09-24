@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, stat, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { type NcpMessage, type NcpSessionSummary } from "@nextclaw/ncp";
@@ -10,7 +10,6 @@ import {
   type NcpAgentSessionJournalEventEntry,
   type NcpAgentSessionJournalReplayEvent,
   normalizeNcpSessionId,
-  replayNcpAgentSessionEvents,
   safeNcpSessionFilename,
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import { loadNcpAgentSessionSummary } from "./ncp-agent-session-journal-summary-recovery.store.js";
@@ -18,11 +17,11 @@ import { isNcpAgentRunLifecycleEvent, type UnfinishedNcpAgentRun } from "@kernel
 import { NcpAgentUnfinishedRunStore } from "@kernel/stores/ncp-agent-unfinished-run.store.js";
 import {
   isNcpAgentSessionMessageProjectionBoundaryEvent,
-  parseNcpAgentSessionJournal,
   serializeNcpAgentSessionJournalEntry
 } from "@kernel/utils/ncp-agent-session-journal-entry.utils.js";
 import { NcpAgentSessionMetadataStore } from "./ncp-agent-session-metadata.store.js";
 import { NcpAgentSessionMessageProjectionStore } from "./ncp-agent-session-message-projection.store.js";
+import { SessionJournalLoaderStore } from "./session-journal-loader.store.js";
 import { NcpAgentSessionSummaryIndexStore } from "./ncp-agent-session-summary-index.store.js";
 import { NcpAgentSessionSummaryReadStore } from "./ncp-agent-session-summary-read.store.js";
 import type { SessionMessagePage, SessionMetadataUpdate } from "@kernel/types/session.types.js";
@@ -32,6 +31,7 @@ export class NcpAgentSessionJournalStore {
   private readonly writeChains = new Map<string, Promise<void>>();
   private readonly metadataStore: NcpAgentSessionMetadataStore;
   private readonly messageProjectionStore: NcpAgentSessionMessageProjectionStore;
+  private readonly journalLoaderStore: SessionJournalLoaderStore;
   private readonly unfinishedRunStore: NcpAgentUnfinishedRunStore;
   private readonly summaryIndexStore: NcpAgentSessionSummaryIndexStore;
   private readonly summaryReadStore: NcpAgentSessionSummaryReadStore;
@@ -46,6 +46,10 @@ export class NcpAgentSessionJournalStore {
         return loaded;
       }
     });
+    this.journalLoaderStore = new SessionJournalLoaderStore(
+      this.metadataStore,
+      this.messageProjectionStore,
+    );
     this.summaryIndexStore = new NcpAgentSessionSummaryIndexStore(
       journalDir,
       async (sessionId) => this.loadSession(sessionId),
@@ -212,38 +216,59 @@ export class NcpAgentSessionJournalStore {
     metadata: Record<string, unknown>;
   }): Promise<boolean> => {
     const { metadata, sessionId } = params;
-    const loaded = this.sessions.get(sessionId) ?? (await this.loadSession(sessionId));
-    if (!loaded) {
+    let journalStat: Awaited<ReturnType<typeof stat>>;
+    try {
+      journalStat = await stat(this.sessionPath(sessionId));
+    } catch {
       return false;
     }
+    const cached = this.sessions.get(sessionId);
+    const summary = await this.summaryReadStore.get(sessionId);
+    const activity = await this.metadataStore.read(sessionId, {
+      metadata: {},
+      createdAt: cached?.record.createdAt ?? summary?.createdAt ?? journalStat.birthtime.toISOString(),
+      updatedAt: cached?.record.updatedAt ?? summary?.updatedAt ?? journalStat.mtime.toISOString(),
+    });
     const nextRecord: AgentSessionRecord = {
-      ...loaded.record,
+      sessionId,
+      ...(activity.agentId ? { agentId: activity.agentId } : {}),
+      messages: [],
+      createdAt: activity.createdAt,
+      updatedAt: activity.updatedAt,
       metadata: structuredClone(metadata)
     };
     await this.metadataStore.write(nextRecord);
-    this.sessions.set(sessionId, {
-      record: nextRecord,
-      nextSeq: loaded.nextSeq,
-      journalOffset: loaded.journalOffset,
-      projectedJournalOffset: loaded.projectedJournalOffset
-    });
-    this.nextSeqBySession.set(sessionId, loaded.nextSeq);
-    await this.summaryIndexStore.upsert(createNcpAgentSessionSummary(nextRecord));
+    if (cached) {
+      const record = { ...cached.record, metadata: structuredClone(metadata) };
+      this.sessions.set(sessionId, { ...cached, record });
+    }
+    await this.summaryIndexStore.upsert(summary
+      ? { ...summary, metadata: structuredClone(metadata) }
+      : createNcpAgentSessionSummary(nextRecord));
     return true;
   };
   private updateSessionMetadataNow = async (params: SessionMetadataUpdate): Promise<boolean> => {
     const { sessionId, metadata, expectedMetadata } = params;
-    const loaded = this.sessions.get(sessionId) ?? (await this.loadSession(sessionId));
-    if (!loaded) {
+    let journalStat: Awaited<ReturnType<typeof stat>>;
+    try {
+      journalStat = await stat(this.sessionPath(sessionId));
+    } catch {
       return false;
     }
+    const cached = this.sessions.get(sessionId);
+    const summary = await this.summaryReadStore.get(sessionId);
+    const activity = await this.metadataStore.read(sessionId, {
+      metadata: {},
+      createdAt: cached?.record.createdAt ?? summary?.createdAt ?? journalStat.birthtime.toISOString(),
+      updatedAt: cached?.record.updatedAt ?? summary?.updatedAt ?? journalStat.mtime.toISOString(),
+    });
     if (expectedMetadata && Object.entries(expectedMetadata).some(
-      ([key, value]) => loaded.record.metadata?.[key] !== value,
+      ([key, value]) => activity.metadata?.[key] !== value,
     )) return false;
     return await this.setSessionMetadataNow({
       sessionId,
       metadata: {
-        ...(loaded.record.metadata ? structuredClone(loaded.record.metadata) : {}),
+        ...structuredClone(activity.metadata),
         ...structuredClone(metadata)
       }
     });
@@ -356,33 +381,9 @@ export class NcpAgentSessionJournalStore {
   };
 
   private loadSession = async (sessionId: string): Promise<LoadedNcpAgentJournalSession | null> => {
-    let raw: string;
-    try {
-      raw = await readFile(this.sessionPath(sessionId), "utf-8");
-    } catch {
-      return null;
-    }
-
-    const parsedJournal = parseNcpAgentSessionJournal(raw);
-    const sessionMetadata = await this.metadataStore.read(sessionId, parsedJournal);
-    const { agentId, createdAt, updatedAt, metadata } = sessionMetadata;
-    const { events, nextSeq, projectedJournalOffset } = parsedJournal;
-    const messages = await replayNcpAgentSessionEvents(events);
-    const record: AgentSessionRecord = {
-      sessionId,
-      ...(agentId ? { agentId } : {}),
-      messages,
-      createdAt,
-      updatedAt,
-      metadata
-    };
-    this.nextSeqBySession.set(sessionId, nextSeq);
-    return {
-      record,
-      nextSeq,
-      journalOffset: Buffer.byteLength(raw, "utf-8"),
-      projectedJournalOffset
-    };
+    const loaded = await this.journalLoaderStore.load(sessionId, this.sessionPath(sessionId));
+    if (loaded) this.nextSeqBySession.set(sessionId, loaded.nextSeq);
+    return loaded;
   };
   private appendJournalEntry = async (path: string, entry: NcpAgentSessionJournalEventEntry): Promise<void> => {
     await appendFile(path, `${serializeNcpAgentSessionJournalEntry(entry)}\n`, "utf-8");

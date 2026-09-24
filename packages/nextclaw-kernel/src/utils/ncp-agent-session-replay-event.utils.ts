@@ -59,6 +59,33 @@ export function readSupersededSyntheticRecoveryIndexes(
   return superseded;
 }
 
+export class SessionReplaySupersessionTracker {
+  private readonly interrupted: Array<{ index: number; messageId: string | null; runId: string | null }> = [];
+  private readonly lastContinuationByMessageId = new Map<string, number>();
+  private readonly lastContinuationByRunId = new Map<string, number>();
+  private readonly toolOwners = new Map<string, string>();
+
+  observe = (event: NcpAgentSessionJournalReplayEvent, index: number): void => {
+    const messageId = readEventMessageId(event);
+    const runId = readEventRunId(event);
+    const toolCallId = readEventToolCallId(event);
+    if (toolCallId && messageId) this.toolOwners.set(toolCallId, messageId);
+    if (event.type === NcpEventType.RunError && event.payload.interrupted === true) {
+      this.interrupted.push({ index, messageId, runId });
+    }
+    if (!isReplayContinuationEvent(event)) return;
+    const ownerMessageId = messageId ?? (toolCallId ? this.toolOwners.get(toolCallId) ?? null : null);
+    if (ownerMessageId) this.lastContinuationByMessageId.set(ownerMessageId, index);
+    if (runId) this.lastContinuationByRunId.set(runId, index);
+  };
+
+  finish = (): Set<number> => new Set(this.interrupted
+    .filter(({ index, messageId, runId }) =>
+      (messageId ? (this.lastContinuationByMessageId.get(messageId) ?? -1) > index : false) ||
+      (runId ? (this.lastContinuationByRunId.get(runId) ?? -1) > index : false))
+    .map(({ index }) => index));
+}
+
 function isReplayContinuationEvent(event: NcpAgentSessionJournalReplayEvent): boolean {
   if (isJournalOnlyEvent(event)) {
     return false;

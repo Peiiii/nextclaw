@@ -235,6 +235,10 @@ pnpm run screenshots:refresh
 
 Repository planning: [Roadmap](docs/ROADMAP.md) · [TODO](docs/TODO.md)
 
+## Related Project
+
+[Bibo Planet](https://github.com/Peiiii/bibo-planet) is an independent experiment in shared, ownerless AI spirits. It uses the public NextClaw Harness package for agent execution, but has its own world state, interface, and product direction; it is not a NextClaw personal-assistant mode.
+
 ## Community
 
 - [GitHub Issues](https://github.com/Peiiii/nextclaw/issues)

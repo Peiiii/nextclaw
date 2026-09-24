@@ -233,6 +233,10 @@ pnpm run screenshots:refresh
 
 仓库内规划：[Roadmap](docs/ROADMAP.md) · [TODO](docs/TODO.md)
 
+## 关联项目
+
+[Bibo Planet](https://github.com/Peiiii/bibo-planet) 是一个独立的「无主精灵、多人共享」AI 世界实验。它复用 NextClaw 公开的 Harness 包执行 Agent，但拥有自己的世界状态、界面和产品方向，不是 NextClaw 的个人助手模式。
+
 ## 社群
 
 - **微信群** — 扫描下方二维码。
