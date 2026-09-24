@@ -108,6 +108,7 @@ createServer(async (request, response) => {
     console.error("bibo-runner-error", message);
     if (!response.headersSent) sendJson(response, message.includes("429") || message.includes("今日试用额度") ? 429 : 500, {
       error: message.includes("429") || message.includes("今日试用额度") ? "今日试用额度已用完，请明天再试。" : "Bibo could not complete this task. Please retry.",
+      ...(route === "/snapshot" ? { diagnostic: message.slice(0, 300) } : {}),
     });
     else response.destroy();
   } finally {
