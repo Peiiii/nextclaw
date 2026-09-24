@@ -133,7 +133,10 @@ export class BiboUserContainer extends Container<Env> {
 
   private persistRun = async (message: string, result: { text: string; sessionId: string }): Promise<Response> => {
     const snapshot = await this.containerFetch("http://localhost/snapshot");
-    if (!snapshot.ok) return publicError("结果未能保存，请重试。", 503);
+    if (!snapshot.ok) {
+      console.error("bibo-snapshot-failed", snapshot.status, (await snapshot.text()).slice(0, 300));
+      return publicError("结果未能保存，请重试。", 503);
+    }
     const archive = await snapshot.arrayBuffer();
     if (archive.byteLength > MAX_SNAPSHOT_BYTES) return publicError("个人空间已达到首发容量限制。", 507);
     await this.env.SNAPSHOTS.put(this.ctx.id.toString(), archive);
@@ -170,7 +173,10 @@ export class BiboUserContainer extends Container<Env> {
         const limited = await response.json().catch(() => null) as { error?: string } | null;
         return publicError(limited?.error ?? "今日试用额度已用完，请明天再试。", 429);
       }
-      if (!response.ok) return publicError("Bibo 暂时无法完成这次任务，请稍后重试。", 502);
+      if (!response.ok) {
+        console.error("bibo-run-response-failed", response.status, (await response.text()).slice(0, 300));
+        return publicError("Bibo 暂时无法完成这次任务，请稍后重试。", 502);
+      }
       const result = await response.json() as { text?: string; sessionId?: string };
       if (!result.text || !result.sessionId) return publicError("Bibo 没有返回可保存的结果。", 502);
       const saved = await this.persistRun(payload.message.trim(), { text: result.text, sessionId: result.sessionId });
