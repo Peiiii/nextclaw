@@ -1,5 +1,17 @@
 # nextclaw-core
 
+## 0.18.4
+
+### Patch Changes
+
+- 19cfea0: Render YAML folded and literal block scalar descriptions correctly in Agent Skill catalogs.
+
+  Add `nextclaw projects register <directory>` with optional `--name` so existing non-empty project directories can be registered without modifying their contents.
+
+- Updated dependencies [a35f153]
+- Updated dependencies [1943c9f]
+  - @nextclaw/shared@0.8.3
+
 ## 0.18.3
 
 ### Patch Changes

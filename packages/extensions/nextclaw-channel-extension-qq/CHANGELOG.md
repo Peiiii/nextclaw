@@ -1,5 +1,11 @@
 # @nextclaw/channel-extension-qq
 
+## 0.2.39
+
+### Patch Changes
+
+- @nextclaw/extension-sdk@0.5.10
+
 ## 0.2.38
 
 ### Patch Changes

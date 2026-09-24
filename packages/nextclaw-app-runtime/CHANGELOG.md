@@ -1,5 +1,13 @@
 # @nextclaw/app-runtime
 
+## 0.16.10
+
+### Patch Changes
+
+- Updated dependencies [a35f153]
+- Updated dependencies [1943c9f]
+  - @nextclaw/shared@0.8.3
+
 ## 0.16.9
 
 ### Patch Changes

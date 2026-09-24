@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/collaboration",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": false,
   "description": "Local, durable collaboration between external conversations and agents.",
   "type": "module",
