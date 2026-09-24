@@ -38,7 +38,7 @@ The thinking indicator follows the current task. A task may continue after a rep
 
 ## Reading position after sending
 
-When you send at or near the bottom of a conversation, your new message moves toward the top of the reading area, leaving room for the AI reply. The reply fills this space before the page follows longer output. Any remaining space stays after a short reply finishes, preventing a jump.
+When you send at or near the bottom of a conversation, your new message moves toward the top of the reading area, leaving room for the AI reply. Your reading position stays in place as the reply fills and then exceeds that space. Later output follows the bottom only after you scroll there yourself or use the return-to-bottom button. Any remaining space stays after a short reply finishes, preventing a jump.
 
 If you are browsing earlier messages, sending a message and receiving output keep your reading position. Scrolling up during a reply also pauses following; use the return-to-bottom button to see the latest content again.
 

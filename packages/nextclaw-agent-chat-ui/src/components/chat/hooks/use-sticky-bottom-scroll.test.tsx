@@ -142,6 +142,7 @@ it("resumes after scrolling near the bottom and resets inspection across session
   flush();
   expect(scroll.scrollTop).toBe(600);
   scroll.scrollTop = 1150;
+  fireEvent.wheel(scroll);
   act(() => view.result.current.onScroll());
   geometry.height += 100;
   resize();
@@ -154,7 +155,7 @@ it("resumes after scrolling near the bottom and resets inspection across session
   view.unmount();
 });
 
-it("reserves one turn of reading space, consumes it during output, and keeps short completed replies stable", () => {
+it("reserves one turn of reading space and keeps the viewport stable after output overflows", () => {
   const { scroll, spacer, geometry, view, flush } = createTurnSpaceFixture();
   expect(spacer.style.minHeight).toBe("0px");
   geometry.height = 1320;
@@ -174,13 +175,63 @@ it("reserves one turn of reading space, consumes it during output, and keeps sho
   view.rerender({ key: "new", version: 4, session: "one" });
   flush();
   expect(spacer.style.minHeight).toBe("1776px");
+  expect(scroll.scrollTop).toBe(1176);
+  view.unmount();
+});
+
+it("does not infer user intent from a programmatic scroll event during streamed growth", () => {
+  const { scroll, geometry, view, flush, resize } = createTurnSpaceFixture();
+  geometry.height = 1320;
+  view.rerender({ key: "new", version: 1, session: "one" });
+  flush();
+  geometry.height = 2000;
+  scroll.scrollTop = 1400;
+  act(() => view.result.current.onScroll());
+  geometry.height += 100;
+  resize();
+  flush();
   expect(scroll.scrollTop).toBe(1400);
+
+  scroll.scrollTop = 1500;
+  fireEvent.wheel(scroll);
+  act(() => view.result.current.onScroll());
+  geometry.height += 100;
+  resize();
+  flush();
+  expect(scroll.scrollTop).toBe(1600);
+
+  scroll.scrollTop = 900;
+  fireEvent.wheel(scroll);
+  act(() => view.result.current.onScroll());
+  geometry.height += 100;
+  resize();
+  flush();
+  expect(scroll.scrollTop).toBe(900);
+  view.unmount();
+});
+
+it.each(["touch", "keyboard", "scrollbar"])("resumes following after %s input reaches the bottom", (input) => {
+  const { scroll, geometry, view, flush, resize } = createTurnSpaceFixture();
+  geometry.height = 1320;
+  view.rerender({ key: "new", version: 1, session: "one" });
+  flush();
+  geometry.height = 2000;
+  scroll.scrollTop = 1400;
+  if (input === "touch") fireEvent.touchMove(scroll);
+  else if (input === "keyboard") fireEvent.keyDown(scroll, { key: "End" });
+  else fireEvent.pointerDown(scroll);
+  act(() => view.result.current.onScroll());
+  geometry.height += 100;
+  resize();
+  flush();
+  expect(scroll.scrollTop).toBe(1500);
   view.unmount();
 });
 
 it.each([0, 70, 81, 300])("uses the pre-append reading position at a %ipx distance", (distance) => {
   const { scroll, spacer, geometry, view, flush } = createTurnSpaceFixture();
   scroll.scrollTop = 600 - distance;
+  fireEvent.wheel(scroll);
   act(() => view.result.current.onScroll());
   geometry.height = 1320;
   view.rerender({ key: "new", version: 1, session: "one" });
@@ -195,6 +246,7 @@ it("cancels turn following on manual scroll and resets spacing across sessions",
   geometry.height = 1320;
   view.rerender({ key: "new", version: 1, session: "one" });
   scroll.scrollTop = 300;
+  fireEvent.wheel(scroll);
   act(() => view.result.current.onScroll());
   flush();
   geometry.height += 200;
@@ -306,6 +358,7 @@ it("does not reclaim the viewport when content resizes after the user scrolls aw
     const framesBeforeScroll = scheduledFrameCount;
 
     scrollElement.scrollTop = 400;
+    fireEvent.wheel(scrollElement);
     act(() => {
       view.result.current.onScroll();
       resize?.([], {} as ResizeObserver);
@@ -343,6 +396,7 @@ it("cancels a queued sticky scroll when the user escapes the bottom threshold", 
     );
 
     scrollElement.scrollTop = 889;
+    fireEvent.wheel(scrollElement);
     act(() => {
       view.result.current.onScroll();
     });
@@ -369,6 +423,7 @@ it("reports when the user scrolls away from the bottom", () => {
 
   const view = renderHook(() => useStickyBottomScrollTestHarness(scrollElement));
 
+  fireEvent.wheel(scrollElement);
   act(() => {
     view.result.current.onScroll();
   });
@@ -393,6 +448,7 @@ it("scrolls back to the bottom on demand", () => {
     });
 
     const view = renderHook(() => useStickyBottomScrollTestHarness(scrollElement));
+    fireEvent.wheel(scrollElement);
     act(() => {
       view.result.current.onScroll();
     });
@@ -428,6 +484,7 @@ it("keeps restored reading through content updates until the user returns to the
     expect(schedule).not.toHaveBeenCalled();
     expect(view.result.current.isAtBottom).toBe(false);
     element.scrollTop = 900;
+    fireEvent.wheel(element);
     act(() => view.result.current.onScroll());
     view.rerender({ version: 3 });
     expect(schedule).toHaveBeenCalled();

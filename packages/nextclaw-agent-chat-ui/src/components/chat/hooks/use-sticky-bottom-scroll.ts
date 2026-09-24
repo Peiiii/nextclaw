@@ -32,9 +32,17 @@ type UseStickyBottomScrollResult = {
 };
 
 const DEFAULT_STICKY_THRESHOLD_PX = 10;
+const USER_SCROLL_INTENT_MS = 1500;
+const SCROLL_KEYS = new Set(["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "]);
 
 function isScrollAtBottom(element: HTMLElement, threshold = DEFAULT_STICKY_THRESHOLD_PX) {
   return element.scrollHeight - element.scrollTop - element.clientHeight <= threshold;
+}
+
+function getContentDistanceFromBottom(scroll: HTMLElement, content: HTMLElement | undefined) {
+  return content
+    ? content.getBoundingClientRect().bottom - scroll.getBoundingClientRect().top - scroll.clientTop - scroll.clientHeight
+    : scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight;
 }
 
 function isExpansionActivation(event: Event): boolean {
@@ -54,6 +62,37 @@ function observeExpansions(element: HTMLElement | null, onExpand: () => void) {
     element?.removeEventListener("click", activate, true);
     element?.removeEventListener("keydown", activate, true);
   };
+}
+
+function observeUserScrollIntent(element: HTMLElement | null, onIntent: () => void) {
+  if (!element) return () => undefined;
+  const onKeyDown = (event: KeyboardEvent) => {
+    const { target } = event;
+    if (!SCROLL_KEYS.has(event.key) ||
+      (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]'))) return;
+    onIntent();
+  };
+  const onPointerDown = (event: PointerEvent) => {
+    if (event.target === element) onIntent();
+  };
+  element.addEventListener("wheel", onIntent);
+  element.addEventListener("touchmove", onIntent);
+  element.addEventListener("keydown", onKeyDown);
+  element.addEventListener("pointerdown", onPointerDown);
+  return () => {
+    element.removeEventListener("wheel", onIntent);
+    element.removeEventListener("touchmove", onIntent);
+    element.removeEventListener("keydown", onKeyDown);
+    element.removeEventListener("pointerdown", onPointerDown);
+  };
+}
+
+function observeContentResize(content: HTMLElement | null, scroll: HTMLElement | null, onResize: () => void) {
+  if (!content || typeof ResizeObserver === "undefined") return () => undefined;
+  const observer = new ResizeObserver(onResize);
+  observer.observe(content);
+  if (scroll) observer.observe(scroll);
+  return () => observer.disconnect();
 }
 
 function measureTurnSpace(
@@ -92,6 +131,7 @@ export function useStickyBottomScroll({
   const previousTurnKeyRef = useRef(turnSpace?.key);
   const turnOffsetRef = useRef<number | null>(null);
   const activeTurnKeyRef = useRef<string | null>(null);
+  const userScrollIntentUntilRef = useRef(0);
   const turnSpaceRef = useRef(turnSpace);
   useLayoutEffect(() => { turnSpaceRef.current = turnSpace; });
 
@@ -110,10 +150,7 @@ export function useStickyBottomScroll({
   const updateBottomVisibility = useCallback(() => {
     const scroll = scrollRef.current;
     if (!scroll) return;
-    const content = contentRef?.current;
-    const distance = content
-      ? content.getBoundingClientRect().bottom - scroll.getBoundingClientRect().top - scroll.clientTop - scroll.clientHeight
-      : scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight;
+    const distance = getContentDistanceFromBottom(scroll, contentRef?.current ?? undefined);
     setIsAtBottom(distance <= (stickyThresholdPx ?? DEFAULT_STICKY_THRESHOLD_PX));
   }, [contentRef, scrollRef, stickyThresholdPx]);
 
@@ -144,10 +181,7 @@ export function useStickyBottomScroll({
       updateTurnSpace();
 
       if (typeof currentElement.scrollTo === "function") {
-        currentElement.scrollTo({
-          top: currentElement.scrollHeight,
-          behavior,
-        });
+        currentElement.scrollTo({ top: currentElement.scrollHeight, behavior });
       } else {
         currentElement.scrollTop = currentElement.scrollHeight;
       }
@@ -156,6 +190,7 @@ export function useStickyBottomScroll({
   }, [cancelQueuedScroll, scrollRef, updateTurnSpace, updateBottomVisibility]);
 
   const scrollToBottom = useCallback(() => {
+    userScrollIntentUntilRef.current = 0;
     updateStickyState(true);
     queueScrollToBottom();
   }, [queueScrollToBottom, updateStickyState]);
@@ -166,16 +201,22 @@ export function useStickyBottomScroll({
       return;
     }
 
-    const nextIsAtBottom = isScrollAtBottom(element, stickyThresholdPx);
-    if (!nextIsAtBottom) {
-      cancelQueuedScroll();
+    if (Date.now() <= userScrollIntentUntilRef.current) {
+      const nextIsAtBottom = isScrollAtBottom(element, stickyThresholdPx);
+      if (!nextIsAtBottom) cancelQueuedScroll();
+      isStickyRef.current = nextIsAtBottom;
     }
-    updateStickyState(nextIsAtBottom);
-  }, [cancelQueuedScroll, stickyThresholdPx, scrollRef, updateStickyState]);
+    updateBottomVisibility();
+  }, [cancelQueuedScroll, stickyThresholdPx, scrollRef, updateBottomVisibility]);
+
+  useEffect(() => observeUserScrollIntent(scrollRef.current, () => {
+    userScrollIntentUntilRef.current = Date.now() + USER_SCROLL_INTENT_MS;
+  }), [resetKey, scrollRef]);
 
   // Inspection wins over queued output, animation and lazy payload growth until scrolling resumes.
   useEffect(() => observeExpansions(scrollRef.current, () => {
     pendingInitialScrollRef.current = false;
+    userScrollIntentUntilRef.current = 0;
     cancelQueuedScroll();
     updateStickyState(false);
   }), [cancelQueuedScroll, hasContent, resetKey, scrollRef, updateStickyState]);
@@ -189,6 +230,7 @@ export function useStickyBottomScroll({
     previousResetKeyRef.current = resetKey;
     if (!isFirstTurn) previousTurnKeyRef.current = turnSpaceRef.current?.key;
     activeTurnKeyRef.current = null;
+    userScrollIntentUntilRef.current = 0;
     turnOffsetRef.current = null;
     updateTurnSpace();
     updateStickyState(initialScrollTop === undefined);
@@ -202,26 +244,22 @@ export function useStickyBottomScroll({
     if (!key || isLoading || !isStickyRef.current) return;
     activeTurnKeyRef.current = key;
     updateTurnSpace();
+    userScrollIntentUntilRef.current = 0;
+    updateStickyState(false);
     queueScrollToBottom();
-  }, [isLoading, queueScrollToBottom, turnSpace?.key, updateTurnSpace]);
+  }, [isLoading, queueScrollToBottom, turnSpace?.key, updateStickyState, updateTurnSpace]);
 
   useEffect(() => cancelQueuedScroll, [cancelQueuedScroll]);
 
   useEffect(() => {
-    const content = contentRef?.current;
-    if (!content || !hasContent || typeof ResizeObserver === "undefined") {
-      return;
-    }
-    const observer = new ResizeObserver(() => {
+    if (!hasContent) return;
+    return observeContentResize(contentRef?.current ?? null, scrollRef.current, () => {
       updateTurnSpace();
       updateBottomVisibility();
       if (isStickyRef.current) {
         queueScrollToBottom();
       }
     });
-    observer.observe(content);
-    if (scrollRef.current) observer.observe(scrollRef.current);
-    return () => observer.disconnect();
   }, [contentRef, hasContent, queueScrollToBottom, resetKey, scrollRef, updateTurnSpace, updateBottomVisibility]);
 
   useLayoutEffect(() => {
