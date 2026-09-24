@@ -1,38 +1,47 @@
-import { createServer } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { spawn } from "node:child_process";
 import { pipeline } from "node:stream/promises";
+import type { Readable } from "node:stream";
 import { backup, DatabaseSync } from "node:sqlite";
 import { runNextclawTask } from "@nextclaw/harness";
 
 const home = process.env.NEXTCLAW_HOME ?? "/data";
 const model = "nextclaw/deepseek-flash";
+const defaultIdentity = "# Bibo\n\n你是 Bibo，一个长期陪伴用户、帮助用户把事情做成的个人 AI 搭档。诚实说明你已经完成和没有完成的事。用户决定哪些个人信息值得记住。未经用户要求，不主动安排定时任务或对外操作。\n";
+const hostedIdentity = "# Bibo\n\n你是 Bibo，基于 NextClaw 的个人 AI 搭档。诚实说明已完成、未完成以及不确定的事。这个托管网页当前提供文字对话和会话继续；不要声称已经接入网页搜索、邮箱、自动提醒、后台任务或外部应用。未经用户授权，不对外操作。用户决定哪些个人信息值得记住。\n";
 mkdirSync(join(home, "workspace"), { recursive: true });
 
-function sendJson(response, status, value) {
+type RunnerConfig = {
+  agents?: { defaults?: Record<string, unknown> };
+  providers?: Record<string, Record<string, unknown>>;
+};
+type RunBody = { message?: unknown; token?: unknown; sessionId?: unknown };
+
+function sendJson(response: ServerResponse, status: number, value: unknown): void {
   response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
   response.end(JSON.stringify(value));
 }
 
-async function readJson(request) {
-  const chunks = [];
+async function readJson(request: IncomingMessage): Promise<RunBody> {
+  const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
     size += chunk.length;
     if (size > 32_768) throw new Error("Request too large");
     chunks.push(chunk);
   }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as RunBody;
 }
 
-function configure(token) {
+function configure(token: string): void {
   const path = join(home, "config.json");
-  let config = {};
+  let config: RunnerConfig = {};
   if (existsSync(path)) {
-    try { config = JSON.parse(readFileSync(path, "utf8")); } catch { config = {}; }
+    try { config = JSON.parse(readFileSync(path, "utf8")) as RunnerConfig; } catch { config = {}; }
   }
   config.agents = { ...config.agents, defaults: { ...config.agents?.defaults, model } };
   config.providers = {
@@ -47,26 +56,24 @@ function configure(token) {
   };
   writeFileSync(path, JSON.stringify(config));
   const identity = join(home, "workspace", "IDENTITY.md");
-  if (!existsSync(identity)) {
-    writeFileSync(identity, "# Bibo\n\n你是 Bibo，一个长期陪伴用户、帮助用户把事情做成的个人 AI 搭档。诚实说明你已经完成和没有完成的事。用户决定哪些个人信息值得记住。未经用户要求，不主动安排定时任务或对外操作。\n");
-  }
+  if (!existsSync(identity) || readFileSync(identity, "utf8") === defaultIdentity) writeFileSync(identity, hostedIdentity);
 }
 
-async function runTar(args, input, output) {
-  const process = spawn("tar", args, { stdio: ["pipe", "pipe", "pipe"] });
+async function runTar(args: string[], input: Readable | null, output: ServerResponse | null): Promise<void> {
+  const child = spawn("tar", args, { stdio: ["pipe", "pipe", "pipe"] });
   let stderr = "";
-  process.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
-  const inputDone = input ? pipeline(input, process.stdin) : Promise.resolve(process.stdin.end());
-  const outputDone = output ? pipeline(process.stdout, output) : Promise.resolve(process.stdout.resume());
-  const exit = new Promise((resolve, reject) => process.on("close", (code) => code === 0 ? resolve() : reject(new Error(stderr || `tar exited ${code}`))));
+  child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+  const inputDone = input ? pipeline(input, child.stdin) : Promise.resolve(child.stdin.end());
+  const outputDone = output ? pipeline(child.stdout, output) : Promise.resolve(child.stdout.resume());
+  const exit = new Promise<void>((resolve, reject) => child.on("close", (code) => code === 0 ? resolve() : reject(new Error(stderr || `tar exited ${code}`))));
   await Promise.all([inputDone, outputDone, exit]);
 }
 
-async function sendSnapshot(response) {
+async function sendSnapshot(response: ServerResponse): Promise<void> {
   const temporary = await mkdtemp(join(tmpdir(), "bibo-snapshot-"));
   const archive = join(temporary, "home.tgz");
   const stagedHome = join(temporary, "home");
-  const databases = [];
+  const databases: { source: string; target: string }[] = [];
   try {
     await cp(home, stagedHome, {
       recursive: true,
@@ -93,7 +100,7 @@ async function sendSnapshot(response) {
   }
 }
 
-async function sendRun(request, response) {
+async function sendRun(request: IncomingMessage, response: ServerResponse): Promise<void> {
   const body = await readJson(request);
   if (typeof body.message !== "string" || !body.message.trim() || body.message.length > 4000 || typeof body.token !== "string" || body.token.length > 4096) {
     return sendJson(response, 400, { error: "Invalid request" });
@@ -101,11 +108,25 @@ async function sendRun(request, response) {
   configure(body.token);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 85_000);
+  const streaming = request.headers.accept?.includes("text/event-stream");
+  const onClose = () => { if (!response.writableEnded) controller.abort(); };
+  response.on("close", onClose);
   try {
-    const result = await runNextclawTask({ input: body.message.trim(), sessionId: body.sessionId ?? undefined, signal: controller.signal }, { homeDir: home });
+    if (streaming) response.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" });
+    const result = await runNextclawTask({
+      input: body.message.trim(), sessionId: typeof body.sessionId === "string" ? body.sessionId : undefined, signal: controller.signal,
+      ...(streaming ? { onAssistantDelta: (delta: string) => {
+        if (!response.destroyed && delta) response.write(`event: delta\ndata: ${JSON.stringify({ text: delta })}\n\n`);
+      } } : {}),
+    }, { homeDir: home });
+    if (streaming) {
+      response.end(`event: result\ndata: ${JSON.stringify({ text: result.text, sessionId: result.sessionId })}\n\n`);
+      return;
+    }
     return sendJson(response, 200, { text: result.text, sessionId: result.sessionId });
   } finally {
     clearTimeout(timeout);
+    response.off("close", onClose);
   }
 }
 
@@ -130,6 +151,7 @@ const server = createServer(async (request, response) => {
       error: message.includes("429") || message.includes("今日试用额度") ? "今日试用额度已用完，请明天再试。" : "Bibo could not complete this task. Please retry.",
       ...(route === "/snapshot" ? { diagnostic: message.slice(0, 300) } : {}),
     });
+    else if (!response.destroyed && route === "/run") response.end(`event: error\ndata: ${JSON.stringify({ error: "Bibo 暂时无法完成这次任务，请稍后重试。" })}\n\n`);
     else response.destroy();
   } finally {
     busy = false;

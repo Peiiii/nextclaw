@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["src/app/bibo-runner.controller.ts", "src/app/bibo-run-stream.utils.test.ts", "container/**/*.test.ts", "scripts/**/*.ts"]
+}

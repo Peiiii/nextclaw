@@ -68,15 +68,48 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20260228.0
         version: 4.20260228.0
+      '@nextclaw/bibo-ui':
+        specifier: workspace:*
+        version: link:../../packages/bibo-ui
       '@types/node':
-        specifier: ^20.17.6
-        version: 20.19.33
+        specifier: ^24.13.3
+        version: 24.13.3
+      '@types/react':
+        specifier: ^18.3.28
+        version: 18.3.28
+      '@types/react-dom':
+        specifier: ^18.3.7
+        version: 18.3.7(@types/react@18.3.28)
+      '@vitejs/plugin-react':
+        specifier: ^6.0.1
+        version: 6.0.1(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@24.13.3)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+      esbuild:
+        specifier: ^0.27.3
+        version: 0.27.3
+      playwright:
+        specifier: ^1.52.0
+        version: 1.58.2
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      vite:
+        specifier: ^8.0.3
+        version: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@24.13.3)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
       wrangler:
         specifier: ^4.67.0
         version: 4.67.0(@cloudflare/workers-types@4.20260228.0)
+      zustand:
+        specifier: ^5.0.2
+        version: 5.0.11(@types/react@18.3.28)(react@18.3.1)
 
   apps/companion:
     dependencies:
@@ -110,7 +143,7 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       '@vitejs/plugin-react':
         specifier: ^6.0.1
-        version: 6.0.1(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))
+        version: 6.0.1(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.24(postcss@8.5.8)
@@ -125,10 +158,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^8.0.3
-        version: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2)
+        version: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.1.2
-        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))
+        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   apps/competitive-leaderboard:
     dependencies:
@@ -278,7 +311,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^8.0.3
-        version: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
+        version: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2)
 
   apps/maintainability-console:
     dependencies:
@@ -580,6 +613,31 @@ importers:
       vitest:
         specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+
+  packages/bibo-ui:
+    dependencies:
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+      react-markdown:
+        specifier: ^10.1.0
+        version: 10.1.0(@types/react@18.3.28)(react@18.3.1)
+      remark-gfm:
+        specifier: ^4.0.1
+        version: 4.0.1
+    devDependencies:
+      '@types/react':
+        specifier: ^18.3.28
+        version: 18.3.28
+      '@types/react-dom':
+        specifier: ^18.3.7
+        version: 18.3.7(@types/react@18.3.28)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   packages/browser-connector:
     dependencies:
@@ -11424,17 +11482,17 @@ snapshots:
 
   '@slack/logger@3.0.0':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
 
   '@slack/logger@4.0.0':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
 
   '@slack/socket-mode@1.3.6':
     dependencies:
       '@slack/logger': 3.0.0
       '@slack/web-api': 6.13.0
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
       '@types/ws': 7.4.7
       eventemitter3: 5.0.4
       finity: 0.5.4
@@ -11451,7 +11509,7 @@ snapshots:
       '@slack/logger': 3.0.0
       '@slack/types': 2.19.0
       '@types/is-stream': 1.1.0
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
       axios: 1.13.5(debug@4.4.3)
       eventemitter3: 3.1.2
       form-data: 2.5.5
@@ -11466,7 +11524,7 @@ snapshots:
     dependencies:
       '@slack/logger': 4.0.0
       '@slack/types': 2.19.0
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
       '@types/retry': 0.12.0
       axios: 1.13.5(debug@4.4.3)
       eventemitter3: 5.0.4
@@ -11542,7 +11600,7 @@ snapshots:
     dependencies:
       '@types/http-cache-semantics': 4.2.0
       '@types/keyv': 3.1.4
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
       '@types/responselike': 1.0.3
 
   '@types/caseless@0.12.5': {}
@@ -11685,7 +11743,7 @@ snapshots:
 
   '@types/fs-extra@9.0.13':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
 
   '@types/geojson@7946.0.16': {}
 
@@ -11697,7 +11755,7 @@ snapshots:
 
   '@types/is-stream@1.1.0':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
 
   '@types/jsesc@2.5.1': {}
 
@@ -11707,13 +11765,13 @@ snapshots:
 
   '@types/keyv@3.1.4':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
 
   '@types/linkify-it@5.0.0': {}
 
   '@types/mailparser@3.4.6':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
       iconv-lite: 0.6.3
 
   '@types/markdown-it@14.1.2':
@@ -11731,12 +11789,12 @@ snapshots:
 
   '@types/node-fetch@2.6.13':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
       form-data: 4.0.5
 
   '@types/node-telegram-bot-api@0.64.13':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
       '@types/request': 2.48.13
 
   '@types/node@12.20.55': {}
@@ -11759,11 +11817,11 @@ snapshots:
 
   '@types/nodemailer@6.4.22':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
 
   '@types/plist@3.0.5':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
       xmlbuilder: 15.1.1
     optional: true
 
@@ -11781,20 +11839,20 @@ snapshots:
   '@types/request@2.48.13':
     dependencies:
       '@types/caseless': 0.12.5
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
       '@types/tough-cookie': 4.0.5
       form-data: 2.5.5
 
   '@types/responselike@1.0.3':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
 
   '@types/retry@0.12.0': {}
 
   '@types/sql.js@1.4.11':
     dependencies:
       '@types/emscripten': 1.41.5
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
 
   '@types/tough-cookie@4.0.5': {}
 
@@ -11812,15 +11870,15 @@ snapshots:
 
   '@types/ws@7.4.7':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
 
   '@types/yauzl@2.10.3':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
     optional: true
 
   '@typescript-eslint/eslint-plugin@8.56.0(@typescript-eslint/parser@8.56.0(eslint@9.39.3(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.3(jiti@2.6.1))(typescript@5.9.3)':
@@ -11921,15 +11979,15 @@ snapshots:
       d3-selection: 3.0.0
       d3-transition: 3.0.1(d3-selection@3.0.0)
 
-  '@vitejs/plugin-react@6.0.1(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))':
-    dependencies:
-      '@rolldown/pluginutils': 1.0.0-rc.7
-      vite: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2)
-
   '@vitejs/plugin-react@6.0.1(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-rc.7
       vite: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
+
+  '@vitejs/plugin-react@6.0.1(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@24.13.3)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))':
+    dependencies:
+      '@rolldown/pluginutils': 1.0.0-rc.7
+      vite: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@24.13.3)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
 
   '@vitejs/plugin-react@6.0.1(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
@@ -11949,14 +12007,6 @@ snapshots:
       '@vitest/utils': 4.1.2
       chai: 6.2.2
       tinyrainbow: 3.1.0
-
-  '@vitest/mocker@4.1.2(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))':
-    dependencies:
-      '@vitest/spy': 4.1.2
-      estree-walker: 3.0.3
-      magic-string: 0.30.21
-    optionalDependencies:
-      vite: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2)
 
   '@vitest/mocker@4.1.2(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
@@ -15870,7 +15920,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 20.19.33
+      '@types/node': 24.13.3
       long: 5.3.2
 
   proxy-addr@2.0.7:
@@ -17211,24 +17261,6 @@ snapshots:
       fsevents: 2.3.3
       lightningcss: 1.32.0
 
-  vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2):
-    dependencies:
-      lightningcss: 1.32.0
-      picomatch: 4.0.4
-      postcss: 8.5.8
-      rolldown: 1.0.0-rc.12(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)
-      tinyglobby: 0.2.15
-    optionalDependencies:
-      '@types/node': 20.19.33
-      esbuild: 0.27.3
-      fsevents: 2.3.3
-      jiti: 1.21.7
-      tsx: 4.21.0
-      yaml: 2.8.2
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
-
   vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       lightningcss: 1.32.0
@@ -17259,6 +17291,24 @@ snapshots:
       esbuild: 0.27.3
       fsevents: 2.3.3
       jiti: 2.6.1
+      tsx: 4.21.0
+      yaml: 2.8.2
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
+
+  vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2):
+    dependencies:
+      lightningcss: 1.32.0
+      picomatch: 4.0.4
+      postcss: 8.5.8
+      rolldown: 1.0.0-rc.12(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)
+      tinyglobby: 0.2.15
+    optionalDependencies:
+      '@types/node': 25.5.0
+      esbuild: 0.27.3
+      fsevents: 2.3.3
+      jiti: 1.21.7
       tsx: 4.21.0
       yaml: 2.8.2
     transitivePeerDependencies:
@@ -17331,34 +17381,6 @@ snapshots:
       - terser
       - typescript
       - universal-cookie
-
-  vitest@4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2)):
-    dependencies:
-      '@vitest/expect': 4.1.2
-      '@vitest/mocker': 4.1.2(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))
-      '@vitest/pretty-format': 4.1.2
-      '@vitest/runner': 4.1.2
-      '@vitest/snapshot': 4.1.2
-      '@vitest/spy': 4.1.2
-      '@vitest/utils': 4.1.2
-      es-module-lexer: 2.0.0
-      expect-type: 1.3.0
-      magic-string: 0.30.21
-      obug: 2.1.1
-      pathe: 2.0.3
-      picomatch: 4.0.4
-      std-env: 4.0.0
-      tinybench: 2.9.0
-      tinyexec: 1.0.4
-      tinyglobby: 0.2.15
-      tinyrainbow: 3.1.0
-      vite: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2)
-      why-is-node-running: 2.3.0
-    optionalDependencies:
-      '@types/node': 20.19.33
-      jsdom: 25.0.1
-    transitivePeerDependencies:
-      - msw
 
   vitest@4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)):
     dependencies:

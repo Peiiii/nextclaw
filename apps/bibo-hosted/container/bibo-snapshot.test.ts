@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawn, execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { createServer } from "node:net";
+import type { AddressInfo } from "node:net";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,13 +14,13 @@ async function freePort() {
   const server = createServer();
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
-  const port = server.address().port;
+  const port = (server.address() as AddressInfo).port;
   server.close();
   await once(server, "close");
   return port;
 }
 
-async function waitForHealth(port) {
+async function waitForHealth(port: number): Promise<void> {
   for (let attempt = 0; attempt < 40; attempt += 1) {
     try {
       if ((await fetch(`http://127.0.0.1:${port}/health`)).ok) return;
@@ -29,7 +30,7 @@ async function waitForHealth(port) {
   assert.fail("runner did not start");
 }
 
-async function verifyArchive(temporary, response) {
+async function verifyArchive(temporary: string, response: Response): Promise<void> {
   const archive = join(temporary, "snapshot.tgz");
   const restored = join(temporary, "restored");
   await writeFile(archive, Buffer.from(await response.arrayBuffer()));
@@ -41,8 +42,8 @@ async function verifyArchive(temporary, response) {
   await assert.rejects(readFile(join(restoredJournal, ".ncp-agent-session-catalog.sqlite-wal")), { code: "ENOENT" });
   const restoredDatabase = new DatabaseSync(join(restoredJournal, ".ncp-agent-session-catalog.sqlite"), { readOnly: true });
   try {
-    assert.equal(restoredDatabase.prepare("PRAGMA quick_check").get().quick_check, "ok");
-    assert.ok(restoredDatabase.prepare("SELECT COUNT(*) AS count FROM entries").get().count > 0);
+    assert.equal((restoredDatabase.prepare("PRAGMA quick_check").get() as { quick_check: string }).quick_check, "ok");
+    assert.ok((restoredDatabase.prepare("SELECT COUNT(*) AS count FROM entries").get() as { count: number }).count > 0);
   } finally { restoredDatabase.close(); }
 }
 
@@ -61,7 +62,7 @@ test("snapshot stays valid while NextClaw's SQLite WAL is being written", async 
   database.exec("PRAGMA journal_mode=WAL; CREATE TABLE entries (value TEXT)");
   const insert = database.prepare("INSERT INTO entries (value) VALUES (?)");
   const port = await freePort();
-  const runner = spawn(process.execPath, [new URL("./bibo-runner.controller.mjs", import.meta.url).pathname], {
+  const runner = spawn(process.execPath, [new URL("../dist/container/bibo-runner.controller.mjs", import.meta.url).pathname], {
     env: { ...process.env, NEXTCLAW_HOME: home, BIBO_PORT: String(port) },
     stdio: "ignore",
   });
