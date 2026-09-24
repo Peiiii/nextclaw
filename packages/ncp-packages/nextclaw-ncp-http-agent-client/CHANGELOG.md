@@ -1,5 +1,11 @@
 # @nextclaw/ncp-http-agent-client
 
+## 0.4.26
+
+### Patch Changes
+
+- 260eae4: Keep submitted chat content separate from persisted drafts, and safely reconcile or retry sends whose acceptance result is unknown.
+
 ## 0.4.25
 
 ### Patch Changes

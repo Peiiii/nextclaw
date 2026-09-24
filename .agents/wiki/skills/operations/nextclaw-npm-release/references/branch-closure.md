@@ -2,6 +2,7 @@
 
 - 临时 worktree、detached HEAD 或 release branch 发布后，运行 `pnpm release:check:branch-closure -- --target <target> --release <ref>`。
 - 比较目标与 release 分支，分类功能源码、版本/changelog/生成产物、历史 baseline 和无关改动。
+- release 提交已是目标分支祖先时，发布内容已闭合；目标分支后续提交只报告为发布后改动，不视为发布分支遗漏。真正分叉时仍检查双方独有的发布相关路径。
 - 用户可见功能源码不得只留在 release branch；回流目标分支，除非用户明确拒绝。
 - 只剩发布 metadata 时也要说明 merge/cherry-pick/保留历史的确切选择。
 - 远程完成门成立后运行 `pnpm release:reconcile:mainline`。禁止对活跃本地 `master` 执行 rebase、stash、reset 或 force push；本地独有提交在隔离 integration worktree 与最新 `origin/master` 合并、验证并普通 push，保留双方祖先关系。

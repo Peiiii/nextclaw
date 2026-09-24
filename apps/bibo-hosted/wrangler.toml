@@ -1,0 +1,43 @@
+name = "bibo-hosted"
+account_id = "adb27b39051202962038992eeaf8f6bb"
+main = "src/app/bibo-hosted.app.ts"
+compatibility_date = "2026-09-24"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+routes = [{ pattern = "app.bibo.bot", custom_domain = true }, { pattern = "bibo.bot/app/*", zone_name = "bibo.bot" }]
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+[[r2_buckets]]
+binding = "SNAPSHOTS"
+bucket_name = "bibo-user-snapshots"
+
+[[durable_objects.bindings]]
+name = "BIBO_USER"
+class_name = "BiboUserContainer"
+
+[[durable_objects.bindings]]
+name = "BIBO_MODEL_BUDGET"
+class_name = "BiboModelBudget"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["BiboUserContainer"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["BiboModelBudget"]
+
+[[containers]]
+class_name = "BiboUserContainer"
+image = "./Dockerfile"
+image_build_context = "../.."
+max_instances = 5
+instance_type = "basic"
+
+[observability]
+enabled = true
+head_sampling_rate = 0.1

@@ -56,6 +56,28 @@ importers:
         specifier: ^8.18.0
         version: 8.19.0
 
+  apps/bibo-hosted:
+    dependencies:
+      '@nextclaw/harness':
+        specifier: workspace:*
+        version: link:../../packages/nextclaw-harness
+    devDependencies:
+      '@cloudflare/containers':
+        specifier: ^0.3.7
+        version: 0.3.7
+      '@cloudflare/workers-types':
+        specifier: ^4.20260228.0
+        version: 4.20260228.0
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      wrangler:
+        specifier: ^4.67.0
+        version: 4.67.0(@cloudflare/workers-types@4.20260228.0)
+
   apps/companion:
     dependencies:
       '@nextclaw/client-sdk':
@@ -2502,6 +2524,9 @@ packages:
 
   '@chevrotain/types@11.1.2':
     resolution: {integrity: sha512-U+HFai5+zmJCkK86QsaJtoITlboZHBqrVketcO2ROv865xfCMSFpELQoz1GkX5GzME8pTa+3kbKrZHQtI0gdbw==}
+
+  '@cloudflare/containers@0.3.7':
+    resolution: {integrity: sha512-DM9dm3FnIBSyiSJ1FLavKwl/lk3oAmTaynCzZQ9pZR0ncRPquSxkxd8Nu2MFILxmDDsPkxKsSNEh9mHHMty4Fw==}
 
   '@cloudflare/kv-asset-handler@0.4.2':
     resolution: {integrity: sha512-SIOD2DxrRRwQ+jgzlXCqoEFiKOFqaPjhnNTGKXSRLvp1HiOvapLaFG2kEr9dYQTYe8rKrd9uvDUzmAITeNyaHQ==}
@@ -9787,6 +9812,8 @@ snapshots:
       prettier: 2.8.8
 
   '@chevrotain/types@11.1.2': {}
+
+  '@cloudflare/containers@0.3.7': {}
 
   '@cloudflare/kv-asset-handler@0.4.2': {}
 

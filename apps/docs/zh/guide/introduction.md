@@ -51,3 +51,5 @@ NextClaw 运行在你控制的设备或服务器上。工作目录、会话、�
 还没有安装：前往[安装 NextClaw](/zh/guide/install)。
 
 已经打开界面：直接[创建第一个任务](/zh/guide/create-task)。
+
+想直接从浏览器体验独立的云端个人搭档：参见 [Bibo 托管服务](/zh/guide/bibo)。

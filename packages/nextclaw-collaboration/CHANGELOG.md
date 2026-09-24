@@ -1,5 +1,11 @@
 # @nextclaw/collaboration
 
+## 0.1.5
+
+### Patch Changes
+
+- a35f153: Bound official-discussion polling and delivery retries, preserve safe recovery after network failures, and expose complete participant-visible discussion event coverage.
+
 ## 0.1.4
 
 ### Patch Changes
