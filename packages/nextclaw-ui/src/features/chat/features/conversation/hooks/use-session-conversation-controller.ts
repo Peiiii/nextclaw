@@ -5,6 +5,7 @@ import type {
   UiNcpSessionQueuedInputView,
 } from '@nextclaw/client-sdk';
 import type { NcpAgentSendEnvelope, NcpRunHandle } from '@nextclaw/ncp';
+import { NcpHttpSendError } from '@nextclaw/ncp-http-agent-client';
 
 import {
   createChatComposerNodesFromDraft,
@@ -26,6 +27,7 @@ import {
   useSessionConversationRecoveryActions,
   type SessionConversationRecoveryAgent,
 } from './use-session-conversation-recovery-actions';
+import { useSessionSubmissionRecovery } from './use-session-submission-recovery';
 
 type SessionConversationInputQuery = ReturnType<typeof useSessionConversationInputQuery>;
 type ComposerDraftSnapshot = Pick<
@@ -81,8 +83,12 @@ type UseSessionConversationControllerParams = {
   readonly selectedAgentId: string;
   readonly sessionKey: string | null;
   readonly onSessionMaterialized?: (sessionKey: string) => void;
-  readonly resetComposer: () => void;
   readonly restoreComposer: (snapshot: ComposerDraftSnapshot) => void;
+  readonly beginSubmission: (envelope: NcpAgentSendEnvelope, composer: ComposerDraftSnapshot) => void;
+  readonly acceptSubmission: (messageId: string) => void;
+  readonly failSubmission: (messageId: string, status: 'uncertain' | 'rejected', message: string) => void;
+  readonly restoreSubmission: (messageId: string) => void;
+  readonly discardSubmission: (messageId: string) => void;
   readonly setSendError: (message: string | null) => void;
 };
 
@@ -133,6 +139,7 @@ function buildSubmissionDraft(params: BuildSubmissionDraftParams): SubmissionDra
     composerSnapshot.attachments,
   );
   if (
+    inputSnapshot.pendingSubmission ||
     isNcpChatSendDisabled({
       hasSendableDraft: hasSendableMessagePart(currentParts),
     }) ||
@@ -186,6 +193,7 @@ function buildSubmissionEnvelope(
 ): NcpAgentSendEnvelope | null {
   const envelope = buildNcpRequestEnvelope({
     sessionId: sessionKey ?? undefined,
+    messageId: `user-${crypto.randomUUID()}`,
     text: draft.composerSnapshot.text.trim(),
     attachments: [...draft.composerSnapshot.attachments],
     parts: deriveNcpMessagePartsFromComposer(
@@ -194,7 +202,7 @@ function buildSubmissionEnvelope(
     ),
     metadata: draft.metadata,
   });
-  return envelope ? { ...envelope, delivery } : null;
+  return envelope ? { ...envelope, delivery, idempotencyKey: envelope.message.id } : null;
 }
 
 function useSubmissionDraftRunner(params: {
@@ -202,8 +210,9 @@ function useSubmissionDraftRunner(params: {
   readonly clearSubmittingInput: (input: SubmittingQueuedInput) => void;
   readonly materializationContext?: SessionConversationMaterializationContext | null;
   readonly onSessionMaterialized?: (sessionKey: string) => void;
-  readonly resetComposer: () => void;
-  readonly restoreComposer: (snapshot: ComposerDraftSnapshot) => void;
+  readonly beginSubmission: (envelope: NcpAgentSendEnvelope, composer: ComposerDraftSnapshot) => void;
+  readonly acceptSubmission: (messageId: string) => void;
+  readonly failSubmission: (messageId: string, status: 'uncertain' | 'rejected', message: string) => void;
   readonly runQueue: SessionRunQueue;
   readonly sessionKey: string | null;
   readonly setSendError: (message: string | null) => void;
@@ -214,8 +223,9 @@ function useSubmissionDraftRunner(params: {
     clearSubmittingInput,
     materializationContext,
     onSessionMaterialized,
-    resetComposer,
-    restoreComposer,
+    beginSubmission,
+    acceptSubmission,
+    failSubmission,
     runQueue,
     sessionKey,
     setSendError,
@@ -233,11 +243,16 @@ function useSubmissionDraftRunner(params: {
     const queuedSubmission = agent.isRunning && delivery === 'queue'
       ? stageSubmittingInput(envelope)
       : null;
-    if (composerBehavior === 'reset-and-restore') resetComposer();
+    if (composerBehavior === 'reset-and-restore') beginSubmission(envelope, draft.composerSnapshot);
     setSendError(null);
+    let definitelyRejected = false;
     try {
       const handle = await agent.send(envelope);
-      if (!handle) throw new Error(t('chatSendFailed'));
+      if (!handle) {
+        definitelyRejected = true;
+        throw new Error(t('chatSendFailed'));
+      }
+      if (composerBehavior === 'reset-and-restore') acceptSubmission(envelope.message.id);
       if (handle?.delivery === 'steered') {
         await runQueue.refreshPendingInputs().catch(() => undefined);
       } else if (handle?.delivery === 'queued') {
@@ -251,8 +266,12 @@ function useSubmissionDraftRunner(params: {
       }
     } catch (error) {
       if (queuedSubmission) clearSubmittingInput(queuedSubmission);
-      if (composerBehavior === 'reset-and-restore') restoreComposer(draft.composerSnapshot);
-      setSendError(error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      if (composerBehavior === 'reset-and-restore') {
+        failSubmission(envelope.message.id,
+          definitelyRejected || (error instanceof NcpHttpSendError && error.sendRejected) ? 'rejected' : 'uncertain',
+          message);
+      } else setSendError(message);
       throw error;
     }
   }, [
@@ -260,8 +279,9 @@ function useSubmissionDraftRunner(params: {
     clearSubmittingInput,
     materializationContext,
     onSessionMaterialized,
-    resetComposer,
-    restoreComposer,
+    beginSubmission,
+    acceptSubmission,
+    failSubmission,
     runQueue,
     sessionKey,
     setSendError,
@@ -361,6 +381,32 @@ function usePrimarySubmission(params: {
   ]);
 }
 
+function usePresetSubmission(params: {
+  readonly agent: SessionConversationAgent;
+  readonly inputSnapshot: SessionConversationInputSnapshot;
+  readonly inputQuery: SessionConversationInputQuery;
+  readonly materializationContext?: SessionConversationMaterializationContext | null;
+  readonly selectedAgentId: string;
+  readonly sessionKey: string | null;
+  readonly submitDraft: (draft: SubmissionDraft, behavior: SubmissionComposerBehavior) => Promise<void>;
+}) {
+  const { agent, inputSnapshot, inputQuery, materializationContext, selectedAgentId, sessionKey, submitDraft } = params;
+  return useCallback(async (message: string) => {
+    const text = message.trim();
+    if (!text) return;
+    const draft = buildSubmissionDraft({
+      agentIsSending: agent.isSending,
+      composerSnapshot: {
+        text,
+        nodes: createChatComposerNodesFromDraft(text),
+        selectedSkills: [], skillRecords: [], attachments: [],
+      },
+      inputSnapshot, inputQuery, materializationContext, selectedAgentId, sessionKey,
+    });
+    if (draft) await submitDraft(draft, 'preserve');
+  }, [agent.isSending, inputQuery, inputSnapshot, materializationContext, selectedAgentId, sessionKey, submitDraft]);
+}
+
 export function useSessionConversationController(params: UseSessionConversationControllerParams) {
   const {
     agent,
@@ -372,8 +418,12 @@ export function useSessionConversationController(params: UseSessionConversationC
     selectedAgentId,
     sessionKey,
     onSessionMaterialized,
-    resetComposer,
     restoreComposer,
+    beginSubmission,
+    acceptSubmission,
+    failSubmission,
+    restoreSubmission,
+    discardSubmission,
     setSendError,
   } = params;
   const {
@@ -403,7 +453,7 @@ export function useSessionConversationController(params: UseSessionConversationC
   );
   const primaryAction: 'continue' | 'send' =
     canContinue && !hasSendableDraft ? 'continue' : 'send';
-  const sendDisabled = primaryAction === 'continue'
+  const sendDisabled = inputSnapshot.pendingSubmission ? true : primaryAction === 'continue'
     ? false
     : isNcpChatSendDisabled({
         hasSendableDraft,
@@ -420,8 +470,9 @@ export function useSessionConversationController(params: UseSessionConversationC
     clearSubmittingInput,
     materializationContext,
     onSessionMaterialized,
-    resetComposer,
-    restoreComposer,
+    beginSubmission,
+    acceptSubmission,
+    failSubmission,
     runQueue,
     sessionKey,
     setSendError,
@@ -450,42 +501,26 @@ export function useSessionConversationController(params: UseSessionConversationC
     submitDraft,
   });
 
-  const sendPresetMessage = useCallback(async (message: string) => {
-    const text = message.trim();
-    if (!text) {
-      return;
-    }
-    const draft = buildSubmissionDraft({
-      agentIsSending: agent.isSending,
-      composerSnapshot: {
-        text,
-        nodes: createChatComposerNodesFromDraft(text),
-        selectedSkills: [],
-        skillRecords: [],
-        attachments: [],
-      },
-      inputSnapshot,
-      inputQuery,
-      materializationContext,
-      selectedAgentId,
-      sessionKey,
-    });
-    if (draft) {
-      await submitDraft(draft, 'preserve');
-    }
-  }, [
-    agent.isSending,
-    inputQuery,
-    inputSnapshot,
-    materializationContext,
-    selectedAgentId,
-    sessionKey,
-    submitDraft,
-  ]);
+  const sendPresetMessage = usePresetSubmission({
+    agent, inputSnapshot, inputQuery, materializationContext,
+    selectedAgentId, sessionKey, submitDraft,
+  });
 
   const stop = useCallback(async () => {
     await agent.abort();
   }, [agent]);
+
+  const submissionRecovery = useSessionSubmissionRecovery({
+    agent,
+    submission: inputSnapshot.pendingSubmission,
+    sessionKey,
+    onSessionMaterialized,
+    acceptSubmission,
+    failSubmission,
+    restoreSubmission,
+    discardSubmission,
+    setSendError,
+  });
 
   return {
     canContinue,
@@ -501,6 +536,7 @@ export function useSessionConversationController(params: UseSessionConversationC
     send,
     sendSteering,
     sendPresetMessage,
+    ...submissionRecovery,
     sendDisabled,
     primaryAction,
     stop,

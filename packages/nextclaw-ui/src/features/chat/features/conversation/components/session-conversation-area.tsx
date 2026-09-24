@@ -304,8 +304,12 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     selectedAgentId,
     sessionKey,
     onSessionMaterialized,
-    resetComposer: inputActions.resetComposer,
     restoreComposer: inputActions.restoreComposer,
+    beginSubmission: inputActions.beginSubmission,
+    acceptSubmission: inputActions.acceptSubmission,
+    failSubmission: inputActions.failSubmission,
+    restoreSubmission: inputActions.restoreSubmission,
+    discardSubmission: inputActions.discardSubmission,
     setSendError: inputActions.setSendError,
   });
   const conversationMessages = useMemo(() => {
@@ -336,6 +340,9 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
       sendSteering: () => controllerRef.current.sendSteering(),
       sendPresetMessage: (message: string) =>
         controllerRef.current.sendPresetMessage(message).catch(() => undefined),
+      retryPendingSubmission: () => controllerRef.current.retryPendingSubmission(),
+      restorePendingSubmission: () => controllerRef.current.restorePendingSubmission(),
+      discardPendingSubmission: () => controllerRef.current.discardPendingSubmission(),
       sendDisabled: controller.sendDisabled,
       stop: () => controllerRef.current.stop(),
       stopDisabled: controller.stopDisabled,

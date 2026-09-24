@@ -22,6 +22,7 @@ import {
   safeReadText,
   toNcpError,
   ncpErrorToError,
+  NcpHttpAgentClientError,
   isNcpHttpAgentClientError,
 } from "../utils.js";
 
@@ -58,6 +59,15 @@ function normalizeTimeoutMs(value: number | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) && value > 0
     ? Math.trunc(value)
     : null;
+}
+
+export class NcpHttpSendError extends NcpHttpAgentClientError {
+  readonly sendRejected: boolean;
+
+  constructor(message: string, sendRejected: boolean) {
+    super(toNcpError(new Error(message)));
+    this.sendRejected = sendRejected;
+  }
 }
 
 export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
@@ -162,13 +172,15 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
         signal: controller.signal,
       });
       if (!response.ok) {
-        throw new Error(
-          `NCP send command failed with HTTP ${response.status}: ${await safeReadText(response)}`,
-        );
+        const message = `NCP send command failed with HTTP ${response.status}: ${await safeReadText(response)}`;
+        throw new NcpHttpSendError(message, response.status < 500 && response.status !== 408);
       }
       const payload = await response.json() as { ok?: boolean; data?: NcpRunHandle; error?: { message?: string } };
       if (!payload.ok || !payload.data) {
-        throw new Error(payload.error?.message ?? "NCP send command returned an invalid handle.");
+        throw new NcpHttpSendError(
+          payload.error?.message ?? "NCP send command returned an invalid handle.",
+          payload.ok === false,
+        );
       }
       return payload.data;
     } catch (error) {
@@ -176,6 +188,7 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
         throw new Error("NCP send command was cancelled.");
       }
       if (isNcpHttpAgentClientError(error)) {
+        this.publish(createClientEvent({ type: NcpEventType.EndpointError, payload: error.ncpError }));
         throw error;
       }
       const ncpError = toNcpError(error);

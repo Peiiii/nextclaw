@@ -36,7 +36,7 @@ const THINKING_MODEL_OPTIONS: ChatModelOption[] = [
 describe('useSessionConversationInputState session preferences', () => {
   beforeEach(() => {
     window.localStorage.clear();
-    useChatComposerDraftStore.setState({ drafts: {} });
+    useChatComposerDraftStore.setState({ drafts: {}, submissions: {}, recentSubmittedNodes: {} });
     useChatThreadStore.getState().setSnapshot({ draftProjectRoot: null });
   });
 
@@ -213,7 +213,17 @@ describe('useSessionConversationInputState session preferences', () => {
         selectedSkills: [],
         skillRecords: [],
       });
-      result.current.inputActions.resetComposer();
+      result.current.inputActions.beginSubmission({
+        sessionId: 'session-sent',
+        message: {
+          id: 'user-sent', sessionId: 'session-sent', role: 'user', status: 'final',
+          timestamp: '2026-09-24T00:00:00.000Z',
+          parts: [{ type: 'text', text: '已经发送的消息' }],
+        },
+      }, {
+        text: '已经发送的消息', nodes: [], selectedSkills: [], skillRecords: [], attachments: [],
+      });
+      result.current.inputActions.acceptSubmission('user-sent');
     });
     rerender({ sessionKey: 'session-unsent' });
     act(() => {

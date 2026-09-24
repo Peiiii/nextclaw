@@ -13,7 +13,6 @@ const mocks = vi.hoisted(() => {
   const inputActions = {
     update: vi.fn(),
     syncComposer: vi.fn(),
-    resetComposer: vi.fn(),
     restoreComposer: vi.fn(),
     applyPromptSuggestion: vi.fn(),
     requestComposerFocusAtEnd: vi.fn(),

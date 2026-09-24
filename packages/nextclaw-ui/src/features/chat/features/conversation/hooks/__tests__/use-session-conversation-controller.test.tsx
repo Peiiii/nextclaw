@@ -2,8 +2,13 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { NextClawClientError, type UiNcpSessionQueuedInputView } from '@nextclaw/client-sdk';
 import type { NcpAgentSendEnvelope, NcpMessage, NcpRunHandle } from '@nextclaw/ncp';
+import { NcpHttpSendError } from '@nextclaw/ncp-http-agent-client';
+
+const fetchNcpSessionMessages = vi.hoisted(() => vi.fn());
+vi.mock('@/shared/lib/api', () => ({ fetchNcpSessionMessages }));
 
 import { useSessionConversationController } from '@/features/chat/features/conversation/hooks/use-session-conversation-controller';
+import type { ChatComposerSubmission } from '@/features/chat/stores/chat-composer-draft.store';
 
 type TestAgentSend = (envelope: NcpAgentSendEnvelope) => Promise<NcpRunHandle | null>;
 
@@ -107,6 +112,7 @@ function createControllerParams(params: {
       composerFocusRequestId: 0,
       nodes: [createTextNode('next task')],
       pendingProjectRoot: null,
+      pendingSubmission: null as ChatComposerSubmission | null,
       pendingSessionType: 'default',
       selectedModel: undefined,
       selectedSessionType: 'default',
@@ -126,8 +132,12 @@ function createControllerParams(params: {
     },
     selectedAgentId: 'main',
     sessionKey: 'session-1',
-    resetComposer: vi.fn(),
     restoreComposer: vi.fn(),
+    beginSubmission: vi.fn(),
+    acceptSubmission: vi.fn(),
+    failSubmission: vi.fn(),
+    restoreSubmission: vi.fn(),
+    discardSubmission: vi.fn(),
     onSessionMaterialized: vi.fn(),
     setSendError: vi.fn(),
   };
@@ -162,6 +172,7 @@ describe('useSessionConversationController backend run queue', () => {
     const envelope = send.mock.calls[0]?.[0];
     expect(envelope?.sessionId).toMatch(/^ncp-/);
     expect(envelope?.message.sessionId).toBe(envelope?.sessionId);
+    expect(envelope?.idempotencyKey).toBe(envelope?.message.id);
     expect(params.onSessionMaterialized).toHaveBeenCalledWith(envelope?.sessionId);
   });
 
@@ -182,7 +193,7 @@ describe('useSessionConversationController backend run queue', () => {
         parts: [{ type: 'text', text: 'next task' }],
       }),
     });
-    expect(params.resetComposer).toHaveBeenCalledTimes(1);
+    expect(params.beginSubmission).toHaveBeenCalledTimes(1);
   });
 
   it('attempts a send when a nonempty draft has a stale blocked runtime status', async () => {
@@ -255,7 +266,7 @@ describe('useSessionConversationController backend run queue', () => {
       }),
     });
     expect(envelope?.metadata).not.toHaveProperty('ui_inline_tokens');
-    expect(params.resetComposer).not.toHaveBeenCalled();
+    expect(params.beginSubmission).not.toHaveBeenCalled();
     expect(params.restoreComposer).not.toHaveBeenCalled();
   });
 
@@ -271,7 +282,7 @@ describe('useSessionConversationController backend run queue', () => {
       await expect(result.current.sendPresetMessage('Update title')).rejects.toThrow(sendError);
     });
 
-    expect(params.resetComposer).not.toHaveBeenCalled();
+    expect(params.beginSubmission).not.toHaveBeenCalled();
     expect(params.restoreComposer).not.toHaveBeenCalled();
     expect(params.setSendError).toHaveBeenLastCalledWith(sendError.message);
   });
@@ -289,7 +300,7 @@ describe('useSessionConversationController backend run queue', () => {
       submission = result.current.send();
     });
 
-    expect(params.resetComposer).toHaveBeenCalledTimes(1);
+    expect(params.beginSubmission).toHaveBeenCalledTimes(1);
     expect(result.current.queuedInputs).toEqual([
       expect.objectContaining({
         isSubmitting: true,
@@ -320,10 +331,7 @@ describe('useSessionConversationController backend run queue', () => {
     });
 
     expect(result.current.queuedInputs).toEqual([]);
-    expect(params.restoreComposer).toHaveBeenCalledWith(expect.objectContaining({
-      text: 'next task',
-    }));
-    expect(params.setSendError).toHaveBeenLastCalledWith(sendError.message);
+    expect(params.failSubmission).toHaveBeenCalledWith(expect.any(String), 'uncertain', sendError.message);
     expect(params.runQueue.refreshQueuedInputs).not.toHaveBeenCalled();
   });
 
@@ -336,9 +344,49 @@ describe('useSessionConversationController backend run queue', () => {
       await expect(result.current.send()).rejects.toThrow('Failed to send message');
     });
 
-    expect(params.restoreComposer).toHaveBeenCalledWith(expect.objectContaining({ text: 'next task' }));
-    expect(params.setSendError).toHaveBeenLastCalledWith('Failed to send message');
+    expect(params.failSubmission).toHaveBeenCalledWith(expect.any(String), 'rejected', 'Failed to send message');
     expect(params.onSessionMaterialized).not.toHaveBeenCalled();
+  });
+
+  it('classifies an explicit HTTP rejection so the draft can be restored', async () => {
+    const error = new NcpHttpSendError('invalid request', true);
+    const send = vi.fn<TestAgentSend>(async () => { throw error; });
+    const params = createControllerParams({ isRunning: false, send });
+    const { result } = renderHook(() => useSessionConversationController(params));
+    await act(async () => {
+      await expect(result.current.send()).rejects.toThrow(error);
+    });
+    expect(params.failSubmission).toHaveBeenCalledWith(expect.any(String), 'rejected', 'invalid request');
+  });
+
+  it('rechecks the original message before retrying with the same identity', async () => {
+    fetchNcpSessionMessages.mockResolvedValue({ messages: [] });
+    const params = createControllerParams({ isRunning: false });
+    const envelope: NcpAgentSendEnvelope = {
+      sessionId: 'session-1', idempotencyKey: 'user-original',
+      message: {
+        id: 'user-original', sessionId: 'session-1', role: 'user', status: 'final',
+        timestamp: '2026-09-24T00:00:00.000Z', parts: [{ type: 'text', text: 'next task' }],
+      },
+    };
+    params.inputSnapshot.pendingSubmission = {
+      envelope,
+      composer: {
+        text: 'next task', nodes: [createTextNode('next task')],
+        selectedSkills: [], skillRecords: [], attachments: [],
+      },
+      status: 'uncertain',
+    };
+    const { result } = renderHook(() => useSessionConversationController(params));
+    expect(result.current.sendDisabled).toBe(true);
+    await act(async () => {
+      await result.current.send();
+      await result.current.retryPendingSubmission();
+    });
+    expect(fetchNcpSessionMessages).toHaveBeenCalledWith('session-1', { limit: 100 });
+    expect(params.agent.send).toHaveBeenCalledTimes(1);
+    expect(params.agent.send).toHaveBeenCalledWith(envelope);
+    expect(params.acceptSubmission).toHaveBeenCalledWith('user-original');
   });
 
   it('keeps an existing session bound to its agent instead of the global draft selection', async () => {
@@ -434,7 +482,7 @@ describe('useSessionConversationController backend run queue', () => {
 
     expect(params.agent.continueRun).toHaveBeenCalledWith({ sessionId: 'session-1' });
     expect(params.agent.send).not.toHaveBeenCalled();
-    expect(params.resetComposer).not.toHaveBeenCalled();
+    expect(params.beginSubmission).not.toHaveBeenCalled();
   });
 
   it('keeps continuation available but restores send as primary when the user types', () => {
