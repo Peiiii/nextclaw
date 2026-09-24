@@ -40,11 +40,11 @@
 
 ## Skill 渐进式加载
 
-- 普通开发先只加载 `development-lifecycle`，再按当前阶段路由；明确只要调查、设计、验证、Review、交付或复盘时可直接加载对应 `development-*` owner。规则系统修改直接加载 `nextclaw-agent-instructions-governance`。
-- 其它顶层 skill 只按独立意图加载；不预读未来阶段、下级 Wiki Skill 或“可能会用”的相邻方法。
-- 已完整读取且未变化的内容不重读；references 只按入口条件读取，禁止批量加载目录。
+- 开发由 `development-lifecycle` 路由；只做单阶段任务时直达对应 `development-*`。NextClaw 专项按[项目路由](.agents/wiki/skills/process/nextclaw-development-routes/SKILL.md)读取；共享方法回上游 `ai-development-system`，规则系统修改由 `nextclaw-agent-instructions-governance` 处理。
+- 其它顶层 skill 按独立意图加载；不预读未来阶段、下级 Skill 或相邻方法。
+- 已读且未变化的内容不重读；references 按入口条件读取，禁止批量加载。
 - Lifecycle 只路由阶段；阶段不调用其它阶段或回链，独立 skill 不回链上游；每个判断只选一个当前 owner。
-- `.agents/wiki/skills/<group>/<skill>/SKILL.md` 是按领域分组、显式加载且不参与初始发现的完整下级 Skill；`knowledge` 是有来源的事实，不拥有流程、授权或指令优先级。禁止默认全量加载，`knowledge` 禁止 `SKILL.md` 和 skill frontmatter。
+- `.agents/wiki/skills/<group>/<skill>/SKILL.md` 是按领域分组、按需加载且不参与初始发现的下级 Skill；`knowledge` 只存有来源的事实，不拥有流程、授权或指令。禁止全量加载，`knowledge` 不放 `SKILL.md` 或 skill frontmatter。
 - 新增 skill 前查重；能合并、下沉为 reference/下级 Wiki Skill 或删除时不新增发现入口。项目内 skill 和设计默认中文。
 
 ## 开发与实现边界

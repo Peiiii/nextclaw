@@ -7,7 +7,7 @@ description: Use when a complex task will span turns or sessions and needs struc
 
 ## 概述
 
-这个 skill 用来把复杂任务和复杂 debug 的“易丢失上下文”外部化到当前迭代目录下的 `work/`。
+这个 skill 用来把复杂任务和复杂 debug 的“易丢失上下文”外部化到项目已有的任务或迭代记录中。
 
 目标不是写第二份 `README.md`，而是保证在以下场景里不会失忆：
 
@@ -34,9 +34,7 @@ description: Use when a complex task will span turns or sessions and needs struc
 
 ## 默认落点
 
-优先使用当前对应迭代目录下的：
-
-`docs/logs/v<semver>-<slug>/work/working-notes.md`
+优先使用项目已有的任务记录目录；没有约定目录时使用 `docs/work/<task-slug>/working-notes.md`，并从当前计划或设计链接它。
 
 规则：
 
@@ -44,12 +42,7 @@ description: Use when a complex task will span turns or sessions and needs struc
 - 只有当内容明显分叉或持续膨胀时，才拆出更多文件
 - 不要仅为了记笔记提前新建新的迭代目录
 
-如果对应迭代目录已经存在，直接在其下创建或更新 `work/`。
-
-如果对应迭代目录还不存在：
-
-- 用户明确要求提前留痕：可以先建对应迭代目录并开始记
-- 用户没有明确要求：先按项目迭代制度判断，不要只为了笔记新开迭代
+已有任务目录时直接更新；不为了笔记新建版本发布目录。若项目已有更严格的迭代命名合同，采用项目路径。
 
 ## 推荐结构
 
@@ -106,7 +99,7 @@ description: Use when a complex task will span turns or sessions and needs struc
 
 拆分后仍要遵循一个原则：
 
-- 当前迭代 `README.md` 必须链接这些文件
+- 当前计划、设计或任务入口必须链接这些文件
 
 ## 与任务 owner 的配合
 
@@ -116,7 +109,7 @@ description: Use when a complex task will span turns or sessions and needs struc
 
 ## 反模式
 
-- 把 `work/` 写成第二份完整迭代 README
+- 把 `work/` 写成第二份完整计划或迭代 README
 - 把原始日志整段粘进去，几百行也不整理
 - 只记现象，不记已排除项和下一步
 - 关键决策只留在聊天里，不落到 `work/`
@@ -129,4 +122,4 @@ description: Use when a complex task will span turns or sessions and needs struc
 1. 下一轮对话不看历史长聊天，也能快速接上
 2. 已排除项和活跃假设是清楚分开的
 3. 当前决策与下一步是可执行的
-4. `README.md` 能找到这份笔记
+4. 当前任务入口能找到这份笔记

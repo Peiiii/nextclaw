@@ -7,9 +7,9 @@ description: 通用开发流程的唯一 Meta Skill；理解后选择 standard�
 
 ## 职责与入口
 
-只管理流程、阶段状态与完成判断，不复制阶段方法或动态项目事实。意图宏读取 `commands/commands.md` 展开；解释、引用不执行。仅调查、设计、Review 等请求止于指定产物，不自动扩展为实现或发布。
+只管理流程、阶段状态与完成判断，不复制阶段方法或动态项目事实。项目定义了意图宏时按其权威登记展开；解释、引用不执行。仅调查、设计、Review 等请求止于指定产物，不自动扩展为实现或发布。
 
-需要阶段追踪、Token/耗时测量、模型对比或本地 dashboard 时，读取 Wiki 中的[任务遥测方法](../../wiki/skills/process/development-task-telemetry/SKILL.md)；普通任务不默认加载 observer。切入 worktree、迁移草稿或主线并发时读取[Worktree 合同](references/parallel-worktree-development.md)；用户同时明确省 Token 和子代理才读[委派合同](references/token-efficient-delegation.md)。
+切入 worktree、迁移草稿或主线并发时遵守目标项目的 Git 工作区合同；项目没有专门合同也要保护既有改动并精确迁移本任务草稿。用户同时明确省 Token 和子代理时才读[委派合同](references/token-efficient-delegation.md)。
 
 共同入口由 Task Understanding 给出用户结果、范围/授权、成功判定、事实/假设/未知、owner、风险与分类依据。上下文足够时不反问；会改变目标或关键选择的缺口才澄清。
 
@@ -69,7 +69,7 @@ AI 验收结合 Validation 合同证据与 Review 结论，不新增平行 Skill
 
 ## 完成门
 
-整体仅由本 Meta Skill 判定：最小完整结果成立；授权内无可关闭的必要缺口；适用验证有效、Review findings 清零；Delivery 已完成适用交接与用户验收合同；Retrospective 已判断是否沉淀；未验证和主观项已披露。包含复盘新增文件在内，本任务改动须全部归入交付范围；已切 worktree 时源区不得遗留本任务改动，未切换或未获提交授权时明确草稿位置与未提交状态。
+整体仅由本 Meta Skill 判定：最小完整结果成立；授权内无可关闭的必要缺口；适用验证有效、Review findings 清零；Delivery 已完成适用交接与用户验收合同；Retrospective 已判断是否沉淀；未验证和主观项已披露。包含复盘新增文件在内，本任务改动须全部归入交付范围；已切 worktree 时源区不得遗留本任务改动，未获提交授权时明确草稿位置与未提交状态。
 
 完成判断分别核对实现、AI 验证和用户交付，不以测试通过或工作区路径代替 Delivery 的证据。适用用户验收时，须有包含本次改动的可用入口、完整使用链路、AI 按该链路先行验证及交接结果；缺项返回 Delivery，设计自行缩减原结果则返回 Design，不能据此宣布完成。纯内部或用户明确限定的产物交付按其范围核对。
 

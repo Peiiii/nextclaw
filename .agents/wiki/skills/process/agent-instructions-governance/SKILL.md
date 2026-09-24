@@ -1,0 +1,48 @@
+---
+name: agent-instructions-governance
+description: 当确定要修改 AGENTS.md、commands、项目 AI 规则、skill/references、治理脚本，或明确优化 AI 驱动开发体系时使用；普通规则讨论和一次性纠偏不提前触发。
+---
+
+# AI 指令系统治理
+
+## 目标
+
+保持规则可靠、单一 owner、渐进加载和低 token 成本。修改前先对齐当前项目目标、检查工作区和规则体积，并识别真正根因是缺失、重复、过宽、过长、过期还是放错层。外部写入授权仍以用户和当前项目的明确合同为准。
+
+## 分层
+
+1. `AGENTS.md`：每轮必须知道的安全与高层边界。
+2. `.agents/skills/*/SKILL.md`：需要参与初始发现的工作流、阶段或独立任务入口。
+3. skill `references/`：仅由一个入口拥有、在子场景成立时读取的合同。
+4. `.agents/wiki/skills/<group>/<skill>/SKILL.md`：按领域分组、被上层显式加载的完整下级 Skill；不参与初始发现。
+5. `.agents/wiki/knowledge`：事实、背景、案例与权威来源索引；不拥有流程或授权。
+6. `scripts/` / tests：高信号、低误报、可确定执行的检查。
+7. `docs/`：人类设计、计划和历史；除非入口明确链接，不承担自动硬规则。
+
+每次触发 skill 都必需的内容保留在入口；单 owner 条件内容进 references；两个以上真实入口共享同一独立合同、或能力需要保留可复用 Skill 身份时进入分组 Wiki Skill。不要用 Wiki 隐藏默认必读合同，也不要把只被一个入口使用的材料升级为共享库。
+
+## 修改顺序
+
+1. 区分个案、重复模式和稳定规则；沉淀层级不得高于证据。找 owner 和相邻规则，优先删除、合并、收窄或移动。
+2. 每个稳定工作域只有一个 workflow root；普通开发由唯一 lifecycle owner 管理。阶段不直接调用其它阶段或回链，独立 skill 不回链上游。
+3. description 只描述一个稳定意图，不堆“实现/方案/深入/最佳实践”等泛词抢占触发。
+4. 一个判断分支最多要求一个直接下游；阶段 Skill、下级 Wiki Skill 与知识都只在当前节点加载。
+5. 规则影响脚本或命令时同步更新；脚本变化也同步 owning 文本。
+6. 核心阶段使用统一的 `development-<stage>` 命名；产品、仓库命令或发布合同的 Skill 保留项目自己的命名空间。
+7. 大型重构写设计并在同批迭代记录中留痕，小措辞不建日志。
+
+## 条件方法
+
+- 新增、修订、合并或退役意图宏时，读取[意图宏维护](references/intent-macros.md)；调用只读命中定义，不加载维护合同。
+- 用户明确要求优化 AI 驱动开发体系，或有效反馈暴露重复、系统性、高影响机制缺口时，读取[开发体系演进闭环](references/development-system-evolution.md)。
+- 修改、提升、下沉、合并或删除规则资产，或者要标记/复核模型能力补丁时，读取[规则资产生命周期](references/rule-asset-lifecycle.md)。
+- 任务明确涉及常驻上下文膨胀、渐进加载、重复读取或 Token 成本时，读取[上下文与 Token 治理](references/context-token-governance.md)。
+- 新增、删除、合并、分组或下沉 Skill，或改变 workflow/阶段/独立入口拓扑时，读取[Skill 拓扑与创建门](references/skill-topology.md)。
+
+普通局部措辞修正不机械加载多份参考；每次只读取当前判断确实需要的方法，不批量预读。
+
+## 检查
+
+完成前运行项目已有的 Skill 渐进加载与链接检查；修改本框架上游时运行 `npm run check`，确认 manifest、frontmatter、相对链接和项目身份边界。再按改动风险运行项目治理检查。纯指令 Markdown 不运行产品 build/tsc/冒烟。
+
+最终报告 AGENTS、skill 数、description、discovery 字符和入口体积变化，说明 Wiki、command/script/baseline 是否适用，以及设计/迭代落点。

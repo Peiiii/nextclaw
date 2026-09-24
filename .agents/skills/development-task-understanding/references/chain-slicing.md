@@ -20,9 +20,9 @@
 
 普通症状与附加前提必须分别证明。压缩、继承、特定工具、消息类型或 runtime 只有在真实失败链路中出现，才能进入根因；特殊场景失败不能自动解释普通场景。
 
-## NextClaw 校准
+## 状态校准
 
-需要复现时固定隔离的 `NEXTCLAW_HOME`、session、project root、provider/model/runtime 和 skill 集。常用对照：
+需要复现时固定与故障有关的项目根目录、运行实例、配置、模型或外部服务以及加载的能力集。常用对照：
 
 - 流式：第一个错误事件、事件顺序、首次字段丢失；
 - UI 状态：server truth、persisted truth、rendered truth；

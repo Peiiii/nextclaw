@@ -35,8 +35,8 @@ description: 开发结束前判断经验是否值得沉淀，区分事实、方�
 
 一次只返回当前资产的 owner 和处置建议，由总流程调度，不回链或自行启动其它阶段：
 
-- 流程、方法、宏、AGENTS 或模型补丁改进：`nextclaw-agent-instructions-governance`，执行[资产生命周期](../nextclaw-agent-instructions-governance/references/rule-asset-lifecycle.md)。
+- 流程、方法、宏、AGENTS 或模型补丁改进：先找当前项目或上游框架的规则 owner；项目没有更具体的 owner 时读取[AI 指令系统治理](../../wiki/skills/process/agent-instructions-governance/SKILL.md)。上游共享文件的改进回到框架仓库，不能仅在已安装副本里永久分叉。
 - 事实、决策、想法或知识更新：读取[项目知识治理](../../wiki/skills/process/project-knowledge-governance/SKILL.md)。
-- 有独立交付意义的重要批次留痕：读取[迭代记录治理](../../wiki/skills/governance/nextclaw-iteration-log-governance/SKILL.md)。
+- 有独立交付意义的重要批次留痕：按当前项目的迭代记录合同处理，不为形式创建日志。
 
 在当前授权范围内处理可确定更新；无体系修改授权时给出候选，不以复盘扩大产品任务。输出证据、唯一落点、更新/合并/删除/不沉淀决定与验证边界。已有方法充分但一次漏执行，先修调用证据，不追加“务必注意”。
