@@ -1,0 +1,21 @@
+{
+  "name": "@nextclaw/bibo-hosted",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tsc": "tsc -p tsconfig.json --noEmit",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "@nextclaw/harness": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/containers": "^0.3.7",
+    "@cloudflare/workers-types": "^4.20260228.0",
+    "@types/node": "^20.17.6",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.67.0"
+  }
+}

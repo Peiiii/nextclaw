@@ -47,3 +47,5 @@ You can ask NextClaw to inspect its version and health, then update or restart w
 NextClaw runs on a machine or server you control. Your workspace, sessions, configuration, and secrets live in that environment. Connected models, channels, and external tools still receive the data you explicitly send through them. Review the target directory, permission scope, and real result before high-impact actions.
 
 New here? [Install NextClaw](/en/guide/install), then [create your first task](/en/guide/create-task).
+
+For a separate hosted companion you can use in a browser, see [Bibo](/en/guide/bibo).
