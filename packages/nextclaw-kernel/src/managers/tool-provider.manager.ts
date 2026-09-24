@@ -62,7 +62,13 @@ export class ToolProviderManager {
     }
     for (const provider of [...this.providers]) {
       for (const tool of await provider.provide(request)) {
-        if (!this.isAllowed(tool.name) || seen.has(tool.name)) {
+        if (!this.isAllowed(tool.name)) {
+          continue;
+        }
+        if (seen.has(tool.name)) {
+          if (this.allowedToolNames !== null) {
+            throw new Error(`Restricted tool catalog has a duplicate name: ${tool.name}`);
+          }
           continue;
         }
         seen.add(tool.name);

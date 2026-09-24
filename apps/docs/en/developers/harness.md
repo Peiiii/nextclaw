@@ -42,7 +42,7 @@ const result = await run.result();
 
 For a one-shot run that should not retain a second private transcript, call `await harness.sessions.delete(result.sessionId)` after `run.result()` settles. A session with an active run cannot be deleted.
 Set `sessionSearchEnabled: false` for such ephemeral sessions to avoid creating a second searchable text index.
-Set `sessionTitleEnabled: false` to avoid an extra automatic title-model request. If the embedding contributes its own complete, compact Agent context, `nativeContextEnabled: false` skips NextClaw's default context providers without disabling Agent runs, sessions, or registered tools.
+Set `sessionTitleEnabled: false` to avoid an extra automatic title-model request. If an embedding contributes its own product context, `contextProfile: "embedded"` keeps NextClaw's core safety and execution-policy context while omitting product-specific context. It does not disable Agent runs, sessions, or registered tools.
 `runTask` and session `run` accept a positive integer `maxTokens` to cap each model response.
 
 ## Options and task input

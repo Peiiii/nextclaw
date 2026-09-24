@@ -170,6 +170,34 @@ describe("Restricted Harness dispatch", () => {
 });
 
 describe("Harness custom configuration", () => {
+  it("waits for pending session writes before Kernel disposal completes", async () => {
+    const homeDir = mkdtempSync(join(tmpdir(), "nextclaw-harness-flush-"));
+    const configPath = join(homeDir, "config.json");
+    writeFileSync(configPath, JSON.stringify({
+      agents: { defaults: { workspace: join(homeDir, "workspace") } },
+    }));
+    const kernel = new NextclawKernel({ homeDir, configPath });
+    let releaseFlush: (() => void) | undefined;
+    const pendingFlush = new Promise<void>((resolve) => {
+      releaseFlush = resolve;
+    });
+    const flush = vi.spyOn(kernel.sessionManager, "flushSessionEvents")
+      .mockImplementation(async () => await pendingFlush);
+    try {
+      await kernel.start();
+      let disposed = false;
+      const disposal = kernel.dispose().then(() => { disposed = true; });
+      await vi.waitFor(() => expect(flush).toHaveBeenCalledOnce());
+      expect(disposed).toBe(false);
+      releaseFlush?.();
+      await disposal;
+      expect(disposed).toBe(true);
+    } finally {
+      releaseFlush?.();
+      rmSync(homeDir, { recursive: true, force: true });
+    }
+  });
+
   it("creates an Agent in the supplied config file, not the default home", async () => {
     const homeDir = mkdtempSync(join(tmpdir(), "nextclaw-harness-agent-"));
     const configPath = join(homeDir, "config.json");
@@ -217,15 +245,19 @@ describe("Harness custom configuration", () => {
     const kernel = new NextclawKernel({
       homeDir,
       configPath,
-      nativeContextEnabled: false,
+      contextProfile: "embedded",
       sessionTitleEnabled: false,
     });
     try {
       await kernel.start();
-      expect(await kernel.contextProviderManager.buildContext({
+      const context = await kernel.contextProviderManager.buildContext({
         message: { id: "message-one", role: "user", parts: [{ type: "text", text: "hi" }], status: "final" },
-      } as never)).toEqual([]);
+      } as never);
+      expect(context.join("\n")).toContain("## Safety");
+      expect(context.join("\n")).toContain("## Tool Use Enforcement");
+      expect(context.join("\n")).not.toContain("CLI Quick Reference");
       expect((kernel.sessionManager as unknown as { titles?: unknown }).titles).toBeUndefined();
+      expect(kernel.assetStore.rootDir).toBe(join(homeDir, "assets"));
     } finally {
       await kernel.dispose();
       rmSync(homeDir, { recursive: true, force: true });

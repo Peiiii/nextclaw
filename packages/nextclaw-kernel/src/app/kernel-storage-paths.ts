@@ -17,6 +17,12 @@ export function resolveKernelAppHomeDirectory(
   return resolve(homeDir ? expandHome(homeDir) : getDataDir(), "apps");
 }
 
+export function resolveKernelAssetDirectory(
+  options: KernelStoragePathOptions,
+): string {
+  return resolveKernelDataPath(options, "assets");
+}
+
 export function resolveKernelSessionsDir(
   options: KernelStoragePathOptions,
 ): string {

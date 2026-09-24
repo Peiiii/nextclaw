@@ -324,12 +324,12 @@ export function createKernelSessionManagers(params: {
 
 export function createKernelContributions(
   kernel: NextclawKernel,
-  nativeContextEnabled = true,
+  contextProfile: "default" | "embedded" = "default",
 ): KernelContribution[] {
   return [
     new ToolProviderContribution(kernel),
     new LearningLoopContribution(kernel),
-    ...(nativeContextEnabled ? [new ContextProviderContribution(kernel)] : []),
+    new ContextProviderContribution(kernel, contextProfile),
     new AgentRunRuntimeContribution(kernel),
     new ContextWindowContribution(kernel),
   ];

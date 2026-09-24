@@ -48,9 +48,9 @@ After a one-shot run, `await harness.sessions.delete(result.sessionId)` removes 
 session journal when no run is active. For ephemeral sessions, set
 `sessionSearchEnabled: false` to avoid making a second searchable copy of their text.
 `sessionTitleEnabled: false` prevents an extra title-generation model request.
-`nativeContextEnabled: false` skips NextClaw's built-in context providers when
-the embedding contributes its own complete, compact Agent context. This does not
-disable Agent execution, sessions, or explicitly registered tools.
+`contextProfile: "embedded"` retains NextClaw's core safety and execution-policy
+context while the embedding supplies product-specific Agent context. This does
+not disable Agent execution, sessions, or explicitly registered tools.
 Pass `maxTokens` to `runTask` or a session run to bound each model response.
 
 ```ts
@@ -58,7 +58,7 @@ const harness = new NextclawHarness({
   allowedToolNames: ["tool_schema", "my_workspace_read"],
   sessionSearchEnabled: false,
   sessionTitleEnabled: false,
-  nativeContextEnabled: false,
+  contextProfile: "embedded",
 });
 ```
 

@@ -42,7 +42,7 @@ const result = await run.result();
 
 一次性使用且不希望额外保存私聊日志时，在 `run.result()` 完成后调用 `await harness.sessions.delete(result.sessionId)`。仍有任务运行的 session 不可删除。
 若这些 session 只为执行而创建，设置 `sessionSearchEnabled: false`，避免再生成可搜索的原文索引。
-设置 `sessionTitleEnabled: false` 可避免额外的自动标题模型请求。若嵌入方已通过 Contribution 提供完整、简洁的 Agent 上下文，可设置 `nativeContextEnabled: false` 跳过 NextClaw 默认上下文；这不会关闭 Agent run、会话和已注册的工具。
+设置 `sessionTitleEnabled: false` 可避免额外的自动标题模型请求。若嵌入方通过 Contribution 提供自己的产品上下文，可设置 `contextProfile: "embedded"`：保留 NextClaw 的基础安全和执行约束，省去其余仅适用于 NextClaw 产品的上下文；这不会关闭 Agent run、会话和已注册的工具。
 `runTask` 和 session `run` 可传正整数 `maxTokens`，限制单次模型回复的 token 上限。
 
 ## Options 与任务输入

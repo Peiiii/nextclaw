@@ -54,16 +54,15 @@ import type { KernelContribution } from "@kernel/types/kernel-contribution.types
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
   type GatewayController,
-  getDataDir,
   getWorkspacePath,
   MessageBus,
   DiagnosticRuntime,
   type SessionSearchService,
 } from "@nextclaw/core";
 import { EventBus, Ingress } from "@nextclaw/shared";
-import { resolve } from "node:path";
 import {
   resolveKernelAppHomeDirectory,
+  resolveKernelAssetDirectory,
   resolveKernelAutomationStorePath,
   resolveKernelCapabilityGrantMigrationMarkerPath,
   resolveKernelCapabilityGrantStorePath,
@@ -102,8 +101,8 @@ export type NextclawKernelOptions = {
   sessionSearchEnabled?: boolean;
   /** Disable automatic title-model calls for short-lived embedded sessions. */
   sessionTitleEnabled?: boolean;
-  /** Let an embedding supply its own compact Agent context. */
-  nativeContextEnabled?: boolean;
+  /** Embedded apps keep core safety context and supply their own product context. */
+  contextProfile?: "default" | "embedded";
 };
 
 type NextclawKernelRuntimeControl<TGatewayInput, TUiInput, TStartInput> = {
@@ -210,7 +209,7 @@ export class NextclawKernel {
       providerManager: this.llmProviders,
       providerModelCatalogManager: this.providerModelCatalog,
     }));
-    this.assetStore = new LocalAssetStore({ rootDir: resolve(getDataDir(), "assets") });
+    this.assetStore = new LocalAssetStore({ rootDir: resolveKernelAssetDirectory(options) });
     this.control = new NextclawKernelControlManager<unknown, unknown, unknown>();
     this.agents = new AgentManager(this.configManager, {
       configPath: this.configManager.configPath,
@@ -326,7 +325,7 @@ export class NextclawKernel {
     this.plannedRestartRecovery = createKernelPlannedRestartRecovery(
       this, resolveKernelPlannedRestartRecoveryPath(options),
     );
-    this.contributions = createKernelContributions(this, options.nativeContextEnabled !== false);
+    this.contributions = createKernelContributions(this, options.contextProfile);
   }
 
   private createCapabilityGrantLegacyMigration = (options: NextclawKernelOptions) =>
@@ -386,10 +385,15 @@ export class NextclawKernel {
     this.contextProviderManager.dispose();
     await this.agentRuntimeManager.dispose();
     this.sessionRunManager.dispose();
-    this.sessionManager.dispose();
-    await this.mcpManager.dispose();
-    await this.serviceAppManager.dispose();
-    await this.sessionSearch.dispose();
-    this.projectWorkManager.dispose(); this.projectManager.dispose();
+    try {
+      await this.sessionManager.flushSessionEvents();
+    } finally {
+      this.sessionManager.dispose();
+      this.ncpAgentSessionJournalStore.close();
+      await this.mcpManager.dispose();
+      await this.serviceAppManager.dispose();
+      await this.sessionSearch.dispose();
+      this.projectWorkManager.dispose(); this.projectManager.dispose();
+    }
   };
 }

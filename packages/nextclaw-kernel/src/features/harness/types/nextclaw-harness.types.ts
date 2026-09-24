@@ -77,8 +77,8 @@ export type NextclawHarnessOptions = {
   sessionSearchEnabled?: boolean;
   /** Set false to avoid title-generation model calls for ephemeral sessions. */
   sessionTitleEnabled?: boolean;
-  /** Set false when the embedding registers its own complete, compact context. */
-  nativeContextEnabled?: boolean;
+  /** Keep core safety context while replacing NextClaw-specific context in an embedding. */
+  contextProfile?: "default" | "embedded";
   productActivitySink?: {
     record: (signal: {
       kind: "intent_accepted" | "run_succeeded";

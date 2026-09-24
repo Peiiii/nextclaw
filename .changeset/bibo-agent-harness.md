@@ -3,4 +3,4 @@
 "@nextclaw/harness": patch
 ---
 
-Support restricted embedded Agent runs with an exact tool allowlist, optional built-in context/index/title disabling, per-run token limits, safe session deletion, and correct custom-config Agent profiles.
+Support restricted embedded Agent runs with a fail-closed tool allowlist, an embedded context profile that retains safety instructions, optional search and title generation, per-run token limits, safe session deletion and disposal, and home-relative assets.

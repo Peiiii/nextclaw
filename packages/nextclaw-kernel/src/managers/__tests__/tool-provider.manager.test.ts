@@ -62,6 +62,17 @@ describe("ToolProviderManager", () => {
       .toEqual(["safe_read"]);
   });
 
+  it("fails closed on duplicate allowed tool names", async () => {
+    const manager = new ToolProviderManager(undefined, {
+      allowedToolNames: ["bibo_memory_read"],
+    });
+    manager.register({ provide: () => [createTool("bibo_memory_read")] });
+    manager.register({ provide: () => [createTool("bibo_memory_read")] });
+    await expect(manager.buildTools({ message: createMessage() })).rejects.toThrow(
+      "duplicate name: bibo_memory_read",
+    );
+  });
+
   it("builds tools from registered providers and keeps the first provider for duplicate names", async () => {
     const manager = new ToolProviderManager();
     const firstSearch = createTool("search");
