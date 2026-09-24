@@ -110,7 +110,7 @@ async function sendRun(request, response) {
 }
 
 let busy = false;
-createServer(async (request, response) => {
+const server = createServer(async (request, response) => {
   const route = new URL(request.url ?? "/", "http://localhost").pathname;
   if (route === "/health") return sendJson(response, 200, { ok: true });
   if (busy) return sendJson(response, 429, { error: "Bibo is busy" });
@@ -135,3 +135,7 @@ createServer(async (request, response) => {
     busy = false;
   }
 }).listen(Number(process.env.BIBO_PORT ?? 8080), "0.0.0.0");
+
+process.on("SIGTERM", () => {
+  server.close(() => process.exit(0));
+});

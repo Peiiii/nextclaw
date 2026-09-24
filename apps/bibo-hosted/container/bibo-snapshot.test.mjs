@@ -86,4 +86,8 @@ test("snapshot stays valid while NextClaw's SQLite WAL is being written", async 
   assert.ok(writes > 0, "WAL changed during the snapshot");
 
   await verifyArchive(temporary, response);
+
+  const exited = once(runner, "exit");
+  runner.kill("SIGTERM");
+  assert.deepEqual(await exited, [0, null], "idle runner exits cleanly when Cloudflare stops it");
 });
