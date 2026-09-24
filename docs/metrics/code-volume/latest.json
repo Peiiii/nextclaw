@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-09-23T07:43:05.728Z",
+  "generatedAt": "2026-09-24T07:33:51.145Z",
   "projectRoot": "/home/runner/work/nextclaw/nextclaw",
   "git": {
-    "sha": "7d829cee27d4a3017e8a7a557c706cd287d99942",
+    "sha": "c873e9208da56c6427a0221fd1f4abcd4ab1d85b",
     "ref": "master"
   },
   "scope": {
@@ -103,30 +103,30 @@
   },
   "totals": {
     "files": 3261,
-    "totalLines": 480981,
-    "blankLines": 40756,
+    "totalLines": 481045,
+    "blankLines": 40765,
     "commentLines": 1118,
-    "codeLines": 307071,
-    "testCodeLines": 132036
+    "codeLines": 307076,
+    "testCodeLines": 132086
   },
   "byLanguage": [
     {
       "name": "TypeScript",
       "files": 2571,
-      "totalLines": 374449,
-      "blankLines": 32639,
+      "totalLines": 374428,
+      "blankLines": 32638,
       "commentLines": 1006,
-      "codeLines": 244647,
-      "testCodeLines": 96157
+      "codeLines": 244652,
+      "testCodeLines": 96132
     },
     {
       "name": "TSX",
       "files": 667,
-      "totalLines": 104610,
-      "blankLines": 7961,
+      "totalLines": 104695,
+      "blankLines": 7971,
       "commentLines": 102,
       "codeLines": 60842,
-      "testCodeLines": 35705
+      "testCodeLines": 35780
     },
     {
       "name": "MJS",
@@ -142,11 +142,11 @@
     {
       "name": "packages/nextclaw-ui",
       "files": 932,
-      "totalLines": 129131,
-      "blankLines": 10651,
+      "totalLines": 129100,
+      "blankLines": 10652,
       "commentLines": 142,
-      "codeLines": 75897,
-      "testCodeLines": 42441
+      "codeLines": 75868,
+      "testCodeLines": 42438
     },
     {
       "name": "packages/nextclaw-kernel",
@@ -187,11 +187,11 @@
     {
       "name": "packages/nextclaw-agent-chat-ui",
       "files": 148,
-      "totalLines": 25717,
-      "blankLines": 2067,
+      "totalLines": 25812,
+      "blankLines": 2075,
       "commentLines": 67,
-      "codeLines": 14064,
-      "testCodeLines": 9519
+      "codeLines": 14098,
+      "testCodeLines": 9572
     },
     {
       "name": "packages/nextclaw-server",
@@ -1116,16 +1116,6 @@
       "codeLines": 508
     },
     {
-      "path": "packages/nextclaw-ui/src/features/chat/features/conversation/hooks/use-session-conversation-controller.ts",
-      "scope": "packages/nextclaw-ui",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 535,
-      "blankLines": 27,
-      "commentLines": 0,
-      "codeLines": 508
-    },
-    {
       "path": "packages/nextclaw-ui/src/features/chat/features/conversation/components/session-conversation-input.tsx",
       "scope": "packages/nextclaw-ui",
       "language": "TSX",
@@ -1214,6 +1204,16 @@
       "blankLines": 21,
       "commentLines": 0,
       "codeLines": 486
+    },
+    {
+      "path": "packages/nextclaw-ui/src/features/chat/features/conversation/hooks/use-session-conversation-controller.ts",
+      "scope": "packages/nextclaw-ui",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 511,
+      "blankLines": 26,
+      "commentLines": 0,
+      "codeLines": 485
     },
     {
       "path": "apps/platform-console/src/features/auth/pages/login-page.tsx",
@@ -4616,6 +4616,16 @@
       "codeLines": 250
     },
     {
+      "path": "packages/nextclaw-agent-chat-ui/src/components/chat/hooks/use-sticky-bottom-scroll.ts",
+      "scope": "packages/nextclaw-agent-chat-ui",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 288,
+      "blankLines": 35,
+      "commentLines": 4,
+      "codeLines": 249
+    },
+    {
       "path": "packages/nextclaw-core/src/features/session-search/stores/session-search.store.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
@@ -5514,16 +5524,6 @@
       "blankLines": 17,
       "commentLines": 0,
       "codeLines": 217
-    },
-    {
-      "path": "packages/nextclaw-agent-chat-ui/src/components/chat/hooks/use-sticky-bottom-scroll.ts",
-      "scope": "packages/nextclaw-agent-chat-ui",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 250,
-      "blankLines": 31,
-      "commentLines": 4,
-      "codeLines": 215
     },
     {
       "path": "packages/nextclaw/src/cli/app/stores/discussion/discussion-listener-state.store.ts",
@@ -18356,16 +18356,6 @@
       "codeLines": 36
     },
     {
-      "path": "packages/nextclaw-ui/src/features/chat/features/input/utils/ncp-chat-input-availability.utils.ts",
-      "scope": "packages/nextclaw-ui",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 43,
-      "blankLines": 7,
-      "commentLines": 0,
-      "codeLines": 36
-    },
-    {
       "path": "packages/nextclaw-ui/src/shared/hooks/use-server-path-watch.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -19309,6 +19299,16 @@
       "path": "packages/nextclaw-ui/src/features/chat/components/providers/chat-presenter.provider.tsx",
       "scope": "packages/nextclaw-ui",
       "language": "TSX",
+      "files": 1,
+      "totalLines": 36,
+      "blankLines": 6,
+      "commentLines": 0,
+      "codeLines": 30
+    },
+    {
+      "path": "packages/nextclaw-ui/src/features/chat/features/input/utils/ncp-chat-input-availability.utils.ts",
+      "scope": "packages/nextclaw-ui",
+      "language": "TypeScript",
       "files": 1,
       "totalLines": 36,
       "blankLines": 6,
@@ -25866,6 +25866,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-ui/src/features/chat/features/conversation/hooks/__tests__/use-session-conversation-controller.test.tsx",
+      "scope": "packages/nextclaw-ui",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 519,
+      "blankLines": 67,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-ui/src/features/chat/features/workspace/utils/__tests__/chat-workspace-panel-view-model.utils.test.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -25916,6 +25926,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-agent-chat-ui/src/components/chat/hooks/use-sticky-bottom-scroll.test.tsx",
+      "scope": "packages/nextclaw-agent-chat-ui",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 496,
+      "blankLines": 45,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-kernel/src/features/desktop-host/managers/desktop-host-capability.manager.test.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
@@ -25932,16 +25952,6 @@
       "files": 1,
       "totalLines": 494,
       "blankLines": 54,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-ui/src/features/chat/features/conversation/hooks/__tests__/use-session-conversation-controller.test.tsx",
-      "scope": "packages/nextclaw-ui",
-      "language": "TSX",
-      "files": 1,
-      "totalLines": 491,
-      "blankLines": 61,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -26073,16 +26083,6 @@
       "totalLines": 440,
       "blankLines": 39,
       "commentLines": 1,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/nextclaw-agent-chat-ui/src/components/chat/hooks/use-sticky-bottom-scroll.test.tsx",
-      "scope": "packages/nextclaw-agent-chat-ui",
-      "language": "TSX",
-      "files": 1,
-      "totalLines": 439,
-      "blankLines": 41,
-      "commentLines": 0,
       "codeLines": 0
     },
     {
@@ -29616,16 +29616,6 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-ui/src/features/chat/features/input/utils/__tests__/ncp-chat-input-availability.utils.test.ts",
-      "scope": "packages/nextclaw-ui",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 107,
-      "blankLines": 13,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
       "path": "packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-input-bar/__tests__/chat-composer-dictation.test.ts",
       "scope": "packages/nextclaw-agent-chat-ui",
       "language": "TypeScript",
@@ -30702,6 +30692,16 @@
       "files": 1,
       "totalLines": 79,
       "blankLines": 13,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/nextclaw-ui/src/features/chat/features/input/utils/__tests__/ncp-chat-input-availability.utils.test.ts",
+      "scope": "packages/nextclaw-ui",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 79,
+      "blankLines": 10,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -33348,7 +33348,7 @@
   ],
   "delta": {
     "previousCodeLines": 307071,
-    "codeLines": 0,
+    "codeLines": 5,
     "percent": 0
   }
 }
