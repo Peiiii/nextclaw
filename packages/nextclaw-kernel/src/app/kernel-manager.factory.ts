@@ -22,7 +22,6 @@ import {
 } from "@kernel/features/projects/index.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import {
-  getDataDir,
   getWorkspacePathFromConfig,
   type DiagnosticRuntime,
   type MessageBus,
@@ -239,6 +238,7 @@ export function createKernelSessionManagers(params: {
   legacyProjectStorePath: string;
   projectDatabasePath: string;
   sessionsDir: string;
+  sessionTitleEnabled?: boolean;
 }): {
   journalStore: NcpAgentSessionJournalStore;
   observations: ObservationManager;
@@ -257,7 +257,7 @@ export function createKernelSessionManagers(params: {
   } = params;
   const { agentContextWindowManager, agents: agentManager, configManager, eventBus, ingress } = kernel;
   const sessionSearch = new SessionSearchService({
-    databasePath: resolve(getDataDir(), "session-search.db"),
+    databasePath: resolve(sessionsDir, "..", "session-search.db"),
     sessionsDir,
   });
   const journalStore = new NcpAgentSessionJournalStore(
@@ -285,7 +285,7 @@ export function createKernelSessionManagers(params: {
     current: null,
   };
   const sessionManager = new SessionManager({
-    providerManager: kernel.llmProviders,
+    providerManager: params.sessionTitleEnabled === false ? undefined : kernel.llmProviders,
     agentContextWindowManager,
     agentManager,
     configManager,
@@ -324,11 +324,12 @@ export function createKernelSessionManagers(params: {
 
 export function createKernelContributions(
   kernel: NextclawKernel,
+  nativeContextEnabled = true,
 ): KernelContribution[] {
   return [
     new ToolProviderContribution(kernel),
     new LearningLoopContribution(kernel),
-    new ContextProviderContribution(kernel),
+    ...(nativeContextEnabled ? [new ContextProviderContribution(kernel)] : []),
     new AgentRunRuntimeContribution(kernel),
     new ContextWindowContribution(kernel),
   ];

@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { EventBus, Ingress, createTypedKey } from "@nextclaw/shared";
+import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import { Contribution, NextclawContributionRegistry } from "./nextclaw-contribution.manager.js";
+import { NextclawSession, NextclawSessionRegistry } from "./nextclaw-session.manager.js";
+import { startPromptOverNcpExecution } from "@kernel/features/ncp-dispatch/index.js";
 import { runNextclawTaskWithHarness } from "@kernel/features/harness/utils/nextclaw-task.utils.js";
 import type {
   IKernel,
@@ -107,5 +113,122 @@ describe("runNextclawTaskWithHarness", () => {
       runNextclawTaskWithHarness(harness, { input: "hello" }),
     ).resolves.toMatchObject({ text: "done" });
     expect(harness.dispose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Harness session cleanup", () => {
+  it("rejects an invalid per-call output-token cap before dispatch", async () => {
+    const startExecution = vi.fn();
+    const session = new NextclawSession("mori", "exec:one", startExecution);
+    await expect(session.run({ input: "hello", maxTokens: 0 })).rejects.toMatchObject({
+      code: "invalid_input",
+    });
+    expect(startExecution).not.toHaveBeenCalled();
+  });
+
+  it("deletes a completed session journal and refuses to delete an active run", async () => {
+    const deleteSession = vi.fn(async () => undefined);
+    let running = true;
+    const sessions = new NextclawSessionRegistry(() => ({
+      isSessionRunning: () => running,
+      sessionManager: { deleteSession },
+    }) as never);
+
+    await expect(sessions.delete("  exec:one  ")).rejects.toMatchObject({
+      code: "invalid_input",
+    });
+    expect(deleteSession).not.toHaveBeenCalled();
+
+    running = false;
+    await sessions.delete("  exec:one  ");
+    expect(deleteSession).toHaveBeenCalledExactlyOnceWith("exec:one");
+  });
+});
+
+describe("Restricted Harness dispatch", () => {
+  it("routes slash-prefixed visitor text to the Agent instead of a command", async () => {
+    const startRun = vi.fn(async (_payload: unknown) => ({ handle: { sessionId: "exec:one" } }));
+    const result = await startPromptOverNcpExecution({
+      config: {
+        agents: { defaults: { id: "main" }, list: [] },
+        bindings: [],
+        session: { dmScope: "per-channel-peer" },
+      } as never,
+      agentRunClient: { startRun } as never,
+      content: "/help",
+      metadata: { maxTokens: 800 },
+      sessionKey: "exec:one",
+      allowSlashCommands: false,
+    });
+
+    expect(result.kind).toBe("agent");
+    expect(startRun).toHaveBeenCalledTimes(1);
+    expect(startRun.mock.calls[0]?.[0]).toMatchObject({
+      metadata: { maxTokens: 800 },
+    });
+  });
+});
+
+describe("Harness custom configuration", () => {
+  it("creates an Agent in the supplied config file, not the default home", async () => {
+    const homeDir = mkdtempSync(join(tmpdir(), "nextclaw-harness-agent-"));
+    const configPath = join(homeDir, "config.json");
+    writeFileSync(configPath, JSON.stringify({
+      agents: { defaults: { workspace: join(homeDir, "workspace") } },
+    }));
+    const kernel = new NextclawKernel({ homeDir, configPath });
+    try {
+      await kernel.agents.createAgent({ id: "mori", displayName: "墨里" });
+      expect(kernel.agents.getAgent("mori")?.id).toBe("mori");
+      expect(readFileSync(configPath, "utf8")).toContain('"mori"');
+    } finally {
+      await kernel.dispose();
+      rmSync(homeDir, { recursive: true, force: true });
+    }
+  });
+
+  it("does not start a session-search index when disabled for ephemeral runs", async () => {
+    const homeDir = mkdtempSync(join(tmpdir(), "nextclaw-harness-search-"));
+    const configPath = join(homeDir, "config.json");
+    writeFileSync(configPath, JSON.stringify({
+      agents: { defaults: { workspace: join(homeDir, "workspace") } },
+    }));
+    const kernel = new NextclawKernel({
+      homeDir,
+      configPath,
+      sessionSearchEnabled: false,
+    });
+    const startSearch = vi.spyOn(kernel.sessionSearch, "start");
+    try {
+      await kernel.start();
+      expect(startSearch).not.toHaveBeenCalled();
+    } finally {
+      await kernel.dispose();
+      rmSync(homeDir, { recursive: true, force: true });
+    }
+  });
+
+  it("lets an embedding own compact context and avoid title-model calls", async () => {
+    const homeDir = mkdtempSync(join(tmpdir(), "nextclaw-harness-compact-"));
+    const configPath = join(homeDir, "config.json");
+    writeFileSync(configPath, JSON.stringify({
+      agents: { defaults: { workspace: join(homeDir, "workspace") } },
+    }));
+    const kernel = new NextclawKernel({
+      homeDir,
+      configPath,
+      nativeContextEnabled: false,
+      sessionTitleEnabled: false,
+    });
+    try {
+      await kernel.start();
+      expect(await kernel.contextProviderManager.buildContext({
+        message: { id: "message-one", role: "user", parts: [{ type: "text", text: "hi" }], status: "final" },
+      } as never)).toEqual([]);
+      expect((kernel.sessionManager as unknown as { titles?: unknown }).titles).toBeUndefined();
+    } finally {
+      await kernel.dispose();
+      rmSync(homeDir, { recursive: true, force: true });
+    }
   });
 });

@@ -98,6 +98,12 @@ export type NextclawKernelOptions = {
   runtimeVersion?: string;
   productActivitySink?: ProductActivitySink;
   desktopHost?: DesktopHost;
+  /** Disable the optional session-search index for ephemeral embedded runs. */
+  sessionSearchEnabled?: boolean;
+  /** Disable automatic title-model calls for short-lived embedded sessions. */
+  sessionTitleEnabled?: boolean;
+  /** Let an embedding supply its own compact Agent context. */
+  nativeContextEnabled?: boolean;
 };
 
 type NextclawKernelRuntimeControl<TGatewayInput, TUiInput, TStartInput> = {
@@ -185,7 +191,7 @@ export class NextclawKernel {
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly contributions: KernelContribution[];
   private gatewayController: GatewayController | undefined;
-  constructor(options: NextclawKernelOptions = {}) {
+  constructor(private readonly options: NextclawKernelOptions = {}) {
     const sessionsDir = resolveKernelSessionsDir(options);
     const desktopHost = options.desktopHost ?? new UnavailableDesktopHost();
     this.capabilityGrants = new CapabilityGrantManager(resolveKernelCapabilityGrantStorePath(options));
@@ -206,7 +212,9 @@ export class NextclawKernel {
     }));
     this.assetStore = new LocalAssetStore({ rootDir: resolve(getDataDir(), "assets") });
     this.control = new NextclawKernelControlManager<unknown, unknown, unknown>();
-    this.agents = new AgentManager(this.configManager);
+    this.agents = new AgentManager(this.configManager, {
+      configPath: this.configManager.configPath,
+    });
     this.agentContextWindowManager = new AgentContextWindowManager(
       this.agents, this.contextProviderManager, this.toolProviderManager,
       this.assetStore,
@@ -225,6 +233,7 @@ export class NextclawKernel {
       observationStorePath: resolveKernelObservationStorePath(options),
       legacyProjectStorePath: resolveKernelLegacyProjectStorePath(options), projectDatabasePath: resolveKernelProjectDatabasePath(options),
       sessionsDir,
+      sessionTitleEnabled: options.sessionTitleEnabled,
     }));
     this.inboxDeliveryManager = new InboxDeliveryManager({
       eventBus: this.eventBus,
@@ -317,7 +326,7 @@ export class NextclawKernel {
     this.plannedRestartRecovery = createKernelPlannedRestartRecovery(
       this, resolveKernelPlannedRestartRecoveryPath(options),
     );
-    this.contributions = createKernelContributions(this);
+    this.contributions = createKernelContributions(this, options.nativeContextEnabled !== false);
   }
 
   private createCapabilityGrantLegacyMigration = (options: NextclawKernelOptions) =>
@@ -351,7 +360,7 @@ export class NextclawKernel {
     await this.appPackageManager.start();
     await this.appDataManager.start();
     await this.serviceAppManager.start();
-    void this.sessionSearch.start();
+    if (this.options.sessionSearchEnabled !== false) void this.sessionSearch.start();
     this.mcpManager.start();
     this.providerModelCatalog.start();
     await this.projectManager.initialize();

@@ -38,6 +38,30 @@ try {
 }
 ```
 
+Embedding untrusted callers requires an explicit tool boundary. `allowedToolNames` is a
+static allowlist for every Agent run in that Harness; omitting it preserves the default
+NextClaw catalog. A restricted Harness also treats leading `/` as ordinary user text
+instead of dispatching a slash command. An empty list exposes no tools. Register application-owned tools via
+`Contribution` and allow only their exact names; this is not an OS sandbox, and the
+application must still validate tool arguments and isolate its data and credentials.
+After a one-shot run, `await harness.sessions.delete(result.sessionId)` removes its
+session journal when no run is active. For ephemeral sessions, set
+`sessionSearchEnabled: false` to avoid making a second searchable copy of their text.
+`sessionTitleEnabled: false` prevents an extra title-generation model request.
+`nativeContextEnabled: false` skips NextClaw's built-in context providers when
+the embedding contributes its own complete, compact Agent context. This does not
+disable Agent execution, sessions, or explicitly registered tools.
+Pass `maxTokens` to `runTask` or a session run to bound each model response.
+
+```ts
+const harness = new NextclawHarness({
+  allowedToolNames: ["tool_schema", "my_workspace_read"],
+  sessionSearchEnabled: false,
+  sessionTitleEnabled: false,
+  nativeContextEnabled: false,
+});
+```
+
 ## 平台扩展
 
 扩展通过 `Contribution` 使用受限的 `this.kernel` façade。首批可组合能力包括 `tools`、`context`、`models`、`runtimes` 和 `mcp`；它们都随 Harness 自动启动和逆序释放。

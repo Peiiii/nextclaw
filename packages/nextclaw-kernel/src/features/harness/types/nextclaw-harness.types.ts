@@ -48,6 +48,7 @@ export type NextclawTaskInput = {
   agentId?: string;
   sessionId?: string;
   model?: string;
+  maxTokens?: number;
   signal?: AbortSignal;
   onEvent?: (event: NcpEndpointEvent) => void;
   onAssistantDelta?: (delta: string) => void;
@@ -70,6 +71,14 @@ export type NextclawHarnessOptions = {
   builtInAppsDirectory?: string;
   portableServiceRunnerPath?: string;
   productVersion?: string;
+  /** Static tool allowlist for all Agent runs in this Harness; [] exposes no tools. */
+  allowedToolNames?: readonly string[];
+  /** Set false when sessions are short-lived and no search index is needed. */
+  sessionSearchEnabled?: boolean;
+  /** Set false to avoid title-generation model calls for ephemeral sessions. */
+  sessionTitleEnabled?: boolean;
+  /** Set false when the embedding registers its own complete, compact context. */
+  nativeContextEnabled?: boolean;
   productActivitySink?: {
     record: (signal: {
       kind: "intent_accepted" | "run_succeeded";
@@ -99,6 +108,7 @@ export type NextclawSessionCreateInput = {
 export type NextclawSessionRunInput = {
   input: string;
   model?: string;
+  maxTokens?: number;
   signal?: AbortSignal;
   onEvent?: (event: NcpEndpointEvent) => void;
   onAssistantDelta?: (delta: string) => void;
@@ -230,6 +240,7 @@ export interface INextclawAgentSessions {
 
 export interface INextclawSessionRegistry {
   resume(sessionId: string): Promise<INextclawSession>;
+  delete(sessionId: string): Promise<void>;
 }
 
 export interface INextclawAgent {

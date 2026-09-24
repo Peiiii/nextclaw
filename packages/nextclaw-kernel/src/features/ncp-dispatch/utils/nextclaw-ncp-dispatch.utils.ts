@@ -23,6 +23,7 @@ export type DirectPromptDispatchParams = {
   attachments?: InboundAttachment[];
   metadata?: Record<string, unknown>;
   agentId?: string;
+  allowSlashCommands?: boolean;
   abortSignal?: AbortSignal;
   onAssistantDelta?: (delta: string) => void;
   onEvent?: (event: NcpEndpointEvent) => void;
@@ -135,6 +136,7 @@ export async function startPromptOverNcpExecution(
   const {
     abortSignal,
     agentId,
+    allowSlashCommands = true,
     attachments,
     channel,
     chatId,
@@ -156,13 +158,15 @@ export async function startPromptOverNcpExecution(
     metadata,
     agentId,
   });
-  const commandResult = await executeSlashCommandMaybe({
-    config,
-    rawContent: content,
-    channel: message.channel,
-    chatId: message.chatId,
-    sessionKey: route.sessionKey,
-  });
+  const commandResult = allowSlashCommands
+    ? await executeSlashCommandMaybe({
+        config,
+        rawContent: content,
+        channel: message.channel,
+        chatId: message.chatId,
+        sessionKey: route.sessionKey,
+      })
+    : null;
   if (commandResult) {
     return {
       kind: "command",

@@ -33,6 +33,9 @@ export class NextclawSession implements INextclawSession {
         "Task input must not be empty.",
       );
     }
+    if (input.maxTokens !== undefined && (!Number.isSafeInteger(input.maxTokens) || input.maxTokens < 1)) {
+      throw new NextclawHarnessError("invalid_input", "maxTokens must be a positive integer.");
+    }
     if (input.signal?.aborted) {
       throw new NextclawHarnessError("cancelled", "Task was cancelled.");
     }
@@ -69,6 +72,7 @@ export class NextclawSessionRegistry implements INextclawSessionRegistry {
     private readonly requireKernel: () => NextclawKernel,
     private readonly onRunCreated?: (run: NextclawRun) => void,
     private readonly onRunSettled?: (run: NextclawRun) => void,
+    private readonly allowSlashCommands = true,
   ) {}
 
   forAgent = (agentId: string): INextclawAgentSessions => ({
@@ -90,6 +94,18 @@ export class NextclawSessionRegistry implements INextclawSessionRegistry {
       session.agentId || kernel.agents.getDefaultAgentId(),
       normalizedSessionId,
     );
+  };
+
+  delete = async (sessionId: string): Promise<void> => {
+    const normalizedSessionId = this.normalizeSessionId(sessionId);
+    const kernel = this.requireKernel();
+    if (kernel.isSessionRunning(normalizedSessionId)) {
+      throw new NextclawHarnessError(
+        "invalid_input",
+        `Session ${normalizedSessionId} still has a running task.`,
+      );
+    }
+    await kernel.sessionManager.deleteSession(normalizedSessionId);
   };
 
   private createForAgent = async (
@@ -148,6 +164,7 @@ export class NextclawSessionRegistry implements INextclawSessionRegistry {
         const kernel = this.requireKernel();
         return await startPromptOverNcpExecution({
           agentId,
+          allowSlashCommands: this.allowSlashCommands,
           agentRunClient: new AgentRunClient({
             eventBus: kernel.eventBus,
             ingress: kernel.ingress,
@@ -155,9 +172,10 @@ export class NextclawSessionRegistry implements INextclawSessionRegistry {
           abortSignal: input.signal,
           config: kernel.configManager.config,
           content: input.input,
-          metadata: input.model?.trim()
-            ? { model: input.model.trim() }
-            : undefined,
+          metadata: {
+            ...(input.model?.trim() ? { model: input.model.trim() } : {}),
+            ...(input.maxTokens === undefined ? {} : { maxTokens: input.maxTokens }),
+          },
           onAssistantDelta: input.onAssistantDelta,
           onEvent: input.onEvent,
           sessionKey: sessionId,

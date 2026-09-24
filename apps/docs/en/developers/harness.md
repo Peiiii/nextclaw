@@ -40,9 +40,16 @@ const result = await run.result();
 
 `harness.sessions` is the session owner; `agent.sessions` is an Agent-scoped view of the same sessions. `run.cancel()` uses the normal NCP cancellation path.
 
+For a one-shot run that should not retain a second private transcript, call `await harness.sessions.delete(result.sessionId)` after `run.result()` settles. A session with an active run cannot be deleted.
+Set `sessionSearchEnabled: false` for such ephemeral sessions to avoid creating a second searchable text index.
+Set `sessionTitleEnabled: false` to avoid an extra automatic title-model request. If the embedding contributes its own complete, compact Agent context, `nativeContextEnabled: false` skips NextClaw's default context providers without disabling Agent runs, sessions, or registered tools.
+`runTask` and session `run` accept a positive integer `maxTokens` to cap each model response.
+
 ## Options and task input
 
 `NextclawHarnessOptions` passes kernel options such as `homeDir`, `configPath`, `builtInAppsDirectory`, `productVersion`, and an activity sink.
+
+For an untrusted external entry point, set static `allowedToolNames` to expose only exactly named tools to every Agent run in this Harness. Omitting it preserves NextClaw's default catalog; an empty array exposes no tools. A restricted Harness also treats a leading `/` as ordinary user text instead of executing a slash command. An application can register constrained tools through a Contribution and allow only those names, for example `['tool_schema', 'my_workspace_read']`. The allowlist does not validate tool arguments or provide OS isolation: public services must still isolate data and credentials, and must not expose the default host command and file tools to visitors.
 
 `NextclawTaskInput` includes:
 

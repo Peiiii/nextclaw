@@ -24,6 +24,44 @@ function createTool(name: string): NcpTool {
 }
 
 describe("ToolProviderManager", () => {
+  it("only exposes explicitly allowed tools, including through tool_schema", async () => {
+    const manager = new ToolProviderManager(undefined, {
+      allowedToolNames: ["tool_schema", "bibo_workspace_read"],
+    });
+    manager.register({
+      provide: () => [
+        createTool("exec"),
+        createTool("bibo_workspace_read"),
+        createTool("web_fetch"),
+      ],
+    });
+
+    const tools = await manager.buildTools({ message: createMessage() });
+    expect(tools.map((tool) => tool.name)).toEqual([
+      "tool_schema",
+      "bibo_workspace_read",
+    ]);
+    await expect(tools[0]?.execute({ name: "exec" })).rejects.toThrow("allowed catalog");
+    await expect(tools[0]?.execute({ name: "bibo_workspace_read" })).resolves.toMatchObject({
+      name: "bibo_workspace_read",
+    });
+  });
+
+  it("exposes no tools when the embedded allowlist is empty", async () => {
+    const manager = new ToolProviderManager(undefined, { allowedToolNames: [] });
+    manager.register({ provide: () => [createTool("exec")] });
+    expect(await manager.buildTools({ message: createMessage() })).toEqual([]);
+  });
+
+  it("never widens an existing embedded tool restriction", async () => {
+    const manager = new ToolProviderManager();
+    manager.register({ provide: () => [createTool("exec"), createTool("safe_read")] });
+    manager.restrictToTools(["safe_read"]);
+    manager.restrictToTools(["safe_read", "exec"]);
+    expect((await manager.buildTools({ message: createMessage() })).map((tool) => tool.name))
+      .toEqual(["safe_read"]);
+  });
+
   it("builds tools from registered providers and keeps the first provider for duplicate names", async () => {
     const manager = new ToolProviderManager();
     const firstSearch = createTool("search");

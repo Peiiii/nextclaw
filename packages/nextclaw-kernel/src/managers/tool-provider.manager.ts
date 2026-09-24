@@ -27,10 +27,16 @@ export type ToolRunContext = {
 
 export class ToolProviderManager {
   private readonly providers = new Set<ToolProvider>();
+  private allowedToolNames: ReadonlySet<string> | null;
 
   constructor(
     private readonly diagnostics?: Pick<DiagnosticRuntime, "record">,
-  ) {}
+    options: { allowedToolNames?: readonly string[] } = {},
+  ) {
+    this.allowedToolNames = options.allowedToolNames
+      ? new Set(options.allowedToolNames)
+      : null;
+  }
 
   register = (provider: ToolProvider): (() => void) => {
     this.providers.add(provider);
@@ -39,13 +45,24 @@ export class ToolProviderManager {
     };
   };
 
+  /** Can only narrow the catalog; embeddings set this before the first Agent run. */
+  restrictToTools = (names: readonly string[]): void => {
+    const allowed = new Set(names);
+    this.allowedToolNames = this.allowedToolNames === null
+      ? allowed
+      : new Set([...this.allowedToolNames].filter((name) => allowed.has(name)));
+  };
+
   buildTools = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {
     const tools: NcpTool[] = [];
-    tools.push(this.wrapTool(new ToolSchemaTool(() => tools), request));
-    const seen = new Set<string>([TOOL_SCHEMA_NAME]);
+    const seen = new Set<string>();
+    if (this.isAllowed(TOOL_SCHEMA_NAME)) {
+      tools.push(this.wrapTool(new ToolSchemaTool(() => tools), request));
+      seen.add(TOOL_SCHEMA_NAME);
+    }
     for (const provider of [...this.providers]) {
       for (const tool of await provider.provide(request)) {
-        if (seen.has(tool.name)) {
+        if (!this.isAllowed(tool.name) || seen.has(tool.name)) {
           continue;
         }
         seen.add(tool.name);
@@ -54,6 +71,9 @@ export class ToolProviderManager {
     }
     return tools;
   };
+
+  private readonly isAllowed = (name: string): boolean =>
+    this.allowedToolNames === null || this.allowedToolNames.has(name);
 
   dispose = (): void => {
     this.providers.clear();

@@ -40,9 +40,16 @@ const result = await run.result();
 
 `harness.sessions` 是 session owner；`agent.sessions` 是同一批 session 的 Agent-scoped view。`run.cancel()` 会进入标准 NCP 取消链路。
 
+一次性使用且不希望额外保存私聊日志时，在 `run.result()` 完成后调用 `await harness.sessions.delete(result.sessionId)`。仍有任务运行的 session 不可删除。
+若这些 session 只为执行而创建，设置 `sessionSearchEnabled: false`，避免再生成可搜索的原文索引。
+设置 `sessionTitleEnabled: false` 可避免额外的自动标题模型请求。若嵌入方已通过 Contribution 提供完整、简洁的 Agent 上下文，可设置 `nativeContextEnabled: false` 跳过 NextClaw 默认上下文；这不会关闭 Agent run、会话和已注册的工具。
+`runTask` 和 session `run` 可传正整数 `maxTokens`，限制单次模型回复的 token 上限。
+
 ## Options 与任务输入
 
 `NextclawHarnessOptions` 用于传递 kernel 的 `homeDir`、`configPath`、`builtInAppsDirectory`、`productVersion` 和 activity sink。
+
+嵌入不可信的外部用户入口时，可以设置静态 `allowedToolNames`，只把精确命名的工具交给本 Harness 的所有 Agent run；省略时保留 NextClaw 默认工具集，空数组则不提供任何工具。受限 Harness 也会把开头的 `/` 当成普通用户文本，而不执行斜杠命令。应用可以通过 Contribution 注册自己的受控工具，并只允许这些名字，例如 `['tool_schema', 'my_workspace_read']`。白名单不会替应用验证工具参数或提供操作系统隔离；公开服务仍须隔离数据和凭据，不能把默认的宿主命令与文件工具直接交给访客。
 
 `NextclawTaskInput` 包含：
 
