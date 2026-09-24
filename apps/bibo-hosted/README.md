@@ -12,9 +12,9 @@ Independent Cloudflare Worker and Container service at `https://bibo.bot/app/`. 
 
 ## Build and deploy
 
-1. Ensure the `bibo-user-snapshots` R2 bucket exists and `BIBO_DEEPSEEK_API_KEY` is configured as a Wrangler Secret in the Cloudflare account. Never store the key in a file or commit it.
+1. Use a Cloudflare account on the Workers Paid plan. Ensure the `bibo-user-snapshots` R2 bucket exists and `BIBO_DEEPSEEK_API_KEY` is configured as a Wrangler Secret. Never store the key in a file or commit it.
 2. Run `pnpm -C apps/bibo-hosted exec wrangler types --include-runtime false` and `pnpm -C apps/bibo-hosted tsc`.
-3. From a clean checkout of the frozen remote `master`, run `pnpm -C apps/bibo-hosted deploy`. Docker must be running. Wrangler builds and pushes the Docker image.
+3. From a clean checkout of the frozen remote `master`, run `pnpm -C apps/bibo-hosted exec wrangler deploy`. Docker must be running. Wrangler builds and pushes the Docker image.
 4. Wait for Container provisioning, then smoke `https://bibo.bot/app/`, registration, a real NextClaw response, refresh/continuation, account isolation, and `https://bibo.bot/`.
 
 Rollback the `bibo-hosted` Worker to its previous version using Wrangler if a release fails. If this is the first deployment, remove only the `bibo.bot/app/*` route to return that path to the existing site. Retain R2 snapshots until the data handling decision is explicit.
