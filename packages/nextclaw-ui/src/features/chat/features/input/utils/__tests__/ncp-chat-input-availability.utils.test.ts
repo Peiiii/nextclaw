@@ -23,7 +23,7 @@ function createSnapshot(overrides: Partial<AvailabilitySnapshot> = {}): Availabi
 }
 
 describe('ncp-chat-input-availability.utils', () => {
-  it('keeps the composer editable during cold start while runtime blocking still prevents send', () => {
+  it('keeps editing and sending available when runtime readiness is misreported', () => {
     const snapshot = createSnapshot({
       isProviderStateResolved: false,
       modelOptions: [],
@@ -35,25 +35,7 @@ describe('ncp-chat-input-availability.utils', () => {
     expect(isNcpChatComposerDisabled(snapshot)).toBe(false);
     expect(
       isNcpChatSendDisabled({
-        snapshot,
         hasSendableDraft: true,
-        isRuntimeBlocked: true,
-      })
-    ).toBe(true);
-  });
-
-  it('does not block send only because model options have not loaded yet', () => {
-    const snapshot = createSnapshot({
-      isProviderStateResolved: false,
-      modelOptions: [],
-      sessionTypeUnavailable: false,
-    });
-
-    expect(
-      isNcpChatSendDisabled({
-        snapshot,
-        hasSendableDraft: true,
-        isRuntimeBlocked: false,
       })
     ).toBe(false);
   });
@@ -81,25 +63,15 @@ describe('ncp-chat-input-availability.utils', () => {
     expect(isNcpChatComposerDisabled(snapshot)).toBe(false);
     expect(
       isNcpChatSendDisabled({
-        snapshot,
         hasSendableDraft: true,
-        isRuntimeBlocked: false,
       })
     ).toBe(false);
   });
 
   it('blocks send when there is no sendable draft', () => {
-    const snapshot = createSnapshot({
-      isProviderStateResolved: true,
-      modelOptions: [],
-      sessionTypeUnavailable: true,
-    });
-
     expect(
       isNcpChatSendDisabled({
-        snapshot,
         hasSendableDraft: false,
-        isRuntimeBlocked: false,
       })
     ).toBe(true);
   });

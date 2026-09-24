@@ -28,6 +28,8 @@ Continue the current session when you are refining its files, asking more questi
 
 Each session keeps its own unsent composer draft, so you can switch sessions or refresh and continue editing. After a message is sent successfully, the composer and its saved draft are cleared and the sent content does not return when you reopen the session. A failed send keeps the complete draft for editing or retrying.
 
+When your draft has content, you can try sending even if the interface reports that the runtime is connecting or recovering. The actual request determines the outcome. If the request is rejected, the conversation shows an error and restores the draft for review and retry. Empty input and a submission already in progress cannot be sent again.
+
 ## Processing details
 
 After a reply ends, reasoning and tool activity can collapse into a “Processed” summary. Failed runs show “Failed”; runs with a recorded stop show “Stopped”. The summary shows only status and recorded elapsed time, such as “Processed 2m 7s”, without tool counts or tool names. Click it to expand processing details. When the run records its start and end times, elapsed time remains available after a refresh. Older messages without timing records do not show an estimated duration.

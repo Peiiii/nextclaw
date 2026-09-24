@@ -30,13 +30,6 @@ export function isNcpChatComposerDisabled(
 
 export function isNcpChatSendDisabled(params: {
   hasSendableDraft: boolean;
-  snapshot: ChatInputAvailabilitySnapshot;
-  isRuntimeBlocked: boolean;
 }): boolean {
-  const { hasSendableDraft, isRuntimeBlocked } = params;
-
-  return (
-    isRuntimeBlocked ||
-    !hasSendableDraft
-  );
+  return !params.hasSendableDraft;
 }

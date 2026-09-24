@@ -185,6 +185,20 @@ describe('useSessionConversationController backend run queue', () => {
     expect(params.resetComposer).toHaveBeenCalledTimes(1);
   });
 
+  it('attempts a send when a nonempty draft has a stale blocked runtime status', async () => {
+    const send = createSendMock();
+    const params = { ...createControllerParams({ isRunning: false, send }), isRuntimeBlocked: true };
+    const { result } = renderHook(() => useSessionConversationController(params));
+
+    expect(result.current.sendDisabled).toBe(false);
+    await act(async () => {
+      await result.current.send();
+    });
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(params.setSendError).toHaveBeenLastCalledWith(null);
+  });
+
   it('uses prefer-steer for command/control-enter submission without changing the send button path', async () => {
     const send = createSendMock(createRunHandle({ delivery: 'steered' }));
     const params = createControllerParams({ isRunning: true, send });
@@ -311,6 +325,20 @@ describe('useSessionConversationController backend run queue', () => {
     }));
     expect(params.setSendError).toHaveBeenLastCalledWith(sendError.message);
     expect(params.runQueue.refreshQueuedInputs).not.toHaveBeenCalled();
+  });
+
+  it('shows a send failure and restores the draft when the client returns no acceptance handle', async () => {
+    const send = createSendMock(null);
+    const params = createControllerParams({ isRunning: false, send });
+    const { result } = renderHook(() => useSessionConversationController(params));
+
+    await act(async () => {
+      await expect(result.current.send()).rejects.toThrow('Failed to send message');
+    });
+
+    expect(params.restoreComposer).toHaveBeenCalledWith(expect.objectContaining({ text: 'next task' }));
+    expect(params.setSendError).toHaveBeenLastCalledWith('Failed to send message');
+    expect(params.onSessionMaterialized).not.toHaveBeenCalled();
   });
 
   it('keeps an existing session bound to its agent instead of the global draft selection', async () => {

@@ -11,6 +11,7 @@ import {
   deriveNcpMessagePartsFromComposer,
 } from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import { isNcpChatSendDisabled } from '@/features/chat/features/input/utils/ncp-chat-input-availability.utils';
+import { t } from '@/shared/lib/i18n';
 import { buildChatRunMetadata } from '@/features/chat/features/session/utils/chat-run-metadata.utils';
 import { createNcpSessionId } from '@/features/chat/features/session/utils/ncp-session-adapter.utils';
 import type { SessionQueuedInputAttachmentPreview } from '@/features/chat/features/conversation/utils/session-queued-input.utils';
@@ -90,7 +91,6 @@ type BuildSubmissionDraftParams = {
   readonly composerSnapshot?: ComposerDraftSnapshot;
   readonly inputSnapshot: SessionConversationInputSnapshot;
   readonly inputQuery: SessionConversationInputQuery;
-  readonly isRuntimeBlocked: boolean;
   readonly materializationContext?: SessionConversationMaterializationContext | null;
   readonly selectedAgentId: string;
   readonly sessionKey: string | null;
@@ -111,21 +111,12 @@ const resolveModelForSend = (value: string | null | undefined): string | undefin
   return trimmed || undefined;
 };
 
-function buildInputAvailabilitySnapshot(inputQuery: SessionConversationInputQuery) {
-  return {
-    isProviderStateResolved: inputQuery.isProviderStateResolved,
-    modelOptions: inputQuery.modelOptions,
-    sessionTypeUnavailable: inputQuery.sessionTypeState.sessionTypeUnavailable,
-  };
-}
-
 function buildSubmissionDraft(params: BuildSubmissionDraftParams): SubmissionDraft | null {
   const {
     agentIsSending,
     composerSnapshot: requestedComposerSnapshot,
     inputQuery,
     inputSnapshot,
-    isRuntimeBlocked,
     materializationContext,
     selectedAgentId,
     sessionKey,
@@ -143,9 +134,7 @@ function buildSubmissionDraft(params: BuildSubmissionDraftParams): SubmissionDra
   );
   if (
     isNcpChatSendDisabled({
-      snapshot: buildInputAvailabilitySnapshot(inputQuery),
       hasSendableDraft: hasSendableMessagePart(currentParts),
-      isRuntimeBlocked,
     }) ||
     agentIsSending
   ) {
@@ -248,6 +237,7 @@ function useSubmissionDraftRunner(params: {
     setSendError(null);
     try {
       const handle = await agent.send(envelope);
+      if (!handle) throw new Error(t('chatSendFailed'));
       if (handle?.delivery === 'steered') {
         await runQueue.refreshPendingInputs().catch(() => undefined);
       } else if (handle?.delivery === 'queued') {
@@ -283,7 +273,6 @@ function useSteeringSubmission(params: {
   readonly agent: SessionConversationAgent;
   readonly inputSnapshot: SessionConversationInputSnapshot;
   readonly inputQuery: SessionConversationInputQuery;
-  readonly isRuntimeBlocked: boolean;
   readonly materializationContext?: SessionConversationMaterializationContext | null;
   readonly selectedAgentId: string;
   readonly sessionKey: string | null;
@@ -297,7 +286,6 @@ function useSteeringSubmission(params: {
     agent,
     inputQuery,
     inputSnapshot,
-    isRuntimeBlocked,
     materializationContext,
     selectedAgentId,
     sessionKey,
@@ -308,7 +296,6 @@ function useSteeringSubmission(params: {
       agentIsSending: agent.isSending,
       inputSnapshot,
       inputQuery,
-      isRuntimeBlocked,
       materializationContext,
       selectedAgentId,
       sessionKey,
@@ -318,7 +305,6 @@ function useSteeringSubmission(params: {
     agent.isSending,
     inputQuery,
     inputSnapshot,
-    isRuntimeBlocked,
     materializationContext,
     selectedAgentId,
     sessionKey,
@@ -331,7 +317,6 @@ function usePrimarySubmission(params: {
   readonly continueRun: () => Promise<void>;
   readonly inputSnapshot: SessionConversationInputSnapshot;
   readonly inputQuery: SessionConversationInputQuery;
-  readonly isRuntimeBlocked: boolean;
   readonly materializationContext?: SessionConversationMaterializationContext | null;
   readonly primaryAction: 'continue' | 'send';
   readonly selectedAgentId: string;
@@ -346,7 +331,6 @@ function usePrimarySubmission(params: {
     continueRun,
     inputQuery,
     inputSnapshot,
-    isRuntimeBlocked,
     materializationContext,
     primaryAction,
     selectedAgentId,
@@ -359,7 +343,6 @@ function usePrimarySubmission(params: {
       agentIsSending: agent.isSending,
       inputSnapshot,
       inputQuery,
-      isRuntimeBlocked,
       materializationContext,
       selectedAgentId,
       sessionKey,
@@ -370,7 +353,6 @@ function usePrimarySubmission(params: {
     continueRun,
     inputQuery,
     inputSnapshot,
-    isRuntimeBlocked,
     materializationContext,
     primaryAction,
     selectedAgentId,
@@ -424,9 +406,7 @@ export function useSessionConversationController(params: UseSessionConversationC
   const sendDisabled = primaryAction === 'continue'
     ? false
     : isNcpChatSendDisabled({
-        snapshot: buildInputAvailabilitySnapshot(inputQuery),
         hasSendableDraft,
-        isRuntimeBlocked,
       }) || agent.isSending;
 
   const { continueRun, editMessage } = useSessionConversationRecoveryActions({
@@ -453,7 +433,6 @@ export function useSessionConversationController(params: UseSessionConversationC
     continueRun,
     inputQuery,
     inputSnapshot,
-    isRuntimeBlocked,
     materializationContext,
     primaryAction,
     selectedAgentId,
@@ -465,7 +444,6 @@ export function useSessionConversationController(params: UseSessionConversationC
     agent,
     inputQuery,
     inputSnapshot,
-    isRuntimeBlocked,
     materializationContext,
     selectedAgentId,
     sessionKey,
@@ -488,7 +466,6 @@ export function useSessionConversationController(params: UseSessionConversationC
       },
       inputSnapshot,
       inputQuery,
-      isRuntimeBlocked,
       materializationContext,
       selectedAgentId,
       sessionKey,
@@ -500,7 +477,6 @@ export function useSessionConversationController(params: UseSessionConversationC
     agent.isSending,
     inputQuery,
     inputSnapshot,
-    isRuntimeBlocked,
     materializationContext,
     selectedAgentId,
     sessionKey,
