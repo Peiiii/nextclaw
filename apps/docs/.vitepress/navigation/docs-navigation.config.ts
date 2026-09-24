@@ -103,6 +103,7 @@ const enSections: LocaleSections = {
         items: [
           { text: 'Documentation home', link: '/en/' },
           { text: 'What is NextClaw?', link: '/en/guide/introduction' },
+          { text: 'Bibo hosted companion', link: '/en/guide/bibo' },
           { text: 'Choose an installation path', link: '/en/guide/install' },
           { text: 'Quickstart', link: '/en/guide/getting-started' },
           { text: 'Create your first task', link: '/en/guide/create-task' },
@@ -281,6 +282,7 @@ const zhSections: LocaleSections = {
         items: [
           { text: '文档首页', link: '/zh/' },
           { text: 'NextClaw 是什么', link: '/zh/guide/introduction' },
+          { text: 'Bibo 托管个人搭档', link: '/zh/guide/bibo' },
           { text: '选择安装方式', link: '/zh/guide/install' },
           { text: '快速开始', link: '/zh/guide/getting-started' },
           { text: '创建第一个任务', link: '/zh/guide/create-task' },
