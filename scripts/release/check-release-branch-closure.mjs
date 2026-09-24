@@ -66,6 +66,7 @@ const reportOnly = readFlag("--report-only");
 const targetCommit = resolveRef(targetRef);
 const releaseCommit = resolveRef(releaseRef);
 const mergeBaseCommit = resolveMergeBase(targetCommit, releaseCommit);
+const releaseIsInTarget = mergeBaseCommit === releaseCommit;
 const targetOnlyFiles = readChangedFiles(mergeBaseCommit, targetCommit);
 const releaseOnlyFiles = readChangedFiles(mergeBaseCommit, releaseCommit);
 const targetOnlyRelevantFiles = targetOnlyFiles.filter(isReleaseRelevantPath);
@@ -74,12 +75,17 @@ const releaseOnlyRelevantFiles = releaseOnlyFiles.filter(isReleaseRelevantPath);
 console.log(`[release:branch-closure] target ${targetRef}: ${targetCommit}`);
 console.log(`[release:branch-closure] release ${releaseRef}: ${releaseCommit}`);
 console.log(`[release:branch-closure] merge-base: ${mergeBaseCommit}`);
-printFiles("[release:branch-closure] target-only release-relevant files:", targetOnlyRelevantFiles);
+printFiles(
+  releaseIsInTarget
+    ? "[release:branch-closure] post-release target changes:"
+    : "[release:branch-closure] target-only release-relevant files:",
+  targetOnlyRelevantFiles
+);
 printFiles("[release:branch-closure] release-only release-relevant files:", releaseOnlyRelevantFiles);
 
-if (!reportOnly && (targetOnlyRelevantFiles.length > 0 || releaseOnlyRelevantFiles.length > 0)) {
+if (!reportOnly && ((!releaseIsInTarget && targetOnlyRelevantFiles.length > 0) || releaseOnlyRelevantFiles.length > 0)) {
   console.error("[release:branch-closure] branch closure check failed.");
-  if (targetOnlyRelevantFiles.length > 0) {
+  if (!releaseIsInTarget && targetOnlyRelevantFiles.length > 0) {
     console.error("The target branch has release-relevant changes that are missing from the release branch.");
   }
   if (releaseOnlyRelevantFiles.length > 0) {
