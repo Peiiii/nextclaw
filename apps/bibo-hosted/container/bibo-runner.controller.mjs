@@ -1,10 +1,11 @@
 import { createServer } from "node:http";
 import { createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { spawn } from "node:child_process";
 import { pipeline } from "node:stream/promises";
+import { backup, DatabaseSync } from "node:sqlite";
 import { runNextclawTask } from "@nextclaw/harness";
 
 const home = process.env.NEXTCLAW_HOME ?? "/data";
@@ -64,8 +65,27 @@ async function runTar(args, input, output) {
 async function sendSnapshot(response) {
   const temporary = await mkdtemp(join(tmpdir(), "bibo-snapshot-"));
   const archive = join(temporary, "home.tgz");
+  const stagedHome = join(temporary, "home");
+  const databases = [];
   try {
-    await runTar(["-czf", archive, "-C", home, "--exclude=config.json", "--exclude=logs", "--exclude=cache", "."], null, null);
+    await cp(home, stagedHome, {
+      recursive: true,
+      filter: (source, target) => {
+        const name = basename(source);
+        if (name === "config.json" || name === "logs" || name === "cache") return false;
+        if (/\.(sqlite|db)(?:-(?:wal|shm|journal))?$/.test(name)) {
+          if (/\.(sqlite|db)$/.test(name)) databases.push({ source, target });
+          return false;
+        }
+        return true;
+      },
+    });
+    for (const { source, target } of databases) {
+      const database = new DatabaseSync(source, { readOnly: true, timeout: 2000 });
+      try { await backup(database, target); }
+      finally { database.close(); }
+    }
+    await runTar(["-czf", archive, "-C", stagedHome, "."], null, null);
     response.writeHead(200, { "content-type": "application/gzip", "cache-control": "no-store" });
     await pipeline(createReadStream(archive), response);
   } finally {
@@ -114,4 +134,4 @@ createServer(async (request, response) => {
   } finally {
     busy = false;
   }
-}).listen(8080, "0.0.0.0");
+}).listen(Number(process.env.BIBO_PORT ?? 8080), "0.0.0.0");
