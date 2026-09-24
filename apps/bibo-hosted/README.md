@@ -13,9 +13,9 @@ Independent Cloudflare Worker and Container service at `https://app.bibo.bot/`. 
 ## Build and deploy
 
 1. Use a Cloudflare account on the Workers Paid plan. Ensure the `bibo-user-snapshots` R2 bucket exists and `BIBO_DEEPSEEK_API_KEY` is configured as a Wrangler Secret. Never store the key in a file or commit it.
-2. Run `pnpm -C apps/bibo-hosted exec wrangler types --include-runtime false`, `pnpm -C apps/bibo-hosted tsc`, and `node --test apps/bibo-hosted/container/bibo-snapshot.test.mjs`. The snapshot test writes a live SQLite WAL while checking that the restored archive contains a valid database.
+2. Run `pnpm -C apps/bibo-hosted tsc`, `pnpm -C apps/bibo-hosted test`, and `pnpm -C apps/bibo-hosted smoke:client`. These cover the Worker, React client, runner, streaming parser, a live SQLite WAL snapshot, and desktop/mobile chat behavior without a deployment.
 3. From a clean checkout of the frozen remote `master`, run `pnpm -C apps/bibo-hosted run deploy`. Docker must be running. This command uses Wrangler 4.138.0, which deploys the current Container configuration; the workspace's older Wrangler 4.67.0 fails its observability validation. Wrangler builds and pushes the Docker image.
-4. Wait for Container provisioning, then smoke `https://app.bibo.bot/`, registration, a real NextClaw response, refresh/continuation, account isolation, and `https://bibo.bot/`.
+4. Wait for Container provisioning, then run `BIBO_SMOKE_TOKEN_FILE=/path/to/local-token.json pnpm -C apps/bibo-hosted smoke:live`. The file may contain a raw platform token or a JSON `platformToken`; keep it outside the repository. This checks online authentication, real streamed deltas, R2 commit, refreshed history, and desktop/mobile layout. Separately verify registration, account isolation, and `https://bibo.bot/` when those paths change.
 
 Rollback the `bibo-hosted` Worker to its previous version using Wrangler if a release fails. If this is the first deployment, remove only the `app.bibo.bot` Custom Domain and `bibo.bot/app/*` redirect route. Retain R2 snapshots until the data handling decision is explicit.
 

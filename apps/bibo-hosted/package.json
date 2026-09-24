@@ -10,6 +10,7 @@
     "build": "pnpm build:client && pnpm build:runner",
     "test": "pnpm build:runner && tsx --test container/bibo-snapshot.test.ts src/app/bibo-run-stream.utils.test.ts",
     "smoke:client": "pnpm build:client && tsx scripts/bibo-experience.smoke.ts",
+    "smoke:live": "tsx scripts/bibo-live.smoke.ts",
     "deploy": "pnpm build && pnpm dlx wrangler@4.138.0 deploy",
     "dev": "vite --host 127.0.0.1 --port 5188 --strictPort",
     "dev:worker": "wrangler dev"
