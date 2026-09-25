@@ -283,3 +283,4 @@
 
 - 用户当前 5297 预览的单次点击未稳定触发；本地旧构建在 390px 且浏览器报告可悬停的混合输入环境中，打开抽屉后聚焦「新建会话」可稳定复现离位的 tooltip，截图 `/tmp/bibo-tooltip-viewport-only.png`。纯触屏环境没有此现象，原回归只测了纯触屏。
 - 移动抽屉中的「新建会话」保留 `aria-label`，关闭其 tooltip；桌面按钮仍保留提示。扩充客户端冒烟，分别测 320/390px 触屏及 390px 非触屏窄视口的开抽屉、图标聚焦、Escape 关闭与焦点归还。新构建相同混合输入路径无 tooltip，截图 `/tmp/bibo-tooltip-after-viewport-only.png`；应用三范围 tsc 与完整客户端 smoke 通过。此项只关闭这条可复现的提示路径；用户描述的单次点开即出现，当前浏览器还未独立复现。
+- 源码 `dd52bd69b` 已推送远程 master，Worker `264b76f0-f5b6-4697-b9a6-1675b2e22bdf` 已部署 `app.bibo.bot`，容器镜像未改变。正式域名的 390px 触屏及非触屏窄视口各打开抽屉、聚焦新会话图标，均无 tooltip；非触屏截图 `/tmp/bibo-tooltip-live-viewport-only.png`。生产验证仍使用模拟账号 API，只证明已部署前端的这一交互，不扩大到完整 BIBO-09。
