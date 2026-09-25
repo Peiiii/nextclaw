@@ -223,7 +223,7 @@ export class BiboUserContainer extends Container<Env> {
         method: "POST", headers: { "content-type": "application/json" }, body: raw,
       });
       const resultText = await response.text();
-      const result = new Response(resultText, { status: response.status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+      const result = new Response(resultText, { status: response.status, headers: { ...Object.fromEntries(response.headers), "cache-control": "no-store" } });
       if (!response.ok || !write) return result;
       const failed = await this.commitSnapshot();
       if (failed) return failed;

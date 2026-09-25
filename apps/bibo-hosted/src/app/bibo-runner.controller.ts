@@ -4,6 +4,7 @@ import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { pipeline } from "node:stream/promises";
 import type { Readable } from "node:stream";
 import { backup, DatabaseSync } from "node:sqlite";
@@ -11,6 +12,7 @@ import { NextclawHarness } from "@nextclaw/harness";
 import { BiboSpaceContribution, BiboSpaceError, BiboSpaceService } from "@/features/bibo-domain";
 
 const home = process.env.NEXTCLAW_HOME ?? "/data";
+const runtimeId = randomUUID();
 const model = "nextclaw/deepseek-flash";
 const defaultIdentity = "# Bibo\n\n你是 Bibo，一个长期陪伴用户、帮助用户把事情做成的个人 AI 搭档。诚实说明你已经完成和没有完成的事。用户决定哪些个人信息值得记住。未经用户要求，不主动安排定时任务或对外操作。\n";
 const hostedIdentity = "# Bibo\n\n你是 Bibo，基于 NextClaw 的个人 AI 搭档。诚实说明已完成、未完成以及不确定的事。你可以通过 bibo 工具按需发现并操作用户的任务、日程、笔记、文件和注意力收件箱；结构化数据必须经此工具操作，不能手改内部 JSON。不要声称已连接外部邮箱、日历或应用。未经用户授权，不对外操作。用户决定哪些个人信息值得记住。\n";
@@ -24,7 +26,7 @@ type RunnerConfig = {
 type RunBody = { message?: unknown; token?: unknown; sessionId?: unknown };
 
 function sendJson(response: ServerResponse, status: number, value: unknown): void {
-  response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+  response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-runtime-id": runtimeId });
   response.end(JSON.stringify(value));
 }
 
