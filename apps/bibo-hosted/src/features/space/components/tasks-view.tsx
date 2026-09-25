@@ -347,6 +347,14 @@ function TaskRow({
     done: "已完成",
     cancelled: "已取消",
   }[task.status];
+  const details = [
+    projectName,
+    task.priority === "high" ? "高优先级" : task.priority === "low" ? "低优先级" : null,
+    task.dueAt ? `截止 ${datetime(task.dueAt)}` : null,
+    task.subtasks.length
+      ? `${task.subtasks.filter((part) => part.done).length}/${task.subtasks.length} 步`
+      : null,
+  ].filter(Boolean).join(" · ");
   return (
     <ListRow
       key={task.id}
@@ -365,20 +373,7 @@ function TaskRow({
       </span>
       <span>
         <strong>{task.title}</strong>
-        <small>
-          {projectName ? `${projectName} · ` : ""}
-          {task.priority === "high"
-            ? "高优先级 · "
-            : task.priority === "low"
-            ? "低优先级 · "
-            : ""}
-          {task.dueAt ? `截止 ${datetime(task.dueAt)}` : "没有截止时间"}
-          {task.subtasks.length
-            ? ` · ${task.subtasks.filter((part) => part.done).length}/${
-                task.subtasks.length
-              } 步`
-            : ""}
-        </small>
+        {details && <small>{details}</small>}
       </span>
       <span className="bibo-task-status-label">{statusLabel}</span>
     </ListRow>
