@@ -3,7 +3,7 @@ import { Button, EmptyState, ListRow, Markdown } from "@nextclaw/personal-agent-
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { day, datetime } from "@/features/space/utils/date-format.utils";
 export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promise<void> }) {
-  const { inbox, selectedInboxId, selectInbox, act, navigate, openFile, saving } = useBiboSpaceStore();
+  const { inbox, selectedInboxId, selectInbox, act, navigate, openFile, saving, cursors, moreLoading, loadMore } = useBiboSpaceStore();
   const selected = inbox.find((item) => item.id === selectedInboxId) ?? null;
   const source = (item: BiboInboxItem) => {
     if (!item.source.id) return;
@@ -42,6 +42,11 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
             ))
           ) : (
             <EmptyState title="现在很安静" detail="Bibo 有需要你留意的事，会放在这里。" />
+          )}
+          {cursors.inbox && (
+            <Button tone="text" className="bibo-load-more" disabled={moreLoading.inbox} onClick={() => void loadMore("inbox")}>
+              {moreLoading.inbox ? "正在加载…" : "加载更多消息"}
+            </Button>
           )}
         </div>
         <div className="bibo-detail-pane">

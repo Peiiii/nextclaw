@@ -27,6 +27,9 @@ export function Tasks() {
     taskQuery,
     taskProject: project,
     filterTasks,
+    cursors,
+    moreLoading,
+    loadMore,
   } = useBiboSpaceStore();
   const [mode, setMode] = useState<"list" | "board">("list");
   const [projectEditor, setProjectEditor] = useState<string | null>(null);
@@ -122,6 +125,11 @@ export function Tasks() {
                 </Button>
               )}
             </>
+          )}
+          {cursors.tasks && (
+            <Button tone="text" className="bibo-load-more" disabled={moreLoading.tasks} onClick={() => void loadMore("tasks")}>
+              {moreLoading.tasks ? "正在加载…" : "加载更多任务"}
+            </Button>
           )}
         </div>
         {(creating || selected) && (

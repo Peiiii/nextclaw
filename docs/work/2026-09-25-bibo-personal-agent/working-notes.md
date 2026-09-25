@@ -231,3 +231,9 @@
 - 用户报告手机点开左上菜单后有浮动 tooltip。自动出现的具体时序在模拟触控的单次点开中未稳定重现；但同一 390px 手机抽屉内的“新建会话”图标获得焦点时，可稳定看到提示层悬在会话标题附近，截图 `/tmp/bibo-drawer-tooltip-focus-before.png`。此前只处理了打开抽屉的自动焦点和菜单触发器，未处理抽屉内图标聚焦。
 - 初次尝试以 CSS 隐藏无悬停设备上的 tooltip，视觉上消失，但提示层仍截获第一次 Escape，完整 smoke 因抽屉无法单次关闭而失败。最终在公共 `IconButton` 根据 `hover: hover` 且 `pointer: fine` 控制 Radix 提示层是否打开，触控环境根本不建立提示层；按钮的 aria-label 不变。
 - 构建后完整浏览器 smoke 通过，增加触控抽屉内图标聚焦仍无 tooltip、单次 Escape 关闭并恢复菜单按钮焦点的断言。公共 UI/应用三范围 tsc、定向 ESLint、diff-only maintainability 均通过（0 error，浏览器脚本接近 500 行预算的 1 个提示）。390px 触控手工复验无可见提示且单次 Esc 关闭；同宽鼠标环境图标仍显示 tooltip。这证明焦点触发路径已消除，不将未稳定复现的“单次点开自动出现”写成已完整复现。
+- 修复提交 `500a92545` 已快进合入远程 master，Worker `18e7f09d` 使用 `--containers-rollout=none` 部署，保留已验证的容器镜像。正式 `app.bibo.bot` 390px 触控环境以已部署前端复验：抽屉内图标聚焦无 tooltip、一次 Esc 关闭；鼠标环境保留 tooltip。服务 API 仅在此视觉回归中被模拟，不能把这次回归当成真实账号/模型链路验收。主工作区仍有其它任务的 thought WIP，`release:reconcile:mainline` 保留它们并返回 `LOCAL_WORKTREE_RETRYING`，既有 retry worker 接管本地镜像快进。
+
+### 任务和收件箱的长列表续载（UI-02/03）
+
+- 当前 `BiboSpaceView` 把续载按钮放在工作区内容之后，而任务/收件箱列表在内部独立滚动；按钮与对应列表分离，甚至可能占用内容高度。月历 loader 自己取完选中月份，`events` 游标不会提供此全局按钮。按设计对齐文档，任务列表/看板与收件箱分别把续载按钮放入本模块列表滚动容器，移除全局续载和无意义的日程分支；分页数据 owner 与过滤状态未复制。
+- 1440/390 构建前浏览器以 102 条任务和 102 条消息模拟跨页：首 100 条、按钮处于对应 `.bibo-list-pane` 内、点击后 102 条且按钮消失，两页各恰好两次 `list` 请求（首屏加续页）；手机截图 `/tmp/bibo-pagination-{tasks,inbox}-390.png`。应用三范围 tsc、定向 ESLint、完整构建后 `smoke:client`、diff-only maintainability 通过（0 error/0 warning）。此处验证的是前端列表交互和既有分页协议；正式账号超过一页的数据仍未覆盖。
