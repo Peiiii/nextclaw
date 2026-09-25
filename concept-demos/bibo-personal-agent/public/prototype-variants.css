@@ -55,19 +55,9 @@ body.variant-desk .concept-nav nav a.selected {
 body.variant-desk .concept-nav-foot {
   display: none;
 }
-body.variant-desk .concept-top {
-  height: 100px;
-  background: #e7e7d9;
-  border: 0;
-  padding: 25px 35px;
-}
-body.variant-desk .concept-top h1 {
-  font-size: 30px;
-  margin-top: 5px;
-}
 body.variant-desk .concept-content {
   max-width: none;
-  padding: 0 35px 40px;
+  padding: 32px 35px 40px;
 }
 body.variant-desk .chat-page,
 body.variant-desk .split-page,
@@ -131,17 +121,8 @@ body.variant-brief .concept-nav nav a.selected {
 body.variant-brief .concept-nav-foot {
   display: none;
 }
-body.variant-brief .concept-top {
-  background: #fbf9f4;
-  border: 0;
-  height: 150px;
-  padding: 28px clamp(20px, 5vw, 75px);
-}
-body.variant-brief .concept-top h1 {
-  font-size: 45px;
-}
 body.variant-brief .concept-content {
-  padding: 0 clamp(20px, 5vw, 75px) 65px;
+  padding: 32px clamp(20px, 5vw, 75px) 65px;
   max-width: 1450px;
 }
 body.variant-brief .chat-page,
@@ -181,13 +162,8 @@ body.variant-day .concept-nav .nav-label {
 body.variant-day .concept-nav-foot {
   display: none;
 }
-body.variant-day .concept-top {
-  background: #f2f5ee;
-  border: 0;
-  height: 120px;
-}
 body.variant-day .concept-content {
-  padding-top: 12px;
+  padding-top: 28px;
 }
 body.variant-day .chat-page,
 body.variant-day .split-page,
@@ -200,11 +176,6 @@ body.variant-day .tasks-page {
 }
 body.variant-inbox .concept-content {
   max-width: 1350px;
-}
-body.variant-inbox .concept-top {
-  background: #f7f8f4;
-  border: 0;
-  height: 116px;
 }
 body.variant-inbox .chat-page,
 body.variant-inbox .split-page,
@@ -313,10 +284,7 @@ body.variant-desk .wall .top nav a.selected {
     white-space: nowrap;
   }
   body.variant-desk .concept-content {
-    padding: 0 18px 28px;
-  }
-  body.variant-desk .concept-top {
-    padding: 20px 18px;
+    padding: 20px 18px 28px;
   }
   body.variant-brief .concept-content {
     padding-bottom: 25px;
@@ -339,11 +307,6 @@ body.variant-desk .wall .top nav a.selected {
   body.variant-desk .concept-nav .nav-label,
   body.variant-brief .concept-nav .nav-label {
     display: inline;
-  }
-  body.variant-desk .concept-top,
-  body.variant-brief .concept-top {
-    height: auto;
-    min-height: 96px;
   }
   body.variant-desk .chat-page,
   body.variant-desk .split-page,
@@ -371,10 +334,7 @@ body.variant-desk .wall .top nav a.selected {
     padding: 10px;
   }
   body.variant-day .concept-content {
-    padding: 0 15px 20px;
-  }
-  body.variant-brief .concept-top h1 {
-    font-size: 34px;
+    padding: 18px 15px 20px;
   }
 }
 @media (max-width: 820px) {

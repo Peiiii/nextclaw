@@ -6,14 +6,6 @@
   padding-bottom: 26px;
   border-bottom: 1px solid var(--line);
 }
-.calendar-toolbar > div:first-child small {
-  display: block;
-  color: var(--accent);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  margin-bottom: 7px;
-}
 .calendar-toolbar strong {
   font-size: 25px;
   letter-spacing: -0.045em;
@@ -511,8 +503,7 @@ body.variant-desk .tasks-page {
   font-size: 15px;
 }
 .task-row small,
-.task-sources a,
-.tasks-intro p {
+.task-sources a {
   font-size: 12px;
 }
 .task-add input,
@@ -529,8 +520,7 @@ body.variant-desk .tasks-page {
 .conversation span,
 .list-item small,
 .list-item em,
-.notes-list input,
-.note-lead {
+.notes-list input {
   font-size: 12px;
 }
 .source-links a,
@@ -542,32 +532,10 @@ body.variant-desk .tasks-page {
 .conversation-form textarea {
   font-size: 14px;
 }
-.agent-activity {
-  margin-top: 21px;
-  padding: 16px 18px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: #fafbf8;
-  font-size: 12px;
-}
-.agent-activity small {
-  display: block;
+.agent-status {
+  margin: 17px 0 0 !important;
   color: var(--muted);
-  font-size: 11px;
-  margin-bottom: 8px;
-}
-.agent-activity p {
-  margin: 5px 0;
-}
-.agent-activity span {
-  color: var(--accent);
-  margin-right: 5px;
-}
-.agent-activity a {
-  display: inline-block;
-  margin-top: 9px;
   font-size: 12px;
-  color: var(--accent);
 }
 .chat-page.has-workspace {
   grid-template-columns: minmax(185px, 230px) minmax(320px, 1fr) minmax(
@@ -575,8 +543,7 @@ body.variant-desk .tasks-page {
       330px
     );
 }
-.conversation-heading button,
-.agent-activity button {
+.conversation-heading button {
   border: 0;
   background: transparent;
   color: var(--accent);
@@ -591,10 +558,6 @@ body.variant-desk .tasks-page {
   color: var(--ink);
   font-size: 12px;
   cursor: pointer;
-}
-.agent-activity button {
-  padding: 0;
-  margin-top: 9px;
 }
 .chat-workspace {
   min-width: 0;
@@ -617,28 +580,6 @@ body.variant-desk .tasks-page {
   color: var(--muted);
   font-size: 22px;
   cursor: pointer;
-}
-.workspace-tabs {
-  display: flex;
-  gap: 3px;
-  overflow-x: auto;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--line);
-}
-.workspace-tabs button {
-  flex: 0 0 auto;
-  border: 0;
-  border-radius: 5px;
-  padding: 7px 8px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 11px;
-  cursor: pointer;
-}
-.workspace-tabs button.selected {
-  background: #e6ede3;
-  color: var(--ink);
-  font-weight: 700;
 }
 .workspace-content {
   padding: 26px 22px;
@@ -688,6 +629,16 @@ body.variant-desk .tasks-page {
   margin-top: 20px;
   color: var(--accent);
   font-size: 12px;
+}
+.workspace-draft-link {
+  display: block;
+  margin-top: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
 }
 .workspace-content textarea {
   width: 100%;

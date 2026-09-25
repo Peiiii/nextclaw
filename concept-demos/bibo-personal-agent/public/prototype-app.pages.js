@@ -10,32 +10,26 @@ export function createPageRenderers({ state, mails, notes, link, escapeHtml }) {
       new: ["新对话", "刚刚"],
     };
     const panelSections = {
-      mail: `<small>关联邮件 · ${mails[state.selectedMail].from}</small><h3>${mails[state.selectedMail].title}</h3><p>${mails[state.selectedMail].text}</p><div class="workspace-fact">Bibo 找到的关联<br><strong>${mails[state.selectedMail].context}</strong></div>${link("inbox", "在收件箱中处理 ↗", "workspace-full-link")}`,
+      mail: `<small>关联邮件 · ${mails[state.selectedMail].from}</small><h3>${mails[state.selectedMail].title}</h3><p>${mails[state.selectedMail].text}</p><div class="workspace-fact">Bibo 找到的关联<br><strong>${mails[state.selectedMail].context}</strong></div><button type="button" class="workspace-draft-link" data-chat-panel="draft">准备回复草稿</button>${link("inbox", "在收件箱中处理 ↗", "workspace-full-link")}`,
       calendar: `<small>关联日程 · 9 月 25 日</small><h3>评审时间，等待确认。</h3><div class="workspace-schedule"><time>14:00</time><span>预留 15 分钟准备 · Bibo 建议</span></div><div class="workspace-schedule pending"><time>14:30</time><span>方案评审 · 尚未确认</span></div><p>17:30 以后已留给你自己。建议不会自动写入日历。</p>${link("calendar", "在日程中决定 ↗", "workspace-full-link")}`,
       tasks: `<small>关联待办 · 网站上线</small><h3>上线前的两件事。</h3><div class="workspace-task">○ 确认网站的两处文案</div><div class="workspace-task">○ 回复林悦评审时间</div><p>先处理文案，再答复时间，能减少临时改动。</p>${link("tasks", "查看完整待办 ↗", "workspace-full-link")}`,
       note: `<small>关联笔记 · 作品集</small><h3>${escapeHtml(notes[state.selectedNote].title)}</h3><blockquote>${escapeHtml(state.noteContents[state.selectedNote])}</blockquote>${link("notes", "在笔记中继续 ↗", "workspace-full-link")}`,
-      draft: `<small>邮件草稿 · 尚未发送</small><h3>给林悦的回复</h3><label for="chat-draft-text">草稿内容</label><textarea id="chat-draft-text" rows="8">${escapeHtml(state.chatDraft)}</textarea><button type="button" id="save-chat-draft">保存草稿</button><p id="chat-draft-status">只保留在本次演示中，不会发送邮件。</p>`,
+      draft: `<small>邮件草稿 · 尚未发送</small><h3>给林悦的回复</h3><label for="chat-draft-text">草稿内容</label><textarea id="chat-draft-text" rows="8">${escapeHtml(state.chatDraft)}</textarea><button type="button" id="save-chat-draft">保存草稿</button><p id="chat-draft-status">只保留在本次演示中，不会发送邮件。</p><button type="button" class="workspace-draft-link" data-chat-panel="mail">返回原邮件</button>`,
+    };
+    const panelTitles = {
+      mail: "邮件",
+      calendar: "日程",
+      tasks: "待办",
+      note: "笔记",
+      draft: "草稿",
     };
     const panel = state.chatPanelOpen
-      ? `<aside class="chat-workspace" aria-label="对话右侧内容区"><div class="workspace-heading"><span>工作区</span><button type="button" data-toggle-chat-panel aria-label="收起右侧内容区">×</button></div><div class="workspace-tabs">${[
-          ["mail", "邮件"],
-          ["calendar", "日程"],
-          ["tasks", "待办"],
-          ["note", "笔记"],
-          ["draft", "草稿"],
-        ]
-          .map(
-            ([id, label]) =>
-              `<button type="button" class="${state.chatPanel === id ? "selected" : ""}" data-chat-panel="${id}">${label}</button>`,
-          )
-          .join(
-            "",
-          )}</div><div class="workspace-content">${panelSections[state.chatPanel]}</div></aside>`
+      ? `<aside class="chat-workspace" aria-label="对话右侧内容区"><div class="workspace-heading"><span>${panelTitles[state.chatPanel]}</span><button type="button" data-toggle-chat-panel aria-label="收起右侧内容区">×</button></div><div class="workspace-content">${panelSections[state.chatPanel]}</div></aside>`
       : "";
     const title = conversations[state.conversation][0];
     const seed =
       state.conversation === "launch"
-        ? `<div class="message from-user">我想周五把网站上线，但下午的评审可能提前。</div><div class="message from-bibo"><b>✳ Bibo</b><p>先确认文案，再答复评审时间。林悦的邮件提到下午，你 14:00–15:00 有空档；这还不是已确认日程。</p><div class="source-links"><button type="button" data-chat-panel="mail" data-chat-mail="lin">✉ 林悦的邮件</button><button type="button" data-chat-panel="calendar">◷ 今天的日程</button><button type="button" data-chat-panel="tasks">✓ 上线待办</button></div><div class="agent-activity"><small>这次我做了什么</small><p><span>✓</span> 关联了邮件、日程与上线待办</p><p><span>○</span> 提前评审仍等你确认，尚未改动日程</p><button type="button" data-chat-panel="calendar">查看待确认安排 →</button></div></div>`
+        ? `<div class="message from-user">我想周五把网站上线，但下午的评审可能提前。</div><div class="message from-bibo"><b>✳ Bibo</b><p>先确认文案，再答复评审时间。林悦的邮件提到下午，你 14:00–15:00 有空档；这还不是已确认日程。</p><div class="source-links"><button type="button" data-chat-panel="mail" data-chat-mail="lin">✉ 林悦的邮件</button><button type="button" data-chat-panel="calendar">◷ 今天的日程</button><button type="button" data-chat-panel="tasks">✓ 上线待办</button></div><p class="agent-status">待你确认评审时间 · 日程尚未改动</p></div>`
         : state.conversation === "portfolio"
           ? '<div class="message from-user">网站做完以后，我该怎么整理成作品集？</div><div class="message from-bibo"><b>✳ Bibo</b><p>先把决定过程记录下来，完成上线后再挑选一个最能代表你的片段。</p></div>'
           : state.conversation === "weekend"
@@ -51,7 +45,7 @@ export function createPageRenderers({ state, mails, notes, link, escapeHtml }) {
       )
       .join(
         "",
-      )}</aside><section class="conversation-room"><div class="conversation-heading"><strong>${title}</strong><button type="button" data-toggle-chat-panel aria-expanded="${state.chatPanelOpen}">${state.chatPanelOpen ? "收起工作区" : "显示工作区"}</button></div><div class="message-flow" id="message-flow">${seed}${reference}${state.messages.map(([role, message]) => `<div class="message ${role}">${escapeHtml(message)}</div>`).join("")}</div><form id="conversation-form" class="conversation-form"><label class="sr-only" for="conversation-input">和 Bibo 对话</label><textarea id="conversation-input" rows="2" placeholder="和 Bibo 说说你在想什么……" required></textarea><div><span>预设演示 · 不会发送到真实 AI</span><button type="submit">发送 ↑</button></div></form></section>${panel}</div>`;
+      )}</aside><section class="conversation-room"><div class="conversation-heading"><strong>${title}</strong>${state.chatPanelOpen ? "" : '<button type="button" data-toggle-chat-panel aria-expanded="false">显示关联内容</button>'}</div><div class="message-flow" id="message-flow">${seed}${reference}${state.messages.map(([role, message]) => `<div class="message ${role}">${escapeHtml(message)}</div>`).join("")}</div><form id="conversation-form" class="conversation-form"><label class="sr-only" for="conversation-input">和 Bibo 对话</label><textarea id="conversation-input" rows="2" placeholder="和 Bibo 说说你在想什么……" required></textarea><div><span>预设演示 · 不会发送到真实 AI</span><button type="submit">发送 ↑</button></div></form></section>${panel}</div>`;
   }
 
   function renderInbox() {
@@ -78,7 +72,7 @@ export function createPageRenderers({ state, mails, notes, link, escapeHtml }) {
           .join("")
       : '<p class="list-empty">这里暂时没有消息。</p>';
     const detail = selected
-      ? `<article class="detail-page"><div class="detail-eyebrow">收件箱 / ${selected.from}</div><h2>${selected.title}</h2><div class="detail-meta">${selected.from} · ${selected.time} · 发给你</div><div class="mail-text"><p>${selected.text}</p><p>谢谢，<br>${selected.from}</p></div><div class="context-callout"><strong>✳ Bibo 找到的关联</strong><p>${selected.context}</p>${link("chat", "和 Bibo 讨论这封信", "text-link")}</div><div class="mail-actions"><button type="button" id="reply-draft">准备回复草稿</button><button type="button" id="mark-processed" data-selected-mail="${selectedKey}">${state.processedMail.has(selectedKey) ? "恢复待处理" : "标记已处理"}</button></div><div class="draft-area" id="draft-area" hidden><label for="reply-text">示例草稿 · 这里不会发送邮件</label><textarea id="reply-text" rows="3">可以，14:30 开始怎么样？我会提前看一遍方案。</textarea></div></article>`
+      ? `<article class="detail-page"><h2>${selected.title}</h2><div class="detail-meta">${selected.from} · ${selected.time} · 发给你</div><div class="mail-text"><p>${selected.text}</p><p>谢谢，<br>${selected.from}</p></div><div class="context-callout"><strong>✳ Bibo 找到的关联</strong><p>${selected.context}</p>${link("chat", "和 Bibo 讨论这封信", "text-link")}</div><div class="mail-actions"><button type="button" id="reply-draft">准备回复草稿</button><button type="button" id="mark-processed" data-selected-mail="${selectedKey}">${state.processedMail.has(selectedKey) ? "恢复待处理" : "标记已处理"}</button></div><div class="draft-area" id="draft-area" hidden><label for="reply-text">示例草稿 · 这里不会发送邮件</label><textarea id="reply-text" rows="3">可以，14:30 开始怎么样？我会提前看一遍方案。</textarea></div></article>`
       : '<article class="detail-page empty-detail"><h2>现在可以先放下收件箱。</h2><p>需要处理的消息会出现在这里。</p></article>';
     return `<div class="split-page"><aside class="item-list"><div class="list-title">收到的消息 <span>${Object.keys(mails).length} 封来信</span></div><div class="segment">${tabs.map(([id, label]) => `<button class="${state.mailFilter === id ? "selected" : ""}" data-mail-filter="${id}" type="button">${label}</button>`).join("")}</div>${list}</aside>${detail}</div>`;
   }
@@ -175,7 +169,7 @@ export function createPageRenderers({ state, mails, notes, link, escapeHtml }) {
       .join("")}</div>`;
     const editor = `<div class="event-detail-label">新建安排</div><h2>把时间留给重要的事。</h2><form id="event-add-form" class="event-add"><label for="event-title">安排名称</label><input id="event-title" required placeholder="例如：整理方案"><label for="event-time">开始时间</label><input id="event-time" type="time" min="08:00" max="19:30" value="16:00" required><button type="submit">加入今天</button><button type="button" id="cancel-event">取消</button></form><p class="quiet">只在本次演示中保留，不会写入真实日历。</p>`;
     const detail = `<div class="event-detail-label">${chosen.status}</div><div class="event-detail-time">星期五 ${chosen.time} · ${chosen.duration}</div><h2>${escapeHtml(chosen.title)}</h2><p>${escapeHtml(chosen.detail)}</p>${state.selectedEvent === "review" || state.selectedEvent === "prep" ? link("inbox", "查看林悦的邮件 ↗", "text-link") : state.selectedEvent === "copy" ? link("tasks", "查看相关待办 ↗", "text-link") : ""}${state.selectedEvent === "prep" ? `<button type="button" id="accept-time">${state.acceptedTime ? "已保留准备时间 ✓" : "保留这 15 分钟"}</button>` : ""}<div class="event-detail-divider"></div><p class="quiet">日程中的建议和待确认事项不会自动变成已确认安排。此处仅改变演示状态。</p>`;
-    return `<div class="calendar-page"><div class="calendar-toolbar"><div><small>SEPTEMBER 2026</small><strong>${state.calendarMode === "day" ? "9 月 25 日，星期五" : "9 月 21 日 — 27 日"}</strong><span>已安排、待确认和 Bibo 的建议分开呈现</span></div><div class="calendar-controls"><button type="button" id="new-event">＋ 新建安排</button><div class="segment" aria-label="日历视图"><button type="button" data-calendar-mode="day" class="${state.calendarMode === "day" ? "selected" : ""}">日视图</button><button type="button" data-calendar-mode="week" class="${state.calendarMode === "week" ? "selected" : ""}">周视图</button></div></div></div><div class="calendar-body"><section class="calendar-workspace" aria-label="${state.calendarMode === "day" ? "9 月 25 日时间安排" : "本周时间安排"}">${state.calendarMode === "day" ? day : week}</section><aside class="event-detail">${state.calendarCreating ? editor : detail}</aside></div></div>`;
+    return `<div class="calendar-page"><div class="calendar-toolbar"><div><strong>${state.calendarMode === "day" ? "9 月 25 日，星期五" : "9 月 21 日 — 27 日"}</strong><span>已安排、待确认和 Bibo 的建议分开呈现</span></div><div class="calendar-controls"><button type="button" id="new-event">＋ 新建安排</button><div class="segment" aria-label="日历视图"><button type="button" data-calendar-mode="day" class="${state.calendarMode === "day" ? "selected" : ""}">日视图</button><button type="button" data-calendar-mode="week" class="${state.calendarMode === "week" ? "selected" : ""}">周视图</button></div></div></div><div class="calendar-body"><section class="calendar-workspace" aria-label="${state.calendarMode === "day" ? "9 月 25 日时间安排" : "本周时间安排"}">${state.calendarMode === "day" ? day : week}</section><aside class="event-detail">${state.calendarCreating ? editor : detail}</aside></div></div>`;
   }
 
   function renderTasks() {
@@ -185,7 +179,7 @@ export function createPageRenderers({ state, mails, notes, link, escapeHtml }) {
       ["launch", "检查上线清单", "网站上线 · 周五前"],
       ["review", "记录评审结论", "网站上线 · 评审后"],
     ];
-    return `<div class="tasks-page"><div class="tasks-intro"><div><small>正在推进</small><h2>网站上线，最后一段路。</h2><p>任务与相关邮件、日程和笔记保持关联。</p></div><div class="progress-number">${state.done.size} / ${tasks.length + state.addedTasks.length} <span>已完成</span></div></div><form class="task-add" id="task-add-form"><label class="sr-only" for="task-add-input">添加待办</label><span>＋</span><input id="task-add-input" placeholder="添加一件要做的事" required><button type="submit">添加</button></form><div class="task-groups"><section><h3>今天</h3>${[...tasks.slice(0, 2), ...state.addedTasks].map(taskRow).join("")}</section><section><h3>接下来</h3>${tasks.slice(2).map(taskRow).join("")}</section></div><aside class="task-sources"><strong>相关内容</strong>${link("inbox", "✉ 与林悦、陈一的邮件")}${link("calendar", "◷ 周五的安排")}${link("notes", "▤ 网站做完以后")}${link("chat", "✳ 和 Bibo 讨论下一步")}</aside></div>`;
+    return `<div class="tasks-page"><div class="tasks-intro"><div><small>正在推进</small><h2>网站上线，最后一段路。</h2></div><div class="progress-number">${state.done.size} / ${tasks.length + state.addedTasks.length} <span>已完成</span></div></div><form class="task-add" id="task-add-form"><label class="sr-only" for="task-add-input">添加待办</label><span>＋</span><input id="task-add-input" placeholder="添加一件要做的事" required><button type="submit">添加</button></form><div class="task-groups"><section><h3>今天</h3>${[...tasks.slice(0, 2), ...state.addedTasks].map(taskRow).join("")}</section><section><h3>接下来</h3>${tasks.slice(2).map(taskRow).join("")}</section></div><aside class="task-sources"><strong>相关内容</strong>${link("inbox", "✉ 与林悦、陈一的邮件")}${link("calendar", "◷ 周五的安排")}${link("notes", "▤ 网站做完以后")}${link("chat", "✳ 和 Bibo 讨论下一步")}</aside></div>`;
     function taskRow([id, title, meta]) {
       return `<label class="task-row ${state.done.has(id) ? "done" : ""}"><input type="checkbox" data-task="${id}" ${state.done.has(id) ? "checked" : ""}><span><strong>${escapeHtml(title)}</strong><small>${meta}</small></span></label>`;
     }
@@ -202,7 +196,7 @@ export function createPageRenderers({ state, mails, notes, link, escapeHtml }) {
       )
       .join(
         "",
-      )}</aside><article class="note-document"><div class="detail-eyebrow">${escapeHtml(note.meta)}</div><label class="sr-only" for="note-title">笔记标题</label><input id="note-title" class="note-title-input" value="${escapeHtml(note.title)}"><p class="note-lead">写下当前的想法。Bibo 可以引用这篇笔记；内容始终由你修改。</p><label class="sr-only" for="note-editor">笔记正文</label><textarea id="note-editor" rows="10">${escapeHtml(state.noteContents[state.selectedNote] || "")}</textarea><div class="note-actions"><button type="button" id="save-note">保存本次修改</button><button type="button" id="discuss-note">和 Bibo 讨论这篇笔记</button><span id="note-status" role="status">仅在本次演示中保留</span></div></article></div>`;
+      )}</aside><article class="note-document"><div class="detail-eyebrow">${escapeHtml(note.meta)}</div><label class="sr-only" for="note-title">笔记标题</label><input id="note-title" class="note-title-input" value="${escapeHtml(note.title)}"><label class="sr-only" for="note-editor">笔记正文</label><textarea id="note-editor" rows="10">${escapeHtml(state.noteContents[state.selectedNote] || "")}</textarea><div class="note-actions"><button type="button" id="save-note">保存本次修改</button><button type="button" id="discuss-note">和 Bibo 讨论这篇笔记</button><span id="note-status" role="status">仅在本次演示中保留</span></div></article></div>`;
   }
 
   function renderProject() {

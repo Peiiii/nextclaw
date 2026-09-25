@@ -103,35 +103,6 @@
 .concept-main {
   min-width: 0;
 }
-.concept-top {
-  height: 124px;
-  padding: 22px clamp(24px, 4vw, 65px);
-  background: #fbfcf9;
-  border-bottom: 1px solid var(--line);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 15px;
-}
-.concept-crumb {
-  color: var(--muted);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  font-weight: 700;
-}
-.concept-top h1 {
-  margin: 10px 0 0;
-  font-size: 30px;
-  line-height: 1.1;
-  letter-spacing: -0.055em;
-}
-.concept-back {
-  white-space: nowrap;
-  font-size: 11px;
-  color: var(--muted) !important;
-  border-bottom: 1px solid currentColor;
-  padding-bottom: 4px;
-}
 .concept-content {
   padding: clamp(20px, 3vw, 44px) clamp(20px, 4vw, 65px);
   max-width: 1500px;
@@ -555,11 +526,6 @@
   font-size: 26px;
   margin: 7px 0;
 }
-.tasks-intro p {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 0;
-}
 .progress-number {
   font-size: 27px;
   font-weight: 800;
@@ -642,14 +608,9 @@
 .note-document {
   width: 100%;
 }
-.note-lead {
-  font-size: 12px;
-  color: var(--muted);
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--line);
-}
 .note-document textarea {
   border: 0;
+  border-top: 1px solid var(--line);
   min-height: 260px;
   padding: 18px 0;
   font-size: 14px;
@@ -679,7 +640,6 @@ body.variant-brief .concept-shell {
 body.variant-brief .concept-nav {
   background: #3a3028;
 }
-body.variant-brief .concept-top h1,
 body.variant-brief .detail-page h2,
 body.variant-brief .note-document h2,
 body.variant-brief .tasks-intro h2 {
@@ -945,14 +905,6 @@ body.variant-desk .desk-chat-entry {
   }
   .concept-nav .nav-label {
     display: inline;
-  }
-  .concept-top {
-    height: auto;
-    min-height: 94px;
-    padding: 18px 22px;
-  }
-  .concept-top h1 {
-    font-size: 25px;
   }
   .concept-content {
     padding: 16px;

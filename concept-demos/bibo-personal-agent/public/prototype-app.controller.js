@@ -115,7 +115,7 @@ if (["inbox", "day", "brief", "desk"].includes(variant)) {
       view === "project"
         ? "网站上线"
         : views.find(([id]) => id === view)?.[1] || "概览";
-    return `<div class="concept-shell"><aside class="concept-nav"><div class="concept-brand">bibo<span>.</span></div><nav aria-label="主要导航">${navLinks(view)}</nav><div class="concept-nav-foot">界面概念演示<br>虚构示例数据</div></aside><div class="concept-main"><header class="concept-top"><div><div class="concept-crumb">BIBO / PERSONAL SPACE</div><h1>${title}</h1></div>${link("overview", "返回概览", "concept-back")}</header><div class="concept-content">${content}</div></div></div>`;
+    return `<div class="concept-shell"><aside class="concept-nav"><div class="concept-brand">bibo<span>.</span></div><nav aria-label="主要导航">${navLinks(view)}</nav><div class="concept-nav-foot">界面概念演示<br>虚构示例数据</div></aside><main class="concept-main"><h1 class="sr-only">${title}</h1><div class="concept-content">${content}</div></main></div>`;
   }
 
   const pageRenderers = createPageRenderers({
