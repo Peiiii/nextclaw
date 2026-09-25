@@ -82,24 +82,29 @@
 .bibo-kicker { color: #899787; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; margin: 0 0 8px; }
 .bibo-page-title h1 { font: 500 clamp(29px, 3.1vw, 43px)/1.22 Georgia, "Songti SC", serif; letter-spacing: -.03em; margin: 0 0 8px; }
 .bibo-page-title p:last-child { margin: 0; color: var(--bibo-subtle); font-size: 13px; }
-.bibo-overview { max-width: 1380px; }
-.bibo-overview .bibo-page-title { margin-bottom: 36px; }
+.bibo-overview { max-width: 1380px; padding-top: 28px; }
+.bibo-overview .bibo-page-title { margin-bottom: 25px; }
+.bibo-overview .bibo-page-title h1 { font-size: clamp(28px, 2.6vw, 36px); }
 .bibo-overview .bibo-page-title h1 { text-wrap: balance; }
-.bibo-overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
-.bibo-summary-card { min-width: 0; min-height: 155px; overflow-wrap: anywhere; padding: 22px 24px 24px; background: #fffefa; border: 1px solid var(--bibo-hairline); border-radius: 13px; }
-.bibo-summary-wide { grid-column: 1 / -1; min-height: 0; background: #edf2e9; border-color: #e1e9db; }
+.bibo-overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 24px; align-items: start; }
+.bibo-overview-column { min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.bibo-overview-brief { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; width: 100%; min-width: 0; min-height: 82px; padding: 15px 20px; border: 1px solid #e1e9db; border-radius: 11px; text-align: left; background: #edf2e9; color: #435a43; cursor: pointer; }
+.bibo-overview-brief:hover { background: #e6eedf; }
+.bibo-overview-brief-mark { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: #567358; color: white; font-size: 15px; }
+.bibo-overview-brief-copy { min-width: 0; flex: 1; }
+.bibo-overview-brief-copy strong { display: block; font-size: 14px; font-weight: 600; }
+.bibo-overview-brief-copy small { display: block; margin-top: 3px; color: #6c7e6c; font-size: 12px; overflow-wrap: anywhere; }
+.bibo-overview-brief-action { flex: none; font-size: 12px; }
+.bibo-summary-card { min-width: 0; overflow-wrap: anywhere; padding: 20px 24px; background: #fffefa; border: 1px solid var(--bibo-hairline); border-radius: 11px; }
 .bibo-card-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; color: #6d806b; font-size: 11px; }
 .bibo-card-heading small { color: #95a291; font-size: 10px; }
-.bibo-summary-card h2 { font: 500 22px/1.38 Georgia, "Songti SC", serif; margin: 12px 0 14px; }
-.bibo-summary-wide h2 { font-size: 27px; margin: 19px 0 10px; }
-.bibo-summary-wide p { color: #697a68; font-size: 13px; margin: 0; }
-.bibo-card-empty { color: #9ba499; font-size: 12px; margin-top: 23px; }
+.bibo-summary-card h2 { font: 500 20px/1.38 Georgia, "Songti SC", serif; margin: 10px 0 13px; }
+.bibo-card-empty { color: #9ba499; font-size: 12px; margin: 12px 0 0; }
 .bibo-summary-row { width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 16px; text-align: left; border: 0; border-top: 1px solid #edf0e9; background: transparent; padding: 11px 0; cursor: pointer; color: #45564a; }
 .bibo-summary-row:hover { color: var(--bibo-leaf); }
 .bibo-summary-row strong { min-width: 0; font-size: 13px; font-weight: 560; }
 .bibo-summary-row span { flex: none; font-size: 11px; color: #879688; white-space: nowrap; }
-.bibo-project-card { grid-column: 1 / -1; min-height: 0; }
-.bibo-project-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-top: 19px; }
+.bibo-project-list { display: grid; grid-template-columns: 1fr; gap: 4px; margin-top: 14px; }
 .bibo-project-list button { position: relative; min-height: 58px; display: flex; align-items: start; justify-content: space-between; gap: 12px; text-align: left; background: none; border: 0; border-top: 2px solid #e1e8dd; color: #475b4b; padding: 12px 0; cursor: pointer; }
 .bibo-project-list button strong { min-width: 0; font-size: 13px; }
 .bibo-project-list button span { color: #97a396; font-size: 11px; white-space: nowrap; }
@@ -307,11 +312,16 @@
   .bibo-page-title { align-items: start; }
   .bibo-page-title h1 { font-size: 31px; }
   .bibo-page-title > .ui-button--primary { flex: none; }
-  .bibo-overview-grid { grid-template-columns: 1fr; gap: 11px; }
-  .bibo-project-list { grid-template-columns: 1fr; gap: 4px; }
-  .bibo-summary-wide { grid-column: auto; }
+  .bibo-overview-grid { display: flex; flex-direction: column; align-items: stretch; gap: 11px; }
+  .bibo-overview-column { display: contents; }
+  .bibo-overview-brief { min-height: 0; padding: 15px; order: 0; }
+  .bibo-overview-brief-action { align-self: flex-start; }
+  .bibo-overview-inbox { order: 1; }
+  .bibo-overview-calendar { order: 2; }
+  .bibo-overview-tasks { order: 3; }
+  .bibo-project-card { order: 4; }
+  .bibo-overview-notes { order: 5; }
   .bibo-summary-card { min-height: 0; padding: 18px; }
-  .bibo-summary-wide h2 { font-size: 23px; }
   .bibo-split { display: block; min-height: 0; }
   .bibo-list-pane { max-height: 290px; border-right: 0; border-bottom: 1px solid var(--bibo-hairline); }
   .bibo-detail-pane { min-height: 300px; padding: 24px 18px; }
@@ -351,6 +361,12 @@
   .bibo-workspace { position: absolute; z-index: 3; inset: 0; width: 100%; min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .bibo-sidebar, .bibo-nav-item { transition: none; } }
+@media (max-width: 380px) {
+  .bibo-overview-brief { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 6px 12px; }
+  .bibo-overview-brief-mark { grid-column: 1; grid-row: 1; }
+  .bibo-overview-brief-copy { grid-column: 2; grid-row: 1; }
+  .bibo-overview-brief-action { grid-column: 2; grid-row: 2; justify-self: end; }
+}
 
 .account-menu-trigger { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 40px; text-align: left; padding: 8px; }
 .sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 22px; }

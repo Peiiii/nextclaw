@@ -382,7 +382,7 @@ try {
       await mockApi(page);
       await checkMissingSession(page, viewport.width);
       await page.goto(base, { waitUntil: "networkidle" });
-      await page.getByRole("heading", { name: /今天从这里开始/ }).waitFor();
+      await page.getByRole("heading", { name: /最近你在忙这些|今天从这里开始/ }).waitFor();
       assert.equal(await page.getByText("确认方案方向").count(), 1);
       await page.screenshot({ path: `/tmp/bibo-product-${viewport.width}.png`, fullPage: true });
       if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
