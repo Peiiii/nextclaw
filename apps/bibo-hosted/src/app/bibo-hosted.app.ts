@@ -72,6 +72,7 @@ export class BiboUserContainer extends Container<Env> {
   sleepAfter = "1m";
   enableInternet = true;
   private inFlight = false;
+  private spaceQueue: Promise<void> = Promise.resolve();
   private activeRun: { id: string; phase: "generating" | "saving"; controller: AbortController } | null = null;
 
   override async onStart(): Promise<void> {
@@ -92,18 +93,7 @@ export class BiboUserContainer extends Container<Env> {
       try { return await this.sessionRoute(request, url); }
       finally { if (mutation) this.inFlight = false; }
     }
-    if (route === "/reset" && request.method === "POST") {
-      if (this.inFlight) return publicError("Bibo 正在处理任务，请完成后再清空。", 429);
-      this.inFlight = true;
-      try {
-      await this.stop();
-      const snapshotKey = await this.ctx.storage.get<string>("snapshotKey");
-      if (snapshotKey) await this.env.SNAPSHOTS.delete(snapshotKey);
-      await this.env.SNAPSHOTS.delete(this.ctx.id.toString());
-      await this.ctx.storage.deleteAll();
-      return json({ ok: true });
-      } finally { this.inFlight = false; }
-    }
+    if (route === "/reset" && request.method === "POST") return this.reset();
     if (route === "/cancel" && request.method === "POST") {
       const body = await request.json().catch(() => null) as { runId?: unknown } | null;
       const active = this.activeRun;
@@ -112,10 +102,27 @@ export class BiboUserContainer extends Container<Env> {
       active.controller.abort();
       return json({ ok: true });
     }
-    if (route === "/space" && request.method === "POST") return this.space(request);
+    if (route === "/space" && request.method === "POST") {
+      const pending = this.spaceQueue.then(() => this.space(request));
+      this.spaceQueue = pending.then(() => undefined, () => undefined);
+      return pending;
+    }
     if (route !== "/run" || request.method !== "POST") return publicError("Not found", 404);
     return this.run(request);
   }
+
+  private reset = async (): Promise<Response> => {
+    if (this.inFlight) return publicError("Bibo 正在处理任务，请完成后再清空。", 429);
+    this.inFlight = true;
+    try {
+      await this.stop();
+      const snapshotKey = await this.ctx.storage.get<string>("snapshotKey");
+      if (snapshotKey) await this.env.SNAPSHOTS.delete(snapshotKey);
+      await this.env.SNAPSHOTS.delete(this.ctx.id.toString());
+      await this.ctx.storage.deleteAll();
+      return json({ ok: true });
+    } finally { this.inFlight = false; }
+  };
 
   private sessionRoute = async (request: Request, url: URL): Promise<Response> => {
     const route = url.pathname;
