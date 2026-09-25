@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Bibo · 收件箱优先</title>
+    <style>
+      :root {
+        --ink: #24231f;
+        --muted: #827e74;
+        --line: #e5e2db;
+        --orange: #f26c45;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f7f6f2;
+        color: var(--ink);
+        font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 230px 330px minmax(450px, 1fr) 275px;
+        min-height: 100vh;
+      }
+      .nav {
+        background: #242923;
+        color: #eef0e8;
+        padding: 27px 17px;
+        display: flex;
+        flex-direction: column;
+      }
+      .brand {
+        font-weight: 850;
+        font-size: 27px;
+        letter-spacing: -0.06em;
+        padding: 4px 13px 31px;
+      }
+      .brand i {
+        font-style: normal;
+        color: #ff8060;
+      }
+      .nav small {
+        color: #8f9a8e;
+        letter-spacing: 0.14em;
+        font-size: 10px;
+        font-weight: 800;
+        padding: 0 13px 12px;
+      }
+      .nav a {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 14px;
+        margin: 2px 0;
+        border-radius: 9px;
+        color: #cbd1c7;
+        font-size: 14px;
+      }
+      .nav a.active,
+      .nav a:hover {
+        background: #41483f;
+        color: white;
+      }
+      .nav b {
+        font-size: 11px;
+        background: #f26c45;
+        color: #211e1b;
+        padding: 2px 6px;
+        border-radius: 5px;
+      }
+      .nav .bottom {
+        margin-top: auto;
+        border-top: 1px solid #475045;
+        padding: 18px 13px 0;
+        font-size: 12px;
+        line-height: 1.7;
+        color: #a5afa1;
+      }
+      .list {
+        background: #fff;
+        border-right: 1px solid var(--line);
+        padding: 29px 0;
+      }
+      .list-head {
+        padding: 0 24px 17px;
+      }
+      .kicker {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        color: #d76545;
+      }
+      h1 {
+        font-size: 29px;
+        letter-spacing: -0.06em;
+        margin: 8px 0 7px;
+      }
+      .sub {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .filters {
+        display: flex;
+        gap: 7px;
+        padding: 12px 24px 20px;
+      }
+      .filters button {
+        border: 1px solid #ddd9d1;
+        border-radius: 99px;
+        background: white;
+        padding: 7px 11px;
+        font-size: 11px;
+      }
+      .filters button.selected {
+        background: #272a24;
+        color: white;
+        border-color: #272a24;
+      }
+      .mail {
+        border: 0;
+        border-top: 1px solid #f0eee8;
+        width: 100%;
+        background: white;
+        padding: 18px 24px;
+        text-align: left;
+        display: block;
+      }
+      .mail.selected {
+        background: #f8f2eb;
+        border-left: 3px solid var(--orange);
+        padding-left: 21px;
+      }
+      .mail:hover {
+        background: #f8f6f1;
+      }
+      .mail-top {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: #7c776e;
+      }
+      .mail-top strong {
+        color: #282722;
+        font-size: 12px;
+      }
+      .mail h3 {
+        font-size: 14px;
+        margin: 11px 0 7px;
+        line-height: 1.35;
+      }
+      .mail p {
+        font-size: 11px;
+        color: #827d72;
+        line-height: 1.55;
+        margin: 0;
+      }
+      .tag {
+        display: inline-block;
+        margin-top: 10px;
+        border-radius: 4px;
+        padding: 4px 6px;
+        background: #f7e0d5;
+        color: #a94e31;
+        font-size: 10px;
+        font-weight: 700;
+      }
+      .reading {
+        padding: 32px 46px;
+        background: #fefdfb;
+      }
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 23px;
+        color: #807a70;
+        font-size: 12px;
+      }
+      .toolbar button {
+        border: 1px solid var(--line);
+        background: white;
+        border-radius: 8px;
+        padding: 8px 12px;
+      }
+      .reading h2 {
+        font-size: 30px;
+        letter-spacing: -0.05em;
+        line-height: 1.18;
+        margin: 36px 0 20px;
+      }
+      .sender {
+        display: flex;
+        gap: 11px;
+        align-items: center;
+        padding-bottom: 30px;
+        border-bottom: 1px solid var(--line);
+        font-size: 12px;
+        color: #777167;
+      }
+      .avatar {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: #dddfd3;
+        color: #545e4c;
+        font-weight: 800;
+      }
+      .sender strong {
+        display: block;
+        color: #292720;
+        margin-bottom: 2px;
+      }
+      .bodycopy {
+        font-size: 14px;
+        line-height: 2;
+        color: #49443e;
+        max-width: 620px;
+        margin-top: 30px;
+      }
+      .bodycopy p {
+        margin: 0 0 17px;
+      }
+      .reply {
+        margin-top: 32px;
+        padding: 20px;
+        border: 1px solid #ddd7ca;
+        border-radius: 13px;
+        background: #fff;
+      }
+      .reply label {
+        display: block;
+        font-size: 11px;
+        color: #a75a40;
+        font-weight: 800;
+        margin-bottom: 12px;
+      }
+      .reply p {
+        font-size: 13px;
+        line-height: 1.7;
+        margin: 0 0 15px;
+      }
+      .reply button {
+        background: #292b25;
+        color: white;
+        border: 0;
+        border-radius: 7px;
+        padding: 10px 14px;
+        font-size: 12px;
+      }
+      .side {
+        padding: 30px 22px;
+        background: #f0f1e9;
+        border-left: 1px solid #dfe3d8;
+      }
+      .bibo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 29px;
+        height: 29px;
+        background: var(--orange);
+        border-radius: 9px;
+        color: #fff;
+      }
+      .side h3 {
+        font-size: 21px;
+        line-height: 1.3;
+        letter-spacing: -0.04em;
+        margin: 30px 0 11px;
+      }
+      .side p {
+        font-size: 12px;
+        line-height: 1.7;
+        color: #646c5e;
+      }
+      .evidence {
+        border-top: 1px solid #d9dfd2;
+        padding-top: 20px;
+        margin-top: 24px;
+        font-size: 11px;
+        color: #8a9386;
+      }
+      .fact {
+        font-size: 12px;
+        padding: 14px 0;
+        border-bottom: 1px solid #d9dfd2;
+        line-height: 1.6;
+      }
+      .fact strong {
+        display: block;
+        color: #29362c;
+      }
+      .side .action {
+        width: 100%;
+        margin-top: 24px;
+        border: 0;
+        background: #f26c45;
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .demo {
+        font-size: 10px;
+        color: #9d9b92;
+        margin-top: 18px;
+      }
+      @media (max-width: 1180px) {
+        .app {
+          grid-template-columns: 185px 300px minmax(400px, 1fr);
+        }
+        .side {
+          display: none;
+        }
+      }
+      @media (max-width: 820px) {
+        .app {
+          display: block;
+        }
+        .nav {
+          display: block;
+          padding: 12px 16px;
+        }
+        .brand {
+          padding: 0;
+          font-size: 22px;
+        }
+        .nav small,
+        .nav a,
+        .nav .bottom {
+          display: none;
+        }
+        .list {
+          padding-top: 16px;
+        }
+        .list-head {
+          padding: 0 20px;
+        }
+        .filters {
+          padding: 12px 20px;
+        }
+        .mail {
+          padding: 13px 20px;
+        }
+        .mail:nth-of-type(n + 5) {
+          display: none;
+        }
+        .reading {
+          padding: 24px 20px;
+        }
+        .reading h2 {
+          font-size: 26px;
+          margin-top: 22px;
+        }
+        .bodycopy {
+          font-size: 13px;
+        }
+        .reply {
+          margin-bottom: 30px;
+        }
+      }
+    </style>
+    <style>
+      .mail[hidden] {
+        display: none;
+      }
+      @media (max-width: 820px) {
+        .side {
+          display: block;
+          border-left: 0;
+          padding: 24px 20px;
+        }
+      }
+    </style>
+    <link rel="stylesheet" href="prototype-app.css" />
+    <link rel="stylesheet" href="prototype-variants.css" />
+    <link rel="stylesheet" href="prototype-detail.css" />
+  </head>
+  <body>
+    <div class="app">
+      <nav class="nav">
+        <div class="brand">bibo<i>.</i></div>
+        <small>你的空间</small
+        ><a class="active" href="inbox.html">收件箱 <b>3</b></a
+        ><a href="day.html">日程</a><a href="day.html">待办</a
+        ><a href="desk.html">笔记</a><a href="brief.html">Bibo 的观察</a>
+        <div class="bottom">● Bibo 正在帮你梳理<br />需要关注的消息</div>
+      </nav>
+      <section class="list">
+        <div class="list-head">
+          <div class="kicker">FRIDAY, SEPTEMBER 25</div>
+          <h1>收件箱</h1>
+          <div class="sub">12 条新消息 · 其中 3 条值得今天处理</div>
+        </div>
+        <div class="filters">
+          <button class="selected" data-filter="all">全部</button
+          ><button data-filter="important">需要处理 3</button
+          ><button data-filter="quiet">稍后看</button>
+        </div>
+        <div id="mail-list">
+          <button
+            class="mail selected"
+            data-kind="important"
+            data-title="周五的方案评审，能提前到下午吗？"
+            data-from="林悦 · 产品团队"
+            data-body="嗨，原定周五晚上的方案评审，能否提前到下午？我看你 15:00 前有一段空档。如果可以，我来更新邀请。"
+            data-note="你 14:00–15:00 有一段空档，17:30 后已经安排了个人时间。建议回复 14:30，并保留 15 分钟准备。"
+          >
+            <div class="mail-top"><strong>林悦</strong><span>09:42</span></div>
+            <h3>周五的方案评审，能提前到下午吗？</h3>
+            <p>原定周五晚上的方案评审，能否提前到下午？</p>
+            <span class="tag">需要决定 · 涉及日程</span></button
+          ><button
+            class="mail"
+            data-kind="important"
+            data-title="网站上线前，请确认这两处文案"
+            data-from="陈一 · 项目协作"
+            data-body="这两处文案需要你最终确认。我已经在文档里标出差异，今天确认的话我们还能赶上周五上线。"
+            data-note="这件事关联你周五上线的项目。建议今天留出 20 分钟确认；Bibo 可以先整理两处差异。"
+          >
+            <div class="mail-top"><strong>陈一</strong><span>08:18</span></div>
+            <h3>网站上线前，请确认这两处文案</h3>
+            <p>今天确认的话，我们还能赶上周五上线。</p>
+            <span class="tag">需要处理 · 项目上线</span></button
+          ><button
+            class="mail"
+            data-kind="important"
+            data-title="周末聚餐人数确认"
+            data-from="阿哲 · 朋友"
+            data-body="周末聚餐先定在六点。你和小乔能来吗？我今晚定位置。"
+            data-note="你周六下午没有已安排的活动。这里需要你自己决定，Bibo 暂不代答复。"
+          >
+            <div class="mail-top"><strong>阿哲</strong><span>昨天</span></div>
+            <h3>周末聚餐人数确认</h3>
+            <p>你和小乔能来吗？我今晚定位置。</p>
+            <span class="tag">需要你决定</span></button
+          ><button
+            class="mail"
+            data-kind="quiet"
+            data-title="本周阅读：设计与技术"
+            data-from="每周来信"
+            data-body="这是本周的阅读推荐，包含几篇关于产品设计和技术实践的文章。"
+            data-note="这封是阅读资料，今天没有明确行动要求。"
+          >
+            <div class="mail-top">
+              <strong>每周来信</strong><span>昨天</span>
+            </div>
+            <h3>本周阅读：设计与技术</h3>
+            <p>精选的文章与几个有趣的链接。</p>
+          </button>
+        </div>
+      </section>
+      <aside class="side">
+        <div class="bibo"><span class="mark">✳</span>Bibo 看到的关联</div>
+        <h3>这封信会改变你今天的安排。</h3>
+        <p id="note">
+          你 14:00–15:00 有一段空档，17:30 后已经安排了个人时间。建议回复
+          14:30，并保留 15 分钟准备。
+        </p>
+        <div class="evidence">它参考了</div>
+        <div class="fact">
+          <strong>◷ 今天的日程</strong>14:00–15:00 暂无安排
+        </div>
+        <div class="fact"><strong>✓ 项目待办</strong>周五前完成方案评审</div>
+        <button class="action" id="action">把准备时间放进待办</button>
+        <div class="demo">概念演示 · 未连接真实邮箱或日历</div>
+      </aside>
+    </div>
+
+    <script type="module" src="prototype-app.controller.js"></script>
+  </body>
+</html>

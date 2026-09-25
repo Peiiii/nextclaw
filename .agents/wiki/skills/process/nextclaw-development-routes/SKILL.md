@@ -23,7 +23,7 @@ description: 当共享 development-* 阶段触达 NextClaw 产品、仓库命令
 - 前端状态和 view logic：读取[View Logic 解耦](../../frontend/mvp-view-logic-decoupling/SKILL.md)。
 - 目录、角色、命名：读取[文件组织治理](../../governance/file-organization-governance/SKILL.md)。
 - fallback、兼容、恢复：读取[可预测行为优先](../../architecture/predictable-behavior-first/SKILL.md)。
-- 前端系统性重构、交互或参考皮肤：分别选择[前端代码优化](../../frontend/frontend-code-optimization/SKILL.md)、[交互质量](../../frontend/frontend-interaction-quality/SKILL.md)或[参考皮肤复刻](../../frontend/replicating-reference-skins/SKILL.md)中的一个。
+- 前端系统性重构、控件交互、参考皮肤或页面级挑刺：分别选择[前端代码优化](../../frontend/frontend-code-optimization/SKILL.md)、[交互质量](../../frontend/frontend-interaction-quality/SKILL.md)、[参考皮肤复刻](../../frontend/replicating-reference-skins/SKILL.md)或[UI 设计挑刺](../../frontend/ui-design-critique/SKILL.md)中的一个。挑刺侧重删减、信息层级和空间效率；控件行为仍归交互质量。
 - Hermes HTTP 或 NARP stdio runtime 接入：分别读取[HTTP runtime 接入](../../architecture/nextclaw-http-agent-runtime-integration/SKILL.md)或[NARP stdio 接入](../../architecture/nextclaw-narp-stdio-runtime-integration/SKILL.md)。
 - 用户可见内容边界：读取[用户内容边界](../../content/user-facing-content-boundary/SKILL.md)。
 - Marketplace skill 的评估与集成设计：读取[Marketplace skill 集成](../../operations/nextclaw-marketplace-skill-integration/SKILL.md)的 design 分支。
