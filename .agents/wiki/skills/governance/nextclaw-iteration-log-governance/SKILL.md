@@ -57,7 +57,7 @@ Every iteration `README.md` must contain:
 5. `## 可维护性总结汇总`
 6. `## NPM 包发布记录`
 
-进行中日志保留这些章节，尚未交付/验证如实标明；大型交付另在顶部保存关联入口与过程记录。普通进展直接追加简短事件，长详情按需拆分，具体方法复用[大型交付记录协议](../../process/iteration-work-notes/references/major-delivery-records.md)，不另建一套模板。日志中的交付摘要不覆盖整体合同和当前工作状态。
+进行中日志保留这些章节，尚未交付/验证如实标明；大型交付另保存原始输入与约束、关联入口与过程记录。普通进展直接追加简短事件，长详情按需拆分，具体方法复用[大型交付记录协议](../../process/iteration-work-notes/references/major-delivery-records.md)，不另建一套模板。日志中的交付摘要不覆盖整体合同和当前工作状态。
 
 If the task is a fix, incident, root-cause investigation, or abnormal-behavior cleanup, the completion section must record:
 
