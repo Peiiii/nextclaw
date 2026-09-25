@@ -11,7 +11,7 @@
 ## 技术栈与代码边界（用户追加约束）
 
 - 网页：React 18、TypeScript、Vite；Zustand 是会话、草稿、请求阶段和账号展示状态的唯一前端 owner。React 组件只订阅状态、调用 action 并呈现结果。流式网络解析与提交判定在 store 调用的独立 manager 内，不把状态机塞进组件 effect。
-- 组件体系：建立专用 `@nextclaw/bibo-ui` 包，统一视觉 token、按钮、消息展示与输入区等稳定公共组件；组件库不 import Bibo API、Zustand 或 Cloudflare 类型。Bibo app 将其组成页面，后续独立表面可复用。规范写在 Bibo 作用域的 `AGENTS.md`，不改变全项目约束。
+- 组件体系：建立专用 `@nextclaw/personal-agent-ui` 包，统一视觉 token、按钮、消息展示与输入区等稳定公共组件；组件库不 import Bibo API、Zustand 或 Cloudflare 类型。Bibo app 将其组成页面，后续独立表面可复用。规范写在 Bibo 作用域的 `AGENTS.md`，不改变全项目约束。
 - 服务端：Cloudflare Worker / Durable Object 与容器入口均维护 TypeScript 源码。容器在构建时编译成 Node 可运行的 JavaScript 产物，运行时不加载 TS 转译器。底层 Agent 继续调用 `@nextclaw/harness` 公共入口。
 - 发布：Vite 构建静态产物供 Worker Assets 托管，维持单一 Worker、每账号一个容器和现有额度；组件包是构建期依赖，不引入额外在线服务。
 
@@ -61,4 +61,4 @@ Durable Object 继续串行化同账号 run、执行每小时限额并拥有保�
 
 用户指出 Markdown 的阅读层次不足，并要求前端有一条 `pnpm` 一键启动的本地调试链路。前端默认开发模式使用 Vite 和开发时内存 API：自动提供预览账号、覆盖标题/列表/引用/代码/表格的会话样本，并按 SSE 分块发送回答。它复用正式页面的 React 组件、Zustand 状态和事件解析路径，改动后可热更新，不调用 Cloudflare 或模型。真实 Worker 联调仍使用单独的代理模式；开发模拟不能代替线上保存与容器恢复验收。
 
-消息组件库对生成中和已保存的助手内容使用同一个 Markdown renderer，renderer 类型和配置保持模块级稳定。排版层级、引用、代码和表格样式由 `@nextclaw/bibo-ui` 的主题统一负责；禁用原始 HTML，仅放行安全外链，不加载模型给出的远程图片。验收覆盖桌面与手机宽度、流式过程中部分 Markdown 的即时展示、保存后的语义结构和刷新恢复。
+消息组件库对生成中和已保存的助手内容使用同一个 Markdown renderer，renderer 类型和配置保持模块级稳定。排版层级、引用、代码和表格样式由 `@nextclaw/personal-agent-ui` 的主题统一负责；禁用原始 HTML，仅放行安全外链，不加载模型给出的远程图片。验收覆盖桌面与手机宽度、流式过程中部分 Markdown 的即时展示、保存后的语义结构和刷新恢复。

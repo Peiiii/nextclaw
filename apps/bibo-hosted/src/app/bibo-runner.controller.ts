@@ -7,13 +7,15 @@ import { spawn } from "node:child_process";
 import { pipeline } from "node:stream/promises";
 import type { Readable } from "node:stream";
 import { backup, DatabaseSync } from "node:sqlite";
-import { runNextclawTask } from "@nextclaw/harness";
+import { NextclawHarness } from "@nextclaw/harness";
+import { BiboSpaceContribution, BiboSpaceError, BiboSpaceService } from "@/features/bibo-domain";
 
 const home = process.env.NEXTCLAW_HOME ?? "/data";
 const model = "nextclaw/deepseek-flash";
 const defaultIdentity = "# Bibo\n\n你是 Bibo，一个长期陪伴用户、帮助用户把事情做成的个人 AI 搭档。诚实说明你已经完成和没有完成的事。用户决定哪些个人信息值得记住。未经用户要求，不主动安排定时任务或对外操作。\n";
-const hostedIdentity = "# Bibo\n\n你是 Bibo，基于 NextClaw 的个人 AI 搭档。诚实说明已完成、未完成以及不确定的事。这个托管网页当前提供文字对话和会话继续；不要声称已经接入网页搜索、邮箱、自动提醒、后台任务或外部应用。未经用户授权，不对外操作。用户决定哪些个人信息值得记住。\n";
+const hostedIdentity = "# Bibo\n\n你是 Bibo，基于 NextClaw 的个人 AI 搭档。诚实说明已完成、未完成以及不确定的事。你可以通过 bibo 工具按需发现并操作用户的任务、日程、笔记、文件和注意力收件箱；结构化数据必须经此工具操作，不能手改内部 JSON。不要声称已连接外部邮箱、日历或应用。未经用户授权，不对外操作。用户决定哪些个人信息值得记住。\n";
 mkdirSync(join(home, "workspace"), { recursive: true });
+const space = new BiboSpaceService(home);
 
 type RunnerConfig = {
   agents?: { defaults?: Record<string, unknown> };
@@ -26,15 +28,15 @@ function sendJson(response: ServerResponse, status: number, value: unknown): voi
   response.end(JSON.stringify(value));
 }
 
-async function readJson(request: IncomingMessage): Promise<RunBody> {
+async function readJson<T>(request: IncomingMessage, maxBytes = 32_768): Promise<T> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
     size += chunk.length;
-    if (size > 32_768) throw new Error("Request too large");
+    if (size > maxBytes) throw new BiboSpaceError("请求内容过大。", 413);
     chunks.push(chunk);
   }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as RunBody;
+  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as T;
 }
 
 function configure(token: string): void {
@@ -49,7 +51,7 @@ function configure(token: string): void {
     nextclaw: {
       ...config.providers?.nextclaw,
       enabled: true,
-      apiBase: "https://bibo-hosted.15353764479037.workers.dev/api/model/v1",
+      apiBase: "https://app.bibo.bot/api/model/v1",
       apiKey: token,
       models: [model],
     },
@@ -101,7 +103,7 @@ async function sendSnapshot(response: ServerResponse): Promise<void> {
 }
 
 async function sendRun(request: IncomingMessage, response: ServerResponse): Promise<void> {
-  const body = await readJson(request);
+  const body = await readJson<RunBody>(request);
   if (typeof body.message !== "string" || !body.message.trim() || body.message.length > 4000 || typeof body.token !== "string" || body.token.length > 4096) {
     return sendJson(response, 400, { error: "Invalid request" });
   }
@@ -113,12 +115,19 @@ async function sendRun(request: IncomingMessage, response: ServerResponse): Prom
   response.on("close", onClose);
   try {
     if (streaming) response.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" });
-    const result = await runNextclawTask({
-      input: body.message.trim(), sessionId: typeof body.sessionId === "string" ? body.sessionId : undefined, signal: controller.signal,
-      ...(streaming ? { onAssistantDelta: (delta: string) => {
-        if (!response.destroyed && delta) response.write(`event: delta\ndata: ${JSON.stringify({ text: delta })}\n\n`);
-      } } : {}),
-    }, { homeDir: home });
+    const sessionId = typeof body.sessionId === "string" && body.sessionId ? body.sessionId : crypto.randomUUID();
+    const harness = new NextclawHarness({ homeDir: home });
+    harness.contributions.register(new BiboSpaceContribution(space, sessionId));
+    let result;
+    try {
+      await harness.start();
+      result = await harness.runTask({
+        input: body.message.trim(), sessionId, signal: controller.signal,
+        ...(streaming ? { onAssistantDelta: (delta: string) => {
+          if (!response.destroyed && delta) response.write(`event: delta\ndata: ${JSON.stringify({ text: delta })}\n\n`);
+        } } : {}),
+      });
+    } finally { await harness.dispose(); }
     if (streaming) {
       response.end(`event: result\ndata: ${JSON.stringify({ text: result.text, sessionId: result.sessionId })}\n\n`);
       return;
@@ -143,12 +152,26 @@ const server = createServer(async (request, response) => {
     }
     if (route === "/snapshot" && request.method === "GET") return await sendSnapshot(response);
     if (route === "/run" && request.method === "POST") return await sendRun(request, response);
+    if (route === "/sessions/delete" && request.method === "POST") {
+      const body = await readJson<{ id?: unknown }>(request);
+      if (typeof body.id !== "string" || !body.id) return sendJson(response, 400, { error: "会话编号不正确。" });
+      const harness = new NextclawHarness({ homeDir: home });
+      try { await harness.start(); await harness.sessions.delete(body.id); }
+      finally { await harness.dispose(); }
+      return sendJson(response, 200, { ok: true });
+    }
+    if (route === "/space" && request.method === "POST") {
+      const body = await readJson<{ action?: unknown; input?: unknown }>(request, 1_100_000);
+      if (typeof body.action !== "string") return sendJson(response, 400, { error: "缺少操作名称。" });
+      const result = await space.execute(body.action, body.input ?? {});
+      return sendJson(response, 200, { result });
+    }
     return sendJson(response, 404, { error: "Not found" });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("bibo-runner-error", message);
-    if (!response.headersSent) sendJson(response, message.includes("429") || message.includes("今日试用额度") ? 429 : 500, {
-      error: message.includes("429") || message.includes("今日试用额度") ? "今日试用额度已用完，请明天再试。" : "Bibo could not complete this task. Please retry.",
+    if (!response.headersSent) sendJson(response, error instanceof BiboSpaceError ? error.status : message.includes("429") || message.includes("今日试用额度") ? 429 : 500, {
+      error: error instanceof BiboSpaceError ? error.message : message.includes("429") || message.includes("今日试用额度") ? "今日试用额度已用完，请明天再试。" : "Bibo could not complete this task. Please retry.",
       ...(route === "/snapshot" ? { diagnostic: message.slice(0, 300) } : {}),
     });
     else if (!response.destroyed && route === "/run") response.end(`event: error\ndata: ${JSON.stringify({ error: "Bibo 暂时无法完成这次任务，请稍后重试。" })}\n\n`);

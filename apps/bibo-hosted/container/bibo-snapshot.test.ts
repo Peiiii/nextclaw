@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { once } from "node:events";
 import test from "node:test";
+import { NextclawHarness } from "@nextclaw/harness";
 
 async function freePort() {
   const server = createServer();
@@ -91,4 +92,58 @@ test("snapshot stays valid while NextClaw's SQLite WAL is being written", async 
   const exited = once(runner, "exit");
   runner.kill("SIGTERM");
   assert.deepEqual(await exited, [0, null], "idle runner exits cleanly when Cloudflare stops it");
+});
+
+test("Bibo structured data and file content survive a runner snapshot restore", async (t) => {
+  const temporary = await mkdtemp(join(tmpdir(), "bibo-space-restore-"));
+  const home = join(temporary, "home");
+  await mkdir(join(home, "workspace"), { recursive: true });
+  const port = await freePort();
+  const runner = spawn(process.execPath, [new URL("../dist/container/bibo-runner.controller.mjs", import.meta.url).pathname], {
+    env: { ...process.env, NEXTCLAW_HOME: home, BIBO_PORT: String(port) }, stdio: "ignore",
+  });
+  t.after(async () => {
+    if (runner.exitCode === null && runner.signalCode === null) { const exited = once(runner, "exit"); runner.kill(); await exited; }
+    await rm(temporary, { recursive: true, force: true });
+  });
+  await waitForHealth(port);
+  const action = async (name: string, input: Record<string, unknown>) => {
+    const response = await fetch(`http://127.0.0.1:${port}/space`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: name, input }) });
+    assert.equal(response.status, 200);
+    return (await response.json() as { result: unknown }).result;
+  };
+  const task = await action("task.create", { title: "Restore this task", status: "active" }) as { id: string };
+  const file = await action("file.create", { path: "Ideas.md", kind: "note", content: "Persistent note" }) as { id: string };
+  const snapshot = await fetch(`http://127.0.0.1:${port}/snapshot`);
+  assert.equal(snapshot.status, 200);
+  await rm(join(home, "bibo"), { recursive: true, force: true });
+  await rm(join(home, "workspace", "Ideas.md"));
+  const restored = await fetch(`http://127.0.0.1:${port}/restore`, { method: "POST", body: await snapshot.arrayBuffer() });
+  assert.equal(restored.status, 200);
+  assert.equal((await action("task.get", { id: task.id }) as { title: string }).title, "Restore this task");
+  assert.equal((await action("file.get", { id: file.id }) as { content: string }).content, "Persistent note");
+});
+
+test("deleting a Bibo session removes the underlying Agent journal", async (t) => {
+  const temporary = await mkdtemp(join(tmpdir(), "bibo-session-delete-"));
+  t.after(() => rm(temporary, { recursive: true, force: true }));
+  const sessionId = "bibo-delete-fixture";
+  const createHarness = new NextclawHarness({ homeDir: temporary });
+  await createHarness.start();
+  try { await createHarness.agents.get().sessions.create({ sessionId, task: "fixture" }); }
+  finally { await createHarness.dispose(); }
+
+  const port = await freePort();
+  const runner = spawn(process.execPath, [new URL("../dist/container/bibo-runner.controller.mjs", import.meta.url).pathname], {
+    env: { ...process.env, NEXTCLAW_HOME: temporary, BIBO_PORT: String(port) }, stdio: "ignore",
+  });
+  t.after(async () => { if (runner.exitCode === null && runner.signalCode === null) { const exited = once(runner, "exit"); runner.kill(); await exited; } });
+  await waitForHealth(port);
+  const deleted = await fetch(`http://127.0.0.1:${port}/sessions/delete`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: sessionId }) });
+  assert.equal(deleted.status, 200);
+
+  const inspectHarness = new NextclawHarness({ homeDir: temporary });
+  await inspectHarness.start();
+  try { await assert.rejects(inspectHarness.sessions.resume(sessionId)); }
+  finally { await inspectHarness.dispose(); }
 });

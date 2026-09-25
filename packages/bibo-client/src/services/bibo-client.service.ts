@@ -1,5 +1,5 @@
-import type { BiboChatEvent, BiboClientOptions, BiboMessage, BiboUser } from "../types/bibo-client.types";
-import { BiboClientError, isRecord, readBiboStream, readCommitted, readMessages, readUser } from "../utils/bibo-protocol.utils";
+import type { BiboChatEvent, BiboClientOptions, BiboMessage, BiboSession, BiboUser } from "../types/bibo-client.types";
+import { BiboClientError, isRecord, readBiboStream, readCommitted, readMessages, readSession, readUser } from "../utils/bibo-protocol.utils";
 
 function errorMessage(value: unknown): string | null {
   return isRecord(value) && typeof value.error === "string" ? value.error : null;
@@ -37,9 +37,36 @@ export class BiboClient {
     return readUser(isRecord(value) ? value.user : null);
   };
 
-  history = async (): Promise<BiboMessage[]> => {
-    const value = await this.request("history");
+  history = async (sessionId?: string): Promise<BiboMessage[]> => {
+    const value = await this.request(`history${sessionId ? `?id=${encodeURIComponent(sessionId)}` : ""}`);
     return readMessages(isRecord(value) ? value.messages : null);
+  };
+
+  sessions = async (): Promise<BiboSession[]> => {
+    const value = await this.request("sessions");
+    if (!isRecord(value) || !Array.isArray(value.sessions)) throw new BiboClientError("会话列表格式不正确。");
+    return value.sessions.map(readSession);
+  };
+
+  createSession = async (): Promise<BiboSession> => {
+    const value = await this.request("sessions", {});
+    return readSession(isRecord(value) ? value.session : null);
+  };
+
+  renameSession = async (id: string, title: string): Promise<BiboSession> => {
+    const value = await this.request("sessions/rename", { id, title });
+    return readSession(isRecord(value) ? value.session : null);
+  };
+
+  deleteSession = async (id: string): Promise<void> => {
+    const value = await this.request("sessions/delete", { id });
+    if (!isRecord(value) || value.ok !== true) throw new BiboClientError("删除会话未得到确认。");
+  };
+
+  space = async <T>(action: string, input: Record<string, unknown> = {}): Promise<T> => {
+    const value = await this.request("space", { action, input });
+    if (!isRecord(value) || !("result" in value)) throw new BiboClientError("个人空间返回了无效的数据。");
+    return value.result as T;
   };
 
   sendCode = async (email: string): Promise<{ maskedEmail?: string }> => {
@@ -73,12 +100,12 @@ export class BiboClient {
     if (!isRecord(value) || value.ok !== true) throw new BiboClientError("停止生成未得到确认。");
   };
 
-  chat = async (message: string, onEvent: (event: BiboChatEvent) => void): Promise<void> => {
+  chat = async (message: string, onEvent: (event: BiboChatEvent) => void, sessionId?: string): Promise<void> => {
     const response = await this.fetchResponse("/api/chat", {
       method: "POST",
       credentials: "same-origin",
       headers: { "content-type": "application/json", accept: "text/event-stream" },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, sessionId }),
     });
     if (!response.ok) {
       const value: unknown = await response.json().catch(() => null);

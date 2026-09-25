@@ -10,6 +10,7 @@ export const biboCopy = {
   stop: "停止生成",
   savingHint: "回答保存后会出现在你的个人空间",
   copy: "复制回答",
+  waiting: "正在思考…",
   copied: "已复制",
   copyFailed: "无法复制，请手动选择文字。",
   you: "你",

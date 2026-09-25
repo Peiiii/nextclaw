@@ -1,17 +1,30 @@
 import { create, type StoreApi } from "zustand";
-import { BiboClient, type BiboChatEvent, type BiboMessage, type BiboUser } from "@nextclaw/bibo-client";
+import { BiboClient, type BiboChatEvent, type BiboMessage, type BiboSession, type BiboUser } from "@nextclaw/bibo-client";
 import { biboCopy } from "@/features/chat/configs/bibo-copy.config";
+import { useBiboSpaceStore } from "@/features/space";
 
 type Phase = "idle" | "generating" | "saving";
 const biboClient = new BiboClient();
 const pendingKey = (id: string) => `bibo-pending-${id}`;
 const errorText = (error: unknown) => error instanceof Error ? error.message : "操作暂时失败，请稍后重试。";
+const sessionFromUrl = () => new URLSearchParams(window.location.search).get("session");
+const showSessionInUrl = (id: string | null) => {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get("view") !== "chat") return;
+  if (id) url.searchParams.set("session", id); else url.searchParams.delete("session");
+  window.history.replaceState({}, "", url);
+};
 
 class BiboChatOwner {
   user: BiboUser | null = null;
   authChecked = false;
   messages: BiboMessage[] = [];
+  sessions: BiboSession[] = [];
+  activeSessionId: string | null = null;
   draft = "";
+  drafts: Record<string, string> = {};
+  sessionLoading = false;
+  private selectionRequest = 0;
   pendingMessage: string | null = null;
   partial = "";
   phase: Phase = "idle";
@@ -27,27 +40,82 @@ class BiboChatOwner {
     private readonly get: StoreApi<BiboChatOwner>["getState"],
   ) {}
 
-  setDraft = (draft: string): void => this.set({ draft });
+  setDraft = (draft: string): void => this.set((state) => ({ draft, drafts: { ...state.drafts, [state.activeSessionId ?? "new"]: draft } }));
   setAuthMode = (authMode: "register" | "login"): void => this.set({ authMode, authError: "" });
   setFollowing = (following: boolean): void => this.set({ following });
   setMenuOpen = (menuOpen: boolean): void => this.set({ menuOpen });
   copied = (): void => this.set({ status: biboCopy.copied });
   copyFailed = (): void => this.set({ status: biboCopy.copyFailed });
 
+  createSession = async (): Promise<void> => {
+    if (this.get().phase !== "idle") return;
+    this.selectionRequest += 1;
+    this.set({ activeSessionId: null, messages: [], draft: this.get().drafts.new ?? "", status: "", following: true, sessionLoading: false });
+    showSessionInUrl(null);
+  };
+
+  selectSession = async (id: string): Promise<void> => {
+    if (this.get().phase !== "idle" || (this.get().activeSessionId === id && !this.get().sessionLoading)) return;
+    const request = ++this.selectionRequest;
+    const userId = this.get().user?.id;
+    this.set({ sessionLoading: true, status: "正在读取对话…" });
+    try {
+      const messages = await biboClient.history(id);
+      if (request !== this.selectionRequest || this.get().user?.id !== userId) return;
+      this.set({ activeSessionId: id, messages, draft: this.get().drafts[id] ?? "", status: "", following: true, menuOpen: false });
+      showSessionInUrl(id);
+    } catch (error) { if (request === this.selectionRequest) this.set({ status: errorText(error) }); }
+    finally { if (request === this.selectionRequest) this.set({ sessionLoading: false }); }
+  };
+
+  renameSession = async (id: string, title: string): Promise<boolean> => {
+    try {
+      const session = await biboClient.renameSession(id, title);
+      this.set((state) => ({ sessions: state.sessions.map((item) => item.id === id ? session : item), status: "" }));
+      return true;
+    } catch (error) { this.set({ status: errorText(error) }); return false; }
+  };
+
+  deleteSession = async (id: string): Promise<boolean> => {
+    if (this.get().phase !== "idle") return false;
+    try {
+      await biboClient.deleteSession(id);
+      const sessions = this.get().sessions.filter((item) => item.id !== id);
+      const activeSessionId = this.get().activeSessionId === id ? sessions[0]?.id ?? null : this.get().activeSessionId;
+      const messages = activeSessionId ? await biboClient.history(activeSessionId) : [];
+      this.set({ sessions, activeSessionId, messages, status: "会话已删除。" });
+      showSessionInUrl(activeSessionId);
+      return true;
+    } catch (error) { this.set({ status: errorText(error) }); return false; }
+  };
+
   bootstrap = async (): Promise<void> => {
+    const request = ++this.selectionRequest;
     try {
       const user = await biboClient.account();
+      if (request !== this.selectionRequest) return;
       this.set({ user });
-      const messages = await biboClient.history();
+      const sessions = await biboClient.sessions();
+      if (request !== this.selectionRequest) return;
+      const requestedSession = sessionFromUrl();
+      const blankChat = new URLSearchParams(window.location.search).get("view") === "chat" && !requestedSession;
+      const activeSessionId = blankChat ? null : requestedSession && sessions.some((session) => session.id === requestedSession) ? requestedSession
+        : this.get().activeSessionId && sessions.some((session) => session.id === this.get().activeSessionId) ? this.get().activeSessionId : sessions[0]?.id ?? null;
+      const messages = activeSessionId ? await biboClient.history(activeSessionId) : [];
+      if (request !== this.selectionRequest) return;
       const stored = sessionStorage.getItem(pendingKey(user.id));
-      const pending = stored ? JSON.parse(stored) as { message: string; historyCount: number } : null;
-      const saved = pending && messages.length > pending.historyCount && messages.at(-2)?.role === "user" && messages.at(-2)?.text === pending.message;
-      this.set({ messages, draft: pending && !saved ? pending.message : "", status: pending && !saved ? biboCopy.interrupted : "" });
-      sessionStorage.removeItem(pendingKey(user.id));
+      const pending = stored ? JSON.parse(stored) as { message: string; historyCount: number; sessionId: string } : null;
+      const matching = pending?.sessionId === activeSessionId;
+      const saved = matching && pending && messages.at(-2)?.role === "user" && messages.at(-2)?.text === pending.message;
+      const drafts = pending?.sessionId && !saved ? { [pending.sessionId]: pending.message } : {};
+      this.set({ sessions, activeSessionId, messages, drafts, draft: activeSessionId ? drafts[activeSessionId] ?? "" : "", status: matching && pending && !saved ? biboCopy.interrupted : "" });
+      showSessionInUrl(activeSessionId);
+      if (saved) sessionStorage.removeItem(pendingKey(user.id));
     } catch (error) {
+      if (request !== this.selectionRequest) return;
       if (!this.get().user) this.set({ user: null });
       else this.set({ status: `对话记录暂时无法加载：${errorText(error)}` });
-    } finally { this.set({ authChecked: true }); }
+    } finally { if (request === this.selectionRequest) this.set({ authChecked: true }); }
   };
 
   sendCode = async (email: string): Promise<void> => {
@@ -70,27 +138,45 @@ class BiboChatOwner {
   };
 
   logout = async (): Promise<void> => {
+    this.selectionRequest += 1;
     const user = this.get().user;
     if (user) sessionStorage.removeItem(pendingKey(user.id));
     try { await biboClient.logout(); } catch { /* Clear the local session view. */ }
-    this.set({ user: null, messages: [], draft: "", status: "", menuOpen: false });
+    this.set({ user: null, sessions: [], activeSessionId: null, messages: [], draft: "", drafts: {}, sessionLoading: false, status: "", menuOpen: false });
+    showSessionInUrl(null);
   };
 
-  reset = async (): Promise<void> => {
+  reset = async (): Promise<boolean> => {
     try {
       await biboClient.reset();
       const user = this.get().user;
       if (user) sessionStorage.removeItem(pendingKey(user.id));
-      this.set({ messages: [], draft: "", status: biboCopy.resetDone, menuOpen: false });
-    } catch (error) { this.set({ status: errorText(error) }); }
+      this.selectionRequest += 1;
+      this.set({ sessions: [], activeSessionId: null, messages: [], draft: "", drafts: {}, sessionLoading: false, status: biboCopy.resetDone, menuOpen: false });
+      useBiboSpaceStore.getState().bindAccount(user?.id ?? null, true);
+      showSessionInUrl(null);
+      return true;
+    } catch (error) { this.set({ status: errorText(error) }); return false; }
   };
 
   send = async (): Promise<void> => {
     const { user, draft, phase, messages } = this.get();
     const message = draft.trim();
-    if (!user || !message || phase !== "idle") return;
+    if (!user || !message || phase !== "idle" || this.get().sessionLoading) return;
     const historyCount = messages.length;
-    sessionStorage.setItem(pendingKey(user.id), JSON.stringify({ message, historyCount }));
+    // Lock before the first await: sending from a blank conversation must create only once.
+    this.set({ phase: "generating", status: biboCopy.busy });
+    let sessionId = this.get().activeSessionId;
+    if (!sessionId) {
+      try {
+        const session = await biboClient.createSession();
+        sessionId = session.id;
+        this.set((state) => ({ sessions: [session, ...state.sessions], activeSessionId: session.id, drafts: { ...state.drafts, new: "" } }));
+        showSessionInUrl(session.id);
+      } catch (error) { this.set({ phase: "idle", status: errorText(error) }); return; }
+    }
+    sessionStorage.setItem(pendingKey(user.id), JSON.stringify({ message, historyCount, sessionId }));
+    this.setDraft("");
     this.set({ draft: "", pendingMessage: message, partial: "", phase: "generating", runId: null,
       status: biboCopy.busy, following: true });
     try {
@@ -99,22 +185,31 @@ class BiboChatOwner {
         if (event.name === "delta") this.set((state) => ({ partial: state.partial + event.value.text, status: biboCopy.replying }));
         if (event.name === "saving") this.set({ phase: "saving", status: biboCopy.saving });
         if (event.name === "committed") {
-          this.set({ messages: event.value.messages, pendingMessage: null, partial: "", status: "" });
+          this.set((state) => ({ messages: event.value.messages, pendingMessage: null, partial: "", status: "",
+            sessions: event.value.session ? [event.value.session, ...state.sessions.filter((item) => item.id !== event.value.session?.id)] : state.sessions }));
         }
-      });
+      }, sessionId);
       sessionStorage.removeItem(pendingKey(user.id));
     } catch (error) {
-      let saved = false;
-      try {
-        const history = await biboClient.history();
-        saved = history.length > historyCount && history.at(-2)?.role === "user" && history.at(-2)?.text === message;
-        this.set({ messages: history });
-      } catch { /* Keep the local input for a later retry. */ }
-      if (saved) {
-        sessionStorage.removeItem(pendingKey(user.id));
-        this.set({ status: "回答已保存。" });
-      } else this.set({ draft: message, status: `${errorText(error)} ${biboCopy.retry}` });
+      await this.recoverRun(sessionId, message, historyCount, error);
     } finally { this.set({ phase: "idle", runId: null, pendingMessage: null, partial: "" }); }
+  };
+
+  private recoverRun = async (sessionId: string, message: string, historyCount: number, error: unknown): Promise<void> => {
+    let saved = false;
+    try {
+      const history = await biboClient.history(sessionId);
+      saved = history.length > historyCount && history.at(-2)?.role === "user" && history.at(-2)?.text === message;
+      this.set({ messages: history });
+    } catch { /* Keep the local input for a later retry. */ }
+    if (saved) {
+      const user = this.get().user;
+      if (user) sessionStorage.removeItem(pendingKey(user.id));
+      this.set({ status: "回答已保存。" });
+    } else {
+      this.setDraft(message);
+      this.set({ status: `${errorText(error)} ${biboCopy.retry}` });
+    }
   };
 
   stop = async (): Promise<void> => {

@@ -6,10 +6,10 @@
   "scripts": {
     "tsc": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit && tsc -p tsconfig.runner.json --noEmit",
     "build:client": "vite build",
-    "build:runner": "esbuild src/app/bibo-runner.controller.ts --platform=node --format=esm --target=node22 --outfile=dist/container/bibo-runner.controller.mjs",
+    "build:runner": "esbuild src/app/bibo-runner.controller.ts --bundle --packages=external --platform=node --format=esm --target=node22 --outfile=dist/container/bibo-runner.controller.mjs",
     "build": "pnpm build:client && pnpm build:runner",
-    "test": "pnpm build:runner && tsx --test container/bibo-snapshot.test.ts src/app/bibo-run-stream.utils.test.ts",
-    "smoke:client": "pnpm build:client && tsx scripts/bibo-experience.smoke.ts",
+    "test": "pnpm build:runner && tsx --test container/bibo-snapshot.test.ts src/app/bibo-run-stream.utils.test.ts src/features/bibo-domain/services/bibo-space.service.test.ts src/features/space/utils/calendar.utils.test.ts src/features/space/stores/bibo-space.store.test.ts",
+    "smoke:client": "pnpm build:client && tsx scripts/bibo-product.smoke.ts",
     "smoke:live": "tsx scripts/bibo-live.smoke.ts",
     "deploy": "pnpm build && pnpm dlx wrangler@4.138.0 deploy",
     "dev": "vite --mode ui --host 127.0.0.1 --port 5188 --strictPort",
@@ -20,22 +20,23 @@
     "@nextclaw/harness": "workspace:*"
   },
   "devDependencies": {
-    "@nextclaw/bibo-client": "workspace:*",
-    "@nextclaw/bibo-ui": "workspace:*",
     "@cloudflare/containers": "^0.3.7",
     "@cloudflare/workers-types": "^4.20260228.0",
+    "@nextclaw/bibo-client": "workspace:*",
+    "@nextclaw/personal-agent-ui": "workspace:*",
+    "@types/node": "^24.13.3",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
-    "@types/node": "^24.13.3",
     "@vitejs/plugin-react": "^6.0.1",
     "esbuild": "^0.27.3",
+    "lucide-react": "^0.462.0",
     "playwright": "^1.52.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "typescript": "^5.9.3",
     "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
     "vite": "^8.0.3",
-    "zustand": "^5.0.2",
-    "wrangler": "^4.67.0"
+    "wrangler": "^4.67.0",
+    "zustand": "^5.0.2"
   }
 }
