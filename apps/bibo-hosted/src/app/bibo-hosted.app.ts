@@ -78,6 +78,7 @@ export class BiboUserContainer extends Container<Env> {
     const archive = await this.env.SNAPSHOTS.get(await this.ctx.storage.get<string>("snapshotKey") ?? this.ctx.id.toString());
     if (!archive?.body) return;
     const response = await this.containerFetch("http://localhost/restore", { method: "POST", body: archive.body });
+    await response.arrayBuffer();
     if (!response.ok) throw new Error(`Bibo snapshot restore failed: ${response.status}`);
   }
 
@@ -156,6 +157,7 @@ export class BiboUserContainer extends Container<Env> {
     try {
       needsRestore = true;
       const response = await this.containerFetch("http://localhost/sessions/delete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: body.id }) });
+      await response.arrayBuffer();
       if (!response.ok) return publicError("会话删除失败，请稍后再试。", 503);
       const failed = await this.commitSnapshot({ sessions: sessions.filter((item) => item.id !== body.id) });
       if (failed) return failed;

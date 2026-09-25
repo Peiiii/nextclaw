@@ -65,13 +65,13 @@ BIBO-02 / BIBO-09 / BIBO-12 最新细化：重复点击新会话不发起创建�
 | BIBO-04 | true | not-run | 已实现正式入口；部分本地证据有效，完整验收未关闭 | — |
 | BIBO-05 | true | not-run | 已实现正式入口；部分本地证据有效，完整验收未关闭 | — |
 | BIBO-06 | true | not-run | 已实现正式入口；部分本地证据有效，完整验收未关闭 | — |
-| BIBO-07 | true | not-run | 领域模块与统一 help/call 已接线，服务测试通过；真实模型调用未验 | — |
-| BIBO-08 | true | not-run | 32 MiB 压缩快照及结构化内容恢复测试通过；Cloudflare/R2 未实测 | — |
+| BIBO-07 | true | not-run | 领域模块与统一 help/call 服务测试通过；线上真实模型创建文件、前端读取精确内容已通过，其他领域真实模型代表场景待完成 | — |
+| BIBO-08 | true | failed | 32 MiB 快照和本地结构化恢复测试通过；线上保存成功，但容器未按期休眠；正在修复未消费的内部响应流并复验 | 线上冷恢复未取得证据 |
 | BIBO-09 | true | not-run | Studio 概念页不能证明正式产品 | — |
 | BIBO-10 | true | not-run | 已有账号认证，新增领域未验证 | — |
 | BIBO-11 | true | not-run | 设计和工作记录已开始，正式功能尚未验证 | — |
 | BIBO-12 | true | not-run | 个人 Agent 组件包已建立，业务控件迁移中；类型与部分浏览器状态检查通过 | — |
-| BIBO-13 | true | not-run | 已明确授权与线上完成条件；正式应用本批未提交、合入或部署 | — |
+| BIBO-13 | true | not-run | f7b646a18 已推送 master 并部署 f09be169；真实模型/文件/会话及桌面手机 smoke 通过，冷恢复修复待重新发布；本地主干 WIP 由回收重试接管 | — |
 
 ### 当前阶段门
 

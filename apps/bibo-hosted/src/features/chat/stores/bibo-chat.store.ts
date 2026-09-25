@@ -78,15 +78,20 @@ class BiboChatOwner {
 
   deleteSession = async (id: string): Promise<boolean> => {
     if (this.get().phase !== "idle") return false;
+    const userId = this.get().user?.id;
     try {
       await biboClient.deleteSession(id);
+      if (this.get().user?.id !== userId) return false;
       const sessions = this.get().sessions.filter((item) => item.id !== id);
-      const activeSessionId = this.get().activeSessionId === id ? sessions[0]?.id ?? null : this.get().activeSessionId;
-      const messages = activeSessionId ? await biboClient.history(activeSessionId) : [];
-      this.set({ sessions, activeSessionId, messages, status: "会话已删除。" });
-      showSessionInUrl(activeSessionId);
+      const drafts = { ...this.get().drafts };
+      delete drafts[id];
+      this.set({ sessions, drafts });
+      if (this.get().activeSessionId === id) {
+        await this.createSession();
+        if (sessions[0]) await this.selectSession(sessions[0].id);
+      }
       return true;
-    } catch (error) { this.set({ status: errorText(error) }); return false; }
+    } catch (error) { if (this.get().user?.id === userId) this.set({ status: errorText(error) }); return false; }
   };
 
   bootstrap = async (): Promise<void> => {
@@ -104,9 +109,9 @@ class BiboChatOwner {
       const messages = activeSessionId ? await biboClient.history(activeSessionId) : [];
       if (request !== this.selectionRequest) return;
       const stored = sessionStorage.getItem(pendingKey(user.id));
-      const pending = stored ? JSON.parse(stored) as { message: string; historyCount: number; sessionId: string } : null;
+      const pending = stored ? JSON.parse(stored) as { message: string; previousLastAt?: string; sessionId: string } : null;
       const matching = pending?.sessionId === activeSessionId;
-      const saved = matching && pending && messages.at(-2)?.role === "user" && messages.at(-2)?.text === pending.message;
+      const saved = matching && pending && messages.at(-1)?.at !== pending.previousLastAt && messages.at(-2)?.role === "user" && messages.at(-2)?.text === pending.message;
       const drafts = pending?.sessionId && !saved ? { [pending.sessionId]: pending.message } : {};
       this.set({ sessions, activeSessionId, messages, drafts, draft: activeSessionId ? drafts[activeSessionId] ?? "" : "", status: matching && pending && !saved ? biboCopy.interrupted : "" });
       showSessionInUrl(activeSessionId);
@@ -163,7 +168,7 @@ class BiboChatOwner {
     const { user, draft, phase, messages } = this.get();
     const message = draft.trim();
     if (!user || !message || phase !== "idle" || this.get().sessionLoading) return;
-    const historyCount = messages.length;
+    const previousLastAt = messages.at(-1)?.at;
     // Lock before the first await: sending from a blank conversation must create only once.
     this.set({ phase: "generating", status: biboCopy.busy });
     let sessionId = this.get().activeSessionId;
@@ -175,7 +180,7 @@ class BiboChatOwner {
         showSessionInUrl(session.id);
       } catch (error) { this.set({ phase: "idle", status: errorText(error) }); return; }
     }
-    sessionStorage.setItem(pendingKey(user.id), JSON.stringify({ message, historyCount, sessionId }));
+    sessionStorage.setItem(pendingKey(user.id), JSON.stringify({ message, previousLastAt, sessionId }));
     this.setDraft("");
     this.set({ draft: "", pendingMessage: message, partial: "", phase: "generating", runId: null,
       status: biboCopy.busy, following: true });
@@ -191,15 +196,15 @@ class BiboChatOwner {
       }, sessionId);
       sessionStorage.removeItem(pendingKey(user.id));
     } catch (error) {
-      await this.recoverRun(sessionId, message, historyCount, error);
+      await this.recoverRun(sessionId, message, previousLastAt, error);
     } finally { this.set({ phase: "idle", runId: null, pendingMessage: null, partial: "" }); }
   };
 
-  private recoverRun = async (sessionId: string, message: string, historyCount: number, error: unknown): Promise<void> => {
+  private recoverRun = async (sessionId: string, message: string, previousLastAt: string | undefined, error: unknown): Promise<void> => {
     let saved = false;
     try {
       const history = await biboClient.history(sessionId);
-      saved = history.length > historyCount && history.at(-2)?.role === "user" && history.at(-2)?.text === message;
+      saved = history.at(-1)?.at !== previousLastAt && history.at(-2)?.role === "user" && history.at(-2)?.text === message;
       this.set({ messages: history });
     } catch { /* Keep the local input for a later retry. */ }
     if (saved) {

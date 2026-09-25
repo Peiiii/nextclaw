@@ -4,9 +4,19 @@
 
 - contract-id：`bibo-personal-agent-2026-09-25`；[验收合同](./acceptance-contract.md)，scope-revision `4`（补充统一交互组件及逐模块产品对标，保留正式上线交付）。
 - [实现前对齐方案](../../designs/2026-09-25-bibo-personal-agent-implementation-alignment.design.md)、[界面概念设计](../../designs/2026-09-25-bibo-personal-agent-interface-concepts.design.md)、[持续日志](../../logs/2026-09-25-bibo-personal-agent/README.md)。
-- 工作区：`/Users/peiwang/Projects/nextbot-bibo-personal-agent-concepts`；分支：`codex/bibo-personal-agent-concepts`。大型交付工作流 `18a354bda` 已合入；本工作区已进一步快进至主干 `16ab3bf14`，复用上游原始输入对齐规则，撤掉三处重复 Skill 草稿。产品代码未提交、推送或部署。
+- 工作区：`/Users/peiwang/Projects/nextbot-bibo-personal-agent-concepts`；分支：`codex/bibo-personal-agent-concepts`。产品首批实现已提交并推送远程 master：`f7b646a18029d4771052108b6e5814218f4726ec`。已从该干净、冻结的主干 SHA 部署 Cloudflare；以下旧段落中的“未提交/部署”是历史记录，以本节为准。
 
 ## 当前工作
+
+### 正式部署与真实链路（2026-09-25）
+
+- 首次正式部署：Worker `f09be169-0ce7-4a79-84d5-aeb2db29ba06`，地址 `https://app.bibo.bot`，容器镜像 SHA256 `c5545f917701dd307df53a163a073438ede9d1bcd62f48be83e6f41d68fcceaa`。deploy 进程正常退出。`release:reconcile:mainline` 已执行；主工作区另一个任务的未提交文档阻止本地快进，状态 LOCAL_WORKTREE_RETRYING，自动重试接管，未覆盖 WIP。
+- 真实云端 smoke 已通过：`bibo-live-4f1ede66`；模型代理 36 个内容片段、首片段 1282ms；真实 Agent 按需调用第一方文件能力，22 个回复片段、首片段 8031ms、保存开始 15724ms、总计 16806ms。会话刷新、精确文件内容、桌面 1365×900 和手机 390×844 的文件入口均通过；只删除该测试自建文件与会话。
+- 冷恢复测试未通过，不能标记 BIBO-08 完成：独立测试对象写入成功，但等待超过四分钟未观察到实例 inactive。调查确认 Containers SDK 在响应流消费完后才释放 inflight；应用的 restore 与 sessions/delete 仅检查 status、没有消费响应体。现补齐消费；需重新上线后再次实际验证停止和恢复，不能以静态分析代替线上证据。
+- 冷恢复脚本清理尝试不存在的 inbox.delete，返回 400；测试代码修正为处理已创建测试收件箱、逐项清理其余对象，不能掩盖原始冷恢复失败。测试标记 `restore-2aacd14c` 仅属于专用测试账号。
+- 对话边界复核：删除会话复用既有选中 owner，保留其他会话草稿并丢弃旧账号响应；恢复保存以最后消息时间和内容判定，避免 100 条历史上限导致误判。聊天未发送草稿加入离开页面保护。1280×800 浏览器强制 100 条历史、保存后流中断、删除切换草稿和取消刷新均通过；应用三范围 tsc、定向 ESLint、diff 维护性通过（0 error、Worker 接近行数预算的 1 warning）。
+- 误调用全仓 maintainability report 暴露仓库存量 46 项与 3 个新工作区覆盖缺口；该输出不等于本批 diff 失败，也不宣称全仓检查通过。后续治理归其现有 owner，不在上线恢复中扩展无关重构。
+- 对标参考补充：[Linear 任务属性](https://linear.app/docs/priority)、[子任务](https://linear.app/docs/parent-and-sub-issues)、[任务视图](https://linear.app/docs/display-options)、[Todoist 筛选](https://www.todoist.com/help/todoist/features/introduction-to-filters-V98wIH)。本批已采用同源列表/看板、项目与优先级、保留草稿的完整详情；详细 Spec 的标签、复杂过滤及重复提醒继续开放，不宣称已实现。
 
 - 交付子阶段开始：遥测 `dt-b1b02509`（Bibo 工作区主干集成与上线验收），用户既有提交/主干/部署授权有效。本次提交覆盖当前已验证实现及其规则、方案、记录、说明；不是 parent 完成。源工作区只剩另一任务的 5 份 thoughts WIP，本任务所有修改在 concepts worktree。已 fetch origin/master=16ab3bf14830db39756613d9fb47625eccf99cb1，无新上游分叉。正式 Cloudflare/R2、逐模块最终对标及详细 Spec 开放项仍保留，不凭提交或部署关闭它们。
 

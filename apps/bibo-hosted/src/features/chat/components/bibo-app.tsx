@@ -88,7 +88,8 @@ export function BiboApp() {
   useEffect(() => {
     const guardDrafts = (event: BeforeUnloadEvent) => {
       const state = useBiboSpaceStore.getState();
-      if (Object.values(state.fileDrafts).some((draft) => draft.dirty) || Object.keys(state.taskDrafts).length || Object.keys(state.eventDrafts).length) {
+      const chat = useBiboChatStore.getState();
+      if (Object.values(chat.drafts).some((draft) => draft.trim()) || Object.values(state.fileDrafts).some((draft) => draft.dirty) || Object.keys(state.taskDrafts).length || Object.keys(state.eventDrafts).length) {
         event.preventDefault(); event.returnValue = "";
       }
     };
