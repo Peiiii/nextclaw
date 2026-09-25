@@ -2,11 +2,9 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { chromium, type Page } from "playwright";
-
 const base = "http://127.0.0.1:5189";
 const server = spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5189", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
 const instant = "2026-09-25T09:00:00.000Z";
-
 async function ready(): Promise<void> {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     try { if ((await fetch(base)).ok) return; } catch { /* Preview is starting. */ }
@@ -350,20 +348,21 @@ async function checkLongTitles(page: Page, width: number): Promise<void> {
   }
 }
 
-async function checkMobileDrawerTooltip(page: Page, width: number): Promise<void> {
+async function checkMobileDrawerTooltip(page: Page, width: number, touch: boolean): Promise<void> {
   await page.goto(`${base}/?view=chat`, { waitUntil: "networkidle" });
   const trigger = page.getByRole("button", { name: "打开菜单", exact: true });
-  await trigger.tap();
+  if (touch) await trigger.tap(); else await trigger.click();
   const drawer = page.getByRole("dialog", { name: "个人空间" });
   await drawer.waitFor();
   await page.waitForTimeout(400);
-  assert.equal(await page.getByRole("tooltip").count(), 0, "opening a touch drawer must not display a tooltip");
+  assert.equal(await page.getByRole("tooltip").count(), 0, "opening a mobile drawer must not display a tooltip");
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("role")), "dialog");
-  await page.screenshot({ path: `/tmp/bibo-mobile-drawer-${width}.png` });
+  await page.screenshot({ path: `/tmp/bibo-mobile-drawer-${width}${touch ? "" : "-hybrid"}.png` });
   await page.keyboard.press("Tab");
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("aria-label")), "关闭导航");
   await page.getByRole("button", { name: "新建会话" }).focus();
-  assert.equal(await page.getByRole("tooltip").count(), 0, "a focused drawer action must not show a floating touch tooltip");
+  await page.waitForTimeout(400);
+  assert.equal(await page.getByRole("tooltip").count(), 0, "a focused drawer action must not show a floating tooltip");
   await page.keyboard.press("Escape");
   await drawer.waitFor({ state: "hidden" });
   await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "打开菜单", undefined, { timeout: 1500 });
@@ -481,10 +480,11 @@ try {
       assert.ok(layout.width <= layout.viewport + 1, "page should not scroll horizontally");
       await page.close();
     }
-    for (const width of [320, 390, 768, 1440]) {
-      const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width <= 760, isMobile: width <= 760 });
-      await checkLongTitles(page, width);
-      if (width <= 390) await checkMobileDrawerTooltip(page, width);
+    for (const [width, touch] of [[320, true], [390, true], [390, false], [768, false], [1440, false]] as const) {
+      const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: touch, isMobile: touch });
+      if (width === 390 && !touch) await mockApi(page);
+      else await checkLongTitles(page, width);
+      if (width <= 390) await checkMobileDrawerTooltip(page, width, touch);
       await page.close();
     }
     for (const width of [1440, 390]) {

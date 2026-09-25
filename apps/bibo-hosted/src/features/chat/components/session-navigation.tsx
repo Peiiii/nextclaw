@@ -112,9 +112,11 @@ function SessionActions({ session }: { session: BiboSession }) {
 export function SessionNavigation({
   active,
   navigate,
+  mobile = false,
 }: {
   active: boolean;
   navigate: () => void;
+  mobile?: boolean;
 }) {
   const store = useBiboChatStore();
   return (
@@ -124,6 +126,7 @@ export function SessionNavigation({
         <IconButton
           label="新建会话"
           icon={<Plus />}
+          tooltip={!mobile}
           disabled={store.phase !== "idle"}
           onClick={() => {
             navigate();

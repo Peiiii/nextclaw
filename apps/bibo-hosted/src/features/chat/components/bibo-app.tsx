@@ -120,7 +120,7 @@ export function BiboApp() {
       </div>
       <p className="bibo-sidebar-label">{copy.space}</p>
       <nav className="bibo-primary-nav" aria-label="工作空间">{navigation.map((item) => <a key={item.view} href={item.view === "overview" ? "/" : `/?view=${item.view}`} className={`bibo-nav-item${space.view === item.view ? " is-active" : ""}`} title={item.label} aria-current={space.view === item.view ? "page" : undefined} onClick={(event) => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); navigate(item.view); }}><span aria-hidden="true" className="bibo-nav-mark">{item.mark}</span><span className="bibo-nav-text">{item.label}</span>{item.view === "inbox" && (space.overview?.counts.unread ?? 0) > 0 && <small>{space.overview?.counts.unread}</small>}</a>)}</nav>
-      <SessionNavigation active={space.view === "chat"} navigate={() => navigate("chat")} />
+      <SessionNavigation active={space.view === "chat"} navigate={() => navigate("chat")} mobile={mobile} />
       <div className="bibo-sidebar-spacer" />
       <nav className="bibo-sidebar-foot" aria-label="帮助和账号">
         <AccountMenu />
