@@ -12,7 +12,8 @@
     "smoke:client": "pnpm build:client && tsx scripts/bibo-experience.smoke.ts",
     "smoke:live": "tsx scripts/bibo-live.smoke.ts",
     "deploy": "pnpm build && pnpm dlx wrangler@4.138.0 deploy",
-    "dev": "vite --host 127.0.0.1 --port 5188 --strictPort",
+    "dev": "vite --mode ui --host 127.0.0.1 --port 5188 --strictPort",
+    "dev:proxy": "vite --host 127.0.0.1 --port 5188 --strictPort",
     "dev:worker": "wrangler dev"
   },
   "dependencies": {

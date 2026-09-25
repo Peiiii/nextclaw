@@ -2,6 +2,12 @@
 
 Independent Cloudflare Worker and Container service at `https://app.bibo.bot/`. The existing `bibo-bot` Worker keeps handling `bibo.bot/*`; the previous `bibo.bot/app/*` route redirects to this service. No NextClaw service, account database, or existing Bibo concept-site route is changed.
 
+## Local frontend development
+
+From the repository root, run `pnpm dev:bibo:ui` and open `http://127.0.0.1:5188/`. This starts the real React/TypeScript app with Vite hot updates, including source changes in `@nextclaw/bibo-ui`. A development-only local API supplies a signed-in preview account, a Markdown conversation, and delayed SSE chunks. Send a message to inspect incomplete Markdown while it arrives, the saving state, and the committed result. Reset clears the in-memory conversation; restarting Vite restores the example. This mode makes no Cloudflare or model requests and needs no credentials.
+
+For integration against a separately running local Worker, start `pnpm -C apps/bibo-hosted dev:worker` and `pnpm -C apps/bibo-hosted dev:proxy` in separate terminals. The proxy mode forwards `/api` to port 8787. The default `dev` command in this package uses the credential-free frontend preview.
+
 ## Runtime
 
 - The Worker serves static assets and proxies registration/login to the existing NextClaw account API. It stores the platform session in an HttpOnly cookie and verifies it for every personal API request.

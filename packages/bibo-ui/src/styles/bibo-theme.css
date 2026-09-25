@@ -11,6 +11,8 @@
   --bibo-selection: #e1ecdf;
   --bibo-danger: #a34e3f;
   --bibo-focus: #6a9a7d;
+  --bibo-code-surface: #f1f4ed;
+  --bibo-quote-surface: #f3f6ef;
   --bibo-radius-sm: 8px;
   --bibo-radius-md: 12px;
   --bibo-radius-lg: 18px;
@@ -40,16 +42,37 @@
 .bibo-message--assistant .bibo-message__meta::before { content: '✳'; color: var(--bibo-primary); font-size: 16px; margin-right: 8px; }
 .bibo-message__body { min-width: 0; }
 .bibo-message--user .bibo-message__body { padding: 10px 15px; border-radius: 16px 16px 4px 16px; background: var(--bibo-selection); white-space: pre-wrap; }
-.bibo-message--pending .bibo-message__body { color: var(--bibo-muted); }
-.bibo-message__body p { margin: 0 0 1em; white-space: pre-wrap; }
-.bibo-message__body p:last-child { margin-bottom: 0; }
-.bibo-message__body ul, .bibo-message__body ol { margin: .4em 0 1em; padding-left: 1.5em; }
-.bibo-message__body h1, .bibo-message__body h2, .bibo-message__body h3 { font-size: 1.07em; line-height: 1.45; margin: 1.2em 0 .45em; }
-.bibo-message__body pre { overflow-x: auto; background: #edf1e9; border: 1px solid var(--bibo-line); border-radius: var(--bibo-radius-md); padding: 13px 15px; }
-.bibo-message__body code { font: 13px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; }
-.bibo-message__body :not(pre) > code { background: #edf1e9; border-radius: 4px; padding: 2px 4px; }
-.bibo-message__body a { color: var(--bibo-primary); text-decoration: underline; text-underline-offset: 2px; }
-.bibo-message__body img { max-width: 100%; }
+.bibo-message__waiting { color: var(--bibo-muted); }
+.bibo-message--assistant .bibo-message__body { max-width: 100%; line-height: 1.78; letter-spacing: .004em; }
+.bibo-message--assistant .bibo-message__body > :first-child { margin-top: 0; }
+.bibo-message--assistant .bibo-message__body > :last-child { margin-bottom: 0; }
+.bibo-message--assistant .bibo-message__body p { margin: 0 0 1em; }
+.bibo-message--assistant .bibo-message__body :is(h1, h2, h3, h4) { color: var(--bibo-ink); font-weight: 700; line-height: 1.42; letter-spacing: -.025em; text-wrap: balance; }
+.bibo-message--assistant .bibo-message__body h1 { font-size: clamp(1.45rem, 2vw, 1.8rem); margin: 1.25em 0 .55em; }
+.bibo-message--assistant .bibo-message__body h2 { font-size: 1.25rem; margin: 1.75em 0 .6em; padding-bottom: .35em; border-bottom: 1px solid var(--bibo-line); }
+.bibo-message--assistant .bibo-message__body h3 { font-size: 1.07rem; margin: 1.5em 0 .45em; }
+.bibo-message--assistant .bibo-message__body h4 { font-size: 1rem; margin: 1.25em 0 .4em; }
+.bibo-message--assistant .bibo-message__body :is(ul, ol) { margin: .35em 0 1.15em; padding-left: 1.45em; }
+.bibo-message--assistant .bibo-message__body li { padding-left: .18em; margin: .25em 0; }
+.bibo-message--assistant .bibo-message__body li > :is(ul, ol) { margin: .3em 0 .45em; }
+.bibo-message--assistant .bibo-message__body li > p { margin: .25em 0; }
+.bibo-message--assistant .bibo-message__body li::marker { color: var(--bibo-primary); font-weight: 650; }
+.bibo-message--assistant .bibo-message__body input[type="checkbox"] { accent-color: var(--bibo-primary); margin-right: .35em; }
+.bibo-message--assistant .bibo-message__body blockquote { margin: 1.3em 0; padding: .75em 1em; border-left: 3px solid var(--bibo-primary); border-radius: 0 var(--bibo-radius-sm) var(--bibo-radius-sm) 0; background: var(--bibo-quote-surface); color: #455b4e; }
+.bibo-message--assistant .bibo-message__body blockquote > :last-child { margin-bottom: 0; }
+.bibo-message--assistant .bibo-message__body pre { max-width: 100%; overflow-x: auto; margin: 1.1em 0 1.4em; padding: 16px 18px; border: 1px solid var(--bibo-line); border-radius: var(--bibo-radius-md); background: var(--bibo-code-surface); tab-size: 2; }
+.bibo-message--assistant .bibo-message__body code { font: 13px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.bibo-message--assistant .bibo-message__body :not(pre) > code { padding: .13em .38em; border: 1px solid var(--bibo-line); border-radius: 5px; background: var(--bibo-code-surface); font-size: .87em; overflow-wrap: anywhere; }
+.bibo-message--assistant .bibo-message__body a { color: var(--bibo-primary); text-decoration: underline; text-decoration-color: #81ab93; text-underline-offset: 3px; }
+.bibo-message--assistant .bibo-message__body a:hover { text-decoration-color: currentColor; }
+.bibo-message--assistant .bibo-message__body a:focus-visible { outline: 2px solid var(--bibo-focus); outline-offset: 3px; border-radius: 2px; }
+.bibo-message--assistant .bibo-message__table { max-width: 100%; overflow-x: auto; margin: 1em 0 1.4em; border: 1px solid var(--bibo-line); border-radius: var(--bibo-radius-md); }
+.bibo-message--assistant .bibo-message__table table { width: 100%; min-width: 320px; border-collapse: collapse; font-size: .93em; white-space: nowrap; }
+.bibo-message--assistant .bibo-message__body :is(th, td) { border-bottom: 1px solid var(--bibo-line); padding: .65em 1em; text-align: left; }
+.bibo-message--assistant .bibo-message__body th { background: var(--bibo-quote-surface); font-weight: 650; }
+.bibo-message--assistant .bibo-message__body tr:last-child td { border-bottom: 0; }
+.bibo-message--assistant .bibo-message__body hr { border: 0; border-top: 1px solid var(--bibo-line); margin: 1.7em 0; }
+.bibo-message--assistant .bibo-message__body strong { font-weight: 700; }
 .bibo-message__actions { margin-left: -10px; min-height: 30px; }
 .bibo-composer { width: 100%; background: var(--bibo-surface); border: 1px solid #d9e3d8; border-radius: var(--bibo-radius-lg); box-shadow: 0 8px 24px #45604b12; padding: 12px 14px 9px; }
 .bibo-composer textarea { display: block; border: 0; outline: 0; resize: none; width: 100%; min-height: 48px; max-height: 170px; background: transparent; color: var(--bibo-ink); font: inherit; font-size: 14px; line-height: 1.6; }
