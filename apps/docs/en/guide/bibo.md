@@ -22,6 +22,8 @@ Find search and creation controls in the file tree. The tree and open tabs use m
 
 Navigate the file tree with Up/Down, expand or enter children with Right, and collapse or return to the parent with Left. Home/End move to the first/last visible node; Enter opens a file. Drag the tree divider to resize it, or focus the divider and use Left/Right. The active file tab scrolls into view when switching among many files. Switching tabs or hiding the tree preserves unsaved edits.
 
+An expanded empty folder says that it is empty; use that folder's action button to add content.
+
 Each account has an isolated runtime. You can clear your Bibo conversation and workspace from the web app. Inbox does not imply a connection to an external email account. External email and calendar accounts, web search, background schedules, and proactive notifications are not yet available. The current compressed workspace snapshot limit is 32 MiB; exceeding it reports a save failure.
 
 The initial limit is 12 requests per hour and 4,000 characters per request, with 30 model calls per account per day and 200 model calls across the service per day. Account authentication uses the NextClaw platform; Bibo provides a separate, capped model trial. When the trial quota is exhausted, Bibo reports it before sending; a new conversation does not gain an empty session, and the input remains available to retry later. Background scheduled work and proactive notifications are not available yet. Check important results before relying on them.

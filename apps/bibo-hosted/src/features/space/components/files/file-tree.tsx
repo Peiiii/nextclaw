@@ -55,7 +55,7 @@ function FileSearchResults() {
   );
 }
 function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
-  const { files, activeFileId, expandedFolders: expanded, toggleFolder, openFile, fileQuery } = useBiboSpaceStore();
+  const { files, activeFileId, expandedFolders: expanded, toggleFolder, openFile, fileQuery, cursors } = useBiboSpaceStore();
   const treeRef = useRef<HTMLDivElement>(null);
   const [treeFocus, setTreeFocus] = useState<string | null>(null);
   const treeId = useId();
@@ -117,7 +117,15 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
               <FileActions file={file} tabIndex={tabStop === file.id ? 0 : -1} />
             </>}
           </div>
-          {file.kind === "folder" && expanded[file.id] && <div id={`${treeId}-${file.id}`} role="group">{tree(file.path, level + 1)}</div>}
+          {file.kind === "folder" && expanded[file.id] && (
+            <div id={`${treeId}-${file.id}`} role="group">
+              {children.get(file.path)?.length ? tree(file.path, level + 1) : (
+                <p className="bibo-tree-empty-folder" style={{ paddingLeft: 40 + (level + 1) * 17 }}>
+                  {cursors.files ? "继续加载以查看内容" : "文件夹为空"}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       ));
 
