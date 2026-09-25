@@ -1,0 +1,8 @@
+{
+  "name": "bibo-design-gallery",
+  "account_id": "adb27b39051202962038992eeaf8f6bb",
+  "compatibility_date": "2026-09-25",
+  "workers_dev": true,
+  "routes": [{ "pattern": "design.bibo.bot", "custom_domain": true }],
+  "assets": { "directory": "./public", "not_found_handling": "404-page" }
+}
