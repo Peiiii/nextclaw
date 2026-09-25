@@ -1,18 +1,36 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { chromium } from "playwright";
 
 const origin = "https://app.bibo.bot";
-const tokenFile = process.env.BIBO_SMOKE_TOKEN_FILE;
-if (!tokenFile) throw new Error("Set BIBO_SMOKE_TOKEN_FILE to a local file containing a platformToken.");
+const accountFile = process.env.BIBO_SMOKE_ACCOUNT_FILE ?? join(homedir(), ".config", "bibo-hosted", "smoke-account.json");
+type SmokeAccount = { origin: string; email: string; password: string; userId: string };
 
-const credential = readFileSync(tokenFile, "utf8").trim();
-const token = credential.startsWith("{")
-  ? (JSON.parse(credential) as { platformToken?: string }).platformToken
-  : credential;
-if (!token) throw new Error("The smoke token file does not contain a platformToken.");
+function loadAccount(): SmokeAccount {
+  if (statSync(accountFile).mode & 0o077) throw new Error(`Restrict ${accountFile} to the owner with chmod 600.`);
+  const account = JSON.parse(readFileSync(accountFile, "utf8")) as Partial<SmokeAccount>;
+  assert.equal(account.origin, origin, "Smoke account origin must match the production Bibo origin");
+  for (const field of ["email", "password", "userId"] as const) {
+    assert.ok(typeof account[field] === "string" && account[field].length > 0, `Smoke account is missing ${field}`);
+  }
+  return account as SmokeAccount;
+}
 
-const cookie = `bibo_session=${encodeURIComponent(token)}`;
+const smokeAccount = loadAccount();
+const login = await fetch(`${origin}/api/auth/login`, {
+  method: "POST",
+  headers: { origin, "content-type": "application/json" },
+  body: JSON.stringify({ email: smokeAccount.email, password: smokeAccount.password }),
+  signal: AbortSignal.timeout(15_000),
+});
+assert.equal(login.status, 200, `Smoke account login returned ${login.status}`);
+const token = login.headers.get("set-cookie")?.match(/(?:^|;\s*)bibo_session=([^;]+)/)?.[1];
+assert.ok(token, "Smoke account login did not set a Bibo session cookie");
+const sessionToken = decodeURIComponent(token);
+
+const cookie = `bibo_session=${encodeURIComponent(sessionToken)}`;
 const headers = { cookie };
 const requestId = `bibo-live-${crypto.randomUUID().slice(0, 8)}`;
 const prompt = `请只用一句简短中文回复“${requestId} 已收到”，不要执行工具。`;
@@ -62,7 +80,7 @@ async function modelStreamProbe(): Promise<{ contentChunks: number; firstContent
   const started = performance.now();
   const response = await fetch(`${origin}/api/model/v1/chat/completions`, {
     method: "POST",
-    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    headers: { authorization: `Bearer ${sessionToken}`, "content-type": "application/json" },
     body: JSON.stringify({ model: "deepseek-flash", messages: [{ role: "user", content: "请用两句话介绍 Bibo。" }], stream: true, max_tokens: 128 }),
     signal: abort.signal,
   });
@@ -105,7 +123,7 @@ async function streamedRun(): Promise<{ deltaCount: number; firstDeltaMs: number
 
 try {
   const account = await json<{ user?: { id: string } }>("/api/auth/me");
-  assert.ok(account.user?.id, "Smoke account is not authenticated");
+  assert.equal(account.user?.id, smokeAccount.userId, "Smoke account identity does not match the local credential file");
   const modelStream = await modelStreamProbe();
   const before = await json<{ messages: Array<{ role: string; text: string }> }>("/api/history");
   const stream = await streamedRun();
@@ -118,7 +136,7 @@ try {
   try {
     for (const viewport of [{ width: 1365, height: 900 }, { width: 390, height: 844 }]) {
       const context = await browser.newContext({ viewport });
-      await context.addCookies([{ name: "bibo_session", value: token, domain: "app.bibo.bot", path: "/", httpOnly: true, secure: true, sameSite: "Lax" }]);
+      await context.addCookies([{ name: "bibo_session", value: sessionToken, domain: "app.bibo.bot", path: "/", httpOnly: true, secure: true, sameSite: "Lax" }]);
       const page = await context.newPage();
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
