@@ -126,8 +126,8 @@ class BiboSpaceOwner {
     this.saveLayout();
     await this.openFile(id);
   };
-  selectTask = (id: string | null): void => {
-    const known = this.get().tasks.find((task) => task.id === id) ?? null;
+  selectTask = (id: string | null, verified?: BiboTask): void => {
+    const known = verified ?? this.get().tasks.find((task) => task.id === id) ?? null;
     this.set({ selectedTaskId: id, taskSelection: known });
     if (!id || known) return;
     void client.space<BiboTask>("task.get", { id }).then((task) => {
@@ -142,10 +142,11 @@ class BiboSpaceOwner {
     this.set({ taskQuery: query, taskProject: project, selectedTaskId: null });
     void this.load("tasks");
   };
-  selectEvent = (id: string | null): void => {
+  selectEvent = (id: string | null, verified?: BiboEvent): void => {
     this.set({ selectedEventId: id });
     if (!id) return;
-    const known = this.get().events.find((event) => event.id === id);
+    const known = verified ?? this.get().events.find((event) => event.id === id);
+    if (verified) this.set((state) => ({ events: [...state.events.filter((event) => event.id !== id), verified] }));
     if (known) { this.setCalendarDate(new Date(known.startAt)); return; }
     void client.space<BiboEvent>("event.get", { id }).then((event) => {
       this.set((state) => ({ events: [...state.events.filter((item) => item.id !== id), event] }));
@@ -273,21 +274,23 @@ class BiboSpaceOwner {
     finally { this.set({ saving: false }); }
   };
 
-  openFile = async (id: string): Promise<void> => {
+  openFile = async (id: string, verified?: BiboFileDetail): Promise<void> => {
     const request = ++this.fileOpenRequest;
     this.closedFiles.delete(id);
-    const cached = this.get().fileDetails[id];
+    const cached = verified ? undefined : this.get().fileDetails[id];
     if (cached) {
       this.set((state) => ({ activeFileId: id, tabs: state.tabs.includes(id) ? state.tabs : [...state.tabs, id] }));
       this.revealFile(id);
       return;
     }
     try {
-      const detail = await client.space<BiboFileDetail>("file.get", { id });
+      const detail = verified ?? await client.space<BiboFileDetail>("file.get", { id });
       const ancestors = detail.path.includes("/") ? await client.space<Page<BiboFile>>("file.list", { ancestorOf: detail.path, limit: 100 }) : { items: [] };
       if (this.closedFiles.has(id)) return;
       this.set((state) => ({ files: [...new Map([...state.files, ...ancestors.items, detail].map((file) => [file.id, file])).values()] }));
-      this.set((state) => ({ fileDetails: { ...state.fileDetails, [id]: detail }, fileDrafts: { ...state.fileDrafts, [id]: state.fileDrafts[id] ?? { content: detail.content ?? "", version: detail.version, dirty: false, saving: false } }, tabs: state.tabs.includes(id) ? state.tabs : [...state.tabs, id], ...(request === this.fileOpenRequest ? { activeFileId: id, error: "" } : {}) }));
+      this.set((state) => ({ fileDetails: { ...state.fileDetails, [id]: detail }, fileDrafts: { ...state.fileDrafts,
+        [id]: state.fileDrafts[id]?.dirty || state.fileDrafts[id]?.saving ? state.fileDrafts[id]! : { content: detail.content ?? "", version: detail.version, dirty: false, saving: false } },
+        tabs: state.tabs.includes(id) ? state.tabs : [...state.tabs, id], ...(request === this.fileOpenRequest ? { activeFileId: id, error: "" } : {}) }));
       if (request === this.fileOpenRequest) this.revealFile(id);
     } catch (error) {
       if (error instanceof BiboClientError && error.status === 404 && this.get().workspaceFileId !== id && this.get().tabs.includes(id) && !this.get().fileDrafts[id]) this.closeFile(id);

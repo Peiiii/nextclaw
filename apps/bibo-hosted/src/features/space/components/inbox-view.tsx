@@ -1,28 +1,50 @@
-import type { BiboInboxItem } from "@nextclaw/bibo-client";
-import { Button, EmptyState, ListRow, Markdown } from "@nextclaw/personal-agent-ui";
+import { useState } from "react";
+import { BiboClient, BiboClientError, type BiboEvent, type BiboFileDetail, type BiboInboxItem, type BiboTask } from "@nextclaw/bibo-client";
+import { Button, EmptyState, ListRow, Markdown, Notice } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { day, datetime } from "@/features/space/utils/date-format.utils";
+const sourceClient = new BiboClient();
 export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promise<void> }) {
   const { inbox, selectedInboxId, selectInbox, act, navigate, openFile, saving, cursors, moreLoading, loadMore } = useBiboSpaceStore();
+  const [openingSource, setOpeningSource] = useState(false);
+  const [sourceError, setSourceError] = useState("");
   const selected = inbox.find((item) => item.id === selectedInboxId) ?? null;
-  const source = (item: BiboInboxItem) => {
+  const source = async (item: BiboInboxItem) => {
     if (!item.source.id) return;
-    if (item.source.kind === "task") {
-      navigate("tasks");
-      useBiboSpaceStore.getState().selectTask(item.source.id);
-    }
-    if (item.source.kind === "event") {
-      navigate("calendar");
-      useBiboSpaceStore.getState().selectEvent(item.source.id);
-    }
-    if (item.source.kind === "file") {
-      navigate("files");
-      void openFile(item.source.id);
-    }
-    if (item.source.kind === "session") {
-      navigate("chat");
-      void onOpenSession(item.source.id);
-    }
+    const accountId = useBiboSpaceStore.getState().accountId;
+    setSourceError("");
+    setOpeningSource(true);
+    try {
+      let verified: BiboTask | BiboEvent | BiboFileDetail | undefined;
+      if (item.source.kind === "task" || item.source.kind === "event" || item.source.kind === "file") {
+        verified = await sourceClient.space(`${item.source.kind}.get`, { id: item.source.id });
+      }
+      const current = useBiboSpaceStore.getState();
+      if (current.accountId !== accountId || current.view !== "inbox" || current.selectedInboxId !== item.id) return;
+      if (item.source.kind === "task") {
+        navigate("tasks");
+        useBiboSpaceStore.getState().selectTask(item.source.id, verified as BiboTask);
+      }
+      if (item.source.kind === "event") {
+        navigate("calendar");
+        useBiboSpaceStore.getState().selectEvent(item.source.id, verified as BiboEvent);
+      }
+      if (item.source.kind === "file") {
+        navigate("files");
+        void openFile(item.source.id, verified as BiboFileDetail);
+      }
+      if (item.source.kind === "session") {
+        navigate("chat");
+        void onOpenSession(item.source.id);
+      }
+    } catch (error) {
+      const current = useBiboSpaceStore.getState();
+      if (current.accountId === accountId && current.view === "inbox" && current.selectedInboxId === item.id) {
+        setSourceError(error instanceof BiboClientError && error.status === 404
+          ? "来源已删除或无法访问。"
+          : error instanceof Error ? error.message : "暂时无法读取来源，请重试。");
+      }
+    } finally { setOpeningSource(false); }
   };
   return (
     <div className="bibo-page workspace-page">
@@ -31,7 +53,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
           <div className="bibo-pane-label">全部 · {inbox.length}</div>
           {inbox.length ? (
             inbox.map((item) => (
-              <ListRow key={item.id} selected={selected?.id === item.id} onClick={() => selectInbox(item.id)}>
+              <ListRow key={item.id} selected={selected?.id === item.id} onClick={() => { setSourceError(""); selectInbox(item.id); }}>
                 <span className={`bibo-unread-dot${item.readAt ? " is-read" : ""}`} />
                 <span>
                   <strong>{item.title}</strong>
@@ -52,7 +74,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
         <div className="bibo-detail-pane">
           {selected ? (
             <>
-              <Button tone="text" onClick={() => selectInbox(null)}>
+              <Button tone="text" onClick={() => { setSourceError(""); selectInbox(null); }}>
                 ← 全部消息
               </Button>
               <p className="bibo-kicker">
@@ -60,6 +82,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
                 {datetime(selected.createdAt)}
               </p>
               <h2>{selected.title}</h2>
+              {sourceError && <Notice tone="error">{sourceError}</Notice>}
               {selected.resolvedAt && <p className="bibo-save-state">已处理 · {datetime(selected.resolvedAt)}</p>}
               <div className="bibo-readable">
                 <Markdown text={selected.body} />
@@ -84,8 +107,8 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
                   </Button>
                 )}
                 {selected.source.kind !== "bibo" && selected.source.id && (
-                  <Button tone="text" onClick={() => source(selected)}>
-                    查看来源 ↗
+                  <Button tone="text" disabled={openingSource} onClick={() => void source(selected)}>
+                    {openingSource ? "正在打开来源…" : "查看来源 ↗"}
                   </Button>
                 )}
               </div>

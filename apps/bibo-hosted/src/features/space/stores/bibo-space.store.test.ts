@@ -150,4 +150,16 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
     await stale;
     assert.deepEqual(useBiboSpaceStore.getState().notes, []);
   });
+  await t.test("verified source reuses its read and refreshes only clean file drafts", async () => {
+    const file = { id: "source-file", path: "source.md", kind: "document" as const, content: "latest", version: 3, createdAt: "2026-09-25T09:00:00Z", updatedAt: "2026-09-25T09:00:00Z" };
+    useBiboSpaceStore.setState({ fileDetails: { [file.id]: { ...file, content: "old", version: 2 } }, fileDrafts: { [file.id]: { content: "old", version: 2, dirty: false, saving: false } } });
+    const before = requests.length;
+    await store.openFile(file.id, file);
+    assert.equal(requests.length, before, "verified root file does not fetch its detail twice");
+    assert.equal(useBiboSpaceStore.getState().fileDrafts[file.id]?.content, "latest");
+    assert.equal(useBiboSpaceStore.getState().fileDrafts[file.id]?.version, 3);
+    store.editFile(file.id, "local change");
+    await store.openFile(file.id, { ...file, content: "newer", version: 4 });
+    assert.equal(useBiboSpaceStore.getState().fileDrafts[file.id]?.content, "local change", "verified read keeps a dirty draft");
+  });
 });
