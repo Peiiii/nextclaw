@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import type { BiboTask } from "@nextclaw/bibo-client";
-import { Button, ConfirmDialog, Field, Input, Select, Textarea } from "@nextclaw/personal-agent-ui";
+import { Button, ConfirmDialog, Field, IconButton, Input, Select, Textarea } from "@nextclaw/personal-agent-ui";
+import { X } from "lucide-react";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { localInput } from "@/features/space/utils/date-format.utils";
 
@@ -156,23 +157,24 @@ function SubtaskEditor({
     <div className="bibo-subtasks">
       <p>子任务</p>
       {subtasks.map((item) => (
-        <label key={item.id} className="bibo-check-row">
-          <input
-            type="checkbox"
-            checked={item.done}
-            onChange={(event) =>
-              onChange(subtasks.map((part) => (part.id === item.id ? { ...part, done: event.target.checked } : part)))
-            }
-          />
-          <span>{item.title}</span>
-          <button
+        <div key={item.id} className="bibo-check-row">
+          <label>
+            <input
+              type="checkbox"
+              checked={item.done}
+              onChange={(event) =>
+                onChange(subtasks.map((part) => (part.id === item.id ? { ...part, done: event.target.checked } : part)))
+              }
+            />
+            <span>{item.title}</span>
+          </label>
+          <IconButton
             type="button"
-            aria-label={`删除子任务 ${item.title}`}
+            label={`删除子任务 ${item.title}`}
+            icon={<X />}
             onClick={() => onChange(subtasks.filter((part) => part.id !== item.id))}
-          >
-            ×
-          </button>
-        </label>
+          />
+        </div>
       ))}
       <div className="bibo-inline-input">
         <Input

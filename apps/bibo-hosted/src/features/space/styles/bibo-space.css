@@ -137,6 +137,7 @@
 .bibo-task-state { width: 20px; font-size: 17px; color: #779076; }
 .bibo-task-row strong { font-size: 13px; font-weight: 600; }
 .bibo-task-row small { display: block; margin-top: 5px; color: #98a197; font-size: 11px; }
+.bibo-task-status-label { flex: none; margin-left: auto; color: #788b79; font-size: 11px; white-space: nowrap; }
 .bibo-board { display: grid; grid-template-columns: repeat(4, minmax(180px, 1fr)); gap: 1px; background: var(--bibo-hairline); min-height: 100%; overflow-x: auto; }
 .bibo-board section { background: #fffefa; }
 .bibo-board h3 { margin: 0; padding: 14px 12px; font-size: 12px; color: #6b7d6b; }
@@ -155,9 +156,10 @@
 .bibo-subtasks { border-top: 1px solid var(--bibo-hairline); padding-top: 9px; }
 .bibo-subtasks > p { color: #6c7e6c; font-size: 11px; }
 .bibo-editor-form .bibo-check-row { display: flex; flex-direction: row; align-items: center; gap: 8px; min-height: 32px; margin-bottom: 4px; color: #4f6052; font-size: 13px; }
+.bibo-check-row label { display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px; cursor: pointer; }
 .bibo-check-row input { width: auto; }
 .bibo-check-row span { flex: 1; }
-.bibo-check-row button { border: 0; background: none; color: #a4ada2; cursor: pointer; }
+.bibo-check-row .ui-icon-button { flex: none; }
 .bibo-inline-input { display: flex; gap: 7px; max-width: 500px; margin-bottom: 14px; }
 .bibo-conflict { margin: 0 0 16px; padding: 10px; background: #f6f0df; color: #857451; border-radius: 7px; font-size: 12px; }
 .calendar-period { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }

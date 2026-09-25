@@ -45,6 +45,7 @@ export function Tasks() {
     <TaskRow
       key={task.id}
       task={task}
+      projectName={projects.find((item) => item.id === task.projectId)?.name}
       selected={selected?.id === task.id}
       onSelect={() => {
         selectTask(task.id);
@@ -331,13 +332,21 @@ function ProjectForm({
 
 function TaskRow({
   task,
+  projectName,
   selected,
   onSelect,
 }: {
   task: BiboTask;
+  projectName?: string;
   selected: boolean;
   onSelect: () => void;
 }) {
+  const statusLabel = {
+    planned: "待开始",
+    active: "进行中",
+    done: "已完成",
+    cancelled: "已取消",
+  }[task.status];
   return (
     <ListRow
       key={task.id}
@@ -345,7 +354,7 @@ function TaskRow({
       selected={selected}
       onClick={onSelect}
     >
-      <span className="bibo-task-state">
+      <span className="bibo-task-state" aria-hidden="true">
         {task.status === "done"
           ? "✓"
           : task.status === "active"
@@ -357,6 +366,7 @@ function TaskRow({
       <span>
         <strong>{task.title}</strong>
         <small>
+          {projectName ? `${projectName} · ` : ""}
           {task.priority === "high"
             ? "高优先级 · "
             : task.priority === "low"
@@ -370,6 +380,7 @@ function TaskRow({
             : ""}
         </small>
       </span>
+      <span className="bibo-task-status-label">{statusLabel}</span>
     </ListRow>
   );
 }
