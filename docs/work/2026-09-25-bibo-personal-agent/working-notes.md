@@ -218,3 +218,4 @@
 
 - 对照 [Apple Calendar 新建日程](https://support.apple.com/en-by/guide/calendar/icalwr13-events/mac)与 [Google Calendar 新建日程](https://support.google.com/calendar/answer/72143?hl=en)公开帮助，二者都把日历空白区域作为可操作入口；当前 Bibo 月格大部分留白却只有日期数字所在行能选中，当天列表的发现成本高。采用整格语义按钮覆盖空白以保留 Bibo「先选日期看完整安排」主流程；事件条目仍在其上独立命中，日/周小时格不变。这是可观察命中区改进，不声称竞品全部功能已对齐。
 - 构建后真实浏览器在 1440/390 点第 15 日格右下空白，均选中 9 月 15 日并显示当天完整列表；点第 25 日日程条目仍打开对应详情，页面无横向溢出。月格正常渲染截图为 `/tmp/bibo-calendar-{1440,390}.png`。第一次完整 smoke 在手机抽屉关闭后的焦点瞬间断言上遇到异步时序，已改为等待最终焦点结果；产品抽屉逻辑未因日程 CSS 改动。再次完整 smoke 曾在 768 宽发现文件工具栏越界 6px，再次完整复跑未复现，暂不推断稳定根因，原越界断言保留。最终三尺寸完整 smoke 通过。
+- 应用三范围 tsc、定向 ESLint 和 diff-only maintainability 检查通过（0 error；脚本接近行数预算 1 warning）。`091af2bc5` 已快进推送远程 master，正式 Worker `5647abbc` 已部署；`app.bibo.bot` 返回的样式资源包含整格绝对定位的日期按钮。正式线上只验证资源交付，本项实际点选行为由构建后真实浏览器验证，不把资源探针写成线上交互验收。本地主干含无关未提交 thought，reconcile 返回 `LOCAL_WORKTREE_RETRYING`，由既有重试进程接管。
