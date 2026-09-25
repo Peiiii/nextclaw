@@ -14,3 +14,5 @@ Correct file-tree keyboard navigation at root and empty-folder boundaries, prese
 Restore the chat workspace selection after refresh, preserve close and selection intent during slow reads, and show recoverable file errors inside the workspace.
 
 Keep missing conversation links identifiable, return a not-found response for deleted history, and avoid silently switching to another conversation.
+
+Prevent mobile navigation drawers from opening icon tooltips on automatic focus, while preserving keyboard focus and Escape behavior.

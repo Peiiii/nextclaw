@@ -40,6 +40,7 @@ function Overlay({
         <Primitive.Overlay className="ui-overlay-backdrop" />
         <Primitive.Content
           ref={content}
+          tabIndex={-1}
           className={`ui-overlay ui-overlay--${variant}`}
           {...(!description ? { "aria-describedby": undefined } : {})}
           aria-busy={busy}
@@ -54,6 +55,9 @@ function Overlay({
             if (input) {
               event.preventDefault();
               input.focus();
+            } else {
+              event.preventDefault();
+              content.current?.focus();
             }
           }}
           onCloseAutoFocus={(event) => {
@@ -82,7 +86,7 @@ function Overlay({
               )}
             </div>
             <Primitive.Close asChild>
-              <IconButton disabled={busy} label={closeLabel} icon={<X />} />
+              <IconButton disabled={busy} label={closeLabel} icon={<X />} tooltip={false} />
             </Primitive.Close>
           </header>
           <div className="ui-overlay__body">{children}</div>

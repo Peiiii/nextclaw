@@ -130,7 +130,7 @@ export function BiboApp() {
     {mobile ? <Sheet open={store.menuOpen} onOpenChange={store.setMenuOpen} title="个人空间" closeLabel="关闭导航" returnFocusRef={menuButtonRef}><aside className="bibo-sidebar is-drawer" aria-label="导航">{sidebarContent}</aside></Sheet> : <aside className="bibo-sidebar" aria-label="导航">{sidebarContent}</aside>}
     <main className="bibo-main">
       <header className="bibo-topbar"><div className="bibo-topbar-leading">
-        <IconButton ref={menuButtonRef} className="bibo-menu-button" label="打开菜单" icon={<Menu />} aria-expanded={store.menuOpen} onClick={() => store.setMenuOpen(!store.menuOpen)} />
+        <IconButton ref={menuButtonRef} className="bibo-menu-button" label="打开菜单" icon={<Menu />} tooltip={false} aria-expanded={store.menuOpen} onClick={() => store.setMenuOpen(!store.menuOpen)} />
         <h1 className="workspace-title" title={workspaceTitle}>{workspaceTitle}</h1>
       </div><div className="bibo-topbar-actions">{space.view === "chat" && <><Button disabled={store.phase !== "idle"} onClick={() => void store.createSession()}>＋ 新对话</Button><Button aria-label="打开右侧工作区" onClick={space.workspaceOpen ? space.closeWorkspace : space.showWorkspace}>工作区</Button></>}<span className="bibo-account">{store.user?.email}</span></div></header>
       {space.view === "chat" ? <div className="bibo-chat-layout"><div className="bibo-chat-column"><section className="bibo-conversation" aria-label="与 Bibo 对话">

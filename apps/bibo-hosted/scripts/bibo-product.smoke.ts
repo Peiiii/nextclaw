@@ -324,6 +324,25 @@ async function checkLongTitles(page: Page, width: number): Promise<void> {
   }
 }
 
+async function checkMobileDrawerTooltip(page: Page, width: number): Promise<void> {
+  await page.goto(`${base}/?view=chat`, { waitUntil: "networkidle" });
+  const trigger = page.getByRole("button", { name: "打开菜单", exact: true });
+  await trigger.tap();
+  const drawer = page.getByRole("dialog", { name: "个人空间" });
+  await drawer.waitFor();
+  await page.waitForTimeout(400);
+  assert.equal(await page.getByRole("tooltip").count(), 0, "opening a touch drawer must not display a tooltip");
+  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("role")), "dialog");
+  await page.screenshot({ path: `/tmp/bibo-mobile-drawer-${width}.png` });
+  await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("aria-label")), "关闭导航");
+  await page.keyboard.press("Escape");
+  await drawer.waitFor({ state: "hidden" });
+  assert.equal(await trigger.evaluate((element) => element === document.activeElement), true);
+  await page.waitForTimeout(400);
+  assert.equal(await page.getByRole("tooltip").count(), 0, "restoring focus must not display a tooltip");
+}
+
 try {
   await ready();
   const browser = await chromium.launch({ headless: true });
@@ -434,6 +453,7 @@ try {
     for (const width of [320, 390, 768, 1440]) {
       const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width <= 760, isMobile: width <= 760 });
       await checkLongTitles(page, width);
+      if (width <= 390) await checkMobileDrawerTooltip(page, width);
       await page.close();
     }
     for (const width of [1440, 390]) {
