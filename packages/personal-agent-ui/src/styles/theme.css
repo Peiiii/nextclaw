@@ -67,7 +67,7 @@ select.ui-control:focus-visible { outline: 2px solid var(--ui-focus); outline-of
 .ui-notice--success { background: var(--ui-selection); cursor: pointer; }
 .ui-notice--success:hover { background: #dfe9db; }
 .ui-notice:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: -2px; }
-.ui-list-row { width: 100%; min-height: 65px; display: flex; align-items: start; gap: 12px; border: 0; border-bottom: 1px solid var(--ui-line); background: transparent; padding: 15px 18px; color: var(--ui-ink); font: inherit; text-align: left; cursor: pointer; }
+.ui-list-row { width: 100%; min-width: 0; min-height: 65px; display: flex; align-items: start; gap: 12px; border: 0; border-bottom: 1px solid var(--ui-line); background: transparent; padding: 15px 18px; color: var(--ui-ink); font: inherit; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
 .ui-list-row:hover { background: var(--ui-hover); }
 .ui-list-row.is-selected { background: var(--ui-selection); }
 .ui-list-row.is-selected:hover { background: var(--ui-selection-hover); }

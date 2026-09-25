@@ -15,7 +15,7 @@ async function ready(): Promise<void> {
   throw new Error("Bibo preview did not start");
 }
 
-async function mockApi(page: Page): Promise<void> {
+async function mockApi(page: Page, longTitles = false): Promise<void> {
   const sessions = [{ id: "session-a", title: "产品想法", createdAt: instant, updatedAt: instant, messageCount: 2 }];
   const messages = [{ role: "user", text: "今天先做什么？", at: instant }, { role: "assistant", text: "先整理一件最重要的事。", at: instant }];
   const projects = [{ id: "project-a", name: "Bibo", createdAt: instant, updatedAt: instant, version: 1 }];
@@ -24,6 +24,13 @@ async function mockApi(page: Page): Promise<void> {
   const inbox = [{ id: "inbox-a", kind: "decision", title: "确认方案方向", body: "Bibo 已整理好两个候选方案。请阅读后决定。", source: { kind: "task", id: "task-a" }, createdAt: instant, updatedAt: instant, readAt: null as string | null, resolvedAt: null as string | null, version: 1 }];
   const files = [{ id: "file-a", path: "想法.md", kind: "note", createdAt: instant, updatedAt: instant, version: 1 }];
   const contents: Record<string, string> = { "file-a": "# 一个想法\n\n让信息在需要时出现。" };
+  if (longTitles) {
+    const suffix = "会议纪要".repeat(6) + "UnbrokenTitle".repeat(6);
+    for (const item of [...sessions, ...tasks, ...events, ...inbox]) item.title += suffix;
+    projects[0]!.name += suffix;
+    files[0]!.path = `想法${suffix}.md`;
+    inbox[0]!.body += suffix;
+  }
   const fileAction = (action: string, input: Record<string, unknown>): { result?: unknown; error?: string; status?: number } => {
     if (action === "file.list") return { result: { items: files, nextCursor: null } };
     if (action === "file.get") {
@@ -72,7 +79,7 @@ async function mockApi(page: Page): Promise<void> {
     const path = new URL(request.url()).pathname;
     const body = request.method() === "POST" ? request.postDataJSON() as Record<string, unknown> : {};
     const reply = (value: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(value) });
-    if (path === "/api/auth/me") return reply({ user: { id: "smoke", email: "smoke@example.com" } });
+    if (path === "/api/auth/me") return reply({ user: { id: "smoke", email: longTitles ? `${"long-account".repeat(5)}@example.com` : "smoke@example.com" } });
     if (path === "/api/sessions" && request.method() === "GET") return reply({ sessions });
     if (path === "/api/sessions" && request.method() === "POST") {
       const session = { id: `session-${sessions.length}`, title: "新对话", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), messageCount: 0 };
@@ -131,6 +138,65 @@ async function checkNewConversation(page: Page): Promise<void> {
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "账号与帮助", undefined, { timeout: 1000 });
   assert.equal(await page.getByRole("button", { name: "账号与帮助" }).evaluate((element) => element === document.activeElement), true);
+}
+
+async function checkContentBounds(page: Page): Promise<void> {
+  const overflow = await page.locator(".bibo-topbar-leading, .bibo-topbar-actions, .workspace-toolbar, .bibo-summary-card, .ui-list-row, .bibo-detail-pane, .bibo-workspace, .ui-overlay, [role=menu], .file-editor-tools").evaluateAll((elements) => elements.flatMap((element) => {
+    const box = element.getBoundingClientRect();
+    if (!box.width || !box.height) return [];
+    return box.left < -1 || box.right > innerWidth + 1 || element.scrollWidth > element.clientWidth + 1
+      ? [{ className: element.className, left: box.left, right: box.right, width: element.clientWidth, scrollWidth: element.scrollWidth }] : [];
+  }));
+  assert.deepEqual(overflow, [], "visible content and actions must fit; an outer overflow:hidden must not conceal broken layout");
+}
+
+async function checkLongConversation(page: Page, width: number): Promise<void> {
+  const title = page.locator(".workspace-title");
+  assert.equal(await title.getAttribute("title"), await title.textContent(), "full title remains available");
+  assert.ok(await title.evaluate((element) => element.getBoundingClientRect().height < 30), "toolbar title stays on one line");
+  await page.getByRole("button", { name: "＋ 新对话", exact: true }).click({ trial: true });
+  await page.getByRole("button", { name: "打开右侧工作区" }).click();
+  await checkContentBounds(page);
+  await page.getByRole("button", { name: "关闭工作区" }).click();
+  if (width <= 760) await page.getByRole("button", { name: "打开菜单" }).click();
+  else await page.locator(".bibo-session-wrap").hover();
+  await page.getByRole("button", { name: /^管理会话/ }).click();
+  await page.getByRole("menuitem", { name: "重命名" }).click();
+  await checkContentBounds(page);
+  assert.ok((await page.getByRole("textbox", { name: "会话名称" }).inputValue()).length > 100);
+  await page.getByRole("button", { name: "关闭会话操作" }).click();
+  if (width <= 760) await page.getByRole("button", { name: "关闭导航" }).click();
+}
+
+async function checkLongTitles(page: Page, width: number): Promise<void> {
+  await mockApi(page, true);
+  for (const view of ["chat", "overview", "tasks", "calendar", "inbox", "notes", "files"]) {
+    await page.goto(`${base}/?view=${view}&session=session-a`, { waitUntil: "networkidle" });
+    await checkContentBounds(page);
+    if (view === "chat") await checkLongConversation(page, width);
+    if (view === "inbox") {
+      await page.locator(".ui-list-row").first().click();
+      await checkContentBounds(page);
+      await page.getByRole("button", { name: "← 全部消息", exact: true }).click();
+      await page.locator(".ui-list-row").first().waitFor({ state: "visible" });
+    }
+    if (view === "tasks" || view === "calendar") {
+      await page.getByRole("button", { name: view === "tasks" ? /梳理产品方案/ : /设计评审/ }).first().click();
+      assert.ok((await page.getByRole("textbox", { name: view === "tasks" ? "任务名称" : "标题", exact: true }).inputValue()).length > 100);
+      await checkContentBounds(page);
+      await page.getByRole("button", { name: view === "tasks" ? "保存任务" : "保存日程", exact: true }).click({ trial: true });
+    }
+    if (view === "files" || view === "notes") {
+      if (width <= 760 && await page.locator(".file-mobile-back button").isVisible()) await page.locator(".file-mobile-back button").click();
+      await page.locator(view === "files" ? '[role="treeitem"]' : ".ui-list-row").first().click();
+      await checkContentBounds(page);
+      await page.getByRole("button", { name: "文件操作", exact: true }).click();
+      await page.getByRole("menuitem", { name: "移动 / 重命名" }).click();
+      await checkContentBounds(page);
+      await page.getByRole("button", { name: "关闭文件操作" }).click();
+    }
+    await page.screenshot({ path: `/tmp/bibo-long-${view}-${width}.png` });
+  }
 }
 
 try {
@@ -237,6 +303,11 @@ try {
       assert.deepEqual(errors, [], "browser should not have runtime errors");
       const layout = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: innerWidth }));
       assert.ok(layout.width <= layout.viewport + 1, "page should not scroll horizontally");
+      await page.close();
+    }
+    for (const width of [320, 390, 768, 1440]) {
+      const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width <= 760, isMobile: width <= 760 });
+      await checkLongTitles(page, width);
       await page.close();
     }
   } finally { await browser.close(); }

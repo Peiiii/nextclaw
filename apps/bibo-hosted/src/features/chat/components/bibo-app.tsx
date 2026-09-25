@@ -111,6 +111,7 @@ export function BiboApp() {
   };
   const closeMenu = () => store.setMenuOpen(false);
   const hasMessages = store.messages.length > 0 || Boolean(store.pendingMessage);
+  const workspaceTitle = space.view === "chat" ? store.sessions.find((session) => session.id === store.activeSessionId)?.title ?? "新对话" : navigation.find((item) => item.view === space.view)?.label;
   const navigate = (view: BiboView) => { space.navigate(view); closeMenu(); };
   const sidebarContent = <>
       <div className="sidebar-header">
@@ -130,7 +131,7 @@ export function BiboApp() {
     <main className="bibo-main">
       <header className="bibo-topbar"><div className="bibo-topbar-leading">
         <IconButton ref={menuButtonRef} className="bibo-menu-button" label="打开菜单" icon={<Menu />} aria-expanded={store.menuOpen} onClick={() => store.setMenuOpen(!store.menuOpen)} />
-        <h1 className="workspace-title">{space.view === "chat" ? store.sessions.find((session) => session.id === store.activeSessionId)?.title ?? "新对话" : navigation.find((item) => item.view === space.view)?.label}</h1>
+        <h1 className="workspace-title" title={workspaceTitle}>{workspaceTitle}</h1>
       </div><div className="bibo-topbar-actions">{space.view === "chat" && <><Button disabled={store.phase !== "idle"} onClick={() => void store.createSession()}>＋ 新对话</Button><Button aria-label="打开右侧工作区" onClick={space.workspaceOpen ? space.closeWorkspace : space.showWorkspace}>工作区</Button></>}<span className="bibo-account">{store.user?.email}</span></div></header>
       {space.view === "chat" ? <div className="bibo-chat-layout"><div className="bibo-chat-column"><section className="bibo-conversation" aria-label="与 Bibo 对话">
         {!hasMessages && <div className="bibo-welcome">

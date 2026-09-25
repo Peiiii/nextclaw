@@ -15,7 +15,8 @@ button, input, textarea { font: inherit; }
 .bibo-online > span { width: 7px; height: 7px; border-radius: 50%; background: #76a585; box-shadow: 0 0 0 4px #dce9da; }
 .bibo-main { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
 .bibo-topbar { display: flex; flex: none; height: 74px; align-items: center; justify-content: space-between; border-bottom: 1px solid #e9ebe4; padding: 0 44px; font-size: 13px; color: #5b6d61; }
-.bibo-topbar-leading, .bibo-account { display: flex; align-items: center; gap: 16px; }
+.bibo-topbar-leading { display: flex; align-items: center; gap: 16px; }
+.bibo-account { display: block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bibo-slash { color: #b4beb4; margin: 0 9px; }
 .bibo-beta { color: #799a82; background: #e8efdf; border: 1px solid #dce8d4; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: .1em; padding: 7px 9px; }
 .bibo-menu-button { display: none; }

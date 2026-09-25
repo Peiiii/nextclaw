@@ -8,6 +8,14 @@
 
 ## 当前工作
 
+### 移动端长标题纠偏（2026-09-25）
+
+- 用户指出移动端会话标题过长，并要求相邻页面充分测试。修前 320px 实测顶部 leading 宽 1083px、操作区右缘 1237px；概览卡片宽 1155px，任务/收件箱/笔记列表内部 scrollWidth 超过 1000px。根因是 flex/grid 的默认最小内容宽度以及长单词未断行；外层 overflow:hidden 让 document.scrollWidth 断言漏报。
+- flow=bugfix，L1 纯展示修复，skip-design：不改状态、协议、持久化或操作语义；复用既有标题、列表和卡片 owner。工具栏允许标题收缩并单行省略，操作区不收缩；列表与摘要标题最多两行，详情正文断行；网格使用 minmax(0,1fr)。原文本及重命名输入保持完整。长账号名也限制宽度。
+- 现有产品 smoke 增加长中文/连续英文/文件名/账号名夹具，320/390 触控及 768/1440 鼠标场景，逐模块核对实际内容边界、按钮命中、会话菜单、右侧工作区、文件改名弹窗。不会再只看 document.scrollWidth。首次回归脚本把窄视口当鼠标设备、未先 hover 会话行，已按真实触控/鼠标分别建模；文件页恢复笔记编辑器后应先返回目录，已修正操作步骤，不跳过检查。
+- 复盘落点为现有 smoke 和本记录；原交互 Skill 已要求窄屏长标题与控件命中，属于验收漏执行，无需新增常驻规则或 Skill。
+- 最终回归通过：构建后 smoke 包含原三尺寸正常内容和 320/390/768/1440 七模块长标题，详情、保存按钮命中、菜单与命名弹窗、收件箱返回均通过。扩展检查另发现并修复 768px 收件箱双栏最小宽度溢出、长项目名撑宽筛选框。Worker/client/runner/UI 类型检查、定向 ESLint、diff-only maintainability 通过（0 error/0 warning）；已目视复核 320px 对话和 768px 任务截图。此证据只关闭本轮展示问题，不替代完整产品验收。
+
 ### 正式部署与真实链路（2026-09-25）
 
 - 最新实际运行源码 `3febfbfc3e8f345cc64ecceec5e2922c8eb334c0`，Worker `e2f4f67f-9e61-49bd-b8ec-158502dae14b`，镜像 SHA256 `87e7a014840bd480d84fda492b6edcbd5a9e2efed816abf31535057c5bea13d0`。部署退出 0 后仍曾读到旧镜像；已通过 Containers rollout `239afc7a-5bc6-4f3d-a75e-041698df3ec6` 核实目标版本 14、100%/5 个实例、completed at `12:08:42.278Z`，随后真实 API 读到 runtime 标识。按 [Cloudflare rollout 合同](https://developers.cloudflare.com/containers/configuration/rollouts/)，以后不能只凭 deploy exit 0 判定容器全部更新。
