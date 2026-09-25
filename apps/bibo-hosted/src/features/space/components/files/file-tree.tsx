@@ -1,10 +1,29 @@
-import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { BiboFile } from "@nextclaw/bibo-client";
 import { Button, IconButton, Input, ListRow } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { FileActions } from "./file-actions";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 type CreateFile = (path: string, kind?: BiboFile["kind"]) => void;
+const parentPath = (path: string): string => path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
+function indexFileTree(files: BiboFile[], expanded: Record<string, boolean>) {
+  const children = new Map<string, BiboFile[]>();
+  for (const file of [...files].sort((a, b) => Number(b.kind === "folder") - Number(a.kind === "folder") || a.path.localeCompare(b.path))) {
+    const parent = parentPath(file.path);
+    const siblings = children.get(parent) ?? [];
+    siblings.push(file);
+    children.set(parent, siblings);
+  }
+  const visible = new Set<string>();
+  const visit = (path: string) => {
+    for (const file of children.get(path) ?? []) {
+      visible.add(file.id);
+      if (file.kind === "folder" && expanded[file.id]) visit(file.path);
+    }
+  };
+  visit("");
+  return { children, visible };
+}
 function FileSearchResults() {
   const { fileMatches, fileSearchLoading, fileSearchCursor, fileQuery, searchFiles, openFile } = useBiboSpaceStore();
   return (
@@ -37,6 +56,10 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
   const { files, activeFileId, expandedFolders: expanded, toggleFolder, openFile, fileQuery } = useBiboSpaceStore();
   const treeRef = useRef<HTMLDivElement>(null);
   const [treeFocus, setTreeFocus] = useState<string | null>(null);
+  const treeId = useId();
+  const { children, visible } = useMemo(() => indexFileTree(files, expanded), [files, expanded]);
+  const tabStop = visible.has(treeFocus ?? "") ? treeFocus
+    : visible.has(activeFileId ?? "") ? activeFileId : children.get("")?.[0]?.id;
   const treeKeys = (event: KeyboardEvent<HTMLButtonElement>, file: BiboFile) => {
     const nodes = Array.from(treeRef.current?.querySelectorAll<HTMLButtonElement>('[role="treeitem"]') ?? []);
     const index = nodes.indexOf(event.currentTarget);
@@ -47,36 +70,37 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
     else if (event.key === "End") target = nodes.at(-1);
     else if (event.key === "ArrowRight" && file.kind === "folder") {
       if (!expanded[file.id]) toggleFolder(file.id);
-      else target = nodes[index + 1];
+      else if (parentPath(nodes[index + 1]?.title ?? "") === file.path) target = nodes[index + 1];
     } else if (event.key === "ArrowLeft") {
       if (file.kind === "folder" && expanded[file.id]) toggleFolder(file.id);
-      else {
-        const parentPath = file.path.slice(0, file.path.lastIndexOf("/"));
-        target = nodes.find((node) => node.title === parentPath);
+      else if (parentPath(file.path)) {
+        target = nodes.find((node) => node.title === parentPath(file.path));
       }
     } else return;
     event.preventDefault();
     target?.focus();
   };
   const tree = (parentPath: string, level: number): ReactNode =>
-    files
-      .filter((file) => (file.path.includes("/") ? file.path.slice(0, file.path.lastIndexOf("/")) : "") === parentPath)
-      .sort((a, b) => Number(b.kind === "folder") - Number(a.kind === "folder") || a.path.localeCompare(b.path))
+    (children.get(parentPath) ?? [])
       .map((file, index) => (
         <div key={file.id} role="none">
           <div
             className={`bibo-tree-row${activeFileId === file.id ? " is-selected" : ""}`}
             style={{ paddingLeft: 12 + level * 17 }}
+            onFocusCapture={() => setTreeFocus(file.id)}
           >
             <button
               className="bibo-tree-main"
               role="treeitem"
+              aria-label={file.path.split("/").at(-1)}
               aria-level={level + 1}
+              aria-posinset={index + 1}
+              aria-setsize={children.get(parentPath)?.length}
               aria-selected={activeFileId === file.id}
               aria-expanded={file.kind === "folder" ? !!expanded[file.id] : undefined}
-              tabIndex={treeFocus ? (treeFocus === file.id ? 0 : -1) : level === 0 && index === 0 ? 0 : -1}
+              aria-owns={file.kind === "folder" && expanded[file.id] ? `${treeId}-${file.id}` : undefined}
+              tabIndex={tabStop === file.id ? 0 : -1}
               title={file.path}
-              onFocus={() => setTreeFocus(file.id)}
               onKeyDown={(event) => treeKeys(event, file)}
               onClick={() => (file.kind === "folder" ? toggleFolder(file.id) : void openFile(file.id))}
             >
@@ -86,11 +110,11 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
               <span>{file.path.split("/").at(-1)}</span>
             </button>
             {file.kind === "folder" && <>
-              <IconButton label={`在 ${file.path} 下创建`} icon={<Plus />} onClick={() => onCreate(file.path)} />
-              <FileActions file={file} />
+              <IconButton label={`在 ${file.path} 下创建`} icon={<Plus />} tabIndex={tabStop === file.id ? 0 : -1} onClick={() => onCreate(file.path)} />
+              <FileActions file={file} tabIndex={tabStop === file.id ? 0 : -1} />
             </>}
           </div>
-          {file.kind === "folder" && expanded[file.id] && <div role="group">{tree(file.path, level + 1)}</div>}
+          {file.kind === "folder" && expanded[file.id] && <div id={`${treeId}-${file.id}`} role="group">{tree(file.path, level + 1)}</div>}
         </div>
       ));
 

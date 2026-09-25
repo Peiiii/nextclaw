@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { MoreVertical } from "lucide-react";
 import type { BiboFile } from "@nextclaw/bibo-client";
 import {
   ActionMenu,
@@ -8,16 +9,18 @@ import {
   Dialog,
   Field,
   Input,
+  IconButton,
 } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 
-export function FileActions({ file }: { file: BiboFile }) {
+export function FileActions({ file, tabIndex }: { file: BiboFile; tabIndex?: number }) {
   const { moveFile, deleteFile, saving, fileDetails, fileDrafts } = useBiboSpaceStore();
   const [moving, setMoving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [path, setPath] = useState(file.path);
   const [failure, setFailure] = useState("");
   const trigger = useRef<HTMLButtonElement>(null);
+  const label = file.kind === "folder" ? `管理目录 ${file.path}` : "文件操作";
   const startMove = () => {
     setPath(file.path);
     setFailure("");
@@ -43,8 +46,9 @@ export function FileActions({ file }: { file: BiboFile }) {
     <>
 
         <ActionMenu
-          label={file.kind === "folder" ? `管理目录 ${file.path}` : "文件操作"}
+          label={label}
           triggerRef={trigger}
+          trigger={<IconButton ref={trigger} label={label} icon={<MoreVertical />} tabIndex={tabIndex} />}
           transferringFocus={moving || deleting}
         >
           <ActionMenuItem onSelect={startMove}>移动 / 重命名</ActionMenuItem>

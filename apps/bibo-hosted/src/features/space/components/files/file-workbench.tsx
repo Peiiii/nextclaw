@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Dialog, EmptyState, IconButton } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { FileEditor } from "./file-editor";
@@ -9,6 +9,16 @@ export function FileWorkbench({ notesOnly }: { notesOnly: boolean }) {
   const [closing, setClosing] = useState<string | null>(null);
   const [failure, setFailure] = useState("");
   const cancel = useRef<HTMLButtonElement>(null);
+  const tabbar = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const bar = tabbar.current;
+    if (!bar) return;
+    const reveal = () => bar.querySelector(".is-active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    reveal();
+    const observer = new ResizeObserver(reveal);
+    observer.observe(bar);
+    return () => observer.disconnect();
+  }, [activeFileId, tabs.length, files, fileDetails]);
   const saveAndClose = async () => {
     if (!closing) return;
     setFailure("");
@@ -29,12 +39,12 @@ export function FileWorkbench({ notesOnly }: { notesOnly: boolean }) {
             ← {notesOnly ? "全部笔记" : "目录"}
           </Button>
         </div>
-        <div className="bibo-file-tabs">
+        <div className="bibo-file-tabs" ref={tabbar}>
           {tabs.map((id) => {
             const file = fileDetails[id] ?? files.find((item) => item.id === id);
             return (
               <div key={id} className={`bibo-file-tab${activeFileId === id ? " is-active" : ""}`}>
-                <button onClick={() => void openFile(id)}>
+                <button title={file?.path} onClick={() => void openFile(id)}>
                   {file?.path.split("/").at(-1) ?? "已删除"}
                   {fileDrafts[id]?.dirty ? " •" : ""}
                 </button>

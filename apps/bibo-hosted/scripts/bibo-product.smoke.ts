@@ -15,7 +15,7 @@ async function ready(): Promise<void> {
   throw new Error("Bibo preview did not start");
 }
 
-async function mockApi(page: Page, longTitles = false): Promise<void> {
+async function mockApi(page: Page, longTitles = false, fileNavigation = false): Promise<void> {
   const sessions = [{ id: "session-a", title: "产品想法", createdAt: instant, updatedAt: instant, messageCount: 2 }];
   const messages = [{ role: "user", text: "今天先做什么？", at: instant }, { role: "assistant", text: "先整理一件最重要的事。", at: instant }];
   const projects = [{ id: "project-a", name: "Bibo", createdAt: instant, updatedAt: instant, version: 1 }];
@@ -24,6 +24,10 @@ async function mockApi(page: Page, longTitles = false): Promise<void> {
   const inbox = [{ id: "inbox-a", kind: "decision", title: "确认方案方向", body: "Bibo 已整理好两个候选方案。请阅读后决定。", source: { kind: "task", id: "task-a" }, createdAt: instant, updatedAt: instant, readAt: null as string | null, resolvedAt: null as string | null, version: 1 }];
   const files = [{ id: "file-a", path: "想法.md", kind: "note", createdAt: instant, updatedAt: instant, version: 1 }];
   const contents: Record<string, string> = { "file-a": "# 一个想法\n\n让信息在需要时出现。" };
+  if (fileNavigation) {
+    const paths = ["A-empty", "B-folder", "B-folder/nested", "B-folder/nested/readme.md", "alph", "alpha", ...Array.from({ length: 10 }, (_, index) => `review-document-${index}.md`)];
+    files.push(...paths.map((path, index) => ({ id: `navigation-${index}`, path, kind: index < 3 ? "folder" : "document", createdAt: instant, updatedAt: instant, version: 1 })));
+  }
   if (longTitles) {
     const suffix = "会议纪要".repeat(6) + "UnbrokenTitle".repeat(6);
     for (const item of [...sessions, ...tasks, ...events, ...inbox]) item.title += suffix;
@@ -41,6 +45,10 @@ async function mockApi(page: Page, longTitles = false): Promise<void> {
       const file = { id: `file-${files.length}`, path: String(input.path), kind: String(input.kind), createdAt: instant, updatedAt: instant, version: 1 };
       files.push(file); contents[file.id] = String(input.content ?? "");
       return { result: { ...file, content: contents[file.id] } };
+    }
+    if (action === "file.delete") {
+      const index = files.findIndex((file) => file.id === input.id);
+      return { result: { deleted: files.splice(index, 1).map((file) => file.id) } };
     }
     if (action === "file.update" || action === "file.move") {
       const file = files.find((item) => item.id === input.id)!;
@@ -148,6 +156,73 @@ async function checkContentBounds(page: Page): Promise<void> {
       ? [{ className: element.className, left: box.left, right: box.right, width: element.clientWidth, scrollWidth: element.scrollWidth }] : [];
   }));
   assert.deepEqual(overflow, [], "visible content and actions must fit; an outer overflow:hidden must not conceal broken layout");
+}
+
+async function checkTreeKeyboard(page: Page): Promise<void> {
+  const node = (name: string) => page.getByRole("treeitem", { name, exact: true });
+  const focused = () => page.evaluate(() => document.activeElement?.getAttribute("title"));
+  await node("A-empty").focus();
+  for (const key of ["ArrowRight", "ArrowRight"]) await page.keyboard.press(key);
+  assert.equal(await focused(), "A-empty", "an empty folder must not navigate to a sibling");
+  await node("alpha").focus(); await page.keyboard.press("ArrowLeft");
+  assert.equal(await focused(), "alpha", "a root file has no parent");
+  await node("B-folder").focus();
+  for (const [key, path] of [["ArrowRight", "B-folder"], ["ArrowRight", "B-folder/nested"], ["ArrowRight", "B-folder/nested"], ["ArrowRight", "B-folder/nested/readme.md"], ["ArrowLeft", "B-folder/nested"], ["ArrowLeft", "B-folder/nested"], ["ArrowUp", "B-folder"], ["ArrowDown", "B-folder/nested"], ["Home", "A-empty"], ["End", "想法.md"]]) {
+    await page.keyboard.press(key!); assert.equal(await focused(), path);
+  }
+  assert.equal(await node("nested").getAttribute("aria-expanded"), "false");
+  const group = await node("B-folder").getAttribute("aria-owns");
+  assert.ok(group && await page.evaluate((id) => document.getElementById(id)?.getAttribute("role") === "group", group));
+  await page.keyboard.press("Enter");
+  await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
+  await node("alpha").click();
+  await page.getByLabel("文件操作", { exact: true }).click();
+  await page.getByRole("menuitem", { name: "删除", exact: true }).click();
+  await page.getByRole("button", { name: "确认删除", exact: true }).click();
+  await node("alpha").waitFor({ state: "detached" });
+  assert.equal(await page.locator('[role="treeitem"][tabindex="0"]').count(), 1, "deleting the focused node preserves a keyboard entry");
+  await page.getByRole("textbox", { name: "搜索文件" }).focus(); await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("role")), "treeitem");
+}
+
+async function checkFileNavigation(page: Page, width: number): Promise<void> {
+  await mockApi(page, false, true);
+  await page.goto(`${base}/?view=files`, { waitUntil: "networkidle" });
+  if (width > 760) await checkTreeKeyboard(page);
+  for (let index = 0; index < 10; index++) {
+    const back = page.locator(".file-mobile-back button");
+    if (await back.isVisible()) await back.click();
+    await page.getByRole("treeitem", { name: `review-document-${index}.md`, exact: true }).click();
+    await page.getByRole("textbox", { name: `编辑 review-document-${index}.md` }).waitFor();
+  }
+  await page.waitForFunction(() => {
+    const tab = document.querySelector(".bibo-file-tab.is-active")!;
+    return tab.getBoundingClientRect().right <= tab.parentElement!.getBoundingClientRect().right + 1;
+  });
+  const editor = page.getByRole("textbox", { name: "编辑 review-document-9.md" });
+  await editor.fill("未保存的文件草稿");
+  await page.getByRole("button", { name: "review-document-0.md", exact: true }).click();
+  await page.getByRole("button", { name: /^review-document-9\.md/ }).click();
+  assert.equal(await editor.inputValue(), "未保存的文件草稿");
+  if (width > 760) {
+    const resize = page.getByRole("separator", { name: "目录宽度" });
+    await resize.focus(); await page.keyboard.press("ArrowRight");
+    assert.equal(await resize.getAttribute("aria-valuenow"), "240");
+    await page.getByRole("button", { name: "收起目录树", exact: true }).click();
+    await page.getByRole("button", { name: "展开目录树", exact: true }).click();
+    assert.equal(await editor.inputValue(), "未保存的文件草稿");
+    await page.getByRole("button", { name: "保存", exact: true }).click();
+    await page.getByTitle("已保存 · v2").waitFor();
+    await page.reload({ waitUntil: "networkidle" });
+    assert.equal(await resize.getAttribute("aria-valuenow"), "240");
+    assert.equal(await editor.inputValue(), "未保存的文件草稿");
+  }
+  await checkContentBounds(page);
+  await page.waitForFunction(() => {
+    const tab = document.querySelector(".bibo-file-tab.is-active")!;
+    const box = tab.getBoundingClientRect(); const parent = tab.parentElement!.getBoundingClientRect();
+    return box.left >= parent.left - 1 && box.right <= parent.right + 1;
+  });
 }
 
 async function checkLongConversation(page: Page, width: number): Promise<void> {
@@ -308,6 +383,11 @@ try {
     for (const width of [320, 390, 768, 1440]) {
       const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width <= 760, isMobile: width <= 760 });
       await checkLongTitles(page, width);
+      await page.close();
+    }
+    for (const width of [1440, 390]) {
+      const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width < 760 });
+      await checkFileNavigation(page, width);
       await page.close();
     }
   } finally { await browser.close(); }

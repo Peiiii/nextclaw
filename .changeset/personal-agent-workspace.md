@@ -8,3 +8,5 @@ Add a personal workspace with separate conversations, an attention inbox, month/
 Unify menus, dialogs, navigation, and action feedback across desktop and mobile. New conversations are created only when the first message is sent. Add a public session deletion operation so deleting a hosted conversation also removes its underlying Agent journal.
 
 Keep long conversation titles within the toolbar without hiding actions, and constrain long item names across overview cards, task lists, inbox, and notes on narrow screens.
+
+Correct file-tree keyboard navigation at root and empty-folder boundaries, preserve a keyboard entry after deleting a node, and reveal the active tab when many files are open.
