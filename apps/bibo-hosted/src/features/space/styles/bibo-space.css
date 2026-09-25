@@ -257,6 +257,7 @@
 .bibo-tree-empty { font-size: 11px; color: #a0aa9c; padding: 0 13px; }
 .bibo-note-list { overflow-y: auto; }
 .bibo-note-list .ui-list-row { display: block; min-height: 65px; }
+.bibo-file-tree > .ui-button, .bibo-note-list > .ui-button { flex: none; width: 100%; border-top: 1px solid var(--bibo-hairline); border-radius: 0; }
 .bibo-file-workbench { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .file-tabbar { display: flex; flex: none; min-height: 42px; min-width: 0; border-bottom: 1px solid var(--ui-line); }
 .file-tabbar.is-empty { display: none; }

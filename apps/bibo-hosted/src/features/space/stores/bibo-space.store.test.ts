@@ -130,4 +130,24 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
     assert.equal(useBiboSpaceStore.getState().workspaceOpen, false, "late response cannot reopen a closed workspace");
     assert.equal(useBiboSpaceStore.getState().workspaceFileId, "workspace-second", "late response cannot replace the last selection");
   });
+  await t.test("note pagination ignores duplicate clicks and a superseded page", async () => {
+    useBiboSpaceStore.setState({ notes: [], cursors: { notes: "100" }, moreLoading: {} });
+    const before = requests.length;
+    const first = store.loadMore("notes");
+    await store.loadMore("notes");
+    assert.equal(requests.length, before + 1);
+    assert.deepEqual(requests.at(-1), { action: "file.list", input: { limit: 100, cursor: "100", kind: "note", sort: "recent" } });
+    assert.equal(useBiboSpaceStore.getState().moreLoading.notes, true);
+    responses.at(-1)!(Response.json({ result: { items: [{ id: "note-a", kind: "note" }], nextCursor: null } }));
+    await first;
+    assert.equal(useBiboSpaceStore.getState().notes[0]?.id, "note-a");
+    assert.equal(useBiboSpaceStore.getState().moreLoading.notes, false);
+
+    useBiboSpaceStore.setState({ cursors: { notes: "next" } });
+    const stale = store.loadMore("notes");
+    useBiboSpaceStore.setState({ notes: [], cursors: { notes: null } });
+    responses.at(-1)!(Response.json({ result: { items: [{ id: "stale-note" }], nextCursor: null } }));
+    await stale;
+    assert.deepEqual(useBiboSpaceStore.getState().notes, []);
+  });
 });

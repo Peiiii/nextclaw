@@ -131,7 +131,7 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
   );
 }
 export function FileTree({ onCreate }: { onCreate: CreateFile }) {
-  const { treeCollapsed, toggleTree, treeWidth, resizeTree, fileQuery, searchFiles } = useBiboSpaceStore();
+  const { treeCollapsed, toggleTree, treeWidth, resizeTree, fileQuery, searchFiles, cursors, moreLoading, loadMore } = useBiboSpaceStore();
   const resizeStart = useRef({ x: 0, width: treeWidth });
   return (
     <aside className="bibo-file-tree">
@@ -158,6 +158,9 @@ export function FileTree({ onCreate }: { onCreate: CreateFile }) {
         </div>
       )}
       {!treeCollapsed && <FileTreeContents onCreate={onCreate} />}
+      {!treeCollapsed && !fileQuery && cursors.files && (
+        <Button tone="text" disabled={moreLoading.files} onClick={() => void loadMore("files")}>{moreLoading.files ? "正在加载…" : "加载更多文件"}</Button>
+      )}
       {!treeCollapsed && (
         <div
           className="file-tree-resizer"

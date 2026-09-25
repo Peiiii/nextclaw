@@ -75,7 +75,7 @@ export function BiboSpaceView({
   view: BiboView;
   onOpenSession: (id: string) => Promise<void>;
 }) {
-  const { loading, error, cursors, loadMore } = useBiboSpaceStore();
+  const { loading, error, cursors, moreLoading, loadMore } = useBiboSpaceStore();
   if (view === "chat") return null;
   const content = {
     overview: <Overview />,
@@ -86,7 +86,7 @@ export function BiboSpaceView({
     files: <Files notesOnly={false} />,
   }[view];
   if (!content) return null;
-  const domain = view === "calendar" ? "events" : view === "notes" ? "files" : view;
+  const domain = view === "calendar" ? "events" : view;
   return (
     <div className={`bibo-space-scroll${view !== "overview" ? " is-workspace" : ""}`}>
       <div className="bibo-space-feedback">
@@ -98,13 +98,14 @@ export function BiboSpaceView({
         )}
       </div>
       {content}
-      {(["tasks", "events", "inbox", "files"] as string[]).includes(domain) && cursors[domain] && (
-        <button
+      {(["tasks", "events", "inbox"] as string[]).includes(domain) && cursors[domain] && (
+        <Button tone="text"
           className="bibo-load-more"
-          onClick={() => void loadMore(domain as "tasks" | "events" | "inbox" | "files")}
+          disabled={moreLoading[domain]}
+          onClick={() => void loadMore(domain as "tasks" | "events" | "inbox")}
         >
-          加载更多
-        </button>
+          {moreLoading[domain] ? "正在加载…" : "加载更多"}
+        </Button>
       )}
     </div>
   );

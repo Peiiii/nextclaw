@@ -36,7 +36,12 @@ async function mockApi(page: Page, longTitles = false, fileNavigation = false): 
     inbox[0]!.body += suffix;
   }
   const fileAction = (action: string, input: Record<string, unknown>): { result?: unknown; error?: string; status?: number } => {
-    if (action === "file.list") return { result: { items: files, nextCursor: null } };
+    if (action === "file.list") {
+      const matches = files.filter((file) => !input.kind || file.kind === input.kind).sort((a, b) => input.sort === "recent" ? b.updatedAt.localeCompare(a.updatedAt) || a.path.localeCompare(b.path) : a.path.localeCompare(b.path));
+      const offset = Number(input.cursor ?? 0);
+      const limit = Number(input.limit ?? 50);
+      return { result: { items: matches.slice(offset, offset + limit), nextCursor: offset + limit < matches.length ? String(offset + limit) : null } };
+    }
     if (action === "file.get") {
       const file = files.find((item) => item.id === input.id);
       return file ? { result: { ...file, content: contents[file.id] } } : { error: "File missing", status: 404 };

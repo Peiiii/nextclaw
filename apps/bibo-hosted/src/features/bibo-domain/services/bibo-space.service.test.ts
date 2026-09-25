@@ -53,6 +53,31 @@ test("notes and file tree share one stable object through edit and move", async 
   assert.deepEqual(ancestors.items.map((item) => item.id), [folder.id]);
 });
 
+test("note pages filter before pagination and sort by recent edits", async (t) => {
+  const home = await mkdtemp(join(tmpdir(), "bibo-note-pages-"));
+  t.after(() => rm(home, { recursive: true, force: true }));
+  await mkdir(join(home, "workspace"));
+  const space = new BiboSpaceService(home);
+  for (let index = 0; index < 101; index += 1) {
+    await space.execute("file.create", { path: `A-${String(index).padStart(3, "0")}.md`, kind: "document" });
+  }
+  const older = await space.execute("file.create", { path: "Z-older.md", kind: "note" }) as { id: string; version: number };
+  const newer = await space.execute("file.create", { path: "Z-newer.md", kind: "note" }) as { id: string };
+  const firstFiles = await space.execute("file.list", { limit: 100 }) as { items: Array<{ id: string }>; nextCursor: string | null };
+  assert.equal(firstFiles.items.some((file) => file.id === older.id), false);
+  assert.equal(firstFiles.nextCursor, "100");
+  const firstNotes = await space.execute("file.list", { kind: "note", sort: "recent", limit: 1 }) as { items: Array<{ id: string }>; nextCursor: string | null };
+  assert.equal(firstNotes.items[0]?.id, newer.id);
+  assert.equal(firstNotes.nextCursor, "1");
+  const secondNotes = await space.execute("file.list", { kind: "note", sort: "recent", limit: 1, cursor: firstNotes.nextCursor }) as { items: Array<{ id: string }>; nextCursor: string | null };
+  assert.equal(secondNotes.items[0]?.id, older.id);
+  assert.equal(secondNotes.nextCursor, null);
+  await new Promise((resolve) => setTimeout(resolve, 3));
+  await space.execute("file.update", { id: older.id, version: older.version, content: "changed" });
+  const reordered = await space.execute("file.list", { kind: "note", sort: "recent", limit: 1 }) as { items: Array<{ id: string }> };
+  assert.equal(reordered.items[0]?.id, older.id);
+});
+
 test("structured actions validate references, versions, and idempotent create", async (t) => {
   const home = await mkdtemp(join(tmpdir(), "bibo-space-test-"));
   t.after(() => rm(home, { recursive: true, force: true }));

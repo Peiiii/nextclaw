@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { BiboFile } from "@nextclaw/bibo-client";
 import {
   EmptyState,
+  Button,
   IconButton,
   ListRow,
 } from "@nextclaw/personal-agent-ui";
@@ -14,6 +15,10 @@ import { CreateFileDialog } from "./create-file-dialog";
 export function Files({ notesOnly }: { notesOnly: boolean }) {
   const {
     files,
+    notes,
+    cursors,
+    moreLoading,
+    loadMore,
     treeCollapsed,
     activeFileId,
     openFile,
@@ -25,7 +30,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
   );
   const [parent, setParent] = useState("");
   const [creating, setCreating] = useState(false);
-  const all = notesOnly ? files.filter((file) => file.kind === "note") : files;
+  const all = notesOnly ? notes : files;
   return (
     <div className="bibo-page workspace-page bibo-files-page">
       {creating && <CreateFileDialog parent={parent} initialKind={kind} notesOnly={notesOnly} onClose={() => setCreating(false)} />}
@@ -88,6 +93,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
                 detail="写下一个想法，它会自动出现在文件里。"
               />
             )}
+            {cursors.notes && <Button tone="text" disabled={moreLoading.notes} onClick={() => void loadMore("notes")}>{moreLoading.notes ? "正在加载…" : "加载更多笔记"}</Button>}
           </aside>
         )}
         <FileWorkbench notesOnly={notesOnly} />

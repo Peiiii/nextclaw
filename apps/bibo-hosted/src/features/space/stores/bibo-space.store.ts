@@ -42,10 +42,12 @@ class BiboSpaceOwner {
   events: BiboEvent[] = [];
   inbox: BiboInboxItem[] = [];
   files: BiboFile[] = [];
+  notes: BiboFile[] = [];
   fileQuery = "";
   fileMatches: BiboFile[] = [];
   fileSearchCursor: string | null = null;
   fileSearchLoading = false;
+  moreLoading: Record<string, boolean> = {};
   cursors: Record<string, string | null> = {};
   selectedTaskId: string | null = null;
   taskSelection: BiboTask | null = null;
@@ -192,8 +194,11 @@ class BiboSpaceOwner {
         this.set({ inbox: inbox.items, cursors: { ...this.get().cursors, inbox: inbox.nextCursor } });
       }
       if (view === "files" || view === "notes") {
-        const files = await client.space<Page<BiboFile>>("file.list", { limit: 100 });
-        this.set({ files: files.items, cursors: { ...this.get().cursors, files: files.nextCursor } });
+        const [files, notes] = await Promise.all([
+          client.space<Page<BiboFile>>("file.list", { limit: 100 }),
+          view === "notes" ? client.space<Page<BiboFile>>("file.list", { kind: "note", sort: "recent", limit: 100 }) : Promise.resolve(null),
+        ]);
+        this.set({ files: files.items, ...(notes ? { notes: notes.items } : {}), cursors: { ...this.get().cursors, files: files.nextCursor, ...(notes ? { notes: notes.nextCursor } : {}) } });
         const active = this.get().activeFileId;
         if (active && !this.get().fileDetails[active]) await this.openFile(active);
         const workspace = this.get().workspaceFileId;
@@ -236,16 +241,18 @@ class BiboSpaceOwner {
     return request;
   };
 
-  loadMore = async (domain: "tasks" | "events" | "inbox" | "files"): Promise<void> => {
+  loadMore = async (domain: "tasks" | "events" | "inbox" | "files" | "notes"): Promise<void> => {
     const cursor = this.get().cursors[domain];
-    if (!cursor) return;
-    const action = { tasks: "task.list", events: "event.list", inbox: "inbox.list", files: "file.list" }[domain];
+    if (!cursor || this.get().moreLoading[domain]) return;
+    this.set((state) => ({ moreLoading: { ...state.moreLoading, [domain]: true } }));
+    const action = { tasks: "task.list", events: "event.list", inbox: "inbox.list", files: "file.list", notes: "file.list" }[domain];
     try {
       const { taskQuery, taskProject } = this.get();
-      const result = await client.space<Page<unknown>>(action, { limit: 100, cursor, ...(domain === "tasks" ? { query: taskQuery, ...(taskProject ? { projectId: taskProject } : {}) } : {}) });
+      const result = await client.space<Page<unknown>>(action, { limit: 100, cursor, ...(domain === "tasks" ? { query: taskQuery, ...(taskProject ? { projectId: taskProject } : {}) } : {}), ...(domain === "notes" ? { kind: "note", sort: "recent" } : {}) });
       if (domain === "tasks" && (taskQuery !== this.get().taskQuery || taskProject !== this.get().taskProject)) return;
-      this.set((state) => ({ [domain]: [...(state[domain] as unknown[]), ...result.items], cursors: { ...state.cursors, [domain]: result.nextCursor } }));
+      this.set((state) => state.cursors[domain] === cursor ? { [domain]: [...(state[domain] as unknown[]), ...result.items], cursors: { ...state.cursors, [domain]: result.nextCursor } } : {});
     } catch (error) { this.set({ error: message(error) }); }
+    finally { this.set((state) => ({ moreLoading: { ...state.moreLoading, [domain]: false } })); }
   };
 
   act = async <T>(action: string, input: Record<string, unknown>, view: BiboView): Promise<T | null> => {
@@ -333,7 +340,7 @@ class BiboSpaceOwner {
     try {
       const latest = await client.space<BiboFileDetail>("file.get", { id });
       if (this.get().instanceId !== this.instanceId || !this.get().fileDrafts[id]) return;
-      this.set((state) => ({ fileDetails: { ...state.fileDetails, [id]: latest }, files: state.files.map((file) => file.id === id ? latest : file), fileDrafts: { ...state.fileDrafts, [id]: { content: choice === "reload" ? latest.content ?? "" : state.fileDrafts[id]!.content, version: latest.version, dirty: choice === "overwrite", saving: false } } }));
+      this.set((state) => ({ fileDetails: { ...state.fileDetails, [id]: latest }, files: state.files.map((file) => file.id === id ? latest : file), notes: state.notes.map((note) => note.id === id ? latest : note), fileDrafts: { ...state.fileDrafts, [id]: { content: choice === "reload" ? latest.content ?? "" : state.fileDrafts[id]!.content, version: latest.version, dirty: choice === "overwrite", saving: false } } }));
       if (choice === "overwrite") await this.saveFile(id);
     } catch (error) { this.set({ error: message(error) }); }
     finally { this.set((state) => state.fileDrafts[id] ? { fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id]!, saving: false } } } : {}); }
@@ -346,7 +353,7 @@ class BiboSpaceOwner {
   };
 
   moveFile = async (file: BiboFile, path: string): Promise<boolean> => {
-    const detail = await this.act<BiboFileDetail>("file.move", { id: file.id, version: file.version, path }, "files");
+    const detail = await this.act<BiboFileDetail>("file.move", { id: file.id, version: file.version, path }, this.get().view === "notes" ? "notes" : "files");
     if (!detail) return false;
     const descendants = Object.values(this.get().fileDetails).filter((cached) => cached.id !== file.id && cached.path.startsWith(`${file.path}/`));
     const refreshed = await Promise.allSettled(descendants.map((cached) => client.space<BiboFileDetail>("file.get", { id: cached.id })));
@@ -366,7 +373,7 @@ class BiboSpaceOwner {
   };
 
   deleteFile = async (file: BiboFile): Promise<boolean> => {
-    const result = await this.act<{ deleted: string[] }>("file.delete", { id: file.id, version: file.version }, "files");
+    const result = await this.act<{ deleted: string[] }>("file.delete", { id: file.id, version: file.version }, this.get().view === "notes" ? "notes" : "files");
     if (!result) return false;
     const removed = new Set(result.deleted);
     for (const id of removed) this.closedFiles.add(id);

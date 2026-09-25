@@ -222,7 +222,7 @@ export class BiboSpaceService {
       ["inbox.create", "inbox", "送达一条第一方提醒", "{title,body,kind?,source?,requestId?}"],
       ["inbox.read", "inbox", "标记已读", "{id,version}"],
       ["inbox.resolve", "inbox", "标记已处理", "{id,version}"],
-      ["file.list", "files", "列出文件树节点，可按路径搜索或读取祖先目录", "{kind?,query?,ancestorOf?,limit?,cursor?}"],
+      ["file.list", "files", "列出文件树节点；笔记可按最近编辑排序", "{kind?,query?,ancestorOf?,sort?:'recent',limit?,cursor?}"],
       ["file.get", "files", "读取文件内容", "{id}"],
       ["file.create", "files", "创建文件夹、笔记、文档或产物", "{path,kind,content?,requestId?}"],
       ["file.update", "files", "保存文本内容", "{id,version,content}"],
@@ -389,7 +389,12 @@ export class BiboSpaceService {
     return { result, changed };
   };
   private fileAction = async (action: string, state: State, input: Record<string, unknown>): Promise<ActionResult> => {
-    if (action === "file.list") return { result: page(state.files.filter((item) => (input.kind === undefined || item.kind === input.kind) && (input.query === undefined || item.path.toLocaleLowerCase().includes(String(input.query).toLocaleLowerCase())) && (input.ancestorOf === undefined || item.kind === "folder" && String(input.ancestorOf).startsWith(`${item.path}/`))).sort((a, b) => a.path.localeCompare(b.path, "zh-CN")), input), changed: false };
+    if (action === "file.list") {
+      if (input.sort !== undefined && input.sort !== "recent") throw new BiboSpaceError("文件排序方式不正确。", 400);
+      const files = state.files.filter((item) => (input.kind === undefined || item.kind === input.kind) && (input.query === undefined || item.path.toLocaleLowerCase().includes(String(input.query).toLocaleLowerCase())) && (input.ancestorOf === undefined || item.kind === "folder" && String(input.ancestorOf).startsWith(`${item.path}/`)));
+      files.sort((a, b) => input.sort === "recent" ? b.updatedAt.localeCompare(a.updatedAt) || a.path.localeCompare(b.path, "zh-CN") : a.path.localeCompare(b.path, "zh-CN"));
+      return { result: page(files, input), changed: false };
+    }
     if (action === "file.get") return { result: await this.fileDetail(find(state.files, input)), changed: false };
     if (action === "file.create") return { result: await this.createFile(state, input), changed: true };
     if (action === "file.update") return { result: await this.updateFile(state, input), changed: true };
