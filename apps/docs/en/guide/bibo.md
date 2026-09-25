@@ -24,6 +24,8 @@ Navigate the file tree with Up/Down, expand or enter children with Right, and co
 
 An expanded empty folder says that it is empty; use that folder's action button to add content.
 
+Failed file or note list reads show an error and retry action instead of an empty collection. Failed search keeps the query and offers a retry in the tree.
+
 Each account has an isolated runtime. You can clear your Bibo conversation and workspace from the web app. Inbox does not imply a connection to an external email account. External email and calendar accounts, web search, background schedules, and proactive notifications are not yet available. The current compressed workspace snapshot limit is 32 MiB; exceeding it reports a save failure.
 
 The initial limit is 12 requests per hour and 4,000 characters per request, with 30 model calls per account per day and 200 model calls across the service per day. Account authentication uses the NextClaw platform; Bibo provides a separate, capped model trial. When the trial quota is exhausted, Bibo reports it before sending; a new conversation does not gain an empty session, and the input remains available to retry later. Background scheduled work and proactive notifications are not available yet. Check important results before relying on them.

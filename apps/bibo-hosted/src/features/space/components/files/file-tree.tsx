@@ -26,7 +26,7 @@ function indexFileTree(files: BiboFile[], expanded: Record<string, boolean>) {
   return { children, visible };
 }
 function FileSearchResults() {
-  const { fileMatches, fileSearchLoading, fileSearchCursor, fileQuery, searchFiles, openFile } = useBiboSpaceStore();
+  const { fileMatches, fileSearchLoading, fileSearchCursor, fileQuery, searchFiles, openFile, fileSearchError } = useBiboSpaceStore();
   return (
     <>
       {fileMatches.map((file) => (
@@ -44,8 +44,12 @@ function FileSearchResults() {
       {fileSearchLoading ? (
         <p className="bibo-tree-empty">正在搜索…</p>
       ) : (
-        fileMatches.length === 0 && <p className="bibo-tree-empty">没有匹配的文件</p>
+        fileMatches.length === 0 && !fileSearchError && <p className="bibo-tree-empty">没有匹配的文件</p>
       )}
+      {fileSearchError && <div className="bibo-tree-search-error" role="alert">
+        <p>{fileSearchError}</p>
+        <Button tone="text" onClick={() => void searchFiles(fileQuery)}>重试搜索</Button>
+      </div>}
       {fileSearchCursor && (
         <Button tone="text" onClick={() => void searchFiles(fileQuery, true)}>
           更多结果
@@ -55,7 +59,7 @@ function FileSearchResults() {
   );
 }
 function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
-  const { files, activeFileId, expandedFolders: expanded, toggleFolder, openFile, fileQuery, cursors } = useBiboSpaceStore();
+  const { files, activeFileId, expandedFolders: expanded, toggleFolder, openFile, fileQuery, cursors, loading, error } = useBiboSpaceStore();
   const treeRef = useRef<HTMLDivElement>(null);
   const [treeFocus, setTreeFocus] = useState<string | null>(null);
   const treeId = useId();
@@ -137,7 +141,7 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
       aria-label={fileQuery ? "文件搜索结果" : "文件目录"}
     >
       {fileQuery ? <FileSearchResults /> : tree("", 0)}
-      {files.length === 0 && <p className="bibo-tree-empty">还没有文件。从新建开始。</p>}
+      {files.length === 0 && !fileQuery && !loading && !error && <p className="bibo-tree-empty">还没有文件。从新建开始。</p>}
     </div>
   );
 }

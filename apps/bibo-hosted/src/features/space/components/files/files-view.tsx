@@ -18,6 +18,8 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
     notes,
     cursors,
     moreLoading,
+    loading,
+    error,
     loadMore,
     treeCollapsed,
     activeFileId,
@@ -87,7 +89,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
                 <small>{day(file.updatedAt)}</small>
               </ListRow>
             ))}
-            {all.length === 0 && (
+            {all.length === 0 && !loading && !error && (
               <EmptyState
                 title="第一条笔记"
                 detail="写下一个想法，它会自动出现在文件里。"

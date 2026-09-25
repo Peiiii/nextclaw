@@ -47,6 +47,7 @@ class BiboSpaceOwner {
   fileMatches: BiboFile[] = [];
   fileSearchCursor: string | null = null;
   fileSearchLoading = false;
+  fileSearchError = "";
   moreLoading: Record<string, boolean> = {};
   cursors: Record<string, string | null> = {};
   selectedTaskId: string | null = null;
@@ -101,13 +102,13 @@ class BiboSpaceOwner {
   searchFiles = async (query: string, more = false): Promise<void> => {
     if (more && (this.get().fileSearchLoading || query !== this.get().fileQuery || !this.get().fileSearchCursor)) return;
     const cursor = more ? this.get().fileSearchCursor : null;
-    this.set({ fileQuery: query, fileSearchLoading: !!query.trim(), ...(more ? {} : { fileMatches: [], fileSearchCursor: null }) });
+    this.set({ fileQuery: query, fileSearchLoading: !!query.trim(), fileSearchError: "", ...(more ? {} : { fileMatches: [], fileSearchCursor: null }) });
     if (!query.trim()) return;
     try {
       const page = await client.space<Page<BiboFile>>("file.list", { query, limit: 50, ...(cursor ? { cursor } : {}) });
       if (this.get().fileQuery !== query) return;
       this.set((state) => ({ fileMatches: more ? [...state.fileMatches, ...page.items] : page.items, fileSearchCursor: page.nextCursor }));
-    } catch (error) { if (this.get().fileQuery === query) this.set({ error: message(error) }); }
+    } catch (error) { if (this.get().fileQuery === query) this.set({ fileSearchError: message(error) }); }
     finally { if (this.get().fileQuery === query) this.set({ fileSearchLoading: false }); }
   };
   private revealFile = (id: string): void => {
