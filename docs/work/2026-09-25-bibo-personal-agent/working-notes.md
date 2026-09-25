@@ -18,7 +18,7 @@
 ### Markdown 阅读专项（BIBO-09，2026-09-25）
 
 - 与项目现有 NextClaw 渲染器及 ChatGPT 的代码块操作对照：Bibo 原有 GFM 基础解析，但聊天独享排版样式，文件/收件箱不一致；代码无语言/复制/高亮，图片只显替代文字，公式及图表未渲染。选择扩充中性 `personal-agent-ui` 共用 Markdown，而非引入 NextClaw 聊天私有上下文，方案补入对齐设计。
-- 已实现共用排版、围栏代码高亮与复制、公式、按需 Mermaid、源码切换、HTTPS 图片失败回退及安全链接策略；原 Markdown 文件仍是唯一正文真源。有效图表和无效回退、复制原始代码含行尾、桌面及 390/320 手机真实笔记预览已验证；截图 `/tmp/bibo-markdown-{1440,390,320}.png` 与 `/tmp/bibo-markdown-final-320.png`，页面无横向溢出。3 项共用渲染器测试、公共包/宿主 tsc、完整客户端 smoke、targeted ESLint 与 diff-only maintainability 通过（0 问题）。维护性检查曾指出根组件目录越界，已按 Markdown 职责拆入子目录后复验。临时验收笔记已删除；线上版本与真实站结果在部署后补。
+- 已实现共用排版、围栏代码高亮与复制、公式、按需 Mermaid、源码切换、HTTPS 图片失败回退及安全链接策略；原 Markdown 文件仍是唯一正文真源。有效图表和无效回退、复制原始代码含行尾、桌面及 390/320 手机真实笔记预览已验证；截图 `/tmp/bibo-markdown-{1440,390,320}.png` 与 `/tmp/bibo-markdown-final-320.png`，页面无横向溢出。3 项共用渲染器测试、公共包/宿主 tsc、完整客户端 smoke、targeted ESLint 与 diff-only maintainability 通过（0 问题）。维护性检查曾指出根组件目录越界，已按 Markdown 职责拆入子目录后复验。提交 `4350ca832` 已推送远程 master，Worker `53b21e1a-4bb9-4d93-87fe-3bcc44404886` 部署。正式站用真实账号在 1440/390 创建临时 Markdown 笔记并验证表格、代码复制、公式、Mermaid、无横向溢出；截图 `/tmp/bibo-live-markdown-{1440,390}.png` 已目视复核，临时笔记已删除。首次尝试父目录不存在返回 400，改用根目录创建后通过；没有错误数据留下。
 
 ### 失效会话来源纠偏（BIBO-10，2026-09-25）
 
