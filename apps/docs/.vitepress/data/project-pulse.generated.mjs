@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-09-24T07:33:53.643Z",
+  "generatedAt": "2026-09-25T07:43:31.957Z",
   "hero": {
-    "currentLoc": 307076,
-    "testLoc": 132086,
-    "trackedFiles": 3261,
-    "recentCommitCount": 613,
+    "currentLoc": 308532,
+    "testLoc": 132386,
+    "trackedFiles": 3283,
+    "recentCommitCount": 627,
     "activeDays30": 30,
-    "recentReleaseCount": 49,
-    "latestReleaseDate": "2026-09-15",
+    "recentReleaseCount": 50,
+    "latestReleaseDate": "2026-09-24",
     "latestNoteDate": "2026-09-16",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 3370868,
+    "benchmarkCodeLines": 3387510,
     "basePercentOfBenchmark": 9.11,
     "lighterByPercent": 90.89
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-05-28",
-        "label": "05-28",
-        "value": 170685
-      },
       {
         "key": "2026-05-29",
         "label": "05-29",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-09-24",
         "label": "09-24",
         "value": 307076
+      },
+      {
+        "key": "2026-09-25",
+        "label": "09-25",
+        "value": 308532
       }
     ],
     "testLocDaily": [
@@ -1302,14 +1302,14 @@ export default {
         "key": "2026-09-24",
         "label": "09-24",
         "value": 132086
+      },
+      {
+        "key": "2026-09-25",
+        "label": "09-25",
+        "value": 132386
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-08-26",
-        "label": "08-26",
-        "value": 23
-      },
       {
         "key": "2026-08-27",
         "label": "08-27",
@@ -1453,7 +1453,12 @@ export default {
       {
         "key": "2026-09-24",
         "label": "09-24",
-        "value": 3
+        "value": 17
+      },
+      {
+        "key": "2026-09-25",
+        "label": "09-25",
+        "value": 23
       }
     ],
     "commitWeekly": [
@@ -1515,7 +1520,7 @@ export default {
       {
         "key": "2026-09-21",
         "label": "09-21",
-        "value": 8
+        "value": 45
       }
     ],
     "releaseMonthly": [
@@ -1577,7 +1582,7 @@ export default {
       {
         "key": "2026-09",
         "label": "09/26",
-        "value": 9
+        "value": 10
       }
     ]
   },
@@ -1585,9 +1590,9 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 75868,
-        "testCodeLines": 42438,
-        "files": 932,
+        "codeLines": 76264,
+        "testCodeLines": 42564,
+        "files": 935,
         "sharePercent": 24.7
       },
       {
@@ -1595,21 +1600,21 @@ export default {
         "codeLines": 48882,
         "testCodeLines": 26098,
         "files": 464,
-        "sharePercent": 15.9
+        "sharePercent": 15.8
       },
       {
         "name": "packages/nextclaw-service",
         "codeLines": 17107,
         "testCodeLines": 9111,
         "files": 175,
-        "sharePercent": 5.6
+        "sharePercent": 5.5
       },
       {
         "name": "packages/nextclaw-core",
         "codeLines": 16746,
         "testCodeLines": 6940,
         "files": 178,
-        "sharePercent": 5.5
+        "sharePercent": 5.4
       },
       {
         "name": "workers/nextclaw-provider-gateway-api",
@@ -1642,11 +1647,20 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 3370868,
+      "benchmarkCodeLines": 3387510,
       "basePercentOfBenchmark": 9.11,
       "lighterByPercent": 90.89
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-09-24",
+        "tagCount": 34,
+        "sampleTags": [
+          "@nextclaw/agent-chat-ui@0.12.2",
+          "@nextclaw/app-runtime@0.16.10",
+          "@nextclaw/channel-extension-dingtalk@0.2.53"
+        ]
+      },
       {
         "date": "2026-09-15",
         "tagCount": 11,
@@ -1690,15 +1704,6 @@ export default {
           "@nextclaw/agent-chat-ui@0.9.0",
           "@nextclaw/app-runtime@0.16.4",
           "@nextclaw/channel-extension-dingtalk@0.2.46"
-        ]
-      },
-      {
-        "date": "2026-09-08",
-        "tagCount": 31,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.8.0",
-          "@nextclaw/channel-extension-dingtalk@0.2.45",
-          "@nextclaw/channel-extension-discord@0.2.45"
         ]
       }
     ]
@@ -3119,7 +3124,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-09-24T07:33:51.145Z",
+    "locGeneratedAt": "2026-09-25T07:43:29.413Z",
     "sourceCount": {
       "notes": 71,
       "scopes": 8

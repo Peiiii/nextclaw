@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-24T07:33:51.145Z",
+  "generatedAt": "2026-09-25T07:43:29.413Z",
   "base": {
     "name": "nextclaw",
     "projectRoot": "/home/runner/work/nextclaw/nextclaw",
@@ -7,6 +7,7 @@
       "profile": "source",
       "title": "Source LOC",
       "includePaths": [
+        "apps/bibo-hosted/src",
         "apps/companion/src",
         "apps/competitive-leaderboard/src",
         "apps/desktop/src",
@@ -20,6 +21,8 @@
         "apps/public-roadmap-feedback-portal/src",
         "bridge/src",
         "packages/aigen/src",
+        "packages/bibo-client/src",
+        "packages/bibo-ui/src",
         "packages/browser-connector/src",
         "packages/extensions/nextclaw-channel-extension-dingtalk/src",
         "packages/extensions/nextclaw-channel-extension-discord/src",
@@ -100,12 +103,12 @@
       ]
     },
     "totals": {
-      "files": 3261,
-      "totalLines": 481045,
-      "blankLines": 40765,
+      "files": 3283,
+      "totalLines": 482951,
+      "blankLines": 40915,
       "commentLines": 1118,
-      "codeLines": 307076,
-      "testCodeLines": 132086
+      "codeLines": 308532,
+      "testCodeLines": 132386
     }
   },
   "benchmark": {
@@ -142,16 +145,16 @@
       ]
     },
     "totals": {
-      "files": 33150,
-      "totalLines": 9454069,
-      "blankLines": 603260,
-      "commentLines": 172552,
-      "codeLines": 3370868,
-      "testCodeLines": 5307389
+      "files": 33425,
+      "totalLines": 9521093,
+      "blankLines": 604573,
+      "commentLines": 173369,
+      "codeLines": 3387510,
+      "testCodeLines": 5355641
     }
   },
   "comparison": {
-    "baseMinusBenchmarkLines": -3063792,
+    "baseMinusBenchmarkLines": -3078978,
     "basePercentOfBenchmark": 9.11,
     "benchmarkMultipleOfBase": 10.98,
     "baseIsLighterByPercent": 90.89
