@@ -5,7 +5,7 @@
 ## 技术栈与 owner
 
 - 用户网页只维护 React + TypeScript 源码，使用 Vite 构建。`dist/` 是产物，禁止手改；不再增加原生 JS 页面控制器。
-- 会话历史、草稿、请求阶段、账号展示状态统一由 Zustand store 拥有。流解析、请求与保存判定归 chat manager；组件不得直接 `fetch`、解析 SSE 或持有第二份对话状态。
+- 会话历史、草稿、请求阶段、账号展示状态统一由 Zustand store 拥有。`@nextclaw/bibo-client` 负责同站点请求、响应类型和 SSE 解析；store 只在服务端提交后更新正式历史，组件不得直接 `fetch`、解析 SSE 或持有第二份对话状态。
 - Bibo 专用视觉组件从 `@nextclaw/bibo-ui` 包根入口导入。组件包只包含 token、无业务状态的 React 组件与样式；不得依赖本 app、Zustand、Cloudflare 或用户凭据。
 - 对话执行与持久化仍归 Worker/Durable Object、容器和 NextClaw Harness 原有 owner；服务端维护 TypeScript 源码，容器构建时编译为 Node 可运行产物。
 - `nextclaw` CLI 只管理本地实例；托管运维不得加入该 CLI。

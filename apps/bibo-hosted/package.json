@@ -20,6 +20,7 @@
     "@nextclaw/harness": "workspace:*"
   },
   "devDependencies": {
+    "@nextclaw/bibo-client": "workspace:*",
     "@nextclaw/bibo-ui": "workspace:*",
     "@cloudflare/containers": "^0.3.7",
     "@cloudflare/workers-types": "^4.20260228.0",
