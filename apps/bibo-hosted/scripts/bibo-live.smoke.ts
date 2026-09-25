@@ -19,21 +19,37 @@ const prompt = `请只用一句简短中文回复“${requestId} 已收到”，
 const abort = new AbortController();
 const timeout = setTimeout(() => abort.abort(), 90_000);
 
-type StreamState = { accepted: boolean; saving: boolean; committed: boolean; deltaCount: number; firstDeltaMs: number };
+type StreamState = { accepted: boolean; saving: boolean; committed: boolean; deltaCount: number; firstDeltaMs: number; lastDeltaMs: number; savingMs: number };
 
-function recordFrame(frame: string, state: StreamState, started: number): void {
+async function readSseFrames(response: Response, onFrame: (frame: string) => void): Promise<void> {
+  assert.ok(response.body, "SSE response has no body");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let pending = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    pending += decoder.decode(value, { stream: !done });
+    let boundary: number;
+    while ((boundary = pending.indexOf("\n\n")) >= 0) {
+      onFrame(pending.slice(0, boundary));
+      pending = pending.slice(boundary + 2);
+    }
+    if (done) break;
+  }
+}
+
+function recordFrame(frame: string, state: StreamState, started: number): StreamState {
   const name = frame.match(/^event: (.+)$/m)?.[1];
   const data = frame.match(/^data: (.+)$/m)?.[1];
-  if (!name || !data) return;
+  if (!name || !data) return state;
   const payload = JSON.parse(data) as { error?: string };
   if (name === "error") throw new Error(payload.error ?? "Chat stream failed");
-  if (name === "accepted") state.accepted = true;
-  if (name === "delta") {
-    state.deltaCount += 1;
-    state.firstDeltaMs ||= Math.round(performance.now() - started);
-  }
-  if (name === "saving") state.saving = true;
-  if (name === "committed") state.committed = true;
+  const elapsed = Math.round(performance.now() - started);
+  if (name === "accepted") return { ...state, accepted: true };
+  if (name === "delta") return { ...state, deltaCount: state.deltaCount + 1, firstDeltaMs: state.firstDeltaMs || elapsed, lastDeltaMs: elapsed };
+  if (name === "saving") return { ...state, saving: true, savingMs: elapsed };
+  if (name === "committed") return { ...state, committed: true };
+  return state;
 }
 
 async function json<T>(path: string): Promise<T> {
@@ -42,7 +58,32 @@ async function json<T>(path: string): Promise<T> {
   return await response.json() as T;
 }
 
-async function streamedRun(): Promise<{ deltaCount: number; firstDeltaMs: number; totalMs: number }> {
+async function modelStreamProbe(): Promise<{ contentChunks: number; firstContentMs: number }> {
+  const started = performance.now();
+  const response = await fetch(`${origin}/api/model/v1/chat/completions`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ model: "deepseek-flash", messages: [{ role: "user", content: "请用两句话介绍 Bibo。" }], stream: true, max_tokens: 128 }),
+    signal: abort.signal,
+  });
+  assert.equal(response.status, 200, `Model proxy returned ${response.status}`);
+  assert.ok(response.headers.get("content-type")?.includes("text/event-stream"), "Model proxy must stream SSE");
+  let reasoningChunks = 0;
+  let contentChunks = 0;
+  let firstContentMs = 0;
+  await readSseFrames(response, (frame) => {
+    const data = frame.match(/^data: (.+)$/m)?.[1];
+    if (!data || data === "[DONE]") return;
+    const delta = (JSON.parse(data) as { choices?: Array<{ delta?: { content?: string | null; reasoning_content?: string | null } }> }).choices?.[0]?.delta;
+    if (delta?.reasoning_content) reasoningChunks += 1;
+    if (delta?.content) { contentChunks += 1; firstContentMs ||= Math.round(performance.now() - started); }
+  });
+  assert.equal(reasoningChunks, 0, "Bibo default model mode generated hidden reasoning before the answer");
+  assert.ok(contentChunks > 1, "Model proxy did not stream multiple visible answer chunks");
+  return { contentChunks, firstContentMs };
+}
+
+async function streamedRun(): Promise<{ deltaCount: number; firstDeltaMs: number; lastDeltaMs: number; savingMs: number; totalMs: number }> {
   const started = performance.now();
   const response = await fetch(`${origin}/api/chat`, {
     method: "POST",
@@ -52,33 +93,20 @@ async function streamedRun(): Promise<{ deltaCount: number; firstDeltaMs: number
   });
   assert.equal(response.status, 200, `Chat returned ${response.status}`);
   assert.ok(response.headers.get("content-type")?.includes("text/event-stream"), "Chat must stream SSE");
-  assert.ok(response.body, "Chat stream is empty");
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let pending = "";
-  const state: StreamState = { accepted: false, saving: false, committed: false, deltaCount: 0, firstDeltaMs: 0 };
-  while (true) {
-    const { done, value } = await reader.read();
-    pending += decoder.decode(value, { stream: !done });
-    let boundary: number;
-    while ((boundary = pending.indexOf("\n\n")) >= 0) {
-      const frame = pending.slice(0, boundary);
-      pending = pending.slice(boundary + 2);
-      recordFrame(frame, state, started);
-    }
-    if (done) break;
-  }
+  let state: StreamState = { accepted: false, saving: false, committed: false, deltaCount: 0, firstDeltaMs: 0, lastDeltaMs: 0, savingMs: 0 };
+  await readSseFrames(response, (frame) => { state = recordFrame(frame, state, started); });
   assert.ok(state.accepted, "Run was not accepted");
   assert.ok(state.deltaCount > 0, "No live output was streamed");
   assert.ok(state.saving, "Snapshot save was not announced");
   assert.ok(state.committed, "Run did not commit to storage");
-  return { deltaCount: state.deltaCount, firstDeltaMs: state.firstDeltaMs, totalMs: Math.round(performance.now() - started) };
+  assert.ok(state.firstDeltaMs < state.savingMs, "First answer chunk arrived only after saving started");
+  return { deltaCount: state.deltaCount, firstDeltaMs: state.firstDeltaMs, lastDeltaMs: state.lastDeltaMs, savingMs: state.savingMs, totalMs: Math.round(performance.now() - started) };
 }
 
 try {
   const account = await json<{ user?: { id: string } }>("/api/auth/me");
   assert.ok(account.user?.id, "Smoke account is not authenticated");
+  const modelStream = await modelStreamProbe();
   const before = await json<{ messages: Array<{ role: string; text: string }> }>("/api/history");
   const stream = await streamedRun();
   const after = await json<{ messages: Array<{ role: string; text: string }> }>("/api/history");
@@ -113,5 +141,5 @@ try {
       await context.close();
     }
   } finally { await browser.close(); }
-  console.log(JSON.stringify({ ok: true, requestId, ...stream, saved: true, desktop: true, mobile: true }));
+  console.log(JSON.stringify({ ok: true, requestId, modelStream, ...stream, saved: true, desktop: true, mobile: true }));
 } finally { clearTimeout(timeout); }

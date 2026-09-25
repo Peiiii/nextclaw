@@ -92,6 +92,7 @@ async function modelRoute(request: Request, env: Env): Promise<Response> {
       model: "deepseek-flash",
       messages: body.messages,
       ...(Array.isArray(body.tools) ? { tools: body.tools, tool_choice: body.tool_choice ?? "auto" } : {}),
+      thinking: { type: "disabled" },
       stream: body.stream === true,
       max_tokens: Math.max(1, Math.min(typeof body.max_tokens === "number" ? body.max_tokens : 2048, 2048)),
     }),

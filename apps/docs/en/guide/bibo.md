@@ -2,7 +2,7 @@
 
 [Bibo](https://app.bibo.bot/) is a separate web service powered by the NextClaw agent runtime. You can register with an email code and start with a concrete task without installing NextClaw.
 
-The hosted app streams text as Bibo generates it. A reply enters your conversation history only after saving completes. You can stop a generation, and an interrupted or unsaved request leaves your original input ready to retry. The composer stays visible while long conversations scroll. Replies render lists, code and safe external links, and you can copy them. Refreshing resumes the last saved conversation.
+The hosted app displays answer text as each increment is generated; it does not replay a completed answer. Bibo uses direct answer generation by default. A reply enters your conversation history only after saving completes. You can stop a generation, and an interrupted or unsaved request leaves your original input ready to retry. The composer stays visible while long conversations scroll. Replies render lists, code and safe external links, and you can copy them. Refreshing resumes the last saved conversation.
 
 Each account has an isolated runtime. You can clear your Bibo conversation and workspace from the web app. Hosted Bibo currently offers web text chat and conversation continuity; web search, email connections, background schedules and proactive notifications are not yet available.
 
