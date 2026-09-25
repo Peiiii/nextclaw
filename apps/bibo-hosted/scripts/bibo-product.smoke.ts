@@ -359,7 +359,7 @@ async function checkMobileDrawerTooltip(page: Page, width: number): Promise<void
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("aria-label")), "关闭导航");
   await page.keyboard.press("Escape");
   await drawer.waitFor({ state: "hidden" });
-  assert.equal(await trigger.evaluate((element) => element === document.activeElement), true);
+  await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "打开菜单", undefined, { timeout: 1500 });
   await page.waitForTimeout(400);
   assert.equal(await page.getByRole("tooltip").count(), 0, "restoring focus must not display a tooltip");
 }

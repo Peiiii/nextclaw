@@ -192,15 +192,16 @@
 .calendar-month-grid { flex: 1; grid-auto-rows: minmax(84px, 1fr); }
 .calendar-weekdays { background: var(--ui-canvas); border-bottom: 1px solid var(--bibo-hairline); }
 .calendar-weekdays span { padding: 10px 12px; font-size: 12px; color: var(--bibo-subtle); }
-.calendar-date { padding: 6px; border-right: 1px solid var(--bibo-hairline); border-bottom: 1px solid var(--bibo-hairline); min-width: 0; }
+.calendar-date { position: relative; padding: 6px; border-right: 1px solid var(--bibo-hairline); border-bottom: 1px solid var(--bibo-hairline); min-width: 0; }
 .calendar-date:nth-child(7n) { border-right: 0; }
 .calendar-date:nth-last-child(-n+7) { border-bottom: 0; }
 .calendar-date.is-outside { background: var(--ui-canvas); color: var(--bibo-subtle); }
 .calendar-date.is-selected { background: var(--ui-calendar-selection); }
-.calendar-date-select { display: flex; width: 100%; border: 0; background: transparent; color: inherit; padding: 0; cursor: pointer; }
-.calendar-date-select span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-size: 12px; }
+.calendar-date-select { position: absolute; inset: 0; width: 100%; border: 0; background: transparent; color: inherit; padding: 0; cursor: pointer; }
+.calendar-date-select:focus-visible { outline: 2px solid var(--ui-primary); outline-offset: -2px; }
+.calendar-date-select span { position: absolute; top: 6px; left: 6px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-size: 12px; }
 .calendar-date.is-today .calendar-date-select span { background: var(--ui-accent, #53694f); color: white; }
-.calendar-date-events { display: grid; gap: 3px; margin-top: 4px; }
+.calendar-date-events { position: relative; z-index: 1; display: grid; gap: 3px; margin-top: 32px; }
 .calendar-date-events button { display: flex; gap: 5px; width: 100%; min-width: 0; padding: 4px 5px; border: 0; border-radius: 4px; background: var(--ui-hover, #e8ece2); color: inherit; text-align: left; font-size: 11px; cursor: pointer; }
 .calendar-date-events button:hover, .calendar-time-event:hover { background: var(--ui-selection-hover); }
 .calendar-date-select:hover { background: var(--ui-hover); }
@@ -210,7 +211,7 @@
 @media (max-width: 680px) {
   .calendar-weekdays span { padding: 9px 0; text-align: center; font-size: 11px; }
   .calendar-date { min-height: 94px; padding: 3px; }
-  .calendar-date-select { justify-content: center; }
+  .calendar-date-select span { top: 3px; left: 50%; transform: translateX(-50%); }
   .calendar-date-events button { padding: 3px 2px; font-size: 10px; }
   .calendar-date-events time { display: none; }
 }
