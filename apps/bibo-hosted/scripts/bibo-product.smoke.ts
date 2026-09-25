@@ -362,6 +362,8 @@ async function checkMobileDrawerTooltip(page: Page, width: number): Promise<void
   await page.screenshot({ path: `/tmp/bibo-mobile-drawer-${width}.png` });
   await page.keyboard.press("Tab");
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("aria-label")), "关闭导航");
+  await page.getByRole("button", { name: "新建会话" }).focus();
+  assert.equal(await page.getByRole("tooltip").count(), 0, "a focused drawer action must not show a floating touch tooltip");
   await page.keyboard.press("Escape");
   await drawer.waitFor({ state: "hidden" });
   await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "打开菜单", undefined, { timeout: 1500 });

@@ -1,4 +1,4 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { forwardRef, useSyncExternalStore, type ButtonHTMLAttributes, type ReactNode } from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { Button } from "./button";
 
@@ -11,8 +11,17 @@ type IconButtonProps = Omit<
   tooltip?: boolean;
 };
 
+const hoverQuery = "(hover: hover) and (pointer: fine)";
+const canHover = () => window.matchMedia(hoverQuery).matches;
+const subscribeToHover = (notify: () => void) => {
+  const media = window.matchMedia(hoverQuery);
+  media.addEventListener("change", notify);
+  return () => media.removeEventListener("change", notify);
+};
+
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   ({ label, icon, tooltip = true, className = "", ...props }, ref) => {
+    const hover = useSyncExternalStore(subscribeToHover, canHover, () => false);
     const trigger = <Button
       {...props}
       ref={ref}
@@ -24,7 +33,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     </Button>;
     if (!tooltip) return trigger;
     return <Tooltip.Provider delayDuration={350}>
-      <Tooltip.Root>
+      <Tooltip.Root open={hover ? undefined : false}>
         <Tooltip.Trigger asChild>
           {trigger}
         </Tooltip.Trigger>
