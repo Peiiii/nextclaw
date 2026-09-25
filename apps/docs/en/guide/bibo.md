@@ -1,5 +1,7 @@
 # Bibo hosted companion
 
+The right workspace remembers its open state and selected file, and reloads saved content after refresh. Closing and reopening preserves current edits; save before refreshing. Failed reads show an error and a retry action. A late response cannot reopen a workspace you have closed.
+
 Long conversation titles are shortened in the toolbar so New conversation and Workspace remain accessible. Open Rename from the conversation menu to view the full title. Long task, inbox, and note names use up to two lines in lists; open their details or editor to read the full content.
 
 Closing a modified file offers Save and close, Discard changes, or Cancel. Failed saves keep the tab and draft for retry; tabs cannot close while saving. Deleting tasks, events, files, or projects uses a confirmation dialog that stays open on failure. Deleting a project retains its tasks.

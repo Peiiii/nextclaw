@@ -117,9 +117,13 @@ class BiboSpaceOwner {
     this.set({ expandedFolders, fileBrowserVisible: false, fileQuery: "", fileMatches: [], fileSearchLoading: false });
     this.saveLayout();
   };
-  closeWorkspace = (): void => this.set({ workspaceOpen: false });
-  showWorkspace = (): void => { this.set({ workspaceOpen: true }); void this.load("files"); };
-  openWorkspace = async (id: string): Promise<void> => { await this.openFile(id); this.set({ workspaceOpen: true, workspaceFileId: id }); };
+  closeWorkspace = (): void => { this.set({ workspaceOpen: false }); this.saveLayout(); };
+  showWorkspace = (): void => { this.set({ workspaceOpen: true }); this.saveLayout(); void this.load("files"); };
+  openWorkspace = async (id: string): Promise<void> => {
+    this.set({ workspaceOpen: true, workspaceFileId: id, error: "" });
+    this.saveLayout();
+    await this.openFile(id);
+  };
   selectTask = (id: string | null): void => {
     const known = this.get().tasks.find((task) => task.id === id) ?? null;
     this.set({ selectedTaskId: id, taskSelection: known });
@@ -170,7 +174,7 @@ class BiboSpaceOwner {
   };
 
   load = async (view: BiboView = this.get().view): Promise<boolean> => {
-    if (view === "chat") return true;
+    if (view === "chat") return this.get().workspaceOpen ? this.load("files") : true;
     this.set({ loading: true, error: "" });
     try {
       if (view === "overview") this.set({ overview: await client.space<BiboOverview>("overview.get") });
@@ -192,6 +196,8 @@ class BiboSpaceOwner {
         this.set({ files: files.items, cursors: { ...this.get().cursors, files: files.nextCursor } });
         const active = this.get().activeFileId;
         if (active && !this.get().fileDetails[active]) await this.openFile(active);
+        const workspace = this.get().workspaceFileId;
+        if (this.get().workspaceOpen && workspace && workspace !== active && !this.get().fileDetails[workspace]) await this.openFile(workspace);
       }
       return true;
     } catch (error) { this.set({ error: message(error) }); return false; }
@@ -277,7 +283,7 @@ class BiboSpaceOwner {
       this.set((state) => ({ fileDetails: { ...state.fileDetails, [id]: detail }, fileDrafts: { ...state.fileDrafts, [id]: state.fileDrafts[id] ?? { content: detail.content ?? "", version: detail.version, dirty: false, saving: false } }, tabs: state.tabs.includes(id) ? state.tabs : [...state.tabs, id], ...(request === this.fileOpenRequest ? { activeFileId: id, error: "" } : {}) }));
       if (request === this.fileOpenRequest) this.revealFile(id);
     } catch (error) {
-      if (error instanceof BiboClientError && error.status === 404 && this.get().tabs.includes(id) && !this.get().fileDrafts[id]) this.closeFile(id);
+      if (error instanceof BiboClientError && error.status === 404 && this.get().workspaceFileId !== id && this.get().tabs.includes(id) && !this.get().fileDrafts[id]) this.closeFile(id);
       if (request === this.fileOpenRequest) this.set({ error: message(error) });
     }
   };

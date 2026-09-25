@@ -29,7 +29,7 @@ function Status() {
   );
 }
 export function BiboWorkspace() {
-  const { workspaceOpen, workspaceFileId, closeWorkspace, files, fileDetails, openWorkspace } = useBiboSpaceStore();
+  const { workspaceOpen, workspaceFileId, closeWorkspace, files, fileDetails, openWorkspace, error } = useBiboSpaceStore();
   if (!workspaceOpen) return null;
   const choices = files.filter((file) => file.kind !== "folder");
   const current = workspaceFileId ? fileDetails[workspaceFileId] : null;
@@ -45,6 +45,7 @@ export function BiboWorkspace() {
           <option value="" disabled>
             选择文件
           </option>
+          {workspaceFileId && !choices.some((file) => file.id === workspaceFileId) && <option value={workspaceFileId}>所选产物</option>}
           {choices.map((file) => (
             <option key={file.id} value={file.id}>
               {file.path}
@@ -54,7 +55,10 @@ export function BiboWorkspace() {
         <IconButton label="关闭工作区" icon={<X />} onClick={closeWorkspace} />
       </div>
       <div className="bibo-workspace-content">
-        {workspaceFileId ? (
+        <Status />
+        {workspaceFileId && !current && error ? (
+          <div><EmptyState title="暂时无法打开文件" detail="可以重试，或选择另一个文件。" /><Button onClick={() => void openWorkspace(workspaceFileId)}>重试打开</Button></div>
+        ) : workspaceFileId ? (
           <FileEditor id={workspaceFileId} compact />
         ) : (
           <EmptyState title="打开一个产物" detail="文件、笔记和 Bibo 的草稿都能在这里并排查看。" />

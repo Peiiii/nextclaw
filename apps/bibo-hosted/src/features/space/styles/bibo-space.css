@@ -62,7 +62,7 @@
 .bibo-workspace { width: min(42%, 620px); min-width: 340px; min-height: 0; display: flex; flex-direction: column; background: #f5f6f1; border-left: 1px solid var(--bibo-hairline); }
 .bibo-workspace-head { height: 48px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 17px; border-bottom: 1px solid var(--bibo-hairline); font-size: 12px; }
 .bibo-workspace-head .ui-control { flex: 1; min-width: 0; max-width: calc(100% - 40px); padding: 5px 8px; border-color: transparent; background-color: transparent; font-size: 12px; }
-.bibo-workspace-content { flex: 1; min-height: 0; overflow: hidden; }
+.bibo-workspace-content { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 
 .bibo-space-scroll { flex: 1; min-height: 0; overflow-y: auto; position: relative; }
 .bibo-space-scroll.is-workspace { display: flex; flex-direction: column; overflow: hidden; }
@@ -283,7 +283,7 @@
 .bibo-file-editor textarea:focus-visible { outline: 0; }
 .bibo-file-foot { border-top: 1px solid var(--bibo-hairline); padding: 4px 25px; display: flex; gap: 15px; }
 .bibo-file-editor.is-compact .file-breadcrumb { display: none; }
-.bibo-workspace-content > .bibo-file-editor { height: 100%; }
+.bibo-workspace-content > .bibo-file-editor { flex: 1; min-height: 0; height: auto; }
 
 @media (max-width: 1100px) {
   .inbox-layout { display: block; }

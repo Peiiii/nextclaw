@@ -117,4 +117,17 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
     assert.equal(useBiboSpaceStore.getState().fileDrafts.fast, undefined);
     assert.equal(useBiboSpaceStore.getState().fileDetails.fast, undefined);
   });
+  await t.test("workspace selection and closing survive late file responses", async () => {
+    const first = store.openWorkspace("workspace-first");
+    const firstResponse = responses.at(-1)!;
+    const second = store.openWorkspace("workspace-second");
+    const secondResponse = responses.at(-1)!;
+    secondResponse(Response.json({ result: { id: "workspace-second", path: "second.md", kind: "artifact", version: 1, content: "second" } }));
+    await second;
+    store.closeWorkspace();
+    firstResponse(Response.json({ result: { id: "workspace-first", path: "first.md", kind: "artifact", version: 1, content: "first" } }));
+    await first;
+    assert.equal(useBiboSpaceStore.getState().workspaceOpen, false, "late response cannot reopen a closed workspace");
+    assert.equal(useBiboSpaceStore.getState().workspaceFileId, "workspace-second", "late response cannot replace the last selection");
+  });
 });

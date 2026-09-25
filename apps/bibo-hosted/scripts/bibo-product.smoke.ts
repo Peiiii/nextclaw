@@ -225,6 +225,43 @@ async function checkFileNavigation(page: Page, width: number): Promise<void> {
   });
 }
 
+async function checkWorkspaceRecovery(page: Page): Promise<void> {
+  await mockApi(page);
+  let failRead = false;
+  await page.route("**/api/space", async (route) => {
+    if (failRead && route.request().postDataJSON().action === "file.get") {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "文件读取暂时失败" }) });
+    } else await route.fallback();
+  });
+  await page.goto(`${base}/?view=chat&session=session-a`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "打开右侧工作区" }).click();
+  await page.getByRole("combobox", { name: "工作区文件" }).selectOption("file-a");
+  const editor = page.getByRole("textbox", { name: "编辑 想法.md" });
+  await editor.fill("# 工作区保留的修改");
+  await page.getByRole("button", { name: "关闭工作区" }).click();
+  await page.getByRole("button", { name: "打开右侧工作区" }).click();
+  assert.equal(await editor.inputValue(), "# 工作区保留的修改");
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.getByTitle("已保存 · v2").waitFor();
+  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await editor.inputValue(), "# 工作区保留的修改");
+  await page.getByRole("button", { name: "关闭工作区" }).click();
+  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await page.getByRole("complementary", { name: "右侧工作区" }).count(), 0);
+  await page.getByRole("button", { name: "打开右侧工作区" }).click();
+  await editor.waitFor();
+  failRead = true;
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByText("文件读取暂时失败", { exact: true }).waitFor();
+  await page.getByRole("heading", { name: "暂时无法打开文件" }).waitFor();
+  failRead = false;
+  await page.getByRole("button", { name: "重试打开", exact: true }).click();
+  await editor.waitFor();
+  assert.equal(await editor.inputValue(), "# 工作区保留的修改");
+  await checkContentBounds(page);
+  await page.screenshot({ path: `/tmp/bibo-workspace-${page.viewportSize()!.width}.png` });
+}
+
 async function checkLongConversation(page: Page, width: number): Promise<void> {
   const title = page.locator(".workspace-title");
   assert.equal(await title.getAttribute("title"), await title.textContent(), "full title remains available");
@@ -387,8 +424,11 @@ try {
     }
     for (const width of [1440, 390]) {
       const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width < 760 });
-      await checkFileNavigation(page, width);
+      await checkWorkspaceRecovery(page);
       await page.close();
+      const filesPage = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width < 760 });
+      await checkFileNavigation(filesPage, width);
+      await filesPage.close();
     }
   } finally { await browser.close(); }
 } finally { server.kill("SIGTERM"); await once(server, "exit"); }
