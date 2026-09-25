@@ -1,71 +1,12 @@
 import { Container, getContainer } from "@cloudflare/containers";
-import { DurableObject } from "cloudflare:workers";
 import { readRunStream, streamEvent, type RunResult } from "./bibo-run-stream.utils";
 import { authRoute, cookieToken, currentUser, json, publicError } from "./bibo-auth.utils";
+import { checkChatAvailability, modelError, modelRoute } from "./bibo-model-gateway.service";
+export { BiboModelBudget } from "./bibo-model-gateway.service";
 
 const MAX_SNAPSHOT_BYTES = 32 * 1024 * 1024;
-const MAX_MODEL_REQUEST_BYTES = 128 * 1024;
 type Message = { role: "user" | "assistant"; text: string; at: string };
 type Session = { id: string; title: string; createdAt: string; updatedAt: string; messages: Message[] };
-
-function modelError(message: string, status: number): Response {
-  return json({ error: { message, type: "bibo_limit_error" } }, status);
-}
-
-export class BiboModelBudget extends DurableObject<Env> {
-  override async fetch(request: Request): Promise<Response> {
-    if (request.method !== "POST") return modelError("Not found", 404);
-    const { userId } = await request.json() as { userId?: unknown };
-    if (typeof userId !== "string" || !userId) return modelError("Invalid user", 400);
-    const day = new Date().toISOString().slice(0, 10);
-    const reserved = await this.ctx.storage.transaction(async (storage) => {
-      const saved = await storage.get<{ day: string; total: number; users: Record<string, number> }>("budget");
-      const budget = saved?.day === day ? saved : { day, total: 0, users: {} };
-      if (budget.total >= 200 || (budget.users[userId] ?? 0) >= 30) return false;
-      budget.total += 1;
-      budget.users[userId] = (budget.users[userId] ?? 0) + 1;
-      await storage.put("budget", budget);
-      return true;
-    });
-    return reserved ? json({ ok: true }) : modelError("今日试用额度已用完，请明天再试。", 429);
-  }
-}
-
-async function modelRoute(request: Request, env: Env): Promise<Response> {
-  if (request.method !== "POST") return modelError("Not found", 404);
-  const bearer = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null;
-  const user = await currentUser(bearer);
-  if (!user) return modelError("请先登录。", 401);
-  const declaredLength = Number(request.headers.get("content-length") ?? 0);
-  if (declaredLength > MAX_MODEL_REQUEST_BYTES) return modelError("模型输入过长。", 413);
-  const raw = await request.text();
-  if (new TextEncoder().encode(raw).byteLength > MAX_MODEL_REQUEST_BYTES) return modelError("模型输入过长。", 413);
-  let body: Record<string, unknown>;
-  try { body = JSON.parse(raw) as Record<string, unknown>; }
-  catch { return modelError("模型请求格式不正确。", 400); }
-  if (!body || typeof body !== "object" || !Array.isArray(body.messages) || body.messages.length === 0) return modelError("缺少对话内容。", 400);
-  const budget = env.BIBO_MODEL_BUDGET.getByName("global");
-  const reservation = await budget.fetch("https://bibo.internal/reserve", {
-    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId: user.id }),
-  });
-  if (!reservation.ok) return reservation;
-  const upstream = await fetch("https://api.deepseek.com/chat/completions", {
-    method: "POST",
-    headers: { authorization: `Bearer ${env.BIBO_DEEPSEEK_API_KEY}`, "content-type": "application/json" },
-    body: JSON.stringify({
-      model: "deepseek-flash",
-      messages: body.messages,
-      ...(Array.isArray(body.tools) ? { tools: body.tools, tool_choice: body.tool_choice ?? "auto" } : {}),
-      thinking: { type: "disabled" },
-      stream: body.stream === true,
-      max_tokens: Math.max(1, Math.min(typeof body.max_tokens === "number" ? body.max_tokens : 2048, 2048)),
-    }),
-  });
-  return new Response(upstream.body, {
-    status: upstream.status,
-    headers: { "content-type": upstream.headers.get("content-type") ?? "application/json", "cache-control": "no-store" },
-  });
-}
 
 export class BiboUserContainer extends Container<Env> {
   defaultPort = 8080;
@@ -348,6 +289,7 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
     method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
   });
   if (path === "/api/history" && request.method === "GET") return await container.fetch(`https://bibo.internal/history${url.search}`);
+  if (path === "/api/chat/availability" && request.method === "GET") return await checkChatAvailability(env, user.id) ?? json({ ok: true });
   if (path === "/api/space" && request.method === "POST") return await container.fetch("https://bibo.internal/space", {
     method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
   });
@@ -357,6 +299,10 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
   });
   if (path === "/api/chat" && request.method === "POST") {
     const body = await request.json() as { message?: unknown; sessionId?: unknown };
+    if (typeof body.message === "string" && body.message.trim()) {
+      const unavailable = await checkChatAvailability(env, user.id);
+      if (unavailable) return unavailable;
+    }
     return await container.fetch("https://bibo.internal/run", {
       method: "POST",
       headers: { "content-type": "application/json", ...(request.headers.get("accept")?.includes("text/event-stream") ? { accept: "text/event-stream" } : {}) },

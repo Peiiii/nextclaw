@@ -8,7 +8,7 @@
     "build:client": "vite build",
     "build:runner": "esbuild src/app/bibo-runner.controller.ts --bundle --packages=external --platform=node --format=esm --target=node22 --outfile=dist/container/bibo-runner.controller.mjs",
     "build": "pnpm build:client && pnpm build:runner",
-    "test": "pnpm build:runner && tsx --test container/bibo-snapshot.test.ts src/app/bibo-run-stream.utils.test.ts src/features/bibo-domain/services/bibo-space.service.test.ts src/features/space/utils/calendar.utils.test.ts src/features/space/stores/bibo-space.store.test.ts",
+    "test": "pnpm build:runner && tsx --test container/bibo-snapshot.test.ts src/app/bibo-hosted.app.test.ts src/app/bibo-run-stream.utils.test.ts src/features/bibo-domain/services/bibo-space.service.test.ts src/features/space/utils/calendar.utils.test.ts src/features/space/stores/bibo-space.store.test.ts",
     "smoke:client": "pnpm build:client && tsx scripts/bibo-product.smoke.ts",
     "smoke:live": "tsx scripts/bibo-live.smoke.ts",
     "deploy": "pnpm build && pnpm dlx wrangler@4.138.0 deploy",

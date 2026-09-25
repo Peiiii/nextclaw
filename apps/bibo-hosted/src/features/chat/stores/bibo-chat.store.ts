@@ -186,6 +186,7 @@ class BiboChatOwner {
     let sessionId = this.get().activeSessionId;
     if (!sessionId) {
       try {
+        await biboClient.chatAvailability();
         const session = await biboClient.createSession();
         sessionId = session.id;
         this.set((state) => ({ sessions: [session, ...state.sessions], activeSessionId: session.id, drafts: { ...state.drafts, new: "" } }));

@@ -110,7 +110,7 @@ async function mockApi(page: Page, longTitles = false, fileNavigation = false): 
       ].map(([name, value]) => `event: ${name}\ndata: ${JSON.stringify(value)}\n\n`).join("");
       return route.fulfill({ status: 200, contentType: "text/event-stream", body: frames });
     }
-    return reply({ error: `Unmocked path: ${path}` }, 404);
+    return path === "/api/chat/availability" ? reply({ ok: true }) : reply({ error: `Unmocked path: ${path}` }, 404);
   });
 }
 
@@ -146,6 +146,27 @@ async function checkNewConversation(page: Page): Promise<void> {
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "账号与帮助", undefined, { timeout: 1000 });
   assert.equal(await page.getByRole("button", { name: "账号与帮助" }).evaluate((element) => element === document.activeElement), true);
+}
+
+async function checkExhaustedNewConversation(page: Page): Promise<void> {
+  await page.route("**/api/chat/availability", (route) => route.fulfill({
+    status: 429, contentType: "application/json", body: JSON.stringify({ error: "今日试用额度已用完，请明天再试。" }),
+  }));
+  let creates = 0;
+  const onRequest = (request: { url(): string; method(): string }) => {
+    if (new URL(request.url()).pathname === "/api/sessions" && request.method() === "POST") creates += 1;
+  };
+  page.on("request", onRequest);
+  await page.getByRole("button", { name: "新建会话" }).click();
+  const before = await page.locator(".bibo-session-item").count();
+  await page.getByRole("textbox", { name: /告诉 Bibo/ }).fill("请记录我的想法");
+  await page.getByRole("button", { name: "发送消息", exact: true }).click();
+  await page.getByText(/今日试用额度已用完/).waitFor();
+  assert.equal(await page.getByRole("textbox", { name: /告诉 Bibo/ }).inputValue(), "请记录我的想法");
+  assert.equal(creates, 0, "exhausted model budget must not create a blank session");
+  assert.equal(await page.locator(".bibo-session-item").count(), before);
+  page.off("request", onRequest);
+  await page.unroute("**/api/chat/availability");
 }
 
 async function checkContentBounds(page: Page): Promise<void> {
@@ -444,6 +465,7 @@ try {
         await page.getByRole("button", { name: /设计评审/ }).first().click();
         await page.getByRole("textbox", { name: "标题" }).waitFor();
         await checkNewConversation(page);
+        await checkExhaustedNewConversation(page);
       }
       assert.deepEqual(errors, [], "browser should not have runtime errors");
       const layout = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: innerWidth }));

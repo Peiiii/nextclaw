@@ -53,6 +53,11 @@ export class BiboClient {
     return readSession(isRecord(value) ? value.session : null);
   };
 
+  chatAvailability = async (): Promise<void> => {
+    const value = await this.request("chat/availability");
+    if (!isRecord(value) || value.ok !== true) throw new BiboClientError("对话服务暂时无法确认可用额度。");
+  };
+
   renameSession = async (id: string, title: string): Promise<BiboSession> => {
     const value = await this.request("sessions/rename", { id, title });
     return readSession(isRecord(value) ? value.session : null);
