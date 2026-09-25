@@ -413,7 +413,7 @@ try {
       }
       if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
       await page.getByRole("navigation", { name: "工作空间" }).getByRole("link", { name: /日程/ }).click();
-      await page.getByRole("heading", { name: "日程" }).waitFor();
+      await page.getByRole("heading", { name: "日程", exact: true }).waitFor();
       const calendarAction = page.getByRole("button", { name: "＋ 新日程" });
       const calendarStyle = await calendarAction.evaluate((element) => {
         const style = getComputedStyle(element);

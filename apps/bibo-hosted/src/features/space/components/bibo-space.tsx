@@ -75,7 +75,7 @@ export function BiboSpaceView({
   view: BiboView;
   onOpenSession: (id: string) => Promise<void>;
 }) {
-  const { loading, error } = useBiboSpaceStore();
+  const { error, readStatus } = useBiboSpaceStore();
   if (view === "chat") return null;
   const content = {
     overview: <Overview />,
@@ -86,17 +86,28 @@ export function BiboSpaceView({
     files: <Files notesOnly={false} />,
   }[view];
   if (!content) return null;
+  // Files and notes keep their own list errors visible beside any open, unsaved editor.
+  const status = view === "files" || view === "notes" ? "ready" : readStatus[view] ?? "loading";
+  const readState = status === "ready" || view === "calendar" ? content : (
+    <div className="bibo-read-state" role={status === "error" ? "alert" : "status"}>
+      <EmptyState
+        title={status === "error" ? "暂时无法读取这个页面" : "正在读取你的内容"}
+        detail={status === "error" ? error || "请检查连接后重试。" : "内容准备好后会显示在这里。"}
+      />
+      {status === "error" && <Button tone="secondary" onClick={() => void useBiboSpaceStore.getState().load(view)}>重试读取</Button>}
+    </div>
+  );
   return (
     <div className={`bibo-space-scroll${view !== "overview" ? " is-workspace" : ""}`}>
-      <div className="bibo-space-feedback">
+      {status === "ready" && <div className="bibo-space-feedback">
         <Status />
-        {error && !loading && (
+        {error && (
           <Button tone="text" onClick={() => void useBiboSpaceStore.getState().load(view)}>
             重试读取
           </Button>
         )}
-      </div>
-      {content}
+      </div>}
+      {readState}
     </div>
   );
 }

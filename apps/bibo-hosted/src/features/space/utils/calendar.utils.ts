@@ -7,6 +7,15 @@ export function calendarMonthDates(anchor: Date): Date[] {
   return Array.from({ length: Math.ceil((offset + days) / 7) * 7 }, (_, index) => new Date(first.getFullYear(), first.getMonth(), 1 - offset + index));
 }
 
+export function calendarMonthRange(anchor: Date): { from: string; to: string } {
+  const dates = calendarMonthDates(anchor);
+  const last = dates.at(-1)!;
+  return {
+    from: dates[0]!.toISOString(),
+    to: new Date(new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1).getTime() - 1).toISOString(),
+  };
+}
+
 export function shiftCalendarDate(anchor: Date, mode: CalendarMode, step: number): Date {
   if (mode === "month") {
     const target = new Date(anchor.getFullYear(), anchor.getMonth() + step, 1);

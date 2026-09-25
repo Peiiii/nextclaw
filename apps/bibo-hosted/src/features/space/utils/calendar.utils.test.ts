@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { calendarEventLayout, calendarMonthDates, eventsOnDate, shiftCalendarDate } from "./calendar.utils";
+import { calendarEventLayout, calendarMonthDates, calendarMonthRange, eventsOnDate, shiftCalendarDate } from "./calendar.utils";
 
 test("month navigation clamps the day through leap February and year boundaries", () => {
   const leap = shiftCalendarDate(new Date(2024, 0, 31), "month", 1);
@@ -20,6 +20,12 @@ test("month grid covers every date and complete Monday-to-Sunday weeks", () => {
     assert.equal(dates.length % 7, 0);
     assert.equal(dates.filter((date) => date.getMonth() === month).length, new Date(2026, month + 1, 0).getDate());
   }
+});
+
+test("month request range includes complete visible weeks without the next midnight", () => {
+  const range = calendarMonthRange(new Date(2026, 8, 25));
+  assert.equal(range.from, new Date(2026, 7, 31).toISOString());
+  assert.equal(range.to, new Date(2026, 9, 4, 23, 59, 59, 999).toISOString());
 });
 
 test("cross-day events appear on every occupied date but exclude their midnight end", () => {

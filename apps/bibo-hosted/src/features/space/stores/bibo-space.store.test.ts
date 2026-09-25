@@ -162,4 +162,21 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
     await store.openFile(file.id, { ...file, content: "newer", version: 4 });
     assert.equal(useBiboSpaceStore.getState().fileDrafts[file.id]?.content, "local change", "verified read keeps a dirty draft");
   });
+  await t.test("read failure never becomes an empty page and an older failure cannot replace recovery", async () => {
+    const failed = store.load("inbox");
+    assert.equal(useBiboSpaceStore.getState().readStatus.inbox, "loading");
+    responses.at(-1)!(Response.json({ error: "temporarily unavailable" }, { status: 503 }));
+    assert.equal(await failed, false);
+    assert.equal(useBiboSpaceStore.getState().readStatus.inbox, "error");
+
+    const stale = store.load("inbox");
+    const staleResponse = responses.at(-1)!;
+    const retry = store.load("inbox");
+    responses.at(-1)!(Response.json({ result: { items: [], nextCursor: null } }));
+    assert.equal(await retry, true);
+    staleResponse(Response.json({ error: "old failure" }, { status: 503 }));
+    await stale;
+    assert.equal(useBiboSpaceStore.getState().readStatus.inbox, "ready");
+    assert.equal(useBiboSpaceStore.getState().error, "");
+  });
 });

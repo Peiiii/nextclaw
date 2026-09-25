@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { BiboEvent } from "@nextclaw/bibo-client";
-import { Button, IconButton, ListRow, SegmentedControl } from "@nextclaw/personal-agent-ui";
+import { Button, EmptyState, IconButton, ListRow, SegmentedControl } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import {
   calendarEventLayout,
@@ -251,6 +251,9 @@ export function CalendarView() {
     selectEvent,
     calendarDate: anchor,
     setCalendarDate: setAnchor,
+    readStatus,
+    error,
+    load,
   } = useBiboSpaceStore();
   const [mode, setMode] = useState<CalendarMode>("month");
   const [creating, setCreating] = useState(false);
@@ -283,6 +286,7 @@ export function CalendarView() {
     setAnchor(shiftCalendarDate(anchor, mode, step));
     closeDetails();
   };
+  const status = readStatus.calendar ?? "loading";
   return (
     <div className="bibo-page workspace-page calendar-page">
       <div className="bibo-filterbar workspace-toolbar bibo-calendar-controls">
@@ -318,7 +322,10 @@ export function CalendarView() {
           ＋ 新日程
         </Button>
       </div>
-      <div className={`calendar-stage${detailsOpen || creating || selected ? " is-detail-open" : ""}`}>
+      {status !== "ready" ? <div className="bibo-read-state" role={status === "error" ? "alert" : "status"}>
+        <EmptyState title={status === "error" ? "暂时无法读取日程" : "正在读取日程"} detail={status === "error" ? error || "请检查连接后重试。" : "安排准备好后会显示在这里。"} />
+        {status === "error" && <Button tone="secondary" onClick={() => void load("calendar")}>重试读取</Button>}
+      </div> : <div className={`calendar-stage${detailsOpen || creating || selected ? " is-detail-open" : ""}`}>
         <div className="calendar-surface">
           {mode === "month" ? (
             <CalendarMonthGrid
@@ -362,7 +369,7 @@ export function CalendarView() {
             />
           )}
         </aside>
-      </div>
+      </div>}
     </div>
   );
 }

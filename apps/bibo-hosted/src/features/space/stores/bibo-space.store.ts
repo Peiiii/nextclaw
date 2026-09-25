@@ -1,6 +1,6 @@
 import { create, type StoreApi } from "zustand";
 import { BiboClient, BiboClientError, type BiboEvent, type BiboFile, type BiboFileDetail, type BiboInboxItem, type BiboOverview, type BiboProject, type BiboTask } from "@nextclaw/bibo-client";
-import { calendarMonthDates } from "@/features/space/utils/calendar.utils";
+import { calendarMonthRange } from "@/features/space/utils/calendar.utils";
 import { readWorkspaceLayout, writeWorkspaceLayout } from "@/features/space/utils/workspace-layout.utils";
 
 export type BiboView = "overview" | "chat" | "inbox" | "calendar" | "tasks" | "notes" | "files";
@@ -19,6 +19,7 @@ class BiboSpaceOwner {
   private calendarRevision = 0;
   private readonly loadedCalendarMonths = new Set<string>();
   private readonly calendarRequests = new Map<string, Promise<void>>();
+  private readonly viewLoadRequest: Partial<Record<BiboView, number>> = {};
   private readonly pendingCreates = new Map<string, string>();
   private fileOpenRequest = 0;
   private readonly closedFiles = new Set<string>();
@@ -31,6 +32,7 @@ class BiboSpaceOwner {
   workspaceOpen = false;
   workspaceFileId: string | null = null;
   loading = false;
+  readStatus: Partial<Record<BiboView, "loading" | "ready" | "error">> = {};
   saving = false;
   error = "";
   notice = "";
@@ -62,7 +64,6 @@ class BiboSpaceOwner {
   eventDrafts: Record<string, EventDraft> = {};
 
   constructor(private readonly setState: StoreApi<BiboSpaceOwner>["setState"], private readonly get: StoreApi<BiboSpaceOwner>["getState"]) {}
-
   private set = (update: Partial<BiboSpaceOwner> | ((state: BiboSpaceOwner) => Partial<BiboSpaceOwner>)): void => {
     if (this.get()?.instanceId === this.instanceId) this.setState(update);
   };
@@ -136,8 +137,9 @@ class BiboSpaceOwner {
     }).catch((error) => { if (this.get().selectedTaskId === id) this.set({ error: message(error) }); });
   };
   setCalendarDate = (date: Date): void => {
-    this.set({ calendarDate: date });
-    void this.loadCalendarMonth(date).catch(() => { /* The range loader exposes its error in the store. */ });
+    const key = `${this.calendarRevision}-${date.getFullYear()}-${date.getMonth()}`;
+    this.set((state) => ({ calendarDate: date, readStatus: { ...state.readStatus, calendar: this.loadedCalendarMonths.has(key) ? state.readStatus.calendar : "loading" } }));
+    void this.load("calendar");
   };
   filterTasks = (query: string, project: string): void => {
     this.set({ taskQuery: query, taskProject: project, selectedTaskId: null });
@@ -179,7 +181,9 @@ class BiboSpaceOwner {
 
   load = async (view: BiboView = this.get().view): Promise<boolean> => {
     if (view === "chat") return this.get().workspaceOpen ? this.load("files") : true;
-    this.set({ loading: true, error: "" });
+    const request = (this.viewLoadRequest[view] ?? 0) + 1;
+    this.viewLoadRequest[view] = request;
+    this.set((state) => ({ loading: true, error: "", readStatus: { ...state.readStatus, [view]: state.readStatus[view] === "ready" ? "ready" : "loading" } }));
     try {
       if (view === "overview") this.set({ overview: await client.space<BiboOverview>("overview.get") });
       if (view === "tasks") {
@@ -206,8 +210,9 @@ class BiboSpaceOwner {
         const workspace = this.get().workspaceFileId;
         if (this.get().workspaceOpen && workspace && workspace !== active && !this.get().fileDetails[workspace]) await this.openFile(workspace);
       }
+      if (request === this.viewLoadRequest[view]) this.set((state) => ({ readStatus: { ...state.readStatus, [view]: "ready" } }));
       return true;
-    } catch (error) { this.set({ error: message(error) }); return false; }
+    } catch (error) { if (request === this.viewLoadRequest[view]) this.set((state) => ({ error: message(error), readStatus: { ...state.readStatus, [view]: "error" } })); return false; }
     finally { this.set({ loading: false }); }
   };
 
@@ -219,10 +224,7 @@ class BiboSpaceOwner {
     if (this.loadedCalendarMonths.has(key)) return;
     const existing = this.calendarRequests.get(key);
     if (existing) return existing;
-    const dates = calendarMonthDates(date);
-    const from = dates[0]!.toISOString();
-    const last = dates.at(-1)!;
-    const to = new Date(new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1).getTime() - 1).toISOString();
+    const { from, to } = calendarMonthRange(date);
     this.set({ error: "" });
     const request = (async () => {
       const events: BiboEvent[] = [];
@@ -238,7 +240,7 @@ class BiboSpaceOwner {
         return { events: [...new Map([...remaining, ...events].map((event) => [event.id, event])).values()].sort((a, b) => a.startAt.localeCompare(b.startAt)), cursors: { ...state.cursors, events: null } };
       });
       this.loadedCalendarMonths.add(key);
-    })().catch((error) => { this.set({ error: message(error) }); throw error; }).finally(() => this.calendarRequests.delete(key));
+    })().finally(() => this.calendarRequests.delete(key));
     this.calendarRequests.set(key, request);
     return request;
   };
