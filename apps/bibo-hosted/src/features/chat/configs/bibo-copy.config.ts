@@ -2,6 +2,7 @@ export const biboCopy = {
   title: "Bibo · 你的个人 AI 搭档",
   space: "个人空间",
   conversation: "对话",
+  sessionMissing: "这段对话不存在或已删除。请选择其他对话，或新建对话。",
   companion: "我的搭档",
   greeting: "嗨，我是 Bibo.",
   welcome: "从一件你正在做的事开始。我会认真听，也会尽力把它往前推进。",

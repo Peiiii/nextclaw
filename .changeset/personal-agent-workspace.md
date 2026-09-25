@@ -12,3 +12,5 @@ Keep long conversation titles within the toolbar without hiding actions, and con
 Correct file-tree keyboard navigation at root and empty-folder boundaries, preserve a keyboard entry after deleting a node, and reveal the active tab when many files are open.
 
 Restore the chat workspace selection after refresh, preserve close and selection intent during slow reads, and show recoverable file errors inside the workspace.
+
+Keep missing conversation links identifiable, return a not-found response for deleted history, and avoid silently switching to another conversation.

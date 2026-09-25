@@ -126,31 +126,29 @@ export class BiboUserContainer extends Container<Env> {
 
   private sessionRoute = async (request: Request, url: URL): Promise<Response> => {
     const route = url.pathname;
+    if (route === "/sessions/delete" && request.method === "POST") return this.deleteSession(request);
+    const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
     if (route === "/sessions" && request.method === "GET") {
-      const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
       return json({ sessions: sessions.map(({ messages, ...session }) => ({ ...session, messageCount: messages.length })).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) });
     }
     if (route === "/sessions/new" && request.method === "POST") {
       const time = new Date().toISOString();
       const session: Session = { id: crypto.randomUUID(), title: "新对话", createdAt: time, updatedAt: time, messages: [] };
-      const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
       await this.ctx.storage.put("sessions", [session, ...sessions]);
       return json({ session });
     }
     if (route === "/sessions/rename" && request.method === "POST") {
       const body = await request.json().catch(() => null) as { id?: unknown; title?: unknown } | null;
       if (!body || typeof body.id !== "string" || typeof body.title !== "string" || !body.title.trim() || body.title.trim().length > 100) return publicError("会话名称不正确。", 400);
-      const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
       const session = sessions.find((item) => item.id === body.id);
       if (!session) return publicError("会话不存在。", 404);
       session.title = body.title.trim(); session.updatedAt = new Date().toISOString();
       await this.ctx.storage.put("sessions", sessions);
       return json({ session });
     }
-    if (route === "/sessions/delete" && request.method === "POST") return this.deleteSession(request);
     if (route === "/history") {
-      const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
       const session = typeof url.searchParams.get("id") === "string" ? sessions.find((item) => item.id === url.searchParams.get("id")) : sessions[0];
+      if (url.searchParams.has("id") && !session) return publicError("会话不存在或已删除。", 404);
       return json({ messages: session?.messages ?? [], session: session ? { id: session.id, title: session.title, updatedAt: session.updatedAt } : null });
     }
     return publicError("Not found", 404);

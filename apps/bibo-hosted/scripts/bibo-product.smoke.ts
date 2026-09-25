@@ -262,6 +262,19 @@ async function checkWorkspaceRecovery(page: Page): Promise<void> {
   await page.screenshot({ path: `/tmp/bibo-workspace-${page.viewportSize()!.width}.png` });
 }
 
+async function checkMissingSession(page: Page, width: number): Promise<void> {
+  await page.goto(`${base}/?view=chat&session=deleted-session`, { waitUntil: "networkidle" });
+  await page.getByText("这段对话不存在或已删除。请选择其他对话，或新建对话。", { exact: true }).waitFor();
+  assert.equal(await page.locator(".ui-message").count(), 0, "missing source cannot display another conversation");
+  assert.equal(new URL(page.url()).searchParams.get("session"), "deleted-session", "invalid source remains identifiable");
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByText("这段对话不存在或已删除。请选择其他对话，或新建对话。", { exact: true }).waitFor();
+  if (width <= 760) await page.getByRole("button", { name: "打开菜单" }).click();
+  await page.getByRole("button", { name: "产品想法", exact: true }).click();
+  await page.getByText("先整理一件最重要的事。", { exact: true }).waitFor();
+  assert.equal(new URL(page.url()).searchParams.get("session"), "session-a");
+}
+
 async function checkLongConversation(page: Page, width: number): Promise<void> {
   const title = page.locator(".workspace-title");
   assert.equal(await title.getAttribute("title"), await title.textContent(), "full title remains available");
@@ -320,6 +333,7 @@ try {
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await mockApi(page);
+      await checkMissingSession(page, viewport.width);
       await page.goto(base, { waitUntil: "networkidle" });
       await page.getByRole("heading", { name: /今天从这里开始/ }).waitFor();
       assert.equal(await page.getByText("确认方案方向").count(), 1);

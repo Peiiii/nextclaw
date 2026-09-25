@@ -137,6 +137,9 @@ async function streamedRun(sessionId: string): Promise<{ deltaCount: number; fir
 try {
   const account = await json<{ user?: { id: string } }>("/api/auth/me");
   assert.equal(account.user?.id, smokeAccount.userId, "Smoke account identity does not match the local credential file");
+  const missingHistory = await fetch(`${origin}/api/history?id=${requestId}-missing`, { headers, signal: abort.signal });
+  assert.equal(missingHistory.status, 404, "An explicit missing session must not appear as a new empty conversation");
+  assert.equal((await missingHistory.json() as { error: string }).error, "会话不存在或已删除。");
   const modelStream = await modelStreamProbe();
   const creation = await fetch(`${origin}/api/sessions`, {
     method: "POST", headers: { ...headers, origin }, signal: abort.signal,

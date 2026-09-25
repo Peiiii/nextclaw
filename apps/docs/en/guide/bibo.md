@@ -1,5 +1,7 @@
 # Bibo hosted companion
 
+Deleted or missing conversation links show an explicit error instead of opening an unrelated conversation. Select another conversation from the list or start a new one to continue.
+
 The right workspace remembers its open state and selected file, and reloads saved content after refresh. Closing and reopening preserves current edits; save before refreshing. Failed reads show an error and a retry action. A late response cannot reopen a workspace you have closed.
 
 Long conversation titles are shortened in the toolbar so New conversation and Workspace remain accessible. Open Rename from the conversation menu to view the full title. Long task, inbox, and note names use up to two lines in lists; open their details or editor to read the full content.

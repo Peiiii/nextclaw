@@ -111,9 +111,12 @@ class BiboChatOwner {
       this.set({ user });
       const sessions = await biboClient.sessions();
       if (request !== this.selectionRequest) return;
+      this.set({ sessions });
       const requestedSession = sessionFromUrl();
       const blankChat = new URLSearchParams(window.location.search).get("view") === "chat" && !requestedSession;
-      const activeSessionId = blankChat ? null : requestedSession && sessions.some((session) => session.id === requestedSession) ? requestedSession
+      const missingSession = Boolean(requestedSession && !sessions.some((session) => session.id === requestedSession));
+      const activeSessionId = blankChat || missingSession ? null : requestedSession
+        ? requestedSession
         : this.get().activeSessionId && sessions.some((session) => session.id === this.get().activeSessionId) ? this.get().activeSessionId : sessions[0]?.id ?? null;
       const messages = activeSessionId ? await biboClient.history(activeSessionId) : [];
       if (request !== this.selectionRequest) return;
@@ -122,8 +125,8 @@ class BiboChatOwner {
       const matching = pending?.sessionId === activeSessionId;
       const saved = pending && runWasSaved(pending, activeSessionId, messages);
       const drafts = pending?.sessionId && !saved ? { [pending.sessionId]: pending.message } : {};
-      this.set({ sessions, activeSessionId, messages, drafts, draft: activeSessionId ? drafts[activeSessionId] ?? "" : "", status: matching && pending && !saved ? biboCopy.interrupted : "" });
-      showSessionInUrl(activeSessionId);
+      this.set({ sessions, activeSessionId, messages, drafts, draft: activeSessionId ? drafts[activeSessionId] ?? "" : "", status: missingSession ? biboCopy.sessionMissing : matching && pending && !saved ? biboCopy.interrupted : "" });
+      if (!missingSession) showSessionInUrl(activeSessionId);
       if (saved) sessionStorage.removeItem(pendingKey(user.id));
     } catch (error) {
       if (request !== this.selectionRequest) return;
