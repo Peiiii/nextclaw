@@ -29,6 +29,8 @@ description: 通用开发流程的唯一 Meta Skill；理解后选择 standard�
 
 ## 三条流程
 
+用户委托完整大型成果，且需跨工作项/上下文保持整体责任时，按需读取[大型交付](references/major-delivery.md)。它是交付组织方式，具体工作仍走以下 flow；仅设计/调查不扩大执行范围。
+
 | flow | 顺序与门 |
 | --- | --- |
 | standard | 理解澄清 → 方案与验收设计 → Review(mode=design) → 实现与迭代检查 → Validation(mode=acceptance) → Review(mode=implementation) → 用户验收交付 → 复盘 |

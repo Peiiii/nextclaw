@@ -30,7 +30,7 @@ For this repository specifically:
 - `pnpm lint:new-code:file-names` blocks touched non-kebab source/script/test files, not only new names.
 - `pnpm lint:new-code:doc-file-names` blocks touched governed docs with non-kebab names, and requires `docs/thoughts` / `docs/designs` / `docs/plans` / `docs/loops` files to carry both a `YYYY-MM-DD-` date prefix and the matching `.thought` / `.design` / `.plan` / `.loop` role suffix.
 - `pnpm lint:new-code:directory-names` blocks touched files whose parent directory chain is not governed.
-- Loop 设计沿用 `docs/loops/YYYY-MM-DD-<topic>.loop.md`；执行日志复用迭代日志 owner 的 `docs/logs/v<semver>-<slug>/`、`README.md` 与 `work/YYYY-MM-DD-<topic>-round-<NNN>.md`，证据归该批次 `evidence/`。不在 `docs/loops` 建运行目录；README 保留既有索引命名例外。
+- Loop 设计沿用 `docs/loops/YYYY-MM-DD-<topic>.loop.md`；执行日志由迭代日志 owner 规定，默认 `docs/logs/YYYY-MM-DD-<slug>/`，兼容 `v<semver>-<slug>/`；README 保留索引例外，loop 逐轮文件仍用 `work/YYYY-MM-DD-<topic>-round-<NNN>.md`，新附件归 `artifacts/`。普通大型交付不强制逐轮文件；新建工作目录用 `docs/work/YYYY-MM-DD-<slug>/`，已有路径不机械迁移。
 - `pnpm lint:new-code:file-role-boundaries` blocks touched non-component/page/hook files that do not use an approved secondary suffix, and also blocks directory-to-suffix mismatches such as `services/foo-manager.ts`.
 - `pnpm preflight:governance -- <path...>` runs the real file-role and module-structure owners before editing; it checks both planned new paths and existing legacy paths that will be touched.
 - For Git renames that only move existing legacy role-boundary debt without changing the violation kind, the role-boundary check does not force an unrelated rename during the structural move.

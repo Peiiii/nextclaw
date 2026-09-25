@@ -7,6 +7,8 @@ description: Use when a complex task will span turns or sessions and needs struc
 
 ## 概述
 
+大型交付先读取[大型交付记录协议](references/major-delivery-records.md)，按其中的合同、当前状态和持续日志分工执行；下文是普通跨轮任务的轻量方法，不再并建一份记录。
+
 这个 skill 用来把复杂任务和复杂 debug 的“易丢失上下文”外部化到项目已有的任务或迭代记录中。
 
 目标不是写第二份 `README.md`，而是保证在以下场景里不会失忆：
@@ -34,7 +36,7 @@ description: Use when a complex task will span turns or sessions and needs struc
 
 ## 默认落点
 
-优先使用项目已有的任务记录目录；没有约定目录时使用 `docs/work/<task-slug>/working-notes.md`，并从当前计划或设计链接它。
+优先使用项目已有的任务记录目录；没有约定目录时使用 `docs/work/YYYY-MM-DD-<task-slug>/working-notes.md`，并从当前计划或设计链接它。日期取创建日，同任务跨天保持目录，已有记录不为日期前缀迁移。
 
 规则：
 
