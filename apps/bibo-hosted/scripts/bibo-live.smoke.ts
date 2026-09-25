@@ -158,6 +158,8 @@ try {
   assert.ok(artifact, "Agent claimed success without creating the requested file");
   const persisted = await space<LiveFile>("file.get", { id: artifact.id });
   assert.equal(persisted.content, artifactContent, "Agent file content was not persisted exactly");
+  // The Tasks screen loads these together; cloud serialization must not reject either read.
+  await Promise.all([space("project.list", { limit: 100 }), space("task.list", { limit: 100 })]);
 
   const browser = await chromium.launch({ headless: true });
   try {

@@ -6,6 +6,9 @@ import { useBiboSpaceStore } from "@/features/space";
 type Phase = "idle" | "generating" | "saving";
 const biboClient = new BiboClient();
 const pendingKey = (id: string) => `bibo-pending-${id}`;
+type PendingRun = { message: string; previousLastAt?: string; sessionId: string };
+const runWasSaved = (pending: PendingRun, sessionId: string | null, messages: BiboMessage[]) =>
+  pending.sessionId === sessionId && messages.at(-1)?.at !== pending.previousLastAt && messages.at(-2)?.role === "user" && messages.at(-2)?.text === pending.message;
 const errorText = (error: unknown) => error instanceof Error ? error.message : "操作暂时失败，请稍后重试。";
 const sessionFromUrl = () => new URLSearchParams(window.location.search).get("session");
 const showSessionInUrl = (id: string | null) => {
@@ -62,6 +65,12 @@ class BiboChatOwner {
     try {
       const messages = await biboClient.history(id);
       if (request !== this.selectionRequest || this.get().user?.id !== userId) return;
+      const stored = userId ? sessionStorage.getItem(pendingKey(userId)) : null;
+      const pending = stored ? JSON.parse(stored) as PendingRun : null;
+      if (pending && runWasSaved(pending, id, messages)) {
+        sessionStorage.removeItem(pendingKey(userId!));
+        this.set((state) => ({ drafts: { ...state.drafts, [id]: state.drafts[id] === pending.message ? "" : state.drafts[id] ?? "" } }));
+      }
       this.set({ activeSessionId: id, messages, draft: this.get().drafts[id] ?? "", status: "", following: true, menuOpen: false });
       showSessionInUrl(id);
     } catch (error) { if (request === this.selectionRequest) this.set({ status: errorText(error) }); }
@@ -109,9 +118,9 @@ class BiboChatOwner {
       const messages = activeSessionId ? await biboClient.history(activeSessionId) : [];
       if (request !== this.selectionRequest) return;
       const stored = sessionStorage.getItem(pendingKey(user.id));
-      const pending = stored ? JSON.parse(stored) as { message: string; previousLastAt?: string; sessionId: string } : null;
+      const pending = stored ? JSON.parse(stored) as PendingRun : null;
       const matching = pending?.sessionId === activeSessionId;
-      const saved = matching && pending && messages.at(-1)?.at !== pending.previousLastAt && messages.at(-2)?.role === "user" && messages.at(-2)?.text === pending.message;
+      const saved = pending && runWasSaved(pending, activeSessionId, messages);
       const drafts = pending?.sessionId && !saved ? { [pending.sessionId]: pending.message } : {};
       this.set({ sessions, activeSessionId, messages, drafts, draft: activeSessionId ? drafts[activeSessionId] ?? "" : "", status: matching && pending && !saved ? biboCopy.interrupted : "" });
       showSessionInUrl(activeSessionId);
@@ -204,7 +213,7 @@ class BiboChatOwner {
     let saved = false;
     try {
       const history = await biboClient.history(sessionId);
-      saved = history.at(-1)?.at !== previousLastAt && history.at(-2)?.role === "user" && history.at(-2)?.text === message;
+      saved = runWasSaved({ sessionId, message, previousLastAt }, sessionId, history);
       this.set({ messages: history });
     } catch { /* Keep the local input for a later retry. */ }
     if (saved) {

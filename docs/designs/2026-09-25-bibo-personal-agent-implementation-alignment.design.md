@@ -1,6 +1,6 @@
 # Bibo Personal Agent 实现前对齐
 
-> 2026-09-25。状态：**产品边界已对齐，首版应用层方向已决策，运行链路待验证**。本文是正式产品实现的对齐入口；[界面概念设计](./2026-09-25-bibo-personal-agent-interface-concepts.design.md)及 [Studio 演示](../../concept-demos/bibo-personal-agent/public/studio.html)提供交互细节和视觉参照。概念中的本地示例数据不构成后端协议或完成证明。
+> 2026-09-25。状态：**首批工作区已上线，真实 Agent 文件、网页 CRUD 与冷恢复已有成功证据；整体验收仍开放**。当前结果、失败记录与剩余项以[验收合同](../work/2026-09-25-bibo-personal-agent/acceptance-contract.md)为准。本文是正式产品实现的对齐入口；[界面概念设计](./2026-09-25-bibo-personal-agent-interface-concepts.design.md)及 [Studio 演示](../../concept-demos/bibo-personal-agent/public/studio.html)提供交互细节和视觉参照。概念中的本地示例数据不构成后端协议或完成证明。
 
 ## 目标与避免返工的方法
 
