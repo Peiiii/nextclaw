@@ -53,7 +53,7 @@ standard 不因 diff 小跳过设计：设计含验收标准、必要测试矩�
 - 可用入口、用户验收、授权内交付：`development-delivery`。
 - 轻量反思与条件沉淀：`development-retrospective`。
 
-跨阶段下级 Skill 不占顶层发现入口：只有任务跨上下文/会话时读取[迭代工作记录](../../wiki/skills/process/iteration-work-notes/SKILL.md)；用户明确要求持续自评收敛时读取[质量迭代收敛](../../wiki/skills/process/iterative-quality-convergence/SKILL.md)；事实维护、知识分流或资料冲突时读取[项目知识治理](../../wiki/skills/process/project-knowledge-governance/SKILL.md)。每次只加载当前决策需要的一项。
+跨阶段下级 Skill 不占顶层发现入口：任务跨上下文/会话或需找回未完成工作时读取[执行状态与恢复](../../wiki/skills/process/iteration-work-notes/SKILL.md)；用户明确要求持续自评收敛时读取[质量迭代收敛](../../wiki/skills/process/iterative-quality-convergence/SKILL.md)；事实维护、知识分流或资料冲突时读取[项目知识治理](../../wiki/skills/process/project-knowledge-governance/SKILL.md)。每次只加载当前决策需要的一项。
 
 AI 验收结合 Validation 合同证据与 Review 结论，不新增平行 Skill。方案 Review 不要求多代理。用户验收不适用于纯内部产物时说明依据，不强加产品运行环境。
 

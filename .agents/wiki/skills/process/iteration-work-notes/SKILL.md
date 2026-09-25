@@ -7,7 +7,7 @@ description: Use when a complex task will span turns or sessions and needs struc
 
 ## 概述
 
-大型交付先读取[大型交付记录协议](references/major-delivery-records.md)，按其中的合同、当前状态和持续日志分工执行；下文是普通跨轮任务的轻量方法，不再并建一份记录。
+大型交付或查找/恢复已有大型交付时，先读取[大型交付记录协议](references/major-delivery-records.md)：新建默认 current-state.md，包含入口发现、当前状态与持续日志；旧入口兼容。下文是普通跨轮任务的轻量方法，不再并建一份记录。
 
 这个 skill 用来把复杂任务和复杂 debug 的“易丢失上下文”外部化到项目已有的任务或迭代记录中。
 

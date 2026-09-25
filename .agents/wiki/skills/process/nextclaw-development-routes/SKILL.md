@@ -12,7 +12,7 @@ description: 当共享 development-* 阶段触达 NextClaw 产品、仓库命令
 - 意图宏命中时按 `commands/commands.md` 的对应条目展开；解释或引用不执行。
 - 需要阶段追踪、Token/耗时、模型对比或本地 dashboard 时，读取[任务遥测方法](../development-task-telemetry/SKILL.md)。
 - 切入 worktree、迁移草稿或主线并发时，读取[Worktree 合同](../../../../skills/development-lifecycle/references/parallel-worktree-development.md)。
-- 大型交付启动即按[迭代日志治理](../../governance/nextclaw-iteration-log-governance/SKILL.md)建立持续记录，日期前缀优先、兼容版本号。新建工作入口采用共享的 `docs/work/YYYY-MM-DD-<slug>/working-notes.md`；已有迭代内笔记沿用，避免双份当前状态。普通跨轮笔记不强制建日志。
+- 大型交付启动即按[迭代日志治理](../../governance/nextclaw-iteration-log-governance/SKILL.md)建立持续记录，日期前缀优先、兼容版本号。新建恢复入口为 `docs/work/YYYY-MM-DD-<slug>/current-state.md`；已有迭代内笔记沿用，避免双份当前状态。普通跨轮笔记不强制建日志。
 - 用户明确要求扫描、识别或清理死代码时，读取[NextClaw 死代码治理](../../operations/nextclaw-dead-code-governance/SKILL.md)。
 - 长链路复现固定隔离的 `NEXTCLAW_HOME`、session、project root、provider/model/runtime 和 skill 集；按流式事件顺序、server/persisted/rendered truth、配置加载/保存快照及 skill 可用/实际选择定位第一个违约边界。
 - Loop 设计归 `docs/loops`，执行批次、状态和证据归 `docs/logs`，按[迭代日志治理](../../governance/nextclaw-iteration-log-governance/SKILL.md)记录；设计与运行状态分离。

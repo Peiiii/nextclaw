@@ -98,7 +98,7 @@ Always state simplification/reuse, sprawl and owner-boundary impact, file-organi
 - 图片、报告等新附件放批次 `artifacts/`，使用 `YYYY-MM-DD-round-<NNN>-<description>.<ext>` 并相对链接；既有 `evidence/` 不迁移。材料是否证明结论由记录注明，不把临时绝对路径当长期记录。
 - 合同只定义设计；当前恢复状态唯一归 README，逐轮历史归轮次文件。完成记录不随新实验改写，纠错追加说明；合同修订只影响明确采用新版本的后续轮次。恢复默认读取合同、批次摘要及最近相关轮次。
 
-新建大型交付的合同与当前笔记使用共享的日期前缀 `docs/work/YYYY-MM-DD-<slug>/`，日志回链该入口。已有任务已在迭代内管理笔记时继续使用原路径，不复制第二份。普通跨轮任务按共享工作记录方法保持轻量，不为笔记单独造日志目录。迭代内既有布局例如：
+新建大型交付以 `docs/work/YYYY-MM-DD-<slug>/current-state.md` 为恢复入口，日志回链。旧 working-notes 或迭代内入口原地续写，不复制第二份。普通跨轮任务沿共享轻量方法，不为笔记单独造日志目录。迭代内既有布局例如：
 
 ```text
 docs/logs/v<semver>-<slug>/work/working-notes.md
