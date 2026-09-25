@@ -1,0 +1,470 @@
+/* Four product directions keep their own spatial identity beyond the overview. */
+body.variant-desk .concept-shell {
+  display: block;
+  max-width: 1500px;
+  margin: 25px auto;
+  min-height: calc(100vh - 50px);
+  padding: 0;
+  border: 7px solid #383e35;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow:
+    15px 20px 0 #82765b5e,
+    0 35px 65px #473b2773;
+  background: #e7e7d9;
+}
+@media (min-width: 1181px) and (max-width: 1350px) {
+  body.variant-inbox .app {
+    grid-template-columns: 210px 300px minmax(400px, 1fr);
+  }
+  body.variant-inbox .app .side {
+    display: none;
+  }
+}
+body.variant-desk:has(.concept-shell) {
+  background: radial-gradient(circle at 22% 25%, #e9dec3, #c9b491 62%, #b6a17c);
+}
+body.variant-desk .concept-nav {
+  min-height: 0;
+  height: 58px;
+  padding: 0 25px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  background: #343f35;
+}
+body.variant-desk .concept-brand {
+  padding: 0;
+  font-size: 20px;
+}
+body.variant-desk .concept-nav nav {
+  display: flex;
+  gap: 4px;
+}
+body.variant-desk .concept-nav nav a {
+  font-size: 11px;
+  padding: 8px 11px;
+  color: #e7ead9;
+  border-radius: 6px;
+}
+body.variant-desk .concept-nav nav a.selected {
+  background: #e7ead9;
+  color: #343f35;
+}
+body.variant-desk .concept-nav-foot {
+  display: none;
+}
+body.variant-desk .concept-top {
+  height: 100px;
+  background: #e7e7d9;
+  border: 0;
+  padding: 25px 35px;
+}
+body.variant-desk .concept-top h1 {
+  font-size: 30px;
+  margin-top: 5px;
+}
+body.variant-desk .concept-content {
+  max-width: none;
+  padding: 0 35px 40px;
+}
+body.variant-desk .chat-page,
+body.variant-desk .split-page,
+body.variant-desk .notes-page,
+body.variant-desk .calendar-page,
+body.variant-desk .tasks-page {
+  border: 1px solid #c8ccbb;
+  border-radius: 6px;
+  box-shadow: 5px 6px 0 #8791742b;
+  min-height: calc(100vh - 230px);
+}
+body.variant-desk .conversation-list,
+body.variant-desk .item-list,
+body.variant-desk .notes-list {
+  background: #f5f5e9;
+}
+body.variant-desk .concept-shell .selected:not(a) {
+  background: #e4eadc;
+}
+body.variant-desk .conversation-room,
+body.variant-desk .detail-page,
+body.variant-desk .note-document {
+  background: #fffdf4;
+}
+body.variant-brief .concept-shell {
+  display: block;
+  background: #fbf9f4;
+}
+body.variant-brief .concept-nav {
+  min-height: 0;
+  height: 78px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  background: #fbf9f4;
+  color: #352e29;
+  border-bottom: 1px solid #dbd4c8;
+  padding: 0 clamp(20px, 5vw, 75px);
+}
+body.variant-brief .concept-brand {
+  padding: 0;
+  font-family: Georgia, serif;
+  font-size: 29px;
+}
+body.variant-brief .concept-nav nav {
+  display: flex;
+  gap: 5px;
+}
+body.variant-brief .concept-nav nav a {
+  color: #675f55;
+  padding: 10px 13px;
+  font-size: 12px;
+}
+body.variant-brief .concept-nav nav a.selected {
+  background: transparent;
+  color: #aa6944;
+  border-bottom: 2px solid #aa6944;
+  border-radius: 0;
+}
+body.variant-brief .concept-nav-foot {
+  display: none;
+}
+body.variant-brief .concept-top {
+  background: #fbf9f4;
+  border: 0;
+  height: 150px;
+  padding: 28px clamp(20px, 5vw, 75px);
+}
+body.variant-brief .concept-top h1 {
+  font-size: 45px;
+}
+body.variant-brief .concept-content {
+  padding: 0 clamp(20px, 5vw, 75px) 65px;
+  max-width: 1450px;
+}
+body.variant-brief .chat-page,
+body.variant-brief .split-page,
+body.variant-brief .notes-page,
+body.variant-brief .calendar-page,
+body.variant-brief .tasks-page {
+  box-shadow: none;
+  border-radius: 0;
+  border-color: #e6dfd4;
+  background: #fffefa;
+}
+body.variant-brief .conversation-list,
+body.variant-brief .item-list,
+body.variant-brief .notes-list {
+  background: #f7f3e9;
+}
+body.variant-day .concept-shell {
+  grid-template-columns: 82px minmax(0, 1fr);
+}
+body.variant-day .concept-nav {
+  padding: 20px 10px;
+  background: #275f56;
+}
+body.variant-day .concept-brand {
+  padding: 0 0 31px;
+  text-align: center;
+  font-size: 21px;
+}
+body.variant-day .concept-nav nav a {
+  justify-content: center;
+  padding: 14px 5px;
+}
+body.variant-day .concept-nav .nav-label {
+  display: none;
+}
+body.variant-day .concept-nav-foot {
+  display: none;
+}
+body.variant-day .concept-top {
+  background: #f2f5ee;
+  border: 0;
+  height: 120px;
+}
+body.variant-day .concept-content {
+  padding-top: 12px;
+}
+body.variant-day .chat-page,
+body.variant-day .split-page,
+body.variant-day .notes-page,
+body.variant-day .calendar-page,
+body.variant-day .tasks-page {
+  box-shadow: none;
+  border-color: #dbe5d9;
+  border-radius: 12px;
+}
+body.variant-inbox .concept-content {
+  max-width: 1350px;
+}
+body.variant-inbox .concept-top {
+  background: #f7f8f4;
+  border: 0;
+  height: 116px;
+}
+body.variant-inbox .chat-page,
+body.variant-inbox .split-page,
+body.variant-inbox .notes-page,
+body.variant-inbox .calendar-page,
+body.variant-inbox .tasks-page {
+  box-shadow: none;
+  border-color: #e1e5df;
+  border-radius: 10px;
+}
+body.variant-inbox .nav a {
+  justify-content: flex-start;
+  align-items: center;
+  gap: 11px;
+}
+body.variant-inbox .nav a.selected {
+  background: #41483f;
+  color: white;
+}
+body.variant-inbox .list-head h1 {
+  font-size: 25px;
+}
+body.variant-inbox .list {
+  min-width: 0;
+}
+body.variant-inbox .mail {
+  cursor: pointer;
+}
+body.variant-brief .sources a {
+  display: inline-block;
+  border: 1px solid #e4d9ca;
+  background: #fbf8f2;
+  border-radius: 99px;
+  padding: 6px 10px;
+  font-size: 10px;
+  color: #9b6e58;
+  text-decoration: none;
+}
+body.variant-brief .sources a:hover {
+  background: #fbe0cf;
+}
+body.variant-day .aside .bibo .day-chat-entry {
+  color: #f5eedc;
+  text-decoration: underline;
+  text-decoration-color: #b3d3be;
+  text-underline-offset: 4px;
+  display: inline-block;
+  margin-top: 12px;
+}
+body.variant-desk .wall .top nav a {
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+body.variant-desk .wall .top nav a.selected {
+  background: #e7ead9;
+  color: #343f35;
+  border: 0;
+}
+.concept-shell .conversation,
+.concept-shell .list-item,
+.concept-shell .task-row {
+  transition: background 0.16s ease;
+}
+.concept-shell .conversation:hover,
+.concept-shell .list-item:hover {
+  background: #e9eee6;
+  opacity: 1;
+}
+.concept-shell .message,
+.concept-shell .mail-text,
+.concept-shell .note-document textarea {
+  font-size: 14px;
+}
+.concept-shell .list-item strong {
+  font-size: 13px;
+}
+.concept-shell .conversation strong {
+  font-size: 13px;
+}
+.concept-shell .detail-page h2 {
+  max-width: 770px;
+}
+.concept-shell .context-callout {
+  max-width: 770px;
+}
+.concept-shell .mail-actions {
+  margin-top: 5px;
+}
+@media (max-width: 900px) {
+  body.variant-desk .concept-nav,
+  body.variant-brief .concept-nav {
+    height: auto;
+    min-height: 58px;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 18px;
+  }
+  body.variant-desk .concept-nav nav,
+  body.variant-brief .concept-nav nav {
+    width: 100%;
+    overflow: auto;
+  }
+  body.variant-desk .concept-nav nav a,
+  body.variant-brief .concept-nav nav a {
+    white-space: nowrap;
+  }
+  body.variant-desk .concept-content {
+    padding: 0 18px 28px;
+  }
+  body.variant-desk .concept-top {
+    padding: 20px 18px;
+  }
+  body.variant-brief .concept-content {
+    padding-bottom: 25px;
+  }
+}
+@media (max-width: 700px) {
+  body.variant-desk .concept-shell {
+    margin: 0;
+    min-height: 100vh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  body.variant-desk .concept-nav,
+  body.variant-brief .concept-nav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  body.variant-desk .concept-nav .nav-label,
+  body.variant-brief .concept-nav .nav-label {
+    display: inline;
+  }
+  body.variant-desk .concept-top,
+  body.variant-brief .concept-top {
+    height: auto;
+    min-height: 96px;
+  }
+  body.variant-desk .chat-page,
+  body.variant-desk .split-page,
+  body.variant-desk .notes-page,
+  body.variant-desk .calendar-page,
+  body.variant-desk .tasks-page {
+    min-height: 0;
+  }
+  body.variant-day .concept-shell {
+    display: block;
+  }
+  body.variant-day .concept-nav {
+    min-height: 0;
+    padding: 9px;
+  }
+  body.variant-day .concept-brand {
+    display: none;
+  }
+  body.variant-day .concept-nav nav {
+    display: flex;
+    overflow: auto;
+  }
+  body.variant-day .concept-nav nav a {
+    flex: none;
+    padding: 10px;
+  }
+  body.variant-day .concept-content {
+    padding: 0 15px 20px;
+  }
+  body.variant-brief .concept-top h1 {
+    font-size: 34px;
+  }
+}
+@media (max-width: 820px) {
+  body.variant-inbox .app {
+    display: flex;
+    flex-direction: column;
+  }
+  body.variant-inbox .app .nav {
+    order: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+    overflow: auto;
+    min-height: 61px;
+    padding: 8px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  body.variant-inbox .app .nav .brand {
+    flex: none;
+    margin-right: 10px;
+  }
+  body.variant-inbox .app .nav a {
+    display: inline-flex;
+    flex: none;
+    margin: 0;
+    padding: 9px;
+  }
+  body.variant-inbox .app .nav .nav-label {
+    display: inline;
+  }
+  body.variant-inbox .app .nav .bottom,
+  body.variant-inbox .app .nav small {
+    display: none;
+  }
+  body.variant-inbox .app .inbox-overview {
+    order: 1;
+    padding: 27px 20px;
+  }
+  body.variant-inbox .app .list {
+    order: 2;
+  }
+  body.variant-inbox .app .side {
+    order: 3;
+  }
+}
+@media (max-width: 700px) {
+  body.variant-brief .page .top {
+    gap: 16px;
+  }
+  body.variant-brief .page .top nav {
+    overflow: auto;
+    flex: 1;
+    justify-content: flex-start;
+    gap: 11px;
+  }
+  body.variant-brief .page .top nav a {
+    white-space: nowrap;
+    flex: none;
+  }
+  body.variant-brief .page .top nav .nav-label {
+    display: inline;
+  }
+  body.variant-desk .wall .top {
+    height: auto;
+    min-height: 82px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 15px;
+  }
+  body.variant-desk .wall .top .brand {
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  body.variant-desk .wall .top nav {
+    width: 100%;
+    overflow: auto;
+    gap: 5px;
+  }
+  body.variant-desk .wall .top nav a {
+    white-space: nowrap;
+    flex: none;
+    padding: 7px 10px;
+  }
+  body.variant-desk .wall .top nav .nav-label {
+    display: inline;
+  }
+}

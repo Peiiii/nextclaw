@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Bibo · 晨报</title>
+    <style>
+      :root {
+        --orange: #ef6945;
+        --ink: #272323;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #e9e3d7;
+        color: var(--ink);
+        font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+      .page {
+        max-width: 1370px;
+        margin: auto;
+        min-height: 100vh;
+        background: #fffdf8;
+      }
+      .top {
+        height: 72px;
+        padding: 0 54px;
+        border-bottom: 1px solid #ece7de;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .logo {
+        font-weight: 900;
+        font-size: 27px;
+        letter-spacing: -0.07em;
+      }
+      .logo span {
+        color: var(--orange);
+      }
+      .top nav {
+        display: flex;
+        gap: 28px;
+      }
+      .top a {
+        text-decoration: none;
+        color: #6c675f;
+        font-size: 12px;
+        font-weight: 650;
+      }
+      .top a.active {
+        color: var(--orange);
+      }
+      .date {
+        font-size: 11px;
+        color: #8e877d;
+      }
+      .hero {
+        padding: 52px 70px 48px;
+        background: #fffaf3;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 270px;
+        gap: 50px;
+        border-bottom: 1px solid #ece7de;
+      }
+      .eyebrow {
+        font-weight: 800;
+        color: #df7050;
+        letter-spacing: 0.17em;
+        font-size: 11px;
+      }
+      .hero h1 {
+        font-family: Georgia, "Songti SC", serif;
+        font-weight: 500;
+        font-size: clamp(44px, 5vw, 76px);
+        line-height: 1.16;
+        letter-spacing: -0.055em;
+        margin: 22px 0;
+      }
+      .hero h1 em {
+        font-style: normal;
+        color: #e86d49;
+      }
+      .hero p {
+        font-size: 15px;
+        line-height: 1.8;
+        max-width: 690px;
+        color: #625b50;
+      }
+      .stamp {
+        width: 212px;
+        height: 212px;
+        align-self: center;
+        justify-self: center;
+        border-radius: 50%;
+        background: #ee714e;
+        display: grid;
+        place-items: center;
+        position: relative;
+        transform: rotate(-10deg);
+        box-shadow: 18px 19px 0 #f7dcc3;
+      }
+      .stamp:before {
+        content: "✳";
+        font-size: 105px;
+        color: #fff6df;
+      }
+      .stamp:after {
+        content: "BIBO / 09.25";
+        position: absolute;
+        bottom: 32px;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.2em;
+        color: #fff2e5;
+      }
+      .content {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 330px;
+        min-height: 500px;
+      }
+      .main {
+        padding: 38px 70px 70px;
+      }
+      .side {
+        padding: 38px 27px;
+        background: #f3eee4;
+        border-left: 1px solid #e6ddd0;
+      }
+      .section-title {
+        font-size: 11px;
+        color: #b2684b;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        margin-bottom: 17px;
+      }
+      .lead {
+        display: flex;
+        gap: 22px;
+        padding: 23px 0;
+        border-bottom: 1px solid #ece8e0;
+      }
+      .count {
+        font-family: Georgia, serif;
+        font-size: 35px;
+        color: #e97552;
+        line-height: 1;
+      }
+      .lead h2 {
+        font-size: 22px;
+        letter-spacing: -0.045em;
+        margin: 1px 0 8px;
+      }
+      .lead p {
+        font-size: 13px;
+        line-height: 1.7;
+        color: #777064;
+        margin: 0 0 10px;
+      }
+      .sources {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+      }
+      .sources button {
+        border: 1px solid #e4d9ca;
+        background: #fbf8f2;
+        border-radius: 99px;
+        padding: 6px 9px;
+        font-size: 10px;
+        color: #9b6e58;
+      }
+      .sources button:hover {
+        background: #fbe0cf;
+      }
+      .thought {
+        background: #25332d;
+        color: #f3f1e8;
+        padding: 25px;
+        border-radius: 12px;
+        margin-top: 31px;
+      }
+      .thought small {
+        font-size: 10px;
+        color: #a7c5ac;
+        letter-spacing: 0.14em;
+        font-weight: 800;
+      }
+      .thought h3 {
+        font-family: Georgia, "Songti SC", serif;
+        font-size: 24px;
+        font-weight: 500;
+        margin: 15px 0 10px;
+      }
+      .thought p {
+        font-size: 12px;
+        line-height: 1.8;
+        color: #c8d4c6;
+        margin: 0;
+      }
+      .side h3 {
+        font-size: 19px;
+        margin: 0 0 16px;
+        letter-spacing: -0.03em;
+      }
+      .side-item {
+        padding: 16px 0;
+        border-top: 1px solid #ded7ca;
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        font-size: 12px;
+      }
+      .side-item span {
+        color: #a45c40;
+        font-weight: 800;
+      }
+      .side-item strong {
+        font-weight: 600;
+      }
+      .note {
+        font-size: 12px;
+        line-height: 1.7;
+        color: #777064;
+        margin: 25px 0;
+      }
+      .ask {
+        background: #fffdf8;
+        border: 1px solid #ded8ca;
+        border-radius: 13px;
+        padding: 16px;
+      }
+      .ask label {
+        display: block;
+        font-size: 11px;
+        font-weight: 800;
+        margin-bottom: 9px;
+      }
+      .ask textarea {
+        width: 100%;
+        min-height: 63px;
+        resize: vertical;
+        border: 0;
+        background: transparent;
+        font: inherit;
+        font-size: 12px;
+        outline: none;
+      }
+      .ask button {
+        border: 0;
+        background: var(--orange);
+        color: white;
+        border-radius: 7px;
+        padding: 9px 13px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .demo {
+        font-size: 10px;
+        color: #a49b8d;
+        margin-top: 25px;
+      }
+      .toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 10px 16px;
+        border-radius: 8px;
+        background: #283c31;
+        color: white;
+        font-size: 12px;
+        display: none;
+      }
+      .toast.show {
+        display: block;
+      }
+      @media (max-width: 950px) {
+        .hero {
+          grid-template-columns: 1fr;
+          padding: 40px 38px;
+        }
+        .stamp {
+          display: none;
+        }
+        .content {
+          grid-template-columns: 1fr;
+        }
+        .main {
+          padding: 30px 38px;
+        }
+        .side {
+          border-left: 0;
+          border-top: 1px solid #e6ddd0;
+        }
+        .top {
+          padding: 0 38px;
+        }
+      }
+      @media (max-width: 600px) {
+        .top {
+          padding: 0 20px;
+        }
+        .top nav {
+          gap: 12px;
+        }
+        .top a {
+          font-size: 11px;
+        }
+        .date {
+          display: none;
+        }
+        .hero {
+          padding: 36px 22px;
+        }
+        .hero h1 {
+          font-size: 43px;
+        }
+        .main {
+          padding: 25px 22px;
+        }
+        .lead {
+          gap: 13px;
+        }
+        .lead h2 {
+          font-size: 19px;
+        }
+        .side {
+          padding: 28px 22px;
+        }
+      }
+    </style>
+
+    <link rel="stylesheet" href="prototype-app.css" />
+    <link rel="stylesheet" href="prototype-variants.css" />
+    <link rel="stylesheet" href="prototype-detail.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="top">
+        <div class="logo">bibo<span>.</span></div>
+        <nav>
+          <a class="active" href="brief.html">给你的简报</a
+          ><a href="inbox.html">收件箱</a><a href="day.html">日程</a
+          ><a href="desk.html">笔记</a>
+        </nav>
+        <div class="date">FRI 25 SEP</div>
+      </header>
+      <div class="hero">
+        <div>
+          <div class="eyebrow">BIBO / A NOTE FOR YOU</div>
+          <h1>早上好。<br /><em>今天有两件事，</em><br />值得你留意。</h1>
+          <p>
+            我看了你的日程、收件箱和最近的项目笔记。网站上线还有一处需要你拍板；下午的评审时间也可能变化。别的消息今天可以先放下。
+          </p>
+        </div>
+        <div class="stamp" aria-hidden="true"></div>
+      </div>
+      <div class="content">
+        <main class="main">
+          <div class="section-title">今天的两个重点</div>
+          <article class="lead">
+            <div class="count">01</div>
+            <div>
+              <h2>网站上线前，先确认最后两处文案</h2>
+              <p>
+                陈一今早发来了差异。你之前说过这版要先上线，再慢慢完善；这两处确认完，团队就能继续往前走。
+              </p>
+              <div class="sources">
+                <button data-source="收件箱 · 陈一 08:18">来自收件箱 ↗</button
+                ><button data-source="项目笔记 · 网站上线">项目笔记 ↗</button
+                ><button data-source="待办 · 上线清单">相关待办 ↗</button>
+              </div>
+            </div>
+          </article>
+          <article class="lead">
+            <div class="count">02</div>
+            <div>
+              <h2>方案评审可能提前到 14:30</h2>
+              <p>
+                林悦在等你答复。这个时间与现有安排没有冲突，但会压缩准备时间；我建议留
+                15 分钟先看方案。
+              </p>
+              <div class="sources">
+                <button data-source="收件箱 · 林悦 09:42">来自收件箱 ↗</button
+                ><button data-source="日历 · 14:00–15:00">查看日历 ↗</button>
+              </div>
+            </div>
+          </article>
+          <div class="thought">
+            <small>A LONGER THREAD</small>
+            <h3>你一直想为作品集留出时间。</h3>
+            <p>
+              这周先把网站上线收尾。周末如果还有精力，再从这个项目里挑一个值得展示的片段；我会在合适的时候把线索带回来。
+            </p>
+          </div>
+        </main>
+        <aside class="side">
+          <div class="section-title">快速看一眼</div>
+          <h3>今天的空间</h3>
+          <div class="side-item">
+            <strong>需要回应的消息</strong><span>3</span>
+          </div>
+          <div class="side-item">
+            <strong>日程与保留时间</strong><span>4</span>
+          </div>
+          <div class="side-item">
+            <strong>正在推进的待办</strong><span>5</span>
+          </div>
+          <div class="side-item">
+            <strong>新整理的笔记线索</strong><span>2</span>
+          </div>
+          <p class="note">
+            Bibo
+            的判断有来源，也可能不完整。你可以指出它忽略了什么，或者直接改动今天的重点。
+          </p>
+          <form class="ask" id="ask">
+            <label for="message">和 Bibo 说一句</label
+            ><textarea id="message" placeholder="我今天更想先做……"></textarea
+            ><button type="submit">发送给 Bibo ↗</button>
+          </form>
+          <div class="demo">概念演示 · 上述内容不是实际个人数据</div>
+        </aside>
+      </div>
+    </div>
+
+    <script type="module" src="prototype-app.controller.js"></script>
+  </body>
+</html>

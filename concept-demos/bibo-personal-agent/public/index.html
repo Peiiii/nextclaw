@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Bibo · Personal Agent 概念演示</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #ebe8e1;
+        color: #22201d;
+        font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      header {
+        max-width: 1440px;
+        margin: auto;
+        padding: 51px 48px 26px;
+      }
+      p {
+        line-height: 1.7;
+      }
+      .eyebrow {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        color: #d75b36;
+      }
+      h1 {
+        font-size: clamp(35px, 4.1vw, 62px);
+        line-height: 1.12;
+        letter-spacing: -0.055em;
+        margin: 12px 0 16px;
+      }
+      header > p {
+        max-width: 850px;
+        color: #68625a;
+        font-size: 15px;
+        margin: 0;
+      }
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 18px;
+      }
+      .badges span {
+        background: #f8f6ef;
+        border: 1px solid #dad4c9;
+        padding: 7px 10px;
+        border-radius: 99px;
+        font-size: 11px;
+        color: #514b42;
+      }
+      .grid {
+        max-width: 1440px;
+        margin: auto;
+        padding: 12px 48px 55px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 26px;
+      }
+      .card {
+        background: #faf9f6;
+        border-radius: 24px;
+        overflow: hidden;
+        border: 1px solid #d7d2c9;
+        box-shadow: 0 16px 40px #44372a10;
+      }
+      .screen {
+        height: 340px;
+        overflow: hidden;
+        position: relative;
+        background: white;
+      }
+      .screen iframe {
+        width: 1440px;
+        height: 820px;
+        border: 0;
+        transform: scale(0.45);
+        transform-origin: top left;
+        pointer-events: none;
+      }
+      .screen:after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        box-shadow: inset 0 0 0 1px #0000000b;
+        pointer-events: none;
+      }
+      .info {
+        padding: 22px 28px 27px;
+      }
+      .number {
+        color: #d75b36;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.13em;
+      }
+      h2 {
+        font-size: 26px;
+        letter-spacing: -0.04em;
+        margin: 8px 0;
+      }
+      .info p {
+        font-size: 13px;
+        color: #6b645a;
+        margin: 0 0 17px;
+        min-height: 46px;
+      }
+      .info a {
+        display: inline-block;
+        text-decoration: none;
+        background: #26231f;
+        color: white;
+        padding: 11px 15px;
+        border-radius: 9px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .info a:hover,
+      .info a:focus-visible {
+        background: #d75b36;
+        outline: 3px solid #d75b3660;
+        outline-offset: 2px;
+      }
+      .note {
+        max-width: 1344px;
+        margin: 0 auto 55px;
+        background: #ded8cb;
+        padding: 18px 24px;
+        border-radius: 14px;
+        color: #49443b;
+        font-size: 12px;
+        line-height: 1.8;
+      }
+      .note a {
+        color: #6c3f31;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      @media (max-width: 800px) {
+        header {
+          padding: 35px 20px 21px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+          padding: 8px 20px 28px;
+        }
+        .screen {
+          height: 260px;
+        }
+        .screen iframe {
+          transform: scale(0.34);
+        }
+        .note {
+          margin: 0 20px 35px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="eyebrow">BIBO / PERSONAL AGENT / CONCEPT DEMO</div>
+      <h1>四种方式，开始和 Bibo 一起生活。</h1>
+      <p>
+        每一版都包含概览首页、独立对话，以及可完整浏览的收件箱、日程、待办和笔记。它们展示同一个
+        personal agent 产品的四种视觉与信息组织方式。
+      </p>
+    </header>
+    <main class="grid">
+      <article class="card">
+        <div class="screen">
+          <iframe src="inbox.html" title="通讯优先概览"></iframe>
+        </div>
+        <div class="info">
+          <span class="number">01 / COMMUNICATION</span>
+          <h2>通讯优先</h2>
+          <p>
+            从需要回应的人与事进入，再由 Bibo 帮你看到消息背后的日程和任务。
+          </p>
+          <a href="inbox.html">体验通讯优先 ↗</a>
+        </div>
+      </article>
+      <article class="card">
+        <div class="screen">
+          <iframe src="day.html" title="今日节奏概览"></iframe>
+        </div>
+        <div class="info">
+          <span class="number">02 / DAILY RHYTHM</span>
+          <h2>今日节奏</h2>
+          <p>把一天的时间感作为首页，区分已安排的事和 Bibo 提出的建议。</p>
+          <a href="day.html">体验今日节奏 ↗</a>
+        </div>
+      </article>
+      <article class="card">
+        <div class="screen">
+          <iframe src="brief.html" title="Bibo 来信概览"></iframe>
+        </div>
+        <div class="info">
+          <span class="number">03 / COMPANION INTELLIGENCE</span>
+          <h2>Bibo 来信</h2>
+          <p>
+            以 Bibo 的观察开场，像一封简短的私人来信，具体行动仍在各模块完成。
+          </p>
+          <a href="brief.html">体验 Bibo 来信 ↗</a>
+        </div>
+      </article>
+      <article class="card">
+        <div class="screen">
+          <iframe src="desk.html" title="共同工作桌概览"></iframe>
+        </div>
+        <div class="info">
+          <span class="number">04 / PERSONAL SPACE</span>
+          <h2>共同工作桌</h2>
+          <p>保留桌面、卡片和 Bibo 角色。卡片本身就是进入完整模块的入口。</p>
+          <a href="desk.html">体验共同工作桌 ↗</a>
+        </div>
+      </article>
+    </main>
+    <div class="note">
+      这是用于比较方向的交互概念演示，内容均为虚构示例；对话、邮件与日历动作不会连接真实服务。最初的<a
+        href="desk-original.html"
+        >共同工作桌视觉稿</a
+      >单独保存，可随时对照。
+    </div>
+  </body>
+</html>

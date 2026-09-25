@@ -1,0 +1,11 @@
+{
+  "name": "nextclaw-concept-bibo-personal-agent",
+  "account_id": "adb27b39051202962038992eeaf8f6bb",
+  "compatibility_date": "2026-09-25",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./public",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}
