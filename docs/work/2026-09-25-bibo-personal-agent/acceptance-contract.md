@@ -67,11 +67,11 @@ BIBO-02 / BIBO-09 / BIBO-12 最新细化：重复点击新会话不发起创建�
 | BIBO-06 | true | passed | 本 ID 的目录树/标签/笔记文件同源与 CRUD 已经本地真实服务、冲突测试和云端读写验证；专用类型预览等详细扩展未冒充完成 | — |
 | BIBO-07 | true | not-run | 领域模块与统一 help/call 服务测试通过；线上真实模型创建文件、前端读取精确内容已通过，其他领域真实模型代表场景待完成 | — |
 | BIBO-08 | true | failed | restore-099a2907 已通过真实 runtime ID 改变证明进程重启，五类对象一致、清理完成；未使用不可靠的 CLI created 字段作判定。前一轮 stopped 后首次读取 500 仍待查 | 新进程恢复已证明，单次首请求 500 尚未查明 |
-| BIBO-09 | true | not-run | Studio 概念页不能证明正式产品 | — |
+| BIBO-09 | true | not-run | 正式实现已有三尺寸正常内容及 320/390/768/1440 七模块长标题回归；正式站四尺寸真实多会话、标题/按钮边界、重命名完整值、刷新通过。原型一致性与逐模块完整对标仍开放，不以局部回归标全项通过 | — |
 | BIBO-10 | true | not-run | 已有账号认证，新增领域未验证 | — |
 | BIBO-11 | true | not-run | 设计和工作记录已开始，正式功能尚未验证 | — |
 | BIBO-12 | true | passed | 中性 personal-agent-ui 提供实际使用的表单/列表/反馈/图标/模态/抽屉/菜单；桌面手机 hover、键盘焦点、禁用、失败保留与嵌套 Esc 验证通过 | — |
-| BIBO-13 | true | not-run | 3febfbfc3 已推送远程 master，正式 Worker e2f4f67f；容器 rollout completed/100% 已查询确认，真实 runtime ID 验证新镜像生效。真实模型文件、桌面手机 CRUD、多会话及新进程恢复有证据，整体验收仍开放；本地主干 WIP 由回收重试接管 | — |
+| BIBO-13 | true | not-run | 9b89d15db 已推送远程 master，前端修复部署 Worker f25a93b6；保留前次 completed/100% 且实际 runtime ID 已验证的容器镜像。正式站四尺寸长标题与会话回归通过，真实模型文件、桌面手机 CRUD、多会话及新进程恢复有证据，整体验收仍开放；本地主干 WIP 由回收重试接管 | — |
 
 ### 当前阶段门
 
