@@ -259,8 +259,11 @@
 .bibo-tree-row.is-selected:hover { background: var(--ui-selection-hover); }
 .bibo-tree-row.is-selected { background: var(--ui-selection); }
 .bibo-tree-main { flex: 1; display: flex; align-items: center; gap: 7px; overflow: hidden; border: 0; background: none; text-align: left; color: #576a5a; cursor: pointer; font-size: 12px; }
-.bibo-tree-main span:last-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.bibo-tree-main span:first-child { color: #91a28d; width: 13px; }
+.bibo-tree-name { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.bibo-tree-disclosure { flex: none; width: 13px; height: 13px; color: #91a28d; }
+.bibo-tree-disclosure svg, .bibo-file-kind-icon svg { display: block; width: 13px; height: 13px; stroke-width: 1.8; }
+.bibo-file-kind-icon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 15px; height: 15px; color: #829b83; }
+.bibo-tree-row.is-selected .bibo-file-kind-icon, .bibo-file-tab.is-active .bibo-file-kind-icon { color: var(--bibo-leaf); }
 .bibo-tree-empty { font-size: 11px; color: #a0aa9c; padding: 0 13px; }
 .bibo-note-list { overflow-y: auto; }
 .bibo-note-list .ui-list-row { display: block; min-height: 65px; }
@@ -272,7 +275,8 @@
 .bibo-file-tabs { display: flex; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
 .bibo-file-tab { display: flex; align-items: center; flex: none; max-width: 220px; border-right: 1px solid var(--bibo-hairline); }
 .bibo-file-tab.is-active { background: #f0f4ed; box-shadow: inset 0 -2px var(--bibo-leaf); }
-.bibo-file-tab > button:not(.ui-icon-button) { border: 0; background: none; color: var(--ui-muted); font-size: 11px; cursor: pointer; padding: 12px 5px 12px 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bibo-file-tab > button:not(.ui-icon-button) { display: flex; align-items: center; gap: 6px; min-width: 0; border: 0; background: none; color: var(--ui-muted); font-size: 11px; cursor: pointer; padding: 12px 5px 12px 14px; }
+.bibo-file-tab > button:not(.ui-icon-button) > span:not(.bibo-file-kind-icon) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bibo-file-tab:hover { background: var(--ui-hover); }
 .bibo-file-tab.is-active:hover { background: var(--ui-selection-hover); }
 .bibo-file-editor { flex: 1; min-height: 0; display: flex; flex-direction: column; }

@@ -3,7 +3,8 @@ import type { BiboFile } from "@nextclaw/bibo-client";
 import { Button, IconButton, Input, ListRow } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { FileActions } from "./file-actions";
-import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import { FileKindIcon } from "./file-kind-icon";
+import { ChevronDown, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 type CreateFile = (path: string, kind?: BiboFile["kind"]) => void;
 const parentPath = (path: string): string => path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
 function indexFileTree(files: BiboFile[], expanded: Record<string, boolean>) {
@@ -33,6 +34,7 @@ function FileSearchResults() {
           key={file.id}
           onClick={() => (file.kind === "folder" ? void searchFiles(`${file.path}/`) : void openFile(file.id))}
         >
+          <FileKindIcon file={file} />
           <span>
             <strong>{file.path.split("/").at(-1)}</strong>
             <small>{file.path}</small>
@@ -104,10 +106,11 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
               onKeyDown={(event) => treeKeys(event, file)}
               onClick={() => (file.kind === "folder" ? toggleFolder(file.id) : void openFile(file.id))}
             >
-              <span aria-hidden="true">
-                {file.kind === "folder" ? (expanded[file.id] ? "⌄" : "›") : file.kind === "note" ? "≡" : "▤"}
+              <span className="bibo-tree-disclosure" aria-hidden="true">
+                {file.kind === "folder" ? expanded[file.id] ? <ChevronDown /> : <ChevronRight /> : null}
               </span>
-              <span>{file.path.split("/").at(-1)}</span>
+              <FileKindIcon file={file} expanded={!!expanded[file.id]} />
+              <span className="bibo-tree-name">{file.path.split("/").at(-1)}</span>
             </button>
             {file.kind === "folder" && <>
               <IconButton label={`在 ${file.path} 下创建`} icon={<Plus />} tabIndex={tabStop === file.id ? 0 : -1} onClick={() => onCreate(file.path)} />

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button, Dialog, EmptyState, IconButton } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { FileEditor } from "./file-editor";
+import { FileKindIcon } from "./file-kind-icon";
 export function FileWorkbench({ notesOnly }: { notesOnly: boolean }) {
   const { files, tabs, activeFileId, fileDetails, fileDrafts, openFile, closeFile, saveFile, showFileBrowser } =
     useBiboSpaceStore();
@@ -45,7 +46,8 @@ export function FileWorkbench({ notesOnly }: { notesOnly: boolean }) {
             return (
               <div key={id} className={`bibo-file-tab${activeFileId === id ? " is-active" : ""}`}>
                 <button title={file?.path} onClick={() => void openFile(id)}>
-                  {file?.path.split("/").at(-1) ?? "已删除"}
+                  {file && <FileKindIcon file={file} />}
+                  <span>{file?.path.split("/").at(-1) ?? "已删除"}</span>
                   {fileDrafts[id]?.dirty ? " •" : ""}
                 </button>
                 <IconButton label={`关闭 ${file?.path ?? "文件"}`} icon={<X />} disabled={fileDrafts[id]?.saving}
