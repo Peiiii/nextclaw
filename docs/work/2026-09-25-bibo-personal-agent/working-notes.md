@@ -10,6 +10,10 @@
 
 ### 正式部署与真实链路（2026-09-25）
 
+- 最新实际运行源码 `3febfbfc3e8f345cc64ecceec5e2922c8eb334c0`，Worker `e2f4f67f-9e61-49bd-b8ec-158502dae14b`，镜像 SHA256 `87e7a014840bd480d84fda492b6edcbd5a9e2efed816abf31535057c5bea13d0`。部署退出 0 后仍曾读到旧镜像；已通过 Containers rollout `239afc7a-5bc6-4f3d-a75e-041698df3ec6` 核实目标版本 14、100%/5 个实例、completed at `12:08:42.278Z`，随后真实 API 读到 runtime 标识。按 [Cloudflare rollout 合同](https://developers.cloudflare.com/containers/configuration/rollouts/)，以后不能只凭 deploy exit 0 判定容器全部更新。
+- 真正进程级冷恢复 `restore-099a2907` 退出 0：休眠前标识 `ce5d2c0f-3afc-4d6b-94ec-3b6f439ba58f`，平台 stopped 后读取变成 `19d8bf3b-1434-46df-810f-daf168e5b1ed`；项目、任务、日程、文件、既有测试收件箱均一致，四类新建对象已清理。此证据独立于平台 created 字段。早先首请求 500 仍未获错误正文；查询 `11:30–11:38 UTC` 的采样 Worker 日志未找到对应 5xx，不能凭无日志断定无故障。对应旧版本 rollout 实际运行至 `11:35:55.975Z`，与当时测试窗口接近；只能列为待核实相关性，不能认定根因。
+- 启动标识首轮测试发生在 rollout 尚未完成时，旧 runner 响应没有该头，脚本提前失败；已按精确名称清理漏记 ID 的单个测试项目 `restore-55595837`。后续脚本先保留已创建对象的清理信息再做诊断断言，避免断言掩盖清理。
+
 - 最新生产源码为已推送远程 master 的 `c72071476cf42b9f992764c19384d2218f3cb33d`，含跨会话 pending 恢复修正。首次发布在 Worker/静态资源及镜像上传后，Containers applications 查询返回 401，属于部分发布；随后同版本 CLI 只读查询恢复正常，通过原 `deploy` 入口重试成功，退出 0。最终 Worker `d7e265c8-195c-4364-ab86-3a4d96a2c75b`，容器镜像 SHA256 `0db2443740bb958dfdd8054cc29611af05933a1249156060f3afd2f2ebe57fc9`，正式入口 `https://app.bibo.bot/`。没有凭此关闭整体验收；冷启动首请求异常和受模型额度限制的追加 Agent 场景仍待关闭。
 - 主线回收已运行并退出 0；本地 master 有其他任务的已跟踪 WIP，因此进入 `LOCAL_WORKTREE_RETRYING`，复用自动重试 worker，不覆盖或暂存该 WIP。远程 master 已包含本任务提交，本地主干镜像尚未快进，二者不混称。
 - 最终版本恢复复验 `restore-0bb8b5c7`：平台显示 inactive 后，五类内容全部一致，清理成功；但实例 created 从 `11:59:25.365Z` 返回到 `11:58:48.440Z`。因此 CLI 的 created 不可单独作为新进程启动证明；脚本退出 0 仅证明了当前读取断言，不能据此关闭冷恢复。前一轮 `restore-5b92e55c` 在初始查询拿到 stopped，因测试强制要求 running 而中止，写入本身成功且对象已清理。此前“created 改变证明重启”的结论需收窄，后续需要进程自身的启动标识或平台可靠事件证据。
