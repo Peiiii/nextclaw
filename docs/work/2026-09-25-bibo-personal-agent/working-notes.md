@@ -2,7 +2,7 @@
 
 ## 恢复入口
 
-- contract-id：`bibo-personal-agent-2026-09-25`；[验收合同](./acceptance-contract.md)，scope-revision `4`（补充统一交互组件及逐模块产品对标，保留正式上线交付）。
+- contract-id：`bibo-personal-agent-2026-09-25`；[验收合同](./acceptance-contract.md)，scope-revision `5`（补充统一交互组件、逐模块对标与 Markdown 专项，保留正式上线交付）。
 - [实现前对齐方案](../../designs/2026-09-25-bibo-personal-agent-implementation-alignment.design.md)、[界面概念设计](../../designs/2026-09-25-bibo-personal-agent-interface-concepts.design.md)、[持续日志](../../logs/2026-09-25-bibo-personal-agent/README.md)。
 - 工作区：`/Users/peiwang/Projects/nextbot-bibo-personal-agent-concepts`；分支：`codex/bibo-personal-agent-concepts`。产品首批实现已提交并推送远程 master：`f7b646a18029d4771052108b6e5814218f4726ec`。已从该干净、冻结的主干 SHA 部署 Cloudflare；以下旧段落中的“未提交/部署”是历史记录，以本节为准。
 
@@ -12,8 +12,13 @@
 
 - 用户在手机触控打开左上角导航时看到浮在抽屉外的 tooltip。本地 390px 真实触控复现：焦点自动落到弹层「关闭导航」图标，其 Tooltip 立即开启；截图 `/tmp/bibo-mobile-tooltip-before.png` 已目视确认。另发现关闭抽屉后焦点恢复到「打开菜单」时也会出现提示。
 - 复用 Radix 焦点管理和公共 `IconButton`：无初始输入时把初始焦点放在有名称的弹层容器；弹层关闭图标和导航触发图标禁用多余 tooltip，保留 aria-label；其它图标提示照常。键盘 Tab 可进入关闭按钮，单次 Escape 关闭、焦点回到触发器。
-- 手机 390/320 真实触控打开、点击关闭、键盘 Tab/Escape、焦点恢复及 400ms 提示延迟后均无误弹；更改前的首次测试观察到关闭按钮 tooltip，初改又暴露提示拦截 Escape，均据此修正。截图 `/tmp/bibo-mobile-tooltip-after-{390,320}.png` 已复核。公共包和 Bibo 三范围 tsc、构建后全量客户端 smoke（64241）通过。Review 与发布结果另补；Markdown 专项用户新要求仍保留在当前大型交付。
+- 手机 390/320 真实触控打开、点击关闭、键盘 Tab/Escape、焦点恢复及 400ms 提示延迟后均无误弹；更改前的首次测试观察到关闭按钮 tooltip，初改又暴露提示拦截 Escape，均据此修正。截图 `/tmp/bibo-mobile-tooltip-after-{390,320}.png` 已复核。公共包和 Bibo 三范围 tsc、构建后全量客户端 smoke 通过。修复提交 `86b8760e9` 已推送远程 master，Worker `0a07e3d3-7062-40e8-a958-68d9230313e9` 部署；正式站 320/390 真实触控、400ms 等待、Tab、单次 Escape 及焦点返回验证均无误弹。本地主干因其它任务 WIP 由 retry worker 保护，不覆盖源区。
 - 上一轮失效会话引用修复 `f47c36e55` 已推送远程 master，Worker `4e0c1191-73eb-4ca0-ab0a-258712997c6a` 部署；正式站 `source-ae4c92bb` 在 1440/390 使用真实创建后删除的会话验证 404、失效链接保留、有效会话选择与未登录拒绝，清理完成。本地主干仍因另一任务 WIP 由 retry worker 保护。该证据只关闭失效会话子链路，不冒充全部来源对象或账号隔离验收。
+
+### Markdown 阅读专项（BIBO-09，2026-09-25）
+
+- 与项目现有 NextClaw 渲染器及 ChatGPT 的代码块操作对照：Bibo 原有 GFM 基础解析，但聊天独享排版样式，文件/收件箱不一致；代码无语言/复制/高亮，图片只显替代文字，公式及图表未渲染。选择扩充中性 `personal-agent-ui` 共用 Markdown，而非引入 NextClaw 聊天私有上下文，方案补入对齐设计。
+- 已实现共用排版、围栏代码高亮与复制、公式、按需 Mermaid、源码切换、HTTPS 图片失败回退及安全链接策略；原 Markdown 文件仍是唯一正文真源。有效图表和无效回退、复制原始代码含行尾、桌面及 390/320 手机真实笔记预览已验证；截图 `/tmp/bibo-markdown-{1440,390,320}.png` 与 `/tmp/bibo-markdown-final-320.png`，页面无横向溢出。3 项共用渲染器测试、公共包/宿主 tsc、完整客户端 smoke、targeted ESLint 与 diff-only maintainability 通过（0 问题）。维护性检查曾指出根组件目录越界，已按 Markdown 职责拆入子目录后复验。临时验收笔记已删除；线上版本与真实站结果在部署后补。
 
 ### 失效会话来源纠偏（BIBO-10，2026-09-25）
 

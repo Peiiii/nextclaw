@@ -16,3 +16,5 @@ Restore the chat workspace selection after refresh, preserve close and selection
 Keep missing conversation links identifiable, return a not-found response for deleted history, and avoid silently switching to another conversation.
 
 Prevent mobile navigation drawers from opening icon tooltips on automatic focus, while preserving keyboard focus and Escape behavior.
+
+Improve shared Markdown reading in chat, inbox, and file previews with code highlighting and copying, math, Mermaid diagrams, safe image fallback, and consistent small-screen layout.

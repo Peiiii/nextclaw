@@ -2,7 +2,8 @@ import "./styles/theme.css";
 import "./styles/overlays.css";
 
 export { Button } from "./components/button";
-export { Message, Markdown } from "./components/message";
+export { Message } from "./components/message";
+export { Markdown, type MarkdownLabels } from "./components/markdown/markdown";
 export { Composer } from "./components/composer";
 export { Field, Input, Select, Textarea } from "./components/field";
 export { SegmentedControl } from "./components/segmented-control";
