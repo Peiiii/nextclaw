@@ -1,20 +1,23 @@
 import { createBrowserRouter, matchRoutes } from "react-router";
+import { createElement } from "react";
 import type { BiboView } from "@/features/space";
 
 const views: BiboView[] = ["overview", "chat", "inbox", "calendar", "tasks", "notes", "files"];
 const routes = [
-  { index: true, handle: { view: "overview" as BiboView } },
+  { index: true, handle: { view: "overview" as BiboView }, lazy: async () => ({ Component: (await import("@/features/chat")).SpacePage }) },
   ...views.filter((view) => view !== "overview").map((view) => ({
     path: view === "chat" ? "chat/:sessionId?" : view,
     handle: { view },
+    lazy: async () => ({ Component: (await import("@/features/chat"))[view === "chat" ? "ChatPage" : "SpacePage"] }),
   })),
-  { path: "*", handle: { view: "overview" as BiboView, notFound: true } },
+  { path: "*", handle: { view: "overview" as BiboView, notFound: true }, lazy: async () => ({ Component: (await import("@/features/chat")).NotFoundPage }) },
 ];
 let router: ReturnType<typeof createBrowserRouter>;
 
 export function initializeWorkspaceRouter() {
   router = createBrowserRouter([{
     path: "/",
+    hydrateFallbackElement: createElement("div", { role: "status", className: "workspace-loading" }, "正在打开…"),
     lazy: async () => ({ Component: (await import("@/features/chat")).BiboApp }),
     children: routes,
   }]);
@@ -22,7 +25,7 @@ export function initializeWorkspaceRouter() {
 }
 
 export function readWorkspaceRoute(pathname = router.state.location.pathname) {
-  const match = matchRoutes(routes, pathname)?.at(-1);
+  const match = matchRoutes(routes.map((route) => ({ path: route.path ?? "", handle: route.handle })), pathname)?.at(-1);
   return { view: match?.route.handle?.view ?? "overview", sessionId: match?.params.sessionId ?? null,
     notFound: match?.route.handle && "notFound" in match.route.handle ? true : false };
 }
