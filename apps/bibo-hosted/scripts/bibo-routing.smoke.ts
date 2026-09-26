@@ -18,10 +18,15 @@ const at = "2026-09-26T00:00:00.000Z";
 
 async function mockNavigation(page: Page) {
   let sessionIds = ["a", "b"];
+  let signedIn = true;
   const state = { creates: 0, delayB: false, waitingB: false, releaseB: () => {} };
   await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
     const sessionId = url.searchParams.get("id");
+    if (url.pathname === "/api/auth/logout") signedIn = false;
+    if (url.pathname === "/api/auth/login") signedIn = true;
+    if (url.pathname === "/api/auth/me" && !signedIn) return route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ error: "请登录" }) });
+    if (url.pathname === "/api/sessions") await new Promise((resolve) => setTimeout(resolve, 100));
     if (url.pathname === "/api/sessions/delete") {
       sessionIds = sessionIds.filter((id) => id !== route.request().postDataJSON().id);
       return route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true }) });
@@ -32,7 +37,8 @@ async function mockNavigation(page: Page) {
     }
     if (url.pathname === "/api/sessions" && route.request().method() === "POST") state.creates++;
     const action = route.request().method() === "POST" ? String(route.request().postDataJSON().action) : "";
-    const response = url.pathname === "/api/auth/me" ? { user: { id: "routing-test", email: "test@example.com" } }
+    const response = url.pathname === "/api/auth/me" || url.pathname === "/api/auth/login" ? { user: { id: "routing-test", email: "test@example.com" } }
+      : url.pathname === "/api/auth/logout" ? { ok: true }
       : url.pathname === "/api/sessions" ? { sessions: sessionIds.map((id) => ({ id, title: `会话 ${id.toUpperCase()}`, createdAt: at, updatedAt: at, messageCount: 1 })) }
         : url.pathname === "/api/history" ? { messages: [{ role: "assistant", text: `正文 ${sessionId}`, at }] }
           : action === "overview.get" ? { result: { inbox: [], tasks: [], events: [], notes: [], projects: [], counts: { unread: 0, activeTasks: 0 } } }
@@ -101,13 +107,7 @@ async function checkSelectionRace(page: Page, state: Awaited<ReturnType<typeof m
   assert.equal(new URL(page.url()).searchParams.get("session"), "a");
 }
 
-async function verifyViewport(page: Page, width: number) {
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  const state = await mockNavigation(page);
-  await page.goto(`${base}/?view=chat&session=a`, { waitUntil: "networkidle" });
-  await checkHistory(page);
-  await checkSelectionRace(page, state);
+async function checkDeletion(page: Page) {
   await chooseSession(page, "会话 B");
   await page.getByText("正文 b", { exact: true }).waitFor();
   const row = (await sidebar(page)).locator(".bibo-session-wrap").filter({ has: page.getByRole("link", { name: "会话 B", exact: true }) });
@@ -120,6 +120,31 @@ async function verifyViewport(page: Page, width: number) {
   await page.getByText("正文 a", { exact: true }).waitFor();
   const link = (await sidebar(page)).getByRole("link", { name: "会话 A", exact: true });
   assert.equal(await link.getAttribute("href"), "/?view=chat&session=a");
+}
+
+async function checkLogin(page: Page) {
+  await (await sidebar(page)).getByRole("button", { name: "账号与帮助" }).click();
+  await page.getByRole("menuitem", { name: "退出登录", exact: true }).click();
+  await page.locator(".bibo-auth-card").waitFor();
+  await page.goto(`${base}/?view=chat&session=a`, { waitUntil: "networkidle" });
+  const auth = page.locator(".bibo-auth-card");
+  await auth.getByRole("button", { name: "登录", exact: true }).first().click();
+  await auth.getByRole("textbox", { name: "邮箱", exact: true }).fill("test@example.com");
+  await auth.getByLabel("密码", { exact: true }).fill("test-password");
+  await auth.getByRole("button", { name: /登录 ↗/ }).click();
+  await auth.waitFor({ state: "hidden" });
+  await page.getByText("正文 a", { exact: true }).waitFor();
+}
+
+async function verifyViewport(page: Page, width: number) {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const state = await mockNavigation(page);
+  await page.goto(`${base}/?view=chat&session=a`, { waitUntil: "networkidle" });
+  await checkHistory(page);
+  await checkSelectionRace(page, state);
+  await checkDeletion(page);
+  await checkLogin(page);
   for (const view of ["overview", "inbox", "calendar", "tasks", "notes", "files"]) {
     await page.goto(`${base}/${view === "overview" ? "" : `?view=${view}`}`, { waitUntil: "networkidle" });
     await sidebar(page);

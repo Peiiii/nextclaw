@@ -15,6 +15,7 @@
 - 本地正式构建在 1440/390px 验证前进/后退、跨模块草稿、空白会话、刷新、各模块直接链接、慢 history 竞态及失效链接；导航全程 POST sessions 数为 0。完整客户端 smoke 与可控 SSE 输入面板 smoke 通过，space store 9 项测试及 Worker/client/runner tsc 通过。定向 ESLint、目录/参数 owner 治理及 backlog ratchet 通过；diff maintainability 无 error，既有 store/smoke 的两条接近预算 warning 保留，未为清 warning 扩大重构。
 - 主观 Review 重点复核路由 owner、账号 reset、bootstrap 中途导航、生成期间历史导航及删除当前会话：URL 只由 Router 修改，数据与草稿不搬入 Router，bootstrap 旧路由结果不纠正新地址，删除只发导航并由路由加载目标会话。implementation-review: passed。本轮服务 API 与模型协议未改变；浏览器模拟 API/SSE 证据不替代真实模型或后端端到端验收。未发送草稿刷新持久化仍未提供。
 - 复盘：问题通过删除平行 History owner 与持久路由回归测试解决，已写回现有设计与本记录；无证据需要新增全局规则或 skill。本轮为路由专项，不关闭大型交付其余开放验收项。
+- 发布前增补：审查发现重新登录时 user 就绪早于会话列表，路由同步可能抢占 bootstrap；bootstrap 明确关闭 authChecked 就绪门，退出明确恢复鉴权已检查状态。1440/390 在未登录的直接会话链接上完成登录，刻意延迟 sessions 响应后仍恢复目标正文；删除当前会话、刷新及完整可控 SSE 输入面板回归同时通过。路由专项脚本按历史、竞态、删除和登录链路拆验证函数，diff 检查未引入函数预算违规。
 
 ### 手机导航抽屉提示纠偏（UI-00 / BIBO-09，2026-09-25）
 

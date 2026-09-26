@@ -109,6 +109,7 @@ class BiboChatOwner {
 
   bootstrap = async (): Promise<void> => {
     const request = ++this.selectionRequest;
+    this.set({ authChecked: false });
     try {
       const user = await biboClient.account();
       if (request !== this.selectionRequest) return;
@@ -165,7 +166,7 @@ class BiboChatOwner {
     const user = this.get().user;
     if (user) sessionStorage.removeItem(pendingKey(user.id));
     try { await biboClient.logout(); } catch { /* Clear the local session view. */ }
-    this.set({ user: null, sessions: [], activeSessionId: null, messages: [], draft: "", drafts: {}, failedMessages: {}, sessionLoading: false, status: "", menuOpen: false });
+    this.set({ user: null, authChecked: true, sessions: [], activeSessionId: null, messages: [], draft: "", drafts: {}, failedMessages: {}, sessionLoading: false, status: "", menuOpen: false });
     replaceConversationContext(null);
   };
 
