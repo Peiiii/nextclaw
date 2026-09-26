@@ -31,7 +31,9 @@ button, input, textarea { font: inherit; }
 .bibo-suggestions .ui-button span:first-child { color: #749c80; font-size: 17px; }
 .bibo-suggestions .ui-button span:last-child { color: #9cab9f; }
 .bibo-messages { display: flex; flex: 1; align-self: center; flex-direction: column; gap: 26px; width: min(920px, 100%); min-height: 0; margin: 0; padding: 30px 32px 32px; overflow-y: auto; overflow-x: hidden; overflow-anchor: none; }
-.bibo-jump { position: absolute; z-index: 1; bottom: 10px; left: 50%; transform: translateX(-50%); background: var(--bibo-surface); border: 1px solid var(--bibo-line); border-radius: 99px; box-shadow: 0 5px 18px #263d2b20; white-space: nowrap; }
+.bibo-jump.ui-icon-button { position: absolute; z-index: 1; bottom: 12px; left: 50%; transform: translateX(-50%); width: 36px; height: 36px; padding: 0; background: var(--ui-surface); border: 1px solid var(--ui-control-border); border-radius: 50%; box-shadow: 0 2px 8px #263d2b16; }
+.bibo-jump.ui-icon-button:enabled:hover { background: var(--ui-hover); }
+@media (pointer: coarse) { .bibo-jump.ui-icon-button { width: 44px; height: 44px; } }
 .bibo-composer-wrap { width: min(920px, 100%); flex: none; align-self: center; padding: 0 32px max(15px, env(safe-area-inset-bottom)); }
 .bibo-status { min-height: 24px; color: #a75c47; font-size: 12px; padding: 0 3px 5px; }
 .bibo-auth-overlay { position: fixed; z-index: 10; inset: 0; display: grid; place-items: center; background: #1d2e27a6; padding: 22px; backdrop-filter: blur(6px); }

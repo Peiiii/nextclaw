@@ -13,7 +13,7 @@ export const biboCopy = {
   copied: "已复制",
   copyFailed: "无法复制，请手动选择文字。",
   you: "你",
-  backToLatest: "回到最新 ↓",
+  backToLatest: "回到最新",
   login: "登录",
   register: "注册",
   email: "邮箱",

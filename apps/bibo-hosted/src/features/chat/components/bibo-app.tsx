@@ -4,7 +4,7 @@ import { biboCopy as copy } from "@/features/chat/configs/bibo-copy.config";
 import { useBiboChatStore } from "@/features/chat/stores/bibo-chat.store";
 import { BiboSpaceView, BiboWorkspace, useBiboSpaceStore, type BiboView } from "@/features/space";
 
-import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ArrowDown, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { SessionNavigation } from "./session-navigation";
 import { AccountMenu } from "./account-menu";
 
@@ -146,7 +146,7 @@ export function BiboApp() {
           {store.pendingMessage && <><Message role="user" text={store.pendingMessage} label={copy.you} pending />
             <Message role="assistant" text={store.partial} label="Bibo" mark="✳" waitingLabel={copy.waiting} pending /></>}
         </div>}
-        {hasMessages && !store.following && <Button className="bibo-jump" onClick={jumpToLatest}>{copy.backToLatest}</Button>}
+        {hasMessages && !store.following && <IconButton className="bibo-jump" label={copy.backToLatest} icon={<ArrowDown size={18} />} tooltip={false} onClick={jumpToLatest} />}
       </section>
       <div className="bibo-composer-wrap">
         <div className="bibo-status" role="status" aria-live="polite">{store.status}</div>
