@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { BiboEvent } from "@nextclaw/bibo-client";
-import { Button, EmptyState, IconButton, ListRow, SegmentedControl } from "@nextclaw/personal-agent-ui";
+import { Button, Dialog, EmptyState, IconButton, ListRow, SegmentedControl } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import {
   calendarEventLayout,
@@ -247,6 +247,7 @@ export function CalendarView() {
     readStatus,
     error,
     load,
+    saving,
   } = useBiboSpaceStore();
   const [mode, setMode] = useState<CalendarMode>("month");
   const [creating, setCreating] = useState(false);
@@ -318,7 +319,7 @@ export function CalendarView() {
       {status !== "ready" ? <div className="bibo-read-state" role={status === "error" ? "alert" : "status"}>
         <EmptyState title={status === "error" ? "暂时无法读取日程" : "正在读取日程"} detail={status === "error" ? error || "请检查连接后重试。" : undefined} />
         {status === "error" && <Button tone="secondary" onClick={() => void load("calendar")}>重试读取</Button>}
-      </div> : <div className={`calendar-stage${detailsOpen || creating || selected ? " is-detail-open" : ""}`}>
+      </div> : <div className={`calendar-stage${detailsOpen && !creating && !selected ? " is-detail-open" : ""}`}>
         <div className="calendar-surface">
           {mode === "month" ? (
             <CalendarMonthGrid
@@ -346,15 +347,6 @@ export function CalendarView() {
           <Button className="calendar-mobile-back" tone="text" onClick={closeDetails}>
             ← 返回{mode === "month" ? "月历" : "时间表"}
           </Button>
-          {creating || selected ? (
-            <EventForm
-              key={selected?.id ?? `new-${anchor.toDateString()}`}
-              event={selected}
-              date={anchor}
-              slot={slot}
-              onDone={closeDetails}
-            />
-          ) : (
             <CalendarAgenda
               onSelect={() => {
                 setCreating(false);
@@ -362,9 +354,13 @@ export function CalendarView() {
               }}
               onCreate={() => create()}
             />
-          )}
         </aside>
       </div>}
+      <Dialog open={creating || Boolean(selected)} title={selected ? "编辑日程" : "新日程"} closeLabel="关闭日程编辑" busy={saving}
+        onOpenChange={(open) => { if (!open) closeDetails(); }}>
+        {(creating || selected) && <EventForm key={selected?.id ?? `new-${slot?.toISOString() ?? anchor.toDateString()}`}
+          event={selected} date={anchor} slot={slot} onDone={closeDetails} />}
+      </Dialog>
     </div>
   );
 }

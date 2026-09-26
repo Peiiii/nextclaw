@@ -1,5 +1,15 @@
 # Bibo Personal Agent 当前工作记录
 
+## 2026-09-26 Tailwind 与操作容器纠偏（进行中）
+
+- 用户明确要求个人工作台技术栈统一采用 Tailwind CSS。Vite 已接入 Tailwind 4.3.3；共享 UI、chat 与 space 四份样式通过 utility / @apply 生成，品牌无关 token 继续归公共主题，基础按钮直接消费 utility。目录动态宽度仍为运行时数值，不新增 CSS-in-JS。依赖锁变化包含 Tailwind 引入的 jiti 2.7.0 peer 重解析，不升级其它业务依赖。
+- 对齐方案补充逐模块操作容器审查，执行依赖见 `docs/plans/2026-09-26-个人工作台交互与样式统一.plan.md`。任务丰富详情与日程改公共 Dialog，保存失败在弹窗内反馈；整行任务反馈归 ListRow composite，完成与详情按钮并列；目录收起完全移除列，展开入口进入编辑工具栏，收放转移键盘焦点。
+- 定向真实本地域 smoke 在 1440/390/320 通过：任务连续新增、失败重试、在途输入、丰富详情、标题居中与整行 hover、月历双击、半小时时段、日期校验、弹窗居中、目录全宽与 Enter 恢复。弹窗最初截图位于动画中，等待实际 animation.finished 后重新截图目视正常；一次验证脚本内嵌具名函数受 tsx __name 转换影响，去掉局部函数后通过。共享/应用三范围 tsc 通过；完整共享样式回归、Review、提交上线待闭合。
+- 正式服务一次隔离测量：task.create 8496ms，task.list 2002ms，project.list 710ms，overview.get 717ms。客户端 act 在写入后串行等待模块与概览刷新，后端写入含 snapshot 持久化；尚无分段时间，不能断言 8.5 秒全部来自 R2。建议有可恢复失败状态的乐观更新，未将未经建模的假任务加入界面；用户的必要性问询已回答，outbox 设计仍需幂等、账号、并发与刷新恢复合同。
+- 本轮单代理；主工作区 thought WIP 未动。当前仅本地改动，未将本轮或父合同宣称完成。
+- 收尾验证：共享包 tsc、应用 Worker/client/runner tsc 与定向 ESLint 通过；完整 product（含七模块、长标题、移动抽屉）、Markdown、composer、routing 回归通过。原 smoke 直接点击编辑背景导航不适用于模态交互，改为 Escape 后导航，再打开任务验证同一草稿。新专项确认失败错误留在编辑窗、删除确认 Escape 只关顶层、再次打开保留草稿；三尺寸通过。弹层验收等待焦点与入场动画稳定，截图不再把中间动画当最终外观。
+- diff-only maintainability：0 error、1 既有主 smoke 文件预算预警；将独立 API fixture 从流程断言文件内移至 `personal-workspace.fixture.ts`（preflight 通过），无业务抽象增长。主观 Review 核对数据 owner 未变、公共控件状态单归属、目录焦点与草稿关闭语义；implementation-review: passed。技术栈与功能约束已在原设计 owner 修订，不新增全局 skill/规则。尚无原生手机软件键盘和竞品原生 App 实测；乐观 outbox 未实现。本轮准备集成与上线。
+
 ## 2026-09-26 任务轻量录入与日程直接操作纠偏
 
 - 用户补充：任务必须像 todo 一样随手记录和完成，又能承载丰富详情；日程须比较功能与操作流程，明确要求像钉钉双击新增。对齐设计已补充对应纠偏段落和验收链路；参考 Todoist Quick Add、Linear creating-issues、Google/Apple Calendar 官方文档，未冒充原生竞品实测或完整功能齐平。

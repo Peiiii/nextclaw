@@ -39,6 +39,16 @@ async function checkQuickTasks({ page, prefix, api, created }: PlanningCase) {
     await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "快速添加任务");
     assert.equal((await api<BiboTask>("task.get", { id: task.id })).title, `${prefix}-${suffix}`);
   }
+  const row = page.locator(".ui-list-row-group").filter({ hasText: `${prefix}-first` });
+  const title = await row.locator("strong").boundingBox();
+  const bounds = await row.boundingBox();
+  assert.ok(title && bounds && Math.abs(title.y + title.height / 2 - bounds.y - bounds.height / 2) < 3, "Single-line task title must be vertically centered");
+  const normal = await row.evaluate((element) => getComputedStyle(element).backgroundColor);
+  await row.locator(".task-complete").hover();
+  const completionHover = await row.evaluate((element) => getComputedStyle(element).backgroundColor);
+  assert.notEqual(completionHover, normal, "Completion action must highlight the entire row");
+  await row.locator(".bibo-task-row").hover();
+  assert.equal(await row.evaluate((element) => getComputedStyle(element).backgroundColor), completionHover, "Title and completion gutter must share feedback");
 }
 
 async function checkRichTask({ page, prefix, api, created }: PlanningCase) {
@@ -60,6 +70,37 @@ async function checkRichTask({ page, prefix, api, created }: PlanningCase) {
   assert.equal(saved.description, "完整背景和完成标准");
   assert.equal(saved.priority, "high");
   assert.equal(saved.subtasks[0]?.title, "核对结果");
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await checkTaskDialog(page, `${prefix}-rich`);
+}
+
+async function checkTaskDialog(page: Page, title: string) {
+  await page.locator(".bibo-task-row").filter({ hasText: title }).click();
+  const editor = page.getByRole("dialog", { name: "任务详情", exact: true });
+  await editor.getByRole("textbox", { name: "任务名称", exact: true }).fill(`${title}-draft`);
+  await page.route("**/api/space", async (route) => {
+    const body = route.request().method() === "POST" ? route.request().postDataJSON() : null;
+    if (body?.action === "task.update") await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "详情保存失败" }) });
+    else await route.continue();
+  });
+  await editor.getByRole("button", { name: "保存任务", exact: true }).click();
+  await editor.getByRole("alert").filter({ hasText: "详情保存失败" }).waitFor();
+  await page.unroute("**/api/space");
+  await editor.getByRole("button", { name: "删除任务", exact: true }).click();
+  await page.getByRole("dialog", { name: "删除任务？", exact: true }).waitFor();
+  await page.waitForFunction(() => document.activeElement?.closest('[role="dialog"]')?.querySelector("h2")?.textContent === "删除任务？");
+  await page.getByRole("dialog", { name: "删除任务？", exact: true }).evaluate(async (element) => {
+    await Promise.all(element.getAnimations().map((animation) => animation.finished));
+  });
+  await page.screenshot({ path: `/tmp/workspace-confirm-${page.viewportSize()?.width}.png`, animations: "disabled" });
+  await page.keyboard.press("Escape");
+  await page.getByRole("dialog", { name: "删除任务？", exact: true }).waitFor({ state: "hidden" });
+  assert.equal(await editor.isVisible(), true, "Closing confirmation must keep task editor open");
+  await page.keyboard.press("Escape");
+  await editor.waitFor({ state: "hidden" });
+  await page.locator(".bibo-task-row").filter({ hasText: title }).click();
+  assert.equal(await editor.getByRole("textbox", { name: "任务名称", exact: true }).inputValue(), `${title}-draft`);
+  await editor.getByRole("button", { name: "取消", exact: true }).click();
 }
 
 async function checkFailedTask({ page, prefix, api, created }: PlanningCase) {
@@ -145,7 +186,28 @@ async function checkCalendar({ page, prefix, created }: PlanningCase, width: num
   await page.getByRole("button", { name: / 9:30 新建日程$/ }).click();
   assert.equal((await page.getByLabel("开始", { exact: true }).inputValue()).slice(-5), "09:30");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  await page.locator(".ui-overlay--dialog").evaluate(async (element) => {
+    await Promise.all(element.getAnimations().map((animation) => animation.finished));
+    if (getComputedStyle(element).opacity !== "1") throw new Error("Calendar editor did not finish appearing");
+  });
+  const bounds = await page.locator(".ui-overlay--dialog").boundingBox();
+  assert.ok(bounds && Math.abs(bounds.x + bounds.width / 2 - width / 2) < 2, "Calendar dialog must be centered");
   await page.screenshot({ path: `/tmp/workspace-planning-${width}.png` });
+  await page.keyboard.press("Escape");
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+}
+
+async function checkDirectoryCollapse(page: Page) {
+  await page.goto(`${base}/files`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "收起目录树", exact: true }).click();
+  assert.equal(await page.locator(".bibo-file-tree").isVisible(), false);
+  const editor = await page.locator(".bibo-file-workbench").boundingBox();
+  const workspace = await page.locator(".bibo-files-layout").boundingBox();
+  assert.ok(editor && workspace && Math.abs(editor.width - workspace.width) < 2, "Collapsed tree must leave no rail");
+  await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "展开目录树");
+  await page.keyboard.press("Enter");
+  await page.locator(".bibo-file-tree").waitFor();
+  await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "收起目录树");
 }
 
 async function checkEventTiming(page: Page) {
@@ -188,7 +250,15 @@ async function check(width: number) {
     await checkRichTask(fixture);
     await page.screenshot({ path: `/tmp/workspace-planning-tasks-${width}.png` });
     await checkCalendar(fixture, width);
+    await checkDirectoryCollapse(page);
     console.log(`Planning ${width}: continuous tasks, rich details, month double click, half-hour slot, duration and invalid time passed`);
+  } catch (error) {
+    await page.screenshot({ path: `/tmp/workspace-planning-failed-${width}.png`, animations: "disabled" });
+    console.error("Planning failure focus", await page.evaluate(() => ({
+      label: document.activeElement?.getAttribute("aria-label"),
+      dialog: document.activeElement?.closest('[role="dialog"]')?.querySelector("h2")?.textContent,
+    })));
+    throw error;
   } finally {
     for (const item of owned) {
       const latest = await api<{ version: number }>(`${item.kind}.get`, { id: item.id });

@@ -145,13 +145,13 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
     </div>
   );
 }
-export function FileTree({ onCreate }: { onCreate: CreateFile }) {
-  const { treeCollapsed, toggleTree, treeWidth, resizeTree, fileQuery, searchFiles, cursors, moreLoading, loadMore } = useBiboSpaceStore();
+export function FileTree({ onCreate, onToggle, toggleControlRef }: { onCreate: CreateFile; onToggle: () => void; toggleControlRef: React.RefObject<HTMLButtonElement> }) {
+  const { treeCollapsed, treeWidth, resizeTree, fileQuery, searchFiles, cursors, moreLoading, loadMore } = useBiboSpaceStore();
   const resizeStart = useRef({ x: 0, width: treeWidth });
   return (
     <aside className="bibo-file-tree">
       <div className="bibo-pane-label">
-        <IconButton onClick={toggleTree} label={treeCollapsed ? "展开目录树" : "收起目录树"} icon={treeCollapsed ? <ChevronRight /> : <ChevronLeft />} />
+        <IconButton ref={toggleControlRef} onClick={onToggle} label="收起目录树" icon={<ChevronLeft />} />
         {!treeCollapsed && (
           <>
             <span>目录</span>

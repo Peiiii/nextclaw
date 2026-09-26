@@ -15,7 +15,7 @@ import {
 } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { datetime } from "@/features/space/utils/date-format.utils";
-import { SlidersHorizontal, X } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { TaskForm } from "./task-form";
 
 export function Tasks() {
@@ -60,9 +60,9 @@ export function Tasks() {
   );
   return (
     <div className="bibo-page workspace-page">
-      {!(creating || selected) && <TaskForm quick task={null} onDone={() => { if (taskScope === "done" || taskQuery) filterTasks("", project, taskScope === "done" ? "all" : taskScope); }}
-        onExpand={() => { setCreating(true); selectTask(null); }} />}
-      <div className={creating || selected ? "task-toolbar is-editing" : "task-toolbar"}><TaskToolbar
+      <TaskForm quick task={null} onDone={() => { if (taskScope === "done" || taskQuery) filterTasks("", project, taskScope === "done" ? "all" : taskScope); }}
+        onExpand={() => { setCreating(true); selectTask(null); }} />
+      <div className="task-toolbar"><TaskToolbar
         mode={mode}
         onChangeMode={setMode}
         onProjectEdit={setProjectEditor}
@@ -76,9 +76,7 @@ export function Tasks() {
         />
       )}
       <div
-        className={`bibo-split bibo-task-layout${
-          creating || selected ? " is-detail-open" : ""
-        }`}
+        className="bibo-task-layout"
       >
         <div className="bibo-list-pane">
           {visible.length ? (
@@ -132,20 +130,10 @@ export function Tasks() {
             </Button>
           )}
         </div>
+      </div>
+      <Dialog open={creating || Boolean(selected)} title={creating ? "新任务" : "任务详情"} size="wide"
+        closeLabel="返回任务" busy={saving} onOpenChange={(open) => { if (!open) { setCreating(false); selectTask(null); } }}>
         {(creating || selected) && (
-          <div className="bibo-detail-pane task-detail-pane">
-            <div className="workspace-detail-head">
-              <h2>{creating ? "新任务" : "任务详情"}</h2>
-              <IconButton
-                label="返回任务"
-                disabled={saving}
-                icon={<X />}
-                onClick={() => {
-                  setCreating(false);
-                  selectTask(null);
-                }}
-              />
-            </div>
             <TaskForm
               key={selected?.id ?? "new"}
               task={selected}
@@ -154,9 +142,8 @@ export function Tasks() {
                 selectTask(null);
               }}
             />
-          </div>
         )}
-      </div>
+      </Dialog>
     </div>
   );
 }
@@ -363,7 +350,7 @@ function TaskRow({
       : null,
   ].filter(Boolean).join(" · ");
   return (
-    <div className={`task-list-item${selected ? " is-selected" : ""}${task.status === "done" ? " is-complete" : ""}`}>
+    <ListRow className={`bibo-task-row${task.status === "done" ? " is-complete" : ""}`} selected={selected} onClick={onSelect} leadingAction={
       <IconButton className="task-complete" tooltip={false} disabled={saving || task.status === "cancelled"}
         label={`${task.status === "done" ? "重新打开" : "完成"} ${task.title}`}
         icon={<span aria-hidden="true">
@@ -374,14 +361,13 @@ function TaskRow({
           : task.status === "cancelled"
           ? "−"
           : "○"}
-      </span>} onClick={() => void toggleTaskDone(task)} />
-      <ListRow className="bibo-task-row" selected={selected} onClick={onSelect}>
+      </span>} onClick={() => void toggleTaskDone(task)} />}
+    >
       <span>
         <strong>{task.title}</strong>
         {details && <small>{details}</small>}
       </span>
       {task.status !== "planned" && <span className="bibo-task-status-label">{statusLabel}</span>}
     </ListRow>
-    </div>
   );
 }
