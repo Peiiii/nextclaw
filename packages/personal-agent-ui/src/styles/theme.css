@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @source "../../";
-@source "../../../../apps/bibo-hosted/src";
 
 @theme inline {
   --color-canvas: var(--ui-canvas);

@@ -9,6 +9,8 @@
 - 本轮单代理；主工作区 thought WIP 未动。当前仅本地改动，未将本轮或父合同宣称完成。
 - 收尾验证：共享包 tsc、应用 Worker/client/runner tsc 与定向 ESLint 通过；完整 product（含七模块、长标题、移动抽屉）、Markdown、composer、routing 回归通过。原 smoke 直接点击编辑背景导航不适用于模态交互，改为 Escape 后导航，再打开任务验证同一草稿。新专项确认失败错误留在编辑窗、删除确认 Escape 只关顶层、再次打开保留草稿；三尺寸通过。弹层验收等待焦点与入场动画稳定，截图不再把中间动画当最终外观。
 - diff-only maintainability：0 error、1 既有主 smoke 文件预算预警；将独立 API fixture 从流程断言文件内移至 `personal-workspace.fixture.ts`（preflight 通过），无业务抽象增长。主观 Review 核对数据 owner 未变、公共控件状态单归属、目录焦点与草稿关闭语义；implementation-review: passed。技术栈与功能约束已在原设计 owner 修订，不新增全局 skill/规则。尚无原生手机软件键盘和竞品原生 App 实测；乐观 outbox 未实现。本轮准备集成与上线。
+- 集成：实现提交 `fae7d2d58`，与并发主干安全合并后 `cac0ef87ac9393e68e2d36d927d5dabba45e2b08` 已推送远程 master。干净同 SHA 构建上线 Worker `23c8e243-eaff-475d-8bc0-3bb6ba102129`、入口 `/assets/index-DKpsuEgb.js`；frontend-only deploy 使用已核验 `--containers-rollout=none`，保留原容器。正式真实领域验收正在执行，尚不把本条部署当成功验收。
+- 最后复核移除公共主题中对 hosted 源目录的硬绑定：Tailwind 默认扫描宿主，公共主题仅声明自身源码；应用重建与冻结部署的全部 179 个文件 SHA256 完全相同。该清理属于共享样式可复用性，非额外业务功能。主线 reconcile 返回 LOCAL_WORKTREE_RETRYING，worker 18523 继续保护主工作区 thought WIP。文档 run `36250040645` 当前排队，未宣称已发布新说明。
 
 ## 2026-09-26 任务轻量录入与日程直接操作纠偏
 
