@@ -1,5 +1,11 @@
 # Bibo hosted companion
 
+Sections have dedicated addresses: `/chat`, `/tasks`, `/calendar`, `/notes`, `/files`, and `/inbox`, with the overview at `/`. Open an existing conversation at `/chat/conversation-id`. Refresh, Back, and Forward preserve the current location.
+
+Creating a task starts with its name; expand Add details for optional properties. Complete or reopen a task directly from its list and undo the last status change. Today includes unfinished tasks due today or overdue; Upcoming includes unfinished tasks due from tomorrow onward. Undated tasks remain available in All. Search, project management, and list/board controls are under Filters and views.
+
+On phones, the full month and selected day's agenda appear together, with event counts below dates. Notes support name search. Press Cmd/Ctrl+S in a file or note editor to save. The inbox opens on pending items and also offers unread and all items.
+
 Opening or closing mobile navigation does not show an unsolicited icon tooltip. Keyboard users can Tab into the drawer, press Escape to close it, and return focus to the menu button.
 
 Sections and conversations support browser Back, Forward, and direct links. Switching sections preserves the current conversation and unsent draft; returning to a new conversation restores the blank editor. Conversation links can also open in a new tab. Unsent drafts are not guaranteed to survive a refresh.

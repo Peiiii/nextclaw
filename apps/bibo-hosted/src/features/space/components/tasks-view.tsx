@@ -9,6 +9,7 @@ import {
   IconButton,
   Input,
   ListRow,
+  Notice,
   SegmentedControl,
   Select,
 } from "@nextclaw/personal-agent-ui";
@@ -30,6 +31,11 @@ export function Tasks() {
     cursors,
     moreLoading,
     loadMore,
+    taskScope,
+    setTaskScope,
+    taskUndo,
+    undoTask,
+    saving,
   } = useBiboSpaceStore();
   const [mode, setMode] = useState<"list" | "board">("list");
   const [projectEditor, setProjectEditor] = useState<string | null>(null);
@@ -55,7 +61,7 @@ export function Tasks() {
   );
   return (
     <div className="bibo-page workspace-page">
-      <TaskToolbar
+      <div className={creating || selected ? "task-toolbar is-editing" : "task-toolbar"}><TaskToolbar
         mode={mode}
         onChangeMode={setMode}
         onProjectEdit={setProjectEditor}
@@ -63,7 +69,11 @@ export function Tasks() {
           setCreating(true);
           selectTask(null);
         }}
-      />
+      /></div>
+      {!(creating || selected) && <div className="task-scope-bar"><SegmentedControl label="任务范围" value={taskScope}
+        options={[{ value: "all", label: "全部" }, { value: "today", label: "今天" }, { value: "upcoming", label: "接下来" }, { value: "done", label: "已完成" }]}
+        onChange={setTaskScope} /></div>}
+      {taskUndo && <div className="task-undo"><Notice tone="success">{taskUndo.title}</Notice><Button tone="text" disabled={saving} onClick={() => void undoTask()}>撤销操作</Button></div>}
       {projectEditor && (
         <ProjectForm
           key={projectEditor}
@@ -144,9 +154,9 @@ export function Tasks() {
             <TaskForm
               key={selected?.id ?? "new"}
               task={selected}
-              onDone={(savedId) => {
+              onDone={() => {
                 setCreating(false);
-                selectTask(savedId ?? null);
+                selectTask(null);
               }}
             />
           </div>
@@ -174,11 +184,16 @@ function TaskToolbar({
     filterTasks,
   } = useBiboSpaceStore();
   const setProject = (value: string) => filterTasks(taskQuery, value);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   return (
     <div className="bibo-filterbar workspace-toolbar">
       <Button tone="primary" onClick={onCreate}>
         ＋ 新任务
       </Button>
+      <Button tone="text" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)}>
+        {taskQuery || project ? "筛选中" : "筛选与视图"}
+      </Button>
+      {filtersOpen && <div className="task-filter-options">
       <Input
         aria-label="搜索任务"
         placeholder="搜索名称或描述"
@@ -220,6 +235,7 @@ function TaskToolbar({
         ]}
         onChange={onChangeMode}
       />
+      </div>}
     </div>
   );
 }
@@ -342,6 +358,7 @@ function TaskRow({
     done: "已完成",
     cancelled: "已取消",
   }[task.status];
+  const { toggleTaskDone, saving } = useBiboSpaceStore();
   const details = [
     projectName,
     task.priority === "high" ? "高优先级" : task.priority === "low" ? "低优先级" : null,
@@ -351,13 +368,10 @@ function TaskRow({
       : null,
   ].filter(Boolean).join(" · ");
   return (
-    <ListRow
-      key={task.id}
-      className="bibo-task-row"
-      selected={selected}
-      onClick={onSelect}
-    >
-      <span className="bibo-task-state" aria-hidden="true">
+    <div className={`task-list-item${selected ? " is-selected" : ""}`}>
+      <IconButton className="task-complete" tooltip={false} disabled={saving || task.status === "cancelled"}
+        label={`${task.status === "done" ? "重新打开" : "完成"} ${task.title}`}
+        icon={<span aria-hidden="true">
         {task.status === "done"
           ? "✓"
           : task.status === "active"
@@ -365,12 +379,14 @@ function TaskRow({
           : task.status === "cancelled"
           ? "−"
           : "○"}
-      </span>
+      </span>} onClick={() => void toggleTaskDone(task)} />
+      <ListRow className="bibo-task-row" selected={selected} onClick={onSelect}>
       <span>
         <strong>{task.title}</strong>
         {details && <small>{details}</small>}
       </span>
       <span className="bibo-task-status-label">{statusLabel}</span>
     </ListRow>
+    </div>
   );
 }

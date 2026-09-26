@@ -21,7 +21,12 @@ export function FileEditor({ id, compact = false }: { id: string; compact?: bool
   const html = /\.(html?|svg)$/i.test(detail.path);
   const framed = `<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:"><style>body{margin:18px;font:14px/1.7 sans-serif;color:#29312a}</style>${draft.content}`;
   return (
-    <div className={`bibo-file-editor${compact ? " is-compact" : ""}`}>
+    <div className={`bibo-file-editor${compact ? " is-compact" : ""}`} onKeyDown={(event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        if (draft.dirty && !draft.saving) void saveFile(id);
+      }
+    }}>
       <div className="bibo-file-editor-head">
         <h2 className="visually-hidden">{detail.path.split("/").at(-1)}</h2>
         <span className="file-breadcrumb" title={detail.path}>

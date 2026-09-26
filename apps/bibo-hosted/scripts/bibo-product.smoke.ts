@@ -211,7 +211,7 @@ async function checkTreeKeyboard(page: Page): Promise<void> {
 
 async function checkFileNavigation(page: Page, width: number): Promise<void> {
   await mockApi(page, false, true);
-  await page.goto(`${base}/?view=files`, { waitUntil: "networkidle" });
+  await page.goto(`${base}/files`, { waitUntil: "networkidle" });
   if (width > 760) await checkTreeKeyboard(page);
   for (let index = 0; index < 10; index++) {
     const back = page.locator(".file-mobile-back button");
@@ -257,7 +257,7 @@ async function checkWorkspaceRecovery(page: Page): Promise<void> {
       await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "文件读取暂时失败" }) });
     } else await route.fallback();
   });
-  await page.goto(`${base}/?view=chat&session=session-a`, { waitUntil: "networkidle" });
+  await page.goto(`${base}/chat/session-a`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "打开右侧工作区" }).click();
   await page.getByRole("combobox", { name: "工作区文件" }).selectOption("file-a");
   const editor = page.getByRole("textbox", { name: "编辑 想法.md" });
@@ -287,16 +287,16 @@ async function checkWorkspaceRecovery(page: Page): Promise<void> {
 }
 
 async function checkMissingSession(page: Page, width: number): Promise<void> {
-  await page.goto(`${base}/?view=chat&session=deleted-session`, { waitUntil: "networkidle" });
+  await page.goto(`${base}/chat/deleted-session`, { waitUntil: "networkidle" });
   await page.getByText("这段对话不存在或已删除。请选择其他对话，或新建对话。", { exact: true }).waitFor();
   assert.equal(await page.locator(".ui-message").count(), 0, "missing source cannot display another conversation");
-  assert.equal(new URL(page.url()).searchParams.get("session"), "deleted-session", "invalid source remains identifiable");
+  assert.equal(new URL(page.url()).pathname.split("/").at(-1), "deleted-session", "invalid source remains identifiable");
   await page.reload({ waitUntil: "networkidle" });
   await page.getByText("这段对话不存在或已删除。请选择其他对话，或新建对话。", { exact: true }).waitFor();
   if (width <= 760) await page.getByRole("button", { name: "打开菜单" }).click();
   await page.getByRole("link", { name: "产品想法", exact: true }).click();
   await page.getByText("先整理一件最重要的事。", { exact: true }).waitFor();
-  assert.equal(new URL(page.url()).searchParams.get("session"), "session-a");
+  assert.equal(new URL(page.url()).pathname.split("/").at(-1), "session-a");
 }
 
 async function checkLongConversation(page: Page, width: number): Promise<void> {
@@ -320,17 +320,17 @@ async function checkLongConversation(page: Page, width: number): Promise<void> {
 async function checkLongTitles(page: Page, width: number): Promise<void> {
   await mockApi(page, true);
   for (const view of ["chat", "overview", "tasks", "calendar", "inbox", "notes", "files"]) {
-    await page.goto(`${base}/?view=${view}&session=session-a`, { waitUntil: "networkidle" });
+    await page.goto(`${base}/${view === "chat" ? "chat/session-a" : view === "overview" ? "" : view}`, { waitUntil: "networkidle" });
     await checkContentBounds(page);
     if (view === "chat") await checkLongConversation(page, width);
     if (view === "inbox") {
       await page.locator(".ui-list-row").first().click();
       await checkContentBounds(page);
-      await page.getByRole("button", { name: "← 全部消息", exact: true }).click();
+      if (width <= 1100) await page.getByRole("button", { name: "← 全部消息", exact: true }).click();
       await page.locator(".ui-list-row").first().waitFor({ state: "visible" });
     }
     if (view === "tasks" || view === "calendar") {
-      await page.getByRole("button", { name: view === "tasks" ? /梳理产品方案/ : /设计评审/ }).first().click();
+      await page.locator(view === "tasks" ? ".bibo-task-row" : ".bibo-agenda-event:visible").first().click();
       assert.ok((await page.getByRole("textbox", { name: view === "tasks" ? "任务名称" : "标题", exact: true }).inputValue()).length > 100);
       await checkContentBounds(page);
       await page.getByRole("button", { name: view === "tasks" ? "保存任务" : "保存日程", exact: true }).click({ trial: true });
@@ -349,7 +349,7 @@ async function checkLongTitles(page: Page, width: number): Promise<void> {
 }
 
 async function checkMobileDrawerTooltip(page: Page, width: number, touch: boolean): Promise<void> {
-  await page.goto(`${base}/?view=chat`, { waitUntil: "networkidle" });
+  await page.goto(`${base}/chat`, { waitUntil: "networkidle" });
   const trigger = page.getByRole("button", { name: "打开菜单", exact: true });
   if (touch) await trigger.tap(); else await trigger.click();
   const drawer = page.getByRole("dialog", { name: "个人空间" });
@@ -444,9 +444,9 @@ try {
         return { background: style.backgroundColor, radius: style.borderRadius, font: style.fontSize };
       });
       assert.deepEqual(taskStyle, calendarStyle, "same-level actions use one shared component state");
-      const taskRow = page.getByRole("button", { name: /梳理产品方案/ });
+      const taskRow = page.locator(".bibo-task-row").filter({ hasText: "梳理产品方案" });
       assert.match(await taskRow.innerText(), /Bibo.*进行中/s, "task list shows project and state without opening details");
-      await page.getByRole("button", { name: /梳理产品方案/ }).click();
+      await taskRow.click();
       await page.getByRole("textbox", { name: "任务名称" }).waitFor();
       const taskSaveBox = await page.getByRole("button", { name: "保存任务", exact: true }).boundingBox();
       assert.ok(taskSaveBox && taskSaveBox.y + taskSaveBox.height < viewport.height - (viewport.width < 600 ? 61 : 0), "task save stays visible while fields scroll");

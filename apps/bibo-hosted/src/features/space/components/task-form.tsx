@@ -9,6 +9,7 @@ export function TaskForm({ task, onDone }: { task: BiboTask | null; onDone: (sav
   const { projects, act, saving, taskDrafts, keepTaskDraft, clearTaskDraft } = useBiboSpaceStore();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [expanded, setExpanded] = useState(Boolean(task));
   const remove = async () => {
     if (!task || saving) return;
     setDeleteError("");
@@ -68,6 +69,10 @@ export function TaskForm({ task, onDone }: { task: BiboTask | null; onDone: (sav
             placeholder="这件事要做到什么程度？"
           />
         </Field>
+        <Button tone="text" type="button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+          {expanded ? "收起详情" : "添加详情"}
+        </Button>
+        {expanded && <>
         <Field label="说明">
           <Textarea
             rows={4}
@@ -113,6 +118,7 @@ export function TaskForm({ task, onDone }: { task: BiboTask | null; onDone: (sav
         <Field label="截止时间">
           <Input type="datetime-local" value={dueAt} onChange={(event) => change("dueAt", event.target.value)} />
         </Field>
+        </>}
       </div>
       <div className="bibo-action-row">
         <Button tone="primary" type="submit" disabled={saving}>

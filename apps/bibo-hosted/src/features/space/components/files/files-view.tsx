@@ -5,6 +5,7 @@ import {
   Button,
   IconButton,
   ListRow,
+  Input,
 } from "@nextclaw/personal-agent-ui";
 import { Plus } from "lucide-react";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
@@ -26,6 +27,8 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
     openFile,
     fileBrowserVisible,
     treeWidth,
+    noteQuery,
+    searchNotes,
   } = useBiboSpaceStore();
   const [kind, setKind] = useState<BiboFile["kind"]>(
     notesOnly ? "note" : "document"
@@ -79,6 +82,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
                 }}
               />
             </div>
+            <div className="file-tree-search"><Input aria-label="搜索笔记" placeholder="搜索笔记名称" value={noteQuery} onChange={(event) => searchNotes(event.target.value)} /></div>
             {all.map((file) => (
               <ListRow
                 key={file.id}
@@ -90,7 +94,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
               </ListRow>
             ))}
             {all.length === 0 && !loading && !error && (
-              <EmptyState title="还没有笔记" />
+              <EmptyState title={noteQuery ? "没有匹配的笔记" : "还没有笔记"} />
             )}
             {cursors.notes && <Button tone="text" disabled={moreLoading.notes} onClick={() => void loadMore("notes")}>{moreLoading.notes ? "正在加载…" : "加载更多笔记"}</Button>}
           </aside>

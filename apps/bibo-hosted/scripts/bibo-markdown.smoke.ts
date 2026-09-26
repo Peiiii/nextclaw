@@ -81,7 +81,7 @@ try {
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await mockApi(page);
-      await page.goto(`${base}/?view=inbox`);
+      await page.goto(`${base}/inbox`);
       await page.getByRole("button", { name: /Markdown 阅读验证/ }).click();
       assert.match(await page.locator(".bibo-list-pane .ui-list-row small").first().innerText(), /第一段说明，包含 重点、强调、旧结论 和 inline\(\)/);
       const reader = page.locator(".bibo-readable .ui-markdown");

@@ -78,6 +78,27 @@
 .workspace-page .bibo-list-pane, .workspace-page .bibo-detail-pane { min-height: 0; max-height: none; height: 100%; overflow: auto; }
 .workspace-page .bibo-detail-pane { padding: 24px; }
 .workspace-page .bibo-task-layout { grid-template-columns: minmax(0, 1fr) minmax(300px, .8fr); }
+.workspace-page .bibo-task-layout:not(.is-detail-open) { grid-template-columns: minmax(0, 1fr); }
+.task-filter-options { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 8px; }
+.task-toolbar { flex: none; }
+.task-scope-bar { flex: none; padding: 8px 16px; border-bottom: 1px solid var(--ui-line); }
+.task-undo { display: flex; align-items: center; gap: 8px; padding-inline: 16px; }
+.task-undo .ui-notice { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-list-item { display: flex; align-items: center; padding-left: 12px; border-bottom: 1px solid var(--ui-line); }
+.task-list-item.is-selected { background: var(--ui-selection); }
+.task-list-item .bibo-task-row { flex: 1; min-width: 0; border: 0; padding-left: 8px; }
+.task-list-item .bibo-task-row > span:first-child { flex: 1; min-width: 0; }
+.task-list-item .bibo-task-row strong { font-size: 15px; overflow-wrap: anywhere; }
+.task-list-item .bibo-task-row small { font-size: 12px; line-height: 1.5; }
+.task-list-item .task-complete { flex: none; width: 44px; height: 44px; font-size: 22px; }
+.calendar-mobile-agenda { display: none; }
+.inbox-back { display: none; }
+.inbox-layout .bibo-detail-pane h2 { overflow-wrap: anywhere; font-size: 24px; line-height: 1.35; }
+.inbox-layout .ui-list-row > span:not(.bibo-unread-dot) { min-width: 0; flex: 1; }
+.inbox-layout .ui-list-row strong { overflow-wrap: anywhere; }
+.inbox-layout .ui-list-row small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bibo-note-list .ui-list-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.workspace-not-found { padding: 32px; }
 .workspace-page > .bibo-inline-input { flex: none; margin: 12px 16px; }
 .bibo-page { max-width: 1480px; min-height: 100%; margin: 0 auto; padding: 39px clamp(22px, 4vw, 70px) 65px; }
 .bibo-page-title { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 27px; }
@@ -304,6 +325,7 @@
 .bibo-workspace-content > .bibo-file-editor { flex: 1; min-height: 0; height: auto; }
 
 @media (max-width: 1100px) {
+  .inbox-back { display: inline-flex; }
   .inbox-layout { display: block; }
   .inbox-layout:not(.is-detail-open) .bibo-detail-pane { display: none; }
   .inbox-layout.is-detail-open .bibo-list-pane { display: none; }
@@ -312,6 +334,20 @@
   .bibo-board { grid-template-columns: repeat(4, minmax(220px, 1fr)); }
 }
 @media (max-width: 760px) {
+  .task-toolbar.is-editing { display: none; }
+  .task-filter-options { flex-basis: 100%; }
+  .task-filter-options > .ui-control { flex: 1; min-width: 0; }
+  .calendar-surface:has(.calendar-mobile-agenda) { overflow-y: auto; display: block; }
+  .calendar-surface:has(.calendar-mobile-agenda) .calendar-month { flex: none; overflow: visible; }
+  .calendar-surface:has(.calendar-mobile-agenda) .calendar-date { min-height: 56px; }
+  .calendar-surface:has(.calendar-mobile-agenda) .calendar-month-grid { grid-auto-rows: 56px; flex: none; }
+  .calendar-surface:has(.calendar-mobile-agenda) .calendar-date-events { display: none; }
+  .calendar-date[data-count]::after { content: attr(data-count); position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); color: var(--ui-primary); font-size: 10px; pointer-events: none; }
+  .calendar-mobile-agenda { display: block; border-top: 1px solid var(--ui-line); }
+  .calendar-mobile-agenda .bibo-upcoming { display: none; }
+  .calendar-mobile-agenda .bibo-day-agenda { height: auto; padding: 16px; overflow: visible; }
+  .calendar-mobile-agenda .bibo-agenda-heading { padding-bottom: 10px; }
+  .calendar-mobile-agenda .bibo-agenda-heading h2 { font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.4; }
   .bibo-mobile-nav { position: fixed; z-index: 4; bottom: 0; left: 0; right: 0; height: calc(61px + env(safe-area-inset-bottom)); display: flex; align-items: stretch; justify-content: space-around; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--bibo-hairline); background: #fffefa; }
   .bibo-mobile-nav a, .bibo-mobile-nav button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: #8b988a; text-decoration: none; font-size: 10px; cursor: pointer; }
   .bibo-mobile-nav a span, .bibo-mobile-nav button span { font-size: 20px; line-height: 1.1; }

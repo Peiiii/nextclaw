@@ -8,6 +8,33 @@ import type { BiboTask, BiboOverview } from "@nextclaw/bibo-client";
 
 const instant = "2026-09-25T09:00:00.000Z";
 
+test("attention filters apply before pagination and completion undo respects newer versions", async (t) => {
+  const home = await mkdtemp(join(tmpdir(), "task-attention-"));
+  t.after(() => rm(home, { recursive: true, force: true }));
+  const space = new BiboSpaceService(home);
+  const boundary = "2026-09-26T16:00:00.000Z"; // Next local midnight in UTC+8.
+  const overdue = await space.execute("task.create", { title: "逾期", status: "active", dueAt: instant }) as BiboTask;
+  await space.execute("task.create", { title: "明天", dueAt: boundary });
+  await space.execute("task.create", { title: "今天", dueAt: "2026-09-26T23:59:59+08:00" });
+  await space.execute("task.create", { title: "已完成", status: "done", dueAt: instant });
+  await space.execute("task.create", { title: "无日期" });
+  const first = await space.execute("task.list", { open: true, dueBefore: boundary, limit: 1 }) as { items: BiboTask[]; nextCursor: string };
+  assert.equal(first.items[0]?.title, "逾期");
+  const second = await space.execute("task.list", { open: true, dueBefore: boundary, limit: 1, cursor: first.nextCursor }) as { items: BiboTask[]; nextCursor: string | null };
+  assert.equal(second.items[0]?.title, "今天"); assert.equal(second.nextCursor, null);
+  const upcoming = await space.execute("task.list", { open: true, dueFrom: boundary }) as { items: BiboTask[] };
+  assert.deepEqual(upcoming.items.map((task) => task.title), ["明天"]);
+  const done = await space.execute("task.update", { id: overdue.id, version: overdue.version, status: "done" }) as BiboTask;
+  const restored = await space.execute("task.update", { id: done.id, version: done.version, status: overdue.status }) as BiboTask;
+  assert.equal(restored.status, "active"); assert.equal(restored.completedAt, null);
+  await assert.rejects(space.execute("task.update", { id: done.id, version: done.version, status: "planned" }), (error: unknown) => error instanceof BiboSpaceError && error.status === 409);
+  const reminder = await space.execute("inbox.create", { title: "待读", body: "内容" }) as { id: string; version: number };
+  const unread = await space.execute("inbox.list", { unread: true }) as { items: Array<{ id: string }> };
+  assert.ok(unread.items.some((item) => item.id === reminder.id));
+  await space.execute("inbox.read", reminder);
+  assert.equal((await space.execute("inbox.list", { unread: true }) as { items: unknown[] }).items.length, 0);
+});
+
 test("task priority, dates, completion and cancellation survive reload and update overview", async (t) => {
   const home = await mkdtemp(join(tmpdir(), "task-lifecycle-"));
   t.after(() => rm(home, { recursive: true, force: true }));

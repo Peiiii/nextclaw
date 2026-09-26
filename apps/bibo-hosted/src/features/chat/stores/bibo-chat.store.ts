@@ -47,7 +47,13 @@ class BiboChatOwner {
 
   createSession = async (fromRoute = false): Promise<void> => {
     if (this.get().phase !== "idle") return;
-    if (!fromRoute) { navigateConversation(null); return; }
+    if (!fromRoute) {
+      const route = readWorkspaceRoute();
+      if (route.view === "chat" && !route.sessionId) return;
+      this.set({ sessionLoading: true });
+      navigateConversation(null);
+      return;
+    }
     this.selectionRequest += 1;
     this.set({ activeSessionId: null, messages: [], draft: this.get().drafts.new ?? "", status: "", following: true, sessionLoading: false });
   };

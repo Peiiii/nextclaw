@@ -2,6 +2,7 @@ import { create, type StoreApi } from "zustand";
 import { BiboClient, BiboClientError, type BiboEvent, type BiboFile, type BiboFileDetail, type BiboInboxItem, type BiboOverview, type BiboProject, type BiboTask } from "@nextclaw/bibo-client";
 import { calendarMonthRange } from "@/features/space/utils/calendar.utils";
 import { readWorkspaceLayout, writeWorkspaceLayout } from "@/features/space/utils/workspace-layout.utils";
+import { readSpaceLists, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
 import { navigateWorkspace } from "@/app/workspace-router";
 
 export type BiboView = "overview" | "chat" | "inbox" | "calendar" | "tasks" | "notes" | "files";
@@ -41,6 +42,11 @@ class BiboSpaceOwner {
   tasks: BiboTask[] = [];
   taskQuery = "";
   taskProject = "";
+  taskScope: "all" | "today" | "upcoming" | "done" = "all";
+  taskAnchor = new Date();
+  taskUndo: { id: string; version: number; status: BiboTask["status"]; title: string } | null = null;
+  noteQuery = "";
+  inboxScope: "pending" | "unread" | "all" = "pending";
   events: BiboEvent[] = [];
   inbox: BiboInboxItem[] = [];
   files: BiboFile[] = [];
@@ -135,9 +141,20 @@ class BiboSpaceOwner {
     void this.load("calendar");
   };
   filterTasks = (query: string, project: string): void => {
-    this.set({ taskQuery: query, taskProject: project, selectedTaskId: null });
+    this.set({ taskQuery: query, taskProject: project, taskAnchor: new Date(), selectedTaskId: null });
     void this.load("tasks");
   };
+  setTaskScope = (taskScope: BiboSpaceOwner["taskScope"]): void => { this.set({ taskScope, taskAnchor: new Date(), selectedTaskId: null }); void this.load("tasks"); };
+  toggleTaskDone = async (task: BiboTask): Promise<void> => {
+    const result = await this.act<BiboTask>("task.update", { id: task.id, version: task.version, status: task.status === "done" ? "planned" : "done" }, "tasks");
+    if (result) this.set({ taskUndo: { id: result.id, version: result.version, status: task.status, title: task.title } });
+  };
+  undoTask = async (): Promise<void> => {
+    const undo = this.get().taskUndo;
+    if (undo && await this.act("task.update", undo, "tasks")) this.set({ taskUndo: null });
+  };
+  searchNotes = (noteQuery: string): void => { this.set({ noteQuery }); void this.load("notes"); };
+  setInboxScope = (inboxScope: BiboSpaceOwner["inboxScope"]): void => { this.set({ inboxScope, selectedInboxId: null }); void this.load("inbox"); };
   selectEvent = (id: string | null, verified?: BiboEvent): void => {
     this.set({ selectedEventId: id });
     if (!id) return;
@@ -178,26 +195,14 @@ class BiboSpaceOwner {
     this.viewLoadRequest[view] = request;
     this.set((state) => ({ loading: true, error: "", readStatus: { ...state.readStatus, [view]: state.readStatus[view] === "ready" ? "ready" : "loading" } }));
     try {
-      if (view === "overview") this.set({ overview: await client.space<BiboOverview>("overview.get") });
-      if (view === "tasks") {
-        const { taskQuery, taskProject } = this.get();
-        const [projects, tasks] = await Promise.all([client.space<Page<BiboProject>>("project.list", { limit: 100 }), client.space<Page<BiboTask>>("task.list", { limit: 100, query: taskQuery, ...(taskProject ? { projectId: taskProject } : {}) })]);
-        if (taskQuery !== this.get().taskQuery || taskProject !== this.get().taskProject) return true;
-        this.set({ projects: projects.items, tasks: tasks.items, cursors: { ...this.get().cursors, tasks: tasks.nextCursor } });
-      }
-      if (view === "calendar") {
-        await this.loadCalendarMonth(this.get().calendarDate);
-      }
-      if (view === "inbox") {
-        const inbox = await client.space<Page<BiboInboxItem>>("inbox.list", { limit: 100 });
-        this.set({ inbox: inbox.items, cursors: { ...this.get().cursors, inbox: inbox.nextCursor } });
+      if (view === "calendar") await this.loadCalendarMonth(this.get().calendarDate);
+      else {
+        const { noteQuery, inboxScope } = this.get();
+        const lists = await readSpaceLists(client, { view, taskFilter: taskListFilter(this.get()), noteQuery, inboxScope });
+        if (this.viewLoadRequest[view] !== request) return true;
+        this.set((state) => ({ ...lists, cursors: { ...state.cursors, ...lists.cursors } }));
       }
       if (view === "files" || view === "notes") {
-        const [files, notes] = await Promise.all([
-          client.space<Page<BiboFile>>("file.list", { limit: 100 }),
-          view === "notes" ? client.space<Page<BiboFile>>("file.list", { kind: "note", sort: "recent", limit: 100 }) : Promise.resolve(null),
-        ]);
-        this.set({ files: files.items, ...(notes ? { notes: notes.items } : {}), cursors: { ...this.get().cursors, files: files.nextCursor, ...(notes ? { notes: notes.nextCursor } : {}) } });
         const active = this.get().activeFileId;
         if (active && !this.get().fileDetails[active]) await this.openFile(active);
         const workspace = this.get().workspaceFileId;
@@ -244,9 +249,11 @@ class BiboSpaceOwner {
     this.set((state) => ({ moreLoading: { ...state.moreLoading, [domain]: true } }));
     const action = { tasks: "task.list", events: "event.list", inbox: "inbox.list", files: "file.list", notes: "file.list" }[domain];
     try {
-      const { taskQuery, taskProject } = this.get();
-      const result = await client.space<Page<unknown>>(action, { limit: 100, cursor, ...(domain === "tasks" ? { query: taskQuery, ...(taskProject ? { projectId: taskProject } : {}) } : {}), ...(domain === "notes" ? { kind: "note", sort: "recent" } : {}) });
-      if (domain === "tasks" && (taskQuery !== this.get().taskQuery || taskProject !== this.get().taskProject)) return;
+      const view = domain === "events" ? "calendar" : domain;
+      const revision = this.viewLoadRequest[view];
+      const { noteQuery, inboxScope } = this.get();
+      const result = await client.space<Page<unknown>>(action, { limit: 100, cursor, ...(domain === "tasks" ? taskListFilter(this.get()) : {}), ...(domain === "notes" ? { kind: "note", query: noteQuery, sort: "recent" } : {}), ...(domain === "inbox" ? { unresolved: inboxScope === "pending", unread: inboxScope === "unread" } : {}) });
+      if (this.viewLoadRequest[view] !== revision) return;
       this.set((state) => state.cursors[domain] === cursor ? { [domain]: [...(state[domain] as unknown[]), ...result.items], cursors: { ...state.cursors, [domain]: result.nextCursor } } : {});
     } catch (error) { this.set({ error: message(error) }); }
     finally { this.set((state) => ({ moreLoading: { ...state.moreLoading, [domain]: false } })); }

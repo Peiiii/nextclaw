@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { BiboClient, BiboClientError, type BiboEvent, type BiboFileDetail, type BiboInboxItem, type BiboTask } from "@nextclaw/bibo-client";
-import { Button, EmptyState, ListRow, Markdown, Notice } from "@nextclaw/personal-agent-ui";
+import { Button, EmptyState, ListRow, Markdown, Notice, SegmentedControl } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { day, datetime } from "@/features/space/utils/date-format.utils";
 const sourceClient = new BiboClient();
@@ -18,6 +18,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
   const { inbox, selectedInboxId, selectInbox, act, navigate, openFile, saving, cursors, moreLoading, loadMore } = useBiboSpaceStore();
   const [openingSource, setOpeningSource] = useState(false);
   const [sourceError, setSourceError] = useState("");
+  const { inboxScope, setInboxScope } = useBiboSpaceStore();
   const selected = inbox.find((item) => item.id === selectedInboxId) ?? null;
   const source = async (item: BiboInboxItem) => {
     if (!item.source.id) return;
@@ -60,7 +61,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
     <div className="bibo-page workspace-page">
       <div className={`bibo-split inbox-layout${selected ? " is-detail-open" : ""}`}>
         <div className="bibo-list-pane">
-          <div className="bibo-pane-label">全部 · {inbox.length}</div>
+          <div className="bibo-pane-label"><SegmentedControl label="收件箱范围" value={inboxScope} options={[{ value: "pending", label: "待处理" }, { value: "unread", label: "未读" }, { value: "all", label: "全部" }]} onChange={setInboxScope} /></div>
           {inbox.length ? (
             inbox.map((item) => (
               <ListRow key={item.id} selected={selected?.id === item.id} onClick={() => { setSourceError(""); selectInbox(item.id); }}>
@@ -84,7 +85,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
         <div className="bibo-detail-pane">
           {selected ? (
             <>
-              <Button tone="text" onClick={() => { setSourceError(""); selectInbox(null); }}>
+              <Button className="inbox-back" tone="text" onClick={() => { setSourceError(""); selectInbox(null); }}>
                 ← 全部消息
               </Button>
               <p className="bibo-kicker">

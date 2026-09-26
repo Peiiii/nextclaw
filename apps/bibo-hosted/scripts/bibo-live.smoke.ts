@@ -172,7 +172,7 @@ try {
       const page = await context.newPage();
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
-      await page.goto(`${origin}/?view=chat&session=${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
+      await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
       await page.locator(".ui-message").first().waitFor();
       await page.reload({ waitUntil: "networkidle" });
       await page.locator(".ui-message--assistant").filter({ hasText: requestId }).waitFor();
@@ -190,7 +190,7 @@ try {
       assert.equal(layout.horizontalOverflow, false, "Page has horizontal overflow");
       assert.deepEqual(errors, [], "Browser raised a runtime error");
       assert.ok(await page.locator(".ui-message--assistant").filter({ hasText: requestId }).count(), "Saved answer did not load after refresh");
-      await page.goto(`${origin}/?view=files`, { waitUntil: "networkidle" });
+      await page.goto(`${origin}/files`, { waitUntil: "networkidle" });
       await page.getByRole("textbox", { name: "搜索文件", exact: true }).fill(artifactPath);
       await page.getByText(artifactPath, { exact: true }).first().click();
       assert.equal(await page.getByRole("textbox", { name: `编辑 ${artifactPath}` }).inputValue(), artifactContent,

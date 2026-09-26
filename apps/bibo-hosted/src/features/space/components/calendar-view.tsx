@@ -110,6 +110,7 @@ function CalendarMonthGrid({ onSelect }: { onSelect: () => void }) {
           return (
             <div
               key={date.toISOString()}
+              data-count={items.length || undefined}
               className={`calendar-date${date.getMonth() !== anchor.getMonth() ? " is-outside" : ""}${isSameDay(date, anchor) ? " is-selected" : ""}${isSameDay(date, today) ? " is-today" : ""}`}
             >
               <button
@@ -166,7 +167,6 @@ function CalendarAgenda({ onSelect, onCreate }: { onSelect: () => void; onCreate
     setCalendarDate: setAnchor,
     selectEvent,
   } = useBiboSpaceStore();
-  const today = new Date();
   const selectedEvents = eventsOnDate(events, anchor);
   const dayStart = new Date(anchor);
   dayStart.setHours(0, 0, 0, 0);
@@ -180,7 +180,6 @@ function CalendarAgenda({ onSelect, onCreate }: { onSelect: () => void; onCreate
     <div className="bibo-list-pane bibo-day-agenda">
       <div className="bibo-agenda-heading">
         <div>
-          <span className="bibo-kicker">{isSameDay(anchor, today) ? "TODAY" : "SELECTED DAY"}</span>
           <h2>{day(anchor.toISOString())}</h2>
         </div>
         <span>{selectedEvents.length} 项安排</span>
@@ -211,14 +210,13 @@ function CalendarAgenda({ onSelect, onCreate }: { onSelect: () => void; onCreate
       ) : (
         <div className="bibo-agenda-empty">
           <strong>这一天还没有安排。</strong>
-          <span>留白，也是一种安排。</span>
           <Button
             tone="text"
             onClick={() => {
               onCreate();
             }}
           >
-            在这天安排一件事 ↗
+            新日程
           </Button>
         </div>
       )}
@@ -331,7 +329,7 @@ export function CalendarView() {
             <CalendarMonthGrid
               onSelect={() => {
                 setCreating(false);
-                setDetailsOpen(true);
+                setDetailsOpen(Boolean(useBiboSpaceStore.getState().selectedEventId));
               }}
             />
           ) : (
@@ -343,9 +341,10 @@ export function CalendarView() {
               onCreate={create}
             />
           )}
-          <Button className="calendar-mobile-day" tone="text" onClick={() => setDetailsOpen(true)}>
-            {day(anchor.toISOString())} · {eventsOnDate(events, anchor).length} 项安排 ›
-          </Button>
+          {mode === "month" ? <div className="calendar-mobile-agenda"><CalendarAgenda onSelect={() => setDetailsOpen(true)} onCreate={() => create()} /></div>
+            : <Button className="calendar-mobile-day" tone="text" onClick={() => setDetailsOpen(true)}>
+              {day(anchor.toISOString())} · {eventsOnDate(events, anchor).length} 项安排 ›
+            </Button>}
         </div>
         <aside className="calendar-inspector" aria-label="日程详情">
           <Button className="calendar-mobile-back" tone="text" onClick={closeDetails}>

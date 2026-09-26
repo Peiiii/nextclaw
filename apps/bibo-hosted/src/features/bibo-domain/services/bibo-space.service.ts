@@ -207,7 +207,7 @@ export class BiboSpaceService {
       ["project.create", "projects", "创建项目", "{name,requestId?}"],
       ["project.update", "projects", "修改项目名称", "{id,version,name}"],
       ["project.delete", "projects", "删除项目并解除任务归属", "{id,version}"],
-      ["task.list", "tasks", "列出任务，按标题/描述搜索及项目/状态筛选", "{query?,projectId?,status?,limit?,cursor?}"],
+      ["task.list", "tasks", "列出任务，按标题/描述、项目、状态与截止时间筛选；open 排除完成/取消", "{query?,projectId?,status?,open?,dueBefore?:ISO,dueFrom?:ISO,limit?,cursor?}"],
       ["task.get", "tasks", "读取任务详情", "{id}"],
       ["task.create", "tasks", "创建任务", "{title,description?,projectId?,status?:planned|active|done|cancelled,priority?:low|medium|high,startAt?,dueAt?,subtasks?,requestId?}"],
       ["task.update", "tasks", "更新任务与子任务", "{id,version,title?,description?,status?:planned|active|done|cancelled,priority?:low|medium|high,startAt?,dueAt?,projectId?,subtasks?}"],
@@ -217,7 +217,7 @@ export class BiboSpaceService {
       ["event.create", "events", "创建日程", "{title,startAt,endAt,description?,requestId?}"],
       ["event.update", "events", "更新日程", "{id,version,title?,startAt?,endAt?,description?}"],
       ["event.delete", "events", "删除日程", "{id,version}"],
-      ["inbox.list", "inbox", "列出需要关注的条目", "{unresolved?,limit?,cursor?}"],
+      ["inbox.list", "inbox", "列出需要关注的条目，支持未处理与未读筛选", "{unresolved?,unread?,limit?,cursor?}"],
       ["inbox.get", "inbox", "读取条目详情", "{id}"],
       ["inbox.create", "inbox", "送达一条第一方提醒", "{title,body,kind?,source?,requestId?}"],
       ["inbox.read", "inbox", "标记已读", "{id,version}"],
@@ -298,7 +298,19 @@ export class BiboSpaceService {
     let result: unknown;
     let changed = false;
     switch (action) {
-      case "task.list": result = page(state.tasks.filter((item) => (input.projectId === undefined || item.projectId === input.projectId) && (input.status === undefined || item.status === input.status) && (input.query === undefined || `${item.title} ${item.description}`.toLocaleLowerCase().includes(String(input.query).toLocaleLowerCase()))).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), input); break;
+      case "task.list": {
+        const before = input.dueBefore === undefined ? null : timestamp(input.dueBefore, "截止边界");
+        const from = input.dueFrom === undefined ? null : timestamp(input.dueFrom, "开始边界");
+        result = page(state.tasks.filter((item) =>
+          (input.projectId === undefined || item.projectId === input.projectId)
+          && (input.status === undefined || item.status === input.status)
+          && (input.open !== true || item.status === "planned" || item.status === "active")
+          && (!before || !!item.dueAt && item.dueAt < before)
+          && (!from || !!item.dueAt && item.dueAt >= from)
+          && (input.query === undefined || `${item.title} ${item.description}`.toLocaleLowerCase().includes(String(input.query).toLocaleLowerCase()))
+        ).sort((a, b) => before || from ? (a.dueAt ?? "").localeCompare(b.dueAt ?? "") || a.id.localeCompare(b.id) : b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id)), input);
+        break;
+      }
       case "task.get": result = find(state.tasks, input); break;
       case "task.create": {
         const projectId = typeof input.projectId === "string" ? input.projectId : null;
@@ -366,7 +378,7 @@ export class BiboSpaceService {
     let result: unknown;
     let changed = false;
     switch (action) {
-      case "inbox.list": result = page(allInbox.filter((item) => input.unresolved !== true || !item.resolvedAt).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), input); break;
+      case "inbox.list": result = page(allInbox.filter((item) => (input.unresolved !== true || !item.resolvedAt) && (input.unread !== true || !item.readAt)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), input); break;
       case "inbox.get": result = find(allInbox, input); break;
       case "inbox.create": {
         const kind = input.kind ?? "agent";

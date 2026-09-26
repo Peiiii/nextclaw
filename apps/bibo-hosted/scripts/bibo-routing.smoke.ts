@@ -81,13 +81,13 @@ async function checkHistory(page: Page) {
   await page.getByText("正文 b", { exact: true }).waitFor();
   assert.equal(await input.inputValue(), "B 的草稿");
   await page.getByRole("button", { name: "＋ 新对话", exact: true }).click();
-  await page.waitForURL(`${base}/?view=chat`);
+  await page.waitForURL(`${base}/chat`);
   await page.locator(".bibo-welcome").waitFor();
   assert.equal(await page.locator(".ui-message").count(), 0);
   await page.goBack();
   await page.getByText("正文 b", { exact: true }).waitFor();
   await page.goForward();
-  await page.waitForURL(`${base}/?view=chat`);
+  await page.waitForURL(`${base}/chat`);
   await page.locator(".bibo-welcome").waitFor();
   assert.equal(await page.locator(".ui-message").count(), 0);
 }
@@ -104,7 +104,7 @@ async function checkSelectionRace(page: Page, state: Awaited<ReturnType<typeof m
   state.releaseB();
   await page.waitForLoadState("networkidle");
   assert.equal(await page.getByText("正文 b", { exact: true }).count(), 0);
-  assert.equal(new URL(page.url()).searchParams.get("session"), "a");
+  assert.equal(new URL(page.url()).pathname.split("/").at(-1), "a");
 }
 
 async function checkDeletion(page: Page) {
@@ -115,18 +115,18 @@ async function checkDeletion(page: Page) {
   await page.getByRole("menuitem", { name: "删除会话" }).click();
   await page.getByRole("dialog", { name: "删除会话？" }).getByRole("button", { name: "删除会话", exact: true }).click();
   await page.getByText("正文 a", { exact: true }).waitFor();
-  assert.equal(new URL(page.url()).searchParams.get("session"), "a");
+  assert.equal(new URL(page.url()).pathname.split("/").at(-1), "a");
   await page.reload({ waitUntil: "networkidle" });
   await page.getByText("正文 a", { exact: true }).waitFor();
   const link = (await sidebar(page)).getByRole("link", { name: "会话 A", exact: true });
-  assert.equal(await link.getAttribute("href"), "/?view=chat&session=a");
+  assert.equal(await link.getAttribute("href"), "/chat/a");
 }
 
 async function checkLogin(page: Page) {
   await (await sidebar(page)).getByRole("button", { name: "账号与帮助" }).click();
   await page.getByRole("menuitem", { name: "退出登录", exact: true }).click();
   await page.locator(".bibo-auth-card").waitFor();
-  await page.goto(`${base}/?view=chat&session=a`, { waitUntil: "networkidle" });
+  await page.goto(`${base}/chat/a`, { waitUntil: "networkidle" });
   const auth = page.locator(".bibo-auth-card");
   await auth.getByRole("button", { name: "登录", exact: true }).first().click();
   await auth.getByRole("textbox", { name: "邮箱", exact: true }).fill("test@example.com");
@@ -140,17 +140,17 @@ async function verifyViewport(page: Page, width: number) {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   const state = await mockNavigation(page);
-  await page.goto(`${base}/?view=chat&session=a`, { waitUntil: "networkidle" });
+  await page.goto(`${base}/chat/a`, { waitUntil: "networkidle" });
   await checkHistory(page);
   await checkSelectionRace(page, state);
   await checkDeletion(page);
   await checkLogin(page);
   for (const view of ["overview", "inbox", "calendar", "tasks", "notes", "files"]) {
-    await page.goto(`${base}/${view === "overview" ? "" : `?view=${view}`}`, { waitUntil: "networkidle" });
+    await page.goto(`${base}/${view === "overview" ? "" : view}`, { waitUntil: "networkidle" });
     await sidebar(page);
-    await page.locator(`.bibo-primary-nav [aria-current="page"][href*="${view === "overview" ? "/" : `view=${view}`}"]`).waitFor({ state: "attached" });
+    await page.locator(`.bibo-primary-nav [aria-current="page"][href*="${view === "overview" ? "/" : view}"]`).waitFor({ state: "attached" });
   }
-  await page.goto(`${base}/?view=chat&session=missing`, { waitUntil: "networkidle" });
+  await page.goto(`${base}/chat/missing`, { waitUntil: "networkidle" });
   await page.getByText("这段对话不存在或已删除。请选择其他对话，或新建对话。", { exact: true }).waitFor();
   assert.equal(await page.locator(".ui-message").count(), 0);
   assert.equal(state.creates, 0, "navigation must never create backend sessions");

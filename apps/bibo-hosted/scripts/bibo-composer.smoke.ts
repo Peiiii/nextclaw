@@ -75,7 +75,7 @@ async function setupComposer(page: Page, width: number): Promise<MockState> {
       return new Response(stream, { headers: { "Content-Type": "text/event-stream" } });
     };
   })()` });
-  await page.goto(`${base}/?view=chat${width < 760 ? "" : "&session=composer"}`);
+  await page.goto(`${base}/chat${width < 760 ? "" : "/composer"}`);
   return state;
 }
 

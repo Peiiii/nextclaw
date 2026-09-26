@@ -136,7 +136,7 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
     const first = store.loadMore("notes");
     await store.loadMore("notes");
     assert.equal(requests.length, before + 1);
-    assert.deepEqual(requests.at(-1), { action: "file.list", input: { limit: 100, cursor: "100", kind: "note", sort: "recent" } });
+    assert.deepEqual(requests.at(-1), { action: "file.list", input: { limit: 100, cursor: "100", kind: "note", query: "", sort: "recent" } });
     assert.equal(useBiboSpaceStore.getState().moreLoading.notes, true);
     responses.at(-1)!(Response.json({ result: { items: [{ id: "note-a", kind: "note" }], nextCursor: null } }));
     await first;
