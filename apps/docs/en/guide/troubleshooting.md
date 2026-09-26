@@ -67,6 +67,12 @@ Check:
 - the default model exists
 - the machine can reach the provider
 
+### Sending fails with `crypto.randomUUID is not a function`
+
+This browser error occurs while creating the message ID, before the message is sent. Plain HTTP addresses, such as LAN IP addresses, may not provide `crypto.randomUUID()`. Affected versions can fail on normal sends, keyboard sends, and preset messages from menus.
+
+Upgrade to a version containing the HTTP send compatibility fix, then reload the page. The fix uses a random-number API available over plain HTTP and preserves acceptance tracking and idempotent retries. Until you upgrade, use an existing HTTPS entry point. If the browser runs on the same machine as NextClaw, you can also use `http://127.0.0.1:55667`; on a phone, that address refers to the phone itself.
+
 ## 4. A channel cannot connect
 
 Check:

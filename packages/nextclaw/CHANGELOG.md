@@ -1,5 +1,20 @@
 # nextclaw
 
+## 0.57.2
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - nextclaw
+
+- Updated dependencies [f7b646a]
+  - @nextclaw/kernel@0.19.0
+  - @nextclaw/remote@0.3.69
+  - @nextclaw/server@0.23.12
+  - @nextclaw/service@0.7.6
+
 ## 0.57.1
 
 ### Patch Changes
