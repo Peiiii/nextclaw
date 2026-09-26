@@ -8,7 +8,8 @@
 - 验证：新增 `smoke:planning` 使用真实本地文件领域服务，在 1440/390/320 走通连续创建、慢请求下一条保留、故障注入后草稿与一次重试、日期范围默认值、完整说明/优先级/子任务读回、日期格空白双击、半小时入口、时长变更和无效时间。临时对象全部清理。完整客户端回归 exit 0，三套应用 tsc 与新增脚本单独 tsc 通过，29 项原领域/状态测试通过；targeted ESLint、治理/ratchet、diff check 通过。截图 `/tmp/workspace-planning*.png` 已复核。
 - Review：实现与本段有效输入逐项对齐，无未关闭 finding。自动维护性 0 error，原 store 400 行预算 warning 保留、未增加行数。新增测试按独立用户过程拆分，清理资源唯一归外层测试 fixture；未新增业务 store、API 或通用组件变体。原型/月历/目录与多会话合同不改。全天、重复规则/例外、拖动改期、提醒仍是明确功能差距，原大型合同继续开放。
 - 发布：源码 `fcb725e8a` 经安全合并主干发布批次后，以 `c708976bcc33cb2f12dbd117285bdcc26c873b19` 推送远程 master；修改/删除 changeset 冲突只保留本轮新增文案，避免重复记录已发布内容。从冻结主干构建部署 Worker `95387eb9-f04e-43bc-9f2b-6fbaf7188225`，正式 `/tasks` 和 `/calendar` 引用产物 `/assets/index-DA5-VfwA.js`。当前范围未修改 Worker 产品协议或容器领域实现，使用经当前 Wrangler help 核对的 `--containers-rollout=none`，沿用前批已验证容器。主线回收保留源区 thought WIP，LOCAL_WORKTREE_RETRYING 由既有 worker 18523 接管。
-- 正式真实读写：冻结源码 `BIBO_SMOKE_BASE=https://app.bibo.bot pnpm smoke:planning` exit 0；1440/390/320 完整走通连续任务创建、慢响应不清新草稿、注入失败后一次实际重试、范围默认值、富详情精确读回、月历空白双击、半小时时段、时长联动和错误时间阻止保存。测试临时任务/日程全数清理，手机截图复核无页面横向溢出。故障注入仅阻断一次客户端写请求，成功与读回均由正式领域服务处理，非整套模拟 API。用户说明部署由 `36244940157` 自动流水线执行，当前等待双站和 verify 收尾。
+- 正式真实读写：冻结源码 `BIBO_SMOKE_BASE=https://app.bibo.bot pnpm smoke:planning` exit 0；1440/390/320 完整走通连续任务创建、慢响应不清新草稿、注入失败后一次实际重试、范围默认值、富详情精确读回、月历空白双击、半小时时段、时长联动和错误时间阻止保存。测试临时任务/日程全数清理，手机截图复核无页面横向溢出。故障注入仅阻断一次客户端写请求，成功与读回均由正式领域服务处理，非整套模拟 API。
+- 用户说明：流水线 `36244940157` build、全球发布、国内上传成功，国内 CDN 刷新因 `QuotaExceeded.Refresh` 失败，自动 verify 被跳过；没有重复已成功上传或绕过校验宣称流水线成功。沿用原 `verify-docs-deployment.mjs --expected-commit c708976bcc33cb2f12dbd117285bdcc26c873b19` 手动补验 exit 0，两站 manifest 版本与树一致，树 `796d24664923c2d6ea2a1198ad449d782b98b226152e28cf8b58a51291b65cc7`，规定入口和静态资源可读；两站 bibo 用户页实际返回双击新增文案。CDN 刷新额度仍是外部限制，未提高配额、付费或改变发布合同。AUTOMATION_INTERVENTIONS: 1（自动校验被刷新失败阻断后，由 Agent 调用原 verifier 完成实际双站核对；流水线状态仍为 failure）。冻结临时发布 worktree 已清理，本地 5297 用户预览保留。
 - 验证边界：本轮无真实模型新增调用、原生 iOS 键盘或原生竞品实测，不虚称这些范围通过；原大型合同继续开放。
 
 ## 2026-09-26 六模块统一优化与路径路由
