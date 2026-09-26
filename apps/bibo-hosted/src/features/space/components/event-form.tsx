@@ -18,6 +18,7 @@ export function EventForm({
   const { act, events, saving, eventDrafts, keepEventDraft, clearEventDraft } = useBiboSpaceStore();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const remove = async () => {
     if (!event || saving) return;
     setDeleteError("");
@@ -69,6 +70,7 @@ export function EventForm({
   const submit = async (formEvent: FormEvent) => {
     formEvent.preventDefault();
     if (saving || !title.trim() || !validTimes) return;
+    setSaveError("");
     const input = {
       title: title.trim(),
       description,
@@ -79,11 +81,11 @@ export function EventForm({
       ? await act("event.update", { ...input, id: event.id, version }, "calendar")
       : await act("event.create", input, "calendar");
     if (result) finish();
+    else setSaveError(useBiboSpaceStore.getState().error);
   };
   return (
     <form className="bibo-editor-form event-editor" onSubmit={(value) => void submit(value)}
       onKeyDown={(value) => { if (value.key === "Enter" && value.nativeEvent.isComposing) value.preventDefault(); }}>
-      <h2>{event ? "日程详情" : "新日程"}</h2>
       <Field label="标题">
         <Input
           autoFocus
@@ -125,7 +127,8 @@ export function EventForm({
         <p className="bibo-conflict">这段时间已有 {overlap.map((item) => item.title).join("、")}；保存前请确认安排。</p>
       )}
       <EventDescription value={description} disabled={saving} onChange={(value) => change("description", value)} />
-      <div className="bibo-action-row">
+      {saveError && <p role="alert" className="ui-overlay__error">{saveError}</p>}
+      <div className="ui-overlay__actions">
         <Button tone="primary" type="submit" disabled={saving || !title.trim() || !validTimes}>
           {saving ? "正在保存…" : "保存日程"}
         </Button>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { BiboFile } from "@nextclaw/bibo-client";
 import {
   EmptyState,
@@ -23,6 +23,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
     error,
     loadMore,
     treeCollapsed,
+    toggleTree,
     activeFileId,
     openFile,
     fileBrowserVisible,
@@ -35,6 +36,14 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
   );
   const [parent, setParent] = useState("");
   const [creating, setCreating] = useState(false);
+  const collapseControl = useRef<HTMLButtonElement>(null);
+  const expandControl = useRef<HTMLButtonElement>(null);
+  const toggleDirectory = () => {
+    toggleTree();
+    requestAnimationFrame(() => {
+      (treeCollapsed ? collapseControl : expandControl).current?.focus();
+    });
+  };
   const all = notesOnly ? notes : files;
   return (
     <div className="bibo-page workspace-page bibo-files-page">
@@ -44,17 +53,17 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
           notesOnly
             ? undefined
             : {
-                gridTemplateColumns: `${
-                  treeCollapsed ? 46 : treeWidth
-                }px minmax(0, 1fr)`,
+                gridTemplateColumns: treeCollapsed ? "minmax(0, 1fr)" : `${treeWidth}px minmax(0, 1fr)`,
               }
         }
         className={`bibo-files-layout${
-          fileBrowserVisible ? " is-browser-visible" : " is-content-visible"
+          fileBrowserVisible && (!treeCollapsed || notesOnly) ? " is-browser-visible" : " is-content-visible"
         }${treeCollapsed && !notesOnly ? " is-tree-collapsed" : ""}`}
       >
         {!notesOnly && (
           <FileTree
+            toggleControlRef={collapseControl}
+            onToggle={toggleDirectory}
             onCreate={(path, kind) => {
               setParent(path);
               setKind(kind ?? "document");
@@ -99,7 +108,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
             {cursors.notes && <Button tone="text" disabled={moreLoading.notes} onClick={() => void loadMore("notes")}>{moreLoading.notes ? "正在加载…" : "加载更多笔记"}</Button>}
           </aside>
         )}
-        <FileWorkbench notesOnly={notesOnly} />
+        <FileWorkbench notesOnly={notesOnly} toggleControlRef={expandControl} onToggleTree={toggleDirectory} />
       </div>
     </div>
   );

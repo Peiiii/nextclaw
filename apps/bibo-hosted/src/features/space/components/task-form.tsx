@@ -10,6 +10,7 @@ export function TaskForm({ task, onDone, quick = false, onExpand }: { task: Bibo
   const inputRef = useRef<HTMLInputElement>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [expanded, setExpanded] = useState(false);
   const remove = async () => {
     if (!task || saving) return;
@@ -43,6 +44,7 @@ export function TaskForm({ task, onDone, quick = false, onExpand }: { task: Bibo
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (saving || !title.trim()) return;
+    setSaveError("");
     const input = {
       title: title.trim(),
       description,
@@ -60,11 +62,12 @@ export function TaskForm({ task, onDone, quick = false, onExpand }: { task: Bibo
       if (useBiboSpaceStore.getState().taskDrafts[draftKey] === draft) clearTaskDraft(draftKey);
       onDone(result.id);
       if (quick) requestAnimationFrame(() => inputRef.current?.focus());
-    }
+    } else setSaveError(useBiboSpaceStore.getState().error);
   };
   if (quick) return <QuickTaskInput title={title} saving={saving} inputRef={inputRef} onChange={(value) => change("title", value)} onSubmit={submit} onExpand={onExpand} />;
   return (
-    <form className="bibo-editor-form task-editor" onSubmit={(event) => void submit(event)}>
+    <form className="bibo-editor-form task-editor" onSubmit={(event) => void submit(event)}
+      onKeyDown={(event) => { if (event.key === "Enter" && event.nativeEvent.isComposing) event.preventDefault(); }}>
       <fieldset className="task-editor-fields" disabled={saving}>
         <Field label="任务名称">
           <Input
@@ -127,8 +130,9 @@ export function TaskForm({ task, onDone, quick = false, onExpand }: { task: Bibo
         </Field>
         </>}
       </fieldset>
-      <div className="bibo-action-row">
-        <Button tone="primary" type="submit" disabled={saving}>
+      {saveError && <p role="alert" className="ui-overlay__error">{saveError}</p>}
+      <div className="ui-overlay__actions">
+        <Button tone="primary" type="submit" disabled={saving || !title.trim()}>
           {saving ? "正在保存…" : "保存任务"}
         </Button>
         <Button tone="text" type="button" disabled={saving} onClick={finish}>
@@ -137,7 +141,6 @@ export function TaskForm({ task, onDone, quick = false, onExpand }: { task: Bibo
         {task && (
           <Button
             tone="danger"
-            type="button"
             disabled={saving}
             onClick={() => { setDeleteError(""); setDeleting(true); }}
           >

@@ -1,11 +1,11 @@
-import { X } from "lucide-react";
+import { PanelLeftOpen, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button, Dialog, EmptyState, IconButton } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { FileEditor } from "./file-editor";
 import { FileKindIcon } from "./file-kind-icon";
-export function FileWorkbench({ notesOnly }: { notesOnly: boolean }) {
-  const { files, tabs, activeFileId, fileDetails, fileDrafts, openFile, closeFile, saveFile, showFileBrowser } =
+export function FileWorkbench({ notesOnly, toggleControlRef, onToggleTree }: { notesOnly: boolean; toggleControlRef: React.RefObject<HTMLButtonElement>; onToggleTree: () => void }) {
+  const { files, tabs, activeFileId, fileDetails, fileDrafts, openFile, closeFile, saveFile, showFileBrowser, treeCollapsed } =
     useBiboSpaceStore();
   const [closing, setClosing] = useState<string | null>(null);
   const [failure, setFailure] = useState("");
@@ -34,9 +34,10 @@ export function FileWorkbench({ notesOnly }: { notesOnly: boolean }) {
   };
   return (
     <div className="bibo-file-workbench">
-      <div className={`file-tabbar${tabs.length ? "" : " is-empty"}`}>
+      <div className={`file-tabbar${tabs.length || (!notesOnly && treeCollapsed) ? "" : " is-empty"}`}>
+        {!notesOnly && treeCollapsed && <div className="file-tree-toggle"><IconButton ref={toggleControlRef} label="展开目录树" icon={<PanelLeftOpen />} onClick={onToggleTree} /></div>}
         <div className="file-mobile-back">
-          <Button tone="text" onClick={showFileBrowser}>
+          <Button tone="text" onClick={() => { if (treeCollapsed && !notesOnly) onToggleTree(); showFileBrowser(); }}>
             ← {notesOnly ? "全部笔记" : "目录"}
           </Button>
         </div>
