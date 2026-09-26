@@ -1,4 +1,4 @@
-import type { BiboChatEvent, BiboMessage, BiboUser } from "../types/bibo-client.types";
+import type { BiboChatEvent, BiboMessage, BiboSession, BiboUser } from "../types/bibo-client.types";
 
 const MAX_FRAME_LENGTH = 4_000_000;
 
@@ -29,11 +29,20 @@ export function readMessages(value: unknown): BiboMessage[] {
   return value.map((item) => ({ role: item.role, text: item.text, at: item.at }));
 }
 
+export function readSession(value: unknown): BiboSession {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.title !== "string" || typeof value.updatedAt !== "string") {
+    throw new BiboClientError("会话信息格式不正确。");
+  }
+  return { id: value.id, title: value.title, updatedAt: value.updatedAt,
+    createdAt: typeof value.createdAt === "string" ? value.createdAt : value.updatedAt,
+    ...(typeof value.messageCount === "number" ? { messageCount: value.messageCount } : {}) };
+}
+
 export function readCommitted(value: unknown): Extract<BiboChatEvent, { name: "committed" }> {
   if (!isRecord(value) || typeof value.text !== "string") {
     throw new BiboClientError("回答没有保存，请重试。");
   }
-  return { name: "committed", value: { text: value.text, messages: readMessages(value.messages) } };
+  return { name: "committed", value: { text: value.text, messages: readMessages(value.messages), session: value.session === undefined || value.session === null ? null : readSession(value.session) } };
 }
 
 function readFrame(frame: string): BiboChatEvent | null {

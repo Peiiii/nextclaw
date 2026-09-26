@@ -1,0 +1,467 @@
+:root {
+  --bibo-canvas: var(--ui-canvas);
+  --bibo-sidebar: var(--ui-sidebar);
+  --bibo-surface: var(--ui-surface);
+  --bibo-ink: var(--ui-ink);
+  --bibo-muted: var(--ui-muted);
+  --bibo-line: var(--ui-line);
+  --bibo-primary: var(--ui-primary);
+  --bibo-selection: var(--ui-selection);
+  --bibo-danger: var(--ui-danger);
+  --bibo-focus: var(--ui-focus);
+  --bibo-paper: var(--bibo-canvas);
+  --bibo-soft: #f3f3ed;
+  --bibo-subtle: var(--bibo-muted);
+  --bibo-hairline: var(--bibo-line);
+  --bibo-leaf: var(--bibo-primary);
+  --bibo-leaf-soft: var(--bibo-selection);
+}
+
+.bibo-shell { background: var(--bibo-paper); color: var(--bibo-ink); }
+.bibo-sidebar { width: 214px; padding: 22px 12px 16px; background: #f2f3ee; border-color: var(--bibo-hairline); transition: width .2s ease; }
+.bibo-brand { padding: 3px 12px 22px; font-family: Georgia, "Songti SC", serif; font-size: 27px; font-weight: 600; }
+.bibo-brand-mark { width: 31px; height: 31px; border-radius: 12px; background: var(--bibo-leaf); font-size: 21px; }
+.bibo-sidebar-label { margin: 15px 11px 9px; color: #8b9588; }
+.bibo-primary-nav { display: grid; gap: 2px; }
+.bibo-nav-item { min-height: 40px; display: flex; align-items: center; gap: 12px; border-radius: 8px; padding: 7px 12px; color: #586459; text-decoration: none; line-height: 1.3; transition: background .15s ease; }
+.bibo-nav-item:hover, .bibo-session-wrap:hover { background: var(--ui-hover); }
+.bibo-nav-item.is-active:hover, .bibo-session-wrap:has(.is-active):hover { background: var(--ui-selection-hover); }
+.bibo-nav-item.is-active { background: #e3ebe0; color: #36543d; font-weight: 650; }
+.bibo-nav-mark { width: 20px; text-align: center; font-size: 17px; color: #738778; }
+.bibo-nav-item small { margin-left: auto; min-width: 17px; border-radius: 10px; padding: 0 5px; background: #d8e5d5; font-size: 10px; text-align: center; }
+.bibo-session-nav { min-height: 0; overflow-y: auto; margin-top: 22px; border-top: 1px solid #e0e4dc; padding: 14px 1px 0; }
+.bibo-session-head { display: flex; align-items: center; justify-content: space-between; padding: 0 10px 6px; font-size: 11px; color: #869183; }
+.bibo-session-item { display: block; width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: left; text-decoration: none; border: 0; border-radius: 7px; background: none; padding: 7px 11px; color: #657365; font-size: 12px; cursor: pointer; }
+.bibo-session-item.is-active { background: #e7ede3; color: #33563d; }
+.bibo-session-wrap { position: relative; border-radius: var(--ui-radius-sm); }
+.bibo-session-wrap .bibo-session-item { min-height: 36px; padding-right: 38px; }
+.session-actions { position: absolute; right: 2px; top: 2px; }
+.session-actions { opacity: 0; pointer-events: none; }
+.bibo-session-wrap:hover .session-actions, .bibo-session-wrap:focus-within .session-actions, .session-actions:has([data-state="open"]) { opacity: 1; pointer-events: auto; }
+.bibo-session-wrap:has(.is-active) { background: var(--ui-selection); }
+.bibo-session-wrap .bibo-session-item.is-active { background: transparent; }
+.bibo-sidebar-foot { border-top: 1px solid #e0e4dc; padding: 10px 11px 0; gap: 8px; }
+.is-sidebar-collapsed .bibo-sidebar { width: 66px; padding-left: 7px; padding-right: 7px; }
+.is-sidebar-collapsed .bibo-brand { padding-left: 10px; font-size: 0; }
+.is-sidebar-collapsed .bibo-brand-mark { flex: none; }
+.is-sidebar-collapsed .bibo-sidebar-label, .is-sidebar-collapsed .bibo-nav-text, .is-sidebar-collapsed .bibo-nav-item small, .is-sidebar-collapsed .bibo-session-nav, .is-sidebar-collapsed .account-menu-trigger span, .is-sidebar-collapsed .account-menu-trigger svg:last-child { display: none; }
+.is-sidebar-collapsed .bibo-nav-item { justify-content: center; padding: 9px; }
+.is-sidebar-collapsed .bibo-sidebar-toggle { text-align: center; }
+.bibo-main { background: var(--bibo-paper); }
+.bibo-topbar { height: 57px; padding: 0 25px; color: #647064; border-color: var(--bibo-hairline); }
+.bibo-topbar-leading { flex: 1; min-width: 0; margin-right: 12px; font-weight: 600; color: #48564b; }
+.bibo-topbar-leading > .ui-icon-button { flex: none; }
+.bibo-topbar-actions { display: flex; flex: none; align-items: center; gap: 8px; }
+.bibo-topbar-button { background: transparent; border: 0; border-radius: 7px; padding: 8px 11px; color: #647565; cursor: pointer; font-size: 12px; }
+.bibo-topbar-button:hover { background: #eef1e9; }
+.bibo-account { margin-left: 12px; font-size: 11px; color: #90988e; }
+.bibo-chat-layout { display: flex; flex: 1; min-height: 0; min-width: 0; }
+.bibo-chat-column { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: #fffefa; }
+.bibo-chat-column .bibo-messages { width: min(790px, 100%); }
+.bibo-chat-column .bibo-composer-wrap { width: min(790px, 100%); }
+.bibo-workspace { width: min(42%, 620px); min-width: 340px; min-height: 0; display: flex; flex-direction: column; background: #f5f6f1; border-left: 1px solid var(--bibo-hairline); }
+.bibo-workspace-head { height: 48px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 17px; border-bottom: 1px solid var(--bibo-hairline); font-size: 12px; }
+.bibo-workspace-head .ui-control { flex: 1; min-width: 0; max-width: calc(100% - 40px); padding: 5px 8px; border-color: transparent; background-color: transparent; font-size: 12px; }
+.bibo-workspace-content { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+
+.bibo-space-scroll { flex: 1; min-height: 0; overflow-y: auto; position: relative; }
+.bibo-space-scroll.is-workspace { display: flex; flex-direction: column; overflow: hidden; }
+.bibo-space-feedback { position: absolute; z-index: 8; right: 16px; bottom: 16px; max-width: min(420px, calc(100% - 32px)); pointer-events: none; }
+.bibo-space-feedback > * { pointer-events: auto; }
+.bibo-read-state { flex: 1; min-height: min(440px, calc(100dvh - 150px)); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.bibo-read-state .ui-empty-state { min-height: 0; padding-bottom: 16px; }
+.workspace-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; font: inherit; font-weight: 600; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.bibo-page.workspace-page { display: flex; flex-direction: column; flex: 1; max-width: none; min-height: 0; padding: 0; margin: 0; overflow: hidden; }
+.workspace-page .workspace-toolbar { flex: none; padding: 10px 16px; margin: 0; min-height: 56px; gap: 8px; border-bottom: 1px solid var(--ui-line); }
+.workspace-page .bibo-split { flex: 1; min-height: 0; border: 0; border-radius: 0; overflow: hidden; }
+.workspace-page .bibo-list-pane, .workspace-page .bibo-detail-pane { min-height: 0; max-height: none; height: 100%; overflow: auto; }
+.workspace-page .bibo-detail-pane { padding: 24px; }
+.workspace-page .bibo-task-layout { grid-template-columns: minmax(0, 1fr) minmax(300px, .8fr); }
+.workspace-page .bibo-task-layout:not(.is-detail-open) { grid-template-columns: minmax(0, 1fr); }
+.task-filter-options { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 8px; }
+.task-toolbar { flex: none; }
+.task-quick-add { display: flex; align-items: center; gap: 8px; flex: none; padding: 12px 16px 4px; }
+.task-quick-add .ui-control { flex: 1; min-width: 0; }
+.task-quick-add .ui-button { flex: none; min-height: 44px; }
+.task-quick-add .ui-icon-button { flex: none; }
+.event-duration { display: flex; gap: 4px; flex-wrap: wrap; }
+.event-duration [aria-pressed="true"] { background: var(--ui-selection); }
+.task-undo { display: flex; align-items: center; gap: 8px; padding-inline: 16px; }
+.task-undo .ui-notice { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-list-item { display: flex; align-items: center; padding-left: 12px; border-bottom: 1px solid var(--ui-line); }
+.task-list-item.is-selected { background: var(--ui-selection); }
+.task-list-item.is-complete strong { text-decoration: line-through; color: var(--ui-muted); }
+.task-list-item .bibo-task-row { flex: 1; min-width: 0; border: 0; padding-left: 8px; }
+.task-list-item .bibo-task-row > span:first-child { flex: 1; min-width: 0; }
+.task-list-item .bibo-task-row strong { font-size: 15px; overflow-wrap: anywhere; }
+.task-list-item .bibo-task-row small { font-size: 12px; line-height: 1.5; }
+.task-list-item .task-complete { flex: none; width: 44px; height: 44px; font-size: 22px; }
+.calendar-mobile-agenda { display: none; }
+.inbox-back { display: none; }
+.inbox-layout .bibo-detail-pane h2 { overflow-wrap: anywhere; font-size: 24px; line-height: 1.35; }
+.inbox-layout .ui-list-row > span:not(.bibo-unread-dot) { min-width: 0; flex: 1; }
+.inbox-layout .ui-list-row strong { overflow-wrap: anywhere; }
+.inbox-layout .ui-list-row small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bibo-note-list .ui-list-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.workspace-not-found { padding: 32px; }
+.workspace-page > .bibo-inline-input { flex: none; margin: 12px 16px; }
+.bibo-page { max-width: 1480px; min-height: 100%; margin: 0 auto; padding: 39px clamp(22px, 4vw, 70px) 65px; }
+.bibo-page-title { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 27px; }
+.bibo-kicker { color: #899787; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; margin: 0 0 8px; }
+.bibo-page-title h1 { font: 500 clamp(29px, 3.1vw, 43px)/1.22 Georgia, "Songti SC", serif; letter-spacing: -.03em; margin: 0 0 8px; }
+.bibo-page-title p:last-child { margin: 0; color: var(--bibo-subtle); font-size: 13px; }
+.bibo-overview { max-width: 1380px; padding-top: 28px; }
+.bibo-overview .bibo-page-title { margin-bottom: 25px; }
+.bibo-overview .bibo-page-title h1 { font-size: clamp(28px, 2.6vw, 36px); }
+.bibo-overview .bibo-page-title h1 { text-wrap: balance; }
+.bibo-overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 24px; align-items: start; }
+.bibo-overview-column { min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.bibo-overview-brief { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; width: 100%; min-width: 0; min-height: 82px; padding: 15px 20px; border: 1px solid #e1e9db; border-radius: 11px; text-align: left; background: #edf2e9; color: #435a43; cursor: pointer; }
+.bibo-overview-brief:hover { background: #e6eedf; }
+.bibo-overview-brief-mark { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: #567358; color: white; font-size: 15px; }
+.bibo-overview-brief-copy { min-width: 0; flex: 1; }
+.bibo-overview-brief-copy strong { display: block; font-size: 14px; font-weight: 600; }
+.bibo-overview-brief-copy small { display: block; margin-top: 3px; color: #6c7e6c; font-size: 12px; overflow-wrap: anywhere; }
+.bibo-overview-brief-action { flex: none; font-size: 12px; }
+.bibo-summary-card { min-width: 0; overflow-wrap: anywhere; padding: 20px 24px; background: #fffefa; border: 1px solid var(--bibo-hairline); border-radius: 11px; }
+.bibo-card-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; color: #6d806b; font-size: 11px; }
+.bibo-card-heading small { color: #95a291; font-size: 10px; }
+.bibo-summary-card h2 { font: 500 20px/1.38 Georgia, "Songti SC", serif; margin: 10px 0 13px; }
+.bibo-card-empty { color: #9ba499; font-size: 12px; margin: 12px 0 0; }
+.bibo-summary-row { width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 16px; text-align: left; border: 0; border-top: 1px solid #edf0e9; background: transparent; padding: 11px 0; cursor: pointer; color: #45564a; }
+.bibo-summary-row:hover { color: var(--bibo-leaf); }
+.bibo-summary-row strong { min-width: 0; font-size: 13px; font-weight: 560; }
+.bibo-summary-row span { flex: none; font-size: 11px; color: #879688; white-space: nowrap; }
+.bibo-project-list { display: grid; grid-template-columns: 1fr; gap: 4px; margin-top: 14px; }
+.bibo-project-list button { position: relative; min-height: 58px; display: flex; align-items: start; justify-content: space-between; gap: 12px; text-align: left; background: none; border: 0; border-top: 2px solid #e1e8dd; color: #475b4b; padding: 12px 0; cursor: pointer; }
+.bibo-project-list button strong { min-width: 0; font-size: 13px; }
+.bibo-project-list button span { color: #97a396; font-size: 11px; white-space: nowrap; }
+.bibo-project-list button i { position: absolute; top: -2px; left: 0; height: 2px; background: #688b6a; }
+.bibo-mobile-nav { display: none; }
+
+.bibo-split { display: grid; grid-template-columns: minmax(290px, .85fr) minmax(400px, 1.15fr); background: #fffefa; border: 1px solid var(--bibo-hairline); border-radius: 13px; min-height: min(660px, calc(100dvh - 235px)); overflow: hidden; }
+.bibo-list-pane { min-width: 0; border-right: 1px solid var(--bibo-hairline); overflow-y: auto; }
+.bibo-detail-pane { min-width: 0; padding: 35px clamp(24px, 3vw, 50px); overflow-y: auto; }
+.bibo-detail-pane > h2, .bibo-editor-form h2 { overflow-wrap: anywhere; font: 500 27px/1.3 Georgia, "Songti SC", serif; margin: 7px 0 24px; }
+.bibo-readable { min-width: 0; max-width: 700px; color: #5d685d; font-size: 14px; }
+.bibo-pane-label { height: 43px; display: flex; gap: 7px; align-items: center; padding: 0 17px; border-bottom: 1px solid var(--bibo-hairline); color: #839182; font-size: 11px; }
+.bibo-list-pane > .ui-list-row { min-height: 74px; }
+.ui-list-row > span:nth-child(2) { flex: 1; min-width: 0; }
+.ui-list-row strong, .bibo-note-list .ui-list-row strong { display: -webkit-box; font-size: 13px; font-weight: 620; }
+.ui-list-row strong, .bibo-summary-row strong, .bibo-project-list button strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.ui-list-row small, .bibo-note-list .ui-list-row small { display: block; color: #95a093; font-size: 11px; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-list-row time { flex: none; color: #9ba59a; font-size: 10px; }
+.bibo-unread-dot { width: 7px; height: 7px; flex: none; margin-top: 6px; border-radius: 50%; background: #739274; }
+.bibo-unread-dot.is-read { background: transparent; }
+.bibo-action-row { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; margin-top: 25px; }
+.bibo-action-row .ui-button--danger { margin-left: auto; }
+.bibo-load-more { display: block; margin: 18px auto; }
+
+.bibo-filterbar { display: flex; flex-wrap: wrap; align-items: center; gap: 13px; min-height: 43px; margin-bottom: 13px; color: #657365; }
+.bibo-filterbar select { width: min(180px, 100%); padding: 7px 9px; }
+.bibo-filter-spacer { flex: 1; }
+.bibo-task-layout { grid-template-columns: minmax(360px, 1fr) minmax(360px, .9fr); }
+.bibo-task-row { align-items: start; padding: 15px 19px; }
+.bibo-task-state { width: 20px; font-size: 17px; color: #779076; }
+.bibo-task-row strong { font-size: 13px; font-weight: 600; }
+.bibo-task-row small { display: block; margin-top: 5px; color: #98a197; font-size: 11px; }
+.bibo-task-status-label { flex: none; margin-left: auto; color: #788b79; font-size: 11px; white-space: nowrap; }
+.bibo-board { display: grid; grid-template-columns: repeat(4, minmax(180px, 1fr)); gap: 1px; background: var(--bibo-hairline); min-height: 100%; overflow-x: auto; }
+.bibo-board section { background: #fffefa; }
+.bibo-board h3 { margin: 0; padding: 14px 12px; font-size: 12px; color: #6b7d6b; }
+.bibo-board h3 small { font-weight: normal; }
+.bibo-board .bibo-task-row { padding: 11px; }
+.bibo-editor-form { display: flex; flex-direction: column; max-width: 620px; }
+.workspace-page .task-detail-pane { display: flex; flex-direction: column; overflow: hidden; }
+.workspace-detail-head { display: flex; flex: none; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.workspace-detail-head h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.task-editor { flex: 1; min-height: 0; max-width: none; }
+.task-editor-fields { flex: 1; min-height: 0; min-width: 0; overflow: auto; padding: 2px; border: 0; margin: 0; }
+.task-editor > .bibo-action-row { flex: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--ui-line); }
+.task-property-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.bibo-inline-input .ui-control { width: 100%; }
+.bibo-form-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.bibo-subtasks { border-top: 1px solid var(--bibo-hairline); padding-top: 9px; }
+.bibo-subtasks > p { color: #6c7e6c; font-size: 11px; }
+.bibo-editor-form .bibo-check-row { display: flex; flex-direction: row; align-items: center; gap: 8px; min-height: 32px; margin-bottom: 4px; color: #4f6052; font-size: 13px; }
+.bibo-check-row label { display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px; cursor: pointer; }
+.bibo-check-row input { width: auto; }
+.bibo-check-row span { flex: 1; }
+.bibo-check-row .ui-icon-button { flex: none; }
+.bibo-inline-input { display: flex; gap: 7px; max-width: 500px; margin-bottom: 14px; }
+.bibo-conflict { margin: 0 0 16px; padding: 10px; background: #f6f0df; color: #857451; border-radius: 7px; font-size: 12px; }
+.calendar-period { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+.calendar-period > strong { min-width: 80px; text-align: center; font-size: 12px; color: #536755; }
+.bibo-calendar-controls { flex-wrap: wrap; }
+.bibo-calendar-controls > .ui-button { flex-shrink: 0; white-space: nowrap; }
+.bibo-task-layout:not(.is-detail-open) { display: block; }
+.bibo-filterbar > input.ui-control { width: min(260px, 100%); min-width: 120px; flex: 0 1 260px; }
+.bibo-filterbar > select { flex-shrink: 0; }
+@media (max-width: 760px) {
+  .bibo-task-layout.is-detail-open .bibo-list-pane { display: none; }
+  .bibo-task-layout .bibo-list-pane { max-height: none; }
+}
+.calendar-stage { display: grid; grid-template-columns: minmax(0, 1fr) 300px; flex: 1; min-height: 0; background: var(--ui-surface); }
+.calendar-surface { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.calendar-inspector { min-height: 0; min-width: 0; overflow: auto; padding: 20px; border-left: 1px solid var(--ui-line); }
+.calendar-inspector .bibo-day-agenda { padding: 0; border: 0; height: auto; }
+.calendar-inspector .bibo-editor-form h2 { font-family: inherit; font-size: 17px; font-weight: 600; line-height: 1.4; margin: 0 0 20px; }
+.calendar-inspector .bibo-form-pair { grid-template-columns: 1fr; gap: 0; }
+.calendar-mobile-day, .calendar-mobile-back { display: none; }
+.calendar-page .calendar-period { margin-left: 0; }
+.calendar-month { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; }
+.calendar-time-scroll { flex: 1; min-height: 0; overflow: auto; }
+.calendar-time-grid { display: grid; width: max-content; min-width: 100%; }
+.calendar-time-heading { position: sticky; top: 0; z-index: 2; padding: 12px 8px; background: var(--ui-surface); border-bottom: 1px solid var(--bibo-hairline); text-align: center; font-size: 12px; white-space: nowrap; }
+.calendar-time-heading:first-child { left: 0; z-index: 4; }
+.calendar-hours { display: flex; flex-direction: column; position: sticky; left: 0; z-index: 3; background: var(--ui-surface); }
+.calendar-hours span { height: var(--calendar-hour-height, 48px); flex: none; text-align: center; font-size: 10px; color: var(--bibo-subtle); }
+.calendar-time-day { position: relative; border-left: 1px solid var(--bibo-hairline); min-width: 0; }
+.calendar-time-scroll { --calendar-hour-height: 48px; --calendar-minute-height: 0.8px; }
+.calendar-time-slot { display: block; width: 100%; height: calc(var(--calendar-hour-height) / 2); border: 0; border-bottom: 1px solid var(--bibo-hairline); background: transparent; cursor: pointer; }
+.calendar-time-slot:nth-child(even) { border-bottom-style: dashed; }
+@media (pointer: coarse) { .calendar-time-scroll { --calendar-hour-height: 96px; --calendar-minute-height: 1.6px; } }
+.calendar-time-slot:hover { background: var(--ui-hover); }
+.calendar-time-event { position: absolute; border: 0; border-left: 2px solid var(--ui-primary); border-radius: 4px; background: var(--ui-selection); color: var(--ui-ink); padding: 5px 6px; text-align: left; overflow: hidden; cursor: pointer; }
+.calendar-time-event strong, .calendar-time-event small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.calendar-time-event strong { font-size: 11px; font-weight: 600; }
+.calendar-time-event small { font-size: 10px; margin-top: 4px; color: var(--ui-muted); }
+.calendar-weekdays, .calendar-month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.calendar-month-grid { flex: 1; grid-auto-rows: minmax(84px, 1fr); }
+.calendar-weekdays { background: var(--ui-canvas); border-bottom: 1px solid var(--bibo-hairline); }
+.calendar-weekdays span { padding: 10px 12px; font-size: 12px; color: var(--bibo-subtle); }
+.calendar-date { position: relative; padding: 6px; border-right: 1px solid var(--bibo-hairline); border-bottom: 1px solid var(--bibo-hairline); min-width: 0; }
+.calendar-date:nth-child(7n) { border-right: 0; }
+.calendar-date:nth-last-child(-n+7) { border-bottom: 0; }
+.calendar-date.is-outside { background: var(--ui-canvas); color: var(--bibo-subtle); }
+.calendar-date.is-selected { background: var(--ui-calendar-selection); }
+.calendar-date-select { position: absolute; inset: 0; width: 100%; border: 0; background: transparent; color: inherit; padding: 0; cursor: pointer; }
+.calendar-date-select:focus-visible { outline: 2px solid var(--ui-primary); outline-offset: -2px; }
+.calendar-date-select span { position: absolute; top: 6px; left: 6px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-size: 12px; }
+.calendar-date.is-today .calendar-date-select span { background: var(--ui-accent, #53694f); color: white; }
+.calendar-date-events { position: relative; z-index: 1; display: grid; gap: 3px; margin-top: 32px; }
+.calendar-date-events button { display: flex; gap: 5px; width: 100%; min-width: 0; padding: 4px 5px; border: 0; border-radius: 4px; background: var(--ui-hover, #e8ece2); color: inherit; text-align: left; font-size: 11px; cursor: pointer; }
+.calendar-date-events button:hover, .calendar-time-event:hover { background: var(--ui-selection-hover); }
+.calendar-date-select:hover { background: var(--ui-hover); }
+.calendar-date-events time { opacity: .75; flex: none; }
+.calendar-date-events span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.calendar-date-events .calendar-overflow { background: transparent; color: var(--bibo-subtle); }
+@media (max-width: 680px) {
+  .calendar-weekdays span { padding: 9px 0; text-align: center; font-size: 11px; }
+  .calendar-date { min-height: 94px; padding: 3px; }
+  .calendar-date-select span { top: 3px; left: 50%; transform: translateX(-50%); }
+  .calendar-date-events button { padding: 3px 2px; font-size: 10px; }
+  .calendar-date-events time { display: none; }
+}
+.bibo-day-agenda { padding: 25px 26px; border-right: 0; }
+.bibo-agenda-heading { display: flex; justify-content: space-between; align-items: end; gap: 20px; padding-bottom: 18px; border-bottom: 1px solid var(--bibo-hairline); }
+.bibo-agenda-heading h2 { margin: 0; font: 500 25px Georgia, "Songti SC", serif; }
+.bibo-agenda-heading > span { white-space: nowrap; color: #8d998b; font-size: 11px; }
+.bibo-agenda-items { padding-top: 13px; }
+.bibo-agenda-event { display: grid; grid-template-columns: 75px minmax(0, 1fr); gap: 15px; padding: 14px 12px 14px 0; }
+.bibo-agenda-event > span { color: #668467; font-size: 12px; font-weight: 650; }
+.bibo-agenda-event small { display: block; margin-top: 4px; color: #96a194; font-size: 10px; font-weight: 400; }
+.bibo-agenda-event strong { display: block; overflow-wrap: anywhere; font-size: 14px; font-weight: 620; }
+.bibo-agenda-empty { display: flex; flex-direction: column; align-items: start; gap: 8px; padding: 32px 0 25px; }
+.bibo-agenda-empty strong { font: 500 20px Georgia, "Songti SC", serif; }
+.bibo-agenda-empty span { color: #929d90; font-size: 12px; }
+.bibo-agenda-empty button { padding-left: 0; margin-top: 4px; }
+.bibo-upcoming { margin-top: 27px; border-top: 1px solid var(--bibo-hairline); padding-top: 19px; }
+.bibo-upcoming button { display: flex; width: 100%; gap: 14px; align-items: baseline; padding: 10px 0; border: 0; border-bottom: 1px solid #eff1eb; background: transparent; text-align: left; color: #506551; cursor: pointer; }
+.bibo-upcoming button span { min-width: 105px; color: #8d9b8a; font-size: 11px; }
+.bibo-upcoming button strong { font-size: 12px; font-weight: 550; }
+
+.bibo-files-page { max-width: none; display: flex; flex-direction: column; height: 100%; }
+.bibo-files-page .bibo-page-title { flex: none; }
+.bibo-files-layout { display: grid; grid-template-columns: 255px minmax(0, 1fr); flex: 1; min-height: 0; overflow: hidden; background: var(--ui-surface); }
+.bibo-files-layout.is-tree-collapsed { grid-template-columns: 46px minmax(0, 1fr); }
+.bibo-files-layout:has(.bibo-note-list) { grid-template-columns: 280px minmax(0, 1fr); }
+.bibo-file-tree, .bibo-note-list { min-width: 0; border-right: 1px solid var(--bibo-hairline); overflow: hidden; }
+.bibo-file-tree { position: relative; display: flex; flex-direction: column; }
+.file-tree-resizer { position: absolute; right: 0; top: 0; bottom: 0; width: 7px; cursor: col-resize; touch-action: none; }
+.file-tree-resizer:hover, .file-tree-resizer:focus-visible { background: var(--ui-selection); }
+.bibo-file-tree .bibo-pane-label { padding: 0 8px; }
+.bibo-pane-label > span { flex: 1; }
+.bibo-tree-scroll { overflow-y: auto; flex: 1; min-height: 0; padding: 9px 5px 18px; }
+.file-tree-search { display: flex; flex: none; align-items: center; gap: 4px; padding: 8px; }
+.file-tree-search .ui-control { min-width: 0; padding: 7px 9px; font-size: 12px; }
+.bibo-tree-row { display: flex; align-items: center; min-height: 31px; padding-right: 5px; border-radius: 6px; }
+.bibo-tree-row:hover { background: var(--ui-hover); }
+.bibo-tree-row.is-selected:hover { background: var(--ui-selection-hover); }
+.bibo-tree-row.is-selected { background: var(--ui-selection); }
+.bibo-tree-main { flex: 1; display: flex; align-items: center; gap: 7px; overflow: hidden; border: 0; background: none; text-align: left; color: #576a5a; cursor: pointer; font-size: 12px; }
+.bibo-tree-name { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.bibo-tree-disclosure { flex: none; width: 13px; height: 13px; color: #91a28d; }
+.bibo-tree-disclosure svg, .bibo-file-kind-icon svg { display: block; width: 13px; height: 13px; stroke-width: 1.8; }
+.bibo-file-kind-icon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 15px; height: 15px; color: #829b83; }
+.bibo-tree-row.is-selected .bibo-file-kind-icon, .bibo-file-tab.is-active .bibo-file-kind-icon { color: var(--bibo-leaf); }
+.bibo-tree-empty { font-size: 11px; color: #a0aa9c; padding: 0 13px; }
+.bibo-tree-empty-folder { margin: 4px 0 9px; color: var(--ui-muted); font-size: 11px; }
+.bibo-tree-search-error { padding: 4px 12px; color: var(--ui-danger); font-size: 11px; }
+.bibo-tree-search-error p { margin: 0 0 5px; }
+.bibo-note-list { overflow-y: auto; }
+.bibo-note-list .ui-list-row { display: block; min-height: 65px; }
+.bibo-file-tree > .ui-button, .bibo-note-list > .ui-button { flex: none; width: 100%; border-top: 1px solid var(--bibo-hairline); border-radius: 0; }
+.bibo-file-workbench { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.file-tabbar { display: flex; flex: none; min-height: 42px; min-width: 0; border-bottom: 1px solid var(--ui-line); }
+.file-tabbar.is-empty { display: none; }
+.file-mobile-back { display: none; }
+.bibo-file-tabs { display: flex; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.bibo-file-tab { display: flex; align-items: center; flex: none; max-width: 220px; border-right: 1px solid var(--bibo-hairline); }
+.bibo-file-tab.is-active { background: #f0f4ed; box-shadow: inset 0 -2px var(--bibo-leaf); }
+.bibo-file-tab > button:not(.ui-icon-button) { display: flex; align-items: center; gap: 6px; min-width: 0; border: 0; background: none; color: var(--ui-muted); font-size: 11px; cursor: pointer; padding: 12px 5px 12px 14px; }
+.bibo-file-tab > button:not(.ui-icon-button) > span:not(.bibo-file-kind-icon) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bibo-file-tab:hover { background: var(--ui-hover); }
+.bibo-file-tab.is-active:hover { background: var(--ui-selection-hover); }
+.bibo-file-editor { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.bibo-file-editor-head { display: flex; flex: none; min-height: 48px; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 16px; border-bottom: 1px solid var(--ui-line); }
+.file-breadcrumb { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ui-muted); font-size: 12px; }
+.file-editor-tools { display: flex; flex: none; align-items: center; gap: 10px; margin-left: auto; }
+@media (min-width: 761px) and (max-width: 900px) {
+  .bibo-files-layout, .bibo-files-layout:has(.bibo-note-list) { grid-template-columns: 220px minmax(0, 1fr); }
+  .bibo-files-layout.is-tree-collapsed { grid-template-columns: 46px minmax(0, 1fr); }
+  .file-breadcrumb { display: none; }
+}
+.file-conflict { flex: none; padding: 12px 16px; border-bottom: 1px solid var(--ui-line); background: var(--ui-canvas); color: var(--ui-ink); font-size: 12px; }
+.file-conflict > div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.bibo-save-state { color: #93a093; font-size: 11px; }
+.bibo-file-preview-markdown, .bibo-file-preview-frame { flex: 1; min-height: 0; overflow: auto; width: 100%; margin: 0; padding: 24px; border: 0; color: var(--ui-ink); font-size: 14px; line-height: 1.8; }
+.bibo-file-editor textarea { flex: 1; min-height: 0; width: 100%; margin: 0; padding: 24px; border: 0; outline: 0; background: transparent; color: var(--ui-ink); font: 14px/1.9 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize: none; }
+.bibo-file-editor textarea:focus-visible { outline: 0; }
+.bibo-file-foot { border-top: 1px solid var(--bibo-hairline); padding: 4px 25px; display: flex; gap: 15px; }
+.bibo-file-editor.is-compact .file-breadcrumb { display: none; }
+.bibo-workspace-content > .bibo-file-editor { flex: 1; min-height: 0; height: auto; }
+
+@media (max-width: 1100px) {
+  .inbox-back { display: inline-flex; }
+  .inbox-layout { display: block; }
+  .inbox-layout:not(.is-detail-open) .bibo-detail-pane { display: none; }
+  .inbox-layout.is-detail-open .bibo-list-pane { display: none; }
+  .bibo-workspace { width: 45%; min-width: 290px; }
+  .bibo-page { padding-left: 25px; padding-right: 25px; }
+  .bibo-board { grid-template-columns: repeat(4, minmax(220px, 1fr)); }
+}
+@media (max-width: 760px) {
+  .task-toolbar.is-editing { display: none; }
+  .calendar-page:has(.calendar-stage.is-detail-open) .bibo-calendar-controls { display: none; }
+  .task-filter-options { flex-basis: 100%; }
+  .task-filter-options > .ui-control { flex: 1; min-width: 0; }
+  .calendar-surface:has(.calendar-mobile-agenda) { overflow-y: auto; display: block; }
+  .calendar-surface:has(.calendar-mobile-agenda) .calendar-month { flex: none; overflow: visible; }
+  .calendar-surface:has(.calendar-mobile-agenda) .calendar-date { min-height: 56px; }
+  .calendar-surface:has(.calendar-mobile-agenda) .calendar-month-grid { grid-auto-rows: 56px; flex: none; }
+  .calendar-surface:has(.calendar-mobile-agenda) .calendar-date-events { display: none; }
+  .calendar-date[data-count]::after { content: attr(data-count); position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); color: var(--ui-primary); font-size: 10px; pointer-events: none; }
+  .calendar-mobile-agenda { display: block; border-top: 1px solid var(--ui-line); }
+  .calendar-mobile-agenda .bibo-upcoming { display: none; }
+  .calendar-mobile-agenda .bibo-day-agenda { height: auto; padding: 16px; overflow: visible; }
+  .calendar-mobile-agenda .bibo-agenda-heading { padding-bottom: 10px; }
+  .calendar-mobile-agenda .bibo-agenda-heading h2 { font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.4; }
+  .bibo-mobile-nav { position: fixed; z-index: 4; bottom: 0; left: 0; right: 0; height: calc(61px + env(safe-area-inset-bottom)); display: flex; align-items: stretch; justify-content: space-around; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--bibo-hairline); background: #fffefa; }
+  .bibo-mobile-nav a, .bibo-mobile-nav button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: #8b988a; text-decoration: none; font-size: 10px; cursor: pointer; }
+  .bibo-mobile-nav a span, .bibo-mobile-nav button span { font-size: 20px; line-height: 1.1; }
+  .bibo-mobile-nav .is-active { color: #41684a; }
+  .bibo-main { padding-bottom: calc(61px + env(safe-area-inset-bottom)); }
+  .bibo-sidebar { width: 240px; }
+  .is-sidebar-collapsed .bibo-sidebar { width: 240px; }
+  .is-sidebar-collapsed .bibo-sidebar-label, .is-sidebar-collapsed .bibo-nav-text, .is-sidebar-collapsed .bibo-session-nav, .is-sidebar-collapsed .bibo-sidebar-foot a, .is-sidebar-collapsed .bibo-sidebar-foot .ui-button { display: initial; }
+  .is-sidebar-collapsed .bibo-nav-item { justify-content: flex-start; }
+  .bibo-topbar { padding: 0 14px; }
+  .bibo-topbar-button { font-size: 0; padding: 7px; }
+  .bibo-topbar-button::first-letter { font-size: 17px; }
+  .bibo-page { padding: 24px 16px 42px; }
+  .bibo-page-title { align-items: start; }
+  .bibo-page-title h1 { font-size: 31px; }
+  .bibo-page-title > .ui-button--primary { flex: none; }
+  .bibo-overview-grid { display: flex; flex-direction: column; align-items: stretch; gap: 11px; }
+  .bibo-overview-column { display: contents; }
+  .bibo-overview-brief { min-height: 0; padding: 15px; order: 0; }
+  .bibo-overview-brief-action { align-self: flex-start; }
+  .bibo-overview-inbox { order: 1; }
+  .bibo-overview-calendar { order: 2; }
+  .bibo-overview-tasks { order: 3; }
+  .bibo-project-card { order: 4; }
+  .bibo-overview-notes { order: 5; }
+  .bibo-summary-card { min-height: 0; padding: 18px; }
+  .bibo-split { display: block; min-height: 0; }
+  .bibo-list-pane { max-height: 290px; border-right: 0; border-bottom: 1px solid var(--bibo-hairline); }
+  .bibo-detail-pane { min-height: 300px; padding: 24px 18px; }
+  .bibo-day-agenda { max-height: none; padding: 19px; }
+  .workspace-page .workspace-toolbar { padding: 8px 12px; gap: 6px; }
+  .workspace-page .bibo-detail-pane { padding: 16px; }
+  .calendar-stage { display: flex; flex-direction: column; }
+  .calendar-surface { flex: 1; }
+  .calendar-inspector { display: none; flex: 1; padding: 16px; border: 0; }
+  .calendar-stage.is-detail-open .calendar-surface { display: none; }
+  .calendar-stage.is-detail-open .calendar-inspector { display: block; }
+  .calendar-mobile-day, .calendar-mobile-back { display: block; flex: none; }
+  .calendar-mobile-day { border-top: 1px solid var(--ui-line); border-radius: 0; }
+  .calendar-mobile-back { margin-bottom: 12px; }
+  .bibo-calendar-controls .bibo-filter-spacer { display: none; }
+  .bibo-calendar-controls .calendar-period { margin-right: auto; }
+  .bibo-files-page { height: 100%; padding-bottom: 0; }
+  .bibo-files-layout.is-content-visible > .bibo-file-tree, .bibo-files-layout.is-content-visible > .bibo-note-list { display: none; }
+  .bibo-files-layout.is-browser-visible > .bibo-file-workbench { display: none; }
+  .bibo-files-layout.is-browser-visible > .bibo-file-tree, .bibo-files-layout.is-browser-visible > .bibo-note-list { max-height: none; flex: 1; }
+  .file-mobile-back { display: block; flex: none; padding: 5px 10px; border-right: 1px solid var(--bibo-hairline); border-radius: 0; }
+  .file-tabbar.is-empty { display: flex; }
+  .file-tree-resizer { display: none; }
+  .bibo-files-layout, .bibo-files-layout.is-tree-collapsed, .bibo-files-layout:has(.bibo-note-list) { display: flex; flex-direction: column; min-height: 0; }
+  .bibo-file-tree, .bibo-note-list { flex: none; max-height: 210px; border-right: 0; border-bottom: 1px solid var(--bibo-hairline); }
+  .bibo-file-tree .bibo-tree-scroll { height: auto; padding-bottom: 8px; }
+  .bibo-files-layout.is-tree-collapsed .bibo-file-tree { max-height: 43px; }
+  .bibo-file-workbench { flex: 1; min-height: 0; }
+  .bibo-file-editor-head { padding: 6px 12px; gap: 6px; }
+  .file-breadcrumb { display: none; }
+  .file-editor-tools { flex: 1; gap: 8px; }
+  .file-editor-tools .bibo-save-state { margin-left: auto; }
+  .bibo-file-editor textarea { width: 100%; padding: 20px 16px; }
+  .bibo-file-preview-markdown, .bibo-file-preview-frame { width: 100%; padding: 20px 16px; }
+  .bibo-form-pair { grid-template-columns: 1fr; gap: 0; }
+  .bibo-chat-layout { position: relative; }
+  .bibo-workspace { position: absolute; z-index: 3; inset: 0; width: 100%; min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .bibo-sidebar, .bibo-nav-item { transition: none; } }
+@media (max-width: 380px) {
+  .bibo-overview-brief { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 6px 12px; }
+  .bibo-overview-brief-mark { grid-column: 1; grid-row: 1; }
+  .bibo-overview-brief-copy { grid-column: 2; grid-row: 1; }
+  .bibo-overview-brief-action { grid-column: 2; grid-row: 2; justify-self: end; }
+}
+
+.account-menu-trigger { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 40px; text-align: left; padding: 8px; }
+.sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 22px; }
+.sidebar-header .bibo-brand { min-width: 0; padding-block: 3px; padding-right: 0; }
+.is-sidebar-collapsed .sidebar-header { justify-content: center; }
+.is-sidebar-collapsed .sidebar-header .bibo-brand { display: none; }
+.account-menu-trigger svg { width: 18px; height: 18px; flex: none; }
+.account-menu-trigger span { overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.bibo-sidebar-foot { align-items: stretch; padding-inline: 0; }
+.is-sidebar-collapsed .account-menu-trigger { justify-content: center; }
+.bibo-brand { border-radius: var(--ui-radius-sm); }
+.bibo-brand:hover, .bibo-project-list button:hover, .bibo-upcoming button:hover { background: var(--ui-hover); }
+.bibo-mobile-nav :is(a, button):hover, .bibo-mobile-nav :is(a, button):active { background: var(--ui-hover); }
+.bibo-summary-row:hover, .bibo-check-row:hover { background: var(--ui-hover); }
+.bibo-check-row button:hover { color: var(--ui-danger); }
+.bibo-shell :is(a, button, summary, [role="separator"]):focus-visible { outline: 2px solid var(--ui-focus); outline-offset: -2px; }
+@media (pointer: coarse) { .bibo-session-wrap .bibo-session-item { min-height: 48px; padding-right: 48px; } }
+@media (hover: none) { .session-actions { opacity: 1; pointer-events: auto; } }
+.bibo-topbar .bibo-menu-button { display: none; }
+@media (max-width: 760px) { .bibo-topbar .bibo-menu-button { display: inline-grid; } }
+
+@media (max-width: 760px) {
+  .ui-overlay--sheet:has(.bibo-sidebar.is-drawer) .ui-overlay__header { position: relative; z-index: 1; height: 0; padding: 0; }
+  .ui-overlay--sheet:has(.bibo-sidebar.is-drawer) .ui-overlay__title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .ui-overlay--sheet:has(.bibo-sidebar.is-drawer) .ui-overlay__header .ui-icon-button { position: absolute; top: 14px; right: 16px; }
+  .ui-overlay--sheet:has(.bibo-sidebar.is-drawer) .ui-overlay__body { padding: 12px 16px 14px; }
+  .bibo-sidebar.is-drawer .sidebar-header { min-height: 44px; padding: 0 48px 8px 0; }
+  .bibo-sidebar.is-drawer .sidebar-header .bibo-brand { min-height: 44px; padding: 2px 8px; }
+  .bibo-sidebar.is-drawer .bibo-sidebar-label { display: none; }
+  .bibo-sidebar.is-drawer .bibo-nav-item { min-height: 44px; padding: 9px 12px; }
+  .bibo-sidebar.is-drawer .bibo-session-nav { margin-top: 12px; padding-top: 8px; }
+  .bibo-sidebar.is-drawer .bibo-session-head { min-height: 36px; padding-bottom: 2px; }
+  .bibo-sidebar.is-drawer .bibo-session-wrap .bibo-session-item { min-height: 44px; }
+  .bibo-sidebar.is-drawer .bibo-sidebar-foot { padding-top: 8px; }
+  .bibo-sidebar.is-drawer .account-menu-trigger { min-height: 44px; }
+}

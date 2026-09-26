@@ -39,6 +39,7 @@ For this repository specifically:
 
 ## Decision Rules
 
+- 名称优先描述职责、业务领域或能力，组件、目录、包和公共接口尽量不绑定当前品牌。例如 `calendar-view`、`task-list`、`personal-agent-ui` 可独立于产品改名复用。品牌资产、品牌专属页面、外部平台集成或必须准确表达品牌的协议边界可以使用品牌名；以真实语义判断，不规定绝对禁用，也不为形式批量改名存量代码。品牌展示名、标记和主题优先由产品配置注入。这是用户明确要求的长期命名偏好。
 - Always use lowercase kebab-case for domain/subdomain segments.
 - NextClaw Panel App 的静态包目录允许使用 `<kebab-id>.panel/` 协议后缀；点号前的 app id 仍必须是 lowercase kebab-case。
 - `.panel/assets/` 内的 Vite 生成文件按静态包产物处理，不要求源码角色后缀；源码目录仍完整适用 role-boundary 规则。

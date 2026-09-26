@@ -1,5 +1,12 @@
 # @nextclaw/ui
 
+## 0.27.2
+
+### Patch Changes
+
+- 75e5dde: Fix chat sends failing with `crypto.randomUUID is not a function` when accessing NextClaw over plain HTTP, including keyboard sends and preset messages. Preserve distinct message identities and idempotent retries.
+  - @nextclaw/client-sdk@0.12.12
+
 ## 0.27.1
 
 ### Patch Changes
