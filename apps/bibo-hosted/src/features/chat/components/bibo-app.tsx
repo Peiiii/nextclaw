@@ -111,6 +111,7 @@ export function BiboApp() {
   };
   const closeMenu = () => store.setMenuOpen(false);
   const hasMessages = store.messages.length > 0 || Boolean(store.pendingMessage);
+  const failedMessages = store.failedMessages[store.activeSessionId ?? "new"] ?? [];
   const workspaceTitle = space.view === "chat" ? store.sessions.find((session) => session.id === store.activeSessionId)?.title ?? "新对话" : navigation.find((item) => item.view === space.view)?.label;
   const navigate = (view: BiboView) => { space.navigate(view); closeMenu(); };
   const sidebarContent = <>
@@ -149,9 +150,11 @@ export function BiboApp() {
         {hasMessages && !store.following && <IconButton className="bibo-jump" label={copy.backToLatest} icon={<ArrowDown size={18} />} tooltip={false} onClick={jumpToLatest} />}
       </section>
       <div className="bibo-composer-wrap">
-        <div className="bibo-status" role="status" aria-live="polite">{store.status}</div>
+        {store.status && <div className="bibo-status" role="status" aria-live="polite">{store.status}</div>}
+        {store.phase === "idle" && failedMessages.length > 0 && <Button tone="text" onClick={() => void store.send(failedMessages[0])}>{copy.retryFailed}{failedMessages.length > 1 ? ` (${failedMessages.length})` : ""}</Button>}
         <Composer inputRef={inputRef} value={store.draft} onChange={store.setDraft} onSend={() => void store.send()} onStop={() => void store.stop()}
           busy={store.phase !== "idle" || store.sessionLoading} canStop={store.phase === "generating" && Boolean(store.runId)}
+          readOnly={store.sessionLoading} busyLabel={store.sessionLoading ? copy.loading : store.phase === "saving" ? copy.saving : store.phase === "stopping" ? copy.stopping : copy.connecting}
           placeholder={copy.placeholder} sendLabel={copy.send} stopLabel={copy.stop} />
       </div>
       </div><BiboWorkspace /></div> : <BiboSpaceView view={space.view} onOpenSession={store.selectSession} />}

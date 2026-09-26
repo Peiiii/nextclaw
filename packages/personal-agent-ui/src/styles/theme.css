@@ -153,9 +153,17 @@ select.ui-control:focus-visible { outline: 2px solid var(--ui-focus); outline-of
 .ui-composer { width: 100%; background: var(--ui-surface); border: 1px solid #d9e3d8; border-radius: var(--ui-radius-lg); box-shadow: 0 8px 24px #45604b12; padding: 12px 14px 9px; }
 .ui-composer textarea { display: block; border: 0; outline: 0; resize: none; width: 100%; min-height: 48px; max-height: 170px; background: transparent; color: var(--ui-ink); font: inherit; font-size: 14px; line-height: 1.6; }
 .ui-composer textarea::placeholder { color: #9ca99d; }
-.ui-composer__bottom { display: flex; justify-content: flex-end; align-items: center; gap: var(--ui-space-2); }
+.ui-composer__bottom { display: flex; justify-content: space-between; align-items: center; gap: var(--ui-space-2); }
 .ui-composer__actions { display: flex; gap: 8px; align-items: center; flex: none; }
-.ui-composer__actions .ui-button--primary { min-width: 36px; min-height: 36px; padding: 5px; font-size: 21px; line-height: 1; }
+.ui-composer__action.ui-icon-button { width: 36px; height: 36px; padding: 0; border-radius: 50%; background: var(--ui-primary); color: white; }
+.ui-composer__action.ui-icon-button:is(:enabled:hover, :enabled:active, :focus-visible) { background: var(--ui-primary-hover); color: white; }
+.ui-composer__action.ui-icon-button .ui-composer__stop { width: 14px; height: 14px; }
+.ui-composer__phase { color: var(--ui-muted); font-size: 12px; }
+.ui-composer__spinner { animation: ui-composer-spin 1s linear infinite; }
+.ui-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+@keyframes ui-composer-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ui-composer__spinner { animation: none; } }
+@media (pointer: coarse) { .ui-composer__action.ui-icon-button { width: 44px; height: 44px; } }
 @media (max-width: 760px) { .ui-message--user { max-width: 88%; } }
 :root { --ui-calendar-selection: #eef1e9; }
 .ui-page-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 20px; }

@@ -11,7 +11,7 @@ function inboxExcerpt(body: string): string {
   return line
     .replace(/!?\[([^\]]+)\]\([^)]*\)/g, "$1")
     .replace(/(\*\*|__|~~|`)(.*?)\1/g, "$2")
-    .replace(/(^|\s)\*([^*]+)\*(?=\s|[.,，。]|$)/g, "$1$2")
+    .replace(/(^|[\s、，。])\*([^*]+)\*(?=\s|[.,，。、]|$)/g, "$1$2")
     .slice(0, 85);
 }
 export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promise<void> }) {
