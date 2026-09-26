@@ -2,6 +2,7 @@ import { create, type StoreApi } from "zustand";
 import { BiboClient, type BiboChatEvent, type BiboMessage, type BiboSession, type BiboUser } from "@nextclaw/bibo-client";
 import { biboCopy } from "@/features/chat/configs/bibo-copy.config";
 import { useBiboSpaceStore } from "@/features/space";
+import { navigateConversation, readWorkspaceRoute, replaceConversationContext } from "@/app/workspace-router";
 
 type Phase = "idle" | "generating" | "stopping" | "saving";
 const biboClient = new BiboClient();
@@ -10,13 +11,6 @@ type PendingRun = { message: string; previousLastAt?: string; sessionId: string 
 const runWasSaved = (pending: PendingRun, sessionId: string | null, messages: BiboMessage[]) =>
   pending.sessionId === sessionId && messages.at(-1)?.at !== pending.previousLastAt && messages.at(-2)?.role === "user" && messages.at(-2)?.text === pending.message;
 const errorText = (error: unknown) => error instanceof Error ? error.message : "操作暂时失败，请稍后重试。";
-const sessionFromUrl = () => new URLSearchParams(window.location.search).get("session");
-const showSessionInUrl = (id: string | null) => {
-  const url = new URL(window.location.href);
-  if (url.searchParams.get("view") !== "chat") return;
-  if (id) url.searchParams.set("session", id); else url.searchParams.delete("session");
-  window.history.replaceState({}, "", url);
-};
 
 class BiboChatOwner {
   user: BiboUser | null = null;
@@ -51,18 +45,25 @@ class BiboChatOwner {
   copied = (): void => this.set({ status: biboCopy.copied });
   copyFailed = (): void => this.set({ status: biboCopy.copyFailed });
 
-  createSession = async (): Promise<void> => {
+  createSession = async (fromRoute = false): Promise<void> => {
     if (this.get().phase !== "idle") return;
+    if (!fromRoute) { navigateConversation(null); return; }
     this.selectionRequest += 1;
     this.set({ activeSessionId: null, messages: [], draft: this.get().drafts.new ?? "", status: "", following: true, sessionLoading: false });
-    showSessionInUrl(null);
   };
 
-  selectSession = async (id: string): Promise<void> => {
-    if (this.get().phase !== "idle" || (this.get().activeSessionId === id && !this.get().sessionLoading)) return;
+  selectSession = async (id: string, fromRoute = false): Promise<void> => {
+    if (this.get().phase !== "idle") return;
+    if (!fromRoute) { navigateConversation(id); return; }
+    if (this.get().activeSessionId === id && !this.get().sessionLoading) return;
+    if (!this.get().sessions.some((session) => session.id === id)) {
+      await this.createSession(true);
+      this.set({ status: biboCopy.sessionMissing });
+      return;
+    }
     const request = ++this.selectionRequest;
     const userId = this.get().user?.id;
-    this.set({ sessionLoading: true, status: "" });
+    this.set({ activeSessionId: id, messages: [], draft: this.get().drafts[id] ?? "", sessionLoading: true, status: "" });
     try {
       const messages = await biboClient.history(id);
       if (request !== this.selectionRequest || this.get().user?.id !== userId) return;
@@ -74,7 +75,6 @@ class BiboChatOwner {
         this.set((state) => ({ drafts: { ...state.drafts, [id]: state.drafts[id] === pending.message ? "" : state.drafts[id] ?? "" } }));
       }
       this.set({ activeSessionId: id, messages, draft: this.get().drafts[id] ?? "", status: "", following: true, menuOpen: false });
-      showSessionInUrl(id);
     } catch (error) { if (request === this.selectionRequest) this.set({ status: errorText(error) }); }
     finally { if (request === this.selectionRequest) this.set({ sessionLoading: false }); }
   };
@@ -100,8 +100,8 @@ class BiboChatOwner {
       delete failedMessages[id];
       this.set({ sessions, drafts, failedMessages });
       if (this.get().activeSessionId === id) {
-        await this.createSession();
-        if (sessions[0]) await this.selectSession(sessions[0].id);
+        await this.createSession(true);
+        replaceConversationContext(sessions[0]?.id ?? null);
       }
       return true;
     } catch (error) { if (this.get().user?.id === userId) this.set({ status: errorText(error) }); return false; }
@@ -116,21 +116,23 @@ class BiboChatOwner {
       const sessions = await biboClient.sessions();
       if (request !== this.selectionRequest) return;
       this.set({ sessions });
-      const requestedSession = sessionFromUrl();
-      const blankChat = new URLSearchParams(window.location.search).get("view") === "chat" && !requestedSession;
+      const { view, sessionId: requestedSession } = readWorkspaceRoute();
+      const blankChat = view === "chat" && !requestedSession;
       const missingSession = Boolean(requestedSession && !sessions.some((session) => session.id === requestedSession));
       const activeSessionId = blankChat || missingSession ? null : requestedSession
         ? requestedSession
         : this.get().activeSessionId && sessions.some((session) => session.id === this.get().activeSessionId) ? this.get().activeSessionId : sessions[0]?.id ?? null;
       const messages = activeSessionId ? await biboClient.history(activeSessionId) : [];
       if (request !== this.selectionRequest) return;
+      const currentRoute = readWorkspaceRoute();
+      if (currentRoute.view !== view || currentRoute.sessionId !== requestedSession) return;
       const stored = sessionStorage.getItem(pendingKey(user.id));
       const pending = stored ? JSON.parse(stored) as PendingRun : null;
       const matching = pending?.sessionId === activeSessionId;
       const saved = pending && runWasSaved(pending, activeSessionId, messages);
       const drafts = pending?.sessionId && !saved ? { [pending.sessionId]: pending.message } : {};
       this.set({ sessions, activeSessionId, messages, drafts, draft: activeSessionId ? drafts[activeSessionId] ?? "" : "", status: missingSession ? biboCopy.sessionMissing : matching && pending && !saved ? biboCopy.interrupted : "" });
-      if (!missingSession) showSessionInUrl(activeSessionId);
+      if (!missingSession) replaceConversationContext(activeSessionId);
       if (saved) sessionStorage.removeItem(pendingKey(user.id));
     } catch (error) {
       if (request !== this.selectionRequest) return;
@@ -164,7 +166,7 @@ class BiboChatOwner {
     if (user) sessionStorage.removeItem(pendingKey(user.id));
     try { await biboClient.logout(); } catch { /* Clear the local session view. */ }
     this.set({ user: null, sessions: [], activeSessionId: null, messages: [], draft: "", drafts: {}, failedMessages: {}, sessionLoading: false, status: "", menuOpen: false });
-    showSessionInUrl(null);
+    replaceConversationContext(null);
   };
 
   reset = async (): Promise<boolean> => {
@@ -175,7 +177,7 @@ class BiboChatOwner {
       this.selectionRequest += 1;
       this.set({ sessions: [], activeSessionId: null, messages: [], draft: "", drafts: {}, failedMessages: {}, sessionLoading: false, status: biboCopy.resetDone, menuOpen: false });
       useBiboSpaceStore.getState().bindAccount(user?.id ?? null, true);
-      showSessionInUrl(null);
+      replaceConversationContext(null);
       return true;
     } catch (error) { this.set({ status: errorText(error) }); return false; }
   };
@@ -201,7 +203,7 @@ class BiboChatOwner {
           return { sessions: [session, ...state.sessions], activeSessionId: session.id,
             drafts: { ...state.drafts, new: "", [session.id]: state.draft }, failedMessages };
         });
-        showSessionInUrl(session.id);
+        replaceConversationContext(session.id);
       } catch (error) { this.restoreFailedInput(message); this.set({ phase: "idle", status: errorText(error) }); return; }
     }
     sessionStorage.setItem(pendingKey(user.id), JSON.stringify({ message, previousLastAt, sessionId }));

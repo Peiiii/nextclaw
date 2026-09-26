@@ -2,6 +2,7 @@ import { create, type StoreApi } from "zustand";
 import { BiboClient, BiboClientError, type BiboEvent, type BiboFile, type BiboFileDetail, type BiboInboxItem, type BiboOverview, type BiboProject, type BiboTask } from "@nextclaw/bibo-client";
 import { calendarMonthRange } from "@/features/space/utils/calendar.utils";
 import { readWorkspaceLayout, writeWorkspaceLayout } from "@/features/space/utils/workspace-layout.utils";
+import { navigateWorkspace } from "@/app/workspace-router";
 
 export type BiboView = "overview" | "chat" | "inbox" | "calendar" | "tasks" | "notes" | "files";
 type Page<T> = { items: T[]; nextCursor: string | null };
@@ -10,7 +11,6 @@ export type TaskDraft = Pick<BiboTask, "title" | "description" | "status" | "pri
 export type EventDraft = { title: string; description: string; startAt: string; endAt: string; version: number | null };
 const client = new BiboClient();
 const message = (error: unknown) => error instanceof Error ? error.message : "操作暂时失败，请稍后再试。";
-const views: BiboView[] = ["overview", "chat", "inbox", "calendar", "tasks", "notes", "files"];
 
 class BiboSpaceOwner {
   private readonly instanceId = Symbol("space-owner");
@@ -71,29 +71,22 @@ class BiboSpaceOwner {
   bindAccount = (accountId: string | null, reset = false): void => {
     if (this.accountId === accountId && !reset) return;
     const owner = new BiboSpaceOwner(this.setState, this.get);
+    owner.view = this.get().view;
     owner.accountId = accountId;
     if (accountId && !reset) Object.assign(owner, readWorkspaceLayout(accountId));
     this.setState(owner, true);
-    owner.syncLocation();
     if (accountId) void owner.load();
   };
 
   private saveLayout = (): void => writeWorkspaceLayout(this.get());
 
-  syncLocation = (): void => {
-    const view = new URLSearchParams(window.location.search).get("view");
-    this.set({ view: views.includes(view as BiboView) ? view as BiboView : "overview" });
+  activateView = (view: BiboView): void => {
+    if (this.get().view === view) return;
+    this.set({ view, error: "", notice: "", ...(["files", "notes"].includes(view) ? { fileBrowserVisible: true } : {}) });
+    if (view !== "chat" && this.get().accountId) void this.load(view);
   };
 
-  navigate = (view: BiboView): void => {
-    if (this.get().view === view) return;
-    const url = new URL(window.location.href);
-    if (view === "overview") url.searchParams.delete("view");
-    else url.searchParams.set("view", view);
-    window.history.pushState({}, "", url);
-    this.set({ view, error: "", notice: "", ...(["files", "notes"].includes(view) ? { fileBrowserVisible: true } : {}) });
-    if (view !== "chat") void this.load(view);
-  };
+  navigate = navigateWorkspace;
 
   toggleSidebar = (): void => { this.set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })); this.saveLayout(); };
   toggleTree = (): void => { this.set((state) => ({ treeCollapsed: !state.treeCollapsed })); this.saveLayout(); };

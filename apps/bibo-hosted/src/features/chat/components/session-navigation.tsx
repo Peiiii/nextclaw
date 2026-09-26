@@ -1,4 +1,6 @@
 import { useRef, useState } from "react";
+import { Link } from "react-router";
+import { workspaceHref } from "@/app/workspace-router";
 import { Plus } from "lucide-react";
 import type { BiboSession } from "@nextclaw/bibo-client";
 import {
@@ -111,11 +113,11 @@ function SessionActions({ session }: { session: BiboSession }) {
 
 export function SessionNavigation({
   active,
-  navigate,
+  onNavigate,
   mobile = false,
 }: {
   active: boolean;
-  navigate: () => void;
+  onNavigate: () => void;
   mobile?: boolean;
 }) {
   const store = useBiboChatStore();
@@ -129,26 +131,27 @@ export function SessionNavigation({
           tooltip={!mobile}
           disabled={store.phase !== "idle"}
           onClick={() => {
-            navigate();
+            onNavigate();
             void store.createSession();
           }}
         />
       </div>
       {store.sessions.map((session) => (
         <div key={session.id} className="bibo-session-wrap">
-          <button
+          <Link
+            to={workspaceHref("chat", session.id)}
             className={`bibo-session-item${
               active && store.activeSessionId === session.id ? " is-active" : ""
             }`}
             title={session.title}
-            disabled={store.phase !== "idle"}
-            onClick={() => {
-              navigate();
-              void store.selectSession(session.id);
+            aria-disabled={store.phase !== "idle"}
+            onClick={(event) => {
+              if (store.phase !== "idle") { event.preventDefault(); return; }
+              onNavigate();
             }}
           >
             {session.title}
-          </button>
+          </Link>
           <SessionActions session={session} />
         </div>
       ))}

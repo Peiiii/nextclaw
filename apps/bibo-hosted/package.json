@@ -16,7 +16,8 @@
     "deploy": "pnpm build && pnpm dlx wrangler@4.138.0 deploy",
     "dev": "vite --mode ui --host 127.0.0.1 --port 5188 --strictPort",
     "dev:proxy": "vite --host 127.0.0.1 --port 5188 --strictPort",
-    "dev:worker": "wrangler dev"
+    "dev:worker": "wrangler dev",
+    "smoke:routing": "pnpm build:client && tsx scripts/bibo-routing.smoke.ts"
   },
   "dependencies": {
     "@nextclaw/harness": "workspace:*"
@@ -35,6 +36,7 @@
     "playwright": "^1.52.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router": "^7",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^8.0.3",

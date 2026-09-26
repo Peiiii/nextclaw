@@ -2,6 +2,8 @@
 
 Opening or closing mobile navigation does not show an unsolicited icon tooltip. Keyboard users can Tab into the drawer, press Escape to close it, and return focus to the menu button.
 
+Sections and conversations support browser Back, Forward, and direct links. Switching sections preserves the current conversation and unsent draft; returning to a new conversation restores the blank editor. Conversation links can also open in a new tab. Unsent drafts are not guaranteed to survive a refresh.
+
 Deleted or missing conversation links show an explicit error instead of opening an unrelated conversation. Select another conversation from the list or start a new one to continue.
 
 The right workspace remembers its open state and selected file, and reloads saved content after refresh. Closing and reopening preserves current edits; save before refreshing. Failed reads show an error and a retry action. A late response cannot reopen a workspace you have closed.

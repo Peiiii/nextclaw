@@ -130,7 +130,7 @@ async function checkNewConversation(page: Page): Promise<void> {
   await page.getByRole("button", { name: "发送消息", exact: true }).click();
   await page.getByText("我们已经把它记下来了。", { exact: true }).waitFor();
   assert.equal(creates, 1, "first send creates exactly one server session");
-  const row = page.locator(".bibo-session-wrap").filter({ has: page.getByRole("button", { name: "新对话", exact: true }) });
+  const row = page.locator(".bibo-session-wrap").filter({ has: page.getByRole("link", { name: "新对话", exact: true }) });
   await row.hover();
   const more = row.getByRole("button", { name: "管理会话 新对话" });
   await more.click();
@@ -139,7 +139,7 @@ async function checkNewConversation(page: Page): Promise<void> {
   await dialog.getByRole("textbox", { name: "会话名称" }).fill("第二个话题");
   assert.equal(await dialog.getByRole("textbox").evaluate((element) => element === document.activeElement), true, "menu transfers focus to the naming dialog");
   await dialog.getByRole("button", { name: "保存名称" }).click();
-  await page.getByRole("button", { name: "第二个话题", exact: true }).waitFor();
+  await page.getByRole("link", { name: "第二个话题", exact: true }).waitFor();
   assert.equal(await page.getByRole("dialog").count(), 0);
   await page.getByRole("button", { name: "账号与帮助" }).click();
   await page.getByRole("menuitem", { name: "使用说明与数据" }).waitFor();
@@ -294,7 +294,7 @@ async function checkMissingSession(page: Page, width: number): Promise<void> {
   await page.reload({ waitUntil: "networkidle" });
   await page.getByText("这段对话不存在或已删除。请选择其他对话，或新建对话。", { exact: true }).waitFor();
   if (width <= 760) await page.getByRole("button", { name: "打开菜单" }).click();
-  await page.getByRole("button", { name: "产品想法", exact: true }).click();
+  await page.getByRole("link", { name: "产品想法", exact: true }).click();
   await page.getByText("先整理一件最重要的事。", { exact: true }).waitFor();
   assert.equal(new URL(page.url()).searchParams.get("session"), "session-a");
 }
