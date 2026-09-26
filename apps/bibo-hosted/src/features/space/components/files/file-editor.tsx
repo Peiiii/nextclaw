@@ -17,7 +17,7 @@ export function FileEditor({ id, compact = false }: { id: string; compact?: bool
   };
   const detail = fileDetails[id];
   const draft = fileDrafts[id];
-  if (!detail || !draft) return <EmptyState title="正在打开" detail="文件内容即将出现。" />;
+  if (!detail || !draft) return <EmptyState title="正在打开" />;
   const html = /\.(html?|svg)$/i.test(detail.path);
   const framed = `<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:"><style>body{margin:18px;font:14px/1.7 sans-serif;color:#29312a}</style>${draft.content}`;
   return (

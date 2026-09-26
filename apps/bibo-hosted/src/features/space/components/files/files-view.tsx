@@ -90,10 +90,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
               </ListRow>
             ))}
             {all.length === 0 && !loading && !error && (
-              <EmptyState
-                title="第一条笔记"
-                detail="写下一个想法，它会自动出现在文件里。"
-              />
+              <EmptyState title="还没有笔记" />
             )}
             {cursors.notes && <Button tone="text" disabled={moreLoading.notes} onClick={() => void loadMore("notes")}>{moreLoading.notes ? "正在加载…" : "加载更多笔记"}</Button>}
           </aside>

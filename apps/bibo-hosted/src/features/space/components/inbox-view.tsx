@@ -63,7 +63,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
               </ListRow>
             ))
           ) : (
-            <EmptyState title="现在很安静" detail="Bibo 有需要你留意的事，会放在这里。" />
+            <EmptyState title="现在很安静" />
           )}
           {cursors.inbox && (
             <Button tone="text" className="bibo-load-more" disabled={moreLoading.inbox} onClick={() => void loadMore("inbox")}>
@@ -114,7 +114,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
               </div>
             </>
           ) : (
-            <EmptyState title="选择一条消息" detail="详情会在这里完整展开。" />
+            <EmptyState title="选择一条消息" />
           )}
         </div>
       </div>

@@ -114,11 +114,6 @@ export function Tasks() {
                 title={
                   taskQuery || project ? "没有匹配的任务" : "这里还没有任务"
                 }
-                detail={
-                  taskQuery || project
-                    ? "试试其它关键词或项目。"
-                    : "写下下一步，Bibo 才能与你一起推进。"
-                }
               />
               {(taskQuery || project) && (
                 <Button tone="text" onClick={() => filterTasks("", "")}>

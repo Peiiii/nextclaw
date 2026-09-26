@@ -5,12 +5,10 @@ import { day, datetime } from "@/features/space/utils/date-format.utils";
 function PageTitle({
   eyebrow,
   title,
-  detail,
   action,
 }: {
   eyebrow: string;
   title: string;
-  detail?: string;
   action?: ReactNode;
 }) {
   return (
@@ -18,7 +16,6 @@ function PageTitle({
       <div>
         <p className="bibo-kicker">{eyebrow}</p>
         <h1>{title}</h1>
-        {detail && <p>{detail}</p>}
       </div>
       {action}
     </div>
@@ -36,10 +33,9 @@ export function Overview() {
       <PageTitle
         eyebrow={day(new Date().toISOString())}
         title={`${greeting}，${hasActivity ? "最近你在忙这些。" : "今天从这里开始。"}`}
-        detail="把值得留意的事放在眼前，其余的留给需要的时候。"
       />
       {!overview ? (
-        <EmptyState title="正在整理你的空间" detail="载入后，这里只会显示真实的日程、任务和消息。" />
+        <EmptyState title="正在整理你的空间" />
       ) : (
         <div className="bibo-overview-grid">
           <button className="bibo-overview-brief" onClick={() => navigate(briefTarget)}>

@@ -136,9 +136,7 @@ export function BiboApp() {
       {space.view === "chat" ? <div className="bibo-chat-layout"><div className="bibo-chat-column"><section className="bibo-conversation" aria-label="与 Bibo 对话">
         {!hasMessages && <div className="bibo-welcome">
           <div className="bibo-orb" aria-hidden="true">✳</div>
-          <p className="bibo-eyebrow">A COMPANION FOR YOUR EVERYDAY</p>
           <h1>{copy.greeting}</h1>
-          <p>{copy.welcome}</p>
           <div className="bibo-suggestions">{suggestions.map((suggestion) => <Button key={suggestion.label} onClick={() => { store.setDraft(suggestion.text); inputRef.current?.focus(); }}><span>{suggestion.mark}</span>{suggestion.label}<span>↗</span></Button>)}</div>
         </div>}
         {hasMessages && <div className="bibo-messages" ref={listRef} onScroll={onScroll} role="log" aria-live="polite" aria-relevant="additions text">
@@ -154,8 +152,7 @@ export function BiboApp() {
         <div className="bibo-status" role="status" aria-live="polite">{store.status}</div>
         <Composer inputRef={inputRef} value={store.draft} onChange={store.setDraft} onSend={() => void store.send()} onStop={() => void store.stop()}
           busy={store.phase !== "idle" || store.sessionLoading} canStop={store.phase === "generating" && Boolean(store.runId)}
-          placeholder={copy.placeholder} sendLabel={copy.send} stopLabel={copy.stop} hint={copy.savingHint} />
-        <p className="bibo-hint">Bibo 还在早期阶段。请核对重要结果；每小时最多 12 次对话。</p>
+          placeholder={copy.placeholder} sendLabel={copy.send} stopLabel={copy.stop} />
       </div>
       </div><BiboWorkspace /></div> : <BiboSpaceView view={space.view} onOpenSession={store.selectSession} />}
     </main>

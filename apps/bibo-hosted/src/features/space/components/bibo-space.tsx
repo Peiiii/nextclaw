@@ -57,11 +57,11 @@ export function BiboWorkspace() {
       <div className="bibo-workspace-content">
         <Status />
         {workspaceFileId && !current && error ? (
-          <div><EmptyState title="暂时无法打开文件" detail="可以重试，或选择另一个文件。" /><Button onClick={() => void openWorkspace(workspaceFileId)}>重试打开</Button></div>
+          <div><EmptyState title="暂时无法打开文件" /><Button onClick={() => void openWorkspace(workspaceFileId)}>重试打开</Button></div>
         ) : workspaceFileId ? (
           <FileEditor id={workspaceFileId} compact />
         ) : (
-          <EmptyState title="打开一个产物" detail="文件、笔记和 Bibo 的草稿都能在这里并排查看。" />
+          <EmptyState title="选择文件或笔记" />
         )}
       </div>
     </aside>
@@ -92,7 +92,7 @@ export function BiboSpaceView({
     <div className="bibo-read-state" role={status === "error" ? "alert" : "status"}>
       <EmptyState
         title={status === "error" ? "暂时无法读取这个页面" : "正在读取你的内容"}
-        detail={status === "error" ? error || "请检查连接后重试。" : "内容准备好后会显示在这里。"}
+        detail={status === "error" ? error || "请检查连接后重试。" : undefined}
       />
       {status === "error" && <Button tone="secondary" onClick={() => void useBiboSpaceStore.getState().load(view)}>重试读取</Button>}
     </div>

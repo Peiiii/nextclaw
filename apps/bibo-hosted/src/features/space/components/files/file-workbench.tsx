@@ -62,10 +62,7 @@ export function FileWorkbench({ notesOnly }: { notesOnly: boolean }) {
           <FileEditor id={activeFileId} />
         </>
       ) : (
-        <EmptyState
-          title={notesOnly ? "选一条笔记继续写" : "从目录中选择一个文件"}
-          detail={notesOnly ? "想法可以随时回来补充。" : "多份文件会以标签留在这里。"}
-        />
+        <EmptyState title={notesOnly ? "选一条笔记继续写" : "从目录中选择一个文件"} />
       )}
       <Dialog open={closing !== null} onOpenChange={(open) => { if (!open) setClosing(null); }}
         title="保存文件修改？" description={closing ? fileDetails[closing]?.path : undefined}

@@ -288,6 +288,11 @@
 .bibo-file-editor-head { display: flex; flex: none; min-height: 48px; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 16px; border-bottom: 1px solid var(--ui-line); }
 .file-breadcrumb { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ui-muted); font-size: 12px; }
 .file-editor-tools { display: flex; flex: none; align-items: center; gap: 10px; margin-left: auto; }
+@media (min-width: 761px) and (max-width: 900px) {
+  .bibo-files-layout, .bibo-files-layout:has(.bibo-note-list) { grid-template-columns: 220px minmax(0, 1fr); }
+  .bibo-files-layout.is-tree-collapsed { grid-template-columns: 46px minmax(0, 1fr); }
+  .file-breadcrumb { display: none; }
+}
 .file-conflict { flex: none; padding: 12px 16px; border-bottom: 1px solid var(--ui-line); background: var(--ui-canvas); color: var(--ui-ink); font-size: 12px; }
 .file-conflict > div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .bibo-save-state { color: #93a093; font-size: 11px; }
@@ -398,3 +403,19 @@
 @media (hover: none) { .session-actions { opacity: 1; pointer-events: auto; } }
 .bibo-topbar .bibo-menu-button { display: none; }
 @media (max-width: 760px) { .bibo-topbar .bibo-menu-button { display: inline-grid; } }
+
+@media (max-width: 760px) {
+  .ui-overlay--sheet:has(.bibo-sidebar.is-drawer) .ui-overlay__header { position: relative; z-index: 1; height: 0; padding: 0; }
+  .ui-overlay--sheet:has(.bibo-sidebar.is-drawer) .ui-overlay__title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .ui-overlay--sheet:has(.bibo-sidebar.is-drawer) .ui-overlay__header .ui-icon-button { position: absolute; top: 14px; right: 16px; }
+  .ui-overlay--sheet:has(.bibo-sidebar.is-drawer) .ui-overlay__body { padding: 12px 16px 14px; }
+  .bibo-sidebar.is-drawer .sidebar-header { min-height: 44px; padding: 0 48px 8px 0; }
+  .bibo-sidebar.is-drawer .sidebar-header .bibo-brand { min-height: 44px; padding: 2px 8px; }
+  .bibo-sidebar.is-drawer .bibo-sidebar-label { display: none; }
+  .bibo-sidebar.is-drawer .bibo-nav-item { min-height: 44px; padding: 9px 12px; }
+  .bibo-sidebar.is-drawer .bibo-session-nav { margin-top: 12px; padding-top: 8px; }
+  .bibo-sidebar.is-drawer .bibo-session-head { min-height: 36px; padding-bottom: 2px; }
+  .bibo-sidebar.is-drawer .bibo-session-wrap .bibo-session-item { min-height: 44px; }
+  .bibo-sidebar.is-drawer .bibo-sidebar-foot { padding-top: 8px; }
+  .bibo-sidebar.is-drawer .account-menu-trigger { min-height: 44px; }
+}

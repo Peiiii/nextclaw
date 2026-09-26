@@ -59,7 +59,8 @@ select.ui-control:focus-visible { outline: 2px solid var(--ui-focus); outline-of
 .ui-segmented-control button:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 2px; }
 .ui-empty-state { min-height: 250px; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 30px; }
 .ui-empty-state > span { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--ui-selection); color: var(--ui-primary); font-size: 23px; }
-.ui-empty-state h2 { font: 500 21px Georgia, "Songti SC", serif; margin: 0 0 8px; }
+.ui-empty-state h2 { font: 500 21px Georgia, "Songti SC", serif; margin: 0; }
+.ui-empty-state h2:not(:last-child) { margin-bottom: 8px; }
 .ui-empty-state > span + h2 { margin-top: 18px; }
 .ui-empty-state p { color: var(--ui-muted); font-size: 12px; margin: 0; line-height: 1.6; }
 .ui-notice { position: sticky; top: 0; z-index: 2; display: block; width: 100%; margin: 0; padding: 9px 25px; border: 0; background: #f0f3ea; color: var(--ui-primary); font: inherit; font-size: 12px; text-align: left; }
@@ -131,7 +132,7 @@ select.ui-control:focus-visible { outline: 2px solid var(--ui-focus); outline-of
 .ui-composer { width: 100%; background: var(--ui-surface); border: 1px solid #d9e3d8; border-radius: var(--ui-radius-lg); box-shadow: 0 8px 24px #45604b12; padding: 12px 14px 9px; }
 .ui-composer textarea { display: block; border: 0; outline: 0; resize: none; width: 100%; min-height: 48px; max-height: 170px; background: transparent; color: var(--ui-ink); font: inherit; font-size: 14px; line-height: 1.6; }
 .ui-composer textarea::placeholder { color: #9ca99d; }
-.ui-composer__bottom { display: flex; justify-content: space-between; align-items: center; gap: var(--ui-space-2); color: #90a092; font-size: 11px; }
+.ui-composer__bottom { display: flex; justify-content: flex-end; align-items: center; gap: var(--ui-space-2); }
 .ui-composer__actions { display: flex; gap: 8px; align-items: center; flex: none; }
 .ui-composer__actions .ui-button--primary { min-width: 36px; min-height: 36px; padding: 5px; font-size: 21px; line-height: 1; }
 @media (max-width: 760px) { .ui-message--user { max-width: 88%; } }

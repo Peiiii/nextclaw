@@ -323,7 +323,7 @@ export function CalendarView() {
         </Button>
       </div>
       {status !== "ready" ? <div className="bibo-read-state" role={status === "error" ? "alert" : "status"}>
-        <EmptyState title={status === "error" ? "暂时无法读取日程" : "正在读取日程"} detail={status === "error" ? error || "请检查连接后重试。" : "安排准备好后会显示在这里。"} />
+        <EmptyState title={status === "error" ? "暂时无法读取日程" : "正在读取日程"} detail={status === "error" ? error || "请检查连接后重试。" : undefined} />
         {status === "error" && <Button tone="secondary" onClick={() => void load("calendar")}>重试读取</Button>}
       </div> : <div className={`calendar-stage${detailsOpen || creating || selected ? " is-detail-open" : ""}`}>
         <div className="calendar-surface">
