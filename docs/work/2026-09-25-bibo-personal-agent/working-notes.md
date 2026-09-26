@@ -11,6 +11,8 @@
 - diff-only maintainability：0 error、1 既有主 smoke 文件预算预警；将独立 API fixture 从流程断言文件内移至 `personal-workspace.fixture.ts`（preflight 通过），无业务抽象增长。主观 Review 核对数据 owner 未变、公共控件状态单归属、目录焦点与草稿关闭语义；implementation-review: passed。技术栈与功能约束已在原设计 owner 修订，不新增全局 skill/规则。尚无原生手机软件键盘和竞品原生 App 实测；乐观 outbox 未实现。本轮准备集成与上线。
 - 集成：实现提交 `fae7d2d58`，与并发主干安全合并后 `cac0ef87ac9393e68e2d36d927d5dabba45e2b08` 已推送远程 master。干净同 SHA 构建上线 Worker `23c8e243-eaff-475d-8bc0-3bb6ba102129`、入口 `/assets/index-DKpsuEgb.js`；frontend-only deploy 使用已核验 `--containers-rollout=none`，保留原容器。正式真实领域验收正在执行，尚不把本条部署当成功验收。
 - 最后复核移除公共主题中对 hosted 源目录的硬绑定：Tailwind 默认扫描宿主，公共主题仅声明自身源码；应用重建与冻结部署的全部 179 个文件 SHA256 完全相同。该清理属于共享样式可复用性，非额外业务功能。主线 reconcile 返回 LOCAL_WORKTREE_RETRYING，worker 18523 继续保护主工作区 thought WIP。文档 run `36250040645` 当前排队，未宣称已发布新说明。
+- 正式真实领域脚本已 exit 0：1440/390/320 的任务 Enter 新增、持续输入与失败保留、完整详情精确读回、弹窗内失败、两层 Escape、草稿关闭恢复、月历双击、半小时与时长、全宽目录收放和键盘恢复通过，临时任务/日程全部清理。七个入口均 200 且引用本轮 asset，手机截图目视正常；无新增模型调用。
+- 追加文件标签走查发现：手机在收起目录后点击文件标签，store 会关闭目录浏览视图，重新展开需同步 showFileBrowser，否则树仍被响应式规则隐藏。沿现有 store 修正一个状态动作，三尺寸主 smoke 复验「收起→点击已有标签→展开→选择文件」，共享布局回归、三范围 tsc、ESLint 通过，diff maintainability 0 error/1 既有预算 warning，主观 Review passed。23 点后主 smoke 暴露 fixture 的 Date.now()+1h 已跨日，改为同日 14 点固定安排，保留真实“今天可见”断言。此为测试数据修复，不修改产品日期筛选。最后修正待同步生产。
 
 ## 2026-09-26 任务轻量录入与日程直接操作纠偏
 

@@ -24,6 +24,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
     loadMore,
     treeCollapsed,
     toggleTree,
+    showFileBrowser,
     activeFileId,
     openFile,
     fileBrowserVisible,
@@ -40,6 +41,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
   const expandControl = useRef<HTMLButtonElement>(null);
   const toggleDirectory = () => {
     toggleTree();
+    if (treeCollapsed) showFileBrowser();
     requestAnimationFrame(() => {
       (treeCollapsed ? collapseControl : expandControl).current?.focus();
     });

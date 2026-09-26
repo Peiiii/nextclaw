@@ -299,6 +299,13 @@ try {
       await page.getByRole("heading", { name: "更新过的想法" }).waitFor();
       assert.equal(await page.getByRole("group", { name: "文件模式" }).getByRole("button", { name: "预览" }).getAttribute("aria-pressed"), "true");
       await page.getByRole("button", { name: "编辑", exact: true }).click();
+      if (viewport.width < 600) await page.locator(".file-mobile-back button").click();
+      await page.getByRole("button", { name: "收起目录树", exact: true }).click();
+      await page.locator(".bibo-file-tab > button").first().click();
+      await page.getByRole("button", { name: "展开目录树", exact: true }).click();
+      await page.getByRole("treeitem", { name: /想法.md/ }).waitFor({ state: "visible" });
+      await page.getByRole("treeitem", { name: /想法.md/ }).click();
+      await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
       await page.screenshot({ path: `/tmp/bibo-files-${viewport.width}.png`, fullPage: true });
       if (viewport.width === 1440) {
         await page.getByLabel("文件操作", { exact: true }).click();

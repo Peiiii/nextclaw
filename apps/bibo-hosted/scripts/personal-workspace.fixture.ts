@@ -3,11 +3,13 @@ import type { Page } from "playwright";
 const instant = "2026-09-25T09:00:00.000Z";
 
 export async function mockApi(page: Page, longTitles = false, fileNavigation = false): Promise<void> {
+  const eventStart = new Date();
+  eventStart.setHours(14, 0, 0, 0);
   const sessions = [{ id: "session-a", title: "产品想法", createdAt: instant, updatedAt: instant, messageCount: 2 }];
   const messages = [{ role: "user", text: "今天先做什么？", at: instant }, { role: "assistant", text: "先整理一件最重要的事。", at: instant }];
   const projects = [{ id: "project-a", name: "Bibo", createdAt: instant, updatedAt: instant, version: 1 }];
   const tasks = [{ id: "task-a", projectId: "project-a", title: "梳理产品方案", description: "确认界面和数据主链路", status: "active", dueAt: null, subtasks: [{ id: "subtask-a", title: "核对方案", done: false }], source: { kind: "user" }, createdAt: instant, updatedAt: instant, version: 1 }];
-  const events = [{ id: "event-a", title: "设计评审", description: "和团队对齐", startAt: new Date(Date.now() + 3_600_000).toISOString(), endAt: new Date(Date.now() + 7_200_000).toISOString(), source: { kind: "user" }, createdAt: instant, updatedAt: instant, version: 1 }];
+  const events = [{ id: "event-a", title: "设计评审", description: "和团队对齐", startAt: eventStart.toISOString(), endAt: new Date(eventStart.getTime() + 3_600_000).toISOString(), source: { kind: "user" }, createdAt: instant, updatedAt: instant, version: 1 }];
   const inbox = [{ id: "inbox-a", kind: "decision", title: "确认方案方向", body: "Bibo 已整理好两个候选方案。请阅读后决定。", source: { kind: "task", id: "task-a" }, createdAt: instant, updatedAt: instant, readAt: null as string | null, resolvedAt: null as string | null, version: 1 }];
   const files = [{ id: "file-a", path: "想法.md", kind: "note", createdAt: instant, updatedAt: instant, version: 1 }];
   const contents: Record<string, string> = { "file-a": "# 一个想法\n\n让信息在需要时出现。" };
