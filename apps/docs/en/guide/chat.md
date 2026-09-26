@@ -26,7 +26,7 @@ On phones, your messages hide the user avatar to leave more room for content. De
 
 Continue the current session when you are refining its files, asking more questions about the same sources, adding the next step, or relying on decisions already confirmed there.
 
-Each session keeps its own unsent composer draft, so you can switch sessions or refresh and continue editing. When you send, the submitted content moves to a pending message and the composer clears. Switching sessions or refreshing does not put submitted content back into the composer. Once the server accepts it, the content appears in the conversation or queue.
+Each session keeps its own unsent composer draft, so you can switch sessions or refresh and continue editing. When you send, the composer clears immediately and the submitted content is retained in the background. Normal sending does not show a receipt confirmation card inside the composer. Switching sessions or refreshing does not put submitted content back into the composer. Send feedback appears in the conversation or queue.
 
 When your draft has content, you can try sending even if the interface reports that the runtime is connecting or recovering. The actual request determines the outcome. If the server rejects it, the conversation shows an error and restores the original draft when you have not typed anything new. Otherwise, it keeps the failed content separately so it cannot overwrite your new input. If a network interruption leaves the result unknown, the conversation shows the pending content and lets you check and safely retry the original request. Avoid sending the same content as a new message before confirmation. Empty input and a submission already in progress cannot be sent again.
 
