@@ -143,6 +143,47 @@ function createControllerParams(params: {
   };
 }
 
+describe('useSessionConversationController HTTP message identity', () => {
+  it.each(['send', 'sendSteering', 'sendPresetMessage'] as const)(
+    'supports %s over HTTP without randomUUID and keeps submission identities distinct',
+    async (action) => {
+      const params = createControllerParams({ isRunning: false });
+      const { result } = renderHook(() => useSessionConversationController(params));
+      const getRandomValues = globalThis.crypto.getRandomValues.bind(globalThis.crypto);
+      const now = vi.spyOn(Date, 'now').mockReturnValue(1780000000000);
+      vi.stubGlobal('crypto', { getRandomValues });
+      try {
+        await act(async () => {
+          if (action === 'sendPresetMessage') {
+            await result.current.sendPresetMessage('Update this session title');
+            await result.current.sendPresetMessage('Update this session title again');
+          } else {
+            await result.current[action]();
+            await result.current[action]();
+          }
+        });
+      } finally {
+        now.mockRestore();
+        vi.unstubAllGlobals();
+      }
+
+      expect(params.agent.send).toHaveBeenCalledTimes(2);
+      const envelopes = params.agent.send.mock.calls.map(([envelope]) => envelope);
+      expect(envelopes[0].message.id).not.toBe(envelopes[1].message.id);
+      for (const envelope of envelopes) {
+        expect(envelope.message.id).toMatch(/^user-/);
+        expect(envelope.idempotencyKey).toBe(envelope.message.id);
+        expect(envelope.sessionId).toBe('session-1');
+        if (action !== 'sendPresetMessage') {
+          expect(params.beginSubmission).toHaveBeenCalledWith(envelope, expect.any(Object));
+          expect(params.acceptSubmission).toHaveBeenCalledWith(envelope.message.id);
+        }
+      }
+      if (action === 'sendPresetMessage') expect(params.beginSubmission).not.toHaveBeenCalled();
+    },
+  );
+});
+
 describe('useSessionConversationController backend run queue', () => {
   it('preallocates one stable session identity for the first root message', async () => {
     const send = vi.fn<TestAgentSend>(async (envelope) => {
