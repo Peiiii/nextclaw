@@ -140,8 +140,8 @@ class BiboSpaceOwner {
     this.set((state) => ({ calendarDate: date, readStatus: { ...state.readStatus, calendar: this.loadedCalendarMonths.has(key) ? state.readStatus.calendar : "loading" } }));
     void this.load("calendar");
   };
-  filterTasks = (query: string, project: string): void => {
-    this.set({ taskQuery: query, taskProject: project, taskAnchor: new Date(), selectedTaskId: null });
+  filterTasks = (query: string, project: string, taskScope = this.get().taskScope): void => {
+    this.set({ taskQuery: query, taskProject: project, taskScope, taskAnchor: new Date(), selectedTaskId: null });
     void this.load("tasks");
   };
   setTaskScope = (taskScope: BiboSpaceOwner["taskScope"]): void => { this.set({ taskScope, taskAnchor: new Date(), selectedTaskId: null }); void this.load("tasks"); };

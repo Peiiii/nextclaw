@@ -36,6 +36,8 @@ Find search and creation controls in the file tree. The tree and open tabs use m
 
 Navigate the file tree with Up/Down, expand or enter children with Right, and collapse or return to the parent with Left. Home/End move to the first/last visible node; Enter opens a file. Drag the tree divider to resize it, or focus the divider and use Left/Right. The active file tab scrolls into view when switching among many files. Switching tabs or hiding the tree preserves unsaved edits.
 
+Enter task names directly above the list and press Enter to keep adding tasks. The adjacent more button opens the same draft with description, subtasks, project, and date properties. Creating in Today or Upcoming assigns the corresponding due date. Double-click empty space in a month cell to create an event on that date, or click a half-hour slot in day/week view. Changing the start time preserves duration; 30/60/90-minute shortcuts adjust the end. An end before the start shows an error and blocks saving.
+
 An expanded empty folder says that it is empty; use that folder's action button to add content.
 
 Failed file or note list reads show an error and retry action instead of an empty collection. Failed search keeps the query and offers a retry in the tree.

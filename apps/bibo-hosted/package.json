@@ -17,7 +17,8 @@
     "dev": "vite --mode ui --host 127.0.0.1 --port 5188 --strictPort",
     "dev:proxy": "vite --host 127.0.0.1 --port 5188 --strictPort",
     "dev:worker": "wrangler dev",
-    "smoke:routing": "pnpm build:client && tsx scripts/bibo-routing.smoke.ts"
+    "smoke:routing": "pnpm build:client && tsx scripts/bibo-routing.smoke.ts",
+    "smoke:planning": "tsx scripts/workspace-planning.smoke.ts"
   },
   "dependencies": {
     "@nextclaw/harness": "workspace:*"

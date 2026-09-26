@@ -81,11 +81,17 @@
 .workspace-page .bibo-task-layout:not(.is-detail-open) { grid-template-columns: minmax(0, 1fr); }
 .task-filter-options { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 8px; }
 .task-toolbar { flex: none; }
-.task-scope-bar { flex: none; padding: 8px 16px; border-bottom: 1px solid var(--ui-line); }
+.task-quick-add { display: flex; align-items: center; gap: 8px; flex: none; padding: 12px 16px 4px; }
+.task-quick-add .ui-control { flex: 1; min-width: 0; }
+.task-quick-add .ui-button { flex: none; min-height: 44px; }
+.task-quick-add .ui-icon-button { flex: none; }
+.event-duration { display: flex; gap: 4px; flex-wrap: wrap; }
+.event-duration [aria-pressed="true"] { background: var(--ui-selection); }
 .task-undo { display: flex; align-items: center; gap: 8px; padding-inline: 16px; }
 .task-undo .ui-notice { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .task-list-item { display: flex; align-items: center; padding-left: 12px; border-bottom: 1px solid var(--ui-line); }
 .task-list-item.is-selected { background: var(--ui-selection); }
+.task-list-item.is-complete strong { text-decoration: line-through; color: var(--ui-muted); }
 .task-list-item .bibo-task-row { flex: 1; min-width: 0; border: 0; padding-left: 8px; }
 .task-list-item .bibo-task-row > span:first-child { flex: 1; min-width: 0; }
 .task-list-item .bibo-task-row strong { font-size: 15px; overflow-wrap: anywhere; }
@@ -171,7 +177,7 @@
 .workspace-detail-head { display: flex; flex: none; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .workspace-detail-head h2 { margin: 0; font-size: 17px; font-weight: 600; }
 .task-editor { flex: 1; min-height: 0; max-width: none; }
-.task-editor-fields { flex: 1; min-height: 0; overflow: auto; padding: 2px; }
+.task-editor-fields { flex: 1; min-height: 0; min-width: 0; overflow: auto; padding: 2px; border: 0; margin: 0; }
 .task-editor > .bibo-action-row { flex: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--ui-line); }
 .task-property-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .bibo-inline-input .ui-control { width: 100%; }
@@ -210,9 +216,12 @@
 .calendar-time-heading { position: sticky; top: 0; z-index: 2; padding: 12px 8px; background: var(--ui-surface); border-bottom: 1px solid var(--bibo-hairline); text-align: center; font-size: 12px; white-space: nowrap; }
 .calendar-time-heading:first-child { left: 0; z-index: 4; }
 .calendar-hours { display: flex; flex-direction: column; position: sticky; left: 0; z-index: 3; background: var(--ui-surface); }
-.calendar-hours span { height: 48px; flex: none; text-align: center; font-size: 10px; color: var(--bibo-subtle); }
+.calendar-hours span { height: var(--calendar-hour-height, 48px); flex: none; text-align: center; font-size: 10px; color: var(--bibo-subtle); }
 .calendar-time-day { position: relative; border-left: 1px solid var(--bibo-hairline); min-width: 0; }
-.calendar-time-slot { display: block; width: 100%; height: 48px; border: 0; border-bottom: 1px solid var(--bibo-hairline); background: transparent; cursor: pointer; }
+.calendar-time-scroll { --calendar-hour-height: 48px; --calendar-minute-height: 0.8px; }
+.calendar-time-slot { display: block; width: 100%; height: calc(var(--calendar-hour-height) / 2); border: 0; border-bottom: 1px solid var(--bibo-hairline); background: transparent; cursor: pointer; }
+.calendar-time-slot:nth-child(even) { border-bottom-style: dashed; }
+@media (pointer: coarse) { .calendar-time-scroll { --calendar-hour-height: 96px; --calendar-minute-height: 1.6px; } }
 .calendar-time-slot:hover { background: var(--ui-hover); }
 .calendar-time-event { position: absolute; border: 0; border-left: 2px solid var(--ui-primary); border-radius: 4px; background: var(--ui-selection); color: var(--ui-ink); padding: 5px 6px; text-align: left; overflow: hidden; cursor: pointer; }
 .calendar-time-event strong, .calendar-time-event small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -335,6 +344,7 @@
 }
 @media (max-width: 760px) {
   .task-toolbar.is-editing { display: none; }
+  .calendar-page:has(.calendar-stage.is-detail-open) .bibo-calendar-controls { display: none; }
   .task-filter-options { flex-basis: 100%; }
   .task-filter-options > .ui-control { flex: 1; min-width: 0; }
   .calendar-surface:has(.calendar-mobile-agenda) { overflow-y: auto; display: block; }

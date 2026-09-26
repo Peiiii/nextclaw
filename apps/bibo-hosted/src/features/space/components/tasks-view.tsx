@@ -15,7 +15,7 @@ import {
 } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { datetime } from "@/features/space/utils/date-format.utils";
-import { X } from "lucide-react";
+import { SlidersHorizontal, X } from "lucide-react";
 import { TaskForm } from "./task-form";
 
 export function Tasks() {
@@ -32,7 +32,6 @@ export function Tasks() {
     moreLoading,
     loadMore,
     taskScope,
-    setTaskScope,
     taskUndo,
     undoTask,
     saving,
@@ -61,18 +60,13 @@ export function Tasks() {
   );
   return (
     <div className="bibo-page workspace-page">
+      {!(creating || selected) && <TaskForm quick task={null} onDone={() => { if (taskScope === "done" || taskQuery) filterTasks("", project, taskScope === "done" ? "all" : taskScope); }}
+        onExpand={() => { setCreating(true); selectTask(null); }} />}
       <div className={creating || selected ? "task-toolbar is-editing" : "task-toolbar"}><TaskToolbar
         mode={mode}
         onChangeMode={setMode}
         onProjectEdit={setProjectEditor}
-        onCreate={() => {
-          setCreating(true);
-          selectTask(null);
-        }}
       /></div>
-      {!(creating || selected) && <div className="task-scope-bar"><SegmentedControl label="任务范围" value={taskScope}
-        options={[{ value: "all", label: "全部" }, { value: "today", label: "今天" }, { value: "upcoming", label: "接下来" }, { value: "done", label: "已完成" }]}
-        onChange={setTaskScope} /></div>}
       {taskUndo && <div className="task-undo"><Notice tone="success">{taskUndo.title}</Notice><Button tone="text" disabled={saving} onClick={() => void undoTask()}>撤销操作</Button></div>}
       {projectEditor && (
         <ProjectForm
@@ -144,6 +138,7 @@ export function Tasks() {
               <h2>{creating ? "新任务" : "任务详情"}</h2>
               <IconButton
                 label="返回任务"
+                disabled={saving}
                 icon={<X />}
                 onClick={() => {
                   setCreating(false);
@@ -169,12 +164,10 @@ export function Tasks() {
 function TaskToolbar({
   mode,
   onChangeMode,
-  onCreate,
   onProjectEdit,
 }: {
   mode: "list" | "board";
   onChangeMode: (mode: "list" | "board") => void;
-  onCreate: () => void;
   onProjectEdit: (id: string) => void;
 }) {
   const {
@@ -182,17 +175,19 @@ function TaskToolbar({
     taskQuery,
     taskProject: project,
     filterTasks,
+    taskScope,
+    setTaskScope,
   } = useBiboSpaceStore();
   const setProject = (value: string) => filterTasks(taskQuery, value);
   const [filtersOpen, setFiltersOpen] = useState(false);
   return (
     <div className="bibo-filterbar workspace-toolbar">
-      <Button tone="primary" onClick={onCreate}>
-        ＋ 新任务
-      </Button>
-      <Button tone="text" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)}>
-        {taskQuery || project ? "筛选中" : "筛选与视图"}
-      </Button>
+      <SegmentedControl label="任务范围" value={taskScope}
+        options={[{ value: "all", label: "全部" }, { value: "today", label: "今天" }, { value: "upcoming", label: "接下来" }, { value: "done", label: "已完成" }]}
+        onChange={setTaskScope} />
+      <span className="bibo-filter-spacer" />
+      <IconButton label={taskQuery || project ? "筛选与视图（筛选中）" : "筛选与视图"} icon={<SlidersHorizontal />}
+        aria-expanded={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)} />
       {filtersOpen && <div className="task-filter-options">
       <Input
         aria-label="搜索任务"
@@ -368,7 +363,7 @@ function TaskRow({
       : null,
   ].filter(Boolean).join(" · ");
   return (
-    <div className={`task-list-item${selected ? " is-selected" : ""}`}>
+    <div className={`task-list-item${selected ? " is-selected" : ""}${task.status === "done" ? " is-complete" : ""}`}>
       <IconButton className="task-complete" tooltip={false} disabled={saving || task.status === "cancelled"}
         label={`${task.status === "done" ? "重新打开" : "完成"} ${task.title}`}
         icon={<span aria-hidden="true">
@@ -385,7 +380,7 @@ function TaskRow({
         <strong>{task.title}</strong>
         {details && <small>{details}</small>}
       </span>
-      <span className="bibo-task-status-label">{statusLabel}</span>
+      {task.status !== "planned" && <span className="bibo-task-status-label">{statusLabel}</span>}
     </ListRow>
     </div>
   );
