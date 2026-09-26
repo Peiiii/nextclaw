@@ -117,7 +117,7 @@
 .bibo-list-pane { min-width: 0; border-right: 1px solid var(--bibo-hairline); overflow-y: auto; }
 .bibo-detail-pane { min-width: 0; padding: 35px clamp(24px, 3vw, 50px); overflow-y: auto; }
 .bibo-detail-pane > h2, .bibo-editor-form h2 { overflow-wrap: anywhere; font: 500 27px/1.3 Georgia, "Songti SC", serif; margin: 7px 0 24px; }
-.bibo-readable { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.9; color: #5d685d; font-size: 14px; max-width: 700px; }
+.bibo-readable { min-width: 0; max-width: 700px; color: #5d685d; font-size: 14px; }
 .bibo-pane-label { height: 43px; display: flex; gap: 7px; align-items: center; padding: 0 17px; border-bottom: 1px solid var(--bibo-hairline); color: #839182; font-size: 11px; }
 .bibo-list-pane > .ui-list-row { min-height: 74px; }
 .ui-list-row > span:nth-child(2) { flex: 1; min-width: 0; }

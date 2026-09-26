@@ -4,6 +4,16 @@ import { Button, EmptyState, ListRow, Markdown, Notice } from "@nextclaw/persona
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { day, datetime } from "@/features/space/utils/date-format.utils";
 const sourceClient = new BiboClient();
+function inboxExcerpt(body: string): string {
+  const lines = body.split(/\r?\n/).map((line) => line.trim());
+  const line = lines.find((value) => value && !/^(?:#{1,6}\s|[-*+]\s|\d+\.\s|>|\||`{3}|~{3}|-{3,})/.test(value))
+    ?? lines.find(Boolean) ?? "";
+  return line
+    .replace(/!?\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/(\*\*|__|~~|`)(.*?)\1/g, "$2")
+    .replace(/(^|\s)\*([^*]+)\*(?=\s|[.,，。]|$)/g, "$1$2")
+    .slice(0, 85);
+}
 export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promise<void> }) {
   const { inbox, selectedInboxId, selectInbox, act, navigate, openFile, saving, cursors, moreLoading, loadMore } = useBiboSpaceStore();
   const [openingSource, setOpeningSource] = useState(false);
@@ -57,7 +67,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
                 <span className={`bibo-unread-dot${item.readAt ? " is-read" : ""}`} />
                 <span>
                   <strong>{item.title}</strong>
-                  <small>{item.resolvedAt ? "已处理 · " : item.readAt ? "已读 · " : "未读 · "}{item.body.slice(0, 85)}</small>
+                  <small>{item.resolvedAt ? "已处理 · " : item.readAt ? "已读 · " : "未读 · "}{inboxExcerpt(item.body)}</small>
                 </span>
                 <time>{day(item.createdAt)}</time>
               </ListRow>
@@ -85,7 +95,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
               {sourceError && <Notice tone="error">{sourceError}</Notice>}
               {selected.resolvedAt && <p className="bibo-save-state">已处理 · {datetime(selected.resolvedAt)}</p>}
               <div className="bibo-readable">
-                <Markdown text={selected.body} />
+                <Markdown text={selected.body} density="compact" />
               </div>
               <div className="bibo-action-row">
                 {!selected.readAt && (

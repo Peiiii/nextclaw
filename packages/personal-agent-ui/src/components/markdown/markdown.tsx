@@ -58,7 +58,7 @@ function componentsFor(labels: MarkdownLabels): Components {
   };
 }
 
-export function Markdown({ text, labels = defaultLabels }: { text: string; labels?: MarkdownLabels }) {
+export function Markdown({ text, labels = defaultLabels, density = "default" }: { text: string; labels?: MarkdownLabels; density?: "default" | "compact" }) {
   const components = useMemo(() => componentsFor(labels), [labels]);
-  return <div className="ui-markdown"><ReactMarkdown remarkPlugins={markdownPlugins} rehypePlugins={rehypePlugins} skipHtml components={components}>{text}</ReactMarkdown></div>;
+  return <div className={`ui-markdown${density === "compact" ? " ui-markdown--compact" : ""}`}><ReactMarkdown remarkPlugins={markdownPlugins} rehypePlugins={rehypePlugins} skipHtml components={components}>{text}</ReactMarkdown></div>;
 }

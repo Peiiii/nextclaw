@@ -112,6 +112,27 @@ select.ui-control:focus-visible { outline: 2px solid var(--ui-focus); outline-of
 .ui-markdown img { display: block; max-width: 100%; max-height: 520px; object-fit: contain; border-radius: var(--ui-radius-sm); margin: .8em 0; }
 .ui-markdown__image-fallback { display: inline-block; color: var(--ui-muted); background: var(--ui-code-surface); border-radius: var(--ui-radius-sm); padding: .3em .6em; }
 .ui-markdown .katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: .2em 0; }
+.ui-markdown--compact { line-height: 1.65; letter-spacing: 0; white-space: normal; }
+.ui-markdown.ui-markdown--compact :is(p, h1, h2, h3, h4, ul, ol, blockquote, .ui-message__table, .ui-code-block, hr) { margin-block: 0; }
+.ui-markdown.ui-markdown--compact > :not(:first-child) { margin-top: .72em; }
+.ui-markdown.ui-markdown--compact > :is(h1, h2, h3, h4):not(:first-child) { margin-top: 1.25em; }
+.ui-markdown.ui-markdown--compact > :is(h1, h2, h3, h4) + * { margin-top: .42em; }
+.ui-markdown.ui-markdown--compact :is(h1, h2, h3, h4) { padding: 0; border: 0; line-height: 1.38; letter-spacing: -.01em; }
+.ui-markdown--compact h1 { font-size: 1.25em; }
+.ui-markdown--compact h2 { font-size: 1.12em; }
+.ui-markdown--compact h3 { font-size: 1.04em; }
+.ui-markdown--compact h4 { font-size: 1em; }
+.ui-markdown.ui-markdown--compact :is(ul, ol) { padding-left: 1.4em; }
+.ui-markdown.ui-markdown--compact li { margin: .18em 0; }
+.ui-markdown.ui-markdown--compact li > p { margin: 0; }
+.ui-markdown.ui-markdown--compact li > :is(ul, ol) { margin-top: .2em; }
+.ui-markdown.ui-markdown--compact :is(ul, ol).contains-task-list { padding-left: .2em; list-style: none; }
+.ui-markdown--compact .task-list-item { list-style: none; }
+.ui-markdown--compact .task-list-item input { margin: 0 .45em 0 0; vertical-align: -.12em; }
+.ui-markdown.ui-markdown--compact blockquote { padding: .5em .8em; }
+.ui-markdown.ui-markdown--compact :is(th, td) { padding: .45em .6em; }
+.ui-markdown.ui-markdown--compact img { margin: .5em 0; }
+.ui-markdown--compact .katex-display { margin: .55em 0; }
 .ui-code-block { min-width: 0; max-width: 100%; overflow: hidden; margin: 1.1em 0 1.4em; border: 1px solid var(--ui-line); border-radius: var(--ui-radius-md); background: var(--ui-code-surface); }
 .ui-code-block__toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; padding: 2px 8px 2px 15px; border-bottom: 1px solid var(--ui-line); }
 .ui-code-block__language { color: var(--ui-muted); font: 11px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; }
