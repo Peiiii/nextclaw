@@ -1,6 +1,6 @@
 # Bibo Personal Agent 当前工作记录
 
-## 2026-09-26 Tailwind 与操作容器纠偏（进行中）
+## 2026-09-26 Tailwind 与操作容器纠偏（界面已交付，国内文档发布中）
 
 - 用户明确要求个人工作台技术栈统一采用 Tailwind CSS。Vite 已接入 Tailwind 4.3.3；共享 UI、chat 与 space 四份样式通过 utility / @apply 生成，品牌无关 token 继续归公共主题，基础按钮直接消费 utility。目录动态宽度仍为运行时数值，不新增 CSS-in-JS。依赖锁变化包含 Tailwind 引入的 jiti 2.7.0 peer 重解析，不升级其它业务依赖。
 - 对齐方案补充逐模块操作容器审查，执行依赖见 `docs/plans/2026-09-26-个人工作台交互与样式统一.plan.md`。任务丰富详情与日程改公共 Dialog，保存失败在弹窗内反馈；整行任务反馈归 ListRow composite，完成与详情按钮并列；目录收起完全移除列，展开入口进入编辑工具栏，收放转移键盘焦点。
@@ -13,6 +13,8 @@
 - 最后复核移除公共主题中对 hosted 源目录的硬绑定：Tailwind 默认扫描宿主，公共主题仅声明自身源码；应用重建与冻结部署的全部 179 个文件 SHA256 完全相同。该清理属于共享样式可复用性，非额外业务功能。主线 reconcile 返回 LOCAL_WORKTREE_RETRYING，worker 18523 继续保护主工作区 thought WIP。文档 run `36250040645` 当前排队，未宣称已发布新说明。
 - 正式真实领域脚本已 exit 0：1440/390/320 的任务 Enter 新增、持续输入与失败保留、完整详情精确读回、弹窗内失败、两层 Escape、草稿关闭恢复、月历双击、半小时与时长、全宽目录收放和键盘恢复通过，临时任务/日程全部清理。七个入口均 200 且引用本轮 asset，手机截图目视正常；无新增模型调用。
 - 追加文件标签走查发现：手机在收起目录后点击文件标签，store 会关闭目录浏览视图，重新展开需同步 showFileBrowser，否则树仍被响应式规则隐藏。沿现有 store 修正一个状态动作，三尺寸主 smoke 复验「收起→点击已有标签→展开→选择文件」，共享布局回归、三范围 tsc、ESLint 通过，diff maintainability 0 error/1 既有预算 warning，主观 Review passed。23 点后主 smoke 暴露 fixture 的 Date.now()+1h 已跨日，改为同日 14 点固定安排，保留真实“今天可见”断言。此为测试数据修复，不修改产品日期筛选。最后修正待同步生产。
+- 最终生产：`bd75b6fa7a90c973e8009ab07a3a71ab6b7906ef` 已推送远程 master，从干净同 SHA 构建部署 Worker `8e12fd15-64d8-4076-9855-ef5983207e43`，资源 `/assets/index-D9cEZznr.js`，保留原容器镜像。正式独立真实文件创建→390/320/1440 收起→切换已有标签→展开→树实际可见→文件正文精确读回全部通过，临时文件在 finally 删除；此前任务/日程真实证据对应同一 UI 与容器，仅最后两行目录恢复状态变化有新增生产证据。
+- 文档 `36250040645` build/global 已成功，全球 manifest 为 `cac0ef87a`；国内发布仍由原 workflow 自动上传，国内 manifest 尚为 `c708976bc`，未宣称双站已更新或校验通过。无 NPM/runtime/desktop 或后端 migration；本轮 frontend-only。AUTOMATION_INTERVENTIONS: 0。界面增量已交付待用户审美确认，原父合同/乐观 outbox/原生手机键盘验证仍未关闭。
 
 ## 2026-09-26 任务轻量录入与日程直接操作纠偏
 
