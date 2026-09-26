@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.57.2",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-09-26",
+  "title": { "zh-CN": "NextClaw v0.57.2", "en-US": "NextClaw v0.57.2" },
+  "summary": {
+    "zh-CN": "修复通过局域网 IP 或普通 HTTP 地址访问时聊天消息无法发送的问题。",
+    "en-US": "Fix chat sends when accessing NextClaw through LAN IP addresses or plain HTTP URLs."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-09-26-nextclaw-v0-57-2",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-09-26-nextclaw-v0-57-2"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "HTTP 聊天发送", "en-US": "Chat sends over HTTP" },
+      "items": [
+        {
+          "title": { "zh-CN": "恢复消息发送", "en-US": "Restore message submission" },
+          "body": {
+            "zh-CN": "修复发送前出现 crypto.randomUUID is not a function 的异常，覆盖发送按钮、快捷键和菜单预设消息，并保留接收确认与幂等重试。",
+            "en-US": "Fix the crypto.randomUUID is not a function error before submission, covering the send button, keyboard sends and menu presets while preserving acceptance tracking and idempotent retries."
+          }
+        }
+      ]
+    }
+  ]
+}
