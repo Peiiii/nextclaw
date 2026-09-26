@@ -6,6 +6,7 @@ import { performance } from "node:perf_hooks";
 import {
   buildStableReleaseActionOutputs,
   writeReleaseActionOutputs,
+  writeReleaseActionSummary,
 } from "./release-action-environment.mjs";
 import { publishPreparedNpmRelease } from "./prepared-npm-release.mjs";
 import {
@@ -387,22 +388,22 @@ async function runStableRelease(options) {
     publishDurationMs,
     maxPublishSeconds,
   );
-  console.log(
-    buildStableNpmTimingSummary({
-      checkpoint,
-      durationMs: publishDurationMs,
-      phaseTimings: {
-        artifactResolutionMs: contextResolvedAt - publishStartedAt,
-        packagePhaseMs: packagesCompletedAt - contextResolvedAt,
-        postPublishClosureMs: closureCompletedAt - packagesCompletedAt,
-      },
-      publishSummary,
-      skipPublishedInstall,
-      timingStatus: npmTimingStatus,
-      targetBranch,
-      targetVersion: context.targetVersion,
-    }).join("\n"),
-  );
+  const npmTimingSummary = buildStableNpmTimingSummary({
+    checkpoint,
+    durationMs: publishDurationMs,
+    phaseTimings: {
+      artifactResolutionMs: contextResolvedAt - publishStartedAt,
+      packagePhaseMs: packagesCompletedAt - contextResolvedAt,
+      postPublishClosureMs: closureCompletedAt - packagesCompletedAt,
+    },
+    publishSummary,
+    skipPublishedInstall,
+    timingStatus: npmTimingStatus,
+    targetBranch,
+    targetVersion: context.targetVersion,
+  }).join("\n");
+  console.log(npmTimingSummary);
+  writeReleaseActionSummary(npmTimingSummary, process.env.GITHUB_STEP_SUMMARY);
   if (skipRuntimeChannel) {
     return;
   }

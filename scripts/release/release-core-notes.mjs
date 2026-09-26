@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -136,7 +137,23 @@ function readJsonIfPresent(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
-export function readCoreReleaseNotes(rootDir, version, repo = DEFAULT_REPO) {
+function readGitFile(rootDir, revision, path) {
+  const options = { cwd: rootDir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] };
+  const entry = execFileSync("git", ["ls-tree", "--name-only", revision, "--", path], options);
+  if (!entry.trim()) return null;
+  return execFileSync("git", ["show", `${revision}:${path}`], options);
+}
+
+export function readCoreReleaseNotes(rootDir, version, repo = DEFAULT_REPO, revision = null) {
+  if (revision) {
+    const metadata = readGitFile(rootDir, revision, `apps/docs/public/release-notes/nextclaw-v${version}.json`);
+    return resolveCoreReleaseNotes({
+      changelog: readGitFile(rootDir, revision, "packages/nextclaw/CHANGELOG.md") ?? "",
+      repo,
+      structuredMetadata: metadata ? JSON.parse(metadata) : null,
+      version,
+    });
+  }
   const metadataPath = resolve(
     rootDir,
     `apps/docs/public/release-notes/nextclaw-v${version}.json`,

@@ -71,6 +71,12 @@ export function writeReleaseActionOutputs(values, outputPath) {
   return true;
 }
 
+export function writeReleaseActionSummary(summary, summaryPath) {
+  if (!summaryPath?.trim()) return false;
+  appendFileSync(summaryPath, `${summary}\n`);
+  return true;
+}
+
 export function buildStableReleaseActionOutputs({
   contentReady,
   context,

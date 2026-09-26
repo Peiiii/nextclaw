@@ -31,6 +31,7 @@ Usage:
 Options:
   --channel <channel>                   Runtime update channel (beta or stable; default: beta)
   --dry-run                             Print the intended runtime-channel closure without mutating anything
+  --verify-only                         Verify the existing release and public channel without dispatching or uploading
   --branch <branch>                     Override the git branch used for workflow dispatch
   --version <version>                   Override the nextclaw version to publish to the runtime channel
   --release-tag <tag>                   Override the GitHub release tag used for runtime bundle assets
@@ -59,6 +60,7 @@ function parseArgs(argv) {
     preparedSourceSha: null,
     releaseTag: null,
     version: null,
+    verifyOnly: false,
   };
 
   for (let index = 0; index < normalizedArgv.length; index += 1) {
@@ -66,6 +68,9 @@ function parseArgs(argv) {
     switch (arg) {
       case "--dry-run":
         options.dryRun = true;
+        break;
+      case "--verify-only":
+        options.verifyOnly = true;
         break;
       case "--help":
       case "-h":
@@ -149,8 +154,8 @@ function readPublishedVersion(channel) {
   return run("npm", ["view", packageSpec, "version"], { capture: true }).trim();
 }
 
-function readStableReleaseNotesUrl(nextclawVersion) {
-  return readCoreReleaseNotes(ROOT_DIR, nextclawVersion, REPO).releaseNotesUrl;
+function readStableReleaseNotesUrl(nextclawVersion, preparedSourceSha) {
+  return readCoreReleaseNotes(ROOT_DIR, nextclawVersion, REPO, preparedSourceSha).releaseNotesUrl;
 }
 
 function sleep(ms) {
@@ -289,9 +294,11 @@ function watchWorkflowRun(runId) {
 }
 
 async function dispatchAndWaitRuntimeWorkflow(options) {
+  if (options.verifyOnly) return null;
+  const preparedRun = resolvePreparedRuntimeWorkflowRun(options.preparedSourceSha);
   const dispatchStartedAtMs = Date.now();
   const dispatchId = `npm-runtime-${randomUUID()}`;
-  triggerRuntimeWorkflow({ ...options, dispatchId });
+  triggerRuntimeWorkflow({ ...options, dispatchId, preparedRunId: preparedRun?.databaseId ?? null });
   const workflowRun = await waitForWorkflowRun(dispatchId, dispatchStartedAtMs);
   return watchWorkflowRun(workflowRun.databaseId);
 }
@@ -332,6 +339,7 @@ function buildDryRunPlan({
   releaseTag,
   minimumLauncherVersionOverride,
   preparedSourceSha,
+  verifyOnly,
 }) {
   return [
     `- channel: ${channel}`,
@@ -344,8 +352,10 @@ function buildDryRunPlan({
     preparedSourceSha
       ? `- prepared Runtime source: ${preparedSourceSha}`
       : "- prepared Runtime source: cold-build fallback",
-    "- trigger npm-runtime-update-release workflow only",
-    "- wait for workflow success",
+    ...(verifyOnly ? ["- reuse the published Runtime; no dispatch or upload"] : [
+      "- trigger npm-runtime-update-release workflow only",
+      "- wait for workflow success",
+    ]),
     `- verify GitHub release metadata, assets, gh-pages manifests, and public ${channel} manifests`,
   ];
 }
@@ -373,9 +383,9 @@ async function main() {
   }
   const releaseTag =
     options.releaseTag?.trim() || `nextclaw@${nextclawVersion}`;
-  const expectedReleaseNotesUrl =
-    channel === "stable" ? readStableReleaseNotesUrl(nextclawVersion) : null;
   const preparedSourceSha = options.preparedSourceSha?.trim() || null;
+  const expectedReleaseNotesUrl = channel === "stable"
+    ? readStableReleaseNotesUrl(nextclawVersion, preparedSourceSha) : null;
 
   if (options.dryRun) {
     console.log(`release:${channel}:runtime dry run`);
@@ -387,12 +397,11 @@ async function main() {
         releaseTag,
         minimumLauncherVersionOverride: options.minimumLauncherVersionOverride,
         preparedSourceSha,
+        verifyOnly: options.verifyOnly,
       }).join("\n"),
     );
     return;
   }
-
-  const preparedRun = resolvePreparedRuntimeWorkflowRun(preparedSourceSha);
 
   const runtimeRunSummary = await dispatchAndWaitRuntimeWorkflow({
     branch,
@@ -400,8 +409,8 @@ async function main() {
     minimumLauncherVersionOverride: options.minimumLauncherVersionOverride,
     releaseTag,
     releaseTarget,
-    preparedRunId: preparedRun?.databaseId ?? null,
     preparedSourceSha,
+    verifyOnly: options.verifyOnly,
   });
   const runtimeReleaseSummary = verifyRuntimeReleaseAssets(
     releaseTag,
@@ -422,7 +431,7 @@ async function main() {
   console.log(`release:${channel}:runtime completed`);
   console.log(`- branch: ${branch}`);
   console.log(`- nextclaw version: ${nextclawVersion}`);
-  console.log(`- runtime workflow: ${runtimeRunSummary.url}`);
+  console.log(`- runtime workflow: ${runtimeRunSummary?.url ?? "existing publication reused"}`);
   console.log(`- runtime release: ${runtimeReleaseSummary.url}`);
   console.log(
     `- runtime manifest verification: ${publicManifestSummary.source} (${publicManifestSummary.pagesStatus})`,
