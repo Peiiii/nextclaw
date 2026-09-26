@@ -16,6 +16,8 @@
 - 主观 Review 重点复核路由 owner、账号 reset、bootstrap 中途导航、生成期间历史导航及删除当前会话：URL 只由 Router 修改，数据与草稿不搬入 Router，bootstrap 旧路由结果不纠正新地址，删除只发导航并由路由加载目标会话。implementation-review: passed。本轮服务 API 与模型协议未改变；浏览器模拟 API/SSE 证据不替代真实模型或后端端到端验收。未发送草稿刷新持久化仍未提供。
 - 复盘：问题通过删除平行 History owner 与持久路由回归测试解决，已写回现有设计与本记录；无证据需要新增全局规则或 skill。本轮为路由专项，不关闭大型交付其余开放验收项。
 - 发布前增补：审查发现重新登录时 user 就绪早于会话列表，路由同步可能抢占 bootstrap；bootstrap 明确关闭 authChecked 就绪门，退出明确恢复鉴权已检查状态。1440/390 在未登录的直接会话链接上完成登录，刻意延迟 sessions 响应后仍恢复目标正文；删除当前会话、刷新及完整可控 SSE 输入面板回归同时通过。路由专项脚本按历史、竞态、删除和登录链路拆验证函数，diff 检查未引入函数预算违规。
+- 正式应用交付：主改造 `0c9b8f037`，登录时序补充 `712637e98`，均已安全集成并推送远程 master。从冻结远程 master `712637e98189b521a2bb60f8270aa83ad2d123aa` 构建/部署 Worker `c85d14fb-4e7b-4f59-9eb4-e7f5f61a111a`；`--containers-rollout=none` 保留既有容器。`app.bibo.bot` 返回 200 且引用 `/assets/index-C8MnuCN4.js`、`/assets/chunk-DECur_0Z.js`，与冻结产物一致。正式前端 1440/390 路由专项和可控 SSE 输入面板均 exit 0；这里 API 被模拟，证明已部署前端行为，未新增真实模型/后端协议验收。主线回收返回 LOCAL_WORKTREE_RETRYING，复用 retry worker PID 18523，源区原有 thought WIP 保留。
+- 用户说明随文档流水线 `36230087111`（来源 `7b22b1865`，指南与最终产品源码一致）发布；build、deploy-global、deploy-domestic、verify 全部成功，两正式域名返回 200 且包含新的导航说明，流水线确认相同 artifact。冻结发布 worktree 已移除。路由专项交付完成，Required 总合同其余开放项保持原状态。
 
 ### 手机导航抽屉提示纠偏（UI-00 / BIBO-09，2026-09-25）
 
