@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { BiboEvent } from "@nextclaw/bibo-client";
 import { Button, EmptyState, IconButton, ListRow, SegmentedControl } from "@nextclaw/personal-agent-ui";
@@ -34,7 +34,8 @@ function CalendarTimeGrid({
     if (!surface) return;
     const index = dates.findIndex((date) => date.toDateString() === activeDate.toDateString());
     const column = surface.querySelectorAll<HTMLElement>(".calendar-time-day")[Math.max(0, index)];
-    surface.scrollTo({ top: 8 * 48, left: column ? Math.max(0, column.offsetLeft - surface.offsetLeft - 48) : 0 });
+    const hourHeight = surface.querySelector(".calendar-hours span")?.getBoundingClientRect().height ?? 48;
+    surface.scrollTo({ top: 8 * hourHeight, left: column ? Math.max(0, column.offsetLeft - surface.offsetLeft - 48) : 0 });
   }, [dates[0]?.toDateString(), activeDate.toDateString()]);
   return (
     <div className="calendar-time-scroll" ref={scroll} aria-label={dates.length === 1 ? "当日时间表" : "本周时间表"}>
@@ -55,14 +56,14 @@ function CalendarTimeGrid({
         </div>
         {dates.map((date) => (
           <div className="calendar-time-day" key={date.toISOString()}>
-            {Array.from({ length: 24 }, (_, hour) => (
+            {Array.from({ length: 48 }, (_, index) => (
               <button
                 className="calendar-time-slot"
-                key={hour}
-                aria-label={`${day(date.toISOString())} ${hour}:00 新建日程`}
+                key={index}
+                aria-label={`${day(date.toISOString())} ${Math.floor(index / 2)}:${index % 2 ? "30" : "00"} 新建日程`}
                 onClick={() => {
                   const slot = new Date(date);
-                  slot.setHours(hour, 0, 0, 0);
+                  slot.setHours(Math.floor(index / 2), index % 2 ? 30 : 0, 0, 0);
                   onCreate(slot);
                 }}
               />
@@ -73,8 +74,8 @@ function CalendarTimeGrid({
                 key={event.id}
                 title={`${time(event.startAt)}–${time(event.endAt)} ${event.title}`}
                 style={{
-                  top: start * 0.8,
-                  height: Math.max(22, (end - start) * 0.8 - 2),
+                  top: `calc(${start} * var(--calendar-minute-height))`,
+                  height: `max(22px, calc(${end - start} * var(--calendar-minute-height) - 2px))`,
                   left: `calc(${(lane / lanes) * 100}% + 2px)`,
                   width: `calc(${100 / lanes}% - 4px)`,
                 }}
@@ -94,7 +95,7 @@ function CalendarTimeGrid({
 }
 
 const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-function CalendarMonthGrid({ onSelect }: { onSelect: () => void }) {
+function CalendarMonthGrid({ onSelect, onCreate }: { onSelect: () => void; onCreate: (date: Date) => void }) {
   const { events, calendarDate: anchor, setCalendarDate: setAnchor, selectEvent } = useBiboSpaceStore();
   const today = new Date();
   return (
@@ -117,6 +118,7 @@ function CalendarMonthGrid({ onSelect }: { onSelect: () => void }) {
                 className="calendar-date-select"
                 aria-label={`${day(date.toISOString())}，${items.length} 项安排`}
                 aria-pressed={isSameDay(date, anchor)}
+                onDoubleClick={() => { const start = new Date(date); start.setHours(9, 0, 0, 0); onCreate(start); }}
                 onClick={() => {
                   setAnchor(date);
                   selectEvent(null);
@@ -183,6 +185,7 @@ function CalendarAgenda({ onSelect, onCreate }: { onSelect: () => void; onCreate
           <h2>{day(anchor.toISOString())}</h2>
         </div>
         <span>{selectedEvents.length} 项安排</span>
+        <IconButton label="在这一天新建日程" icon={<Plus />} onClick={onCreate} />
       </div>
       {selectedEvents.length ? (
         <div className="bibo-agenda-items">
@@ -210,14 +213,6 @@ function CalendarAgenda({ onSelect, onCreate }: { onSelect: () => void; onCreate
       ) : (
         <div className="bibo-agenda-empty">
           <strong>这一天还没有安排。</strong>
-          <Button
-            tone="text"
-            onClick={() => {
-              onCreate();
-            }}
-          >
-            新日程
-          </Button>
         </div>
       )}
       {upcoming.length > 0 && (
@@ -327,6 +322,7 @@ export function CalendarView() {
         <div className="calendar-surface">
           {mode === "month" ? (
             <CalendarMonthGrid
+              onCreate={create}
               onSelect={() => {
                 setCreating(false);
                 setDetailsOpen(Boolean(useBiboSpaceStore.getState().selectedEventId));

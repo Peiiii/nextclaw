@@ -1,15 +1,16 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent, type Ref } from "react";
 import type { BiboTask } from "@nextclaw/bibo-client";
 import { Button, ConfirmDialog, Field, IconButton, Input, Select, Textarea } from "@nextclaw/personal-agent-ui";
-import { X } from "lucide-react";
+import { Ellipsis, X } from "lucide-react";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { localInput } from "@/features/space/utils/date-format.utils";
 
-export function TaskForm({ task, onDone }: { task: BiboTask | null; onDone: (savedId?: string) => void }) {
-  const { projects, act, saving, taskDrafts, keepTaskDraft, clearTaskDraft } = useBiboSpaceStore();
+export function TaskForm({ task, onDone, quick = false, onExpand }: { task: BiboTask | null; onDone: (savedId?: string) => void; quick?: boolean; onExpand?: () => void }) {
+  const { projects, act, saving, taskDrafts, keepTaskDraft, clearTaskDraft, taskScope, taskProject } = useBiboSpaceStore();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
-  const [expanded, setExpanded] = useState(Boolean(task));
+  const [expanded, setExpanded] = useState(false);
   const remove = async () => {
     if (!task || saving) return;
     setDeleteError("");
@@ -18,15 +19,18 @@ export function TaskForm({ task, onDone }: { task: BiboTask | null; onDone: (sav
     else setDeleteError(useBiboSpaceStore.getState().error);
   };
   const draftKey = task?.id ?? "new";
+  const due = new Date();
+  if (taskScope === "upcoming") due.setDate(due.getDate() + 1);
+  due.setHours(23, 59, 0, 0);
   const draft = taskDrafts[draftKey] ?? {
     title: task?.title ?? "",
     description: task?.description ?? "",
     status: task?.status ?? "planned",
     priority: task?.priority ?? "medium",
-    projectId: task?.projectId ?? "",
+    projectId: task?.projectId ?? (task ? "" : taskProject),
     subtasks: task?.subtasks ?? [],
     startAt: task?.startAt ? localInput(task.startAt) : "",
-    dueAt: task?.dueAt ? localInput(task.dueAt) : "",
+    dueAt: task?.dueAt ? localInput(task.dueAt) : !task && (taskScope === "today" || taskScope === "upcoming") ? localInput(due.toISOString()) : "",
     version: task?.version ?? null,
   };
   const { title, description, status, priority, projectId, startAt, dueAt, subtasks, version } = draft;
@@ -38,8 +42,9 @@ export function TaskForm({ task, onDone }: { task: BiboTask | null; onDone: (sav
   };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (saving || !title.trim()) return;
     const input = {
-      title,
+      title: title.trim(),
       description,
       status,
       priority,
@@ -52,13 +57,15 @@ export function TaskForm({ task, onDone }: { task: BiboTask | null; onDone: (sav
       ? await act<BiboTask>("task.update", { ...input, id: task.id, version }, "tasks")
       : await act<BiboTask>("task.create", input, "tasks");
     if (result) {
-      clearTaskDraft(draftKey);
+      if (useBiboSpaceStore.getState().taskDrafts[draftKey] === draft) clearTaskDraft(draftKey);
       onDone(result.id);
+      if (quick) requestAnimationFrame(() => inputRef.current?.focus());
     }
   };
+  if (quick) return <QuickTaskInput title={title} saving={saving} inputRef={inputRef} onChange={(value) => change("title", value)} onSubmit={submit} onExpand={onExpand} />;
   return (
     <form className="bibo-editor-form task-editor" onSubmit={(event) => void submit(event)}>
-      <div className="task-editor-fields">
+      <fieldset className="task-editor-fields" disabled={saving}>
         <Field label="任务名称">
           <Input
             autoFocus={!task}
@@ -69,10 +76,6 @@ export function TaskForm({ task, onDone }: { task: BiboTask | null; onDone: (sav
             placeholder="这件事要做到什么程度？"
           />
         </Field>
-        <Button tone="text" type="button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
-          {expanded ? "收起详情" : "添加详情"}
-        </Button>
-        {expanded && <>
         <Field label="说明">
           <Textarea
             rows={4}
@@ -82,6 +85,10 @@ export function TaskForm({ task, onDone }: { task: BiboTask | null; onDone: (sav
           />
         </Field>
         <SubtaskEditor subtasks={subtasks} onChange={(items) => change("subtasks", items)} />
+        <Button tone="text" type="button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+          {expanded ? "收起属性" : "项目、日期与更多属性"}
+        </Button>
+        {expanded && <>
         <Field label="项目">
           <Select value={projectId} onChange={(event) => change("projectId", event.target.value)}>
             <option value="">未归入项目</option>
@@ -119,12 +126,12 @@ export function TaskForm({ task, onDone }: { task: BiboTask | null; onDone: (sav
           <Input type="datetime-local" value={dueAt} onChange={(event) => change("dueAt", event.target.value)} />
         </Field>
         </>}
-      </div>
+      </fieldset>
       <div className="bibo-action-row">
         <Button tone="primary" type="submit" disabled={saving}>
           {saving ? "正在保存…" : "保存任务"}
         </Button>
-        <Button tone="text" type="button" onClick={finish}>
+        <Button tone="text" type="button" disabled={saving} onClick={finish}>
           取消
         </Button>
         {task && (
@@ -144,6 +151,19 @@ export function TaskForm({ task, onDone }: { task: BiboTask | null; onDone: (sav
         busy={saving} error={deleteError} onConfirm={() => void remove()} />
     </form>
   );
+}
+
+function QuickTaskInput({ title, saving, inputRef, onChange, onSubmit, onExpand }: {
+  title: string; saving: boolean; inputRef: Ref<HTMLInputElement>; onChange: (value: string) => void;
+  onSubmit: (event: FormEvent) => Promise<void>; onExpand?: () => void;
+}) {
+  return <form className="task-quick-add" aria-busy={saving} onSubmit={(event) => void onSubmit(event)}
+    onKeyDown={(event) => { if (event.key === "Enter" && event.nativeEvent.isComposing) event.preventDefault(); }}>
+    <Input ref={inputRef} aria-label="快速添加任务" placeholder="添加一个任务…" maxLength={160} value={title}
+      onChange={(event) => onChange(event.target.value)} />
+    <Button tone="primary" type="submit" disabled={saving || !title.trim()}>{saving ? "添加中…" : "＋ 新任务"}</Button>
+    <IconButton type="button" label="打开完整新建任务" icon={<Ellipsis />} disabled={saving} onClick={onExpand} />
+  </form>;
 }
 
 function SubtaskEditor({
