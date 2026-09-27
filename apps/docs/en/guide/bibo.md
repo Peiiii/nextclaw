@@ -16,6 +16,8 @@ Full task details and event editing open in dialogs. Double-click an empty calen
 
 On phones, the full month and selected day's agenda appear together, with event counts below dates. Notes support name search. Press Cmd/Ctrl+S in a file or note editor to save. The inbox opens on pending items and also offers unread and all items.
 
+Inbox items use two lines: the title appears on the first line, with an unread dot or resolved check aligned to the right; read but unresolved items have no marker. The second line shows a body preview and a short time aligned to the right. Times show “just now,” minutes or hours ago today, then yesterday, a weekday within the past week, or an older date, including the year when needed. Times update every minute. Long titles and previews end with an ellipsis; open an item to read it in full. Previews are omitted when no body text is available, and an identical opening heading is not repeated.
+
 Opening or closing mobile navigation does not show an unsolicited icon tooltip. Keyboard users can Tab into the drawer, press Escape to close it, and return focus to the menu button.
 
 Sections and conversations support browser Back, Forward, and direct links. Switching sections preserves the current conversation and unsent draft; returning to a new conversation restores the blank editor. Conversation links can also open in a new tab. Unsent drafts are not guaranteed to survive a refresh.

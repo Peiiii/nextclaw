@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Check } from "lucide-react";
 import { BiboClient, BiboClientError, type BiboEvent, type BiboFileDetail, type BiboInboxItem, type BiboTask } from "@nextclaw/bibo-client";
 import { Button, EmptyState, ListRow, Markdown, Notice, SegmentedControl } from "@nextclaw/personal-agent-ui";
 import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
-import { day, datetime } from "@/features/space/utils/date-format.utils";
+import { datetime, inboxTime } from "@/features/space/utils/date-format.utils";
 import { inboxExcerpt, inboxReadingBody } from "@/features/space/utils/inbox-content.utils";
 const sourceClient = new BiboClient();
 export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promise<void> }) {
@@ -11,6 +12,11 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
   const [openingSource, setOpeningSource] = useState(false);
   const [sourceError, setSourceError] = useState("");
   const [actionFailure, setActionFailure] = useState("");
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const { inboxScope, setInboxScope } = useBiboSpaceStore();
   const selected = inbox.find((item) => item.id === selectedInboxId) ?? inboxSelection;
   const update = async (action: "inbox.read" | "inbox.resolve") => {
@@ -65,17 +71,8 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
           <div className="bibo-pane-label"><SegmentedControl label="收件箱范围" value={inboxScope} options={[{ value: "pending", label: "待处理" }, { value: "unread", label: "未读" }, { value: "all", label: "全部" }]} onChange={setInboxScope} /></div>
           {inbox.length ? (
             inbox.map((item) => (
-              <ListRow key={item.id} selected={selected?.id === item.id} onClick={() => { setSourceError(""); setActionFailure(""); selectInbox(item.id); }}>
-                <span className={`bibo-unread-dot${item.readAt ? " is-read" : ""}`} />
-                <span className="inbox-item-copy">
-                  <strong>{item.title}</strong>
-                  <small>{inboxExcerpt(item.body)}</small>
-                  <span className="inbox-item-meta">
-                    <span>{item.resolvedAt ? "已处理" : item.readAt ? "已读" : "未读"}</span>
-                    <time dateTime={item.createdAt}>{day(item.createdAt)}</time>
-                  </span>
-                </span>
-              </ListRow>
+              <InboxItemRow key={item.id} item={item} now={now} selected={selected?.id === item.id}
+                onClick={() => { setSourceError(""); setActionFailure(""); selectInbox(item.id); }} />
             ))
           ) : (
             <EmptyState title="现在很安静" />
@@ -143,5 +140,33 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
         </div>
       </div>
     </div>
+  );
+}
+
+function InboxItemRow({ item, now, selected, onClick }: {
+  item: BiboInboxItem; now: number; selected: boolean; onClick: () => void;
+}) {
+  const excerpt = inboxExcerpt(inboxReadingBody(item.body, item.title));
+  return (
+    <ListRow selected={selected} onClick={onClick}>
+      <span className="inbox-item-copy">
+        <span className="inbox-item-heading">
+          <strong>{item.title}</strong>
+          {item.resolvedAt ? (
+            <span role="img" aria-label="已处理" className="inbox-item-resolved">
+              <Check size={14} aria-hidden="true" />
+            </span>
+          ) : !item.readAt ? (
+            <span role="img" aria-label="未读" className="inbox-item-unread" />
+          ) : <span className="visually-hidden">已读</span>}
+        </span>
+        <span className="inbox-item-meta">
+          {excerpt && <small>{excerpt}</small>}
+          <time dateTime={item.createdAt} aria-label={new Date(item.createdAt).toLocaleString("zh-CN")}>
+            {inboxTime(item.createdAt, now)}
+          </time>
+        </span>
+      </span>
+    </ListRow>
   );
 }
