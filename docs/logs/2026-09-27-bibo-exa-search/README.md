@@ -43,3 +43,5 @@ AUTOMATION_INTERVENTIONS: 3（依赖下载/打包恢复；本机磁盘耗尽后�
 真实线上搜索已保存后，下一轮明确返回“本小时对话次数已用完”，确认旧12次/小时仍阻断实验体验。提高原Worker中的限额到100，保留已有计数与滚动一小时机制；不重置账号、不加绕过接口。小时边界、过期、52项测试及三套tsc通过后，仅更新Worker/资产，完整生产smoke通过。收尾维护性检查零error，两项目录/文件warning均来自既有主线且本次数量未增长；quota/source链接复核no findings。
 
 恢复后的冷构建进一步避免无限悬挂：Corepack下载限制45秒并重试一次；frozen install降低网络并发、单请求30秒超时，并在同一builder步骤中以120秒期限重试一次以复用已下载包。最终原Bibo Dockerfile完整构建通过：安装111.2秒、Harness依赖图构建77.2秒、生产依赖打包12.6秒；本机验证镜像 `sha256:8f9d5bf009e7395356aee1b08d4946d0462da14fbfab0cf0a3820638d5546dad` 中真实Harness及搜索代理import检查通过。该镜像只用于验证发布入口修复，线上继续使用已验收的版本22，不做重复容器发布。
+
+全部变更已普通push到远程master；`release:reconcile:mainline` 返回 `LOCAL_WORKTREE_RETRYING`，retry worker（PID51833）接管安全回流。主工作区thought草稿及四个未跟踪文档与任务前一致，WIP差异SHA256仍为 `6b9d5f0f9688351cdb5bfeb74340a06dcf2a5cdef2afdbbbdffe39d0cd53e02f`；未宣称本地主线已快进，未覆盖活跃草稿。
