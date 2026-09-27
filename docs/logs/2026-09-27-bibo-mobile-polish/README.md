@@ -44,6 +44,16 @@ BB 三份 tsc、客户端构建、product（两种主题、连续外框、收起
 
 复用公共组件配方和唯一 ChatOwner，没有第二套状态或传输路径。diff-only maintainability 为 0 错误、3 条既有预算提醒；定向 ESLint 和主观审查无未关闭 finding。目录改动只有既有设计文档、changeset 与本批发布记录，均通过 planned-path preflight。主工作区其他想法 WIP 保留；发布不包含 NextClaw 文档站、NPM、runtime channel 或桌面安装器。
 
+## 两行文件工作区（2026-09-28）
+
+依据用户提供的文件预览截图，文件区与聊天右侧预览共用 FileTabs：第一行直接置于外框，第二行仅保留路径和操作，随后进入内容。移除重复模块标题、额外标签栏和常驻保存状态；保存按钮仅在有修改或保存期间出现。普通字号仍为 14px。路径各段可点击，以公共 Radix Popover 浏览直属目录、返回上级并打开文件；复用原 files 列表、分页、错误重试及唯一草稿 store，未增加 API 或缓存。
+
+当前标签再选中保留预览模式；关闭当前标签选择相邻文件，最后一个关闭后保留目录入口；保存失败、版本冲突和未保存关闭确认沿用原链路。目录列表未加载完整时不误报空文件夹。长标签按可用宽度省略并保留关闭按钮；手机工具栏内侧绘制分隔线，44px 触控按钮不再因边框占位偏移半个像素。Escape 关闭目录并返回入口焦点，目录返回按钮不叠加会吞掉首次 Escape 的 Tooltip。
+
+BB 三份 tsc、公共 UI tsc、Vite 构建、product smoke（桌面 1440px／手机触控 390px 的两行结构、目录、草稿、保存、相邻标签、空态、分页、失败重试，以及原模块与两种主题）通过。既有资源 smoke（1440／390／320，含保存期间继续编辑、失败恢复、版本冲突和 display 竞态）与 composer smoke 通过。diff maintainability 15 个文件、0 错误、2 条预算提醒（product 490 行、store 400 行，未扩大 store 行数）；定向 ESLint、新代码治理、治理 ratchet 和 diff 空白检查通过，人工复核无未关闭 finding。
+
+桌面／手机真实浏览器截图为 `bibo-mobile-polish/after-file-two-rows-desktop.png` 与 `after-file-two-rows-390.png`。已更新自身 `/help`、公共 UI README、同批设计与 changeset；这是 BB 专项，不适用 NextClaw 文档站、NPM、runtime、desktop 或迁移发布。真实手机系统键盘及与参考应用同视口逐像素差异未实测。主工作区已有想法文档 WIP 保留。
+
 ## NPM 包发布记录
 
 不涉及 NPM 包发布。Bibo 与 personal-agent-ui 均为 private workspace package，本批添加两包 patch changeset，版本记录交后续统一批次。

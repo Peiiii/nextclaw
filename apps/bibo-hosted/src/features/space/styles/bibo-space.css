@@ -283,18 +283,23 @@
 .bibo-note-list .ui-list-row { @apply block [min-height:65px]; }
 .bibo-file-tree > .ui-button, .bibo-note-list > .ui-button { @apply flex-none w-full [border-top:1px_solid_var(--bibo-hairline)] [border-radius:0]; }
 .bibo-file-workbench { @apply min-w-0 min-h-0 flex flex-col; }
-.file-tabbar { @apply flex flex-none [min-height:42px] min-w-0 [border-bottom:1px_solid_var(--ui-line)]; }
-.file-tabbar.is-empty { @apply hidden; }
 .file-mobile-back { @apply hidden; }
 .bibo-file-tabs { @apply flex flex-1 min-w-0 overflow-x-auto [scrollbar-width:thin]; }
 .bibo-file-editor { @apply flex-1 min-w-0 min-h-0 flex flex-col; }
-.bibo-file-editor-head { @apply flex flex-none [min-height:44px] items-center justify-between gap-3 [padding:6px_16px] [border-bottom:1px_solid_var(--ui-line)]; }
-.file-breadcrumb { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap [color:var(--ui-muted)] text-base; }
-.file-editor-tools { @apply flex min-w-0 flex-wrap justify-end items-center gap-2 [margin-left:auto]; }
+.bibo-file-editor-head { @apply flex flex-none h-11 items-center justify-between gap-1 [padding:0_8px] [box-shadow:inset_0_-1px_var(--ui-line)]; }
+.file-breadcrumb { @apply flex flex-1 min-w-0 items-center overflow-x-auto overflow-y-hidden whitespace-nowrap [scrollbar-width:thin] [color:var(--ui-muted)] text-base; }
+.file-breadcrumb > svg { @apply w-3.5 h-3.5 flex-none; }
+.file-breadcrumb > .ui-button { @apply flex-none px-1; }
+.file-breadcrumb [aria-current="page"] { @apply [color:var(--ui-ink)]; }
+.file-editor-tools { @apply flex flex-none justify-end items-center gap-1; }
+.file-directory-location { @apply flex items-center gap-1 [border-bottom:1px_solid_var(--ui-line)] pb-1 mb-1; }
+.file-directory-location span { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap; }
+.file-directory-entry.ui-button { @apply w-full justify-start gap-2; }
+.file-directory-entry > span { @apply flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left; }
+.file-directory-entry > svg { @apply w-4 h-4 flex-none; }
 @media (min-width: 761px) and (max-width: 900px) {
   .bibo-files-layout, .bibo-files-layout:has(.bibo-note-list) { @apply [grid-template-columns:220px_minmax(0,_1fr)]; }
   .bibo-files-layout.is-tree-collapsed { @apply [grid-template-columns:minmax(0,_1fr)]; }
-  .file-breadcrumb { @apply hidden; }
 }
 .file-conflict { @apply flex-none [padding:12px_16px] [border-bottom:1px_solid_var(--ui-line)] [background:var(--ui-canvas)] [color:var(--ui-ink)] text-base; }
 .file-conflict > div { @apply flex flex-wrap gap-2 mt-2; }
@@ -303,7 +308,6 @@
 .bibo-file-editor textarea { @apply flex-1 min-h-0 w-full m-0 p-6 border-0 [outline:0] bg-transparent [color:var(--ui-ink)] font-mono text-base leading-7 resize-none; }
 .bibo-file-editor textarea:focus-visible { @apply [outline:0]; }
 .bibo-file-foot { @apply [border-top:1px_solid_var(--bibo-hairline)] [padding:4px_25px] flex gap-3.75; }
-.bibo-file-editor.is-compact .file-breadcrumb { @apply hidden; }
 
 @media (max-width: 1100px) {
   .bibo-overview-grid { @apply [grid-template-columns:minmax(0,_1fr)]; }
@@ -381,17 +385,12 @@
   .bibo-files-layout.is-content-visible > .bibo-file-tree, .bibo-files-layout.is-content-visible > .bibo-note-list { @apply hidden; }
   .bibo-files-layout.is-browser-visible > .bibo-file-workbench { @apply hidden; }
   .bibo-files-layout.is-browser-visible > .bibo-file-tree, .bibo-files-layout.is-browser-visible > .bibo-note-list { @apply [max-height:none] flex-1; }
-  .file-mobile-back { @apply block flex-none [padding:5px_10px] [border-right:1px_solid_var(--bibo-hairline)] [border-radius:0]; }
-  .file-tabbar.is-empty { @apply flex; }
+  .file-mobile-back { @apply block flex-none; }
   .file-tree-resizer { @apply hidden; }
   .bibo-files-layout, .bibo-files-layout.is-tree-collapsed, .bibo-files-layout:has(.bibo-note-list) { @apply flex flex-col min-h-0; }
   .bibo-file-tree, .bibo-note-list { @apply flex-none [max-height:210px] [border-right:0] [border-bottom:1px_solid_var(--bibo-hairline)]; }
   .bibo-file-tree .bibo-tree-scroll { @apply [height:auto] pb-2; }
   .bibo-file-workbench { @apply flex-1 min-h-0; }
-  .bibo-file-editor-head { @apply [padding:6px_12px] gap-1.5; }
-  .file-breadcrumb { @apply hidden; }
-  .file-editor-tools { @apply flex-1 gap-2; }
-  .file-editor-tools .bibo-save-state { @apply [margin-left:auto]; }
   .bibo-file-editor textarea { @apply w-full [padding:20px_16px]; }
   .bibo-file-preview-markdown, .bibo-file-preview-frame { @apply w-full [padding:20px_16px]; }
   .bibo-form-pair { @apply [grid-template-columns:1fr] gap-0; }

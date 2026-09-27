@@ -4,7 +4,7 @@ import { readWorkspaceRoute, workspaceHref } from "@/app/workspace-router";
 import { Button, Composer, IconButton, Input, Message, SegmentedControl, Sheet, NavigationItem } from "@nextclaw/personal-agent-ui";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { useBiboChatStore, type BiboDisplayMessage } from "@/features/chat/stores/bibo-chat.store";
-import { BiboSpaceView, BiboWorkspace, useBiboSpaceStore, type BiboView } from "@/features/space";
+import { BiboSpaceView, BiboWorkspace, FileTabs, useBiboSpaceStore, type BiboView } from "@/features/space";
 
 import { ArrowDown, CalendarDays, CheckCheck, FileText, Folder, Home, Inbox, Menu, MessageCircle, PanelLeftClose, PanelLeftOpen, PanelRight, Plus, Sparkles, type LucideIcon } from "lucide-react";
 import { SessionNavigation } from "./session-navigation";
@@ -134,6 +134,8 @@ export function BiboApp() {
     return () => document.removeEventListener("click", workspaceResources.intercept);
   }, []);
   const closeMenu = () => store.setMenuOpen(false);
+  const collapsedFileTree = space.view === "files" && space.treeCollapsed;
+  const fileHeader = (space.view === "files" || space.view === "notes") && (space.tabs.length > 0 || collapsedFileTree) && (!mobile || !space.fileBrowserVisible || collapsedFileTree);
   const workspaceTitle = space.view === "chat" ? store.sessions.find((session) => session.id === store.activeSessionId)?.title ?? "新对话" : navigation.find((item) => item.view === space.view)?.label;
   const workspaceNavigation = <nav className="bibo-primary-nav" aria-label="工作空间">{navigation.map((item) => <NavigationItem key={item.view} label={item.label} selected={space.view === item.view} tooltip={!mobile}><Link to={workspaceHref(item.view, store.activeSessionId)} className={`bibo-nav-item${space.view === item.view ? " is-active" : ""}`} aria-label={item.label} aria-current={space.view === item.view ? "page" : undefined} onClick={closeMenu}><item.icon aria-hidden="true" className="bibo-nav-mark" /><span className="bibo-nav-text">{item.label}</span>{item.view === "inbox" && (space.overview?.counts.unread ?? 0) > 0 && <small>{space.overview?.counts.unread}</small>}</Link></NavigationItem>)}</nav>;
   const sidebarContent = <>
@@ -150,10 +152,10 @@ export function BiboApp() {
   return <div ref={shellRef} className={`bibo-shell${space.view === "chat" ? " is-chat" : ""}${space.sidebarCollapsed ? " is-sidebar-collapsed" : ""}${space.workspaceOpen && space.view === "chat" ? " has-workspace" : ""}`}>
     {mobile ? <Sheet open={store.menuOpen} onOpenChange={store.setMenuOpen} title="个人空间" closeLabel="关闭导航" returnFocusRef={menuButtonRef}><aside className="bibo-sidebar is-drawer" aria-label="导航">{sidebarContent}</aside></Sheet> : <aside className="bibo-sidebar" aria-label="导航"><div className="bibo-navigation-rail"><IconButton label={space.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} icon={space.sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />} aria-expanded={!space.sidebarCollapsed} onClick={space.toggleSidebar} />{workspaceNavigation}<div className="bibo-sidebar-spacer" /><AccountMenu /></div><div className="bibo-sidebar-panel">{sidebarContent}</div></aside>}
     <main className="bibo-main">
-      <header className="bibo-topbar"><div className="bibo-topbar-leading">
+      <header className={`bibo-topbar${fileHeader ? " is-file-header" : ""}`} data-ui-surface="frame"><div className="bibo-topbar-leading">
         <IconButton ref={menuButtonRef} className="bibo-menu-button" label="打开菜单" icon={<Menu />} tooltip={false} aria-expanded={store.menuOpen} onClick={() => store.setMenuOpen(!store.menuOpen)} />
-        <h1 className="workspace-title" title={workspaceTitle}>{workspaceTitle}</h1>
-      </div>{space.view === "chat" && <div className="bibo-topbar-actions"><IconButton label={copy.newConversation} icon={<Plus />} onClick={() => void store.createSession()} /><IconButton label={copy.workspace} icon={<PanelRight />} aria-pressed={space.workspaceOpen} onClick={space.workspaceOpen ? space.closeWorkspace : space.showWorkspace} /></div>}</header>
+        <h1 className={fileHeader ? "visually-hidden" : "workspace-title"} title={workspaceTitle}>{workspaceTitle}</h1>
+      </div>{fileHeader && <FileTabs />}{space.view === "chat" && <div className="bibo-topbar-actions"><IconButton label={copy.newConversation} icon={<Plus />} onClick={() => void store.createSession()} /><IconButton label={copy.workspace} icon={<PanelRight />} aria-pressed={space.workspaceOpen} onClick={space.workspaceOpen ? space.closeWorkspace : space.showWorkspace} /></div>}</header>
       <Outlet />
       {route.view === "chat" && <BiboWorkspace />}
     </main>

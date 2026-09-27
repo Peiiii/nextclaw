@@ -3,8 +3,10 @@ import { Button, ConfirmDialog, LoadingState, Markdown, Notice, SegmentedControl
 import { FileActions } from "./file-actions";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
+import { FileBreadcrumbs } from "./file-breadcrumbs";
+import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 export function FileEditor({ id, compact = false, defaultPreview = false, tabId, preview: selectedPreview, onPreviewChange }: { id: string; compact?: boolean; defaultPreview?: boolean; tabId?: string; preview?: boolean; onPreviewChange?: (preview: boolean) => void }) {
-  const { fileDetails, fileDrafts, editFile, saveFile, resolveFileConflict } = useBiboSpaceStore();
+  const { fileDetails, fileDrafts, editFile, saveFile, resolveFileConflict, openWorkspace, openFile } = useBiboSpaceStore();
   const [localPreview, setLocalPreview] = useState(defaultPreview);
   const preview = selectedPreview ?? localPreview;
   const setPreview = onPreviewChange ?? setLocalPreview;
@@ -32,25 +34,21 @@ export function FileEditor({ id, compact = false, defaultPreview = false, tabId,
     }}>
       <div className="bibo-file-editor-head">
         <h2 className="visually-hidden">{detail.path.split("/").at(-1)}</h2>
-        <span className="file-breadcrumb" title={detail.path}>
-          {detail.path.replaceAll("/", " / ")}
-        </span>
+        <FileBreadcrumbs path={detail.path} onOpenFile={(id) => void (compact ? openWorkspace(id) : openFile(id))} />
         <div className="file-editor-tools">
           <SegmentedControl
             label="文件模式"
             value={preview ? "preview" : "edit"}
             options={[
-              { value: "edit", label: "编辑" },
-              { value: "preview", label: "预览" },
+              { value: "edit", label: copy.fileEdit },
+              { value: "preview", label: copy.filePreview },
             ]}
             onChange={(value) => setPreview(value === "preview")}
           />
-          <span className="bibo-save-state" role="status" aria-live="polite" title={draft.dirty ? "有未保存的修改" : `已保存 · v${draft.version}`}>
-            {draft.saving ? draft.conflict ? "处理中…" : "保存中…" : draft.dirty ? "未保存" : "已保存"}
+          <span className="bibo-save-state visually-hidden" role="status" aria-live="polite" title={draft.dirty ? "有未保存的修改" : `已保存 · v${draft.version}`}>
+            {draft.saving ? copy.fileSaving : draft.dirty ? copy.fileUnsaved : copy.fileSaved}
           </span>
-          <Button tone="primary" disabled={!draft.dirty || draft.saving} onClick={() => void saveFile(id)}>
-            保存
-          </Button>
+          {(draft.dirty || draft.saving) && <Button tone="primary" disabled={draft.saving} onClick={() => void saveFile(id)}>{draft.saving ? copy.fileSaving : copy.fileSave}</Button>}
           <FileActions key={id} file={detail} />
         </div>
       </div>

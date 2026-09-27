@@ -35,6 +35,7 @@
 .ui-action-menu__label { @apply [padding:8px_10px_4px] text-base [color:var(--ui-muted)]; }
 .ui-action-menu__radio { @apply gap-2; }
 .ui-action-menu__indicator { @apply inline-flex shrink-0 [width:16px] items-center; }
+.ui-popover { @apply [z-index:1100] [width:320px] [max-width:calc(100vw_-_16px)] [max-height:min(360px,var(--radix-popover-content-available-height))] overflow-auto p-2 [border:1px_solid_var(--ui-line)] [border-radius:var(--ui-radius-md)] [background:var(--ui-surface)] [color:var(--ui-ink)] [box-shadow:0_8px_24px_#18241e1c] text-base; }
 @keyframes ui-overlay-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (pointer: coarse) { .ui-action-menu__item { @apply [min-height:44px]; } }
 @media (prefers-reduced-motion: reduce) { .ui-overlay-backdrop, .ui-overlay { @apply [animation:none]; } }

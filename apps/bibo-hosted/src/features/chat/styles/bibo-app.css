@@ -64,6 +64,8 @@ button, input, textarea, select { @apply [font-family:inherit]; }
 .bibo-topbar { @apply flex flex-none [height:var(--ui-toolbar-height)] items-center justify-between [padding:0_var(--ui-content-gutter)] text-base [border-bottom:1px_solid_var(--ui-line)]; }
 .bibo-topbar-leading { @apply flex flex-1 min-w-0 items-center gap-2 mr-3; }
 .bibo-topbar-leading > .ui-icon-button { @apply flex-none; }
+.bibo-topbar.is-file-header { @apply px-2 gap-1; }
+.bibo-topbar.is-file-header .bibo-topbar-leading { @apply flex-none m-0; }
 .bibo-topbar-actions { @apply flex flex-none items-center gap-1; }
 .workspace-title { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap m-0 [font-family:inherit] text-base font-medium; }
 .bibo-topbar .bibo-menu-button { @apply hidden; }
@@ -101,7 +103,7 @@ button, input, textarea, select { @apply [font-family:inherit]; }
 .bibo-auth-card .bibo-auth-note { @apply [margin:17px_0_0] text-base!; }
 .bibo-workspace { @apply [width:min(48%,_620px)] [min-width:340px] min-h-0 flex flex-col [background:var(--ui-surface)] [border-left:1px_solid_var(--ui-line)]; }
 .bibo-workspace-head { @apply [height:var(--ui-toolbar-height)] flex-none flex items-center justify-between [padding:0_8px] [border-bottom:1px_solid_var(--ui-line)] text-base; }
-.bibo-workspace-head .ui-control { @apply flex-1 min-w-0 [max-width:calc(100%_-_40px)] [padding:5px_8px] [border-color:transparent] [background-color:transparent]; }
+.bibo-workspace-head > .ui-icon-button { @apply flex-none; }
 .bibo-workspace-content { @apply flex flex-col flex-1 min-h-0 overflow-hidden; }
 .bibo-workspace-content > .bibo-file-editor { @apply flex-1 min-h-0 [height:auto]; }
 .bibo-shell :is(a, button, summary, [role="separator"]):focus-visible { @apply [outline:2px_solid_var(--ui-focus)] [outline-offset:-2px]; }
@@ -145,4 +147,5 @@ button, input, textarea, select { @apply [font-family:inherit]; }
   .bibo-shell.is-chat .bibo-mobile-nav { @apply hidden; }
   .bibo-welcome { @apply [padding:20px_16px]; }
   .bibo-workspace { @apply absolute [z-index:3] [inset:0] w-full min-w-0; }
+  .bibo-workspace-head { @apply h-14; }
 }

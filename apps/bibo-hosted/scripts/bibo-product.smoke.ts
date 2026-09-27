@@ -4,6 +4,7 @@ import { once } from "node:events";
 import { chromium, type Page, type Route } from "playwright";
 import { mockApi } from "./personal-workspace.fixture";
 import { checkThemes, checkControlFeedback, checkFileTabs } from "./design-system/bibo-design-system.smoke";
+import { checkWorkspaceFiles, openWorkspaceFile } from "./design-system/workspace-file.smoke";
 const base = "http://127.0.0.1:5189";
 const server = spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5189", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
 async function ready(): Promise<void> {
@@ -143,7 +144,7 @@ async function checkWorkspaceRecovery(page: Page): Promise<void> {
   });
   await page.goto(`${base}/chat/session-a`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "打开右侧工作区" }).click();
-  await page.getByRole("combobox", { name: "工作区文件" }).selectOption("file-a");
+  await openWorkspaceFile(page, ["想法.md"]);
   const editor = page.getByRole("textbox", { name: "编辑 想法.md" });
   await editor.fill("# 工作区保留的修改");
   await page.getByRole("button", { name: "关闭工作区" }).click();
@@ -345,7 +346,7 @@ try {
       await page.screenshot({ path: `/tmp/workspace-save-status-${viewport.width}.png`, animations: "disabled" });
       const editorBox = await editor.boundingBox();
       assert.ok(editorBox && editorBox.y < 180 && editorBox.height > viewport.height * .6, "note content occupies the main workspace at desktop and mobile sizes");
-      assert.equal(await page.getByRole("button", { name: "保存", exact: true }).isDisabled(), true, "saved file disables the shared action");
+      assert.equal(await page.getByRole("button", { name: "保存", exact: true }).count(), 0, "idle saved files leave no redundant save control");
       if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
       await page.getByRole("link", { name: /文件/ }).click();
       await page.getByRole("treeitem", { name: /想法.md/ }).click();
@@ -475,6 +476,7 @@ try {
       await page.close();
       const filesPage = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width < 760 });
       await checkFileNavigation(filesPage, width);
+      await checkWorkspaceFiles(filesPage, width, base);
       await filesPage.close();
     }
   } finally { await browser.close(); }

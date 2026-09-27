@@ -125,7 +125,7 @@ class BiboSpaceOwner {
   workspacePreview: boolean | null = null;
   setWorkspacePreview = (workspacePreview: boolean): void => this.set({ workspacePreview });
   openWorkspace = async (id: string, verified?: BiboFileDetail, preview?: boolean): Promise<void> => {
-    this.set({ workspaceOpen: true, workspaceFileId: id, workspacePreview: preview ?? null, error: "" });
+    this.set((state) => ({ workspaceOpen: true, workspaceFileId: id, workspacePreview: preview ?? (state.workspaceFileId === id ? state.workspacePreview : null), error: "" }));
     this.saveLayout();
     await this.openFile(id, verified);
   };
@@ -316,7 +316,7 @@ class BiboSpaceOwner {
       const fileDrafts = { ...state.fileDrafts }; delete fileDrafts[id];
       const neighbor = state.tabs[state.tabs.indexOf(id) + 1] ?? state.tabs[state.tabs.indexOf(id) - 1] ?? null;
       return { tabs, fileDetails, fileDrafts, activeFileId: state.activeFileId === id ? neighbor : state.activeFileId, fileBrowserVisible: tabs.length === 0 ? true : state.fileBrowserVisible,
-        workspaceOpen: state.workspaceFileId === id ? false : state.workspaceOpen };
+        ...(state.workspaceFileId === id ? { workspaceFileId: neighbor, workspacePreview: null } : {}) };
     });
     this.saveLayout();
     const active = this.get().activeFileId;

@@ -98,7 +98,7 @@ async function verifyConcurrency(page: Page, workspace: Locator, link: Locator) 
       await (await response).finished();
       await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
       if (close) assert.equal(await workspace.count(), 0, "late results do not reopen a closed workspace");
-      else assert.equal(await workspace.getByRole("combobox", { name: "工作区文件" }).inputValue(), "file-a", "slow A never replaces the later B selection");
+      else assert.equal(await workspace.getByRole("tab", { name: "想法.md", exact: true }).getAttribute("aria-selected"), "true", "slow A never replaces the later B selection");
     } finally { release(); await page.unroute("**/api/space", hold); }
   }
 }

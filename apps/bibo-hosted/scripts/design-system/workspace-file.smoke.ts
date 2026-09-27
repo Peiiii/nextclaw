@@ -1,0 +1,112 @@
+import assert from "node:assert/strict";
+import type { Locator, Page, Route } from "playwright";
+
+export async function openWorkspaceFile(page: Page, parts: readonly string[]): Promise<void> {
+  await page.getByRole("button", { name: "浏览目录", exact: true }).click();
+  for (const name of parts) await page.getByRole("dialog", { name: "浏览目录" }).getByRole("button", { name, exact: true }).click();
+}
+
+async function checkTwoRows(page: Page, surface: Locator, width: number, workspace: boolean): Promise<void> {
+  const layout = await surface.evaluate((node, workspace) => {
+    const header = document.querySelector(workspace ? ".bibo-workspace-head" : ".bibo-topbar")!.getBoundingClientRect();
+    const tools = node.querySelector(".bibo-file-editor-head")!.getBoundingClientRect();
+    const content = node.querySelector("textarea, .bibo-file-preview-markdown, iframe")!.getBoundingClientRect();
+    const overflowControls = Array.from(node.querySelectorAll(".bibo-file-editor-head button")).flatMap((button) => {
+      const box = button.getBoundingClientRect();
+      return box.top >= tools.top && box.bottom <= tools.bottom ? [] : [{ label: button.textContent, top: box.top, bottom: box.bottom, toolbarTop: tools.top, toolbarBottom: tools.bottom }];
+    });
+    return { header: header.height, tools: tools.height, overflowControls, adjacent: header.bottom === tools.top && tools.bottom === content.top, overflow: document.documentElement.scrollWidth > innerWidth };
+  }, workspace);
+  assert.equal(layout.header, width > 760 ? 44 : 56);
+  assert.equal(layout.tools, 44, "paths and operations occupy exactly one row");
+  assert.deepEqual(layout.overflowControls, [], "controls never wrap or overflow the toolbar row");
+  assert.equal(layout.adjacent, true, "content starts immediately after the two chrome rows");
+  assert.equal(layout.overflow, false);
+}
+
+export async function checkWorkspaceFiles(page: Page, width: number, base: string): Promise<void> {
+  const save = page.getByRole("button", { name: "保存", exact: true });
+  if (await save.isVisible()) { await save.click(); await page.getByTitle("已保存 · v2").waitFor(); }
+  await checkTwoRows(page, page.locator(".bibo-file-workbench"), width, false);
+  await page.goto(`${base}/chat/session-a`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "打开右侧工作区" }).click();
+  const workspace = page.getByRole("complementary", { name: "右侧工作区" });
+  await openWorkspaceFile(page, ["B-folder", "nested", "readme.md"]);
+  await checkFileDrafts(page, workspace, width);
+  await checkEmptyDirectory(page, workspace);
+  await page.screenshot({ path: `/tmp/bibo-file-workspace-${width}.png`, fullPage: true });
+  while (await workspace.getByRole("button", { name: /^关闭 / }).count()) await workspace.getByRole("button", { name: /^关闭 / }).first().click();
+  await workspace.getByRole("heading", { name: "选择文件或笔记" }).waitFor();
+  await openWorkspaceFile(page, ["想法.md"]);
+  await workspace.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
+  await checkDirectoryRead(page, base);
+  await workspace.getByRole("button", { name: "关闭工作区" }).click();
+}
+
+async function checkFileDrafts(page: Page, workspace: Locator, width: number): Promise<void> {
+  const directory = page.getByRole("dialog", { name: "浏览目录" });
+  const editor = workspace.getByRole("textbox", { name: "编辑 B-folder/nested/readme.md" });
+  await editor.fill("# 目录切换保留草稿");
+  await checkTwoRows(page, workspace, width, true);
+  await workspace.getByRole("button", { name: "预览", exact: true }).click();
+  await workspace.getByRole("heading", { name: "目录切换保留草稿" }).waitFor();
+  await workspace.getByRole("tab", { name: "B-folder/nested/readme.md", exact: true }).click();
+  await workspace.getByRole("heading", { name: "目录切换保留草稿" }).waitFor();
+  await checkTwoRows(page, workspace, width, true);
+  if (width > 760) {
+    const inactive = workspace.locator(".ui-tab-item:not(.is-active)").first();
+    const resting = await inactive.evaluate((node) => getComputedStyle(node).backgroundColor);
+    await inactive.hover();
+    assert.notEqual(await inactive.evaluate((node) => getComputedStyle(node).backgroundColor), resting, "inactive tab hover remains visible on the frame");
+  }
+  await workspace.getByRole("navigation", { name: "文件路径" }).getByRole("button", { name: "B-folder", exact: true }).click();
+  await directory.getByRole("button", { name: "返回上级目录" }).click();
+  await directory.getByRole("button", { name: "想法.md", exact: true }).click();
+  await workspace.getByRole("tab", { name: "B-folder/nested/readme.md", exact: true }).click();
+  assert.equal(await editor.inputValue(), "# 目录切换保留草稿");
+  await workspace.getByRole("button", { name: "关闭 B-folder/nested/readme.md", exact: true }).click();
+  await page.getByRole("dialog", { name: "保存文件修改？" }).getByRole("button", { name: "取消", exact: true }).click();
+  assert.equal(await editor.inputValue(), "# 目录切换保留草稿");
+  await workspace.getByRole("button", { name: "保存", exact: true }).click();
+  await workspace.getByTitle("已保存 · v2").waitFor();
+  const names = await workspace.getByRole("tab").evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label")!));
+  const index = names.indexOf("B-folder/nested/readme.md");
+  const neighbor = names[index + 1] ?? names[index - 1]!;
+  await workspace.getByRole("button", { name: "关闭 B-folder/nested/readme.md", exact: true }).click();
+  assert.equal(await workspace.getByRole("tab", { name: neighbor, exact: true }).getAttribute("aria-selected"), "true", "closing current tab selects its neighbor");
+}
+
+async function checkEmptyDirectory(page: Page, workspace: Locator): Promise<void> {
+  await workspace.getByRole("button", { name: "浏览目录", exact: true }).click();
+  const directory = page.getByRole("dialog", { name: "浏览目录" });
+  await directory.getByRole("button", { name: "A-empty", exact: true }).click();
+  await directory.getByRole("heading", { name: "文件夹为空" }).waitFor();
+  await page.keyboard.press("Escape");
+  assert.equal(await directory.count(), 0);
+  await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "浏览目录");
+  assert.equal(await workspace.getByRole("button", { name: "浏览目录", exact: true }).evaluate((node) => document.activeElement === node), true);
+}
+
+async function checkDirectoryRead(page: Page, base: string): Promise<void> {
+  let failing = true;
+  const read = async (route: Route) => {
+    const body = route.request().postDataJSON();
+    if (body.action !== "file.list" || body.input.ancestorOf || body.input.cursor) return route.fallback();
+    if (failing) return route.fulfill({ status: 503, json: { error: "目录暂时无法读取" } });
+    return route.fulfill({ json: { result: { items: [{ id: "navigation-0", path: "A-empty", kind: "folder", version: 1 }], nextCursor: "0" } } });
+  };
+  await page.route("**/api/space", read);
+  try {
+    await page.goto(`${base}/chat/session-a`, { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "浏览目录", exact: true }).click();
+    const directory = page.getByRole("dialog", { name: "浏览目录" });
+    await directory.getByText("目录暂时无法读取", { exact: true }).waitFor();
+    failing = false;
+    await directory.getByRole("button", { name: "重试读取目录", exact: true }).click();
+    await directory.getByRole("button", { name: "A-empty", exact: true }).click();
+    assert.equal(await directory.getByRole("heading", { name: "文件夹为空" }).count(), 0, "partial lists never claim an empty directory");
+    await directory.getByRole("button", { name: "加载更多文件", exact: true }).click();
+    await directory.getByRole("heading", { name: "文件夹为空" }).waitFor();
+    await page.keyboard.press("Escape");
+  } finally { await page.unroute("**/api/space", read); }
+}

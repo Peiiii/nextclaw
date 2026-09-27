@@ -39,12 +39,12 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
   const [parent, setParent] = useState("");
   const [creating, setCreating] = useState(false);
   const collapseControl = useRef<HTMLButtonElement>(null);
-  const expandControl = useRef<HTMLButtonElement>(null);
   const toggleDirectory = () => {
     toggleTree();
     if (treeCollapsed) showFileBrowser();
     requestAnimationFrame(() => {
-      (treeCollapsed ? collapseControl : expandControl).current?.focus();
+      if (treeCollapsed) collapseControl.current?.focus();
+      else document.querySelector<HTMLButtonElement>('[aria-label="展开目录树"]')?.focus();
     });
   };
   const all = notesOnly ? notes : files;
@@ -112,7 +112,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
             {cursors.notes && <Button tone="text" disabled={moreLoading.notes} onClick={() => void loadMore("notes")}>{moreLoading.notes ? "正在加载…" : "加载更多笔记"}</Button>}
           </aside>
         )}
-        <FileWorkbench notesOnly={notesOnly} toggleControlRef={expandControl} onToggleTree={toggleDirectory} />
+        <FileWorkbench notesOnly={notesOnly} />
       </div>
     </div>
   );
