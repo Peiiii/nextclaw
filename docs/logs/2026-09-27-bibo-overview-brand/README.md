@@ -16,6 +16,8 @@
 
 ## 发布/部署方式
 
+欢迎区纠偏已上线：冻结提交 `8dc184165571bb25262e527b4ef0a976a4e61afd`，Worker 版本 `f21b472e-f47f-4322-9d8d-c023cf43060b`。沿用同一 `deploy:client` 入口，Container version 22 与镜像均未变化。真实账号在 1440／390／320px 检查欢迎区角色无交互祖先、点击不跳转、下方摘要正常跳转与返回，全数通过。三套 tsc、生产构建、定向 lint、maintainability、治理检查通过；上一轮已说明排除项的其余 product smoke 再次退出码 0。复用原日志和设计记录纠偏，不新建平行流程规则。
+
 用户已授权上线。发布入口为 `pnpm -C apps/bibo-hosted deploy:client`，从与远程 master 一致的干净冻结提交 `f8ae48414b7860632d1b41f6096614fe989ef7f4` 运行。已部署 Worker 版本 `3686be64-b4a9-4b89-9981-9b491f43aadf`。线上 JS `index-BQ9eQGQS.js`、CSS `index-C-KMrBFj.css` 与本地产物一致。
 
 真实测试账号登录后，在 1440／390／320px 完成概览形象、摘要入口跳转和后退，无浏览器异常或横向溢出。此次真实账号为空空间，验证其开始对话入口；有数据收件箱入口由本地产品 fixture 验证。线上截图位于 `/tmp/bibo-overview-live-{1440,390,320}.png`。发布后 Container version 22 及镜像 digest 与发布前完全相同。
