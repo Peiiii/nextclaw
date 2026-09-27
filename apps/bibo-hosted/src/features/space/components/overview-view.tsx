@@ -1,28 +1,8 @@
-import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { EmptyState, ListRow } from "@nextclaw/personal-agent-ui";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { day, datetime } from "@/features/space/utils/date-format.utils";
-function PageTitle({
-  eyebrow,
-  title,
-  action,
-}: {
-  eyebrow: string;
-  title: string;
-  action?: ReactNode;
-}) {
-  return (
-    <div className="bibo-page-title">
-      <div>
-        <p className="bibo-kicker">{eyebrow}</p>
-        <h1>{title}</h1>
-      </div>
-      {action}
-    </div>
-  );
-}
 export function Overview() {
   const { overview, navigate, selectInbox, selectTask, selectEvent, openFile } = useBiboSpaceStore();
   const hour = new Date().getHours();
@@ -32,17 +12,19 @@ export function Overview() {
   const briefAction = briefTarget === "inbox" ? "看收件箱 ↗" : briefTarget === "tasks" ? "看任务 ↗" : "开始对话 ↗";
   return (
     <div className="bibo-page bibo-overview">
-      <PageTitle
-        eyebrow={day(new Date().toISOString())}
-        title={`${greeting}，${hasActivity ? "最近你在忙这些。" : "今天从这里开始。"}`}
-      />
+      <header className="bibo-page-title bibo-overview-welcome">
+        <div>
+          <p className="bibo-kicker">{day(new Date().toISOString())}</p>
+          <h1>{`${greeting}，${hasActivity ? "最近你在忙这些。" : "今天从这里开始。"}`}</h1>
+          <p>{biboCopy.overviewCompanion}</p>
+        </div>
+        <OverviewCompanion />
+      </header>
       {!overview ? (
         <EmptyState title="正在整理你的空间" />
       ) : (
         <div className="bibo-overview-grid">
           <Link className="bibo-overview-brief" to={`/${briefTarget}`}>
-            <span className="bibo-overview-companion-title">{biboCopy.overviewCompanion}</span>
-            <OverviewCompanion />
             <span className="bibo-overview-brief-copy">
               <strong>{overview.counts.unread
                 ? `有 ${overview.counts.unread} 件事值得看一眼。`
@@ -166,11 +148,11 @@ function OverviewCompanion() {
   return (
     <svg className="bibo-overview-companion" viewBox="-16 -8 262 192" aria-hidden="true" focusable="false">
       <ellipse cx="115" cy="171" rx="111" ry="7" fill="currentColor" opacity=".07" />
-      <g className="bibo-overview-companion-body">
+      <g>
         <path d="M115 1C182-3 229 24 230 78C232 137 191 158 116 158C45 161 0 135 0 79C-2 26 43 1 115 1Z" fill="#8270cb" transform="rotate(4 115 79)" />
         <ellipse cx="78.5" cy="70" rx="25.5" ry="35" fill="#fbf8e8" />
         <ellipse cx="144.5" cy="69.5" rx="25.5" ry="32.5" fill="#fbf8e8" />
-        <g className="bibo-overview-companion-eyes" fill="#35264f">
+        <g fill="#35264f">
           <ellipse cx="79.5" cy="75" rx="11.5" ry="16" />
           <ellipse cx="145.5" cy="75" rx="11.5" ry="16" />
         </g>
