@@ -248,6 +248,18 @@ test("exhausted model budget rejects chat before forwarding without changing the
   assert.equal(writes, 0);
 });
 
+test("chat permits 100 hourly trial turns and expires the previous hour", async () => {
+  const space = personalSpace();
+  space.values.set("runs", Array.from({ length: 99 }, () => Date.now()));
+  assert.equal((await space.run()).status, 200);
+  const limited = await space.run();
+  assert.equal(limited.status, 429);
+  assert.match((await limited.json() as { error: string }).error, /本小时对话次数已用完/);
+  space.values.set("runs", Array.from({ length: 100 }, () => Date.now() - 3_600_001));
+  assert.equal((await space.run()).status, 200);
+  assert.equal((space.values.get("runs") as number[]).length, 1);
+});
+
 test("model reservation permits the experiment allowance and search keeps a separate counter", async () => {
   const day = new Date().toISOString().slice(0, 10);
   const values = new Map<string, unknown>([["budget", { day, total: 249, users: { "user-1": 249 } }]]);

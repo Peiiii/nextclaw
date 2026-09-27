@@ -146,7 +146,10 @@ async function streamedRun(page: Page, message = prompt): Promise<{ deltaCount: 
   await page.getByRole("textbox", { name: /告诉 Bibo/ }).fill(message);
   await page.getByRole("button", { name: "发送消息", exact: true }).click();
   const response = await result;
-  assert.equal(response.status(), 200, `Chat returned ${response.status()}`);
+  if (response.status() !== 200) {
+    const failure = await response.json() as { error?: string };
+    assert.fail(`Chat returned ${response.status()}: ${failure.error ?? "No public error"}`);
+  }
   assert.ok(response.headers()["content-type"]?.includes("text/event-stream"), "Chat must stream SSE");
   await page.waitForFunction(() => Reflect.get(window, "biboSmokeStream") !== null, null, { timeout: 300_000 });
   const captured = await page.evaluate(() => Reflect.get(window, "biboSmokeStream") as { text?: string; error?: string });
@@ -250,6 +253,8 @@ try {
       assert.equal(layout.horizontalOverflow, false, "Page has horizontal overflow");
       assert.deepEqual(errors, [], "Browser raised a runtime error");
       assert.ok(await page.locator(".ui-message--assistant").filter({ hasText: requestId }).count(), "Saved answer did not load after refresh");
+      if (!displayOnly) assert.ok(await page.locator('.ui-message--assistant a[href^="https://developers.cloudflare.com/"]').count(),
+        "Saved search sources must remain clickable after refresh");
       await page.goto(`${origin}/files`, { waitUntil: "networkidle" });
       if (!await page.getByRole("textbox", { name: "搜索文件", exact: true }).isVisible()) {
         await page.getByRole("button", { name: "← 目录", exact: true }).click();

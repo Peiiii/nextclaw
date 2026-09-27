@@ -270,7 +270,7 @@ export class BiboUserContainer extends Container<Env> {
     }
     const now = Date.now();
     const recent = (await this.ctx.storage.get<number[]>("runs") ?? []).filter((at) => now - at < 3_600_000);
-    if (recent.length >= 12) return publicError("本小时对话次数已用完，请稍后再来。", 429);
+    if (recent.length >= 100) return publicError("本小时对话次数已用完，请稍后再来。", 429);
     await this.ctx.storage.put("runs", [...recent, now]);
     const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
     const session = typeof payload.sessionId === "string" ? sessions.find((item) => item.id === payload.sessionId) : sessions[0];
