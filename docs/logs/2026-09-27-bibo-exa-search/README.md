@@ -26,4 +26,6 @@ diff-only guard零error，三项现有目录/临界文件warning；新增搜索�
 
 打开https://app.bibo.bot并登录，直接输入“搜索Cloudflare AI Search的最新官方说明，并附来源链接”。预期得到检索后的回答与可点击官方来源，刷新后回复仍在；任务、日程和文件功能继续可用。
 
-AUTOMATION_INTERVENTIONS: 0（部署前准备）。
+首次完整发布在容器依赖下载阶段停滞，npmmirror tarball出现ERR_SOCKET_TIMEOUT；尚未上传Worker或切换线上。停止本任务的构建进程后，将Bibo Dockerfile依赖源统一为已核验200的npm官方源，从原服务deploy入口重建，保留已配置Secret。未添加第二发布器或旁路配置。主线推送自动触发的Bibo文档说明部署与搜索运行无关，不作为Bibo部署完成点。
+
+AUTOMATION_INTERVENTIONS: 1（依赖镜像下载停滞，已修回Bibo Dockerfile owner）。
