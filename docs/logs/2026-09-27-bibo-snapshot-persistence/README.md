@@ -14,12 +14,14 @@ Active acceptance ledger（contract-id: bibo-snapshot-persistence-20260927）：
 | --- | --- | --- | --- |
 | BIBO-SAVE-01 | true | passed | 修前同边界 500 ENOENT；修后 snapshot 测试成功、journal/用户文件保留、无派生投影、SQLite quick_check ok |
 | BIBO-SAVE-02 | true | passed | cold replay 覆盖六轮工具消息、投影缺失重建与再次冷重载，8 项恢复测试通过；旧归档格式及 restore 路径未变 |
-| BIBO-SAVE-03 | true | passed | Bibo 三份 tsc；WAL/SSE 三项测试；Vite + 桌面/手机发送、保存、滚动、刷新、失败保留输入 smoke；targeted lint |
+| BIBO-SAVE-03 | true | passed | 集成最新 master 后 Bibo 三份 tsc、29 项服务端测试、Vite 构建、独立动态端口 product smoke 通过；原 WAL/SSE、kernel 冷恢复及 targeted lint 证据有效。Composer 定向回归结果待追加 |
 | BIBO-SAVE-04 | true | not-run | 等待主线集成、冻结部署、生产连续对话与休眠恢复验证 |
 
 ## 发布/部署方式
 
 仅发布 Bibo 托管 Worker/Container，用户授权覆盖本服务提交、主线集成、推送及部署。从冻结远程 master 的干净 worktree 执行 `pnpm -C apps/bibo-hosted run deploy`；使用项目指定 Wrangler 4.138.0。线上旧 Worker 版本 `8ed59b77-81c4-4048-8728-55d5120202c6`，旧容器 application version 16、镜像 digest `b4d776c1bfc62db0fa06afe2ea39f81b77893046564a9d442dc8b11baec5bf27`，保留回退入口。无数据迁移，旧快照兼容；不涉及 NextClaw NPM/runtime/desktop。
+
+前期 worktree 以本地 master 起步；修复提交 `fc986ad22` 后合并远程 master `be98e4aca`，合并结果 `bdee4dd60` 保留最新 Bibo 领域模块、会话模型和生命周期改进。唯一冲突是 README 的快照说明，已保留双方有效说明。集成后重做匹配验证。预检使用主线更新后的专用 smoke，在生成提交后读取历史时遇到本机连接超时；这不作为根因复现证据。浏览器固定预览端口被其它任务占用，改用仓库外恢复材料生成动态端口副本复验成功；未修改或停止其它任务服务。并发验证期间旧 restore 测试曾出现 429，去除重复运行后完整 29 项测试通过。
 
 ## 用户/产品视角的验收步骤
 
