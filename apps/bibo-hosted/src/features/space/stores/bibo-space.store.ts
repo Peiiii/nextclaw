@@ -125,7 +125,7 @@ class BiboSpaceOwner {
   workspacePreview: boolean | null = null;
   setWorkspacePreview = (workspacePreview: boolean): void => this.set({ workspacePreview });
   openWorkspace = async (id: string, verified?: BiboFileDetail, preview?: boolean): Promise<void> => {
-    this.set((state) => ({ workspaceOpen: true, workspaceFileId: id, workspacePreview: preview ?? (state.workspaceFileId === id ? state.workspacePreview : null), error: "" }));
+    this.set((state) => ({ workspaceOpen: true, workspaceFileId: id, workspacePreview: preview ?? (!verified && state.workspaceFileId === id ? state.workspacePreview : null), error: "" }));
     this.saveLayout();
     await this.openFile(id, verified);
   };
