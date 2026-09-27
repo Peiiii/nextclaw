@@ -2,8 +2,9 @@ import { create, type StoreApi } from "zustand";
 import { BiboClient, BiboClientError, type BiboEvent, type BiboFile, type BiboFileDetail, type BiboInboxItem, type BiboOverview, type BiboProject, type BiboTask } from "@nextclaw/bibo-client";
 import { calendarMonthRange } from "@/features/space/utils/calendar.utils";
 import { readWorkspaceLayout, writeWorkspaceLayout } from "@/features/space/utils/workspace-layout.utils";
-import { readSpaceLists, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
+import { readCalendarRange, readSpaceLists, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
 import { navigateWorkspace } from "@/app/workspace-router";
+import { fileDeletionState } from "@/features/space/utils/file-deletion-state.utils";
 
 export type BiboView = "overview" | "chat" | "inbox" | "calendar" | "tasks" | "notes" | "files";
 type Page<T> = { items: T[]; nextCursor: string | null };
@@ -31,6 +32,7 @@ class BiboSpaceOwner {
   expandedFolders: Record<string, boolean> = {};
   fileBrowserVisible = true;
   workspaceOpen = false;
+  workspaceResolving = false;
   workspaceFileId: string | null = null;
   loading = false;
   readStatus: Partial<Record<BiboView, "loading" | "ready" | "error">> = {};
@@ -62,6 +64,7 @@ class BiboSpaceOwner {
   taskSelection: BiboTask | null = null;
   selectedEventId: string | null = null;
   selectedInboxId: string | null = null;
+  inboxSelection: BiboInboxItem | null = null;
   tabs: string[] = [];
   activeFileId: string | null = null;
   fileDetails: Record<string, BiboFileDetail> = {};
@@ -120,12 +123,12 @@ class BiboSpaceOwner {
     this.set({ expandedFolders, fileBrowserVisible: false, fileQuery: "", fileMatches: [], fileSearchLoading: false });
     this.saveLayout();
   };
-  closeWorkspace = (): void => { this.set({ workspaceOpen: false }); this.saveLayout(); };
+  closeWorkspace = (): void => { this.set({ workspaceOpen: false, workspaceResolving: false }); this.saveLayout(); };
   showWorkspace = (): void => { this.set({ workspaceOpen: true }); this.saveLayout(); void this.load("files"); };
-  openWorkspace = async (id: string): Promise<void> => {
+  openWorkspace = async (id: string, verified?: BiboFileDetail): Promise<void> => {
     this.set({ workspaceOpen: true, workspaceFileId: id, error: "" });
     this.saveLayout();
-    await this.openFile(id);
+    await this.openFile(id, verified);
   };
   selectTask = (id: string | null, verified?: BiboTask): void => {
     const known = verified ?? this.get().tasks.find((task) => task.id === id) ?? null;
@@ -154,7 +157,7 @@ class BiboSpaceOwner {
     if (undo && await this.act("task.update", undo, "tasks")) this.set({ taskUndo: null });
   };
   searchNotes = (noteQuery: string): void => { this.set({ noteQuery }); void this.load("notes"); };
-  setInboxScope = (inboxScope: BiboSpaceOwner["inboxScope"]): void => { this.set({ inboxScope, selectedInboxId: null }); void this.load("inbox"); };
+  setInboxScope = (inboxScope: BiboSpaceOwner["inboxScope"]): void => { this.set({ inboxScope, selectedInboxId: null, inboxSelection: null }); void this.load("inbox"); };
   selectEvent = (id: string | null, verified?: BiboEvent): void => {
     this.set({ selectedEventId: id });
     if (!id) return;
@@ -166,7 +169,13 @@ class BiboSpaceOwner {
       if (this.get().selectedEventId === id) this.setCalendarDate(new Date(event.startAt));
     }).catch((error) => this.set({ error: message(error) }));
   };
-  selectInbox = (id: string | null): void => this.set({ selectedInboxId: id });
+  selectInbox = (id: string | null): void => {
+    this.set({ selectedInboxId: id, inboxSelection: null });
+    if (!id || this.get().inbox.some((item) => item.id === id)) return;
+    void client.space<BiboInboxItem>("inbox.get", { id }).then((item) => {
+      if (this.get().selectedInboxId === id) this.set({ inboxSelection: item });
+    }).catch((error) => { if (this.get().selectedInboxId === id) this.set({ error: message(error) }); });
+  };
   clearNotice = (): void => this.set({ notice: "" });
   keepTaskDraft = (id: string, draft: TaskDraft): void => this.set((state) => ({ taskDrafts: { ...state.taskDrafts, [id]: draft } }));
   clearTaskDraft = (id: string): void => this.set((state) => { const drafts = { ...state.taskDrafts }; delete drafts[id]; return { taskDrafts: drafts }; });
@@ -225,13 +234,7 @@ class BiboSpaceOwner {
     const { from, to } = calendarMonthRange(date);
     this.set({ error: "" });
     const request = (async () => {
-      const events: BiboEvent[] = [];
-      let cursor: string | null = null;
-      do {
-        const page: Page<BiboEvent> = await client.space<Page<BiboEvent>>("event.list", { from, to, limit: 100, ...(cursor ? { cursor } : {}) });
-        events.push(...page.items);
-        cursor = page.nextCursor;
-      } while (cursor);
+      const events = await readCalendarRange(client, from, to);
       if (revision !== this.calendarRevision) return;
       this.set((state) => {
         const remaining = state.events.filter((event) => event.endAt < from || event.startAt > to);
@@ -267,6 +270,7 @@ class BiboSpaceOwner {
     if (requestKey && requestId) this.pendingCreates.set(requestKey, requestId);
     try {
       const result = await client.space<T>(action, { ...input, ...(requestId ? { requestId } : {}) });
+      if (["inbox.read", "inbox.resolve"].includes(action) && this.get().inboxSelection?.id === input.id) this.set({ inboxSelection: result as BiboInboxItem });
       if (requestKey) this.pendingCreates.delete(requestKey);
       if (action.startsWith("event.")) { this.loadedCalendarMonths.clear(); this.calendarRevision += 1; }
       const refreshed = await this.load(view);
@@ -383,12 +387,7 @@ class BiboSpaceOwner {
     if (!result) return false;
     const removed = new Set(result.deleted);
     for (const id of removed) this.closedFiles.add(id);
-    this.set((current) => {
-      const index = current.tabs.indexOf(current.activeFileId ?? "");
-      const tabs = current.tabs.filter((id) => !removed.has(id));
-      const activeFileId = current.activeFileId && !removed.has(current.activeFileId) ? current.activeFileId : current.tabs.slice(index + 1).find((id) => !removed.has(id)) ?? current.tabs.slice(0, index).reverse().find((id) => !removed.has(id)) ?? null;
-      return { tabs, activeFileId, fileDetails: Object.fromEntries(Object.entries(current.fileDetails).filter(([id]) => !removed.has(id))), fileDrafts: Object.fromEntries(Object.entries(current.fileDrafts).filter(([id]) => !removed.has(id))), expandedFolders: Object.fromEntries(Object.entries(current.expandedFolders).filter(([id]) => !removed.has(id))), fileBrowserVisible: tabs.length === 0 || current.fileBrowserVisible, ...(current.workspaceFileId && removed.has(current.workspaceFileId) ? { workspaceOpen: false, workspaceFileId: null } : {}) };
-    });
+    this.set((current) => fileDeletionState(current, removed));
     this.saveLayout();
     const active = this.get().activeFileId;
     if (active && !this.get().fileDetails[active]) await this.openFile(active);

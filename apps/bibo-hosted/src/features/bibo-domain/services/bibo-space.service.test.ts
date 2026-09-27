@@ -60,12 +60,14 @@ test("notes and file tree share one stable object through edit and move", async 
   await mkdir(join(home, "workspace"));
   const space = new BiboSpaceService(home);
   const folder = await space.execute("file.create", { path: "Projects", kind: "folder" }) as { id: string };
-  const note = await space.execute("file.create", { path: "Projects/Idea.md", kind: "note", content: "first" }) as { id: string; version: number };
+  const note = await space.execute("file.create", { path: "Projects/Idea.md", kind: "note", content: "first" }) as { id: string; version: number; uri: string };
+  assert.equal(note.uri, `nextclaw://objects/file/${note.id}`);
   const changed = await space.execute("file.update", { id: note.id, version: note.version, content: "second" }) as { version: number };
   await assert.rejects(space.execute("file.update", { id: note.id, version: note.version, content: "stale" }), (error: unknown) => error instanceof BiboSpaceError && error.status === 409);
   const moved = await space.execute("file.move", { id: folder.id, version: 1, path: "Archive" }) as { id: string };
   assert.equal(moved.id, folder.id);
-  const current = await space.execute("file.get", { id: note.id }) as { path: string; content: string; version: number };
+  const current = await space.execute("file.get", { id: note.id }) as { path: string; content: string; version: number; uri: string };
+  assert.equal(current.uri, note.uri, "resource identity survives parent rename and restart");
   assert.equal(current.path, "Archive/Idea.md");
   assert.equal(current.content, "second");
   assert.equal(current.version, changed.version + 1);

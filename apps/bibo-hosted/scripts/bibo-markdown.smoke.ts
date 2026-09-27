@@ -91,7 +91,7 @@ try {
       assert.equal(await reader.locator("blockquote").count(), 1);
       assert.equal(await reader.locator("table").count(), 1);
       assert.ok(await reader.locator(".katex").count() > 0);
-      assert.equal(await reader.locator("a").count(), 1, "unresolved local links must not navigate");
+      assert.equal(await reader.locator("a").count(), 2, "external and workspace references are links; unsafe schemes remain text");
       assert.equal(await reader.locator(".ui-markdown__image-fallback").count(), 1);
       await reader.getByRole("img", { name: "Mermaid 图表" }).waitFor({ timeout: 15000 });
       const geometry = await page.evaluate(() => {

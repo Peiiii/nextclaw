@@ -42,23 +42,24 @@ function MarkdownImage({ src, alt = "", title, imageAlt }: { src?: string; alt?:
   return <img src={safeSource} alt={alt} title={title} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />;
 }
 
-function componentsFor(labels: MarkdownLabels): Components {
-  return {
-  a: ({ href, children }) => href && /^(https?:\/\/|mailto:)/i.test(href)
+class MarkdownRenderer {
+  constructor(private readonly labels: MarkdownLabels) {}
+  readonly components: Components = {
+  a: ({ href, children }) => href
     ? <a href={href} target={/^https?:\/\//i.test(href) ? "_blank" : undefined} rel="noopener noreferrer">{children}</a>
     : <span>{children}</span>,
-  img: ({ src, alt, title }) => <MarkdownImage src={src} alt={alt} title={title} imageAlt={labels.imageAlt} />,
+  img: ({ src, alt, title }) => <MarkdownImage src={src} alt={alt} title={title} imageAlt={this.labels.imageAlt} />,
   table: ({ children }) => <div className="ui-message__table"><table>{children}</table></div>,
   pre: ({ children }) => {
     const code = Children.toArray(children).find((child) => isValidElement(child));
     if (!isValidElement<{ className?: string; children?: ReactNode }>(code)) return <pre>{children}</pre>;
     const language = /language-([^\s]+)/i.exec(code.props.className ?? "")?.[1];
-    return <MarkdownCodeBlock code={nodeText(code.props.children)} language={language} labels={labels} />;
+    return <MarkdownCodeBlock code={nodeText(code.props.children)} language={language} labels={this.labels} />;
   },
   };
 }
 
-export function Markdown({ text, labels = defaultLabels, density = "default" }: { text: string; labels?: MarkdownLabels; density?: "default" | "compact" }) {
-  const components = useMemo(() => componentsFor(labels), [labels]);
-  return <div className={`ui-markdown${density === "compact" ? " ui-markdown--compact" : ""}`}><ReactMarkdown remarkPlugins={markdownPlugins} rehypePlugins={rehypePlugins} skipHtml components={components}>{text}</ReactMarkdown></div>;
+export function Markdown({ text, labels = defaultLabels, density = "default", resolveResourceHref }: { text: string; labels?: MarkdownLabels; density?: "default" | "compact"; resolveResourceHref?: (uri: string) => string | null }) {
+  const renderer = useMemo(() => new MarkdownRenderer(labels), [labels]);
+  return <div className={`ui-markdown${density === "compact" ? " ui-markdown--compact" : ""}`}><ReactMarkdown remarkPlugins={markdownPlugins} rehypePlugins={rehypePlugins} skipHtml urlTransform={(uri) => /^(https?:\/\/|mailto:)/i.test(uri) ? uri : resolveResourceHref?.(uri) ?? ""} components={renderer.components}>{text}</ReactMarkdown></div>;
 }

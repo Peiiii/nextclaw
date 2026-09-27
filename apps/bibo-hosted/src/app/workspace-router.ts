@@ -6,10 +6,11 @@ const views: BiboView[] = ["overview", "chat", "inbox", "calendar", "tasks", "no
 const routes = [
   { index: true, handle: { view: "overview" as BiboView }, lazy: async () => ({ Component: (await import("@/features/chat")).SpacePage }) },
   ...views.filter((view) => view !== "overview").map((view) => ({
-    path: view === "chat" ? "chat/:sessionId?" : view,
+    path: view === "chat" ? "chat/:sessionId?" : ["files", "tasks", "calendar", "inbox"].includes(view) ? `${view}/:resourceId?` : view,
     handle: { view },
     lazy: async () => ({ Component: (await import("@/features/chat"))[view === "chat" ? "ChatPage" : "SpacePage"] }),
   })),
+  { path: "files/path/:filePath", handle: { view: "files" as BiboView }, lazy: async () => ({ Component: (await import("@/features/chat")).SpacePage }) },
   { path: "*", handle: { view: "overview" as BiboView, notFound: true }, lazy: async () => ({ Component: (await import("@/features/chat")).NotFoundPage }) },
 ];
 let router: ReturnType<typeof createBrowserRouter>;
@@ -26,7 +27,7 @@ export function initializeWorkspaceRouter() {
 
 export function readWorkspaceRoute(pathname = router.state.location.pathname) {
   const match = matchRoutes(routes.map((route) => ({ path: route.path ?? "", handle: route.handle })), pathname)?.at(-1);
-  return { view: match?.route.handle?.view ?? "overview", sessionId: match?.params.sessionId ?? null,
+  return { view: match?.route.handle?.view ?? "overview", sessionId: match?.params.sessionId ?? null, resourceId: match?.params.resourceId ?? null, filePath: match?.params.filePath ?? null,
     notFound: match?.route.handle && "notFound" in match.route.handle ? true : false };
 }
 

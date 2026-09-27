@@ -1,4 +1,4 @@
-import type { BiboClient, BiboFile, BiboInboxItem, BiboOverview, BiboProject, BiboTask } from "@nextclaw/bibo-client";
+import type { BiboClient, BiboEvent, BiboFile, BiboInboxItem, BiboOverview, BiboProject, BiboTask } from "@nextclaw/bibo-client";
 import type { BiboView } from "@/features/space/stores/bibo-space.store";
 
 type Page<T> = { items: T[]; nextCursor: string | null };
@@ -7,6 +7,17 @@ type Lists = {
   inbox?: BiboInboxItem[]; files?: BiboFile[]; notes?: BiboFile[];
   cursors: Record<string, string | null>;
 };
+
+export async function readCalendarRange(client: BiboClient, from: string, to: string): Promise<BiboEvent[]> {
+  const events: BiboEvent[] = [];
+  let cursor: string | null = null;
+  do {
+    const page: Page<BiboEvent> = await client.space("event.list", { from, to, limit: 100, ...(cursor ? { cursor } : {}) });
+    events.push(...page.items);
+    cursor = page.nextCursor;
+  } while (cursor);
+  return events;
+}
 
 export function taskListFilter({ taskQuery, taskProject, taskScope, taskAnchor }: {
   taskQuery: string; taskProject: string; taskScope: "all" | "today" | "upcoming" | "done"; taskAnchor: Date;

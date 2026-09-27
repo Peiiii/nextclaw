@@ -1,5 +1,6 @@
 import { lstat, mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
+import { createSystemObjectReferenceUri } from "@nextclaw/shared";
 import type {
   BiboEvent, BiboFile, BiboFileDetail, BiboInboxItem, BiboOverview,
   BiboProject, BiboTask,
@@ -155,6 +156,7 @@ export class BiboSpaceService {
 
   private fileDetail = async (file: BiboFile): Promise<BiboFileDetail> => ({
     ...file,
+    uri: createSystemObjectReferenceUri("file", file.id),
     content: file.kind === "folder" ? null : await readFile(await this.physical(file.path, false), "utf8"),
   });
 
