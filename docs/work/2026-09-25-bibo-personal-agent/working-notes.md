@@ -381,4 +381,7 @@
 - 共享 Notice 改为可换行卡片+独立关闭按钮，成功信息不是整段关闭操作；现有4秒生命周期和错误持续可见不变。沿原反馈容器呈现，不新增 Toast 队列或业务状态。
 - 用户继续指出读取提示条与右下角Toast：移除全局读取/保存提示，初次加载使用目标区域共享小图标，保留各操作按钮的pending反馈、错误与重试。日程、主模块、文件编辑及空列表复用LoadingState。全局Toast视口底部居中，桌面24px、手机80px+safe-area，滚动不移位；对话内文件保存仅保留编辑器已保存状态，不在输入区重复弹Toast。回归故意挂起task.list，检查加载有读屏状态且没有提示条/大标题，再释放请求完成列表；Toast计算几何居中且避开导航。
 - 验证：最终完整 product 脚本1440/1280/390/320通过，包含日程最终计算样式 title18/label14/input16/action14、Toast14及独立关闭。七模块1440/320实际遍历计算样式，导航/列表/文件树/按钮14，输入/会话正文16；两尺寸保存 Toast 截图无溢出。Markdown完整覆盖通过。共享包、应用三套tsc与定向ESLint通过；diff-only maintainability 0 errors/1既有smoke预算warning。主观Review核对输入字号覆盖已删除、root rem不缩小、关闭按钮语义及数据owner未变，implementation-review: passed。
-- 待主干集成、冻结部署和正式页面只读验收。没有宣称原生iOS键盘或整份大型交付已完成。上批 docs run36250040645国内失败、全球成功；本批文档由新提交触发原流水线，不能将国内失败当成功。
+- 实现 `5902525c6bcf68cc4ddac421df8c8e2817ed9b8e` 已推送远程master；同SHA干净worktree过滤离线安装、构建并部署 Worker `d79a9689-7b8c-4a7a-bfa1-35bfb021af72`，入口 `/assets/index-jfbWhhhj.js`、预加载 `/assets/chunk-DECur_0Z.js` 与构建字节SHA256相同，七个路径200。CLI4.138.0验证并使用 `--containers-rollout=none`，本批没有更改后端与镜像。正式隔离账号真实登录，1440/390/320打开日程弹窗实测18/14/16/14px、读取提示条不存在；没有写入用户任务/日程或调用模型。原生iOS键盘与原大型合同未宣称通过。
+- 本地5297仍是引入Tailwind前启动的旧依赖进程，主题请求报 `[postcss] ENOENT ... tailwindcss`；检查原PID/cwd后仅重启该Vite进程。现在本地实际页面无pageerror，弹窗18/16/14px与上线一致。这是依赖插件切换时开发服务器需要重启的已验证事实，记在本批恢复记录，不另造全局规则。
+- 正式静态前端另以受控API验证1440/320保存Toast最终几何居中、14px、独立关闭和无横向溢出，截图目视通过；该项没有后端写入，不冒充真实持久化验证。共享/应用tsc、定向ESLint、治理及ratchet通过；加载与位置修订后完整四尺寸product重新通过，Review 0 error/1既有449行主smoke预算warning，无未关闭finding。
+- 主线reconcile返回LOCAL_WORKTREE_RETRYING，复用18523保护源区thought WIP；不声称本地master快进。用户说明run36289384638 build与全球部署成功、国内部署仍in_progress，上批36250040645国内失败，不能把国内失败或本批pending写成成功。AUTOMATION_INTERVENTIONS: 0。
