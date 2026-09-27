@@ -4,6 +4,8 @@ Independent Cloudflare Worker and Container service at `https://app.bibo.bot/`. 
 
 The React app consumes the hosted API through the private `@nextclaw/bibo-client` package. That package owns same-origin HTTP and incremental SSE decoding; the Zustand store owns pending and saved conversation state. See the package README for its contract and tests.
 
+Chat replies, inbox bodies and file previews use personal-agent-ui's Markdown host backed by NextClaw's shared parser and preview components. This includes explicit nested list markers, task checkboxes, all four math delimiters, scoped footnotes, Mermaid expansion and zoom, syntax highlighting, and image previews. The host retains its copy controls and HTTPS-only image policy. Run `pnpm -C apps/bibo-hosted smoke:markdown` to verify desktop and narrow-screen reading, clipboard feedback, streamed message identity, and refresh.
+
 ## Local frontend development
 
 From the repository root, run `pnpm dev:bibo:ui` and open `http://127.0.0.1:5188/`. This starts the real React/TypeScript app with Vite hot updates, including source changes in `@nextclaw/personal-agent-ui`. A development-only local API supplies a signed-in preview account, a Markdown conversation, and delayed SSE chunks. Send a message to inspect incomplete Markdown while it arrives, the saving state, and the committed result. Reset clears the in-memory conversation; restarting Vite restores the example. This mode makes no Cloudflare or model requests and needs no credentials.

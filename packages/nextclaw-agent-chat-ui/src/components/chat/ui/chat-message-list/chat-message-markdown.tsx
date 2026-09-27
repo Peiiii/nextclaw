@@ -2,6 +2,8 @@ import { useChatResourceLinkIcon } from './chat-resource-link-provider';
 import {
   createContext,
   useContext,
+  useId,
+  useMemo,
   type MouseEvent,
   type ReactNode,
   type CSSProperties,
@@ -16,7 +18,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
-import { chatMarkdownHtmlSchema } from "./utils/chat-markdown-html.utils";
+import { chatMarkdownHtmlSchema, createRehypeChatMarkdownIds } from "./utils/chat-markdown-html.utils";
 import { ChatMarkdownDetails } from "./markdown/chat-markdown-details";
 import "katex/dist/katex.min.css";
 import { createRemarkLatexDelimitersPlugin } from "./utils/chat-latex-delimiters.utils";
@@ -82,6 +84,9 @@ type ChatMessageMarkdownProps = {
     | "previewZoomInLabel"
     | "previewZoomOutLabel"
     | "previewResetZoomLabel"
+    | "footnoteLabel"
+    | "footnoteBackLabel"
+    | "imageAltLabel"
   >;
   inline?: boolean;
   isStreaming?: boolean;
@@ -94,6 +99,9 @@ type ChatMessageMarkdownProps = {
   renderInlineDisplay?: (
     display: ChatInlineDisplayViewModel,
   ) => ReactNode | undefined;
+  renderCodeBlock?: (code: { source: string; language: string; isStreaming: boolean }) => ReactNode;
+  allowHtml?: boolean;
+  urlTransform?: Options["urlTransform"];
 };
 
 function isSingleLineImageParagraph(
@@ -131,6 +139,7 @@ type ChatMessageMarkdownRuntime = Omit<
 
 const ChatMessageMarkdownRuntimeContext =
   createContext<ChatMessageMarkdownRuntime | null>(null);
+const ChatMarkdownCodeBlockContext = createContext(false);
 
 function useChatMessageMarkdownRuntime(): ChatMessageMarkdownRuntime {
   const runtime = useContext(ChatMessageMarkdownRuntimeContext);
@@ -143,6 +152,13 @@ function useChatMessageMarkdownRuntime(): ChatMessageMarkdownRuntime {
 }
 
 const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
+  // Block components already own their pre/figure containers.
+  pre: function ChatMarkdownCodeContainer({ node, children, ...rest }) {
+    const child = node?.children.length === 1 ? node.children[0] : null;
+    return child?.type === "element" && child.tagName === "code"
+      ? <ChatMarkdownCodeBlockContext.Provider value>{children}</ChatMarkdownCodeBlockContext.Provider>
+      : <pre {...rest}>{children}</pre>;
+  },
   details: function ChatMarkdownDisclosure({ node, children, open }) {
     const { texts } = useChatMessageMarkdownRuntime();
     return <ChatMarkdownDetails node={node} open={open} label={texts.detailsLabel ?? "Details"}>{children}</ChatMarkdownDetails>;
@@ -151,8 +167,10 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
   div: function ChatMarkdownBlock({ node: _node, children, ...rest }) {
     const { texts } = useChatMessageMarkdownRuntime();
     const source = (rest as Record<string, unknown>)["data-frontmatter"];
+    const pendingMath = (rest as Record<string, unknown>)["data-chat-math-pending"];
     return typeof source === "string"
       ? <ChatMarkdownFrontmatter source={source} label={texts.frontmatterLabel ?? "Document properties"} />
+      : pendingMath ? <div {...rest} style={{ minHeight: "3em", display: "flex", alignItems: "center", justifyContent: "center", opacity: .6 }}>{children}</div>
       : <div {...rest}>{children}</div>;
   },
   p: function ChatMarkdownParagraph({ node, children }) {
@@ -295,11 +313,11 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
     );
   },
 
-  img: function ChatMarkdownImage({ node: _node, src, alt }) {
+  img: function ChatMarkdownImage({ node: _node, src, alt, title }) {
     const { resolveFileContentUrl, texts } = useChatMessageMarkdownRuntime();
     const safeSrc = resolveSafeChatResourceHref(src);
     if (!safeSrc) {
-      return null;
+      return <span className="chat-image-fallback">{alt || texts.imageAltLabel || ""}</span>;
     }
     const localFileAction = parseChatLocalFileAction(safeSrc);
     const resolvedSrc =
@@ -317,6 +335,8 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
         resetZoomLabel={texts.previewResetZoomLabel}
         sizeLabel={null}
         src={resolvedSrc}
+        title={title}
+        fallbackLabel={texts.imageAltLabel}
         zoomInLabel={texts.previewZoomInLabel}
         zoomOutLabel={texts.previewZoomOutLabel}
       />
@@ -329,10 +349,10 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
     children,
     ...rest
   }) {
-    const { isStreaming, renderInlineDisplay, texts } =
+    const { isStreaming, renderInlineDisplay, renderCodeBlock, texts } =
       useChatMessageMarkdownRuntime();
     const plainText = String(children ?? "");
-    const isInlineCode = !className && !plainText.includes("\n");
+    const isInlineCode = !useContext(ChatMarkdownCodeBlockContext);
     if (isInlineCode) {
       return (
         <code {...rest} className={cn("chat-inline-code", className)}>
@@ -350,6 +370,9 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
           renderInlineDisplay={renderInlineDisplay}
         />
       );
+    }
+    if (renderCodeBlock) {
+      return renderCodeBlock({ source: plainText, language: /language-([^\s]+)/.exec(className ?? "")?.[1] ?? "text", isStreaming });
     }
     if (className?.split(" ").includes("language-mermaid")) {
       return (
@@ -379,8 +402,13 @@ export function ChatMessageMarkdown({
   onInlineTokenClick,
   resolveFileContentUrl,
   renderInlineDisplay,
+  renderCodeBlock,
+  allowHtml = true,
+  urlTransform = transformChatResourceHref,
 }: ChatMessageMarkdownProps) {
   const isUser = role === "user";
+  const messageId = useId();
+  const scopeIds = useMemo(() => createRehypeChatMarkdownIds(`chat-${messageId.replace(/[^a-zA-Z0-9_-]/g, "")}-`), [messageId]);
   const markdown = trimMarkdown(text);
   const remarkPlugins: NonNullable<Options["remarkPlugins"]> = inlineTokens?.length
     ? [remarkGfm, remarkMath, createRemarkLatexDelimitersPlugin(markdown), createRemarkInlineTokenPlugin(inlineTokens)]
@@ -398,6 +426,7 @@ export function ChatMessageMarkdown({
         onFileOpen,
         onInlineTokenClick,
         renderInlineDisplay,
+        renderCodeBlock,
         resolveFileContentUrl,
         texts,
       }}
@@ -410,15 +439,17 @@ export function ChatMessageMarkdown({
         )}
       >
         <ReactMarkdown
-          skipHtml={inline}
+          skipHtml={inline || !allowHtml}
+          remarkRehypeOptions={{ footnoteLabel: texts.footnoteLabel ?? "Footnotes", footnoteBackLabel: texts.footnoteBackLabel ?? "Back to reference" }}
           remarkPlugins={remarkPlugins}
           rehypePlugins={[
-            ...(!inline ? [rehypeRaw, [rehypeSanitize, chatMarkdownHtmlSchema]] as NonNullable<Options["rehypePlugins"]> : []),
+            ...(!inline && allowHtml ? [rehypeRaw, [rehypeSanitize, chatMarkdownHtmlSchema]] as NonNullable<Options["rehypePlugins"]> : []),
+            scopeIds,
             [rehypeKatex, { trust: false, maxExpand: 1000, ...(isStreaming ? { errorColor: "currentColor" } : {}) }],
             ...(isStreaming ? [rehypeStreamingMath] : []),
           ]}
           components={CHAT_MESSAGE_MARKDOWN_COMPONENTS}
-          urlTransform={transformChatResourceHref}
+          urlTransform={urlTransform}
         >
           {markdown}
         </ReactMarkdown>

@@ -3,3 +3,4 @@ export { ACTION_FEEDBACK, ACTION_MENU_ITEM_CLASS, ACTION_MENU_SURFACE_CLASS } fr
 export { ChatCollapsibleContent } from './components/chat/ui/chat-message-list/chat-collapsible-content';
 
 export { ChatResourceLinkProvider } from './components/chat/ui/chat-message-list/chat-resource-link-provider';
+export { ChatMermaidDiagram } from './components/chat/ui/chat-message-list/mermaid/chat-mermaid-diagram';

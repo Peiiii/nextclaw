@@ -15,17 +15,12 @@
     "react-dom": "^18.3.1"
   },
   "dependencies": {
+    "@nextclaw/agent-chat-ui": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-tooltip": "^1.2.8",
     "highlight.js": "^11.11.1",
-    "katex": "^0.16.40",
-    "mermaid": "^11.16.0",
-    "lucide-react": "^0.462.0",
-    "react-markdown": "^10.1.0",
-    "rehype-katex": "^7.0.1",
-    "remark-gfm": "^4.0.1",
-    "remark-math": "^6.0.0"
+    "lucide-react": "^0.462.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.28",

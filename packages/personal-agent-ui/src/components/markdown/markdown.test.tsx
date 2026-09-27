@@ -26,7 +26,7 @@ describe("shared Markdown renderer", () => {
     expect(html).not.toContain("javascript:");
     expect(html).not.toContain("data:image");
     expect(html).not.toContain("<script>");
-    expect(html).toContain("noopener noreferrer");
+    expect(html).toContain("noreferrer noopener");
     expect(html).toContain("unsafe");
   });
 

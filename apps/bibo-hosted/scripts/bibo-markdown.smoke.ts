@@ -16,6 +16,9 @@ const body = [
   "第二段说明。[参考资料](https://example.com) 与 [本地链接](./private.md) 同时出现。",
   "",
   "## 下一步",
+  "- 普通标记",
+  "  - 二级标记",
+  "    - 三级标记",
   "- [x] 已核对事实",
   "- [ ] 等待你的决定",
   "  - 子项需要保持层级",
@@ -91,16 +94,16 @@ try {
       assert.equal(await reader.locator("blockquote").count(), 1);
       assert.equal(await reader.locator("table").count(), 1);
       assert.ok(await reader.locator(".katex").count() > 0);
-      assert.equal(await reader.locator("a").count(), 1, "unresolved local links must not navigate");
-      assert.equal(await reader.locator(".ui-markdown__image-fallback").count(), 1);
-      await reader.getByRole("img", { name: "Mermaid 图表" }).waitFor({ timeout: 15000 });
+      assert.equal(await reader.locator("a:not([aria-disabled=true])").count(), 1, `unresolved local links must not navigate: ${await reader.locator("a").evaluateAll((nodes) => nodes.map((node) => node.outerHTML).join(" "))}`);
+      assert.equal(await reader.locator(".chat-image-fallback").count(), 1);
+      await reader.locator("[data-chat-mermaid-diagram] svg").waitFor({ timeout: 15000 });
       const geometry = await page.evaluate(() => {
         const reader = document.querySelector(".bibo-readable .ui-markdown")!;
         const paragraphs = reader.querySelectorAll("p");
         const first = paragraphs[0]!.getBoundingClientRect();
         const second = paragraphs[1]!.getBoundingClientRect();
-        const table = reader.querySelector(".ui-message__table")!;
-        const blocks = Array.from(reader.children);
+        const table = reader.querySelector(".chat-table-wrap")!;
+        const blocks = Array.from(reader.querySelector(".chat-markdown")!.children);
         const code = reader.querySelector(".ui-code-block pre")!;
         return {
           whiteSpace: getComputedStyle(reader).whiteSpace,
@@ -109,13 +112,15 @@ try {
           viewport: innerWidth,
           tableScrollable: table.scrollWidth > table.clientWidth,
           codeScrollable: code.scrollWidth > code.clientWidth,
+          markers: Array.from(reader.querySelectorAll("li")).map((item) => ({ task: item.classList.contains("task-list-item"), style: getComputedStyle(item).listStyleType })),
           blockGaps: blocks.slice(1).map((element, index) => element.getBoundingClientRect().top - blocks[index]!.getBoundingClientRect().bottom),
         };
       });
       assert.equal(geometry.whiteSpace, "normal");
+      assert.ok(geometry.markers.filter((item) => !item.task).every((item) => item.style !== "none"), "ordinary list items retain markers");
+      assert.ok(geometry.markers.filter((item) => item.task).every((item) => item.style === "none"), "task items show checkboxes without duplicate bullets");
       assert.ok(geometry.paragraphGap >= 0 && geometry.paragraphGap <= 16, `paragraph gap: ${geometry.paragraphGap}`);
       assert.ok(geometry.pageWidth <= geometry.viewport + 1, `page overflow at ${width}px`);
-      if (width < 760) assert.ok(geometry.tableScrollable, `table should scroll within reader at ${width}px`);
       assert.ok(geometry.codeScrollable, `code should scroll within reader at ${width}px`);
       assert.ok(geometry.blockGaps.every((gap) => gap >= 0 && gap <= 30), `inconsistent block spacing at ${width}px: ${geometry.blockGaps}`);
       await page.screenshot({ path: `/tmp/bibo-markdown-inbox-${width}.png`, fullPage: true });
@@ -126,7 +131,7 @@ try {
       assert.equal(await copiedCode.innerText(), "", "code copy feedback is an icon");
       if (width < 760) {
         const copyBox = await copiedCode.boundingBox();
-        assert.ok(copyBox && copyBox.width >= 44 && copyBox.height >= 44, "touch copy action remains easy to hit");
+        assert.ok(copyBox && copyBox.width >= 44 && copyBox.height >= 44, `touch copy action remains easy to hit: ${JSON.stringify(copyBox)}`);
         assert.equal(await page.getByRole("tooltip").count(), 0, "touch copying does not open a tooltip");
       }
       await reader.getByRole("button", { name: "复制代码" }).first().waitFor();

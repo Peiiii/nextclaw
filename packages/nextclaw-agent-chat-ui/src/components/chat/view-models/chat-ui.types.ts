@@ -599,6 +599,9 @@ export type ChatMessageTexts = {
   previewZoomInLabel?: string;
   previewZoomOutLabel?: string;
   previewResetZoomLabel?: string;
+  footnoteLabel?: string;
+  footnoteBackLabel?: string;
+  imageAltLabel?: string;
   attachmentOpenLabel?: string;
   attachmentAttachedLabel?: string;
   attachmentExpandLabel?: string;

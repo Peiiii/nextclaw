@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentProps } from "react";
 import hljs from "highlight.js/lib/core";
 import bash from "highlight.js/lib/languages/bash";
 import css from "highlight.js/lib/languages/css";
@@ -13,7 +13,7 @@ import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
 import { Button } from "../button";
 import { CopyButton } from "../copy-button";
-import { MarkdownMermaidDiagram } from "./mermaid-diagram";
+import { ChatMermaidDiagram } from "@nextclaw/agent-chat-ui";
 import type { MarkdownLabels } from "./markdown";
 
 const languages = {
@@ -36,7 +36,7 @@ for (const [name, { grammar, aliases }] of Object.entries(languages)) {
   if (aliases.length) highlighter.registerAliases(aliases, { languageName: name });
 }
 
-export function MarkdownCodeBlock({ code, language = "text", labels }: { code: string; language?: string; labels: MarkdownLabels }) {
+export function MarkdownCodeBlock({ code, language = "text", labels, texts, isStreaming }: { code: string; language?: string; labels: MarkdownLabels; texts: ComponentProps<typeof ChatMermaidDiagram>["texts"]; isStreaming: boolean }) {
   const [showSource, setShowSource] = useState(false);
   const normalizedLanguage = language.trim().toLowerCase().slice(0, 32) || "text";
   const diagram = normalizedLanguage === "mermaid";
@@ -58,7 +58,7 @@ export function MarkdownCodeBlock({ code, language = "text", labels }: { code: s
       </div>
     </div>
     {diagram && !showSource
-      ? <MarkdownMermaidDiagram source={code} labels={labels} />
+      ? <div className="ui-mermaid"><ChatMermaidDiagram source={code} texts={texts} isStreaming={isStreaming} showToolbar={false} /></div>
       : <pre><code className={highlighted ? "hljs" : undefined} {...(highlighted ? { dangerouslySetInnerHTML: { __html: highlighted } } : { children: code })} /></pre>}
   </div>;
 }

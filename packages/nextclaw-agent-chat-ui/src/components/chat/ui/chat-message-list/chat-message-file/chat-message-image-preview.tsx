@@ -14,6 +14,8 @@ export function ChatMessageImagePreview({
   src,
   zoomInLabel,
   zoomOutLabel,
+  title,
+  fallbackLabel,
 }: {
   alt: string;
   expandLabel: string;
@@ -23,9 +25,13 @@ export function ChatMessageImagePreview({
   src: string;
   zoomInLabel?: string;
   zoomOutLabel?: string;
+  title?: string;
+  fallbackLabel?: string;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [failedSource, setFailedSource] = useState<string | null>(null);
   const openLightbox = () => setIsExpanded(true);
+  if (failedSource === src) return <span className="chat-image-fallback">{alt || fallbackLabel || ""}</span>;
 
   return (
     <>
@@ -46,6 +52,10 @@ export function ChatMessageImagePreview({
           <img
             src={src}
             alt={alt}
+            title={title}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={() => setFailedSource(src)}
             className="block h-auto w-auto max-h-[26rem] max-w-full rounded-lg bg-transparent object-contain"
           />
         </button>
