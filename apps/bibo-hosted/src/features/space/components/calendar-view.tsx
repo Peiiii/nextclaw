@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { BiboEvent } from "@nextclaw/bibo-client";
-import { Button, Dialog, EmptyState, IconButton, ListRow, LoadingState, SegmentedControl } from "@nextclaw/personal-agent-ui";
+import { Button, Dialog, EmptyState, IconButton, ListRow, LoadingState, SegmentedControl, Tooltip } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import {
   calendarEventLayout,
@@ -57,22 +57,19 @@ function CalendarTimeGrid({
         {dates.map((date) => (
           <div className="calendar-time-day" key={date.toISOString()}>
             {Array.from({ length: 48 }, (_, index) => (
-              <button
+              <Tooltip key={index} label={`${day(date.toISOString())} ${Math.floor(index / 2)}:${index % 2 ? "30" : "00"} 新建日程`}><button
                 className="calendar-time-slot"
-                key={index}
                 aria-label={`${day(date.toISOString())} ${Math.floor(index / 2)}:${index % 2 ? "30" : "00"} 新建日程`}
                 onClick={() => {
                   const slot = new Date(date);
                   slot.setHours(Math.floor(index / 2), index % 2 ? 30 : 0, 0, 0);
                   onCreate(slot);
                 }}
-              />
+              /></Tooltip>
             ))}
             {calendarEventLayout(events, date).map(({ event, start, end, lane, lanes }) => (
-              <button
+              <button key={event.id}
                 className="calendar-time-event"
-                key={event.id}
-                title={`${time(event.startAt)}–${time(event.endAt)} ${event.title}`}
                 style={{
                   top: `calc(${start} * var(--calendar-minute-height))`,
                   height: `max(22px, calc(${end - start} * var(--calendar-minute-height) - 2px))`,
@@ -129,9 +126,7 @@ function CalendarMonthGrid({ onSelect, onCreate }: { onSelect: () => void; onCre
               </button>
               <div className="calendar-date-events">
                 {items.slice(0, 3).map((event) => (
-                  <button
-                    key={event.id}
-                    title={`${time(event.startAt)} ${event.title}`}
+                  <button key={event.id}
                     onClick={() => {
                       selectEvent(event.id);
                       onSelect();
@@ -142,7 +137,7 @@ function CalendarMonthGrid({ onSelect, onCreate }: { onSelect: () => void; onCre
                   </button>
                 ))}
                 {items.length > 3 && (
-                  <button
+                  <Tooltip label="查看当天全部安排"><button
                     className="calendar-overflow"
                     onClick={() => {
                       setAnchor(date);
@@ -151,7 +146,7 @@ function CalendarMonthGrid({ onSelect, onCreate }: { onSelect: () => void; onCre
                     }}
                   >
                     还有 {items.length - 3} 项
-                  </button>
+                  </button></Tooltip>
                 )}
               </div>
             </div>
@@ -219,8 +214,7 @@ function CalendarAgenda({ onSelect, onCreate }: { onSelect: () => void; onCreate
         <div className="bibo-upcoming">
           <span className="bibo-kicker">接下来</span>
           {upcoming.map((event) => (
-            <button
-              key={event.id}
+            <ListRow variant="card" key={event.id}
               onClick={() => {
                 setAnchor(new Date(event.startAt));
                 selectEvent(event.id);
@@ -229,7 +223,7 @@ function CalendarAgenda({ onSelect, onCreate }: { onSelect: () => void; onCreate
             >
               <span>{datetime(event.startAt)}</span>
               <strong>{event.title}</strong>
-            </button>
+            </ListRow>
           ))}
         </div>
       )}

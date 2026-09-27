@@ -11,6 +11,7 @@ import {
   Field,
   IconButton,
   Input,
+  NavigationItem,
 } from "@nextclaw/personal-agent-ui";
 import { useBiboChatStore } from "@/features/chat/stores/bibo-chat.store";
 
@@ -138,12 +139,11 @@ export function SessionNavigation({
       </div>
       {store.sessions.map((session) => (
         <div key={session.id} className="bibo-session-wrap">
-          <Link
+          <NavigationItem label={session.title} selected={active && store.activeSessionId === session.id} tooltip={!mobile} truncatedLabel><Link
             to={workspaceHref("chat", session.id)}
             className={`bibo-session-item${
               active && store.activeSessionId === session.id ? " is-active" : ""
             }`}
-            title={session.title}
             aria-disabled={store.phase !== "idle"}
             onClick={(event) => {
               if (store.phase !== "idle") { event.preventDefault(); return; }
@@ -151,7 +151,7 @@ export function SessionNavigation({
             }}
           >
             {session.title}
-          </Link>
+          </Link></NavigationItem>
           <SessionActions session={session} />
         </div>
       ))}

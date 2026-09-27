@@ -1,16 +1,14 @@
 import { create, type StoreApi } from "zustand";
 import { BiboClient, BiboClientError, type BiboEvent, type BiboFile, type BiboFileDetail, type BiboInboxItem, type BiboOverview, type BiboProject, type BiboTask } from "@nextclaw/bibo-client";
 import { calendarMonthRange } from "@/features/space/utils/calendar.utils";
-import { readWorkspaceLayout, revealedFileLayout, writeWorkspaceLayout } from "@/features/space/utils/workspace-layout.utils";
+import { readBiboTheme, readWorkspaceLayout, revealedFileLayout, writeBiboTheme, writeWorkspaceLayout, type BiboTheme } from "@/features/space/utils/workspace-layout.utils";
 import { readCalendarEvents, readNextSpacePage, readSpaceLists, savedTaskView, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
 import { navigateWorkspace } from "@/app/workspace-router";
 import { fileDeletionState } from "@/features/space/utils/file-deletion-state.utils";
+import type { Page, FileDraft, TaskDraft, EventDraft } from "@/features/space/types/bibo-space.types";
+export type { TaskDraft, EventDraft } from "@/features/space/types/bibo-space.types";
 
 export type BiboView = "overview" | "chat" | "inbox" | "calendar" | "tasks" | "notes" | "files";
-type Page<T> = { items: T[]; nextCursor: string | null };
-type FileDraft = { content: string; version: number; dirty: boolean; saving: boolean; conflict?: boolean };
-export type TaskDraft = Pick<BiboTask, "title" | "description" | "status" | "priority" | "subtasks"> & { projectId: string; startAt: string; dueAt: string; version: number | null };
-export type EventDraft = { title: string; description: string; startAt: string; endAt: string; version: number | null };
 const client = new BiboClient();
 const message = (error: unknown) => error instanceof Error ? error.message : "操作暂时失败，请稍后再试。";
 
@@ -26,6 +24,7 @@ class BiboSpaceOwner {
   private fileOpenRequest = 0;
   private readonly closedFiles = new Set<string>();
   view: BiboView = "overview";
+  theme = readBiboTheme();
   sidebarCollapsed = false;
   treeCollapsed = false;
   treeWidth = 230;
@@ -98,6 +97,7 @@ class BiboSpaceOwner {
   navigate = navigateWorkspace;
 
   toggleSidebar = (): void => { this.set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })); this.saveLayout(); };
+  setTheme = (theme: BiboTheme): void => { this.set({ theme }); writeBiboTheme(theme); };
   toggleTree = (): void => { this.set((state) => ({ treeCollapsed: !state.treeCollapsed })); this.saveLayout(); };
   resizeTree = (width: number): void => { this.set({ treeWidth: Math.min(360, Math.max(180, width)) }); this.saveLayout(); };
   toggleFolder = (id: string): void => { this.set((state) => ({ expandedFolders: { ...state.expandedFolders, [id]: !state.expandedFolders[id] } })); this.saveLayout(); };

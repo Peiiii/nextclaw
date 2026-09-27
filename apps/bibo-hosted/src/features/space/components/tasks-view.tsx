@@ -351,7 +351,7 @@ function TaskRow({
   ].filter(Boolean).join(" · ");
   return (
     <ListRow className={`bibo-task-row${task.status === "done" ? " is-complete" : ""}`} selected={selected} onClick={onSelect} leadingAction={
-      <IconButton className="task-complete" tooltip={false} disabled={saving || task.status === "cancelled"}
+      <IconButton className="task-complete" disabled={saving || task.status === "cancelled"}
         label={`${task.status === "done" ? "重新打开" : "完成"} ${task.title}`}
         icon={<span aria-hidden="true">
         {task.status === "done"

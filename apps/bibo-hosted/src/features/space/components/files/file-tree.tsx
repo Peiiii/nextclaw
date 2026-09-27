@@ -1,6 +1,6 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { BiboFile } from "@nextclaw/bibo-client";
-import { Button, IconButton, Input, ListRow, LoadingState } from "@nextclaw/personal-agent-ui";
+import { Button, IconButton, Input, ListRow, LoadingState, Tooltip } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { FileActions } from "./file-actions";
 import { FileKindIcon } from "./file-kind-icon";
@@ -76,11 +76,11 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
     else if (event.key === "End") target = nodes.at(-1);
     else if (event.key === "ArrowRight" && file.kind === "folder") {
       if (!expanded[file.id]) toggleFolder(file.id);
-      else if (parentPath(nodes[index + 1]?.title ?? "") === file.path) target = nodes[index + 1];
+      else if (parentPath(nodes[index + 1]?.dataset.filePath ?? "") === file.path) target = nodes[index + 1];
     } else if (event.key === "ArrowLeft") {
       if (file.kind === "folder" && expanded[file.id]) toggleFolder(file.id);
       else if (parentPath(file.path)) {
-        target = nodes.find((node) => node.title === parentPath(file.path));
+        target = nodes.find((node) => node.dataset.filePath === parentPath(file.path));
       }
     } else return;
     event.preventDefault();
@@ -95,7 +95,7 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
             style={{ paddingLeft: 12 + level * 17 }}
             onFocusCapture={() => setTreeFocus(file.id)}
           >
-            <button
+            <Tooltip label={file.path} side="right" onlyWhenTruncated={!file.path.includes("/")}><button
               className="bibo-tree-main"
               role="treeitem"
               aria-label={file.path.split("/").at(-1)}
@@ -106,7 +106,7 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
               aria-expanded={file.kind === "folder" ? !!expanded[file.id] : undefined}
               aria-owns={file.kind === "folder" && expanded[file.id] ? `${treeId}-${file.id}` : undefined}
               tabIndex={tabStop === file.id ? 0 : -1}
-              title={file.path}
+              data-file-path={file.path}
               onKeyDown={(event) => treeKeys(event, file)}
               onClick={() => (file.kind === "folder" ? toggleFolder(file.id) : void openFile(file.id))}
             >
@@ -115,7 +115,7 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
               </span>
               <FileKindIcon file={file} expanded={!!expanded[file.id]} />
               <span className="bibo-tree-name">{file.path.split("/").at(-1)}</span>
-            </button>
+            </button></Tooltip>
             {file.kind === "folder" && <>
               <IconButton label={`在 ${file.path} 下创建`} icon={<Plus />} tabIndex={tabStop === file.id ? 0 : -1} onClick={() => onCreate(file.path)} />
               <FileActions file={file} tabIndex={tabStop === file.id ? 0 : -1} />

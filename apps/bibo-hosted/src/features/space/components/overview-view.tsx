@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Button, EmptyState } from "@nextclaw/personal-agent-ui";
+import { EmptyState, ListRow } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { day, datetime } from "@/features/space/utils/date-format.utils";
 function PageTitle({
@@ -61,7 +61,7 @@ export function Overview() {
               <h2>值得你留意</h2>
               {overview.inbox.length ? (
                 overview.inbox.map((item) => (
-                  <Button
+                  <ListRow variant="card"
                     className="bibo-summary-row"
                     key={item.id}
                     onClick={() => {
@@ -71,7 +71,7 @@ export function Overview() {
                   >
                     <strong>{item.title}</strong>
                     <span>{item.readAt ? "已读" : "新"}</span>
-                  </Button>
+                  </ListRow>
                 ))
               ) : (
                 <p className="bibo-card-empty">目前没有需要处理的消息。</p>
@@ -86,7 +86,7 @@ export function Overview() {
               <h2>记下来的想法</h2>
               {overview.notes.length ? (
                 overview.notes.map((file) => (
-                  <Button
+                  <ListRow variant="card"
                     className="bibo-summary-row"
                     key={file.id}
                     onClick={() => {
@@ -96,7 +96,7 @@ export function Overview() {
                   >
                     <strong>{file.path.split("/").at(-1)}</strong>
                     <span>{day(file.updatedAt)}</span>
-                  </Button>
+                  </ListRow>
                 ))
               ) : (
                 <p className="bibo-card-empty">一个念头，也值得留在这里。</p>
@@ -112,7 +112,7 @@ export function Overview() {
               <h2>留给这些时间</h2>
               {overview.events.length ? (
                 overview.events.map((event) => (
-                  <Button
+                  <ListRow variant="card"
                     className="bibo-summary-row"
                     key={event.id}
                     onClick={() => {
@@ -122,7 +122,7 @@ export function Overview() {
                   >
                     <span>{datetime(event.startAt)}</span>
                     <strong>{event.title}</strong>
-                  </Button>
+                  </ListRow>
                 ))
               ) : (
                 <p className="bibo-card-empty">还没有安排。保持空白也很好。</p>
@@ -136,7 +136,7 @@ export function Overview() {
               <h2>在推进的事</h2>
               {overview.tasks.length ? (
                 overview.tasks.map((task) => (
-                  <Button
+                  <ListRow variant="card"
                     className="bibo-summary-row"
                     key={task.id}
                     onClick={() => {
@@ -146,7 +146,7 @@ export function Overview() {
                   >
                     <strong>{task.title}</strong>
                     <span>{task.status === "active" ? "进行中" : "待开始"}</span>
-                  </Button>
+                  </ListRow>
                 ))
               ) : (
                 <p className="bibo-card-empty">还没有任务。可以从一个清晰的下一步开始。</p>
@@ -172,8 +172,7 @@ function OverviewProjects() {
           </div>
           <div className="bibo-project-list">
             {overview.projects.map((project) => (
-              <button
-                key={project.id}
+              <ListRow variant="card" key={project.id}
                 onClick={() => {
                   filterTasks("", project.id);
                   navigate("tasks");
@@ -184,7 +183,7 @@ function OverviewProjects() {
                   {project.done} / {project.total} 完成
                 </span>
                 <i style={{ width: `${project.total ? (project.done / project.total) * 100 : 0}%` }} />
-              </button>
+              </ListRow>
             ))}
           </div>
         </section>

@@ -1,6 +1,6 @@
 import { PanelLeftOpen, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Button, Dialog, EmptyState, IconButton } from "@nextclaw/personal-agent-ui";
+import { Button, Dialog, EmptyState, IconButton, Tab, TabList } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { FileEditor } from "./file-editor";
 import { FileKindIcon } from "./file-kind-icon";
@@ -41,26 +41,26 @@ export function FileWorkbench({ notesOnly, toggleControlRef, onToggleTree }: { n
             ← {notesOnly ? "全部笔记" : "目录"}
           </Button>
         </div>
-        <div className="bibo-file-tabs" ref={tabbar}>
+        <TabList className="bibo-file-tabs" ref={tabbar} aria-label="打开的文件">
           {tabs.map((id) => {
             const file = fileDetails[id] ?? files.find((item) => item.id === id);
             return (
-              <div key={id} className={`bibo-file-tab${activeFileId === id ? " is-active" : ""}`}>
-                <button title={file?.path} onClick={() => void openFile(id)}>
+              <div key={id} role="presentation" className={`bibo-file-tab ui-tab-item${activeFileId === id ? " is-active" : ""}`}>
+                <Tab id={`bibo-file-tab-${id}`} aria-controls={`bibo-file-tab-${id}-panel`} selected={activeFileId === id} label={file?.path ?? "已删除"} onClick={() => void openFile(id)}>
                   {file && <FileKindIcon file={file} />}
                   <span>{file?.path.split("/").at(-1) ?? "已删除"}</span>
                   {fileDrafts[id]?.dirty ? " •" : ""}
-                </button>
+                </Tab>
                 <IconButton label={`关闭 ${file?.path ?? "文件"}`} icon={<X />} disabled={fileDrafts[id]?.saving}
                   onClick={() => { if (fileDrafts[id]?.dirty) { setFailure(""); setClosing(id); } else closeFile(id); }} />
               </div>
             );
           })}
-        </div>
+        </TabList>
       </div>
       {activeFileId ? (
         <>
-          <FileEditor id={activeFileId} />
+          <FileEditor id={activeFileId} tabId={`bibo-file-tab-${activeFileId}`} />
         </>
       ) : (
         <EmptyState title={notesOnly ? "选一条笔记继续写" : "从目录中选择一个文件"} />

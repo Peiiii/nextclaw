@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { chromium, type Page, type Route } from "playwright";
 import { mockApi } from "./personal-workspace.fixture";
+import { checkThemes, checkControlFeedback, checkFileTabs } from "./design-system/bibo-design-system.smoke";
 const base = "http://127.0.0.1:5189";
 const server = spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5189", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
 async function ready(): Promise<void> {
@@ -80,7 +81,7 @@ async function checkContentBounds(page: Page): Promise<void> {
 
 async function checkTreeKeyboard(page: Page): Promise<void> {
   const node = (name: string) => page.getByRole("treeitem", { name, exact: true });
-  const focused = () => page.evaluate(() => document.activeElement?.getAttribute("title"));
+  const focused = () => page.evaluate(() => document.activeElement?.getAttribute("data-file-path"));
   await node("A-empty").focus();
   for (const key of ["ArrowRight", "ArrowRight"]) await page.keyboard.press(key);
   assert.equal(await focused(), "A-empty", "an empty folder must not navigate to a sibling");
@@ -109,21 +110,8 @@ async function checkFileNavigation(page: Page, width: number): Promise<void> {
   await mockApi(page, false, true);
   await page.goto(`${base}/files`, { waitUntil: "networkidle" });
   if (width > 760) await checkTreeKeyboard(page);
-  for (let index = 0; index < 10; index++) {
-    const back = page.locator(".file-mobile-back button");
-    if (await back.isVisible()) await back.click();
-    await page.getByRole("treeitem", { name: `review-document-${index}.md`, exact: true }).click();
-    await page.getByRole("textbox", { name: `编辑 review-document-${index}.md` }).waitFor();
-  }
-  await page.waitForFunction(() => {
-    const tab = document.querySelector(".bibo-file-tab.is-active")!;
-    return tab.getBoundingClientRect().right <= tab.parentElement!.getBoundingClientRect().right + 1;
-  });
+  await checkFileTabs(page);
   const editor = page.getByRole("textbox", { name: "编辑 review-document-9.md" });
-  await editor.fill("未保存的文件草稿");
-  await page.getByRole("button", { name: "review-document-0.md", exact: true }).click();
-  await page.getByRole("button", { name: /^review-document-9\.md/ }).click();
-  assert.equal(await editor.inputValue(), "未保存的文件草稿");
   if (width > 760) {
     const resize = page.getByRole("separator", { name: "目录宽度" });
     await resize.focus(); await page.keyboard.press("ArrowRight");
@@ -199,7 +187,7 @@ async function checkLongConversation(page: Page, width: number): Promise<void> {
   const title = page.locator(".workspace-title");
   assert.equal(await title.getAttribute("title"), await title.textContent(), "full title remains available");
   assert.ok(await title.evaluate((element) => element.getBoundingClientRect().height < 30), "toolbar title stays on one line");
-  await page.getByRole("button", { name: "＋ 新对话", exact: true }).click({ trial: true });
+  await page.getByRole("button", { name: "新对话", exact: true }).click({ trial: true });
   await page.getByRole("button", { name: "打开右侧工作区" }).click();
   await checkContentBounds(page);
   await page.getByRole("button", { name: "关闭工作区" }).click();
@@ -283,6 +271,8 @@ try {
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await mockApi(page);
+      await checkThemes(page, viewport.width, base);
+      await checkControlFeedback(page, viewport.width, base);
       let releaseLoad!: () => void;
       const loadGate = new Promise<void>((resolve) => { releaseLoad = resolve; });
       const delayTaskRead = async (route: Route) => {
@@ -400,8 +390,9 @@ try {
       }));
       assert.equal(typography.title, "18px");
       assert.ok(typography.labels.length > 0 && typography.labels.every((size) => size === "14px"));
-      assert.ok(typography.inputs.length > 0 && typography.inputs.every((size) => size === "16px"));
-      assert.ok(typography.actions.length > 0 && typography.actions.every((size) => size === "14px"));
+      const coarse = await page.evaluate(() => matchMedia("(pointer: coarse)").matches);
+      assert.ok(typography.inputs.length > 0 && typography.inputs.every((size) => size === (coarse ? "16px" : "14px")));
+      assert.ok(typography.actions.length > 0 && typography.actions.every((size) => size === "13px"));
       await page.screenshot({ path: `/tmp/workspace-typography-${viewport.width}.png`, animations: "disabled" });
       await eventDialog.getByRole("button", { name: "关闭日程编辑" }).click();
       await eventDialog.waitFor({ state: "hidden" });

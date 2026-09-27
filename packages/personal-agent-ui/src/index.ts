@@ -14,4 +14,7 @@ export { PageHeader } from "./components/page-header";
 export { Dialog, Sheet } from "./components/overlays/overlay";
 export { ConfirmDialog } from "./components/overlays/confirm-dialog";
 export { IconButton } from "./components/icon-button";
-export { ActionMenu, ActionMenuItem, ActionMenuLink } from "./components/overlays/action-menu";
+export { Tooltip } from "./components/overlays/tooltip";
+export { Tab, TabList } from "./components/navigation/tabs";
+export { NavigationItem } from "./components/navigation/navigation-item";
+export { ActionMenu, ActionMenuItem, ActionMenuLink, ActionMenuRadioGroup } from "./components/overlays/action-menu";
