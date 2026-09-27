@@ -54,11 +54,14 @@
 .inbox-back { @apply hidden; }
 .workspace-page .inbox-layout { @apply [grid-template-columns:clamp(300px,_25%,_360px)_minmax(0,_1fr)]; }
 .inbox-layout .bibo-pane-label { @apply sticky top-0 [z-index:1] [height:44px] [padding:0_12px] [background:var(--ui-surface)]; }
-.inbox-layout .ui-list-row > span:not(.bibo-unread-dot) { @apply min-w-0 flex-1; }
-.inbox-layout .ui-list-row strong { @apply [overflow-wrap:anywhere]; }
-.inbox-layout .ui-list-row small { @apply overflow-hidden text-ellipsis whitespace-nowrap; }
-.inbox-layout .bibo-unread-dot { @apply [align-self:flex-start] mt-1.5; }
-.inbox-item-meta { @apply flex justify-between items-center gap-2 mt-2 [color:var(--ui-muted)] text-xs; }
+.inbox-layout .inbox-item-copy { @apply min-w-0 flex-1; }
+.inbox-item-heading { @apply flex items-center justify-between gap-3; }
+.inbox-layout .ui-list-row strong { @apply block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap; }
+.inbox-layout .ui-list-row small { @apply min-w-0 flex-1 m-0 overflow-hidden text-ellipsis whitespace-nowrap; }
+.inbox-item-meta { @apply flex items-center gap-3 mt-1.25 min-h-4 [color:var(--ui-muted)] text-xs; }
+.inbox-item-meta time { @apply ml-auto whitespace-nowrap; }
+.inbox-item-unread { @apply [width:6px] [height:6px] shrink-0 rounded-full [background:var(--bibo-accent)]; }
+.inbox-item-resolved { @apply inline-flex shrink-0 [color:var(--ui-primary)]; }
 .workspace-page .inbox-detail { @apply flex flex-col p-0 overflow-hidden; }
 .inbox-detail-toolbar { @apply flex flex-none flex-wrap items-center justify-between gap-2 [padding:6px_16px] [border-bottom:1px_solid_var(--ui-line)]; }
 .inbox-detail-toolbar .inbox-actions { @apply flex flex-wrap gap-2 [margin:0_0_0_auto]; }
@@ -115,8 +118,6 @@
 .ui-list-row strong, .bibo-summary-row strong, .bibo-project-list button strong { @apply [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden [overflow-wrap:anywhere]; }
 .ui-list-row small, .bibo-note-list .ui-list-row small { @apply block [color:var(--ui-muted)] text-xs mt-1.25 overflow-hidden text-ellipsis whitespace-nowrap; }
 .ui-list-row time { @apply flex-none [color:var(--ui-muted)] text-xs; }
-.bibo-unread-dot { @apply [width:7px] [height:7px] flex-none mt-1.5 [border-radius:50%] [background:var(--bibo-accent)]; }
-.bibo-unread-dot.is-read { @apply bg-transparent; }
 .bibo-action-row { @apply flex gap-2.25 items-center flex-wrap mt-6.25; }
 .bibo-action-row .ui-button--danger { @apply [margin-left:auto]; }
 .bibo-load-more { @apply block [margin:18px_auto]; }
