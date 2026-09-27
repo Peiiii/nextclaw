@@ -407,7 +407,9 @@ try {
       });
       assert.deepEqual(taskStyle, calendarStyle, "same-level actions use one shared component state");
       const taskRow = page.locator(".bibo-task-row").filter({ hasText: "梳理产品方案" });
-      assert.match(await taskRow.innerText(), /Bibo.*进行中/s, "task list shows project and state without opening details");
+      const taskSummary = await taskRow.innerText();
+      assert.match(taskSummary, /Bibo/, "task list shows its project without opening details");
+      assert.match(taskSummary, /进行中/, "task list shows its state without opening details");
       await taskRow.click();
       await page.getByRole("textbox", { name: "任务名称" }).waitFor();
       const taskSaveBox = await page.getByRole("button", { name: "保存任务", exact: true }).boundingBox();

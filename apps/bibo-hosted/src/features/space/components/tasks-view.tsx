@@ -15,7 +15,7 @@ import {
 } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { datetime } from "@/features/space/utils/date-format.utils";
-import { SlidersHorizontal } from "lucide-react";
+import { ChevronRight, SlidersHorizontal } from "lucide-react";
 import { TaskForm } from "./task-form";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 
@@ -59,6 +59,7 @@ export function Tasks() {
     <TaskRow
       key={task.id}
       task={task}
+      showStatus={mode === "list"}
       projectName={projects.find((item) => item.id === task.projectId)?.name}
       selected={selected?.id === task.id}
       onSelect={() => {
@@ -95,20 +96,24 @@ export function Tasks() {
         <div className="bibo-list-pane">
           {visible.length ? (
             mode === "list" ? (
-              visible.map(card)
+              taskScope === "all" && !taskQuery.trim() ? (
+                <>
+                  {visible.filter((task) => task.status !== "done" && task.status !== "cancelled").map(card)}
+                  {visible.some((task) => task.status === "done" || task.status === "cancelled") && (
+                    <details className="bibo-ended-tasks">
+                      <summary><ChevronRight aria-hidden="true" />{biboCopy.endedTasks}</summary>
+                      {visible.filter((task) => task.status === "done" || task.status === "cancelled").map(card)}
+                    </details>
+                  )}
+                </>
+              ) : visible.map(card)
             ) : (
               <div className="bibo-board">
                 {(["planned", "active", "done", "cancelled"] as const).map(
                   (status) => (
                     <section key={status}>
                       <h3>
-                        {status === "planned"
-                          ? "待开始"
-                          : status === "active"
-                          ? "进行中"
-                          : status === "done"
-                          ? "已完成"
-                          : "已取消"}{" "}
+                        {biboCopy.taskStatus[status]}{" "}
                         <small>
                           {
                             visible.filter((task) => task.status === status)
@@ -339,21 +344,17 @@ function ProjectForm({
 
 function TaskRow({
   task,
+  showStatus,
   projectName,
   selected,
   onSelect,
 }: {
   task: BiboTask;
+  showStatus: boolean;
   projectName?: string;
   selected: boolean;
   onSelect: () => void;
 }) {
-  const statusLabel = {
-    planned: "待开始",
-    active: "进行中",
-    done: "已完成",
-    cancelled: "已取消",
-  }[task.status];
   const { toggleTaskDone, saving } = useBiboSpaceStore();
   const [failure, setFailure] = useState<{ version: number; message: string } | null>(null);
   const toggle = async () => {
@@ -362,15 +363,16 @@ function TaskRow({
     setFailure({ version: task.version, message: useBiboSpaceStore.getState().actionError });
   };
   const details = [
+    showStatus && (task.status === "active" || task.status === "cancelled") ? biboCopy.taskStatus[task.status] : null,
     projectName,
-    task.priority === "high" ? "高优先级" : task.priority === "low" ? "低优先级" : null,
+    task.priority === "high" ? "高优先级" : null,
     task.dueAt ? `截止 ${datetime(task.dueAt)}` : null,
     task.subtasks.length
       ? `${task.subtasks.filter((part) => part.done).length}/${task.subtasks.length} 步`
       : null,
   ].filter(Boolean).join(" · ");
   return (
-    <ListRow className={`bibo-task-row${task.status === "done" ? " is-complete" : ""}`} selected={selected} onClick={onSelect} leadingAction={
+    <ListRow className={`bibo-task-row${task.status === "done" ? " is-complete" : task.status === "cancelled" ? " is-cancelled" : ""}`} selected={selected} onClick={onSelect} leadingAction={
       <IconButton className="task-complete" disabled={saving || task.status === "cancelled"}
         label={`${task.status === "done" ? "重新打开" : "完成"} ${task.title}`}
         icon={<span aria-hidden="true">
@@ -388,7 +390,6 @@ function TaskRow({
         {details && <small>{details}</small>}
       {failure?.version === task.version && failure.message && <small role="alert" className="ui-overlay__error">{failure.message}</small>}
       </span>
-      {task.status !== "planned" && <span className="bibo-task-status-label">{statusLabel}</span>}
     </ListRow>
   );
 }
