@@ -5,6 +5,8 @@
     "moduleResolution": "Bundler",
     "lib": ["ES2022"],
     "strict": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] },
     "skipLibCheck": true,
     "types": ["@cloudflare/workers-types"]
   },

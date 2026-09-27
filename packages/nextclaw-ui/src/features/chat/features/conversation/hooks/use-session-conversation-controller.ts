@@ -191,9 +191,12 @@ function buildSubmissionEnvelope(
   sessionKey: string | null,
   delivery: NcpAgentSendEnvelope['delivery'] = 'queue',
 ): NcpAgentSendEnvelope | null {
+  // getRandomValues is also available on HTTP origins, unlike randomUUID.
+  const messageIdBytes = crypto.getRandomValues(new Uint8Array(16));
+  const messageId = `user-${Array.from(messageIdBytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
   const envelope = buildNcpRequestEnvelope({
     sessionId: sessionKey ?? undefined,
-    messageId: `user-${crypto.randomUUID()}`,
+    messageId,
     text: draft.composerSnapshot.text.trim(),
     attachments: [...draft.composerSnapshot.attachments],
     parts: deriveNcpMessagePartsFromComposer(

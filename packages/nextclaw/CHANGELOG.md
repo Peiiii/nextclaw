@@ -1,5 +1,26 @@
 # nextclaw
 
+## 0.57.3
+
+### Patch Changes
+
+- 6376a18: 正常发送消息时不再在输入框内弹出接收确认卡片，避免重复显示消息和输入区跳动；保留草稿保护及发送异常后的恢复能力。
+
+## 0.57.2
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - nextclaw
+
+- Updated dependencies [f7b646a]
+  - @nextclaw/kernel@0.19.0
+  - @nextclaw/remote@0.3.69
+  - @nextclaw/server@0.23.12
+  - @nextclaw/service@0.7.6
+
 ## 0.57.1
 
 ### Patch Changes

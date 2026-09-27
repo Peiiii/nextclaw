@@ -1,5 +1,19 @@
 # @nextclaw/feedback-workflow-tools
 
+## 0.0.15
+
+### Patch Changes
+
+- Updated dependencies [6376a18]
+  - nextclaw@0.57.3
+
+## 0.0.14
+
+### Patch Changes
+
+- Updated dependencies
+  - nextclaw@0.57.2
+
 ## 0.0.13
 
 ### Patch Changes

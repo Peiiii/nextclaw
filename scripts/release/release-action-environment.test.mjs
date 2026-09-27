@@ -8,6 +8,7 @@ import {
   assertTrustedPublishingEnvironment,
   buildStableReleaseActionOutputs,
   writeReleaseActionOutputs,
+  writeReleaseActionSummary,
 } from "./release-action-environment.mjs";
 import {
   assertDesktopBranchRelationship,
@@ -133,6 +134,18 @@ test("writes single-line GitHub Actions outputs", () => {
       ),
     /single-line/,
   );
+});
+
+test("appends release timing evidence without replacing earlier job summaries", () => {
+  const directory = mkdtempSync(join(tmpdir(), "release-action-summary-"));
+  const summaryPath = join(directory, "github-step-summary");
+  assert.equal(writeReleaseActionSummary("## Earlier evidence", summaryPath), true);
+  assert.equal(writeReleaseActionSummary("NPM_READY\n- time budget: missed", summaryPath), true);
+  assert.equal(
+    readFileSync(summaryPath, "utf8"),
+    "## Earlier evidence\nNPM_READY\n- time budget: missed\n",
+  );
+  assert.equal(writeReleaseActionSummary("NPM_READY", undefined), false);
 });
 
 test("builds stable release outputs from the closed release state", () => {
@@ -386,6 +399,8 @@ test("stable recovery runs current verification scripts against the immutable pa
     workflow,
     /publish-runtime:[\s\S]*?ref: \$\{\{ needs\.publish-npm\.outputs\.closure_commit \}\}/,
   );
+  assert.match(workflow, /Checkout Runtime verification control plane[\s\S]*?ref: \$\{\{ github\.sha \}\}[\s\S]*?path: \.tmp\/publisher/);
+  assert.match(workflow, /Reuse published stable Runtime channel[\s\S]*?--channel stable --verify-only/);
   assert.match(
     workflow,
     /verify-npm-node-compatibility:[\s\S]*?if: \$\{\{ needs\.publish-npm\.outputs\.has_nextclaw == 'true' \}\}[\s\S]*?verify-npm-unsupported-node:[\s\S]*?if: \$\{\{ needs\.publish-npm\.outputs\.has_nextclaw == 'true' \}\}/,

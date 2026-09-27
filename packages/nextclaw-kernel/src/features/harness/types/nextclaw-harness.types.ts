@@ -230,6 +230,7 @@ export interface INextclawAgentSessions {
 
 export interface INextclawSessionRegistry {
   resume(sessionId: string): Promise<INextclawSession>;
+  delete(sessionId: string): Promise<void>;
 }
 
 export interface INextclawAgent {

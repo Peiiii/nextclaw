@@ -9,10 +9,11 @@ export function SessionConversationInputTopSlot({ inputSnapshot, controller }: {
   readonly controller: SessionConversationInputController;
 }) {
   const submission = inputSnapshot.pendingSubmission;
-  if (!submission && controller.queuedInputs.length === 0) return null;
+  const needsRecovery = submission && submission.status !== 'sending';
+  if (!needsRecovery && controller.queuedInputs.length === 0) return null;
   return <>
     {controller.queuedInputs.length > 0 && <SessionQueuedInputRows controller={controller} />}
-    {submission && <SubmissionStatus submission={submission} controller={controller}
+    {needsRecovery && <SubmissionStatus submission={submission} controller={controller}
       hasComposerContent={Boolean(inputSnapshot.text.trim() || inputSnapshot.selectedSkills.length || inputSnapshot.attachments.length)} />}
   </>;
 }
@@ -22,11 +23,9 @@ function SubmissionStatus({ submission, controller, hasComposerContent }: {
   readonly controller: SessionConversationInputController;
   readonly hasComposerContent: boolean;
 }) {
-  const statusText = submission.status === 'sending'
-    ? t('chatSubmissionSending')
-    : submission.status === 'rejected'
-      ? t('chatSubmissionRejected')
-      : t(submission.envelope.sessionId ? 'chatSendResultUnknown' : 'chatSendResultUnknownChild');
+  const statusText = submission.status === 'rejected'
+    ? t('chatSubmissionRejected')
+    : t(submission.envelope.sessionId ? 'chatSendResultUnknown' : 'chatSendResultUnknownChild');
   return <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm" role="status">
     <p>{statusText}</p>
     <p className="mt-1 max-h-16 overflow-auto whitespace-pre-wrap text-muted-foreground">{submission.composer.text}</p>

@@ -558,7 +558,6 @@
   "chatSessionErrorTitle": "Something went wrong",
   "chatSessionActivityInterrupted": "The run was interrupted. Send the message again.",
   "chatSendFailed": "Failed to send message",
-  "chatSubmissionSending": "Checking whether the message was received…",
   "chatSendResultUnknown": "The send result is unknown. Check the session, then retry the original request.",
   "chatSendResultUnknownChild": "The send result is unknown. Check child sessions first; a safe retry is unavailable here.",
   "chatSubmissionRejected": "The message was not accepted. You can restore it and retry.",

@@ -1,10 +1,12 @@
 {
   "name": "@nextclaw/bibo-client",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "type": "module",
   "sideEffects": false,
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "tsc": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test src/**/*.test.ts"

@@ -1,7 +1,38 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
-import { resolveCoreReleaseNotes } from "./release-core-notes.mjs";
+import { readCoreReleaseNotes, resolveCoreReleaseNotes } from "./release-core-notes.mjs";
+
+test("prepared notes remain bound to their source when content arrives later", () => {
+  const root = mkdtempSync(join(tmpdir(), "runtime-notes-source-"));
+  const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  try {
+    git("init", "-q");
+    mkdirSync(join(root, "packages/nextclaw"), { recursive: true });
+    writeFileSync(join(root, "packages/nextclaw/CHANGELOG.md"), "# nextclaw\n");
+    git("add", ".");
+    git("-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "prepared source");
+    const source = git("rev-parse", "HEAD");
+    mkdirSync(join(root, "apps/docs/public/release-notes"), { recursive: true });
+    const notesUrl = "https://docs.nextclaw.io/en/notes/v1-2-3";
+    writeFileSync(join(root, "apps/docs/public/release-notes/nextclaw-v1.2.3.json"), JSON.stringify({
+      version: "1.2.3", links: { html: { "en-US": notesUrl } },
+    }));
+    git("add", ".");
+    git("-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "later content");
+    assert.equal(readCoreReleaseNotes(root, "1.2.3").releaseNotesUrl, notesUrl);
+    assert.equal(readCoreReleaseNotes(root, "1.2.3", "Peiiii/nextclaw", source).releaseNotesUrl,
+      "https://github.com/Peiiii/nextclaw/releases/tag/nextclaw@1.2.3");
+    assert.equal(readCoreReleaseNotes(root, "1.2.3", "Peiiii/nextclaw", "HEAD").releaseNotesUrl, notesUrl);
+    assert.throws(() => readCoreReleaseNotes(root, "1.2.3", "Peiiii/nextclaw", "missing-revision"));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("prefers structured release notes for an enriched release", () => {
   const result = resolveCoreReleaseNotes({

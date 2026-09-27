@@ -14,6 +14,7 @@ description: 介于 changelog 与博客之间的短更新。
 
 ## 最新更新
 
+- [2026-09-26 · NextClaw v0.57.2](./2026-09-26-nextclaw-v0-57-2)
 - [2026-09-16 · NextClaw v0.57.0](./2026-09-16-nextclaw-v0-57-0)
 - [2026-09-14 · NextClaw v0.55.0](./2026-09-14-nextclaw-v0-55-0)
 - [2026-09-13 · NextClaw v0.54.0](./2026-09-13-nextclaw-v0-54-0)

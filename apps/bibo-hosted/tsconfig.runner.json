@@ -2,8 +2,11 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "module": "ESNext",
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] },
     "moduleResolution": "Bundler",
     "lib": ["ES2022", "DOM"],
+    "jsx": "react-jsx",
     "types": ["node"]
   },
   "include": ["src/app/bibo-runner.controller.ts", "src/app/bibo-run-stream.utils.test.ts", "container/**/*.test.ts", "scripts/**/*.ts"]

@@ -369,6 +369,12 @@ jobs:
           ref: ${{ needs.publish-npm.outputs.closure_commit }}
           fetch-depth: 0
 
+      - name: Checkout Runtime verification control plane
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .tmp/publisher
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -388,7 +394,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
-          pnpm release:stable:runtime --
+          node .tmp/publisher/scripts/release/release-beta-runtime.mjs --channel stable
           --branch master
           --prepared-source-sha "${{ needs.publish-npm.outputs.prepared_source_sha || github.sha }}"
           --version "${{ needs.publish-npm.outputs.target_version }}"
@@ -407,6 +413,9 @@ jobs:
           for target in darwin-arm64 darwin-x64 linux-x64 win32-x64; do
             grep -qx "nextclaw-runtime-$target-$TARGET_VERSION.zip" <<< "$assets"
           done
+          node .tmp/publisher/scripts/release/release-beta-runtime.mjs \
+            --channel stable --verify-only --version "$TARGET_VERSION" --release-tag "$tag" \
+            --prepared-source-sha "${{ needs.publish-npm.outputs.prepared_source_sha }}"
 
       - name: Verify upgrade from previous stable
         run: >-

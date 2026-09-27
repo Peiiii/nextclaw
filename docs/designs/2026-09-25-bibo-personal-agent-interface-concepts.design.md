@@ -1,6 +1,6 @@
 # Bibo Personal Agent 界面概念：四套完整产品方案
 
-> 2026-09-25。状态：四版交互概念已实现，待最终验证与部署。`desk-original.html` 单独保留用户喜欢的工作桌视觉初稿。此设计不是现有 Bibo 功能承诺；示例状态仅在当前页面内存保留。
+> 2026-09-25。状态：四版交互概念及 Studio 演示已实现；本文记录原型设计过程，其中早期条目保留历史。正式产品实现前的决定以[实现前对齐](./2026-09-25-bibo-personal-agent-implementation-alignment.design.md)为准。`desk-original.html` 单独保留用户喜欢的工作桌视觉初稿；原型不是现有 Bibo 功能承诺。
 
 ## 原始问题与纠偏
 

@@ -1,3 +1,3 @@
 import "./styles/bibo-app.css";
 
-export { BiboApp } from "./components/bibo-app";
+export { BiboApp, ChatPage, SpacePage, NotFoundPage } from "./components/bibo-app";

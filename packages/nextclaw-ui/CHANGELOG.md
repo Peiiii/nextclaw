@@ -1,5 +1,18 @@
 # @nextclaw/ui
 
+## 0.27.3
+
+### Patch Changes
+
+- 6376a18: 正常发送消息时不再在输入框内弹出接收确认卡片，避免重复显示消息和输入区跳动；保留草稿保护及发送异常后的恢复能力。
+
+## 0.27.2
+
+### Patch Changes
+
+- 75e5dde: Fix chat sends failing with `crypto.randomUUID is not a function` when accessing NextClaw over plain HTTP, including keyboard sends and preset messages. Preserve distinct message identities and idempotent retries.
+  - @nextclaw/client-sdk@0.12.12
+
 ## 0.27.1
 
 ### Patch Changes

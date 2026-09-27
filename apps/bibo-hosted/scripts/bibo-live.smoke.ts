@@ -33,9 +33,22 @@ const sessionToken = decodeURIComponent(token);
 const cookie = `bibo_session=${encodeURIComponent(sessionToken)}`;
 const headers = { cookie };
 const requestId = `bibo-live-${crypto.randomUUID().slice(0, 8)}`;
-const prompt = `请只用一句简短中文回复“${requestId} 已收到”，不要执行工具。`;
+const artifactPath = `${requestId}.md`;
+const artifactContent = `# ${requestId}\n\n真实 Agent 文件验收。`;
+const prompt = `请通过 Bibo 第一方能力创建产物文件 ${artifactPath}，内容严格为：\n${artifactContent}\n先按需查询文件领域用法，再实际执行。不要用 shell 或直接修改 JSON。成功后用一句话回复“${requestId} 已收到”，不要创建其他对象。`;
 const abort = new AbortController();
-const timeout = setTimeout(() => abort.abort(), 90_000);
+const timeout = setTimeout(() => abort.abort(), 300_000);
+let createdSessionId: string | undefined;
+type LiveFile = { id: string; path: string; version: number; content?: string };
+
+async function space<T>(action: string, input: Record<string, unknown>, signal = abort.signal): Promise<T> {
+  const response = await fetch(`${origin}/api/space`, {
+    method: "POST", headers: { ...headers, origin, "content-type": "application/json" },
+    body: JSON.stringify({ action, input }), signal,
+  });
+  assert.equal(response.status, 200, `${action} returned ${response.status}`);
+  return (await response.json() as { result: T }).result;
+}
 
 type StreamState = { accepted: boolean; saving: boolean; committed: boolean; deltaCount: number; firstDeltaMs: number; lastDeltaMs: number; savingMs: number };
 
@@ -101,12 +114,12 @@ async function modelStreamProbe(): Promise<{ contentChunks: number; firstContent
   return { contentChunks, firstContentMs };
 }
 
-async function streamedRun(): Promise<{ deltaCount: number; firstDeltaMs: number; lastDeltaMs: number; savingMs: number; totalMs: number }> {
+async function streamedRun(sessionId: string): Promise<{ deltaCount: number; firstDeltaMs: number; lastDeltaMs: number; savingMs: number; totalMs: number }> {
   const started = performance.now();
   const response = await fetch(`${origin}/api/chat`, {
     method: "POST",
     headers: { ...headers, origin, accept: "text/event-stream", "content-type": "application/json" },
-    body: JSON.stringify({ message: prompt }),
+    body: JSON.stringify({ message: prompt, sessionId }),
     signal: abort.signal,
   });
   assert.equal(response.status, 200, `Chat returned ${response.status}`);
@@ -124,13 +137,32 @@ async function streamedRun(): Promise<{ deltaCount: number; firstDeltaMs: number
 try {
   const account = await json<{ user?: { id: string } }>("/api/auth/me");
   assert.equal(account.user?.id, smokeAccount.userId, "Smoke account identity does not match the local credential file");
+  const missingHistory = await fetch(`${origin}/api/history?id=${requestId}-missing`, { headers, signal: abort.signal });
+  assert.equal(missingHistory.status, 404, "An explicit missing session must not appear as a new empty conversation");
+  assert.equal((await missingHistory.json() as { error: string }).error, "会话不存在或已删除。");
   const modelStream = await modelStreamProbe();
-  const before = await json<{ messages: Array<{ role: string; text: string }> }>("/api/history");
-  const stream = await streamedRun();
-  const after = await json<{ messages: Array<{ role: string; text: string }> }>("/api/history");
+  const creation = await fetch(`${origin}/api/sessions`, {
+    method: "POST", headers: { ...headers, origin }, signal: abort.signal,
+  });
+  assert.equal(creation.status, 200, "Smoke conversation creation failed");
+  const created = await creation.json() as { session: { id: string } };
+  assert.ok(created.session?.id, "Created conversation has no ID");
+  createdSessionId = created.session.id;
+  const historyPath = `/api/history?id=${encodeURIComponent(createdSessionId)}`;
+  const before = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
+  assert.equal(before.messages.length, 0, "New conversation must be isolated from existing history");
+  const stream = await streamedRun(createdSessionId);
+  const after = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
   assert.equal(after.messages.length, before.messages.length + 2, "Saved history must contain one new exchange");
   assert.equal(after.messages.at(-2)?.text, prompt, "Saved user message differs");
   assert.ok(after.messages.at(-1)?.text.includes(requestId), "Saved answer is missing the request marker");
+  const files = await space<{ items: LiveFile[] }>("file.list", { query: artifactPath });
+  const artifact = files.items.find((file) => file.path === artifactPath);
+  assert.ok(artifact, "Agent claimed success without creating the requested file");
+  const persisted = await space<LiveFile>("file.get", { id: artifact.id });
+  assert.equal(persisted.content, artifactContent, "Agent file content was not persisted exactly");
+  // The Tasks screen loads these together; cloud serialization must not reject either read.
+  await Promise.all([space("project.list", { limit: 100 }), space("task.list", { limit: 100 })]);
 
   const browser = await chromium.launch({ headless: true });
   try {
@@ -140,12 +172,14 @@ try {
       const page = await context.newPage();
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
-      await page.goto(origin, { waitUntil: "networkidle" });
-      await page.locator(".bibo-message").first().waitFor();
+      await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
+      await page.locator(".ui-message").first().waitFor();
+      await page.reload({ waitUntil: "networkidle" });
+      await page.locator(".ui-message--assistant").filter({ hasText: requestId }).waitFor();
       const layout = await page.evaluate(() => ({
         body: document.body.scrollHeight,
         viewport: innerHeight,
-        composerBottom: document.querySelector(".bibo-composer")!.getBoundingClientRect().bottom,
+        composerBottom: document.querySelector(".ui-composer")!.getBoundingClientRect().bottom,
         listHeight: document.querySelector(".bibo-messages")!.clientHeight,
         contentHeight: document.querySelector(".bibo-messages")!.scrollHeight,
         horizontalOverflow: document.documentElement.scrollWidth > innerWidth,
@@ -155,9 +189,27 @@ try {
       if (after.messages.length >= 8) assert.ok(layout.contentHeight > layout.listHeight, "Long history must scroll inside the message list");
       assert.equal(layout.horizontalOverflow, false, "Page has horizontal overflow");
       assert.deepEqual(errors, [], "Browser raised a runtime error");
-      assert.ok(await page.locator(".bibo-message--assistant").filter({ hasText: requestId }).count(), "Saved answer did not load after refresh");
+      assert.ok(await page.locator(".ui-message--assistant").filter({ hasText: requestId }).count(), "Saved answer did not load after refresh");
+      await page.goto(`${origin}/files`, { waitUntil: "networkidle" });
+      await page.getByRole("textbox", { name: "搜索文件", exact: true }).fill(artifactPath);
+      await page.getByText(artifactPath, { exact: true }).first().click();
+      assert.equal(await page.getByRole("textbox", { name: `编辑 ${artifactPath}` }).inputValue(), artifactContent,
+        "The Files UI must read the same Agent-created object");
       await context.close();
     }
   } finally { await browser.close(); }
-  console.log(JSON.stringify({ ok: true, requestId, modelStream, ...stream, saved: true, desktop: true, mobile: true }));
-} finally { clearTimeout(timeout); }
+  console.log(JSON.stringify({ ok: true, requestId, modelStream, ...stream, saved: true, agentFile: true, desktop: true, mobile: true }));
+} finally {
+  clearTimeout(timeout);
+  if (createdSessionId) {
+    const files = await space<{ items: LiveFile[] }>("file.list", { query: artifactPath }, AbortSignal.timeout(60_000));
+    for (const file of files.items.filter((item) => item.path === artifactPath)) {
+      await space("file.delete", { id: file.id, version: file.version }, AbortSignal.timeout(60_000));
+    }
+    const cleanup = await fetch(`${origin}/api/sessions/delete`, {
+      method: "POST", headers: { ...headers, origin, "content-type": "application/json" },
+      body: JSON.stringify({ id: createdSessionId }), signal: AbortSignal.timeout(60_000),
+    });
+    assert.equal(cleanup.status, 200, `Smoke conversation cleanup failed: ${cleanup.status}`);
+  }
+}

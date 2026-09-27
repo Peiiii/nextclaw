@@ -28,6 +28,17 @@ test("exposes HTTP status and server error without accepting an error response",
     && error.status === 401 && error.message === "请先登录。");
 });
 
+test("checks chat availability before creating a new session", async () => {
+  const calls: string[] = [];
+  const client = new BiboClient({ fetch: (async (path: RequestInfo | URL) => {
+    calls.push(String(path));
+    return json({ error: "今日试用额度已用完，请明天再试。" }, 429);
+  }) as typeof fetch });
+  await assert.rejects(client.chatAvailability(), (error: unknown) => error instanceof BiboClientError
+    && error.status === 429 && error.message.includes("今日试用额度已用完"));
+  assert.deepEqual(calls, ["/api/chat/availability"]);
+});
+
 test("keeps auth and control requests on the same-origin API", async () => {
   const calls: Array<{ path: string; init?: RequestInit }> = [];
   const client = new BiboClient({ fetch: (async (path: RequestInfo | URL, init?: RequestInit) => {

@@ -92,6 +92,13 @@ export class NextclawSessionRegistry implements INextclawSessionRegistry {
     );
   };
 
+  delete = async (sessionId: string): Promise<void> => {
+    const normalizedSessionId = this.normalizeSessionId(sessionId);
+    const kernel = this.requireKernel();
+    kernel.sessionRunManager.deleteSessionRun(normalizedSessionId);
+    await kernel.sessionManager.deleteSession(normalizedSessionId);
+  };
+
   private createForAgent = async (
     agentId: string,
     input: NextclawSessionCreateInput,
