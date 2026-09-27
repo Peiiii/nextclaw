@@ -4,7 +4,7 @@ import { calendarMonthRange } from "@/features/space/utils/calendar.utils";
 import { readWorkspaceLayout, revealedFileLayout, writeWorkspaceLayout } from "@/features/space/utils/workspace-layout.utils";
 import { readCalendarEvents, readNextSpacePage, readSpaceLists, savedTaskView, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
 import { navigateWorkspace } from "@/app/workspace-router";
-import { fileDeletionState } from "@/features/space/utils/file-deletion-state.utils";
+import { fileDeletionState, openedFileState } from "@/features/space/utils/file-state.utils";
 
 export type BiboView = "overview" | "chat" | "inbox" | "calendar" | "tasks" | "notes" | "files";
 type Page<T> = { items: T[]; nextCursor: string | null };
@@ -120,8 +120,10 @@ class BiboSpaceOwner {
   };
   closeWorkspace = (): void => { this.set({ workspaceOpen: false, workspaceResolving: false }); this.saveLayout(); };
   showWorkspace = (): void => { this.set({ workspaceOpen: true }); this.saveLayout(); void this.load("files"); };
-  openWorkspace = async (id: string, verified?: BiboFileDetail): Promise<void> => {
-    this.set({ workspaceOpen: true, workspaceFileId: id, error: "" });
+  workspacePreview: boolean | null = null;
+  setWorkspacePreview = (workspacePreview: boolean): void => this.set({ workspacePreview });
+  openWorkspace = async (id: string, verified?: BiboFileDetail, preview?: boolean): Promise<void> => {
+    this.set({ workspaceOpen: true, workspaceFileId: id, workspacePreview: preview ?? null, error: "" });
     this.saveLayout();
     await this.openFile(id, verified);
   };
@@ -292,13 +294,10 @@ class BiboSpaceOwner {
       return;
     }
     try {
-      const detail = verified ?? await client.space<BiboFileDetail>("file.get", { id });
+      const detail = verified ?? await client.readFile({ id });
       const ancestors = detail.path.includes("/") ? await client.space<Page<BiboFile>>("file.list", { ancestorOf: detail.path, limit: 100 }) : { items: [] };
       if (this.closedFiles.has(id)) return;
-      this.set((state) => ({ files: [...new Map([...state.files, ...ancestors.items, detail].map((file) => [file.id, file])).values()] }));
-      this.set((state) => ({ fileDetails: { ...state.fileDetails, [id]: detail }, fileDrafts: { ...state.fileDrafts,
-        [id]: state.fileDrafts[id]?.dirty || state.fileDrafts[id]?.saving ? state.fileDrafts[id]! : { content: detail.content ?? "", version: detail.version, dirty: false, saving: false } },
-        tabs: state.tabs.includes(id) ? state.tabs : [...state.tabs, id], ...(request === this.fileOpenRequest ? { activeFileId: id, error: "" } : {}) }));
+      this.set((state) => openedFileState(state, detail, ancestors.items, request === this.fileOpenRequest));
       if (request === this.fileOpenRequest) this.revealFile(id);
     } catch (error) {
       if (error instanceof BiboClientError && error.status === 404 && this.get().workspaceFileId !== id && this.get().tabs.includes(id) && !this.get().fileDrafts[id]) this.closeFile(id);

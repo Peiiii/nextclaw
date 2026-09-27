@@ -26,3 +26,9 @@ test("runner SSE without a final result cannot be persisted", async () => {
   });
   await assert.rejects(readRunStream(new Response(body), () => undefined), /without result/);
 });
+test("runner display targets reach the saved result and cannot cross sessions", async () => {
+  const display = { id: "show-1", sessionId: "s1", target: { type: "file", payload: { path: "a.html", viewer: "rendered" } } };
+  const make = (sessionId: string) => new Response(streamEvent("show-content", display) + streamEvent("result", { text: "已完成", sessionId }));
+  assert.deepEqual(await readRunStream(make("s1"), () => undefined), { text: "已完成", sessionId: "s1", displayEvents: [display] });
+  await assert.rejects(readRunStream(make("s2"), () => undefined), /session mismatch/);
+});

@@ -25,6 +25,8 @@ For integration against a separately running local Worker, start `pnpm -C apps/b
 
 ## Build and deploy
 
+File display follows the existing kernel `show_file` → `uiShowContent` event. The existing Bibo space contribution captures the native file target; the runner forwards it and the Worker releases `show-content` only after storage commits. `@nextclaw/bibo-client` owns event validation and exact `readFile({ path })` reads. The chat store connects this to the existing workspace resource manager and file preview. Bibo adds no separate display bus or preview service; only registered personal-space files can be read. Run `pnpm -C apps/bibo-hosted smoke:display` for desktop/mobile auto-open, source view, close/reopen, failed-save and refresh behavior.
+
 1. Use a Cloudflare account on the Workers Paid plan. Ensure the `bibo-user-snapshots` R2 bucket exists and `BIBO_DEEPSEEK_API_KEY` is configured as a Wrangler Secret. Never store the key in a file or commit it.
 2. Run `pnpm -C apps/bibo-hosted tsc`, `pnpm -C apps/bibo-hosted test`, and `pnpm -C apps/bibo-hosted smoke:client`. These cover the Worker, React client, runner, streaming parser, a live SQLite WAL snapshot, and desktop/mobile chat behavior without a deployment.
 3. From a clean checkout of the frozen remote `master`, run `pnpm -C apps/bibo-hosted run deploy`. Docker must be running. This command uses Wrangler 4.138.0, which deploys the current Container configuration; the workspace's older Wrangler 4.67.0 fails its observability validation. Wrangler builds and pushes the Docker image.

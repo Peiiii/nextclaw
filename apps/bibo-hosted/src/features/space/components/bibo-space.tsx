@@ -28,7 +28,7 @@ function Status({ showNotice = true }: { showNotice?: boolean }) {
   );
 }
 export function BiboWorkspace() {
-  const { workspaceOpen, workspaceResolving, workspaceFileId, closeWorkspace, files, fileDetails, openWorkspace, error } = useBiboSpaceStore();
+  const { workspaceOpen, workspaceResolving, workspaceFileId, workspacePreview, setWorkspacePreview, closeWorkspace, files, fileDetails, openWorkspace, error } = useBiboSpaceStore();
   if (!workspaceOpen) return null;
   const choices = files.filter((file) => file.kind !== "folder");
   const current = workspaceFileId ? fileDetails[workspaceFileId] : null;
@@ -58,7 +58,7 @@ export function BiboWorkspace() {
         {workspaceResolving ? <LoadingState label="正在打开资源" /> : workspaceFileId && !current && error ? (
           <div><EmptyState title="暂时无法打开文件" /><Button onClick={() => void openWorkspace(workspaceFileId)}>重试打开</Button></div>
         ) : workspaceFileId ? (
-          current ? <FileEditor key={workspaceFileId} id={workspaceFileId} compact defaultPreview={current.kind === "artifact"} /> : <LoadingState label="正在打开文件" />
+          current ? <FileEditor key={workspaceFileId} id={workspaceFileId} compact preview={workspacePreview ?? current.kind === "artifact"} onPreviewChange={setWorkspacePreview} /> : <LoadingState label="正在打开文件" />
         ) : (
           <EmptyState title="选择文件或笔记" />
         )}

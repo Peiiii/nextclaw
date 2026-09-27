@@ -4,9 +4,28 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { BiboSpaceError, BiboSpaceService } from "./bibo-space.service";
-import type { BiboTask, BiboOverview } from "@nextclaw/bibo-client";
+import type { BiboTask, BiboOverview, BiboFileDetail } from "@nextclaw/bibo-client";
 
 const instant = "2026-09-25T09:00:00.000Z";
+
+test("file reads resolve managed paths and reject traversal, hidden files and symlinks", async (t) => {
+  const home = await mkdtemp(join(tmpdir(), "bibo-display-path-"));
+  t.after(() => rm(home, { recursive: true, force: true }));
+  await mkdir(join(home, "workspace"));
+  const space = new BiboSpaceService(home);
+  const file = await space.execute("file.create", { path: "report.md", kind: "artifact", content: "# Saved" }) as BiboFileDetail;
+  for (const path of ["report.md", "./report.md", join(home, "workspace", "report.md")]) {
+    assert.deepEqual(await space.execute("file.get", { path }), file);
+  }
+  for (const path of ["../config.json", join(home, "config.json"), ".secret", "folder/../report.md"]) {
+    await assert.rejects(space.execute("file.get", { path }), (error: unknown) => error instanceof BiboSpaceError && error.status === 400);
+  }
+  await assert.rejects(space.execute("file.get", { path: "absent.md" }), (error: unknown) => error instanceof BiboSpaceError && error.status === 404);
+  await rm(join(home, "workspace", "report.md"));
+  await writeFile(join(home, "config.json"), "private");
+  await symlink(join(home, "config.json"), join(home, "workspace", "report.md"));
+  await assert.rejects(space.execute("file.get", { path: "report.md" }), /符号链接/);
+});
 
 test("attention filters apply before pagination and completion undo respects newer versions", async (t) => {
   const home = await mkdtemp(join(tmpdir(), "task-attention-"));

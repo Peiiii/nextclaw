@@ -32,8 +32,8 @@ export async function mockApi(page: Page, longTitles = false, fileNavigation = f
       return { result: { items: matches.slice(offset, offset + limit), nextCursor: offset + limit < matches.length ? String(offset + limit) : null } };
     }
     if (action === "file.get") {
-      const file = files.find((item) => item.id === input.id);
-      return file ? { result: { ...file, content: contents[file.id] } } : { error: "File missing", status: 404 };
+      const file = files.find((item) => input.path !== undefined ? item.path === input.path : item.id === input.id);
+      return file ? { result: { ...file, uri: `nextclaw://objects/file/${file.id}`, content: file.kind === "folder" ? null : contents[file.id] ?? "" } } : { error: "File missing", status: 404 };
     }
     if (action === "file.create") {
       const file = { id: `file-${files.length}`, path: String(input.path), kind: String(input.kind), createdAt: instant, updatedAt: instant, version: 1 };

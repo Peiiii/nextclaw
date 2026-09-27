@@ -1,7 +1,7 @@
 import { create, type StoreApi } from "zustand";
-import { BiboClient, type BiboChatEvent, type BiboMessage, type BiboSession, type BiboUser } from "@nextclaw/bibo-client";
+import { BiboClient, type BiboChatEvent, type BiboMessage, type BiboSession, type BiboShowContent, type BiboUser } from "@nextclaw/bibo-client";
 import { biboCopy } from "@/features/chat/configs/bibo-copy.config";
-import { useBiboSpaceStore } from "@/features/space";
+import { useBiboSpaceStore, workspaceResources } from "@/features/space";
 import { navigateConversation, readWorkspaceRoute, replaceConversationContext } from "@/app/workspace-router";
 
 type Phase = "idle" | "generating" | "stopping" | "saving";
@@ -235,15 +235,22 @@ class BiboChatOwner {
     this.set({ pendingMessage: message, pendingIds: [crypto.randomUUID(), crypto.randomUUID()], partial: "", phase: "generating", runId: null,
       status: "", following: true });
     try {
+      const output: { display?: BiboShowContent } = {};
       await biboClient.chat(message, (event: BiboChatEvent) => {
         if (event.name === "accepted") this.set({ runId: event.value.runId });
         if (event.name === "delta") this.set((state) => ({ partial: state.partial + event.value.text }));
         if (event.name === "saving") this.set({ phase: "saving", status: "" });
+        if (event.name === "show-content" && event.value.sessionId === sessionId) output.display = event.value;
         if (event.name === "committed") {
           this.set((state) => ({ messages: this.identifyMessages(event.value.messages, state.pendingIds), pendingMessage: null, pendingIds: null, partial: "", status: "",
             sessions: event.value.session ? [event.value.session, ...state.sessions.filter((item) => item.id !== event.value.session?.id)] : state.sessions }));
         }
       }, sessionId);
+      const shown = output.display;
+      const current = () => this.get().user?.id === user.id && this.get().activeSessionId === sessionId && useBiboSpaceStore.getState().view === "chat";
+      if (shown && current()) {
+        await workspaceResources.open(`/files/path/${encodeURIComponent(shown.target.payload.path)}`, shown.target.payload.viewer !== "source", current);
+      }
       sessionStorage.removeItem(pendingKey(user.id));
       this.clearFailedInput(sessionId, message);
     } catch (error) {
