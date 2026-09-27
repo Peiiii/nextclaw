@@ -37,7 +37,7 @@ export function Composer({ value, onChange, onSend, onStop, busy, canStop, place
     <textarea ref={textareaRef} value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={onKeyDown}
       maxLength={4000} rows={2} readOnly={readOnly} placeholder={placeholder} aria-label={placeholder} />
     <div className="ui-composer__bottom"><span className="ui-composer__phase" aria-hidden="true">{busy && !canStop ? busyLabel : ""}</span><div className="ui-composer__actions">
-      <IconButton className="ui-composer__action" label={label} onClick={canStop ? onStop : onSend}
+      <IconButton className="ui-composer__action" feedback="filled" tooltipSide="top" label={label} onClick={canStop ? onStop : onSend}
         disabled={!canStop && (busy || !value.trim())}
         icon={canStop ? <Square size={14} className="ui-composer__stop" fill="currentColor" /> : busy ? <LoaderCircle size={18} className="ui-composer__spinner" /> : <ArrowUp size={20} />} />
       {busy && <span className="ui-sr-only" role="status">{label}</span>}

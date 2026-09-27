@@ -7,6 +7,6 @@ export function SegmentedControl<Value extends string>({ label, value, options, 
   onChange: (value: Value) => void;
 }) {
   return <div className="ui-segmented-control" role="group" aria-label={label}>{options.map((option) =>
-    <button key={option.value} type="button" aria-pressed={value === option.value} onClick={() => onChange(option.value)}>{option.label}</button>,
+    <button key={option.value} type="button" aria-pressed={value === option.value} onClick={() => onChange(option.value)}><span>{option.label}</span></button>,
   )}</div>;
 }

@@ -1,5 +1,18 @@
 import type { BiboFile } from "@nextclaw/bibo-client";
 
+export type BiboTheme = "classic" | "neutral";
+const themeKey = "bibo-ui-theme";
+
+export function readBiboTheme(): BiboTheme {
+  try { return localStorage.getItem(themeKey) === "neutral" ? "neutral" : "classic"; }
+  catch { return "classic"; }
+}
+
+export function writeBiboTheme(theme: BiboTheme): void {
+  try { localStorage.setItem(themeKey, theme); }
+  catch { /* The selected theme still works for the current visit. */ }
+}
+
 export function revealedFileLayout(state: {
   files: BiboFile[]; fileDetails: Record<string, BiboFile>; expandedFolders: Record<string, boolean>;
 }, id: string) {

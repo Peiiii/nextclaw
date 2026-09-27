@@ -3,7 +3,7 @@ import { Button, ConfirmDialog, LoadingState, Markdown, Notice, SegmentedControl
 import { FileActions } from "./file-actions";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
-export function FileEditor({ id, compact = false, defaultPreview = false, preview: selectedPreview, onPreviewChange }: { id: string; compact?: boolean; defaultPreview?: boolean; preview?: boolean; onPreviewChange?: (preview: boolean) => void }) {
+export function FileEditor({ id, compact = false, defaultPreview = false, tabId, preview: selectedPreview, onPreviewChange }: { id: string; compact?: boolean; defaultPreview?: boolean; tabId?: string; preview?: boolean; onPreviewChange?: (preview: boolean) => void }) {
   const { fileDetails, fileDrafts, editFile, saveFile, resolveFileConflict } = useBiboSpaceStore();
   const [localPreview, setLocalPreview] = useState(defaultPreview);
   const preview = selectedPreview ?? localPreview;
@@ -24,7 +24,7 @@ export function FileEditor({ id, compact = false, defaultPreview = false, previe
   const html = /\.(html?|svg)$/i.test(detail.path);
   const framed = `<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:"><style>body{margin:18px;font:14px/1.7 sans-serif;color:#29312a}</style>${draft.content}`;
   return (
-    <div className={`bibo-file-editor${compact ? " is-compact" : ""}`} onKeyDown={(event) => {
+    <div className={`bibo-file-editor${compact ? " is-compact" : ""}`} role={tabId ? "tabpanel" : undefined} id={tabId ? `${tabId}-panel` : undefined} aria-labelledby={tabId} onKeyDown={(event) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
         if (draft.dirty && !draft.saving) void saveFile(id);

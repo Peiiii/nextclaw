@@ -4,14 +4,23 @@ import {
   ActionMenu,
   ActionMenuItem,
   ActionMenuLink,
+  ActionMenuRadioGroup,
   Button,
   Dialog,
 } from "@nextclaw/personal-agent-ui";
 import { useBiboChatStore } from "@/features/chat/stores/bibo-chat.store";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
+import { useBiboSpaceStore } from "@/features/space";
+
+const themeOptions = [
+  { value: "classic", label: copy.classicTheme },
+  { value: "neutral", label: copy.neutralTheme },
+] as const;
 
 export function AccountMenu() {
   const store = useBiboChatStore();
+  const theme = useBiboSpaceStore((state) => state.theme);
+  const setTheme = useBiboSpaceStore((state) => state.setTheme);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
@@ -34,6 +43,8 @@ export function AccountMenu() {
             ref={trigger}
             className="account-menu-trigger"
             aria-label="账号与帮助"
+            tooltip="账号与帮助"
+            tooltipSide="right"
           >
             <CircleUserRound aria-hidden="true" />
             <span>{store.user?.email ?? "账号与帮助"}</span>
@@ -41,6 +52,7 @@ export function AccountMenu() {
           </Button>
         }
       >
+        <ActionMenuRadioGroup label={copy.theme} value={theme} options={themeOptions} onValueChange={setTheme} />
         <ActionMenuLink href="https://bibo.bot/" external>
           认识 Bibo ↗
         </ActionMenuLink>
