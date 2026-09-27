@@ -48,13 +48,15 @@ Navigate the file tree with Up/Down, expand or enter children with Right, and co
 
 Enter task names directly above the list and press Enter to keep adding tasks. The adjacent more button opens the same draft with description, subtasks, project, and date properties. Creating in Today or Upcoming assigns the corresponding due date. Double-click empty space in a month cell to create an event on that date, or click a half-hour slot in day/week view. Changing the start time preserves duration; 30/60/90-minute shortcuts adjust the end. An end before the start shows an error and blocks saving.
 
+After a task save succeeds, the list updates immediately and the input is ready for another task. Failed saves retain the draft for retry. Saved tasks remain after refresh or runtime restart. An existing workspace may need a one-time load during its first upgrade; creating a task through chat still waits for Bibo to process the conversation.
+
 An expanded empty folder says that it is empty; use that folder's action button to add content.
 
 Failed file or note list reads show an error and retry action instead of an empty collection. Failed search keeps the query and offers a retry in the tree.
 
 Failed overview, inbox, task, and calendar reads also show an error and retry action instead of empty data. Calendar keeps month navigation available, so you can retry or switch months if one month cannot load.
 
-Each account has an isolated runtime. You can clear your Bibo conversation and workspace from the web app. Inbox does not imply a connection to an external email account. External email and calendar accounts, web search, background schedules, and proactive notifications are not yet available. The current compressed workspace snapshot limit is 32 MiB; exceeding it reports a save failure.
+Each account has an isolated runtime. You can clear your Bibo conversation and workspace from the web app. Inbox does not imply a connection to an external email account. External email and calendar accounts, web search, background schedules, and proactive notifications are not yet available. Structured workspace data and compressed workspace snapshots each have a 32 MiB limit; exceeding either reports a save failure.
 
 The initial limit is 12 requests per hour and 4,000 characters per request, with 30 model calls per account per day and 200 model calls across the service per day. Account authentication uses the NextClaw platform; Bibo provides a separate, capped model trial. When the trial quota is exhausted, Bibo reports it before sending; a new conversation does not gain an empty session, and the input remains available to retry later. Background scheduled work and proactive notifications are not available yet. Check important results before relying on them.
 

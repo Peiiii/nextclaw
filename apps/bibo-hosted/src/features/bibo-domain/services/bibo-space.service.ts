@@ -5,7 +5,7 @@ import type {
   BiboProject, BiboTask,
 } from "@nextclaw/bibo-client";
 
-type State = {
+export type BiboSpaceState = {
   schema: 1;
   projects: BiboProject[];
   tasks: BiboTask[];
@@ -15,6 +15,8 @@ type State = {
   files: BiboFile[];
   replays: Record<string, unknown>;
 };
+type State = BiboSpaceState;
+type StateStorage = { load(): Promise<unknown>; save(state: State): Promise<void> };
 
 type Actor = { kind: "user" | "agent"; sessionId?: string };
 type ActionResult = { result: unknown; changed: boolean };
@@ -90,20 +92,27 @@ export class BiboSpaceService {
   private readonly deliveriesPath: string;
   private queue: Promise<void> = Promise.resolve();
 
-  constructor(home: string) {
+  constructor(home: string, private readonly stateStorage?: StateStorage) {
     this.root = resolve(home, "workspace");
     this.statePath = resolve(home, "bibo", "state.json");
     this.deliveriesPath = resolve(home, "inbox", "deliveries.json");
   }
 
   private load = async (): Promise<State> => {
+    if (this.stateStorage) {
+      const value = await this.stateStorage.load();
+      return value === undefined ? emptyState() : BiboSpaceService.parseState(value);
+    }
     let source: string;
     try { source = await readFile(this.statePath, "utf8"); }
     catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return emptyState();
       throw error;
     }
-    const value: unknown = JSON.parse(source);
+    return BiboSpaceService.parseState(JSON.parse(source));
+  };
+
+  static parseState = (value: unknown): State => {
     if (!value || typeof value !== "object" || (value as State).schema !== 1) throw new BiboSpaceError("个人空间数据格式无法读取。", 500);
     const state = value as State;
     if (![state.projects, state.tasks, state.events, state.inbox, state.files].every(Array.isArray) || !state.replays || typeof state.replays !== "object" || !state.deliveryStatuses || typeof state.deliveryStatuses !== "object") {
@@ -113,11 +122,15 @@ export class BiboSpaceService {
   };
 
   private save = async (state: State): Promise<void> => {
+    if (this.stateStorage) return this.stateStorage.save(state);
     await mkdir(dirname(this.statePath), { recursive: true });
     const temp = `${this.statePath}.${id()}.tmp`;
     try { await writeFile(temp, `${JSON.stringify(state, null, 2)}\n`, "utf8"); await rename(temp, this.statePath); }
     catch (error) { await rm(temp, { force: true }).catch(() => undefined); throw error; }
   };
+
+  exportState = (): Promise<State> => this.load();
+  importState = async (value: unknown): Promise<void> => { await this.save(BiboSpaceService.parseState(value)); };
 
   private safePath = (value: unknown): string => {
     if (typeof value !== "string" || !value || value.length > 512 || value.includes("\\") || value.includes("\0") || value.startsWith("/")) {

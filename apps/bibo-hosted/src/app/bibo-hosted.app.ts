@@ -2,6 +2,8 @@ import { Container, getContainer } from "@cloudflare/containers";
 import { readRunStream, streamEvent, type RunResult } from "./bibo-run-stream.utils";
 import { authRoute, cookieToken, currentUser, json, publicError } from "./bibo-auth.utils";
 import { checkChatAvailability, modelError, modelRoute } from "./bibo-model-gateway.service";
+import { BiboSpaceService, BiboSpaceError, type BiboSpaceState } from "../features/bibo-domain/services/bibo-space.service";
+import { BiboSpaceStateStore } from "./bibo-space-state.service";
 export { BiboModelBudget } from "./bibo-model-gateway.service";
 
 const MAX_SNAPSHOT_BYTES = 32 * 1024 * 1024;
@@ -14,15 +16,50 @@ export class BiboUserContainer extends Container<Env> {
   enableInternet = true;
   private inFlight = false;
   private spaceQueue: Promise<void> = Promise.resolve();
+  private readonly spaceState = new BiboSpaceStateStore(this.ctx.storage);
+  private readonly structuredSpace = new BiboSpaceService("/data", {
+    load: () => this.loadSpaceState(),
+    save: (state) => this.spaceState.save(state),
+  });
   private activeRun: { id: string; phase: "generating" | "saving"; controller: AbortController } | null = null;
 
   override async onStart(): Promise<void> {
-    const archive = await this.env.SNAPSHOTS.get(await this.ctx.storage.get<string>("snapshotKey") ?? this.ctx.id.toString());
-    if (!archive?.body) return;
-    const response = await this.containerFetch("http://localhost/restore", { method: "POST", body: archive.body });
-    await response.arrayBuffer();
-    if (!response.ok) throw new Error(`Bibo snapshot restore failed: ${response.status}`);
+    const snapshotKey = await this.ctx.storage.get<string>("snapshotKey");
+    const archive = await this.env.SNAPSHOTS.get(snapshotKey ?? this.ctx.id.toString());
+    if (snapshotKey && !archive?.body) throw new Error("Bibo committed snapshot is unavailable");
+    if (archive?.body) {
+      const response = await this.containerFetch("http://localhost/restore", { method: "POST", body: archive.body });
+      await response.arrayBuffer();
+      if (!response.ok) throw new Error(`Bibo snapshot restore failed: ${response.status}`);
+    }
+    const state = await this.spaceState.load();
+    if (state) await this.syncContainerSpace(state);
   }
+
+  private loadSpaceState = async (): Promise<BiboSpaceState | undefined> => {
+    const state = await this.spaceState.load();
+    if (state) return state;
+    const snapshotKey = await this.ctx.storage.get<string>("snapshotKey");
+    if (!snapshotKey && !await this.env.SNAPSHOTS.head(this.ctx.id.toString())) return undefined;
+    const loaded = await this.readContainerSpace();
+    await this.spaceState.save(loaded);
+    return loaded;
+  };
+
+  private readContainerSpace = async (): Promise<BiboSpaceState> => {
+    const response = await this.containerFetch("http://localhost/space/state");
+    if (!response.ok) throw new Error(`Bibo space read failed: ${response.status}`);
+    const { state } = await response.json() as { state: BiboSpaceState };
+    return BiboSpaceService.parseState(state);
+  };
+
+  private syncContainerSpace = async (state: BiboSpaceState): Promise<void> => {
+    const response = await this.containerFetch("http://localhost/space/state", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ state }),
+    });
+    await response.arrayBuffer();
+    if (!response.ok) throw new Error(`Bibo space sync failed: ${response.status}`);
+  };
 
   override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -101,6 +138,7 @@ export class BiboUserContainer extends Container<Env> {
     if (!body || !sessions.some((item) => item.id === body.id)) return publicError("会话不存在。", 404);
     let needsRestore = false;
     try {
+      await this.syncContainerSpace(await this.structuredSpace.exportState());
       needsRestore = true;
       const response = await this.containerFetch("http://localhost/sessions/delete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: body.id }) });
       await response.arrayBuffer();
@@ -118,6 +156,7 @@ export class BiboUserContainer extends Container<Env> {
   };
 
   private commitSnapshot = async (metadata: Record<string, unknown> = {}): Promise<Response | null> => {
+    const spaceState = await this.readContainerSpace();
     const snapshot = await this.containerFetch("http://localhost/snapshot");
     if (!snapshot.ok) {
       console.error("bibo-snapshot-failed", snapshot.status, (await snapshot.text()).slice(0, 300));
@@ -128,7 +167,7 @@ export class BiboUserContainer extends Container<Env> {
     const oldKey = await this.ctx.storage.get<string>("snapshotKey") ?? this.ctx.id.toString();
     const nextKey = `${this.ctx.id.toString()}/snapshots/${crypto.randomUUID()}`;
     await this.env.SNAPSHOTS.put(nextKey, archive);
-    try { await this.ctx.storage.put({ snapshotKey: nextKey, ...metadata }); }
+    try { await this.spaceState.save(spaceState, { snapshotKey: nextKey, ...metadata }); }
     catch (error) {
       await this.env.SNAPSHOTS.delete(nextKey).catch(() => undefined);
       throw error;
@@ -156,6 +195,12 @@ export class BiboUserContainer extends Container<Env> {
       if (new TextEncoder().encode(raw).byteLength > 1_100_000) return publicError("内容过大。", 413);
       const body = JSON.parse(raw) as { action?: unknown; input?: unknown };
       if (!body || typeof body.action !== "string") return publicError("缺少操作名称。", 400);
+      if (/^(task|project|event)\./.test(body.action)) {
+        const started = performance.now();
+        const result = await this.structuredSpace.execute(body.action, body.input ?? {});
+        return json({ result }, 200, { "server-timing": `space;dur=${(performance.now() - started).toFixed(1)}` });
+      }
+      await this.syncContainerSpace(await this.structuredSpace.exportState());
       const write = /\.(create|update|move|delete|read|resolve)$/.test(body.action);
       needsRestore = write;
       const response = await this.containerFetch("http://localhost/space", {
@@ -169,6 +214,7 @@ export class BiboUserContainer extends Container<Env> {
       needsRestore = false;
       return result;
     } catch (error) {
+      if (error instanceof BiboSpaceError) return publicError(error.message, error.status);
       console.error("bibo-space-failed", error instanceof Error ? error.message : String(error));
       return publicError("操作未能保存，请保留内容后重试。", 503);
     } finally {
@@ -239,6 +285,7 @@ export class BiboUserContainer extends Container<Env> {
       const payload = await this.prepareRun(request);
       if (payload instanceof Response) return payload;
       attemptedRun = true;
+      await this.syncContainerSpace(await this.structuredSpace.exportState());
       const response = await this.containerFetch("http://localhost/run", {
         method: "POST",
         headers: { "content-type": "application/json", ...(onDelta ? { accept: "text/event-stream" } : {}) },
@@ -277,7 +324,9 @@ export class BiboUserContainer extends Container<Env> {
 async function userRoute(request: Request, env: Env, url: URL): Promise<Response> {
   const path = url.pathname;
   const token = cookieToken(request);
+  const authStarted = performance.now();
   const user = await currentUser(token);
+  const authMs = performance.now() - authStarted;
   if (!user || !token) return publicError("请先登录。", 401);
   const container = getContainer(env.BIBO_USER, `user:${user.id}`);
   if (path === "/api/sessions" && request.method === "GET") return await container.fetch("https://bibo.internal/sessions");
@@ -290,9 +339,14 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
   });
   if (path === "/api/history" && request.method === "GET") return await container.fetch(`https://bibo.internal/history${url.search}`);
   if (path === "/api/chat/availability" && request.method === "GET") return await checkChatAvailability(env, user.id) ?? json({ ok: true });
-  if (path === "/api/space" && request.method === "POST") return await container.fetch("https://bibo.internal/space", {
-    method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
-  });
+  if (path === "/api/space" && request.method === "POST") {
+    const response = await container.fetch("https://bibo.internal/space", {
+      method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
+    });
+    const headers = new Headers(response.headers);
+    headers.append("server-timing", `auth;dur=${authMs.toFixed(1)}`);
+    return new Response(response.body, { status: response.status, headers });
+  }
   if (path === "/api/reset" && request.method === "POST") return await container.fetch("https://bibo.internal/reset", { method: "POST" });
   if (path === "/api/cancel" && request.method === "POST") return await container.fetch("https://bibo.internal/cancel", {
     method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
