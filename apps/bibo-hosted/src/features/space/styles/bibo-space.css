@@ -97,10 +97,23 @@
 .task-complete { @apply [width:44px] [height:44px] [font-size:22px]; }
 .calendar-mobile-agenda { @apply hidden; }
 .inbox-back { @apply hidden; }
-.inbox-layout .bibo-detail-pane h2 { @apply [overflow-wrap:anywhere] text-2xl [line-height:1.35]; }
+.workspace-page .inbox-layout { @apply [grid-template-columns:clamp(300px,_25%,_360px)_minmax(0,_1fr)]; }
+.inbox-layout .bibo-pane-label { @apply sticky top-0 [z-index:1] [height:56px] [background:var(--ui-surface)]; }
 .inbox-layout .ui-list-row > span:not(.bibo-unread-dot) { @apply min-w-0 flex-1; }
 .inbox-layout .ui-list-row strong { @apply [overflow-wrap:anywhere]; }
 .inbox-layout .ui-list-row small { @apply overflow-hidden text-ellipsis whitespace-nowrap; }
+.inbox-layout .bibo-unread-dot { @apply [align-self:flex-start] mt-1.5; }
+.inbox-item-meta { @apply flex justify-between items-center gap-2 mt-2 [color:var(--ui-muted)] text-xs; }
+.workspace-page .inbox-detail { @apply flex flex-col p-0 overflow-hidden; }
+.inbox-detail-toolbar { @apply flex flex-none flex-wrap items-center justify-between gap-2 [padding:8px_20px] [border-bottom:1px_solid_var(--ui-line)]; }
+.inbox-detail-toolbar .inbox-actions { @apply flex flex-wrap gap-2 [margin:0_0_0_auto]; }
+.inbox-detail-toolbar .ui-button { @apply [min-height:44px]; }
+.inbox-detail-feedback { @apply flex-none [padding:8px_20px]; }
+.inbox-reader { @apply flex-1 min-h-0 overflow-auto [padding:32px_clamp(24px,_4vw,_64px)_64px]; }
+.inbox-article { @apply min-w-0 [max-width:760px] mx-auto; }
+.inbox-article-heading { @apply mb-6; }
+.inbox-title { @apply [font-family:inherit] text-2xl font-semibold [line-height:1.4] [overflow-wrap:anywhere] [margin:8px_0_0]; }
+.inbox-article .bibo-readable { @apply [max-width:none]; }
 .bibo-note-list .ui-list-row strong { @apply overflow-hidden text-ellipsis whitespace-nowrap block; }
 .workspace-not-found { @apply p-8; }
 .workspace-page > .bibo-inline-input { @apply flex-none [margin:12px_16px]; }
@@ -334,7 +347,7 @@
 
 @media (max-width: 1100px) {
   .inbox-back { @apply inline-flex; }
-  .inbox-layout { @apply block; }
+  .workspace-page .inbox-layout { @apply block; }
   .inbox-layout:not(.is-detail-open) .bibo-detail-pane { @apply hidden; }
   .inbox-layout.is-detail-open .bibo-list-pane { @apply hidden; }
   .bibo-workspace { @apply [width:45%] [min-width:290px]; }
@@ -389,6 +402,10 @@
   .bibo-day-agenda { @apply [max-height:none] p-4.75; }
   .workspace-page .workspace-toolbar { @apply [padding:8px_12px] gap-1.5; }
   .workspace-page .bibo-detail-pane { @apply p-4; }
+  .workspace-page .inbox-detail { @apply p-0; }
+  .inbox-detail-toolbar { @apply [padding:8px_12px]; }
+  .inbox-reader { @apply [padding:24px_18px_40px]; }
+  .inbox-title { @apply text-xl; }
   .calendar-stage { @apply flex flex-col; }
   .calendar-surface { @apply flex-1; }
   .calendar-inspector { @apply hidden flex-1 p-4 border-0; }
