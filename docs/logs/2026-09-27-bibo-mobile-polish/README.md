@@ -2,7 +2,7 @@
 
 ## 迭代完成说明
 
-界面实现及本地验收完成，发布进行中。用户要求统一优化 BB 网页的字体、间距、布局与交互，最终选用普通文字 14px，并明确授权发布上线。范围见[问题与方案清单](../../designs/2026-09-27-bibo-mobile-polish.design.md)。
+界面实现、本地验收及线上发布完成。用户要求统一优化 BB 网页的字体、间距、布局与交互，最终选用普通文字 14px，并明确授权发布上线；后续侧边栏与输入区纠正已随第二次前端部署交付。范围见[问题与方案清单](../../designs/2026-09-27-bibo-mobile-polish.design.md)。
 
 普通字号原先分散为 12／13／14／16px，由公共 theme 的 `--text-base` 统一拥有；正文、代码、导航、会话名、表单及输入面板共用，突出标题和空间密集元素保留例外。抽屉模块 40px 行距，独立触控操作 44px；任务首行对齐、窄屏筛选布局、概览状态标签与正文滚动区域均已修正。
 
@@ -22,7 +22,13 @@
 
 计划精确提交本批、合并同期主线并验证，从干净冻结的远程 master 执行 Bibo `deploy:client`。本批仅网页、静态帮助页和公共 UI，runner、容器及 Worker 到容器协议不变；保留线上镜像。部署前容器 `a03967fb-95da-496d-8c90-a4b4a010667a`，镜像 `sha256:b32bcfb2cde302b69944695df41ee5395ee3f27a6d1d6acc36cc1515f55b381a`、version 22、active、5 实例；部署后核对身份、静态资产和桌面／手机页面。
 
-第一版主线 `5e94a775f10233bef9e93057add605514f83923b` 已通过 deploy:client 上线，Worker 版本 `73fbf673-2d83-4c9c-81e5-ccaf24685f2e`；线上 JS／CSS 与冻结构建逐字节 SHA256 相同，容器 id、镜像、version 与实例数保持。以上后续侧边栏与输入区修正将再次冻结主线后部署前端。主工作区原有想法文档 WIP 保留；第一次 `release:reconcile:mainline` 返回 LOCAL_WORKTREE_RETRYING，由 retry worker 负责本地主线闭合，未强行覆盖 WIP。
+第一版主线 `5e94a775f10233bef9e93057add605514f83923b` 已通过 deploy:client 上线，Worker 版本 `73fbf673-2d83-4c9c-81e5-ccaf24685f2e`；线上 JS／CSS 与冻结构建逐字节 SHA256 相同，容器 id、镜像、version 与实例数保持。后续侧边栏与输入区修正的最终部署见下文。主工作区原有想法文档 WIP 保留；第一次 `release:reconcile:mainline` 返回 LOCAL_WORKTREE_RETRYING，由 retry worker 负责本地主线闭合，未强行覆盖 WIP。
+
+最终前端部署冻结于干净远程 master `9a154ee3cc0356d536bd794f3c4a6f525d2cc7c5`，执行 `deploy:client --containers-rollout none`（脚本内参数），Worker 版本 `cd617574-8015-4928-b137-ccc5e4d495ba`。线上 composer 回放重新验证桌面 48px、手机 24px 单行与同排发送、内容增长／清空，以及后台切换和失败恢复；收件箱五视口和相对时间检查通过。部署前后容器 id、镜像 SHA256、version 22、5 实例及更新时间完全一致，状态 ready。最终 `release:reconcile:mainline` 继续由已有 pid 53415 retry worker 接管，原因仅为主工作区有受保护的活跃 WIP；远程主线已包含本批，未声称本地 master 已快进。临时 5492 测试服务已停止，原 5388 预览保留。
+
+线上 HTML 引用的三项资产与本地冻结构建字节完全相同：`index-DteeZBvB.js` SHA256 `f8d7a7efd3f0574dfad48d199795b86cc7f568e28999e30fce4b6d9ced0a5aa6`、`index-Dj5nFUvV.css` SHA256 `2891a3ebed06d3b3773f12b7d62fdf2dae01fa3179b4dcb260c7f8c15913f55f`、`katex-Dqjy2yOe.js` SHA256 `d413e993070559d7a1cacd9a13c8155419370991ef6fb60a8e258844ecd041c8`；`/help` 已显示 14px 与两端输入布局说明。最后只提交本发布记录，未修改部署产物，因此不重复部署。线上资源的固定账号／会话回放截图为 `online-composer-desktop.png` 与 `online-composer-390.png`，与前述真实模型检查区分。
+
+`AUTOMATION_INTERVENTIONS: 3`：首轮发布后的验收修正分别是旧桌面尺寸断言、模型文件创建提示含糊、专项测试误认被占用端口。消除落点分别为 pointer 类型断言、明确 JSON 工具输入且保持逐字内容验证、只等待本测试启动的预览并保留失败诊断。用户后续补充的界面修正属于第二批发布准备；正常 dispatch、只读身份核对、瞬时网络传输复验和主线 owner 自动重试不计。没有手工修改线上版本、镜像或发布阶段身份。
 
 ## 用户/产品视角的验收步骤
 
