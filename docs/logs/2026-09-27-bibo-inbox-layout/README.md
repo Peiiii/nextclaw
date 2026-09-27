@@ -19,7 +19,7 @@
 
 最终从干净且 HEAD=origin/master 的 0a74498200f9862b4fcd6e37596934f1ab5c7e25 执行 deploy:client，Worker version 3c43fccf-f096-409e-a356-209e2eab6fcb，入口 https://app.bibo.bot/inbox。布局与规范均已合入远程主干。Docs Deploy 36317155664（d432c66c7）build／全球／国内／同产物 verify 全部成功；之后仅流程和交付证据更新，不改变已上线的用户说明。
 
-AUTOMATION_INTERVENTIONS: 2：发布范围纠偏（前端误走全量，已由专用命令和交付规范消除）；Git 连接恢复（HTTPS／SSH 443 超时后使用已认证的 GitHub SSH 22，普通推送成功，未改全局网络或凭据）。本地主干 reconcile 收尾待执行。
+AUTOMATION_INTERVENTIONS: 2：发布范围纠偏（前端误走全量，已由专用命令和交付规范消除）；Git 连接恢复（HTTPS／SSH 443 超时后使用已认证的 GitHub SSH 22，普通推送成功，未改全局网络或凭据）。主线 reconcile 返回 LOCAL_WORKTREE_RETRYING，复用 worker 82100；源区 master 保留原有五项 thought WIP，不能声称已本地同步。后续合并主干操作反馈更新仅为保留并发工作，合并后三配置 tsc、前端构建及本地五尺寸布局通过，不重发已成功的 0a7449820 冻结前端产物。
 
 停止前观察到线上版本 8e12fd15-64d8-4076-9855-ef5983207e43，本任务日志仍处于资产上传且没有完成 Worker 发布，不能把并发版本归为本任务。停止只影响本任务部署进程树。Git HTTPS 推送曾停滞，核对远程 SHA 后只停止本任务 Git 进程，以 HTTP/1.1 有界重试完成。
 
