@@ -13,6 +13,10 @@
 - 最终构建的完整product、Markdown与1440/390/320资源回归通过，截图目视确认两栏和移动工作区。实现Review核对单一URI/打开owner、账号与最新请求保护、草稿不覆盖、路径权限及真实a语义，implementation-review: passed。集成diff自动Review 0 error，7个预算/历史目录告警包含合入主干的模块，本批store399/400；不扩大治理范围。发布必须更新后端镜像，不能使用frontend-only策略。
 - 干净冻结环境首次构建发现Vite配置的开发服务也消费shared公共产物，旧build:client只先构建agent-chat-ui。补齐shared的标准构建前置，不绕过公共package边界；首次deploy在缺dist/public时即阻止，无远程发布。正式测试账号模型availability返回429今日额度耗尽，真实模型生成项保持未验证；继续正式文件API读写和受控回答的浏览器引用验证，不绕过额度或冒充AI生成。
 - 本地开发服务专项：共享UI的development入口含包内alias，宿主直接解析源码会失败；serve改用公共默认构建入口，并统一UI依赖构建步骤供dev/build使用，没有消费者跨包alias。5297服务重启后资源专项三尺寸通过；新配置生产输出179文件与冻结379219eb3完全同SHA256，正式行为未改变。Docker临时认证目录还需显式发现本机buildx插件，补配置后同源全量构建继续；不改全局凭据、不回显令牌。
+- 发布闭环：实现accf63271安全集成主干至379219eb3，冻结同SHA干净worktree完整构建/部署Worker `ccb17461-aacf-4565-9ae7-ee8d83573f9e`、镜像`d8aa4fbf…`。并行待办任务随后从包含本批的e70f4a3cf发布身份缓存修复，最终线上Worker `ec225c8f-e0dc-4770-b4f1-edb449c130a9`、镜像`sha256:1fdacbe0cc86db7f791a9859304dad695cee8fbc590412cfc77b2c27815b7137`；rollout9046fd3d由该任务核验completed/100%，本任务独立查容器version21、active_rollout_id=null、health无错误/失败。未反复覆盖彼此版本，等待共享账号测速后继续资源验收。
+- 正式静态UI配受控API在1440/390/320通过完整资源专项；八个入口/深路径200，`/assets/index-Cq_AbLWE.js`与`/assets/chunk-DECur_0Z.js`字节SHA256相符。真实隔离账号文件API保存artifact返回URI；浏览器仅对回答历史注入该真实URI，其他账号/文件/保存服务均为正式请求。1440/390实际预览、编辑保存精确读回、跨目录改名后旧ID引用、手机关闭返回、独立文件页刷新全部通过，截图`/tmp/workspace-resources-real-{1440,390}.png`目视正常，所有临时文件/文件夹/会话finally清理。第一次验收在滚动未完成时命中旧version19、uri缺失，明确失败并清理；新version21复验通过，不隐藏部署窗口差异。
+- 最新集成保留待办身份缓存，应用三套tsc与40项测试通过；dev-only调整的179个生产文件仍与379冻结产物全SHA256相同，无需再次滚动容器。模型availability429导致“真实AI保存并在回答引用”未运行，不将受控历史当AI生成。用户说明双站manifest d27核验复用待办任务最终日志；该SHA包含本轮用户说明，随后构建/开发修正未改变用户说明。主工作区独立thought WIP保留，reconcile复用18523，LOCAL_WORKTREE_RETRYING；不报告本地主干已快进。
+- AUTOMATION_INTERVENTIONS: 2（干净构建缺公共依赖，已纳入统一标准构建；临时Docker配置缺buildx插件，临时补发现路径恢复，不改全局配置）。401的cloudchamber alpha curl不作为rollout证据，使用受支持containers info和并行发布任务的完成证据。普通产品修复，已有patch changeset，不发布NPM/runtime/desktop，不生成博客；父合同剩余项与模型生成未验证项继续开放。
 
 ## 2026-09-27 视觉体系与概览摘要纠偏
 
