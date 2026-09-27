@@ -24,13 +24,15 @@
 | IconButton | 32px 点击区、17–18px Lucide 图标，必须有具体动作名称 | 44px 点击区 |
 | SegmentedControl | 外框约 32px、14px 字；同一内容的范围／视图切换，aria-pressed 表达选中 | 选项最小宽／高 44px |
 | Tab / TabList | 34px 高、8px 圆角、14px 字；选中浅色表面；关闭槽位独立，长名省略 | 44px 高，标签栏内部横向滚动 |
-| Composer | 22px 圆角、轻边框／阴影，与正文列对齐；聚焦不改变容器外观；输入一行 24px 起步，按内容增长到 168px | 固定在可用阅读区底部，多行在自身内部滚动；发送／停止保持 44px 命中 |
+| Composer | 22px 圆角、轻边框／阴影，与正文列对齐；聚焦不改变容器外观；输入保留两行 48px 书写空间，按内容增长到 168px | 输入从一行 24px 开始，与发送／停止同排，清空后缩回一行；发送／停止保持 44px 命中，多行超过上限在自身内部滚动 |
 
 两种主题只改变语义颜色和轻阴影，不改变几何或 DOM 身份。默认「Bibo 经典」保留暖白与绿色，「简约」使用中性色。业务样式消费 canvas/sidebar/surface/ink/muted/line/primary/selection/hover/focus 等语义 token，不能为同级控件写固定颜色。
 
 TabList 用左／右、Home／End 移动焦点，Enter／Space 激活，避免键盘经过时触发文件读取；关闭按钮不嵌套在 Tab 按钮内。分段控件使用按钮组语义，不能因外观类似就替代文件 Tab。
 
 分段控件的外层底板使用 hover token，悬停选项使用对比更强的 selection-hover token 与 ink 文字；选中项使用 surface。验收必须比较真实底板上的悬停色，不能只证明背景色数值发生变化。
+
+图标导航栏同样须比较实际承载面的颜色，底板已用 hover token 时，悬停反馈使用 selection-hover。会话入口是 flex 行，长标题放在独立的 `min-width:0` 可收缩截断节点中；右侧操作保留独立空间，hover、键盘焦点和菜单展开时完整显示，不能靠裁切文字为按钮让位。
 
 ### Tooltip
 

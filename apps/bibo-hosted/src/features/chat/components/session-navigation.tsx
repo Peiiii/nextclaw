@@ -146,7 +146,7 @@ export function SessionNavigation({
             aria-label={session.title}
             onClick={onNavigate}
           >
-            {session.title}
+            <span className="bibo-session-title">{session.title}</span>
             {store.phase !== "idle" && store.runSessionId === session.id && <LoaderCircle aria-hidden="true" className="bibo-session-progress motion-safe:animate-spin" />}
           </Link></NavigationItem>
           <SessionActions session={session} />

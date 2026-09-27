@@ -69,6 +69,9 @@ async function checkNavigationFeedback(page: Page, width: number): Promise<void>
   }));
   assert.ok(iconShapes.every((box) => Math.abs(box.width - box.height) < .5), JSON.stringify(iconShapes));
   if (width > 760) {
+    const taskEntry = page.getByRole("navigation", { name: "工作空间" }).getByRole("link", { name: "任务", exact: true });
+    await taskEntry.hover();
+    assert.equal(await taskEntry.evaluate((element) => getComputedStyle(element, "::before").backgroundColor === getComputedStyle(element.closest(".bibo-navigation-rail")!).backgroundColor), false, "navigation hover must differ from the rail background");
     const entry = page.getByRole("navigation", { name: "工作空间" }).getByRole("link", { name: "收件箱", exact: true });
     await entry.hover();
     const hint = page.getByRole("tooltip", { name: "收件箱", exact: true });

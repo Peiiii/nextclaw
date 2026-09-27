@@ -64,7 +64,7 @@ try {
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await mockApi(page);
-      await page.goto(`${base}/inbox`);
+      await page.goto(`${base}/inbox`, { waitUntil: "domcontentloaded" });
       const list = page.locator(".bibo-list-pane");
       const choose = async (name: string) => {
         if (width <= 1100 && await page.locator(".inbox-back").isVisible()) await page.locator(".inbox-back").click();
@@ -88,7 +88,8 @@ try {
       await reader.evaluate((node) => node.scrollTo(0, node.scrollHeight));
       const read = page.getByRole("button", { name: "标记已读", exact: true });
       const rect = await read.boundingBox();
-      assert.ok(rect && rect.y >= 0 && rect.y + rect.height <= 200 && rect.height >= 44, "actions remain accessible while reading");
+      const minimumActionHeight = await page.evaluate(() => matchMedia("(pointer: coarse)").matches ? 44 : 32);
+      assert.ok(rect && rect.y >= 0 && rect.y + rect.height <= 200 && rect.height >= minimumActionHeight, "actions remain accessible while reading");
       await read.click();
       await read.waitFor({ state: "hidden" });
       await choose("另一条很长");

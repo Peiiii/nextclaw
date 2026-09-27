@@ -36,7 +36,7 @@ const headers = { cookie };
 const requestId = `bibo-live-${crypto.randomUUID().slice(0, 8)}`;
 const artifactPath = `${requestId}.md`;
 const artifactContent = `# ${requestId}\n\n真实 Agent 文件验收。`;
-const prompt = `请调用 bibo 工具执行 file.create，input 的 path=${artifactPath}、kind=artifact、content 严格为：\n${artifactContent}\n创建后调用 show_file，path 使用返回的文件路径，viewer=rendered，在右侧预览该文件。不要用 shell 或直接修改 JSON。成功后用一句话回复“${requestId} 已收到”，不要创建其他对象。`;
+const prompt = `请调用 bibo 工具执行 file.create，input 严格使用这个 JSON：${JSON.stringify({ path: artifactPath, kind: "artifact", content: artifactContent })}。content 必须与 JSON 字符串逐字一致，不添加末尾换行。创建后调用 show_file，path 使用返回的文件路径，viewer=rendered，在右侧预览该文件。不要用 shell 或直接修改 JSON。成功后用一句话回复“${requestId} 已收到”，不要创建其他对象。`;
 const abort = new AbortController();
 const timeout = setTimeout(() => abort.abort(), 300_000);
 let createdSessionId: string | undefined;

@@ -193,6 +193,19 @@ async function checkLongConversation(page: Page, width: number): Promise<void> {
   await page.getByRole("button", { name: "关闭工作区" }).click();
   if (width <= 760) await page.getByRole("button", { name: "打开菜单" }).click();
   else await page.locator(".bibo-session-wrap").hover();
+  const sidebar = await page.locator(".bibo-session-wrap").evaluate((row) => {
+    const label = row.querySelector<HTMLElement>(".bibo-session-title")!;
+    const button = row.querySelector<HTMLButtonElement>(".session-actions button")!;
+    const box = button.getBoundingClientRect();
+    return { truncated: label.scrollWidth > label.clientWidth,
+      overflow: getComputedStyle(label).textOverflow,
+      separated: label.getBoundingClientRect().right <= box.left,
+      opacity: getComputedStyle(button.parentElement!).opacity,
+      topmost: document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)?.closest("button") === button };
+  });
+  assert.equal(sidebar.truncated && sidebar.separated && sidebar.topmost, true, "long title leaves an unobstructed action target");
+  assert.equal(sidebar.overflow, "ellipsis");
+  assert.equal(sidebar.opacity, "1", "more actions are fully opaque when revealed");
   await page.getByRole("button", { name: /^管理会话/ }).click();
   await page.getByRole("menuitem", { name: "重命名" }).click();
   await checkContentBounds(page);

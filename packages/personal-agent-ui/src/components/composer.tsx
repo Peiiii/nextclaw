@@ -23,8 +23,19 @@ export function Composer({ value, onChange, onSend, onStop, busy, canStop, place
   useLayoutEffect(() => {
     const input = textareaRef.current;
     if (!input) return;
-    input.style.height = "auto";
-    input.style.height = `${Math.min(168, Math.max(24, input.scrollHeight))}px`;
+    const resize = () => {
+      input.style.height = "auto";
+      input.style.height = `${Math.min(168, Math.max(24, input.scrollHeight))}px`;
+    };
+    resize();
+    let width = input.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (input.clientWidth === width) return;
+      width = input.clientWidth;
+      resize();
+    });
+    observer.observe(input);
+    return () => observer.disconnect();
   }, [value]);
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {

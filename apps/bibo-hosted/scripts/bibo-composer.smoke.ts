@@ -88,9 +88,24 @@ async function setupComposer(page: Page, width: number): Promise<MockState> {
   return state;
 }
 
+async function checkComposerGeometry(page: Page, width: number): Promise<void> {
+  const { input, send } = controls(page);
+  await input.waitFor();
+  const inputBox = (await input.boundingBox())!;
+  const sendBox = (await send.boundingBox())!;
+  if (width < 760) {
+    assert.equal(inputBox.height, 24, "mobile starts with one text line");
+    assert.ok(sendBox.y < inputBox.y + inputBox.height && sendBox.x >= inputBox.x + inputBox.width, "mobile send action shares the input row");
+    await input.fill("第一行\n第二行\n第三行");
+    assert.ok((await input.boundingBox())!.height >= 72, "mobile grows with its content");
+    await input.fill("");
+    assert.equal((await input.boundingBox())!.height, 24, "clearing restores one line");
+  } else assert.equal(inputBox.height, 48, "desktop retains two lines of writing space");
+}
+
 async function checkGeneration(page: Page, width: number, state: MockState): Promise<void> {
   const { input, send, stop } = controls(page);
-  await input.waitFor();
+  await checkComposerGeometry(page, width);
   assert.ok(await send.isDisabled());
   await input.fill("原始问题");
   await input.evaluate((element) => element.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, isComposing: true })));
