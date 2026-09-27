@@ -48,6 +48,14 @@
 .task-undo .ui-notice { @apply m-0 min-w-0 flex-1 [overflow-wrap:anywhere]; }
 .task-undo > .ui-button { @apply flex-none; }
 .bibo-task-row.is-complete strong { @apply line-through [color:var(--ui-muted)]; }
+.bibo-task-row.is-cancelled strong { @apply [color:var(--ui-muted)]; }
+.bibo-ended-tasks { @apply mt-2; }
+.bibo-ended-tasks > summary { @apply flex items-center gap-2 mx-2 px-3 py-3 rounded-lg text-xs [color:var(--ui-muted)] cursor-pointer list-none; }
+.bibo-ended-tasks > summary::-webkit-details-marker { display: none; }
+.bibo-ended-tasks > summary:hover { @apply [background:var(--ui-hover)]; }
+.bibo-ended-tasks > summary:focus-visible { @apply [outline:2px_solid_var(--ui-focus)] outline-offset-2; }
+.bibo-ended-tasks > summary svg { @apply size-4 transition-transform motion-reduce:transition-none; }
+.bibo-ended-tasks[open] > summary svg { @apply rotate-90; }
 .bibo-task-row > span:first-child { @apply flex-1 min-w-0; }
 .task-complete { @apply [font-size:18px]; }
 .calendar-mobile-agenda { @apply hidden; }
@@ -129,7 +137,6 @@
 .bibo-task-state { @apply [width:20px] [font-size:17px] [color:var(--ui-muted)]; }
 .bibo-task-row strong { @apply text-sm font-semibold; }
 .bibo-task-row small { @apply block mt-1.25 [color:var(--ui-muted)] text-xs; }
-.bibo-task-status-label { @apply flex-none [margin-left:auto] [color:var(--ui-muted)] text-xs whitespace-nowrap; }
 .bibo-board { @apply grid [grid-template-columns:repeat(4,_minmax(180px,_1fr))] gap-0.25 [background:var(--bibo-hairline)] [min-height:100%] overflow-x-auto; }
 .bibo-board section { @apply [background:var(--ui-surface)]; }
 .bibo-board h3 { @apply m-0 [padding:14px_12px] text-xs [color:var(--ui-muted)]; }
