@@ -196,7 +196,7 @@ function TaskToolbar({
         value={taskQuery}
         onChange={(event) => filterTasks(event.target.value, project)}
       />
-      <Select
+      <div className="task-project-filter"><Select
         aria-label="按项目筛选"
         value={project}
         onChange={(event) => setProject(event.target.value)}
@@ -221,7 +221,7 @@ function TaskToolbar({
           管理项目
         </Button>
       )}
-      <span className="bibo-filter-spacer" />
+      </div>
       <SegmentedControl
         label="任务视图"
         value={mode}

@@ -80,7 +80,7 @@ async function checkHistory(page: Page) {
   await page.goForward();
   await page.getByText("正文 b", { exact: true }).waitFor();
   assert.equal(await input.inputValue(), "B 的草稿");
-  await page.getByRole("button", { name: "＋ 新对话", exact: true }).click();
+  await page.getByRole("button", { name: "新对话", exact: true }).click();
   await page.waitForURL(`${base}/chat`);
   await page.locator(".bibo-welcome").waitFor();
   assert.equal(await page.locator(".ui-message").count(), 0);
@@ -139,6 +139,11 @@ async function checkLogin(page: Page) {
 async function verifyViewport(page: Page, width: number) {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  await page.addInitScript(() => {
+    new MutationObserver(() => {
+      if (document.body?.innerText.includes("正在打开…")) document.documentElement.dataset.startupTextShown = "true";
+    }).observe(document, { childList: true, subtree: true, characterData: true });
+  });
   const state = await mockNavigation(page);
   await page.goto(`${base}/chat/a`, { waitUntil: "networkidle" });
   await checkHistory(page);
@@ -154,6 +159,7 @@ async function verifyViewport(page: Page, width: number) {
   await page.getByText("这段对话不存在或已删除。请选择其他对话，或新建对话。", { exact: true }).waitFor();
   assert.equal(await page.locator(".ui-message").count(), 0);
   assert.equal(state.creates, 0, "navigation must never create backend sessions");
+  assert.notEqual(await page.evaluate(() => document.documentElement.dataset.startupTextShown), "true", "cold entry must not flash a separate opening page");
   assert.deepEqual(errors, []);
   await page.screenshot({ path: `/tmp/bibo-routing-${width}.png` });
   console.log(`Routing ${width}: history, drafts, blank chat, direct links, refresh, race and missing session passed`);

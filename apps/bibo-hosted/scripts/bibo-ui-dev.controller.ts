@@ -174,6 +174,7 @@ export function biboUiDevController(): Plugin {
 
         try {
           if (pathname === "/api/auth/me") return json(response, { user });
+          if (pathname === "/api/chat/availability") return json(response, { ok: true });
           if (pathname === "/api/history") {
             const selectedId = new URL(request.url!, "http://localhost").searchParams.get("id");
             return json(response, { messages: histories.get(selectedId ?? sessions[0]?.id ?? "") ?? [] });
