@@ -12,6 +12,7 @@
 - 集成结果：保留主干ChatMessageMarkdown公共渲染器、流式消息稳定ID、DO任务直存及快照修正；删除本批临时渲染factory改造，资源解析通过共享Markdown的urlTransform公共能力接入，脚注/图片/图表原能力保留。复用主干分页reader，不保留重复日程读取函数。工具注册从domain根移至容器app贡献入口，Worker消费domain公共服务时不加载harness；边界bundle测试先暴露动态process require，完成隔离后36项测试及应用三套tsc通过。
 - 最终构建的完整product、Markdown与1440/390/320资源回归通过，截图目视确认两栏和移动工作区。实现Review核对单一URI/打开owner、账号与最新请求保护、草稿不覆盖、路径权限及真实a语义，implementation-review: passed。集成diff自动Review 0 error，7个预算/历史目录告警包含合入主干的模块，本批store399/400；不扩大治理范围。发布必须更新后端镜像，不能使用frontend-only策略。
 - 干净冻结环境首次构建发现Vite配置的开发服务也消费shared公共产物，旧build:client只先构建agent-chat-ui。补齐shared的标准构建前置，不绕过公共package边界；首次deploy在缺dist/public时即阻止，无远程发布。正式测试账号模型availability返回429今日额度耗尽，真实模型生成项保持未验证；继续正式文件API读写和受控回答的浏览器引用验证，不绕过额度或冒充AI生成。
+- 本地开发服务专项：共享UI的development入口含包内alias，宿主直接解析源码会失败；serve改用公共默认构建入口，并统一UI依赖构建步骤供dev/build使用，没有消费者跨包alias。5297服务重启后资源专项三尺寸通过；新配置生产输出179文件与冻结379219eb3完全同SHA256，正式行为未改变。Docker临时认证目录还需显式发现本机buildx插件，补配置后同源全量构建继续；不改全局凭据、不回显令牌。
 
 ## 2026-09-27 视觉体系与概览摘要纠偏
 

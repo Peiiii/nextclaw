@@ -4,9 +4,9 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
 import { biboUiDevController } from "./scripts/bibo-ui-dev.controller";
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode, command }) => ({
   plugins: [tailwindcss(), react(), ...(mode === "ui" ? [biboUiDevController()] : [])],
-  resolve: { alias: { "@": path.resolve(import.meta.dirname, "src") } },
+  resolve: { conditions: command === "serve" ? ["module", "browser"] : undefined, alias: { "@": path.resolve(import.meta.dirname, "src") } },
   publicDir: "static",
   build: { outDir: "dist/public", emptyOutDir: true },
   server: {
