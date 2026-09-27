@@ -1,5 +1,7 @@
 # Bibo hosted companion
 
+The website, app and help page share a purple Bibo icon in browser tabs, making Bibo easier to find among open pages.
+
 Forms, menus, and feedback share a consistent text hierarchy, with readable input sizes on phones. Save notifications have a separate close button; errors stay near the relevant action so you can correct or retry it.
 
 Sections have dedicated addresses: `/chat`, `/tasks`, `/calendar`, `/notes`, `/files`, and `/inbox`, with the overview at `/`. Open an existing conversation at `/chat/conversation-id`. Refresh, Back, and Forward preserve the current location.
