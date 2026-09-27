@@ -155,6 +155,7 @@ export function BiboApp() {
         <h1 className="workspace-title" title={workspaceTitle}>{workspaceTitle}</h1>
       </div>{space.view === "chat" && <div className="bibo-topbar-actions"><IconButton label={copy.newConversation} icon={<Plus />} onClick={() => void store.createSession()} /><IconButton label={copy.workspace} icon={<PanelRight />} aria-pressed={space.workspaceOpen} onClick={space.workspaceOpen ? space.closeWorkspace : space.showWorkspace} /></div>}</header>
       <Outlet />
+      {route.view === "chat" && <BiboWorkspace />}
     </main>
     <nav className="bibo-mobile-nav" aria-label="手机快捷导航">{navigation.slice(0, 5).map((item) => <Link key={item.view} to={workspaceHref(item.view, store.activeSessionId)} className={space.view === item.view ? "is-active" : ""} aria-current={space.view === item.view ? "page" : undefined} onClick={closeMenu}><item.icon aria-hidden="true" />{item.label}</Link>)}<button className={space.view === "notes" || space.view === "files" ? "is-active" : ""} onClick={() => store.setMenuOpen(true)}><Menu aria-hidden="true" />更多</button></nav>
     {store.authChecked && !store.user && <AuthPanel />}
@@ -204,7 +205,7 @@ export function ChatPage() {
           readOnly={sessionSwitching} busyLabel={copy.busy}
           placeholder={copy.placeholder} sendLabel={copy.send} stopLabel={copy.stop} />
       </div>
-      </div><BiboWorkspace /></div>;
+      </div></div>;
 }
 
 export function SpacePage() {

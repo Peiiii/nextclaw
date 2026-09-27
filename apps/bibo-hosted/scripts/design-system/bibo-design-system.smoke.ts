@@ -3,6 +3,7 @@ import type { Page } from "playwright";
 
 export async function checkThemes(page: Page, width: number, base: string): Promise<void> {
   await page.goto(`${base}/chat/session-a`, { waitUntil: "networkidle" });
+  if (width > 760) await checkShellFrame(page, width);
   const composer = page.getByRole("textbox", { name: /告诉 Bibo/ });
   await composer.fill("主题切换期间保留草稿");
   const message = await page.locator(".ui-message--assistant").first().elementHandle();
@@ -22,6 +23,7 @@ export async function checkThemes(page: Page, width: number, base: string): Prom
   await composer.fill("");
   await page.reload({ waitUntil: "networkidle" });
   assert.equal(await page.locator("html").getAttribute("data-bibo-theme"), "neutral", "theme survives refresh");
+  if (width > 760) await checkShellFrame(page, width);
   if (width < 760) await page.getByRole("button", { name: "打开菜单" }).click();
   await page.getByRole("button", { name: "账号与帮助" }).click();
   assert.equal(await page.getByRole("menuitemradio", { name: "简约", exact: true }).getAttribute("aria-checked"), "true");
@@ -32,6 +34,35 @@ export async function checkThemes(page: Page, width: number, base: string): Prom
     await page.getByRole("dialog").waitFor({ state: "hidden" });
   }
   assert.equal(await page.locator("html").getAttribute("data-bibo-theme"), "classic");
+}
+
+async function checkShellFrame(page: Page, width: number): Promise<void> {
+  await page.getByRole("button", { name: "打开右侧工作区" }).click();
+  const frame = await page.evaluate(() => {
+    const nodes = [".bibo-shell", ".bibo-navigation-rail", ".bibo-topbar", ".bibo-workspace-head"].map((selector) => document.querySelector<HTMLElement>(selector)!);
+    const colors = nodes.map((node) => {
+      for (let parent: HTMLElement | null = node; parent; parent = parent.parentElement) {
+        const color = getComputedStyle(parent).backgroundColor;
+        if (color !== "rgba(0, 0, 0, 0)" && color !== "transparent") return color;
+      }
+      return "transparent";
+    });
+    const top = nodes[2]!.getBoundingClientRect();
+    const head = nodes[3]!.getBoundingClientRect();
+    const content = document.querySelector<HTMLElement>(".bibo-workspace-content")!;
+    return { colors,
+      aligned: top.top === head.top && top.bottom === head.bottom && content.getBoundingClientRect().top === top.bottom,
+      radius: parseFloat(getComputedStyle(content).borderTopLeftRadius),
+      margin: innerWidth - document.querySelector(".bibo-workspace")!.getBoundingClientRect().right };
+  });
+  assert.equal(new Set(frame.colors).size, 1, "left, top and workspace header form one continuous frame");
+  assert.equal(frame.aligned, true, "workspace title shares the global header row");
+  assert.ok(frame.radius >= 16 && frame.radius <= 20 && frame.margin === 8);
+  await page.screenshot({ path: `/tmp/bibo-frame-${width}.png` });
+  await page.getByRole("button", { name: "关闭工作区" }).click();
+  await page.getByRole("button", { name: "收起侧边栏" }).click();
+  assert.ok(await page.locator(".bibo-chat-layout").evaluate((node) => parseFloat(getComputedStyle(node).borderTopLeftRadius) >= 16), "collapsed navigation retains the inner rounded surface");
+  await page.getByRole("button", { name: "展开侧边栏" }).click();
 }
 
 export async function checkControlFeedback(page: Page, width: number, base: string): Promise<void> {
