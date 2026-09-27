@@ -8,13 +8,13 @@
 
 ## 测试/验证/验收方式
 
-Worker、网页、runner、core类型检查，定向ESLint，Bibo44项测试与core2项测试通过。覆盖鉴权、固定上游选项、失败脱敏、120并发仅100成功、全站日/月预算及UTC重置、模型与搜索独立计数，内置身份更新及自定义身份保留。真实SQLite快照/空间恢复/会话删除和桌面手机客户端smoke通过。
+Worker、网页、runner、core类型检查，定向ESLint，最新主线合并后Bibo51项测试与core2项测试通过。覆盖鉴权、固定上游选项、失败脱敏、120并发仅100成功、全站日/月预算及UTC重置、模型与搜索独立计数，内置身份更新及自定义身份保留。真实SQLite快照/空间恢复/会话删除和桌面手机客户端smoke通过。
 
 独立开发运行完成Harness→搜索代理→真实Exa→真实DeepSeek回答，两次请求均返回200与8条带highlights的结果，回答引用Cloudflare官方来源。线上旧模型额度429已复现，因此不能把旧线上模型结果当作新版本通过。发布后smoke会独立验证模型流、搜索鉴权、Agent搜索/文件创建、已保存来源、刷新和桌面手机。
 
 ## 发布/部署方式
 
-发布范围为Bibo Worker、Container、静态帮助与中英文用户文档；不涉及NPM、NextClaw runtime、desktop更新，不增加Cloudflare付费资源或DO迁移。使用干净冻结远程master的`pnpm -C apps/bibo-hosted deploy`，生产身份与验证结果部署后补充。
+发布范围为Bibo Worker、Container与静态帮助；中英文文档中的Bibo专用说明随代码同步，不以公共文档站部署作为Bibo上线条件。不涉及NPM、NextClaw runtime、desktop更新，不增加Cloudflare付费资源或DO迁移。使用干净冻结远程master的`pnpm -C apps/bibo-hosted run deploy`，生产身份与验证结果部署后补充。
 
 ## 可维护性与经验
 
@@ -28,4 +28,8 @@ diff-only guard零error，三项现有目录/临界文件warning；新增搜索�
 
 首次完整发布在容器依赖下载阶段停滞，npmmirror tarball出现ERR_SOCKET_TIMEOUT；尚未上传Worker或切换线上。停止本任务的构建进程后，将Bibo Dockerfile依赖源统一为已核验200的npm官方源，从原服务deploy入口重建，保留已配置Secret。未添加第二发布器或旁路配置。主线推送自动触发的Bibo文档说明部署与搜索运行无关，不作为Bibo部署完成点。
 
-AUTOMATION_INTERVENTIONS: 1（依赖镜像下载停滞，已修回Bibo Dockerfile owner）。
+AUTOMATION_INTERVENTIONS: 2（依赖下载/打包恢复；本机磁盘耗尽导致Docker失去响应后的环境恢复）。
+
+同次容器依赖恢复进一步定位pnpm 9 deploy会重新解析全部workspace及开发依赖，拉入无关的个人空间UI与benchmark包。构建完成后，通过pnpm公开的生产依赖闭包列表缩小仅在builder中的workspace并删除开发依赖，仍由原deploy命令打包；仓库manifest和运行owner不变。诊断打包230个依赖、复用206个、下载3个，约21秒完成；完整镜像成功，镜像内真实Harness及传递依赖import通过。该变化只属于Bibo Dockerfile，不新增发布器、配置副本或通用治理脚本。
+
+下一次构建在安装尾部遇到本机Docker接口整体超时。Docker日志确认2026-09-27T13:06:58Z出现no space left on device；普通restart超时后，停止本任务构建并恢复Docker进程。恢复后确认零运行容器；仅回收超过24小时、可重新生成的build cache（6.166GB），保留全部41个镜像和3个volume。主机可用空间恢复到22GiB，Docker API重新可用；此环境恢复不改变线上Worker或容器。
