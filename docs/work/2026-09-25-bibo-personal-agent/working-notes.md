@@ -8,6 +8,7 @@
 - 一手核验：[shadcn Base UI Toast 源码](https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/bases/base/ui/toast.tsx) 使用 bottom-4/sm:right-4；[Sonner 源码](https://github.com/emilkowalski/sonner/blob/main/src/index.tsx) 默认 bottom-right。网页底部存在实际采用证据，但不能把组件默认位置等同于本产品最佳位置，更不能声称 shadcn 默认顶部。
 - 回答与代码块复用 CopyButton/原 IconButton，删除代码块重复剪贴板状态及聊天 store 复制全局提示；复制原文、成功勾两秒、权限失败就近显示且可重试。保存/新建等主要操作保留文字，图表模式切换仍用文字；没有机械地把全部操作改成图标。Toast 位于顶部64px加安全区，保留关闭和四秒消失。
 - 验证：共享包与应用三套tsc、定向ESLint、生产构建通过。完整product1440/1280/390/320验证回答剪贴板真实写入、两秒恢复、拒绝时错误且无假成功、Toast顶部64px/水平居中/关闭；Markdown1440/390/320验证代码原文复制及拒绝，触控按钮44px且无Tooltip。七模块既有交互覆盖保持通过。日志 `/tmp/operation-client.log`、`/tmp/operation-markdown.log`；桌面Toast及手机正文截图目视正常。自动维护性0 error、1既有主smoke接近500行warning（461行）；治理/ratchet通过。轻量实现Review核对状态仅归CopyButton、原文无追加文案、异步结果绑定复制快照、流式回答无复制入口，implementation-review: passed。未重测真实模型或领域持久化，本批没有改变它们。
+- 发布：实现 `188bc26a27b4678b417945dc064a31b96f43bb0b` 已合入远程master；同SHA干净worktree离线安装/构建，以 `--containers-rollout=none` 部署 Worker `1144492c-5a19-4a3d-ab99-220fcad37aa0`。七路径200，入口 `/assets/index-eMdWx807.js` 与预加载 `/assets/chunk-DECur_0Z.js` 字节SHA256匹配冻结构建。正式静态页面1440/320用受控API复验真实剪贴板、触控尺寸/无Tooltip及顶部Toast几何/关闭，截图目视通过；没有后端写入或模型调用。原后端未更改，本批不重做容器发布。说明文档run36294905159进行中；上批36289384638已整体成功。主线镜像由18523自动retry保护原thought WIP，返回LOCAL_WORKTREE_RETRYING，不冒充本地master已快进。AUTOMATION_INTERVENTIONS: 0。
 
 ## 2026-09-26 Tailwind 与操作容器纠偏（界面已交付，国内文档发布中）
 
