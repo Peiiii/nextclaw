@@ -50,4 +50,6 @@ AUTOMATION_INTERVENTIONS: 1。同期主线更新导致首次推送拒绝，终�
 
 双站文档已部署冻结 SHA `57eb49170561c62b01a1a4d4c63459c23ecc7ee0`，本机标准验证入口确认两站相同产物、页面／资源与路由通过，tree `a3bd540770355ab068ed60bdc7833b5c9a7ad01041477930848c21cf0ad2905d`。GitHub workflow `36318064255` 的两个部署 job 成功，首次 verify job 在连接国内 CDN IP 的 TLS 建连阶段连续四次超时；并非产物不一致。本机复验成功后，仅通过原 workflow 的 failed checkpoint 重试 verifier，不重复已成功的部署。
 
-本追加批次 AUTOMATION_INTERVENTIONS: 0。部署、镜像保持、双站文档与真实数据验收闭合；本地主线自动回流结果在本节补齐。NPM／runtime／desktop 发布与 migration 不适用：本批只改私有托管应用的前端体验，后端及容器身份不变。
+该 workflow 第二次尝试最终成功；verify 用时 17s，已成功的 build／两地 deploy 保留原启动与完成时间，未重跑。同期主线只追加了另一个任务的部署日志，安全合并后完成本批证据提交。
+
+本追加批次 AUTOMATION_INTERVENTIONS: 0。部署、镜像保持、双站文档与真实数据验收闭合；远程主线交付后的本地镜像同步交给既有自动回流 owner，不覆盖源区活跃 WIP。NPM／runtime／desktop 发布与 migration 不适用：本批只改私有托管应用的前端体验，后端及容器身份不变。
