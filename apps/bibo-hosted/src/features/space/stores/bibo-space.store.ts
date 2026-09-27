@@ -5,10 +5,10 @@ import { readWorkspaceLayout, revealedFileLayout, writeWorkspaceLayout } from "@
 import { readCalendarEvents, readNextSpacePage, readSpaceLists, savedTaskView, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
 import { navigateWorkspace } from "@/app/workspace-router";
 import { fileDeletionState, openedFileState } from "@/features/space/utils/file-state.utils";
-
+import { biboCopy } from "@/shared/configs/bibo-copy.config";
 export type BiboView = "overview" | "chat" | "inbox" | "calendar" | "tasks" | "notes" | "files";
 type Page<T> = { items: T[]; nextCursor: string | null };
-type FileDraft = { content: string; version: number; dirty: boolean; saving: boolean; conflict?: boolean };
+type FileDraft = { content: string; version: number; dirty: boolean; saving: boolean; conflict?: boolean; error?: string };
 export type TaskDraft = Pick<BiboTask, "title" | "description" | "status" | "priority" | "subtasks"> & { projectId: string; startAt: string; dueAt: string; version: number | null };
 export type EventDraft = { title: string; description: string; startAt: string; endAt: string; version: number | null };
 const client = new BiboClient();
@@ -38,7 +38,8 @@ class BiboSpaceOwner {
   readStatus: Partial<Record<BiboView, "loading" | "ready" | "error">> = {};
   saving = false;
   error = "";
-  notice = "";
+  actionError = "";
+  feedback: { message: string; task: BiboTask | null } = { message: "", task: null };
   overview: BiboOverview | null = null;
   projects: BiboProject[] = [];
   tasks: BiboTask[] = [];
@@ -91,7 +92,7 @@ class BiboSpaceOwner {
 
   activateView = (view: BiboView): void => {
     if (this.get().view === view) return;
-    this.set({ view, error: "", notice: "", ...(["files", "notes"].includes(view) ? { fileBrowserVisible: true } : {}) });
+    this.set({ view, error: "", actionError: "", feedback: { message: "", task: null }, ...(["files", "notes"].includes(view) ? { fileBrowserVisible: true } : {}) });
     if (view !== "chat" && this.get().accountId) void this.load(view);
   };
 
@@ -141,10 +142,10 @@ class BiboSpaceOwner {
     void this.load("calendar");
   };
   filterTasks = (query: string, project: string, taskScope = this.get().taskScope): void => {
-    this.set({ taskQuery: query, taskProject: project, taskScope, taskAnchor: new Date(), selectedTaskId: null });
+    this.set({ taskQuery: query, taskProject: project, taskScope, taskAnchor: new Date(), selectedTaskId: null, feedback: { message: "", task: null } });
     void this.load("tasks");
   };
-  setTaskScope = (taskScope: BiboSpaceOwner["taskScope"]): void => { this.set({ taskScope, taskAnchor: new Date(), selectedTaskId: null }); void this.load("tasks"); };
+  setTaskScope = (taskScope: BiboSpaceOwner["taskScope"]): void => { this.set({ taskScope, taskAnchor: new Date(), selectedTaskId: null, feedback: { message: "", task: null } }); void this.load("tasks"); };
   toggleTaskDone = async (task: BiboTask): Promise<void> => {
     const result = await this.act<BiboTask>("task.update", { id: task.id, version: task.version, status: task.status === "done" ? "planned" : "done" }, "tasks");
     if (result) this.set({ taskUndo: { id: result.id, version: result.version, status: task.status, title: task.title } });
@@ -173,7 +174,6 @@ class BiboSpaceOwner {
       if (this.get().selectedInboxId === id) this.set({ inboxSelection: item });
     }).catch((error) => { if (this.get().selectedInboxId === id) this.set({ error: message(error) }); });
   };
-  clearNotice = (): void => this.set({ notice: "" });
   keepTaskDraft = (id: string, draft: TaskDraft): void => this.set((state) => ({ taskDrafts: { ...state.taskDrafts, [id]: draft } }));
   clearTaskDraft = (id: string): void => this.set((state) => { const drafts = { ...state.taskDrafts }; delete drafts[id]; return { taskDrafts: drafts }; });
   keepEventDraft = (id: string, draft: EventDraft): void => this.set((state) => ({ eventDrafts: { ...state.eventDrafts, [id]: draft } }));
@@ -259,7 +259,7 @@ class BiboSpaceOwner {
 
   act = async <T>(action: string, input: Record<string, unknown>, view: BiboView): Promise<T | null> => {
     if (this.get().saving) return null;
-    this.set({ error: "", notice: "", saving: true });
+    this.set({ error: "", actionError: "", feedback: { message: "", task: null }, saving: true });
     const requestKey = action.endsWith(".create") ? JSON.stringify({ action, input }) : null;
     const requestId = requestKey ? this.pendingCreates.get(requestKey) ?? crypto.randomUUID() : null;
     if (requestKey && requestId) this.pendingCreates.set(requestKey, requestId);
@@ -278,9 +278,9 @@ class BiboSpaceOwner {
       if (action.startsWith("event.")) { this.loadedCalendarMonths.clear(); this.calendarRevision += 1; }
       const refreshed = await this.load(view);
       const overviewRefreshed = view === "overview" || await this.load("overview");
-      this.set({ notice: refreshed && overviewRefreshed ? "已保存。" : "已保存，视图暂未刷新。请重试读取。" });
+      this.set({ feedback: { message: biboCopy.operationSaved, task: null }, ...(!refreshed || !overviewRefreshed ? { error: biboCopy.savedReadFailed } : {}) });
       return result;
-    } catch (error) { this.set({ error: message(error) }); return null; }
+    } catch (error) { this.set({ actionError: message(error) }); return null; }
     finally { this.set({ saving: false }); }
   };
 
@@ -327,32 +327,32 @@ class BiboSpaceOwner {
   saveFile = async (id: string): Promise<void> => {
     const draft = this.get().fileDrafts[id];
     if (!draft || !draft.dirty || draft.saving) return;
-    this.set((state) => ({ fileDrafts: { ...state.fileDrafts, [id]: { ...draft, saving: true } }, error: "" }));
+    this.set((state) => ({ fileDrafts: { ...state.fileDrafts, [id]: { ...draft, saving: true, error: undefined } } }));
     try {
       const detail = await client.space<BiboFileDetail>("file.update", { id, version: draft.version, content: draft.content });
       this.set((state) => {
         const current = state.fileDrafts[id];
         if (!current) return {};
         const editedDuringSave = current.content !== draft.content;
-        return { fileDetails: { ...state.fileDetails, [id]: detail }, fileDrafts: { ...state.fileDrafts, [id]: { content: editedDuringSave ? current!.content : detail.content ?? "", version: detail.version, dirty: editedDuringSave, saving: false } }, notice: editedDuringSave ? "已保存上一版；继续保存新修改。" : "已保存。" };
+        return { fileDetails: { ...state.fileDetails, [id]: detail }, fileDrafts: { ...state.fileDrafts, [id]: { content: editedDuringSave ? current!.content : detail.content ?? "", version: detail.version, dirty: editedDuringSave, saving: false } } };
       });
       await this.load(this.get().view === "notes" ? "notes" : "files");
     } catch (error) {
       const conflict = error instanceof BiboClientError && error.status === 409;
-      this.set((state) => ({ ...(state.fileDrafts[id] ? { fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id]!, saving: false, conflict: conflict || state.fileDrafts[id]!.conflict } } } : {}), error: conflict ? "" : message(error) }));
+      this.set((state) => state.fileDrafts[id] ? { fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id]!, saving: false, conflict: conflict || state.fileDrafts[id]!.conflict, error: conflict ? undefined : message(error) } } } : {});
     }
   };
 
   resolveFileConflict = async (id: string, choice: "reload" | "overwrite"): Promise<void> => {
     const draft = this.get().fileDrafts[id];
     if (!draft || draft.saving) return;
-    this.set((state) => ({ fileDrafts: { ...state.fileDrafts, [id]: { ...draft, saving: true } }, error: "" }));
+    this.set((state) => ({ fileDrafts: { ...state.fileDrafts, [id]: { ...draft, saving: true, error: undefined } } }));
     try {
       const latest = await client.space<BiboFileDetail>("file.get", { id });
       if (this.get().instanceId !== this.instanceId || !this.get().fileDrafts[id]) return;
       this.set((state) => ({ fileDetails: { ...state.fileDetails, [id]: latest }, files: state.files.map((file) => file.id === id ? latest : file), notes: state.notes.map((note) => note.id === id ? latest : note), fileDrafts: { ...state.fileDrafts, [id]: { content: choice === "reload" ? latest.content ?? "" : state.fileDrafts[id]!.content, version: latest.version, dirty: choice === "overwrite", saving: false } } }));
       if (choice === "overwrite") await this.saveFile(id);
-    } catch (error) { this.set({ error: message(error) }); }
+    } catch (error) { this.set((state) => state.fileDrafts[id] ? { fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id]!, error: message(error) } } } : {}); }
     finally { this.set((state) => state.fileDrafts[id] ? { fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id]!, saving: false } } } : {}); }
   };
 

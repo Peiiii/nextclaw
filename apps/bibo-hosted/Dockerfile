@@ -10,11 +10,11 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json ./
 COPY patches ./patches
 COPY packages ./packages
 COPY apps/bibo-hosted/package.json ./apps/bibo-hosted/package.json
-RUN pnpm --registry=https://registry.npmmirror.com install --filter '@nextclaw/harness...' --filter @nextclaw/bibo-hosted --frozen-lockfile
+RUN pnpm --registry=https://registry.npmjs.org install --filter '@nextclaw/harness...' --filter @nextclaw/bibo-hosted --frozen-lockfile
 RUN pnpm -r --filter '@nextclaw/harness...' build
 COPY apps/bibo-hosted ./apps/bibo-hosted
 RUN pnpm -C apps/bibo-hosted build:runner
-RUN pnpm --registry=https://registry.npmmirror.com --filter @nextclaw/bibo-hosted deploy --prod /out
+RUN pnpm --registry=https://registry.npmjs.org --filter @nextclaw/bibo-hosted deploy --prod /out
 
 FROM node:22-bookworm-slim
 WORKDIR /app

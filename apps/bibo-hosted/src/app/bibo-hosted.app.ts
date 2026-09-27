@@ -1,6 +1,7 @@
 import { Container, getContainer } from "@cloudflare/containers";
 import { readRunResult, readRunStream, streamEvent, type RunResult } from "./bibo-run-stream.utils";
 import { authRoute, cookieToken, currentUser, sessionUser, json, publicError } from "./bibo-auth.utils";
+import { biboSearchRoute } from "@/features/search";
 import { checkChatAvailability, modelError, modelRoute } from "./bibo-model-gateway.service";
 import { BiboSpaceService, BiboSpaceError, type BiboSpaceState } from "@/features/bibo-domain";
 import { BiboSpaceStateStore } from "./bibo-space-state.service";
@@ -290,7 +291,7 @@ export class BiboUserContainer extends Container<Env> {
       const response = await this.containerFetch("http://localhost/run", {
         method: "POST",
         headers: { "content-type": "application/json", ...(onDelta ? { accept: "text/event-stream" } : {}) },
-        body: JSON.stringify({ message: payload.message, token: payload.token, sessionId: payload.session.id }),
+        body: JSON.stringify({ message: payload.message, token: payload.token, sessionId: payload.session.id, searchEnabled: Boolean(this.env.BIBO_EXA_API_KEY) }),
         signal: active.controller.signal,
       });
       if (response.status === 429) {
@@ -377,6 +378,7 @@ export default {
     }
     const path = url.pathname;
     if (path.startsWith("/api/")) {
+      if (path === "/api/search/exa") return await biboSearchRoute(request, env, currentUser);
       if (path === "/api/model/v1/chat/completions") {
         try { return await modelRoute(request, env); }
         catch (error) {

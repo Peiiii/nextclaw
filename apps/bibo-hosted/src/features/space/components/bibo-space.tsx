@@ -1,5 +1,4 @@
 import { X } from "lucide-react";
-import { useEffect } from "react";
 import { Button, EmptyState, IconButton, LoadingState, Notice, Select } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore, type BiboView } from "@/features/space/stores/bibo-space.store";
 import { CalendarView } from "./calendar-view";
@@ -9,24 +8,6 @@ import { Tasks } from "./tasks-view";
 import { Files } from "./files/files-view";
 import { FileEditor } from "./files/file-editor";
 
-function Status({ showNotice = true }: { showNotice?: boolean }) {
-  const { error, notice, clearNotice } = useBiboSpaceStore();
-  useEffect(() => {
-    if (!notice) return;
-    const timer = window.setTimeout(clearNotice, 4000);
-    return () => window.clearTimeout(timer);
-  }, [notice, clearNotice]);
-  return (
-    <>
-      {error && <Notice tone="error">{error}</Notice>}
-      {showNotice && notice && (
-        <Notice tone="success" onDismiss={clearNotice}>
-          {notice}
-        </Notice>
-      )}
-    </>
-  );
-}
 export function BiboWorkspace() {
   const { workspaceOpen, workspaceResolving, workspaceFileId, workspacePreview, setWorkspacePreview, closeWorkspace, files, fileDetails, openWorkspace, error } = useBiboSpaceStore();
   if (!workspaceOpen) return null;
@@ -54,7 +35,7 @@ export function BiboWorkspace() {
         <IconButton label="关闭工作区" icon={<X />} onClick={closeWorkspace} />
       </div>
       <div className="bibo-workspace-content">
-        <Status showNotice={false} />
+        {error && <Notice tone="error">{error}</Notice>}
         {workspaceResolving ? <LoadingState label="正在打开资源" /> : workspaceFileId && !current && error ? (
           <div><EmptyState title="暂时无法打开文件" /><Button onClick={() => void openWorkspace(workspaceFileId)}>重试打开</Button></div>
         ) : workspaceFileId ? (
@@ -74,7 +55,7 @@ export function BiboSpaceView({
   view: BiboView;
   onOpenSession: (id: string) => Promise<void>;
 }) {
-  const { error, readStatus } = useBiboSpaceStore();
+  const { error, readStatus, feedback } = useBiboSpaceStore();
   if (view === "chat") return null;
   const content = {
     overview: <Overview />,
@@ -96,13 +77,12 @@ export function BiboSpaceView({
   );
   return (
     <div className={`bibo-space-scroll${view !== "overview" ? " is-workspace" : ""}`}>
-      {status === "ready" && <div className="bibo-space-feedback">
-        <Status />
-        {error && (
+      <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">{feedback.message}</span>
+      {status === "ready" && error && <div className="bibo-space-error">
+        <Notice tone="error">{error}</Notice>
           <Button tone="text" onClick={() => void useBiboSpaceStore.getState().load(view)}>
             重试读取
           </Button>
-        )}
       </div>}
       {readState}
     </div>

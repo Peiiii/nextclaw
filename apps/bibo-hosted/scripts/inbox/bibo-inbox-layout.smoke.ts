@@ -53,6 +53,7 @@ async function bounds(page: Page): Promise<void> {
 
 try {
   for (let attempt = 0; attempt < 60; attempt += 1) {
+    if (server?.exitCode !== null && server?.exitCode !== undefined) throw new Error(`Inbox preview exited: ${server.exitCode}`);
     try { if ((await fetch(base)).ok) break; } catch { /* Preview is starting. */ }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }

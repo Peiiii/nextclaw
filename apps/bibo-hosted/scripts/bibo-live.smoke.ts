@@ -123,10 +123,25 @@ async function modelStreamProbe(): Promise<{ contentChunks: number; firstContent
   return { contentChunks, firstContentMs };
 }
 
-async function streamedRun(page: Page): Promise<{ deltaCount: number; displayCount: number; totalMs: number }> {
+async function searchProbe(): Promise<{ requestId: string; resultCount: number }> {
+  const endpoint = `${origin}/api/search/exa`;
+  const body = JSON.stringify({ query: "Cloudflare AI Search official documentation" });
+  const unauthorized = await fetch(endpoint, { method: "POST", body, signal: abort.signal });
+  assert.equal(unauthorized.status, 401, "Search must require a verified account token");
+  const response = await fetch(endpoint, {
+    method: "POST", headers: { authorization: `Bearer ${sessionToken}`, "content-type": "application/json" }, body, signal: abort.signal,
+  });
+  assert.equal(response.status, 200, `Search proxy returned ${response.status}`);
+  const result = await response.json() as { requestId: string; results: Array<{ url: string; highlights?: string[] }> };
+  assert.ok(result.requestId, "Exa did not return a request ID");
+  assert.ok(result.results.some((item) => item.url.startsWith("https://developers.cloudflare.com/") && item.highlights?.length), "Search must return official sources with actual page excerpts");
+  return { requestId: result.requestId, resultCount: result.results.length };
+}
+
+async function streamedRun(page: Page, message = prompt): Promise<{ deltaCount: number; displayCount: number; totalMs: number }> {
   const started = performance.now();
   const result = page.waitForResponse((response) => response.url() === `${origin}/api/chat`, { timeout: 300_000 });
-  await page.getByRole("textbox", { name: /告诉 Bibo/ }).fill(prompt);
+  await page.getByRole("textbox", { name: /告诉 Bibo/ }).fill(message);
   await page.getByRole("button", { name: "发送消息", exact: true }).click();
   const response = await result;
   assert.equal(response.status(), 200, `Chat returned ${response.status()}`);
@@ -137,7 +152,7 @@ async function streamedRun(page: Page): Promise<{ deltaCount: number; displayCou
   assert.ok(state.deltaCount > 0, "No live output was streamed");
   assert.ok(state.saving, "Snapshot save was not announced");
   assert.ok(state.committed, "Run did not commit to storage");
-  assert.ok(state.displayCount > 0, "Agent did not request file display");
+  if (message === prompt) assert.ok(state.displayCount > 0, "Agent did not request file display");
   return { deltaCount: state.deltaCount, displayCount: state.displayCount, totalMs: Math.round(performance.now() - started) };
 }
 
@@ -149,6 +164,7 @@ try {
   assert.equal(missingHistory.status, 404, "An explicit missing session must not appear as a new empty conversation");
   assert.equal((await missingHistory.json() as { error: string }).error, "会话不存在或已删除。");
   const modelStream = await modelStreamProbe();
+  const search = await searchProbe();
   const creation = await fetch(`${origin}/api/sessions`, {
     method: "POST", headers: { ...headers, origin }, signal: abort.signal,
   });
@@ -165,11 +181,17 @@ try {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
+  const searchPrompt = "请先调用 web_search 搜索 Cloudflare AI Search 最新官方文档，用两句话说明它的用途并附至少一个官方来源链接。不要只凭记忆回答。";
+  const searchStream = await streamedRun(page, searchPrompt);
+  const searched = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
+  assert.equal(searched.messages.length, 2, "Search exchange must save");
+  assert.equal(searched.messages.at(-2)?.text, searchPrompt);
+  assert.match(searched.messages.at(-1)?.text ?? "", /https:\/\/developers\.cloudflare\.com\//, "Search-backed answer must save its source link");
   const stream = await streamedRun(page);
   const workspace = page.getByRole("complementary", { name: "右侧工作区" });
   await workspace.getByRole("heading", { name: requestId, exact: true }).waitFor();
   const after = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
-  assert.equal(after.messages.length, before.messages.length + 2, "Saved history must contain one new exchange");
+  assert.equal(after.messages.length, searched.messages.length + 2, "Saved history must contain one new exchange");
   assert.equal(after.messages.at(-2)?.text, prompt, "Saved user message differs");
   assert.ok(after.messages.at(-1)?.text.includes(requestId), "Saved answer is missing the request marker");
   const files = await space<{ items: LiveFile[] }>("file.list", { query: artifactPath });
@@ -210,7 +232,7 @@ try {
       assert.equal(await page.getByRole("textbox", { name: `编辑 ${artifactPath}` }).inputValue(), artifactContent,
         "The Files UI must read the same Agent-created object");
     }
-  console.log(JSON.stringify({ ok: true, requestId, modelStream, ...stream, saved: true, agentFile: true, automaticPreview: true, desktop: true, mobile: true }));
+  console.log(JSON.stringify({ ok: true, requestId, modelStream, search, searchStream, ...stream, saved: true, agentFile: true, automaticPreview: true, desktop: true, mobile: true }));
 } finally {
   await browser.close();
   clearTimeout(timeout);

@@ -24,7 +24,7 @@ export function EventForm({
     setDeleteError("");
     const result = await act("event.delete", { id: event.id, version: event.version }, "calendar");
     if (result) { setDeleting(false); finish(); }
-    else setDeleteError(useBiboSpaceStore.getState().error);
+    else setDeleteError(useBiboSpaceStore.getState().actionError);
   };
   const draftKey = event?.id ?? `new-${slot?.toISOString() ?? date.toDateString()}`;
   const initialStart = new Date(date);
@@ -78,10 +78,10 @@ export function EventForm({
       endAt: new Date(endAt).toISOString(),
     };
     const result = event
-      ? await act("event.update", { ...input, id: event.id, version }, "calendar")
-      : await act("event.create", input, "calendar");
-    if (result) finish();
-    else setSaveError(useBiboSpaceStore.getState().error);
+      ? await act<BiboEvent>("event.update", { ...input, id: event.id, version }, "calendar")
+      : await act<BiboEvent>("event.create", input, "calendar");
+    if (result) { useBiboSpaceStore.getState().setCalendarDate(new Date(result.startAt)); finish(); }
+    else setSaveError(useBiboSpaceStore.getState().actionError);
   };
   return (
     <form className="bibo-editor-form event-editor" onSubmit={(value) => void submit(value)}

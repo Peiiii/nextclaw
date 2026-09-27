@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "types": ["@cloudflare/workers-types", "node"]
   },
-  "include": ["src/app/bibo-hosted.app.ts", "src/app/bibo-run-stream.utils.ts", "worker-configuration.d.ts"]
+  "include": ["src/app/bibo-hosted.app.ts", "src/app/bibo-run-stream.utils.ts", "src/features/search/routes/bibo-search.route.test.ts", "worker-configuration.d.ts"]
 }

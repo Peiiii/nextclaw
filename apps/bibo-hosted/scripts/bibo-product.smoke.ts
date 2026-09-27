@@ -338,16 +338,8 @@ try {
       await editor.fill("# 更新过的想法");
       await page.getByRole("button", { name: "保存", exact: true }).click();
       await page.getByTitle("已保存 · v2").waitFor();
-      const toast = page.locator(".bibo-space-feedback .ui-notice--success");
-      await toast.waitFor();
-      assert.equal(await toast.evaluate((element) => getComputedStyle(element).fontSize), "14px", "feedback uses the same action/body-small type scale");
-      const toastBox = await toast.boundingBox();
-      assert.ok(toastBox && Math.abs(toastBox.x + toastBox.width / 2 - viewport.width / 2) < 2, "notification is centered in the viewport");
-      assert.ok(toastBox && Math.abs(toastBox.y - 64) < 2, "notification stays below the header at the top of the viewport");
-      assert.equal(await toast.locator(":scope > button").count(), 1, "toast has a separate close action");
-      await page.screenshot({ path: `/tmp/workspace-toast-${viewport.width}.png`, animations: "disabled" });
-      await toast.getByRole("button", { name: "关闭提示" }).click();
-      await toast.waitFor({ state: "hidden" });
+      assert.equal(await page.locator(".bibo-space-feedback").count(), 0, "saved feedback stays in the editor");
+      await page.screenshot({ path: `/tmp/workspace-save-status-${viewport.width}.png`, animations: "disabled" });
       const editorBox = await editor.boundingBox();
       assert.ok(editorBox && editorBox.y < 180 && editorBox.height > viewport.height * .6, "note content occupies the main workspace at desktop and mobile sizes");
       assert.equal(await page.getByRole("button", { name: "保存", exact: true }).isDisabled(), true, "saved file disables the shared action");
@@ -481,4 +473,10 @@ try {
       await filesPage.close();
     }
   } finally { await browser.close(); }
-} finally { server.kill("SIGTERM"); await once(server, "exit"); }
+} finally {
+  if (server.exitCode === null && server.signalCode === null) {
+    const exited = once(server, "exit");
+    server.kill("SIGTERM");
+    await exited;
+  }
+}

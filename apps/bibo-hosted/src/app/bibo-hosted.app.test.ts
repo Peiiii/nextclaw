@@ -228,7 +228,7 @@ test("chat commits the same structured state and failed chat keeps previous dura
 });
 
 test("exhausted model budget rejects chat before forwarding without changing the budget", async () => {
-  const current = { day: new Date().toISOString().slice(0, 10), total: 200, users: {} };
+  const current = { day: new Date().toISOString().slice(0, 10), total: 2000, users: {} };
   let writes = 0;
   const storage = {
     get: async () => current,
@@ -246,6 +246,25 @@ test("exhausted model budget rejects chat before forwarding without changing the
   assert.equal(response.status, 429);
   assert.match((await response.json() as { error: string }).error, /今日试用额度已用完/);
   assert.equal(writes, 0);
+});
+
+test("model reservation permits the experiment allowance and search keeps a separate counter", async () => {
+  const day = new Date().toISOString().slice(0, 10);
+  const values = new Map<string, unknown>([["budget", { day, total: 249, users: { "user-1": 249 } }]]);
+  const storage = {
+    get: async (key: string) => structuredClone(values.get(key)),
+    put: async (key: string, value: unknown) => { values.set(key, structuredClone(value)); },
+    transaction: async (action: (value: object) => Promise<unknown>) => action(storage),
+  };
+  const budget = new worker.BiboModelBudget({ storage }, {});
+  const request = (path: string) => budget.fetch(new Request(`https://bibo.internal/${path}`, { method: "POST", body: JSON.stringify({ userId: "user-1" }) }));
+  assert.equal((await request("available")).status, 200);
+  assert.equal((await request("reserve")).status, 200);
+  assert.equal((await request("available")).status, 429);
+  assert.equal((await request("reserve")).status, 429);
+  assert.equal((await request("search")).status, 200);
+  assert.deepEqual(values.get("budget"), { day, total: 250, users: { "user-1": 250 } });
+  assert.equal((values.get("search-budget") as { dailyTotal: number }).dailyTotal, 1);
 });
 
 test("available budget forwards valid chat and keeps reservation in the model endpoint", async () => {

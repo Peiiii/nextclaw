@@ -1,6 +1,6 @@
 import { create, type StoreApi } from "zustand";
 import { BiboClient, type BiboChatEvent, type BiboMessage, type BiboSession, type BiboShowContent, type BiboUser } from "@nextclaw/bibo-client";
-import { biboCopy } from "@/features/chat/configs/bibo-copy.config";
+import { biboCopy } from "@/shared/configs/bibo-copy.config";
 import { useBiboSpaceStore, workspaceResources } from "@/features/space";
 import { navigateConversation, readWorkspaceRoute, replaceConversationContext } from "@/app/workspace-router";
 
@@ -282,7 +282,7 @@ class BiboChatOwner {
       const user = this.get().user;
       if (user) sessionStorage.removeItem(pendingKey(user.id));
       this.clearFailedInput(sessionId, message);
-      this.set({ status: "回答已保存。" });
+      this.set({ status: "" });
     } else {
       this.restoreFailedInput(message);
       this.set({ status: `${errorText(error)} ${biboCopy.retry}` });
