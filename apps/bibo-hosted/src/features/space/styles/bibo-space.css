@@ -88,15 +88,18 @@
 .bibo-overview .bibo-page-title { @apply mb-6.25; }
 .bibo-overview .bibo-page-title h1 { @apply [font-size:clamp(28px,_2.6vw,_36px)]; }
 .bibo-overview .bibo-page-title h1 { @apply [text-wrap:balance]; }
-.bibo-overview-grid { @apply grid [grid-template-columns:repeat(auto-fit,_minmax(min(100%,_280px),_1fr))] [gap:var(--ui-space-4)] items-start; }
+.bibo-overview .bibo-overview-welcome { @apply items-center; }
+.bibo-overview-welcome > div { @apply min-w-0; }
+.bibo-overview-companion { @apply flex-none [width:130px] overflow-visible; }
+.bibo-overview-grid { @apply grid [grid-template-columns:repeat(2,_minmax(0,_1fr))] [gap:var(--ui-space-4)] items-start; }
 .bibo-overview-column { @apply min-w-0 flex flex-col [gap:var(--ui-space-4)]; }
-.bibo-overview-brief { @apply [grid-column:1_/_-1] flex items-center gap-4 w-full min-w-0 [min-height:82px] [padding:15px_20px] [border:1px_solid_var(--ui-line)] [border-radius:11px] text-left [background:var(--ui-hover)] [color:var(--ui-muted)] cursor-pointer; }
+.bibo-overview-brief { @apply [grid-column:1_/_-1] flex items-center gap-4 w-full min-w-0 p-4 [border:1px_solid_var(--ui-line)] [border-radius:var(--ui-radius-md)] text-left [background:var(--ui-hover)] [color:var(--ui-ink)] no-underline; }
 .bibo-overview-brief:hover { @apply [background:var(--ui-selection)]; }
-.bibo-overview-brief-mark { @apply flex-none [width:24px] [height:24px] grid [place-items:center] [border-radius:50%] [background:var(--ui-primary)] [color:white] [font-size:15px]; }
-.bibo-overview-brief-copy { @apply min-w-0 flex-1; }
+.bibo-overview-brief:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 4px; }
+.bibo-overview-brief-copy { @apply flex-1 min-w-0; }
 .bibo-overview-brief-copy strong { @apply block text-sm font-semibold; }
 .bibo-overview-brief-copy small { @apply block mt-0.75 [color:var(--ui-muted)] text-xs [overflow-wrap:anywhere]; }
-.bibo-overview-brief-action { @apply flex-none text-sm; }
+.bibo-overview-brief-action { @apply flex-none text-sm font-medium [color:var(--ui-primary)] underline [text-underline-offset:4px]; }
 .bibo-summary-card { @apply min-w-0 [overflow-wrap:anywhere] [padding:var(--ui-space-4)] [background:var(--ui-surface)] [border:1px_solid_var(--bibo-hairline)] [border-radius:var(--ui-radius-md)]; }
 .bibo-card-heading { @apply flex justify-between gap-3 items-center [color:var(--ui-muted)] text-xs; }
 .bibo-card-heading small { @apply [color:var(--ui-muted)] text-xs; }
@@ -298,6 +301,7 @@
 .bibo-file-editor.is-compact .file-breadcrumb { @apply hidden; }
 
 @media (max-width: 1100px) {
+  .bibo-overview-grid { @apply [grid-template-columns:minmax(0,_1fr)]; }
   .inbox-back { @apply inline-flex; }
   .workspace-page .inbox-layout { @apply block; }
   .inbox-layout:not(.is-detail-open) .bibo-detail-pane { @apply hidden; }
@@ -333,8 +337,9 @@
   .bibo-page-title > .ui-button--primary { @apply flex-none; }
   .bibo-overview-grid { @apply flex flex-col items-stretch gap-2.75; }
   .bibo-overview-column { @apply contents; }
-  .bibo-overview-brief { @apply min-h-0 p-3.75 [order:0]; }
-  .bibo-overview-brief-action { @apply [align-self:flex-start]; }
+  .bibo-overview-welcome { @apply gap-3; }
+  .bibo-overview-companion { @apply [width:80px]; }
+  .bibo-overview-brief { @apply flex-col items-start gap-3 [order:0]; }
   .bibo-overview-inbox { @apply [order:1]; }
   .bibo-overview-calendar { @apply [order:2]; }
   .bibo-overview-tasks { @apply [order:3]; }
@@ -379,12 +384,6 @@
   .bibo-file-editor textarea { @apply w-full [padding:20px_16px]; }
   .bibo-file-preview-markdown, .bibo-file-preview-frame { @apply w-full [padding:20px_16px]; }
   .bibo-form-pair { @apply [grid-template-columns:1fr] gap-0; }
-}
-@media (max-width: 380px) {
-  .bibo-overview-brief { @apply grid [grid-template-columns:24px_minmax(0,_1fr)] [gap:6px_12px]; }
-  .bibo-overview-brief-mark { @apply [grid-column:1] [grid-row:1]; }
-  .bibo-overview-brief-copy { @apply [grid-column:2] [grid-row:1]; }
-  .bibo-overview-brief-action { @apply [grid-column:2] [grid-row:2] [justify-self:end]; }
 }
 
 .bibo-mobile-nav :is(a, button):hover::before, .bibo-mobile-nav :is(a, button):active::before { @apply [background:var(--ui-hover)]; }
