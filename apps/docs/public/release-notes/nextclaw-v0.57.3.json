@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.57.3",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-09-27",
+  "title": { "zh-CN": "NextClaw v0.57.3", "en-US": "NextClaw v0.57.3" },
+  "summary": {
+    "zh-CN": "发送消息时保持输入区稳定，保留草稿保护和异常恢复。",
+    "en-US": "Keep the composer steady when sending messages, with draft protection and failure recovery preserved."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-09-27-nextclaw-v0-57-3",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-09-27-nextclaw-v0-57-3"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "消息发送", "en-US": "Message sending" },
+      "items": [
+        {
+          "title": { "zh-CN": "输入区保持稳定", "en-US": "A steadier composer" },
+          "body": {
+            "zh-CN": "正常发送不再在输入框内弹出接收确认卡片，避免重复显示消息和输入区跳动；草稿保护及发送异常后的恢复能力继续保留。",
+            "en-US": "Normal sends no longer show a receipt confirmation card inside the composer, avoiding repeated message text and input-area jumps. Draft protection and recovery after send failures remain available."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "桌面更新", "en-US": "Desktop update" },
+      "items": [
+        {
+          "title": { "zh-CN": "Runtime 0.57.3", "en-US": "Runtime 0.57.3" },
+          "body": {
+            "zh-CN": "桌面更新搭载已发布的 Runtime 0.57.3，提供 macOS、Windows 和 Linux 安装包及更新通道；包含此前普通 HTTP 地址下消息发送的修复，现有配置与会话无需迁移。",
+            "en-US": "The Desktop update includes the published Runtime 0.57.3, with macOS, Windows and Linux installers and update channels. It includes the earlier fix for sending messages over plain HTTP. Existing configuration and conversations require no migration."
+          }
+        }
+      ]
+    }
+  ]
+}

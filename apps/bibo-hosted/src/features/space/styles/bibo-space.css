@@ -34,11 +34,15 @@
 .workspace-page .bibo-detail-pane { @apply p-6; }
 .workspace-page .bibo-task-layout { @apply [grid-template-columns:minmax(0,_1fr)_minmax(300px,_.8fr)]; }
 .workspace-page .bibo-task-layout:not(.is-detail-open) { @apply [grid-template-columns:minmax(0,_1fr)]; }
-.task-filter-options { @apply flex flex-1 flex-wrap items-center gap-2; }
+.task-filter-options { @apply flex [flex-basis:100%] flex-wrap items-center gap-2; }
+.task-filter-options > .ui-control { @apply [flex:1_1_180px] [max-width:260px]; }
+.task-filter-options > .ui-segmented-control { @apply ml-auto; }
+.task-project-filter { @apply flex items-center gap-2 min-w-0; }
+.task-project-filter > .ui-control { @apply [width:180px]; }
 .task-toolbar { @apply flex-none; }
 .task-quick-feedback { @apply flex-none; }
 .task-quick-feedback .ui-overlay__error { @apply px-4; }
-.task-quick-add { @apply flex items-center gap-2 flex-none [padding:12px_16px_4px]; }
+.task-quick-add { @apply flex items-center gap-2 flex-none [padding:12px_16px_0]; }
 .task-quick-add .ui-control { @apply flex-1 min-w-0; }
 .task-quick-add .ui-button { @apply flex-none; }
 .task-quick-add .ui-icon-button { @apply flex-none; }
@@ -48,6 +52,14 @@
 .task-undo .ui-notice { @apply m-0 min-w-0 flex-1 [overflow-wrap:anywhere]; }
 .task-undo > .ui-button { @apply flex-none; }
 .bibo-task-row.is-complete strong { @apply line-through [color:var(--ui-muted)]; }
+.bibo-task-row.is-cancelled strong { @apply [color:var(--ui-muted)]; }
+.bibo-ended-tasks { @apply mt-2; }
+.bibo-ended-tasks > summary { @apply flex items-center gap-2 mx-2 px-3 py-3 rounded-lg text-base [color:var(--ui-muted)] cursor-pointer list-none; }
+.bibo-ended-tasks > summary::-webkit-details-marker { display: none; }
+.bibo-ended-tasks > summary:hover { @apply [background:var(--ui-hover)]; }
+.bibo-ended-tasks > summary:focus-visible { @apply [outline:2px_solid_var(--ui-focus)] outline-offset-2; }
+.bibo-ended-tasks > summary svg { @apply size-4 transition-transform motion-reduce:transition-none; }
+.bibo-ended-tasks[open] > summary svg { @apply rotate-90; }
 .bibo-task-row > span:first-child { @apply flex-1 min-w-0; }
 .task-complete { @apply [font-size:18px]; }
 .calendar-mobile-agenda { @apply hidden; }
@@ -58,7 +70,7 @@
 .inbox-item-heading { @apply flex items-center justify-between gap-3; }
 .inbox-layout .ui-list-row strong { @apply block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap; }
 .inbox-layout .ui-list-row small { @apply min-w-0 flex-1 m-0 overflow-hidden text-ellipsis whitespace-nowrap; }
-.inbox-item-meta { @apply flex items-center gap-3 mt-1.25 min-h-4 [color:var(--ui-muted)] text-xs; }
+.inbox-item-meta { @apply flex items-center gap-3 mt-1.25 min-h-4 [color:var(--ui-muted)] text-base; }
 .inbox-item-meta time { @apply ml-auto whitespace-nowrap; }
 .inbox-item-unread { @apply [width:6px] [height:6px] shrink-0 rounded-full [background:var(--bibo-accent)]; }
 .inbox-item-resolved { @apply inline-flex shrink-0 [color:var(--ui-primary)]; }
@@ -75,34 +87,37 @@
 .workspace-not-found { @apply p-8; }
 .workspace-page > .bibo-inline-input { @apply flex-none [margin:12px_16px]; }
 .bibo-page { @apply [max-width:1480px] [min-height:100%] [margin:0_auto] [padding:39px_clamp(22px,_4vw,_70px)_65px]; }
-.bibo-page-title { @apply flex justify-between [align-items:end] gap-6 mb-6.75; }
-.bibo-kicker { @apply [color:var(--ui-muted)] text-xs font-bold [letter-spacing:.16em] [text-transform:uppercase] [margin:0_0_8px]; }
+.bibo-page-title { @apply flex justify-between [align-items:end] gap-6 mb-6; }
+.bibo-kicker { @apply [color:var(--ui-muted)] text-base font-bold [letter-spacing:.16em] [text-transform:uppercase] [margin:0_0_8px]; }
 .bibo-page-title h1 { @apply [font-family:inherit] [font-size:28px] [line-height:1.3] font-semibold [letter-spacing:-.03em] [margin:0_0_8px]; }
-.bibo-page-title p:last-child { @apply m-0 [color:var(--bibo-subtle)] text-sm; }
+.bibo-page-title p:last-child { @apply m-0 [color:var(--bibo-subtle)] text-base; }
 .bibo-overview { @apply [max-width:1380px] pt-7; }
-.bibo-overview .bibo-page-title { @apply mb-6.25; }
-.bibo-overview .bibo-page-title h1 { @apply [font-size:clamp(28px,_2.6vw,_36px)]; }
+.bibo-overview .bibo-page-title { @apply mb-6; }
+.bibo-overview .bibo-page-title h1 { @apply [font-size:clamp(24px,_2.6vw,_32px)]; }
 .bibo-overview .bibo-page-title h1 { @apply [text-wrap:balance]; }
-.bibo-overview-grid { @apply grid [grid-template-columns:repeat(auto-fit,_minmax(min(100%,_280px),_1fr))] [gap:var(--ui-space-4)] items-start; }
+.bibo-overview .bibo-overview-welcome { @apply items-center; }
+.bibo-overview-welcome > div { @apply min-w-0; }
+.bibo-overview-companion { @apply flex-none [width:130px] overflow-visible; }
+.bibo-overview-grid { @apply grid [grid-template-columns:repeat(2,_minmax(0,_1fr))] [gap:var(--ui-space-4)] items-start; }
 .bibo-overview-column { @apply min-w-0 flex flex-col [gap:var(--ui-space-4)]; }
-.bibo-overview-brief { @apply [grid-column:1_/_-1] flex items-center gap-4 w-full min-w-0 [min-height:82px] [padding:15px_20px] [border:1px_solid_var(--ui-line)] [border-radius:11px] text-left [background:var(--ui-hover)] [color:var(--ui-muted)] cursor-pointer; }
+.bibo-overview-brief { @apply [grid-column:1_/_-1] flex items-center gap-4 w-full min-w-0 p-4 [border:1px_solid_var(--ui-line)] [border-radius:var(--ui-radius-md)] text-left [background:var(--ui-hover)] [color:var(--ui-ink)] no-underline; }
 .bibo-overview-brief:hover { @apply [background:var(--ui-selection)]; }
-.bibo-overview-brief-mark { @apply flex-none [width:24px] [height:24px] grid [place-items:center] [border-radius:50%] [background:var(--ui-primary)] [color:white] [font-size:15px]; }
-.bibo-overview-brief-copy { @apply min-w-0 flex-1; }
-.bibo-overview-brief-copy strong { @apply block text-sm font-semibold; }
-.bibo-overview-brief-copy small { @apply block mt-0.75 [color:var(--ui-muted)] text-xs [overflow-wrap:anywhere]; }
-.bibo-overview-brief-action { @apply flex-none text-sm; }
+.bibo-overview-brief:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 4px; }
+.bibo-overview-brief-copy { @apply flex-1 min-w-0; }
+.bibo-overview-brief-copy strong { @apply block text-base font-semibold; }
+.bibo-overview-brief-copy small { @apply block mt-0.75 [color:var(--ui-muted)] text-base [overflow-wrap:anywhere]; }
+.bibo-overview-brief-action { @apply flex-none text-base font-medium [color:var(--ui-primary)] underline [text-underline-offset:4px]; }
 .bibo-summary-card { @apply min-w-0 [overflow-wrap:anywhere] [padding:var(--ui-space-4)] [background:var(--ui-surface)] [border:1px_solid_var(--bibo-hairline)] [border-radius:var(--ui-radius-md)]; }
-.bibo-card-heading { @apply flex justify-between gap-3 items-center [color:var(--ui-muted)] text-xs; }
-.bibo-card-heading small { @apply [color:var(--ui-muted)] text-xs; }
-.bibo-summary-card h2 { @apply text-lg leading-7 font-semibold [margin:10px_0_13px]; }
-.bibo-card-empty { @apply [color:var(--ui-muted)] text-xs [margin:12px_0_0]; }
+.bibo-card-heading { @apply flex justify-between gap-3 items-center [color:var(--ui-muted)] text-base; }
+.bibo-card-heading small { @apply [color:var(--ui-muted)] text-base; }
+.bibo-summary-card h2 { @apply text-base leading-6 font-semibold [margin:12px_0]; }
+.bibo-card-empty { @apply [color:var(--ui-muted)] text-base [margin:12px_0_0]; }
 .bibo-summary-row { @apply whitespace-normal; }
-.bibo-summary-row strong { @apply min-w-0 flex-1 text-sm font-semibold; }
-.bibo-summary-row span { @apply flex-none text-xs [color:var(--ui-muted)] whitespace-nowrap; }
+.bibo-summary-row strong { @apply min-w-0 flex-1 text-base font-semibold; }
+.bibo-summary-row span { @apply flex-none text-base [color:var(--ui-muted)] whitespace-nowrap; }
 .bibo-project-list { @apply grid [grid-template-columns:1fr] gap-1 [margin-top:var(--ui-space-2)]; }
-.bibo-project-list button strong { @apply min-w-0 text-sm; }
-.bibo-project-list button span { @apply [color:var(--ui-muted)] text-xs whitespace-nowrap; }
+.bibo-project-list button strong { @apply min-w-0 text-base; }
+.bibo-project-list button span { @apply [color:var(--ui-muted)] text-base whitespace-nowrap; }
 .bibo-project-list button i { @apply absolute bottom-0 left-0 [height:2px] [background:var(--ui-primary)]; }
 .bibo-mobile-nav { @apply hidden; }
 
@@ -111,29 +126,28 @@
 .bibo-detail-pane { @apply min-w-0 [padding:35px_clamp(24px,_3vw,_50px)] overflow-y-auto; }
 .bibo-detail-pane > h2, .bibo-editor-form h2 { @apply [overflow-wrap:anywhere] text-lg leading-7 font-semibold [margin:7px_0_24px]; }
 .bibo-readable { @apply min-w-0 [max-width:700px] [color:var(--ui-muted)] text-base leading-6; }
-.bibo-pane-label { @apply [height:43px] flex gap-1.75 items-center [padding:0_17px] [border-bottom:1px_solid_var(--bibo-hairline)] [color:var(--ui-muted)] text-xs; }
+.bibo-pane-label { @apply [height:43px] flex gap-1.75 items-center [padding:0_17px] [border-bottom:1px_solid_var(--bibo-hairline)] [color:var(--ui-muted)] text-base; }
 .bibo-list-pane > .ui-list-row { @apply [min-height:74px]; }
-.ui-list-row > span:nth-child(2) { @apply flex-1 min-w-0; }
-.ui-list-row strong, .bibo-note-list .ui-list-row strong { @apply [display:-webkit-box] text-sm font-semibold; }
+.bibo-file-tree .ui-list-row > span:last-child { @apply flex-1 min-w-0; }
+.ui-list-row strong, .bibo-note-list .ui-list-row strong { @apply [display:-webkit-box] text-base font-semibold; }
 .ui-list-row strong, .bibo-summary-row strong, .bibo-project-list button strong { @apply [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden [overflow-wrap:anywhere]; }
-.ui-list-row small, .bibo-note-list .ui-list-row small { @apply block [color:var(--ui-muted)] text-xs mt-1.25 overflow-hidden text-ellipsis whitespace-nowrap; }
-.ui-list-row time { @apply flex-none [color:var(--ui-muted)] text-xs; }
+.ui-list-row small, .bibo-note-list .ui-list-row small { @apply block [color:var(--ui-muted)] text-base mt-1.25 overflow-hidden text-ellipsis whitespace-nowrap; }
+.ui-list-row time { @apply flex-none [color:var(--ui-muted)] text-base; }
 .bibo-action-row { @apply flex gap-2.25 items-center flex-wrap mt-6.25; }
 .bibo-action-row .ui-button--danger { @apply [margin-left:auto]; }
 .bibo-load-more { @apply block [margin:18px_auto]; }
 
 .bibo-filterbar { @apply flex flex-wrap items-center gap-3.25 [min-height:43px] mb-3.25 [color:var(--ui-muted)]; }
-.bibo-filterbar select { @apply [width:min(180px,_100%)] [padding:7px_9px]; }
+.bibo-filterbar select { @apply [width:min(180px,_100%)]; }
 .bibo-filter-spacer { @apply flex-1; }
 .bibo-task-layout { @apply [grid-template-columns:minmax(360px,_1fr)_minmax(360px,_.9fr)]; }
 .bibo-task-row { @apply items-center [padding:15px_19px]; }
 .bibo-task-state { @apply [width:20px] [font-size:17px] [color:var(--ui-muted)]; }
-.bibo-task-row strong { @apply text-sm font-semibold; }
-.bibo-task-row small { @apply block mt-1.25 [color:var(--ui-muted)] text-xs; }
-.bibo-task-status-label { @apply flex-none [margin-left:auto] [color:var(--ui-muted)] text-xs whitespace-nowrap; }
+.bibo-task-row strong { @apply text-base font-semibold; }
+.bibo-task-row small { @apply block mt-1.25 [color:var(--ui-muted)] text-base; }
 .bibo-board { @apply grid [grid-template-columns:repeat(4,_minmax(180px,_1fr))] gap-0.25 [background:var(--bibo-hairline)] [min-height:100%] overflow-x-auto; }
 .bibo-board section { @apply [background:var(--ui-surface)]; }
-.bibo-board h3 { @apply m-0 [padding:14px_12px] text-xs [color:var(--ui-muted)]; }
+.bibo-board h3 { @apply m-0 [padding:14px_12px] text-base [color:var(--ui-muted)]; }
 .bibo-board h3 small { @apply [font-weight:normal]; }
 .bibo-board .bibo-task-row { @apply p-2.75; }
 .bibo-editor-form { @apply flex flex-col [max-width:620px]; }
@@ -147,16 +161,16 @@
 .bibo-inline-input .ui-control { @apply w-full; }
 .bibo-form-pair { @apply grid [grid-template-columns:repeat(2,_minmax(0,_1fr))] gap-3; }
 .bibo-subtasks { @apply [border-top:1px_solid_var(--bibo-hairline)] pt-2.25; }
-.bibo-subtasks > p { @apply [color:var(--ui-muted)] text-xs; }
-.bibo-editor-form .bibo-check-row { @apply flex flex-row items-center gap-2 [min-height:32px] mb-1 [color:var(--ui-muted)] text-sm; }
+.bibo-subtasks > p { @apply [color:var(--ui-muted)] text-base; }
+.bibo-editor-form .bibo-check-row { @apply flex flex-row items-center gap-2 [min-height:32px] mb-1 [color:var(--ui-muted)] text-base; }
 .bibo-check-row label { @apply flex flex-1 min-w-0 items-center gap-2 cursor-pointer; }
 .bibo-check-row input { @apply [width:auto]; }
 .bibo-check-row span { @apply flex-1; }
 .bibo-check-row .ui-icon-button { @apply flex-none; }
 .bibo-inline-input { @apply flex gap-1.75 [max-width:500px] mb-3.5; }
-.bibo-conflict { @apply [margin:0_0_16px] p-2.5 [background:var(--ui-error-surface)] [color:var(--ui-danger)] [border-radius:7px] text-xs; }
+.bibo-conflict { @apply [margin:0_0_16px] p-2.5 [background:var(--ui-error-surface)] [color:var(--ui-danger)] [border-radius:7px] text-base; }
 .calendar-period { @apply flex items-center gap-2 [margin-left:auto] shrink-0; }
-.calendar-period > strong { @apply [min-width:80px] text-center text-xs [color:var(--ui-muted)]; }
+.calendar-period > strong { @apply [min-width:80px] text-center text-base [color:var(--ui-muted)]; }
 .bibo-calendar-controls { @apply flex-wrap; }
 .bibo-calendar-controls > .ui-button { @apply shrink-0 whitespace-nowrap; }
 .bibo-task-layout:not(.is-detail-open) { @apply block; }
@@ -194,7 +208,7 @@
 .calendar-weekdays, .calendar-month-grid { @apply grid [grid-template-columns:repeat(7,_minmax(0,_1fr))]; }
 .calendar-month-grid { @apply flex-1 [grid-auto-rows:minmax(84px,_1fr)]; }
 .calendar-weekdays { @apply [background:var(--ui-canvas)] [border-bottom:1px_solid_var(--bibo-hairline)]; }
-.calendar-weekdays span { @apply [padding:10px_12px] text-xs [color:var(--bibo-subtle)]; }
+.calendar-weekdays span { @apply [padding:10px_12px] text-base [color:var(--bibo-subtle)]; }
 .calendar-date { @apply relative p-1.5 [border-right:1px_solid_var(--bibo-hairline)] [border-bottom:1px_solid_var(--bibo-hairline)] min-w-0; }
 .calendar-date:nth-child(7n) { @apply [border-right:0]; }
 .calendar-date:nth-last-child(-n+7) { @apply [border-bottom:0]; }
@@ -202,7 +216,7 @@
 .calendar-date.is-selected { @apply [background:var(--ui-calendar-selection)]; }
 .calendar-date-select { @apply absolute [inset:0] w-full border-0 bg-transparent [color:inherit] p-0 cursor-pointer; }
 .calendar-date-select:focus-visible { @apply [outline:2px_solid_var(--ui-primary)] [outline-offset:-2px]; }
-.calendar-date-select span { @apply absolute top-1.5 left-1.5 grid [place-items:center] [width:28px] [height:28px] [border-radius:50%] text-xs; }
+.calendar-date-select span { @apply absolute top-1.5 left-1.5 grid [place-items:center] [width:28px] [height:28px] [border-radius:50%] text-base; }
 .calendar-date.is-today .calendar-date-select span { @apply [background:var(--ui-primary)] [color:white]; }
 .calendar-date-events { @apply relative [z-index:1] grid gap-0.75 mt-8; }
 .calendar-date-events button { @apply flex gap-1.25 w-full min-w-0 [padding:4px_5px] border-0 [border-radius:4px] [background:var(--ui-hover)] [color:inherit] text-left text-xs cursor-pointer; }
@@ -212,7 +226,7 @@
 .calendar-date-events span { @apply overflow-hidden whitespace-nowrap text-ellipsis; }
 .calendar-date-events .calendar-overflow { @apply bg-transparent [color:var(--bibo-subtle)]; }
 @media (max-width: 680px) {
-  .calendar-weekdays span { @apply [padding:9px_0] text-center text-xs; }
+  .calendar-weekdays span { @apply [padding:9px_0] text-center text-base; }
   .calendar-date { @apply [min-height:94px] p-0.75; }
   .calendar-date-select span { @apply top-0.75 [left:50%] [transform:translateX(-50%)]; }
   .calendar-date-events button { @apply [padding:3px_2px] text-xs; }
@@ -221,19 +235,19 @@
 .bibo-day-agenda { @apply [padding:25px_26px] [border-right:0]; }
 .bibo-agenda-heading { @apply flex justify-between [align-items:end] gap-5 pb-4.5 [border-bottom:1px_solid_var(--bibo-hairline)]; }
 .bibo-agenda-heading h2 { @apply m-0 text-lg leading-7 font-semibold; }
-.bibo-agenda-heading > span { @apply whitespace-nowrap [color:var(--ui-muted)] text-xs; }
+.bibo-agenda-heading > span { @apply whitespace-nowrap [color:var(--ui-muted)] text-base; }
 .bibo-agenda-items { @apply pt-3.25; }
 .bibo-agenda-event { @apply grid [grid-template-columns:75px_minmax(0,_1fr)] gap-3.75 [padding:14px_12px_14px_0]; }
-.bibo-agenda-event > span { @apply [color:var(--ui-muted)] text-xs font-semibold; }
-.bibo-agenda-event small { @apply block mt-1 [color:var(--ui-muted)] text-xs font-normal; }
-.bibo-agenda-event strong { @apply block [overflow-wrap:anywhere] text-sm font-semibold; }
+.bibo-agenda-event > span { @apply [color:var(--ui-muted)] text-base font-semibold; }
+.bibo-agenda-event small { @apply block mt-1 [color:var(--ui-muted)] text-base font-normal; }
+.bibo-agenda-event strong { @apply block [overflow-wrap:anywhere] text-base font-semibold; }
 .bibo-agenda-empty { @apply flex flex-col items-start gap-2 [padding:32px_0_25px]; }
 .bibo-agenda-empty strong { @apply text-lg leading-7 font-semibold; }
-.bibo-agenda-empty span { @apply [color:var(--ui-muted)] text-xs; }
+.bibo-agenda-empty span { @apply [color:var(--ui-muted)] text-base; }
 .bibo-agenda-empty button { @apply pl-0 mt-1; }
 .bibo-upcoming { @apply mt-6.75 [border-top:1px_solid_var(--bibo-hairline)] pt-4.75; }
-.bibo-upcoming button span { @apply [min-width:105px] [color:var(--ui-muted)] text-xs; }
-.bibo-upcoming button strong { @apply text-xs font-semibold; }
+.bibo-upcoming button span { @apply [min-width:105px] [color:var(--ui-muted)] text-base; }
+.bibo-upcoming button strong { @apply text-base font-semibold; }
 
 .bibo-files-page { @apply [max-width:none] flex flex-col h-full; }
 .bibo-files-page .bibo-page-title { @apply flex-none; }
@@ -255,15 +269,15 @@
 .bibo-tree-row:hover { @apply [background:var(--ui-hover)]; }
 .bibo-tree-row.is-selected:hover { @apply [background:var(--ui-selection-hover)]; }
 .bibo-tree-row.is-selected { @apply [background:var(--ui-selection)]; }
-.bibo-tree-main { @apply flex-1 flex items-center gap-1.75 overflow-hidden border-0 bg-transparent bg-none text-left [color:var(--ui-muted)] cursor-pointer text-sm; }
+.bibo-tree-main { @apply flex-1 flex self-stretch min-h-8 items-center gap-2 overflow-hidden border-0 bg-transparent bg-none text-left [color:var(--ui-muted)] cursor-pointer text-base; }
 .bibo-tree-name { @apply min-w-0 overflow-hidden whitespace-nowrap text-ellipsis; }
-.bibo-tree-disclosure { @apply flex-none [width:13px] [height:13px] [color:var(--ui-muted)]; }
-.bibo-tree-disclosure svg, .bibo-file-kind-icon svg { @apply block [width:13px] [height:13px] [stroke-width:1.8]; }
-.bibo-file-kind-icon { @apply inline-flex flex-none items-center justify-center [width:15px] [height:15px] [color:var(--ui-muted)]; }
+.bibo-tree-disclosure { @apply flex-none [width:16px] [height:16px] [color:var(--ui-muted)]; }
+.bibo-tree-disclosure svg, .bibo-file-kind-icon svg { @apply block [width:16px] [height:16px] [stroke-width:1.7]; }
+.bibo-file-kind-icon { @apply inline-flex flex-none items-center justify-center [width:16px] [height:16px] [color:var(--ui-muted)]; }
 .bibo-tree-row.is-selected .bibo-file-kind-icon, .bibo-file-tab.is-active .bibo-file-kind-icon { @apply [color:var(--bibo-leaf)]; }
-.bibo-tree-empty { @apply text-xs [color:var(--ui-muted)] [padding:0_13px]; }
-.bibo-tree-empty-folder { @apply [margin:4px_0_9px] [color:var(--ui-muted)] text-xs; }
-.bibo-tree-search-error { @apply [padding:4px_12px] [color:var(--ui-danger)] text-xs; }
+.bibo-tree-empty { @apply text-base [color:var(--ui-muted)] [padding:0_13px]; }
+.bibo-tree-empty-folder { @apply [margin:4px_0_9px] [color:var(--ui-muted)] text-base; }
+.bibo-tree-search-error { @apply [padding:4px_12px] [color:var(--ui-danger)] text-base; }
 .bibo-tree-search-error p { @apply [margin:0_0_5px]; }
 .bibo-note-list { @apply overflow-y-auto; }
 .bibo-note-list .ui-list-row { @apply block [min-height:65px]; }
@@ -275,16 +289,16 @@
 .bibo-file-tabs { @apply flex flex-1 min-w-0 overflow-x-auto [scrollbar-width:thin]; }
 .bibo-file-editor { @apply flex-1 min-w-0 min-h-0 flex flex-col; }
 .bibo-file-editor-head { @apply flex flex-none [min-height:44px] items-center justify-between gap-3 [padding:6px_16px] [border-bottom:1px_solid_var(--ui-line)]; }
-.file-breadcrumb { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap [color:var(--ui-muted)] text-xs; }
+.file-breadcrumb { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap [color:var(--ui-muted)] text-base; }
 .file-editor-tools { @apply flex min-w-0 flex-wrap justify-end items-center gap-2 [margin-left:auto]; }
 @media (min-width: 761px) and (max-width: 900px) {
   .bibo-files-layout, .bibo-files-layout:has(.bibo-note-list) { @apply [grid-template-columns:220px_minmax(0,_1fr)]; }
   .bibo-files-layout.is-tree-collapsed { @apply [grid-template-columns:minmax(0,_1fr)]; }
   .file-breadcrumb { @apply hidden; }
 }
-.file-conflict { @apply flex-none [padding:12px_16px] [border-bottom:1px_solid_var(--ui-line)] [background:var(--ui-canvas)] [color:var(--ui-ink)] text-xs; }
+.file-conflict { @apply flex-none [padding:12px_16px] [border-bottom:1px_solid_var(--ui-line)] [background:var(--ui-canvas)] [color:var(--ui-ink)] text-base; }
 .file-conflict > div { @apply flex flex-wrap gap-2 mt-2; }
-.bibo-save-state { @apply [color:var(--ui-muted)] text-xs; }
+.bibo-save-state { @apply [color:var(--ui-muted)] text-base; }
 .bibo-file-preview-markdown, .bibo-file-preview-frame { @apply flex-1 min-h-0 overflow-auto w-full m-0 p-6 border-0 [color:var(--ui-ink)] text-base leading-7; }
 .bibo-file-editor textarea { @apply flex-1 min-h-0 w-full m-0 p-6 border-0 [outline:0] bg-transparent [color:var(--ui-ink)] font-mono text-base leading-7 resize-none; }
 .bibo-file-editor textarea:focus-visible { @apply [outline:0]; }
@@ -292,6 +306,7 @@
 .bibo-file-editor.is-compact .file-breadcrumb { @apply hidden; }
 
 @media (max-width: 1100px) {
+  .bibo-overview-grid { @apply [grid-template-columns:minmax(0,_1fr)]; }
   .inbox-back { @apply inline-flex; }
   .workspace-page .inbox-layout { @apply block; }
   .inbox-layout:not(.is-detail-open) .bibo-detail-pane { @apply hidden; }
@@ -302,8 +317,12 @@
 @media (max-width: 760px) {
   .task-toolbar.is-editing { @apply hidden; }
   .calendar-page:has(.calendar-stage.is-detail-open) .bibo-calendar-controls { @apply hidden; }
-  .task-filter-options { @apply [flex-basis:100%]; }
-  .task-filter-options > .ui-control { @apply flex-1 min-w-0; }
+  .task-filter-options { @apply grid [grid-template-columns:minmax(0,_1fr)_auto] w-full; }
+  .task-filter-options > .ui-control { @apply [grid-column:1] [grid-row:1] [max-width:none]; }
+  .task-filter-options > .ui-segmented-control { @apply [grid-column:2] [grid-row:1] m-0; }
+  .task-project-filter { @apply [grid-column:1_/_-1] [grid-row:2]; }
+  .task-project-filter > .ui-control { @apply flex-1 [width:0]; }
+  .task-quick-add { @apply [padding:12px_12px_0]; }
   .calendar-surface:has(.calendar-mobile-agenda) { @apply overflow-y-auto block; }
   .calendar-surface:has(.calendar-mobile-agenda) .calendar-month { @apply flex-none overflow-visible; }
   .calendar-surface:has(.calendar-mobile-agenda) .calendar-date { @apply [min-height:56px]; }
@@ -316,25 +335,26 @@
   .calendar-mobile-agenda .bibo-agenda-heading { @apply pb-2.5; }
   .calendar-mobile-agenda .bibo-agenda-heading h2 { @apply [font-family:inherit] text-base font-semibold [line-height:1.4]; }
   .bibo-mobile-nav { @apply fixed [z-index:4] bottom-0 left-0 right-0 [height:calc(56px_+_env(safe-area-inset-bottom))] flex items-stretch justify-around [padding-bottom:env(safe-area-inset-bottom)] [border-top:1px_solid_var(--bibo-hairline)] [background:var(--ui-surface)]; }
-  .bibo-mobile-nav a, .bibo-mobile-nav button { @apply relative isolate flex-1 flex flex-col items-center justify-center gap-0.5 border-0 bg-transparent bg-none [color:var(--ui-muted)] no-underline text-xs cursor-pointer; }
+  .bibo-mobile-nav a, .bibo-mobile-nav button { @apply relative isolate flex-1 flex flex-col items-center justify-center gap-0.5 border-0 bg-transparent bg-none [color:var(--ui-muted)] no-underline text-base cursor-pointer; }
   .bibo-mobile-nav :is(a, button)::before { @apply content-[""] absolute -z-10 [top:6px] [width:calc(100%_-_12px)] [max-width:56px] [height:44px] [border-radius:10px]; }
   .bibo-mobile-nav svg { @apply [width:18px] [height:18px] [stroke-width:1.7]; }
   .bibo-mobile-nav .is-active { @apply [color:var(--ui-ink)]; }
   .bibo-mobile-nav .is-active::before { @apply [background:var(--ui-selection)]; }
   .bibo-page { @apply [padding:24px_16px_42px]; }
   .bibo-page-title { @apply items-start; }
-  .bibo-page-title h1 { @apply [font-size:31px]; }
+  .bibo-page-title h1 { @apply text-2xl; }
   .bibo-page-title > .ui-button--primary { @apply flex-none; }
-  .bibo-overview-grid { @apply flex flex-col items-stretch gap-2.75; }
+  .bibo-overview-grid { @apply flex flex-col items-stretch gap-4; }
   .bibo-overview-column { @apply contents; }
-  .bibo-overview-brief { @apply min-h-0 p-3.75 [order:0]; }
-  .bibo-overview-brief-action { @apply [align-self:flex-start]; }
+  .bibo-overview-welcome { @apply gap-3; }
+  .bibo-overview-companion { @apply [width:80px]; }
+  .bibo-overview-brief { @apply flex-col items-start gap-3 [order:0]; }
   .bibo-overview-inbox { @apply [order:1]; }
   .bibo-overview-calendar { @apply [order:2]; }
   .bibo-overview-tasks { @apply [order:3]; }
   .bibo-project-card { @apply [order:4]; }
   .bibo-overview-notes { @apply [order:5]; }
-  .bibo-summary-card { @apply min-h-0 p-4.5; }
+  .bibo-summary-card { @apply min-h-0; }
   .bibo-split { @apply block min-h-0; }
   .bibo-list-pane { @apply [max-height:290px] [border-right:0] [border-bottom:1px_solid_var(--bibo-hairline)]; }
   .bibo-detail-pane { @apply [min-height:300px] [padding:24px_18px]; }
@@ -354,7 +374,9 @@
   .calendar-mobile-day { @apply [border-top:1px_solid_var(--ui-line)] [border-radius:0]; }
   .calendar-mobile-back { @apply mb-3; }
   .bibo-calendar-controls .bibo-filter-spacer { @apply hidden; }
-  .bibo-calendar-controls .calendar-period { @apply [margin-right:auto]; }
+  .workspace-page .bibo-calendar-controls { @apply grid [grid-template-columns:minmax(0,_1fr)_auto] [gap:4px_8px]; }
+  .bibo-calendar-controls .calendar-period { @apply m-0; }
+  .bibo-calendar-controls > .ui-button { @apply justify-self-end; }
   .bibo-files-page { @apply h-full pb-0; }
   .bibo-files-layout.is-content-visible > .bibo-file-tree, .bibo-files-layout.is-content-visible > .bibo-note-list { @apply hidden; }
   .bibo-files-layout.is-browser-visible > .bibo-file-workbench { @apply hidden; }
@@ -374,16 +396,12 @@
   .bibo-file-preview-markdown, .bibo-file-preview-frame { @apply w-full [padding:20px_16px]; }
   .bibo-form-pair { @apply [grid-template-columns:1fr] gap-0; }
 }
-@media (max-width: 380px) {
-  .bibo-overview-brief { @apply grid [grid-template-columns:24px_minmax(0,_1fr)] [gap:6px_12px]; }
-  .bibo-overview-brief-mark { @apply [grid-column:1] [grid-row:1]; }
-  .bibo-overview-brief-copy { @apply [grid-column:2] [grid-row:1]; }
-  .bibo-overview-brief-action { @apply [grid-column:2] [grid-row:2] [justify-self:end]; }
-}
 
 .bibo-mobile-nav :is(a, button):hover::before, .bibo-mobile-nav :is(a, button):active::before { @apply [background:var(--ui-hover)]; }
+.bibo-mobile-nav .is-active:hover::before, .bibo-mobile-nav .is-active:active::before { @apply [background:var(--ui-selection-hover)]; }
 .bibo-check-row:hover { @apply [background:var(--ui-hover)]; }
 .bibo-check-row button:hover { @apply [color:var(--ui-danger)]; }
+@media (pointer: coarse) { .bibo-tree-main { @apply [min-height:44px]; } }
 
 @media (max-width: 760px) {
   .ui-overlay--sheet:has(.bibo-sidebar.is-drawer) .ui-overlay__header { @apply relative [z-index:1] [height:0] p-0; }

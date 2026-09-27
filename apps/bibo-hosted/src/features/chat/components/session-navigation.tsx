@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { workspaceHref } from "@/app/workspace-router";
-import { Plus } from "lucide-react";
+import { LoaderCircle, Plus } from "lucide-react";
 import type { BiboSession } from "@nextclaw/bibo-client";
 import {
   ActionMenu,
@@ -130,7 +130,6 @@ export function SessionNavigation({
           label="新建会话"
           icon={<Plus />}
           tooltip={!mobile}
-          disabled={store.phase !== "idle"}
           onClick={() => {
             onNavigate();
             void store.createSession();
@@ -144,13 +143,11 @@ export function SessionNavigation({
             className={`bibo-session-item${
               active && store.activeSessionId === session.id ? " is-active" : ""
             }`}
-            aria-disabled={store.phase !== "idle"}
-            onClick={(event) => {
-              if (store.phase !== "idle") { event.preventDefault(); return; }
-              onNavigate();
-            }}
+            aria-label={session.title}
+            onClick={onNavigate}
           >
             {session.title}
+            {store.phase !== "idle" && store.runSessionId === session.id && <LoaderCircle aria-hidden="true" className="bibo-session-progress motion-safe:animate-spin" />}
           </Link></NavigationItem>
           <SessionActions session={session} />
         </div>

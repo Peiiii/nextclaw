@@ -17,7 +17,16 @@ const ready = server ? new Promise<void>((resolve, reject) => {
 }) : Promise.resolve();
 const at = "2026-09-26T00:00:00.000Z";
 const session = { id: "composer", title: "输入面板验证", createdAt: at, updatedAt: at, messageCount: 0 };
-type MockState = { cancels: number; creates: number; failCancel: boolean; messages: { role: string; text: string; at: string }[] };
+const otherSession = { ...session, id: "other", title: "另一个对话" };
+const otherMessages = [{ role: "assistant", text: "另一个会话的历史", at }];
+class MockState {
+  cancels = 0;
+  creates = 0;
+  failCancel = true;
+  messages: { role: string; text: string; at: string }[] = [];
+  setMessages = (messages: MockState["messages"]): void => { this.messages = messages; };
+  allowCancellation = (): void => { this.failCancel = false; };
+}
 const controls = (page: Page) => ({
   input: page.getByRole("textbox", { name: /告诉 Bibo/ }),
   send: page.getByRole("button", { name: "发送消息", exact: true }),
@@ -29,7 +38,7 @@ async function frame(page: Page, name: string, value: unknown): Promise<void> {
 }
 
 async function setupComposer(page: Page, width: number): Promise<MockState> {
-  const state: MockState = { cancels: 0, creates: 0, failCancel: true, messages: [] };
+  const state = new MockState();
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/chat/availability") {
@@ -42,8 +51,8 @@ async function setupComposer(page: Page, width: number): Promise<MockState> {
     }
     const action = route.request().method() === "POST" ? String(route.request().postDataJSON().action) : "";
     const value = path === "/api/auth/me" ? { user: { id: "composer-test", email: "test@example.com" } }
-      : path === "/api/sessions" ? { sessions: [session] }
-        : path === "/api/history" ? { messages: state.messages }
+      : path === "/api/sessions" ? { sessions: [session, otherSession] }
+        : path === "/api/history" ? { messages: new URL(route.request().url()).searchParams.get("id") === otherSession.id ? otherMessages : state.messages }
           : action === "overview.get" ? { result: { inbox: [], tasks: [], events: [], notes: [], projects: [], counts: { unread: 0, activeTasks: 0 } } }
             : { result: { items: [], nextCursor: null } };
     if (path === "/api/cancel") {
@@ -90,7 +99,7 @@ async function checkGeneration(page: Page, width: number, state: MockState): Pro
   assert.equal(await input.inputValue(), "");
   await input.fill("下一条草稿");
   await page.waitForFunction(() => document.documentElement.dataset.composerStream === "ready");
-  await page.getByRole("button", { name: "正在连接…", exact: true }).waitFor();
+  await page.getByRole("button", { name: "请稍候", exact: true }).waitFor();
   await input.press("Enter");
   assert.equal(await page.evaluate(() => document.documentElement.dataset.composerRuns), "1", "Enter during a run must not send concurrently");
   await frame(page, "accepted", { runId: "run-1" });
@@ -102,9 +111,10 @@ async function checkGeneration(page: Page, width: number, state: MockState): Pro
   await page.getByText("这是一段正在生成的回答。", { exact: true }).waitFor();
   await page.screenshot({ path: `/tmp/bibo-composer-generating-${width}.png` });
   await frame(page, "saving", {});
-  assert.ok(await page.getByRole("button", { name: "正在保存…", exact: true }).isDisabled());
+  assert.ok(await page.getByRole("button", { name: "请稍候", exact: true }).isDisabled());
+  assert.doesNotMatch(await page.locator(".ui-composer__bottom").innerText(), /正在连接|正在保存|正在停止/, "busy feedback must not expose internal phase text");
   assert.equal(await stop.count(), 0);
-  state.messages = [{ role: "user", text: "原始问题", at }, { role: "assistant", text: "这是一段正在生成的回答。", at }];
+  state.setMessages([{ role: "user", text: "原始问题", at }, { role: "assistant", text: "这是一段正在生成的回答。", at }]);
   await frame(page, "committed", { text: state.messages[1]!.text, messages: state.messages, session });
   await send.waitFor();
   assert.equal(await input.inputValue(), "下一条草稿", "successful completion preserves the next draft");
@@ -120,9 +130,9 @@ async function checkCancellation(page: Page, state: MockState): Promise<void> {
   await stop.click();
   await page.getByText("停止失败，请重试", { exact: true }).waitFor();
   assert.ok(await stop.isEnabled(), "failed cancellation must remain retryable");
-  state.failCancel = false;
+  state.allowCancellation();
   await stop.click();
-  assert.ok(await page.getByRole("button", { name: "正在停止…", exact: true }).isDisabled());
+  assert.ok(await page.getByRole("button", { name: "请稍候", exact: true }).isDisabled());
   assert.equal(state.cancels, 2, "only one cancellation request per click");
   await frame(page, "error", { error: "生成已停止，本轮未保存。" });
   const retry = page.getByRole("button", { name: "重试消息", exact: true });
@@ -133,7 +143,7 @@ async function checkCancellation(page: Page, state: MockState): Promise<void> {
   assert.equal(await page.locator(".ui-message--pending.ui-message--user").innerText(), "你\n下一条草稿");
   await frame(page, "accepted", { runId: "run-3" });
   await frame(page, "saving", {});
-  state.messages = [...state.messages, { role: "user", text: "下一条草稿", at }, { role: "assistant", text: "重试成功。", at }];
+  state.setMessages([...state.messages, { role: "user", text: "下一条草稿", at }, { role: "assistant", text: "重试成功。", at }]);
   await frame(page, "committed", { text: "重试成功。", messages: state.messages, session });
   await send.waitFor();
   assert.equal(await retry.count(), 0);
@@ -172,6 +182,89 @@ async function checkFailureQueue(page: Page): Promise<void> {
   await retry.waitFor();
 }
 
+async function chooseConversation(page: Page, title: string): Promise<void> {
+  const menu = page.getByRole("button", { name: "打开菜单", exact: true });
+  if (await menu.isVisible()) await menu.click();
+  await page.getByRole("link", { name: title, exact: true }).click();
+}
+
+async function openBlankConversation(page: Page): Promise<void> {
+  const menu = page.getByRole("button", { name: "打开菜单", exact: true });
+  if (await menu.isVisible()) await menu.click();
+  await page.getByRole("button", { name: "新建会话", exact: true }).click();
+  await page.locator(".bibo-welcome").waitFor();
+}
+
+async function checkBackgroundGeneration(page: Page, state: MockState): Promise<void> {
+  const { input, send } = controls(page);
+  await input.fill("后台回复问题");
+  await send.click();
+  await page.waitForFunction(() => document.documentElement.dataset.composerStream === "ready");
+  await frame(page, "accepted", { runId: "background-run" });
+  await chooseConversation(page, otherSession.title);
+  await page.getByText(otherMessages[0]!.text, { exact: true }).waitFor();
+  await input.fill("另一个会话的草稿");
+  await frame(page, "delta", { text: "后台回复继续生成。" });
+  assert.equal(await page.getByText("后台回复继续生成。", { exact: true }).count(), 0, "background deltas must not enter the viewed conversation");
+  await chooseConversation(page, session.title);
+  await page.getByText("后台回复继续生成。", { exact: true }).waitFor();
+  assert.equal(await input.inputValue(), "");
+  await openBlankConversation(page);
+  assert.equal(await page.getByText("后台回复继续生成。", { exact: true }).count(), 0, "a new blank chat must keep its welcome view during background generation");
+  await chooseConversation(page, otherSession.title);
+  await page.getByText(otherMessages[0]!.text, { exact: true }).waitFor();
+  await frame(page, "saving", {});
+  state.setMessages([...state.messages, { role: "user", text: "后台回复问题", at: "2026-09-26T01:00:00Z" }, { role: "assistant", text: "后台回复继续生成。", at: "2026-09-26T01:00:01Z" }]);
+  await frame(page, "committed", { messages: state.messages, session });
+  await send.waitFor();
+  assert.equal(new URL(page.url()).pathname, "/chat/other", "completion must not steal navigation");
+  assert.equal(await input.inputValue(), "另一个会话的草稿");
+  assert.equal(await page.getByText("后台回复继续生成。", { exact: true }).count(), 0);
+  await chooseConversation(page, session.title);
+  await page.getByText("后台回复继续生成。", { exact: true }).waitFor();
+}
+
+async function checkBackgroundFailure(page: Page): Promise<void> {
+  const { input, send } = controls(page);
+  await input.fill("失败会话的原始问题");
+  await send.click();
+  await page.waitForFunction(() => document.documentElement.dataset.composerStream === "ready");
+  await frame(page, "accepted", { runId: "background-failure" });
+  await chooseConversation(page, otherSession.title);
+  await page.getByText(otherMessages[0]!.text, { exact: true }).waitFor();
+  await frame(page, "error", { error: "后台会话连接中断" });
+  await send.waitFor();
+  assert.equal(await input.inputValue(), "另一个会话的草稿", "a background failure must not replace another draft");
+  assert.equal(await page.getByText(/后台会话连接中断/).count(), 0);
+  await chooseConversation(page, session.title);
+  await page.getByText(/后台会话连接中断/).waitFor();
+  assert.equal(await input.inputValue(), "失败会话的原始问题");
+}
+
+async function checkSwitchDuringCreation(page: Page, state: MockState): Promise<void> {
+  let release = () => {};
+  const available = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/chat/availability", async (route) => {
+    await available;
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true }) });
+  });
+  await openBlankConversation(page);
+  const { input, send } = controls(page);
+  await input.fill("空白会话中的问题");
+  await send.click();
+  await chooseConversation(page, otherSession.title);
+  await page.getByText(otherMessages[0]!.text, { exact: true }).waitFor();
+  await input.fill("创建期间也保留我的草稿");
+  release();
+  await page.waitForFunction(() => document.documentElement.dataset.composerStream === "ready");
+  assert.equal(new URL(page.url()).pathname, "/chat/other", "background session creation must not steal navigation");
+  state.setMessages([{ role: "user", text: "空白会话中的问题", at }, { role: "assistant", text: "空白会话的回复", at }]);
+  await frame(page, "committed", { messages: state.messages, session });
+  await send.waitFor();
+  assert.equal(await input.inputValue(), "创建期间也保留我的草稿");
+  assert.equal(await page.getByText("空白会话的回复", { exact: true }).count(), 0);
+}
+
 async function verifyViewport(page: Page, width: number): Promise<void> {
   const errors: string[] = [];
   page.setDefaultTimeout(8000);
@@ -182,6 +275,9 @@ async function verifyViewport(page: Page, width: number): Promise<void> {
     await checkCancellation(page, state);
     await checkDraftEditor(page);
     await checkFailureQueue(page);
+    await checkBackgroundGeneration(page, state);
+    await checkBackgroundFailure(page);
+    await checkSwitchDuringCreation(page, state);
     assert.deepEqual(errors, []);
   } catch (error) {
     await page.screenshot({ path: `/tmp/bibo-composer-failure-${width}.png` });

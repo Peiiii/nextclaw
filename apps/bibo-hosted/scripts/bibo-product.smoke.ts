@@ -382,9 +382,8 @@ try {
       }));
       assert.equal(typography.title, "18px");
       assert.ok(typography.labels.length > 0 && typography.labels.every((size) => size === "14px"));
-      const coarse = await page.evaluate(() => matchMedia("(pointer: coarse)").matches);
-      assert.ok(typography.inputs.length > 0 && typography.inputs.every((size) => size === (coarse ? "16px" : "14px")));
-      assert.ok(typography.actions.length > 0 && typography.actions.every((size) => size === "13px"));
+      assert.ok(typography.inputs.length > 0 && typography.inputs.every((size) => size === "14px"));
+      assert.ok(typography.actions.length > 0 && typography.actions.every((size) => size === "14px"));
       await page.screenshot({ path: `/tmp/workspace-typography-${viewport.width}.png`, animations: "disabled" });
       await eventDialog.getByRole("button", { name: "关闭日程编辑" }).click();
       await eventDialog.waitFor({ state: "hidden" });
@@ -408,7 +407,9 @@ try {
       });
       assert.deepEqual(taskStyle, calendarStyle, "same-level actions use one shared component state");
       const taskRow = page.locator(".bibo-task-row").filter({ hasText: "梳理产品方案" });
-      assert.match(await taskRow.innerText(), /Bibo.*进行中/s, "task list shows project and state without opening details");
+      const taskSummary = await taskRow.innerText();
+      assert.match(taskSummary, /Bibo/, "task list shows its project without opening details");
+      assert.match(taskSummary, /进行中/, "task list shows its state without opening details");
       await taskRow.click();
       await page.getByRole("textbox", { name: "任务名称" }).waitFor();
       const taskSaveBox = await page.getByRole("button", { name: "保存任务", exact: true }).boundingBox();

@@ -1,25 +1,24 @@
 import { createBrowserRouter, matchRoutes } from "react-router";
-import { createElement } from "react";
+import { BiboApp, ChatPage, SpacePage, NotFoundPage } from "@/features/chat";
 import type { BiboView } from "@/features/space";
 
 const views: BiboView[] = ["overview", "chat", "inbox", "calendar", "tasks", "notes", "files"];
 const routes = [
-  { index: true, handle: { view: "overview" as BiboView }, lazy: async () => ({ Component: (await import("@/features/chat")).SpacePage }) },
+  { index: true, handle: { view: "overview" as BiboView }, Component: SpacePage },
   ...views.filter((view) => view !== "overview").map((view) => ({
     path: view === "chat" ? "chat/:sessionId?" : ["files", "tasks", "calendar", "inbox"].includes(view) ? `${view}/:resourceId?` : view,
     handle: { view },
-    lazy: async () => ({ Component: (await import("@/features/chat"))[view === "chat" ? "ChatPage" : "SpacePage"] }),
+    Component: view === "chat" ? ChatPage : SpacePage,
   })),
-  { path: "files/path/:filePath", handle: { view: "files" as BiboView }, lazy: async () => ({ Component: (await import("@/features/chat")).SpacePage }) },
-  { path: "*", handle: { view: "overview" as BiboView, notFound: true }, lazy: async () => ({ Component: (await import("@/features/chat")).NotFoundPage }) },
+  { path: "files/path/:filePath", handle: { view: "files" as BiboView }, Component: SpacePage },
+  { path: "*", handle: { view: "overview" as BiboView, notFound: true }, Component: NotFoundPage },
 ];
 let router: ReturnType<typeof createBrowserRouter>;
 
 export function initializeWorkspaceRouter() {
   router = createBrowserRouter([{
     path: "/",
-    hydrateFallbackElement: createElement("div", { role: "status", className: "workspace-loading" }, "正在打开…"),
-    lazy: async () => ({ Component: (await import("@/features/chat")).BiboApp }),
+    Component: BiboApp,
     children: routes,
   }]);
   return router;

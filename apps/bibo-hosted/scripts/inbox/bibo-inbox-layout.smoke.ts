@@ -145,11 +145,12 @@ try {
           marker: marker ? marker.getBoundingClientRect().right - copy.getBoundingClientRect().right : 0,
           markerInHeading: !marker || marker.parentElement?.classList.contains("inbox-item-heading"),
           date: row.querySelector("time")!.getBoundingClientRect().right - copy.getBoundingClientRect().right,
-          titleHeight: row.querySelector("strong")!.getBoundingClientRect().height,
-          rowHeight: meta.bottom - heading.top,
+          titleLines: row.querySelector("strong")!.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(row.querySelector("strong")!).lineHeight),
+          metaLines: meta.height / Number.parseFloat(getComputedStyle(row.querySelector("time")!).lineHeight),
+          separateLines: meta.top >= heading.bottom,
         };
       }));
-      assert.ok(insets.every(({ inset, title, marker, markerInHeading, date, titleHeight, rowHeight }) => inset === 12 && title === 0 && Math.abs(marker) < 1 && markerInHeading && Math.abs(date) < 1 && titleHeight <= 21 && rowHeight <= 42), JSON.stringify(insets));
+      assert.ok(insets.every(({ inset, title, marker, markerInHeading, date, titleLines, metaLines, separateLines }) => inset === 12 && title === 0 && Math.abs(marker) < 1 && markerInHeading && Math.abs(date) < 1 && titleLines <= 1.05 && metaLines <= 1.05 && separateLines), JSON.stringify(insets));
       assert.deepEqual(errors, []);
       await page.close();
       console.log(`Bibo inbox layout passed: ${width}px`);

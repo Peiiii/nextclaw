@@ -23,8 +23,12 @@ class BiboChatOwner {
   draft = "";
   drafts: Record<string, string> = {};
   failedMessages: Record<string, string[]> = {};
+  replyErrors: Record<string, string> = {};
   sessionLoading = false;
   private selectionRequest = 0;
+  private runRequest = 0;
+  runSessionId: string | null = null;
+  runMessages: BiboDisplayMessage[] = [];
   pendingMessage: string | null = null;
   partial = "";
   phase: Phase = "idle";
@@ -45,8 +49,8 @@ class BiboChatOwner {
   setFollowing = (following: boolean): void => this.set({ following });
   setMenuOpen = (menuOpen: boolean): void => this.set({ menuOpen });
 
-  private identifyMessages = (messages: BiboMessage[], pendingIds: [string, string] | null = null): BiboDisplayMessage[] => {
-    const existing = new Map(this.get().messages.map((message) => [`${message.role}:${message.at}`, message]));
+  private identifyMessages = (messages: BiboMessage[], pendingIds: [string, string] | null = null, previous = this.get().messages): BiboDisplayMessage[] => {
+    const existing = new Map(previous.map((message) => [`${message.role}:${message.at}`, message]));
     return messages.map((message, index) => {
       const previous = existing.get(`${message.role}:${message.at}`);
       if (previous?.text === message.text) return previous;
@@ -57,14 +61,13 @@ class BiboChatOwner {
 
   displayMessages = (): BiboDisplayMessage[] => {
     const { messages, pendingIds, pendingMessage, partial } = this.get();
-    if (!pendingIds || !pendingMessage) return messages;
+    if (this.get().activeSessionId !== this.get().runSessionId || !pendingIds || !pendingMessage) return messages;
     return [...messages,
       { id: pendingIds[0], role: "user", text: pendingMessage, at: "", pending: true },
       { id: pendingIds[1], role: "assistant", text: partial, at: "", pending: true }];
   };
 
   createSession = async (fromRoute = false): Promise<void> => {
-    if (this.get().phase !== "idle") return;
     if (!fromRoute) {
       const route = readWorkspaceRoute();
       if (route.view === "chat" && !route.sessionId) return;
@@ -77,7 +80,6 @@ class BiboChatOwner {
   };
 
   selectSession = async (id: string, fromRoute = false): Promise<void> => {
-    if (this.get().phase !== "idle") return;
     if (!fromRoute) { navigateConversation(id); return; }
     if (this.get().activeSessionId === id && !this.get().sessionLoading) return;
     if (!this.get().sessions.some((session) => session.id === id)) {
@@ -87,6 +89,10 @@ class BiboChatOwner {
     }
     const request = ++this.selectionRequest;
     const userId = this.get().user?.id;
+    if (this.get().phase !== "idle" && this.get().runSessionId === id) {
+      this.set({ activeSessionId: id, messages: this.get().runMessages, draft: this.get().drafts[id] ?? "", sessionLoading: false, status: "", following: true, menuOpen: false });
+      return;
+    }
     this.set({ activeSessionId: id, messages: [], draft: this.get().drafts[id] ?? "", sessionLoading: true, status: "" });
     try {
       const messages = await biboClient.history(id);
@@ -120,9 +126,11 @@ class BiboChatOwner {
       const sessions = this.get().sessions.filter((item) => item.id !== id);
       const drafts = { ...this.get().drafts };
       const failedMessages = { ...this.get().failedMessages };
+      const replyErrors = { ...this.get().replyErrors };
       delete drafts[id];
       delete failedMessages[id];
-      this.set({ sessions, drafts, failedMessages });
+      delete replyErrors[id];
+      this.set({ sessions, drafts, failedMessages, replyErrors });
       if (this.get().activeSessionId === id) {
         await this.createSession(true);
         replaceConversationContext(sessions[0]?.id ?? null);
@@ -187,10 +195,11 @@ class BiboChatOwner {
 
   logout = async (): Promise<void> => {
     this.selectionRequest += 1;
+    this.runRequest += 1;
     const user = this.get().user;
     if (user) sessionStorage.removeItem(pendingKey(user.id));
     try { await biboClient.logout(); } catch { /* Clear the local session view. */ }
-    this.set({ user: null, authChecked: true, sessions: [], activeSessionId: null, messages: [], draft: "", drafts: {}, failedMessages: {}, sessionLoading: false, status: "", menuOpen: false });
+    this.set({ user: null, authChecked: true, sessions: [], activeSessionId: null, messages: [], draft: "", drafts: {}, failedMessages: {}, replyErrors: {}, phase: "idle", runSessionId: null, runMessages: [], runId: null, pendingMessage: null, pendingIds: null, partial: "", sessionLoading: false, status: "", menuOpen: false });
     replaceConversationContext(null);
   };
 
@@ -200,11 +209,40 @@ class BiboChatOwner {
       const user = this.get().user;
       if (user) sessionStorage.removeItem(pendingKey(user.id));
       this.selectionRequest += 1;
-      this.set({ sessions: [], activeSessionId: null, messages: [], draft: "", drafts: {}, failedMessages: {}, sessionLoading: false, status: biboCopy.resetDone, menuOpen: false });
+      this.runRequest += 1;
+      this.set({ sessions: [], activeSessionId: null, messages: [], draft: "", drafts: {}, failedMessages: {}, replyErrors: {}, phase: "idle", runSessionId: null, runMessages: [], runId: null, pendingMessage: null, pendingIds: null, partial: "", sessionLoading: false, status: biboCopy.resetDone, menuOpen: false });
       useBiboSpaceStore.getState().bindAccount(user?.id ?? null, true);
       replaceConversationContext(null);
       return true;
     } catch (error) { this.set({ status: errorText(error) }); return false; }
+  };
+
+  private createRunSession = async (message: string, current: () => boolean): Promise<string | null> => {
+    try {
+      await biboClient.chatAvailability();
+      if (!current()) return null;
+      const session = await biboClient.createSession();
+      if (!current()) return null;
+      const route = readWorkspaceRoute();
+      const selected = this.get().activeSessionId === null && route.view === "chat" && !route.sessionId;
+      this.set((state) => {
+        const failedMessages = { ...state.failedMessages };
+        if (failedMessages.new) failedMessages[session.id] = failedMessages.new;
+        delete failedMessages.new;
+        const nextDraft = state.drafts.new ?? "";
+        return { sessions: [session, ...state.sessions], runSessionId: session.id,
+          ...(selected ? { activeSessionId: session.id, draft: nextDraft } : {}),
+          drafts: { ...state.drafts, new: "", [session.id]: nextDraft }, failedMessages };
+      });
+      if (selected) replaceConversationContext(session.id);
+      return session.id;
+    } catch (error) {
+      if (current()) {
+        this.restoreFailedInput(message, null);
+        this.set((state) => ({ phase: "idle", runSessionId: null, runMessages: [], replyErrors: { ...state.replyErrors, new: errorText(error) } }));
+      }
+      return null;
+    }
   };
 
   send = async (retryMessage?: string): Promise<void> => {
@@ -212,40 +250,36 @@ class BiboChatOwner {
     const message = (retryMessage ?? draft).trim();
     if (!user || !message || phase !== "idle" || this.get().sessionLoading) return;
     const previousLastAt = messages.at(-1)?.at;
-    // Lock before the first await: sending from a blank conversation must create only once.
-    this.set({ phase: "generating", status: "" });
-    if (!retryMessage) this.setDraft("");
+    const request = ++this.runRequest;
+    const currentRun = () => this.runRequest === request && this.get().user?.id === user.id;
     let sessionId = this.get().activeSessionId;
+    // Lock before the first await: sending from a blank conversation must create only once.
+    this.set((state) => ({ phase: "generating", status: "", runSessionId: sessionId, runMessages: messages, replyErrors: { ...state.replyErrors, [sessionId ?? "new"]: "" } }));
+    if (!retryMessage) this.setDraft("");
     if (!sessionId) {
-      try {
-        await biboClient.chatAvailability();
-        const session = await biboClient.createSession();
-        sessionId = session.id;
-        this.set((state) => {
-          const failedMessages = { ...state.failedMessages };
-          if (failedMessages.new) failedMessages[session.id] = failedMessages.new;
-          delete failedMessages.new;
-          return { sessions: [session, ...state.sessions], activeSessionId: session.id,
-            drafts: { ...state.drafts, new: "", [session.id]: state.draft }, failedMessages };
-        });
-        replaceConversationContext(session.id);
-      } catch (error) { this.restoreFailedInput(message); this.set({ phase: "idle", status: errorText(error) }); return; }
+      sessionId = await this.createRunSession(message, currentRun);
+      if (!sessionId) return;
     }
     sessionStorage.setItem(pendingKey(user.id), JSON.stringify({ message, previousLastAt, sessionId }));
     this.set({ pendingMessage: message, pendingIds: [crypto.randomUUID(), crypto.randomUUID()], partial: "", phase: "generating", runId: null,
-      status: "", following: true });
+      ...(this.get().activeSessionId === sessionId ? { status: "", following: true } : {}) });
     try {
       const output: { display?: BiboShowContent } = {};
       await biboClient.chat(message, (event: BiboChatEvent) => {
+        if (!currentRun()) return;
         if (event.name === "accepted") this.set({ runId: event.value.runId });
         if (event.name === "delta") this.set((state) => ({ partial: state.partial + event.value.text }));
-        if (event.name === "saving") this.set({ phase: "saving", status: "" });
+        if (event.name === "saving") this.set({ phase: "saving" });
         if (event.name === "show-content" && event.value.sessionId === sessionId) output.display = event.value;
         if (event.name === "committed") {
-          this.set((state) => ({ messages: this.identifyMessages(event.value.messages, state.pendingIds), pendingMessage: null, pendingIds: null, partial: "", status: "",
-            sessions: event.value.session ? [event.value.session, ...state.sessions.filter((item) => item.id !== event.value.session?.id)] : state.sessions }));
+          this.set((state) => {
+            const history = this.identifyMessages(event.value.messages, state.pendingIds, state.runMessages);
+            return { runMessages: history, ...(state.activeSessionId === sessionId ? { messages: history, status: "" } : {}), pendingMessage: null, pendingIds: null, partial: "",
+              sessions: event.value.session ? [event.value.session, ...state.sessions.filter((item) => item.id !== event.value.session?.id)] : state.sessions };
+          });
         }
       }, sessionId);
+      if (!currentRun()) return;
       const shown = output.display;
       const current = () => this.get().user?.id === user.id && this.get().activeSessionId === sessionId && useBiboSpaceStore.getState().view === "chat";
       if (shown && current()) {
@@ -254,14 +288,15 @@ class BiboChatOwner {
       sessionStorage.removeItem(pendingKey(user.id));
       this.clearFailedInput(sessionId, message);
     } catch (error) {
-      await this.recoverRun(sessionId, message, previousLastAt, error);
-    } finally { this.set({ phase: "idle", runId: null, pendingMessage: null, pendingIds: null, partial: "" }); }
+      await this.recoverRun({ sessionId, message, previousLastAt }, error, currentRun);
+    } finally { if (currentRun()) this.set({ phase: "idle", runId: null, runSessionId: null, runMessages: [], pendingMessage: null, pendingIds: null, partial: "" }); }
   };
 
-  private restoreFailedInput = (message: string): void => {
-    if (!this.get().draft.trim()) this.setDraft(message);
-    else if (this.get().draft !== message) this.set((state) => {
-      const id = state.activeSessionId ?? "new";
+  private restoreFailedInput = (message: string, sessionId: string | null): void => {
+    const id = sessionId ?? "new";
+    const draft = this.get().drafts[id] ?? "";
+    if (!draft.trim()) this.set((state) => ({ drafts: { ...state.drafts, [id]: message }, ...(state.activeSessionId === sessionId ? { draft: message } : {}) }));
+    else if (draft !== message) this.set((state) => {
       const failed = state.failedMessages[id] ?? [];
       return { failedMessages: { ...state.failedMessages, [id]: failed.includes(message) ? failed : [...failed, message] } };
     });
@@ -269,32 +304,37 @@ class BiboChatOwner {
 
   private clearFailedInput = (sessionId: string, message: string): void => this.set((state) => ({
     failedMessages: { ...state.failedMessages, [sessionId]: (state.failedMessages[sessionId] ?? []).filter((text) => text !== message) },
+    replyErrors: { ...state.replyErrors, [sessionId]: "" },
   }));
 
-  private recoverRun = async (sessionId: string, message: string, previousLastAt: string | undefined, error: unknown): Promise<void> => {
+  private recoverRun = async (pending: PendingRun, error: unknown, current: () => boolean): Promise<void> => {
+    if (!current()) return;
+    const { sessionId, message } = pending;
     let saved = false;
     try {
       const history = await biboClient.history(sessionId);
-      saved = runWasSaved({ sessionId, message, previousLastAt }, sessionId, history);
-      this.set({ messages: this.identifyMessages(history, saved ? this.get().pendingIds : null) });
+      if (!current()) return;
+      saved = runWasSaved(pending, sessionId, history);
+      const messages = this.identifyMessages(history, saved ? this.get().pendingIds : null, this.get().runMessages);
+      this.set({ runMessages: messages, ...(this.get().activeSessionId === sessionId ? { messages } : {}) });
     } catch { /* Keep the local input for a later retry. */ }
+    if (!current()) return;
     if (saved) {
       const user = this.get().user;
       if (user) sessionStorage.removeItem(pendingKey(user.id));
       this.clearFailedInput(sessionId, message);
-      this.set({ status: "" });
     } else {
-      this.restoreFailedInput(message);
-      this.set({ status: `${errorText(error)} ${biboCopy.retry}` });
+      this.restoreFailedInput(message, sessionId);
+      this.set((state) => ({ replyErrors: { ...state.replyErrors, [sessionId]: `${errorText(error)} ${biboCopy.retry}` } }));
     }
   };
 
   stop = async (): Promise<void> => {
-    const { runId, phase } = this.get();
-    if (!runId || phase !== "generating") return;
-    this.set({ phase: "stopping", status: "" });
+    const { runId, phase, runSessionId, activeSessionId } = this.get();
+    if (!runId || phase !== "generating" || runSessionId !== activeSessionId) return;
+    this.set((state) => ({ phase: "stopping", replyErrors: { ...state.replyErrors, [runSessionId ?? "new"]: "" } }));
     try { await biboClient.cancel(runId); }
-    catch (error) { if (this.get().phase === "stopping" && this.get().runId === runId) this.set({ phase: "generating", status: errorText(error) }); }
+    catch (error) { if (this.get().phase === "stopping" && this.get().runId === runId) this.set((state) => ({ phase: "generating", replyErrors: { ...state.replyErrors, [runSessionId ?? "new"]: errorText(error) } })); }
   };
 }
 
