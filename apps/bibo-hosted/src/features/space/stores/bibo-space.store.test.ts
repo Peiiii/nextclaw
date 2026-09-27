@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 
 test("space lifecycle isolates accounts, preserves failed drafts and safely resumes file tabs", async (t) => {
   const originalWindow = globalThis.window;
@@ -35,6 +35,8 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
   assert.equal(requests.length, 3, "duplicate click does not issue a second request");
   responses[2]!(Response.json({ error: "response lost" }, { status: 503 }));
   assert.equal(await firstSave, null);
+  assert.equal(useBiboSpaceStore.getState().actionError, "response lost");
+  assert.equal(useBiboSpaceStore.getState().error, "", "write failure belongs to its form, not the page read state");
   assert.deepEqual(useBiboSpaceStore.getState().eventDrafts.new, draft);
   const retry = store.act("event.create", draft, "chat");
   assert.equal(requests[3]!.input.requestId, requests[2]!.input.requestId);
@@ -186,23 +188,28 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
     const listResponse = responses.at(-1)!;
     const before = requests.length;
     const save = store.act("task.create", { title: "立即保存" }, "tasks");
+    assert.equal(useBiboSpaceStore.getState().feedback.message, "", "no saved announcement before persistence acknowledges");
     const saved = { id: "fast-task", title: "立即保存", description: "", status: "planned", projectId: null, dueAt: null, updatedAt: "2026-09-27T09:00:00Z", version: 1 };
     responses.at(-1)!(Response.json({ result: saved }));
     assert.deepEqual(await save, saved);
     assert.equal(requests.length, before + 1, "no container-backed overview refresh is queued behind a save");
     assert.equal(useBiboSpaceStore.getState().saving, false);
     assert.equal(useBiboSpaceStore.getState().tasks[0]?.id, saved.id);
+    assert.equal(useBiboSpaceStore.getState().feedback.message, "任务已保存：立即保存");
     projectsResponse(Response.json({ result: { items: [], nextCursor: null } }));
     listResponse(Response.json({ result: { items: [], nextCursor: null } }));
     await stale;
     assert.equal(useBiboSpaceStore.getState().tasks[0]?.id, saved.id);
 
-    useBiboSpaceStore.setState({ taskScope: "today", selectedTaskId: saved.id, taskSelection: saved as never });
+    useBiboSpaceStore.setState({ taskScope: "today", selectedTaskId: saved.id, taskSelection: saved as never,
+      taskUndo: { id: saved.id, version: 1, status: "active", title: saved.title } });
     const complete = store.act("task.update", { id: saved.id, version: 1, status: "done" }, "tasks");
     responses.at(-1)!(Response.json({ result: { ...saved, status: "done", version: 2 } }));
     await complete;
     assert.deepEqual(useBiboSpaceStore.getState().tasks, [], "completed tasks leave the current open-task filter");
+    assert.equal(useBiboSpaceStore.getState().feedback.task?.id, saved.id, "a saved task outside the filter remains available for contextual feedback");
     assert.equal(useBiboSpaceStore.getState().taskSelection?.version, 2);
+    assert.equal(useBiboSpaceStore.getState().taskUndo, null, "another successful edit invalidates the older undo version");
   });
   await t.test("a task response for the previous account cannot become current-account saved feedback", async () => {
     const save = store.act("task.create", { title: "Previous account" }, "tasks");
@@ -211,6 +218,55 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
     response(Response.json({ result: { id: "private-task" } }));
     assert.equal(await save, null);
     assert.deepEqual(useBiboSpaceStore.getState().tasks, []);
-    assert.equal(useBiboSpaceStore.getState().notice, "");
+    assert.equal(useBiboSpaceStore.getState().feedback.message, "");
+    assert.equal(useBiboSpaceStore.getState().actionError, "");
   });
+  await checkWriteFeedback(t, responses, overview);
 });
+
+
+async function checkWriteFeedback(t: TestContext, responses: Array<(response: Response) => void>, overview: (count: number) => unknown): Promise<void> {
+  const { useBiboSpaceStore } = await import("./bibo-space.store");
+  useBiboSpaceStore.getState().bindAccount(null, true);
+  const store = useBiboSpaceStore.getState();
+  await t.test("file failures stay with their draft and a later edit cannot be reported as saved", async () => {
+    const file = { id: "feedback-file", path: "feedback.md", kind: "document", version: 1, content: "original" };
+    await store.openFile(file.id, file as never);
+    store.editFile(file.id, "submitted");
+    useBiboSpaceStore.setState({ error: "independent read error" });
+    const failed = store.saveFile(file.id);
+    responses.at(-1)!(Response.json({ error: "write unavailable" }, { status: 503 }));
+    await failed;
+    assert.equal(useBiboSpaceStore.getState().fileDrafts[file.id]?.error, "write unavailable");
+    assert.equal(useBiboSpaceStore.getState().fileDrafts.fast?.error, undefined);
+    assert.equal(useBiboSpaceStore.getState().error, "independent read error");
+    assert.equal(useBiboSpaceStore.getState().fileDrafts[file.id]?.dirty, true);
+    const retry = store.saveFile(file.id);
+    const response = responses.at(-1)!;
+    assert.equal(useBiboSpaceStore.getState().fileDrafts[file.id]?.error, undefined);
+    store.editFile(file.id, "typed during save");
+    response(Response.json({ result: { ...file, content: "submitted", version: 2 } }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    responses.at(-1)!(Response.json({ result: { items: [file], nextCursor: null } }));
+    await retry;
+    const draft = useBiboSpaceStore.getState().fileDrafts[file.id]!;
+    assert.equal(draft.content, "typed during save");
+    assert.equal(draft.version, 2);
+    assert.equal(draft.dirty, true);
+    assert.equal(draft.saving, false);
+  });
+  await t.test("a refresh failure after commit remains a read warning rather than a failed write", async () => {
+    const saved = { id: "new-project", name: "committed" };
+    const save = store.act("project.create", { name: saved.name }, "tasks");
+    responses.at(-1)!(Response.json({ result: saved }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    responses.at(-2)!(Response.json({ result: { items: [], nextCursor: null } }));
+    responses.at(-1)!(Response.json({ error: "read unavailable" }, { status: 503 }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    responses.at(-1)!(Response.json({ result: overview(0) }));
+    assert.deepEqual(await save, saved);
+    assert.equal(useBiboSpaceStore.getState().actionError, "");
+    assert.equal(useBiboSpaceStore.getState().error, "操作已保存，视图暂未刷新。请重试读取。");
+    assert.equal(useBiboSpaceStore.getState().readStatus.tasks, "error");
+  });
+}

@@ -23,6 +23,7 @@
     "dev:worker": "wrangler dev",
     "smoke:routing": "pnpm build:client && tsx scripts/bibo-routing.smoke.ts",
     "smoke:planning": "tsx scripts/workspace-planning.smoke.ts",
+    "smoke:feedback": "pnpm build:client && tsx scripts/workspace-resources.smoke.ts",
     "smoke:resources": "pnpm build:client && tsx scripts/workspace-resources.smoke.ts"
   },
   "dependencies": {
