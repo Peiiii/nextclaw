@@ -62,8 +62,10 @@ export function ChatMermaidDiagram({
   isStreaming,
   source,
   texts,
+  showToolbar = true,
 }: {
   isStreaming: boolean;
+  showToolbar?: boolean;
   source: string;
   texts: Pick<
     ChatMessageTexts,
@@ -263,7 +265,7 @@ export function ChatMermaidDiagram({
                 dangerouslySetInnerHTML={{ __html: renderedState.svg }}
               />
             </button>
-            <ChatMessagePreviewToolbar
+            {showToolbar && <ChatMessagePreviewToolbar
               actions={[
                 {
                   id: "copy-source",
@@ -282,7 +284,7 @@ export function ChatMermaidDiagram({
                   onSelect: () => setIsExpanded(true),
                 },
               ]}
-            />
+            />}
           </>
         ) : (
           <div

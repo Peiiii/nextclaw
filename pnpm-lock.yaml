@@ -2231,6 +2231,9 @@ importers:
 
   packages/personal-agent-ui:
     dependencies:
+      '@nextclaw/agent-chat-ui':
+        specifier: workspace:*
+        version: link:../nextclaw-agent-chat-ui
       '@radix-ui/react-dialog':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2243,33 +2246,15 @@ importers:
       highlight.js:
         specifier: ^11.11.1
         version: 11.11.1
-      katex:
-        specifier: ^0.16.40
-        version: 0.16.47
       lucide-react:
         specifier: ^0.462.0
         version: 0.462.0(react@18.3.1)
-      mermaid:
-        specifier: ^11.16.0
-        version: 11.16.0
       react:
         specifier: ^18.3.1
         version: 18.3.1
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
-      react-markdown:
-        specifier: ^10.1.0
-        version: 10.1.0(@types/react@18.3.28)(react@18.3.1)
-      rehype-katex:
-        specifier: ^7.0.1
-        version: 7.0.1
-      remark-gfm:
-        specifier: ^4.0.1
-        version: 4.0.1
-      remark-math:
-        specifier: ^6.0.0
-        version: 6.0.0
     devDependencies:
       '@types/react':
         specifier: ^18.3.28
@@ -17576,24 +17561,6 @@ snapshots:
       - '@emnapi/core'
       - '@emnapi/runtime'
 
-  vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@24.13.3)(esbuild@0.27.3)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.2):
-    dependencies:
-      lightningcss: 1.32.0
-      picomatch: 4.0.4
-      postcss: 8.5.8
-      rolldown: 1.0.0-rc.12(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)
-      tinyglobby: 0.2.15
-    optionalDependencies:
-      '@types/node': 24.13.3
-      esbuild: 0.27.3
-      fsevents: 2.3.3
-      jiti: 2.7.0
-      tsx: 4.21.0
-      yaml: 2.8.2
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
-
   vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       lightningcss: 1.32.0
@@ -17606,6 +17573,24 @@ snapshots:
       esbuild: 0.27.3
       fsevents: 2.3.3
       jiti: 1.21.7
+      tsx: 4.21.0
+      yaml: 2.8.2
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
+
+  vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@24.13.3)(esbuild@0.27.3)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.2):
+    dependencies:
+      lightningcss: 1.32.0
+      picomatch: 4.0.4
+      postcss: 8.5.8
+      rolldown: 1.0.0-rc.12(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)
+      tinyglobby: 0.2.15
+    optionalDependencies:
+      '@types/node': 24.13.3
+      esbuild: 0.27.3
+      fsevents: 2.3.3
+      jiti: 2.7.0
       tsx: 4.21.0
       yaml: 2.8.2
     transitivePeerDependencies:

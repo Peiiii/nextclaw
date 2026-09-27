@@ -140,7 +140,7 @@ async function verifyWidth(browser: Browser, width: number) {
     throw error;
   });
   assert.equal(await link.getAttribute("href"), "/files/artifact-a");
-  assert.equal(await page.getByRole("link", { name: "危险", exact: true }).count(), 0);
+  assert.equal(await page.locator('.ui-markdown a:not([aria-disabled="true"])').filter({ hasText: /^危险$/ }).count(), 0);
   const external = page.getByRole("link", { name: "外部网站", exact: true });
   assert.equal(await external.getAttribute("target"), "_blank");
   assert.equal(await link.evaluate((element) => getComputedStyle(element).textDecorationLine), "underline");

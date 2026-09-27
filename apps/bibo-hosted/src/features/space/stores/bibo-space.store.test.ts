@@ -179,4 +179,38 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
     assert.equal(useBiboSpaceStore.getState().readStatus.inbox, "ready");
     assert.equal(useBiboSpaceStore.getState().error, "");
   });
+  await t.test("task feedback waits only for persistence and stale lists cannot erase the saved row", async () => {
+    useBiboSpaceStore.setState({ tasks: [], taskScope: "all", taskQuery: "", taskProject: "", cursors: { tasks: null } });
+    const stale = store.load("tasks");
+    const projectsResponse = responses.at(-2)!;
+    const listResponse = responses.at(-1)!;
+    const before = requests.length;
+    const save = store.act("task.create", { title: "立即保存" }, "tasks");
+    const saved = { id: "fast-task", title: "立即保存", description: "", status: "planned", projectId: null, dueAt: null, updatedAt: "2026-09-27T09:00:00Z", version: 1 };
+    responses.at(-1)!(Response.json({ result: saved }));
+    assert.deepEqual(await save, saved);
+    assert.equal(requests.length, before + 1, "no container-backed overview refresh is queued behind a save");
+    assert.equal(useBiboSpaceStore.getState().saving, false);
+    assert.equal(useBiboSpaceStore.getState().tasks[0]?.id, saved.id);
+    projectsResponse(Response.json({ result: { items: [], nextCursor: null } }));
+    listResponse(Response.json({ result: { items: [], nextCursor: null } }));
+    await stale;
+    assert.equal(useBiboSpaceStore.getState().tasks[0]?.id, saved.id);
+
+    useBiboSpaceStore.setState({ taskScope: "today", selectedTaskId: saved.id, taskSelection: saved as never });
+    const complete = store.act("task.update", { id: saved.id, version: 1, status: "done" }, "tasks");
+    responses.at(-1)!(Response.json({ result: { ...saved, status: "done", version: 2 } }));
+    await complete;
+    assert.deepEqual(useBiboSpaceStore.getState().tasks, [], "completed tasks leave the current open-task filter");
+    assert.equal(useBiboSpaceStore.getState().taskSelection?.version, 2);
+  });
+  await t.test("a task response for the previous account cannot become current-account saved feedback", async () => {
+    const save = store.act("task.create", { title: "Previous account" }, "tasks");
+    const response = responses.at(-1)!;
+    useBiboSpaceStore.getState().bindAccount("third");
+    response(Response.json({ result: { id: "private-task" } }));
+    assert.equal(await save, null);
+    assert.deepEqual(useBiboSpaceStore.getState().tasks, []);
+    assert.equal(useBiboSpaceStore.getState().notice, "");
+  });
 });

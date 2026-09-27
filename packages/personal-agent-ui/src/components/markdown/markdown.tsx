@@ -1,65 +1,44 @@
-import { Children, isValidElement, useEffect, useMemo, useState, type ReactNode } from "react";
-import ReactMarkdown, { type Components } from "react-markdown";
-import rehypeKatex from "rehype-katex";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import "katex/dist/katex.min.css";
+import { ChatMessageMarkdown, type ChatMessageTexts } from "@nextclaw/agent-chat-ui";
+import { useCallback, useMemo } from "react";
 import { MarkdownCodeBlock } from "./code-block";
 
-const markdownPlugins = [remarkGfm, remarkMath];
-const rehypePlugins = [rehypeKatex];
-
 export type MarkdownLabels = {
-  copyCode: string;
-  copiedCode: string;
-  copyFailed: string;
-  viewSource: string;
-  viewDiagram: string;
-  diagramLoading: string;
-  diagramError: string;
-  diagramAlt: string;
-  imageAlt: string;
+  copyCode: string; copiedCode: string; copyFailed: string;
+  viewSource: string; viewDiagram: string; diagramLoading: string; diagramError: string;
+  diagramAlt: string; imageAlt: string;
+  expandDiagram?: string; expandImage?: string; closePreview?: string;
+  zoomIn?: string; zoomOut?: string; resetZoom?: string;
+  footnotes?: string; backToReference?: string;
 };
 
 const defaultLabels: MarkdownLabels = {
   copyCode: "复制代码", copiedCode: "已复制代码", copyFailed: "复制失败，重试",
   viewSource: "查看源码", viewDiagram: "查看图表", diagramLoading: "正在绘制图表…",
   diagramError: "无法预览图表，原始内容仍可复制。", diagramAlt: "Mermaid 图表", imageAlt: "图片",
+  expandDiagram: "展开图表", expandImage: "展开图片", closePreview: "关闭预览",
+  zoomIn: "放大", zoomOut: "缩小", resetZoom: "重置缩放",
+  footnotes: "注释", backToReference: "返回正文",
 };
 
-function nodeText(value: ReactNode): string {
-  if (typeof value === "string" || typeof value === "number") return String(value);
-  if (Array.isArray(value)) return value.map(nodeText).join("");
-  if (isValidElement<{ children?: ReactNode }>(value)) return nodeText(value.props.children);
-  return "";
-}
+const hostedUrl = (url: string, key: string) =>
+  (key === "src" ? /^https:\/\//i.test(url) : /^(https?:\/\/|mailto:|tel:|#)/i.test(url)) ? url : "";
 
-function MarkdownImage({ src, alt = "", title, imageAlt }: { src?: string; alt?: string; title?: string; imageAlt: string }) {
-  const safeSource = src && /^https:\/\//i.test(src) ? src : null;
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [safeSource]);
-  if (!safeSource || failed) return <span className="ui-markdown__image-fallback">{alt || imageAlt}</span>;
-  return <img src={safeSource} alt={alt} title={title} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />;
-}
-
-class MarkdownRenderer {
-  constructor(private readonly labels: MarkdownLabels) {}
-  readonly components: Components = {
-  a: ({ href, children }) => href
-    ? <a href={href} target={/^https?:\/\//i.test(href) ? "_blank" : undefined} rel="noopener noreferrer">{children}</a>
-    : <span>{children}</span>,
-  img: ({ src, alt, title }) => <MarkdownImage src={src} alt={alt} title={title} imageAlt={this.labels.imageAlt} />,
-  table: ({ children }) => <div className="ui-message__table"><table>{children}</table></div>,
-  pre: ({ children }) => {
-    const code = Children.toArray(children).find((child) => isValidElement(child));
-    if (!isValidElement<{ className?: string; children?: ReactNode }>(code)) return <pre>{children}</pre>;
-    const language = /language-([^\s]+)/i.exec(code.props.className ?? "")?.[1];
-    return <MarkdownCodeBlock code={nodeText(code.props.children)} language={language} labels={this.labels} />;
-  },
-  };
-}
-
-export function Markdown({ text, labels = defaultLabels, density = "default", resolveResourceHref }: { text: string; labels?: MarkdownLabels; density?: "default" | "compact"; resolveResourceHref?: (uri: string) => string | null }) {
-  const renderer = useMemo(() => new MarkdownRenderer(labels), [labels]);
-  return <div className={`ui-markdown${density === "compact" ? " ui-markdown--compact" : ""}`}><ReactMarkdown remarkPlugins={markdownPlugins} rehypePlugins={rehypePlugins} skipHtml urlTransform={(uri) => /^(https?:\/\/|mailto:)/i.test(uri) ? uri : resolveResourceHref?.(uri) ?? ""} components={renderer.components}>{text}</ReactMarkdown></div>;
+export function Markdown({ text, labels = defaultLabels, density = "default", isStreaming = false, role = "assistant", resolveResourceHref }: {
+  text: string; labels?: MarkdownLabels; density?: "default" | "compact"; isStreaming?: boolean; role?: "user" | "assistant"; resolveResourceHref?: (uri: string) => string | null;
+}) {
+  const texts = useMemo(() => ({
+    copyCodeLabel: labels.copyCode, copiedCodeLabel: labels.copiedCode,
+    frontmatterLabel: "文档属性", detailsLabel: "详情",
+    mermaidDiagramLabel: labels.diagramAlt, mermaidLoadingLabel: labels.diagramLoading,
+    mermaidRenderErrorLabel: labels.diagramError, mermaidExpandLabel: labels.expandDiagram,
+    attachmentExpandLabel: labels.expandImage, attachmentCloseLabel: labels.closePreview,
+    previewZoomInLabel: labels.zoomIn, previewZoomOutLabel: labels.zoomOut, previewResetZoomLabel: labels.resetZoom,
+    footnoteLabel: labels.footnotes, footnoteBackLabel: labels.backToReference, imageAltLabel: labels.imageAlt,
+  } satisfies Partial<ChatMessageTexts>), [labels]);
+  const renderCodeBlock = useCallback(({ source, language, isStreaming: streaming }: { source: string; language: string; isStreaming: boolean }) =>
+    <MarkdownCodeBlock code={source} language={language} labels={labels} texts={texts} isStreaming={streaming} />, [labels, texts]);
+  return <div className={`ui-markdown${density === "compact" ? " ui-markdown--compact" : ""}`}>
+    <ChatMessageMarkdown text={text} role={role} texts={texts} isStreaming={isStreaming}
+      allowHtml={false} urlTransform={(uri, key) => hostedUrl(uri, key) || (key === "href" ? resolveResourceHref?.(uri) ?? "" : "")} renderCodeBlock={renderCodeBlock} />
+  </div>;
 }

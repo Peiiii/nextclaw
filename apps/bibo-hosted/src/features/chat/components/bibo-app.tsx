@@ -1,9 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { Link, Outlet, useLocation, useNavigation } from "react-router";
 import { navigateConversation, readWorkspaceRoute, workspaceHref } from "@/app/workspace-router";
 import { Button, Composer, IconButton, Input, Message, SegmentedControl, Sheet } from "@nextclaw/personal-agent-ui";
 import { biboCopy as copy } from "@/features/chat/configs/bibo-copy.config";
-import { useBiboChatStore } from "@/features/chat/stores/bibo-chat.store";
+import { useBiboChatStore, type BiboDisplayMessage } from "@/features/chat/stores/bibo-chat.store";
 import { BiboSpaceView, BiboWorkspace, useBiboSpaceStore, type BiboView } from "@/features/space";
 
 import { ArrowDown, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -16,6 +16,11 @@ const suggestions = [
   { mark: "▤", label: "梳理一个项目", text: "我正在做一个项目，想和你一起理清现状、目标和下一步。请先问我必要的问题。" },
   { mark: "◷", label: "整理今天", text: "今天我有不少事要做。请帮我根据重要性和精力安排一个现实可执行的计划，先问我需要的信息。" },
 ];
+const MessageRow = memo(function MessageRow({ message }: { message: BiboDisplayMessage }) {
+  return <Message role={message.role} text={message.text} pending={message.pending} mark="✳" waitingLabel={copy.waiting}
+    label={message.role === "assistant" ? "Bibo" : copy.you} copyLabel={copy.copy}
+    copiedLabel={copy.copied} copyFailedLabel={copy.copyFailed} resolveResourceHref={workspaceResources.href} />;
+});
 const navigation: { view: BiboView; label: string; mark: string }[] = [
   { view: "overview", label: "概览", mark: "▦" }, { view: "chat", label: "对话", mark: "✳" },
   { view: "inbox", label: "收件箱", mark: "✉" }, { view: "calendar", label: "日程", mark: "◷" },
@@ -167,11 +172,7 @@ export function ChatPage() {
           <div className="bibo-suggestions">{suggestions.map((suggestion) => <Button key={suggestion.label} onClick={() => { store.setDraft(suggestion.text); inputRef.current?.focus(); }}><span>{suggestion.mark}</span>{suggestion.label}<span>↗</span></Button>)}</div>
         </div>}
         {hasMessages && <div className="bibo-messages" ref={listRef} onScroll={onScroll} role="log" aria-live="polite" aria-relevant="additions text">
-          {store.messages.map((message, index) => <Message key={`${message.at}-${index}`} role={message.role} text={message.text} mark="✳" waitingLabel={copy.waiting}
-            label={message.role === "assistant" ? "Bibo" : copy.you} copyLabel={copy.copy}
-            copiedLabel={copy.copied} copyFailedLabel={copy.copyFailed} resolveResourceHref={workspaceResources.href} />)}
-          {store.pendingMessage && <><Message role="user" text={store.pendingMessage} label={copy.you} pending />
-            <Message role="assistant" text={store.partial} label="Bibo" mark="✳" waitingLabel={copy.waiting} resolveResourceHref={workspaceResources.href} pending /></>}
+          {store.displayMessages().map((message) => <MessageRow key={message.id} message={message} />)}
         </div>}
         {hasMessages && !store.following && <IconButton className="bibo-jump" label={copy.backToLatest} icon={<ArrowDown size={18} />} tooltip={false} onClick={jumpToLatest} />}
       </section>

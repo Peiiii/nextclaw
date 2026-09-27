@@ -1,5 +1,5 @@
 import { Contribution, type NcpTool } from "@nextclaw/harness";
-import { BiboSpaceError, type BiboSpaceService } from "@/features/bibo-domain/services/bibo-space.service";
+import { BiboSpaceError, type BiboSpaceService } from "@/features/bibo-domain";
 
 function params(value: unknown): Record<string, unknown> {
   let parsed = value;

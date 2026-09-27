@@ -3,12 +3,12 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "strict": true,
     "baseUrl": ".",
     "paths": { "@/*": ["src/*"] },
     "skipLibCheck": true,
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types", "node"]
   },
   "include": ["src/app/bibo-hosted.app.ts", "src/app/bibo-run-stream.utils.ts", "worker-configuration.d.ts"]
 }

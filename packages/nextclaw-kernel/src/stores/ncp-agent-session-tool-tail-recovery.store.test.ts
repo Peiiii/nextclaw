@@ -62,6 +62,24 @@ afterEach(async () => {
 });
 
 describe("tool ownership across journal checkpoints", () => {
+  it("cold replays and rebuilds messages when a hosted snapshot omits derived projections", async () => {
+    await setup();
+    for (const event of multiRoundEvents()) await store.appendSessionEvent({ sessionId, event });
+    const expected = await store.listSessionMessages(sessionId);
+    const journalPath = join(directory, `${sessionId}.jsonl`);
+    const journal = await readFile(journalPath, "utf8");
+    store.close();
+    await rm(join(directory, ".message-projections"), { recursive: true });
+    store = new NcpAgentSessionJournalStore(directory);
+    expect(await store.listSessionMessages(sessionId)).toEqual(expected);
+    expect(await store.synchronizeSessionMessageProjection(sessionId)).toBe(true);
+    expect((await store.listSessionMessagePage({ sessionId, limit: 10 }))?.messages).toEqual(expected);
+    expect(await readFile(journalPath, "utf8")).toBe(journal);
+    store.close();
+    store = new NcpAgentSessionJournalStore(directory);
+    expect(await store.listSessionMessages(sessionId)).toEqual(expected);
+  });
+
   it("keeps live, incremental and full replay identical through six tool rounds and cold reload", async () => {
     await setup();
     const live = new DefaultNcpAgentConversationStateManager();

@@ -1,3 +1,15 @@
+import type { BiboFile } from "@nextclaw/bibo-client";
+
+export function revealedFileLayout(state: {
+  files: BiboFile[]; fileDetails: Record<string, BiboFile>; expandedFolders: Record<string, boolean>;
+}, id: string) {
+  const file = state.files.find((item) => item.id === id) ?? state.fileDetails[id];
+  if (!file) return {};
+  const expandedFolders = { ...state.expandedFolders };
+  for (const folder of state.files) if (folder.kind === "folder" && file.path.startsWith(`${folder.path}/`)) expandedFolders[folder.id] = true;
+  return { expandedFolders, fileBrowserVisible: false, fileQuery: "", fileMatches: [], fileSearchLoading: false };
+}
+
 type WorkspaceLayout = {
   sidebarCollapsed: boolean;
   treeCollapsed: boolean;

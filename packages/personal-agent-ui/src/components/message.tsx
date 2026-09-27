@@ -22,7 +22,7 @@ export function Message({ role, text, pending = false, label, mark, copyLabel, c
     <div className="ui-message__body">
       {role === "assistant"
         ? text
-          ? <Markdown text={text} labels={markdownLabels} resolveResourceHref={resolveResourceHref} />
+          ? <Markdown text={text} labels={markdownLabels} isStreaming={pending} resolveResourceHref={resolveResourceHref} />
           : pending ? <span className="ui-message__waiting">{waitingLabel}</span> : null
         : text}
     </div>

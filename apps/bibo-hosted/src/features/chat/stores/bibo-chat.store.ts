@@ -5,6 +5,7 @@ import { useBiboSpaceStore } from "@/features/space";
 import { navigateConversation, readWorkspaceRoute, replaceConversationContext } from "@/app/workspace-router";
 
 type Phase = "idle" | "generating" | "stopping" | "saving";
+export type BiboDisplayMessage = BiboMessage & { id: string; pending?: boolean };
 const biboClient = new BiboClient();
 const pendingKey = (id: string) => `bibo-pending-${id}`;
 type PendingRun = { message: string; previousLastAt?: string; sessionId: string };
@@ -15,7 +16,8 @@ const errorText = (error: unknown) => error instanceof Error ? error.message : "
 class BiboChatOwner {
   user: BiboUser | null = null;
   authChecked = false;
-  messages: BiboMessage[] = [];
+  messages: BiboDisplayMessage[] = [];
+  pendingIds: [string, string] | null = null;
   sessions: BiboSession[] = [];
   activeSessionId: string | null = null;
   draft = "";
@@ -42,6 +44,24 @@ class BiboChatOwner {
   setAuthMode = (authMode: "register" | "login"): void => this.set({ authMode, authError: "" });
   setFollowing = (following: boolean): void => this.set({ following });
   setMenuOpen = (menuOpen: boolean): void => this.set({ menuOpen });
+
+  private identifyMessages = (messages: BiboMessage[], pendingIds: [string, string] | null = null): BiboDisplayMessage[] => {
+    const existing = new Map(this.get().messages.map((message) => [`${message.role}:${message.at}`, message]));
+    return messages.map((message, index) => {
+      const previous = existing.get(`${message.role}:${message.at}`);
+      if (previous?.text === message.text) return previous;
+      const pendingId = pendingIds && index >= messages.length - 2 ? pendingIds[index - (messages.length - 2)] : undefined;
+      return { ...message, id: previous?.id ?? pendingId ?? crypto.randomUUID() };
+    });
+  };
+
+  displayMessages = (): BiboDisplayMessage[] => {
+    const { messages, pendingIds, pendingMessage, partial } = this.get();
+    if (!pendingIds || !pendingMessage) return messages;
+    return [...messages,
+      { id: pendingIds[0], role: "user", text: pendingMessage, at: "", pending: true },
+      { id: pendingIds[1], role: "assistant", text: partial, at: "", pending: true }];
+  };
 
   createSession = async (fromRoute = false): Promise<void> => {
     if (this.get().phase !== "idle") return;
@@ -78,7 +98,7 @@ class BiboChatOwner {
         this.clearFailedInput(id, pending.message);
         this.set((state) => ({ drafts: { ...state.drafts, [id]: state.drafts[id] === pending.message ? "" : state.drafts[id] ?? "" } }));
       }
-      this.set({ activeSessionId: id, messages, draft: this.get().drafts[id] ?? "", status: "", following: true, menuOpen: false });
+      this.set({ activeSessionId: id, messages: this.identifyMessages(messages), draft: this.get().drafts[id] ?? "", status: "", following: true, menuOpen: false });
     } catch (error) { if (request === this.selectionRequest) this.set({ status: errorText(error) }); }
     finally { if (request === this.selectionRequest) this.set({ sessionLoading: false }); }
   };
@@ -136,7 +156,7 @@ class BiboChatOwner {
       const matching = pending?.sessionId === activeSessionId;
       const saved = pending && runWasSaved(pending, activeSessionId, messages);
       const drafts = pending?.sessionId && !saved ? { [pending.sessionId]: pending.message } : {};
-      this.set({ sessions, activeSessionId, messages, drafts, draft: activeSessionId ? drafts[activeSessionId] ?? "" : "", status: missingSession ? biboCopy.sessionMissing : matching && pending && !saved ? biboCopy.interrupted : "" });
+      this.set({ sessions, activeSessionId, messages: this.identifyMessages(messages), drafts, draft: activeSessionId ? drafts[activeSessionId] ?? "" : "", status: missingSession ? biboCopy.sessionMissing : matching && pending && !saved ? biboCopy.interrupted : "" });
       if (!missingSession) replaceConversationContext(activeSessionId);
       if (saved) sessionStorage.removeItem(pendingKey(user.id));
     } catch (error) {
@@ -212,7 +232,7 @@ class BiboChatOwner {
       } catch (error) { this.restoreFailedInput(message); this.set({ phase: "idle", status: errorText(error) }); return; }
     }
     sessionStorage.setItem(pendingKey(user.id), JSON.stringify({ message, previousLastAt, sessionId }));
-    this.set({ pendingMessage: message, partial: "", phase: "generating", runId: null,
+    this.set({ pendingMessage: message, pendingIds: [crypto.randomUUID(), crypto.randomUUID()], partial: "", phase: "generating", runId: null,
       status: "", following: true });
     try {
       await biboClient.chat(message, (event: BiboChatEvent) => {
@@ -220,7 +240,7 @@ class BiboChatOwner {
         if (event.name === "delta") this.set((state) => ({ partial: state.partial + event.value.text }));
         if (event.name === "saving") this.set({ phase: "saving", status: "" });
         if (event.name === "committed") {
-          this.set((state) => ({ messages: event.value.messages, pendingMessage: null, partial: "", status: "",
+          this.set((state) => ({ messages: this.identifyMessages(event.value.messages, state.pendingIds), pendingMessage: null, pendingIds: null, partial: "", status: "",
             sessions: event.value.session ? [event.value.session, ...state.sessions.filter((item) => item.id !== event.value.session?.id)] : state.sessions }));
         }
       }, sessionId);
@@ -228,7 +248,7 @@ class BiboChatOwner {
       this.clearFailedInput(sessionId, message);
     } catch (error) {
       await this.recoverRun(sessionId, message, previousLastAt, error);
-    } finally { this.set({ phase: "idle", runId: null, pendingMessage: null, partial: "" }); }
+    } finally { this.set({ phase: "idle", runId: null, pendingMessage: null, pendingIds: null, partial: "" }); }
   };
 
   private restoreFailedInput = (message: string): void => {
@@ -249,7 +269,7 @@ class BiboChatOwner {
     try {
       const history = await biboClient.history(sessionId);
       saved = runWasSaved({ sessionId, message, previousLastAt }, sessionId, history);
-      this.set({ messages: history });
+      this.set({ messages: this.identifyMessages(history, saved ? this.get().pendingIds : null) });
     } catch { /* Keep the local input for a later retry. */ }
     if (saved) {
       const user = this.get().user;

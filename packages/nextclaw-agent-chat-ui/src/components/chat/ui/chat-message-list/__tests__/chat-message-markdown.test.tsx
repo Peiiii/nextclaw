@@ -7,6 +7,33 @@ const defaultTexts = {
   copiedCodeLabel: "Copied",
 };
 
+it.each(["```ts\nconst value = 1;\n```", "```\nvalue\n```", "<pre><code>value</code></pre>"])("keeps code outside duplicate pre containers: %s", (text) => {
+  const { container } = render(<ChatMessageMarkdown text={text} role="assistant" texts={defaultTexts} />);
+  expect(container.querySelectorAll("pre")).toHaveLength(1);
+  expect(container.querySelector(".chat-codeblock-toolbar")?.closest("pre")).toBeNull();
+});
+
+it("preserves sanitized HTML preformatted content without a code element", () => {
+  const { container } = render(<ChatMessageMarkdown text={"<pre>one\n two</pre>"} role="assistant" texts={defaultTexts} />);
+  expect(container.querySelector("pre")?.textContent).toBe("one\n two");
+});
+
+it("scopes footnotes and HTML anchors to their message while preserving safe references", () => {
+  const text = 'A note[^same-中文]\n\n[^same-中文]: Source.\n\n<a href="#section">Jump</a><h3 id="section">Section</h3>';
+  const { container, rerender } = render(<><ChatMessageMarkdown text={text} role="assistant" texts={defaultTexts} /><ChatMessageMarkdown text={text} role="assistant" texts={defaultTexts} /></>);
+  const ids = Array.from(container.querySelectorAll("[id]"), (node) => node.id);
+  expect(new Set(ids).size).toBe(ids.length);
+  for (const message of container.querySelectorAll(".chat-markdown")) {
+    for (const link of message.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
+      expect(Array.from(message.querySelectorAll("[id]")).some((node) => node.id === decodeURIComponent(link.hash.slice(1)))).toBe(true);
+    }
+    const reference = message.querySelector("a[data-footnote-ref]")!;
+    expect(Array.from(message.querySelectorAll("[id]")).some((node) => node.id === reference.getAttribute("aria-describedby"))).toBe(true);
+  }
+  rerender(<><ChatMessageMarkdown text={text} role="assistant" texts={defaultTexts} /><ChatMessageMarkdown text={text} role="assistant" texts={defaultTexts} /></>);
+  expect(Array.from(container.querySelectorAll("[id]"), (node) => node.id)).toEqual(ids);
+});
+
 it("renders front matter as document properties without polluting body headings", () => {
   const { container } = render(<ChatMessageMarkdown
     text={'---\ntitle: A document\ndraft: false\ncount: 0\ntags: [one, two]\nsummary: |\n  First line\n  Second line\nowner:\n  name: Ada\n---\n# Body\n\nText $x$'}

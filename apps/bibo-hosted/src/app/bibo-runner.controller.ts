@@ -2,14 +2,15 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, join, relative } from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { pipeline } from "node:stream/promises";
 import type { Readable } from "node:stream";
 import { backup, DatabaseSync } from "node:sqlite";
 import { NextclawHarness } from "@nextclaw/harness";
-import { BiboSpaceContribution, BiboSpaceError, BiboSpaceService } from "@/features/bibo-domain";
+import { BiboSpaceError, BiboSpaceService } from "@/features/bibo-domain";
+import { BiboSpaceContribution } from "./bibo-space.contribution";
 
 const home = process.env.NEXTCLAW_HOME ?? "/data";
 const runtimeId = randomUUID();
@@ -84,6 +85,9 @@ async function sendSnapshot(response: ServerResponse): Promise<void> {
       filter: (source, target) => {
         const name = basename(source);
         if (name === "config.json" || name === "logs" || name === "cache") return false;
+        // Derived from the journal on load; its live rebuilds/atomic renames
+        // cannot be copied consistently alongside canonical session data.
+        if (relative(home, source) === join("sessions", ".ncp-agent-journal", ".message-projections")) return false;
         if (/\.(sqlite|db)(?:-(?:wal|shm|journal))?$/.test(name)) {
           if (/\.(sqlite|db)$/.test(name)) databases.push({ source, target });
           return false;
@@ -141,6 +145,21 @@ async function sendRun(request: IncomingMessage, response: ServerResponse): Prom
   }
 }
 
+async function importSpaceState(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  const body = await readJson<{ state?: unknown }>(request, 32 * 1024 * 1024);
+  await space.importState(body.state);
+  sendJson(response, 200, { ok: true });
+}
+
+async function deleteSession(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  const body = await readJson<{ id?: unknown }>(request);
+  if (typeof body.id !== "string" || !body.id) return sendJson(response, 400, { error: "会话编号不正确。" });
+  const harness = new NextclawHarness({ homeDir: home });
+  try { await harness.start(); await harness.sessions.delete(body.id); }
+  finally { await harness.dispose(); }
+  sendJson(response, 200, { ok: true });
+}
+
 let busy = false;
 const server = createServer(async (request, response) => {
   const route = new URL(request.url ?? "/", "http://localhost").pathname;
@@ -153,15 +172,10 @@ const server = createServer(async (request, response) => {
       return sendJson(response, 200, { ok: true });
     }
     if (route === "/snapshot" && request.method === "GET") return await sendSnapshot(response);
+    if (route === "/space/state" && request.method === "GET") return sendJson(response, 200, { state: await space.exportState() });
+    if (route === "/space/state" && request.method === "POST") return await importSpaceState(request, response);
     if (route === "/run" && request.method === "POST") return await sendRun(request, response);
-    if (route === "/sessions/delete" && request.method === "POST") {
-      const body = await readJson<{ id?: unknown }>(request);
-      if (typeof body.id !== "string" || !body.id) return sendJson(response, 400, { error: "会话编号不正确。" });
-      const harness = new NextclawHarness({ homeDir: home });
-      try { await harness.start(); await harness.sessions.delete(body.id); }
-      finally { await harness.dispose(); }
-      return sendJson(response, 200, { ok: true });
-    }
+    if (route === "/sessions/delete" && request.method === "POST") return await deleteSession(request, response);
     if (route === "/space" && request.method === "POST") {
       const body = await readJson<{ action?: unknown; input?: unknown }>(request, 1_100_000);
       if (typeof body.action !== "string") return sendJson(response, 400, { error: "缺少操作名称。" });
