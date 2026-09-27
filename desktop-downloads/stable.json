@@ -1,0 +1,13 @@
+{
+  "schema": "nextclaw.desktop-download/v1",
+  "tag": "v0.57.3-desktop.1",
+  "version": "0.0.299",
+  "url": "https://github.com/Peiiii/nextclaw/releases/tag/v0.57.3-desktop.1",
+  "assets": {
+    "macArm64Dmg": "https://github.com/Peiiii/nextclaw/releases/download/v0.57.3-desktop.1/NextClaw.Desktop-0.0.299-arm64.dmg",
+    "macX64Dmg": "https://github.com/Peiiii/nextclaw/releases/download/v0.57.3-desktop.1/NextClaw.Desktop-0.0.299-x64.dmg",
+    "windowsX64Installer": "https://github.com/Peiiii/nextclaw/releases/download/v0.57.3-desktop.1/NextClaw.Desktop-Setup-0.0.299-x64.exe",
+    "linuxX64AppImage": "https://github.com/Peiiii/nextclaw/releases/download/v0.57.3-desktop.1/NextClaw.Desktop-0.0.299-linux-x64.AppImage"
+  },
+  "windowsPortableZipUrl": "https://github.com/Peiiii/nextclaw/releases/download/v0.57.3-desktop.1/NextClaw-Portable-0.0.299-win-x64.zip"
+}
