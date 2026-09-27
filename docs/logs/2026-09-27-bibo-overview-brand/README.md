@@ -14,7 +14,11 @@
 
 ## 发布/部署方式
 
-用户已授权上线。发布入口为 `pnpm -C apps/bibo-hosted deploy:client`，从包含本次提交的干净远程 master 冻结版本运行，保留现有容器；发布与线上核验结果待补。
+用户已授权上线。发布入口为 `pnpm -C apps/bibo-hosted deploy:client`，从与远程 master 一致的干净冻结提交 `f8ae48414b7860632d1b41f6096614fe989ef7f4` 运行。已部署 Worker 版本 `3686be64-b4a9-4b89-9981-9b491f43aadf`。线上 JS `index-BQ9eQGQS.js`、CSS `index-C-KMrBFj.css` 与本地产物一致。
+
+真实测试账号登录后，在 1440／390／320px 完成概览形象、摘要入口跳转和后退，无浏览器异常或横向溢出。此次真实账号为空空间，验证其开始对话入口；有数据收件箱入口由本地产品 fixture 验证。线上截图位于 `/tmp/bibo-overview-live-{1440,390,320}.png`。发布后 Container version 22 及镜像 digest 与发布前完全相同。
+
+实现已推送 `origin/master`。主工作区存在其它任务的活跃改动，reconcile 返回 `LOCAL_WORKTREE_RETRYING`，自动 retry worker 接管快进，不覆盖 WIP。本任务主区没有遗留草稿。使用既有发布入口，`AUTOMATION_INTERVENTIONS: 0`。
 
 发布前 Worker 版本 `b676d794-1e8e-43ed-baf0-b6ce681d5ade`；Container application `a03967fb-95da-496d-8c90-a4b4a010667a`，version 22，镜像 digest `sha256:b32bcfb2cde302b69944695df41ee5395ee3f27a6d1d6acc36cc1515f55b381a`。无迁移、后端镜像或 NextClaw 文档站部署。
 
