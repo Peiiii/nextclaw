@@ -1,4 +1,4 @@
-import type { BiboClient, BiboFile, BiboInboxItem, BiboOverview, BiboProject, BiboTask } from "@nextclaw/bibo-client";
+import type { BiboClient, BiboEvent, BiboFile, BiboInboxItem, BiboOverview, BiboProject, BiboTask } from "@nextclaw/bibo-client";
 import type { BiboView } from "@/features/space/stores/bibo-space.store";
 
 type Page<T> = { items: T[]; nextCursor: string | null };
@@ -13,6 +13,59 @@ export function taskListFilter({ taskQuery, taskProject, taskScope, taskAnchor }
 }): Record<string, unknown> {
   const tomorrow = new Date(taskAnchor); tomorrow.setHours(24, 0, 0, 0);
   return { query: taskQuery, ...(taskProject ? { projectId: taskProject } : {}), ...(taskScope === "done" ? { status: "done" } : taskScope === "all" ? {} : { open: true, [taskScope === "today" ? "dueBefore" : "dueFrom"]: tomorrow.toISOString() }) };
+}
+
+export function projectSavedTask(items: BiboTask[], result: BiboTask | { deleted: string }, filter: Record<string, unknown>): BiboTask[] {
+  const id = "deleted" in result ? result.deleted : result.id;
+  const remaining = items.filter((task) => task.id !== id);
+  if (!("deleted" in result)) {
+    const matches = (!filter.projectId || result.projectId === filter.projectId)
+      && (!filter.status || result.status === filter.status)
+      && (!filter.open || !["done", "cancelled"].includes(result.status))
+      && (!filter.dueBefore || !!result.dueAt && result.dueAt < String(filter.dueBefore))
+      && (!filter.dueFrom || !!result.dueAt && result.dueAt >= String(filter.dueFrom))
+      && (!filter.query || `${result.title} ${result.description}`.toLocaleLowerCase().includes(String(filter.query).toLocaleLowerCase()));
+    if (matches) remaining.push(result);
+  }
+  return remaining.sort((a, b) => filter.dueBefore || filter.dueFrom
+    ? (a.dueAt ?? "").localeCompare(b.dueAt ?? "") || a.id.localeCompare(b.id)
+    : b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
+}
+
+export function savedTaskView(state: Parameters<typeof taskListFilter>[0] & {
+  tasks: BiboTask[]; selectedTaskId: string | null; taskSelection: BiboTask | null;
+  readStatus: Partial<Record<BiboView, "loading" | "ready" | "error">>;
+}, saved: BiboTask | { deleted: string }) {
+  return {
+    tasks: projectSavedTask(state.tasks, saved, taskListFilter(state)),
+    taskSelection: "deleted" in saved
+      ? state.taskSelection?.id === saved.deleted ? null : state.taskSelection
+      : state.selectedTaskId === saved.id ? saved : state.taskSelection,
+    notice: "已保存。", saving: false,
+    readStatus: { ...state.readStatus, tasks: "ready" as const },
+  };
+}
+
+export function readNextSpacePage(client: BiboClient, state: Parameters<typeof taskListFilter>[0] & {
+  noteQuery: string; inboxScope: "pending" | "unread" | "all";
+}, domain: "tasks" | "events" | "inbox" | "files" | "notes", cursor: string): Promise<Page<unknown>> {
+  const action = { tasks: "task.list", events: "event.list", inbox: "inbox.list", files: "file.list", notes: "file.list" }[domain];
+  return client.space(action, { limit: 100, cursor,
+    ...(domain === "tasks" ? taskListFilter(state) : {}),
+    ...(domain === "notes" ? { kind: "note", query: state.noteQuery, sort: "recent" } : {}),
+    ...(domain === "inbox" ? { unresolved: state.inboxScope === "pending", unread: state.inboxScope === "unread" } : {}),
+  });
+}
+
+export async function readCalendarEvents(client: BiboClient, range: { from: string; to: string }): Promise<BiboEvent[]> {
+  const events: BiboEvent[] = [];
+  let cursor: string | null = null;
+  do {
+    const page: Page<BiboEvent> = await client.space("event.list", { ...range, limit: 100, ...(cursor ? { cursor } : {}) });
+    events.push(...page.items);
+    cursor = page.nextCursor;
+  } while (cursor);
+  return events;
 }
 
 export async function readSpaceLists(client: BiboClient, input: {

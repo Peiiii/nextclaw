@@ -2,7 +2,7 @@ import { create, type StoreApi } from "zustand";
 import { BiboClient, BiboClientError, type BiboEvent, type BiboFile, type BiboFileDetail, type BiboInboxItem, type BiboOverview, type BiboProject, type BiboTask } from "@nextclaw/bibo-client";
 import { calendarMonthRange } from "@/features/space/utils/calendar.utils";
 import { readWorkspaceLayout, writeWorkspaceLayout } from "@/features/space/utils/workspace-layout.utils";
-import { readSpaceLists, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
+import { readCalendarEvents, readNextSpacePage, readSpaceLists, savedTaskView, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
 import { navigateWorkspace } from "@/app/workspace-router";
 
 export type BiboView = "overview" | "chat" | "inbox" | "calendar" | "tasks" | "notes" | "files";
@@ -225,13 +225,7 @@ class BiboSpaceOwner {
     const { from, to } = calendarMonthRange(date);
     this.set({ error: "" });
     const request = (async () => {
-      const events: BiboEvent[] = [];
-      let cursor: string | null = null;
-      do {
-        const page: Page<BiboEvent> = await client.space<Page<BiboEvent>>("event.list", { from, to, limit: 100, ...(cursor ? { cursor } : {}) });
-        events.push(...page.items);
-        cursor = page.nextCursor;
-      } while (cursor);
+      const events = await readCalendarEvents(client, { from, to });
       if (revision !== this.calendarRevision) return;
       this.set((state) => {
         const remaining = state.events.filter((event) => event.endAt < from || event.startAt > to);
@@ -247,12 +241,10 @@ class BiboSpaceOwner {
     const cursor = this.get().cursors[domain];
     if (!cursor || this.get().moreLoading[domain]) return;
     this.set((state) => ({ moreLoading: { ...state.moreLoading, [domain]: true } }));
-    const action = { tasks: "task.list", events: "event.list", inbox: "inbox.list", files: "file.list", notes: "file.list" }[domain];
     try {
       const view = domain === "events" ? "calendar" : domain;
       const revision = this.viewLoadRequest[view];
-      const { noteQuery, inboxScope } = this.get();
-      const result = await client.space<Page<unknown>>(action, { limit: 100, cursor, ...(domain === "tasks" ? taskListFilter(this.get()) : {}), ...(domain === "notes" ? { kind: "note", query: noteQuery, sort: "recent" } : {}), ...(domain === "inbox" ? { unresolved: inboxScope === "pending", unread: inboxScope === "unread" } : {}) });
+      const result = await readNextSpacePage(client, this.get(), domain, cursor);
       if (this.viewLoadRequest[view] !== revision) return;
       this.set((state) => state.cursors[domain] === cursor ? { [domain]: [...(state[domain] as unknown[]), ...result.items], cursors: { ...state.cursors, [domain]: result.nextCursor } } : {});
     } catch (error) { this.set({ error: message(error) }); }
@@ -267,7 +259,15 @@ class BiboSpaceOwner {
     if (requestKey && requestId) this.pendingCreates.set(requestKey, requestId);
     try {
       const result = await client.space<T>(action, { ...input, ...(requestId ? { requestId } : {}) });
+      if (this.get().instanceId !== this.instanceId) return null;
       if (requestKey) this.pendingCreates.delete(requestKey);
+      if (["task.create", "task.update", "task.delete"].includes(action)) {
+        const saved = result as BiboTask | { deleted: string };
+        this.viewLoadRequest.tasks = (this.viewLoadRequest.tasks ?? 0) + 1;
+        this.set((state) => savedTaskView(state, saved));
+        if (this.get().cursors.tasks) void this.load("tasks"); // Reconcile changed offsets after saved feedback.
+        return result;
+      }
       if (action.startsWith("event.")) { this.loadedCalendarMonths.clear(); this.calendarRevision += 1; }
       const refreshed = await this.load(view);
       const overviewRefreshed = view === "overview" || await this.load("overview");

@@ -13,6 +13,7 @@
     "smoke:markdown": "pnpm build:client && tsx scripts/bibo-markdown.smoke.ts",
     "smoke:composer": "pnpm build:client && tsx scripts/bibo-composer.smoke.ts",
     "smoke:live": "tsx scripts/bibo-live.smoke.ts",
+    "smoke:tasks": "tsx scripts/bibo-task-latency.smoke.ts",
     "deploy": "pnpm build && pnpm dlx wrangler@4.138.0 deploy",
     "dev": "vite --mode ui --host 127.0.0.1 --port 5188 --strictPort",
     "dev:proxy": "vite --host 127.0.0.1 --port 5188 --strictPort",

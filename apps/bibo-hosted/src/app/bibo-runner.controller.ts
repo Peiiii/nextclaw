@@ -141,6 +141,21 @@ async function sendRun(request: IncomingMessage, response: ServerResponse): Prom
   }
 }
 
+async function importSpaceState(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  const body = await readJson<{ state?: unknown }>(request, 32 * 1024 * 1024);
+  await space.importState(body.state);
+  sendJson(response, 200, { ok: true });
+}
+
+async function deleteSession(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  const body = await readJson<{ id?: unknown }>(request);
+  if (typeof body.id !== "string" || !body.id) return sendJson(response, 400, { error: "会话编号不正确。" });
+  const harness = new NextclawHarness({ homeDir: home });
+  try { await harness.start(); await harness.sessions.delete(body.id); }
+  finally { await harness.dispose(); }
+  sendJson(response, 200, { ok: true });
+}
+
 let busy = false;
 const server = createServer(async (request, response) => {
   const route = new URL(request.url ?? "/", "http://localhost").pathname;
@@ -153,15 +168,10 @@ const server = createServer(async (request, response) => {
       return sendJson(response, 200, { ok: true });
     }
     if (route === "/snapshot" && request.method === "GET") return await sendSnapshot(response);
+    if (route === "/space/state" && request.method === "GET") return sendJson(response, 200, { state: await space.exportState() });
+    if (route === "/space/state" && request.method === "POST") return await importSpaceState(request, response);
     if (route === "/run" && request.method === "POST") return await sendRun(request, response);
-    if (route === "/sessions/delete" && request.method === "POST") {
-      const body = await readJson<{ id?: unknown }>(request);
-      if (typeof body.id !== "string" || !body.id) return sendJson(response, 400, { error: "会话编号不正确。" });
-      const harness = new NextclawHarness({ homeDir: home });
-      try { await harness.start(); await harness.sessions.delete(body.id); }
-      finally { await harness.dispose(); }
-      return sendJson(response, 200, { ok: true });
-    }
+    if (route === "/sessions/delete" && request.method === "POST") return await deleteSession(request, response);
     if (route === "/space" && request.method === "POST") {
       const body = await readJson<{ action?: unknown; input?: unknown }>(request, 1_100_000);
       if (typeof body.action !== "string") return sendJson(response, 400, { error: "缺少操作名称。" });
