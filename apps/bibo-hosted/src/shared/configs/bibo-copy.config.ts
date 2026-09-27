@@ -7,6 +7,8 @@ export const biboCopy = {
   inbox: "收件箱",
   calendar: "日程",
   tasks: "任务",
+  endedTasks: "已结束",
+  taskStatus: { planned: "待开始", active: "进行中", done: "已完成", cancelled: "已取消" },
   notes: "笔记",
   files: "文件",
   newConversation: "新对话",
