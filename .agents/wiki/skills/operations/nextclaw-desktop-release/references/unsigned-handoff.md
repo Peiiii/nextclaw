@@ -55,10 +55,10 @@ xattr -cr "/Applications/<App Name>.app"
 
 ## GitHub Release Checklist
 1. Use `beta` naming convention if channel is beta.
-2. Mark release as `pre-release`.
+2. Preserve the owning release channel: stable releases remain `isPrerelease=false`; only beta releases use `pre-release`.
 3. Keep release notes in two full language blocks if bilingual is required:
-   - `English Version` first.
-   - `中文版` second.
+   - `## 中文` first.
+   - `## English` second.
 4. Include:
    - User-facing changes
    - Upgrade impact (unsigned behavior)
