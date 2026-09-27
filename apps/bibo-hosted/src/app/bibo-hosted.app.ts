@@ -1,6 +1,6 @@
 import { Container, getContainer } from "@cloudflare/containers";
 import { readRunStream, streamEvent, type RunResult } from "./bibo-run-stream.utils";
-import { authRoute, cookieToken, currentUser, json, publicError } from "./bibo-auth.utils";
+import { authRoute, cookieToken, currentUser, sessionUser, json, publicError } from "./bibo-auth.utils";
 import { checkChatAvailability, modelError, modelRoute } from "./bibo-model-gateway.service";
 import { BiboSpaceService, BiboSpaceError, type BiboSpaceState } from "../features/bibo-domain/services/bibo-space.service";
 import { BiboSpaceStateStore } from "./bibo-space-state.service";
@@ -325,7 +325,7 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
   const path = url.pathname;
   const token = cookieToken(request);
   const authStarted = performance.now();
-  const user = await currentUser(token);
+  const user = path === "/api/space" ? await sessionUser(token) : await currentUser(token);
   const authMs = performance.now() - authStarted;
   if (!user || !token) return publicError("请先登录。", 401);
   const container = getContainer(env.BIBO_USER, `user:${user.id}`);
