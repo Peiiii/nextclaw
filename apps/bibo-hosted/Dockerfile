@@ -11,7 +11,11 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json ./
 COPY patches ./patches
 COPY packages ./packages
 COPY apps/bibo-hosted/package.json ./apps/bibo-hosted/package.json
-RUN pnpm --registry=https://registry.npmjs.org install --filter '@nextclaw/harness...' --filter @nextclaw/bibo-hosted --frozen-lockfile
+RUN for build_attempt in 1 2; do \
+      timeout 120s pnpm --registry=https://registry.npmjs.org install \
+        --filter '@nextclaw/harness...' --filter @nextclaw/bibo-hosted \
+        --frozen-lockfile --fetch-timeout=30000 --network-concurrency=4 && exit 0; \
+    done; exit 1
 RUN pnpm -r --filter '@nextclaw/harness...' build
 COPY apps/bibo-hosted ./apps/bibo-hosted
 RUN pnpm -C apps/bibo-hosted build:runner
