@@ -36,13 +36,52 @@ export async function currentUser(token: string | null): Promise<BiboUser | null
   return status === 200 && value.ok ? value.data?.user ?? null : null;
 }
 
+async function identityCache(token: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  const key = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return { cache: await caches.open("bibo-verified-identities"), request: new Request(`https://app.bibo.bot/.internal/identity/${key}`) };
+}
+
+function verifiedTokenExpiry(token: string): number {
+  try {
+    const value = JSON.parse(Buffer.from(token.split(".")[1] ?? "", "base64url").toString()) as { exp?: unknown };
+    return typeof value.exp === "number" && Number.isFinite(value.exp) ? value.exp * 1000 : 0;
+  } catch { return 0; }
+}
+
+export async function sessionUser(token: string | null): Promise<Pick<BiboUser, "id"> | null> {
+  if (!token) return null;
+  const entry = await identityCache(token).catch(() => null);
+  const cached = await entry?.cache.match(entry.request).catch(() => undefined);
+  if (cached) {
+    const value = await cached.json().catch(() => null) as { id?: unknown; expiresAt?: unknown } | null;
+    if (value && typeof value.id === "string" && typeof value.expiresAt === "number" && value.expiresAt > Date.now()) return { id: value.id };
+  }
+  const user = await currentUser(token);
+  // Read expiry only after the platform verified this exact token; an unverified claim never grants access.
+  const expiresAt = Math.min(Date.now() + 30_000, verifiedTokenExpiry(token));
+  if (user && entry && expiresAt > Date.now()) {
+    await entry.cache.put(entry.request, json({ id: user.id, expiresAt }, 200, {
+      "cache-control": `max-age=${Math.floor((expiresAt - Date.now()) / 1000)}`,
+    })).catch(() => undefined);
+  }
+  return user;
+}
+
 export async function authRoute(request: Request, path: string): Promise<Response> {
   const routeMap: Record<string, string> = {
     "/api/auth/send-code": "/platform/auth/register/send-code",
     "/api/auth/register": "/platform/auth/register/complete",
     "/api/auth/login": "/platform/auth/login",
   };
-  if (path === "/api/auth/logout" && request.method === "POST") return json({ ok: true }, 200, { "set-cookie": "bibo_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0" });
+  if (path === "/api/auth/logout" && request.method === "POST") {
+    const token = cookieToken(request);
+    if (token) {
+      const entry = await identityCache(token).catch(() => null);
+      await entry?.cache.delete(entry.request).catch(() => undefined);
+    }
+    return json({ ok: true }, 200, { "set-cookie": "bibo_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0" });
+  }
   if (path === "/api/auth/me") {
     if (request.method !== "GET") return publicError("Not found", 404);
     const user = await currentUser(cookieToken(request));

@@ -73,6 +73,20 @@ async function checkFailedDraft(page: Page, input: Locator): Promise<void> {
     await page.waitForFunction(() => document.querySelector<HTMLInputElement>('[aria-label="快速添加任务"]')?.value === "");
 }
 
+async function saveSample(page: Page, input: Locator, title: string) {
+  await input.fill(title);
+  const response = page.waitForResponse((response) => response.url().endsWith("/api/space") && response.request().postDataJSON()?.action === "task.create");
+  const started = performance.now();
+  await input.press("Enter");
+  const saved = await response;
+  assert.equal(saved.status(), 200);
+  await page.locator(".bibo-task-row").filter({ hasText: title }).waitFor();
+  await page.waitForFunction(() => document.querySelector<HTMLInputElement>('[aria-label="快速添加任务"]')?.value === "" && document.querySelector(".task-quick-add")?.getAttribute("aria-busy") === "false");
+  const elapsed = Math.round(performance.now() - started);
+  const timing = saved.request().timing();
+  return { elapsed, span: saved.headers()["server-timing"] ?? "", request: Math.round(timing.responseEnd - timing.requestStart) };
+}
+
 async function measure(context: BrowserContext, width: number) {
   const page = await context.newPage();
   if (local) await mockApi(page);
@@ -82,27 +96,22 @@ async function measure(context: BrowserContext, width: number) {
   const input = page.getByRole("textbox", { name: "快速添加任务", exact: true });
   await input.waitFor();
   await page.getByRole("status", { name: "正在加载页面" }).waitFor({ state: "hidden" });
+  await page.waitForLoadState("networkidle");
   if (local) await checkFailedDraft(page, input);
   const samples: number[] = [];
   const spans: string[] = [];
+  const requestMs: number[] = [];
   for (let index = 0; index < 20; index += 1) {
-    const title = `${marker}-${width}-${index}`;
-    await input.fill(title);
-    const response = page.waitForResponse((response) => response.url().endsWith("/api/space") && response.request().postDataJSON()?.action === "task.create");
-    const started = performance.now();
-    await input.press("Enter");
-    const saved = await response;
-    assert.equal(saved.status(), 200);
-    await page.locator(".bibo-task-row").filter({ hasText: title }).waitFor();
-    await page.waitForFunction(() => document.querySelector<HTMLInputElement>('[aria-label="快速添加任务"]')?.value === "" && document.querySelector(".task-quick-add")?.getAttribute("aria-busy") === "false");
-    samples.push(Math.round(performance.now() - started));
-    spans.push(saved.headers()["server-timing"] ?? "");
+    const sample = await saveSample(page, input, `${marker}-${width}-${index}`);
+    samples.push(sample.elapsed);
+    spans.push(sample.span);
+    requestMs.push(sample.request);
   }
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator(".bibo-task-row").filter({ hasText: `${marker}-${width}-19` }).waitFor();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ viewport: width, savedUiMs: summarize(samples), samples, serverTiming: spans, refreshed: true }));
+  console.log(JSON.stringify({ viewport: width, savedUiMs: summarize(samples), samples, requestMs, serverTiming: spans, refreshed: true }));
   return { page, p95: summarize(samples).p95! };
 }
 
@@ -117,6 +126,7 @@ const token = local ? "local" : await login();
 const browser = await chromium.launch({ headless: true, proxy: local ? undefined : proxy() });
 const contexts: BrowserContext[] = [];
 let cleanupPage: Page | undefined;
+const results: Array<{ viewport: number; p95: number }> = [];
 try {
   for (const width of [1365, 390]) {
     const context = await browser.newContext({ viewport: { width, height: 900 }, isMobile: width < 600, hasTouch: width < 600 });
@@ -127,15 +137,19 @@ try {
       await cleanupPage.goto(`${origin}/tasks`, { waitUntil: "domcontentloaded" });
     }
     const result = await measure(context, width);
-    assert.ok(result.p95 <= 1000, `${width}px saved UI P95 exceeded 1000ms: ${result.p95}ms`);
+    results.push({ viewport: width, p95: result.p95 });
   }
+  assert.ok(results.every((result) => result.p95 <= 1000), `Saved UI P95 exceeded 1000ms: ${JSON.stringify(results)}`);
 } finally {
-  if (cleanupPage) {
-    const tasks = await space<{ items: BiboTask[] }>(cleanupPage, "task.list", { query: marker, limit: 100 });
-    for (const task of tasks.items.filter((task) => task.title.startsWith(marker))) await space(cleanupPage, "task.delete", { id: task.id, version: task.version });
-    console.log(JSON.stringify({ cleanup: true, deleted: tasks.items.length }));
+  try {
+    if (cleanupPage) {
+      const tasks = await space<{ items: BiboTask[] }>(cleanupPage, "task.list", { query: marker, limit: 100 });
+      for (const task of tasks.items.filter((task) => task.title.startsWith(marker))) await space(cleanupPage, "task.delete", { id: task.id, version: task.version });
+      console.log(JSON.stringify({ cleanup: true, deleted: tasks.items.length }));
+    }
+  } finally {
+    for (const context of contexts) await context.close();
+    await browser.close();
+    preview?.kill("SIGTERM");
   }
-  for (const context of contexts) await context.close();
-  await browser.close();
-  preview?.kill("SIGTERM");
 }

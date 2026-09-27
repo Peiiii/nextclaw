@@ -16,7 +16,7 @@ const bundle = await build({
           ? "export class DurableObject { constructor(ctx, env) { this.ctx = ctx; this.env = env; } }"
           : args.path === "@cloudflare/containers"
             ? "export class Container { constructor(ctx, env) { this.ctx = ctx; this.env = env; } containerFetch = (...args) => this.env.containerFetch(...args); stop = async () => this.env.stop?.(); } export const getContainer = () => ({ fetch: async () => Response.json({ forwarded: true }) });"
-            : "export const currentUser = async () => ({ id: 'user-1' }); export const cookieToken = () => 'token'; export const authRoute = async () => new Response(); export const json = (value, status = 200, headers = {}) => Response.json(value, { status, headers }); export const publicError = (error, status) => Response.json({ error }, { status });",
+            : "export const currentUser = async () => ({ id: 'user-1' }); export const sessionUser = currentUser; export const cookieToken = () => 'token'; export const authRoute = async () => new Response(); export const json = (value, status = 200, headers = {}) => Response.json(value, { status, headers }); export const publicError = (error, status) => Response.json({ error }, { status });",
       }));
     },
   }],
