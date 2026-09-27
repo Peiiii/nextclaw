@@ -219,6 +219,14 @@ async function checkLongTitles(page: Page, width: number): Promise<void> {
     await page.goto(`${base}/${view === "chat" ? "chat/session-a" : view === "overview" ? "" : view}`, { waitUntil: "networkidle" });
     await checkContentBounds(page);
     if (view === "chat") await checkLongConversation(page, width);
+    if (view === "overview") {
+      for (const row of await page.locator(".bibo-summary-row").all()) {
+        const title = await row.locator("strong").boundingBox();
+        const metadata = await row.locator("span").boundingBox();
+        const box = await row.boundingBox();
+        assert.ok(title && metadata && box && metadata.x >= box.x && metadata.x + metadata.width <= box.x + box.width + 1 && title.width > 0, "long summary preserves its metadata within the rounded row");
+      }
+    }
     if (view === "inbox") {
       await page.locator(".ui-list-row").first().click();
       await checkContentBounds(page);
@@ -306,6 +314,22 @@ try {
       await page.goto(base, { waitUntil: "networkidle" });
       await page.getByRole("heading", { name: /最近你在忙这些|今天从这里开始/ }).waitFor();
       assert.equal(await page.getByText("确认方案方向").count(), 1);
+      const summary = page.locator(".bibo-overview-inbox .bibo-summary-row").first();
+      const style = () => summary.evaluate((element) => {
+        const s = getComputedStyle(element);
+        return { background: s.backgroundColor, color: s.color, radius: s.borderRadius, padding: s.paddingLeft, outline: s.outlineStyle, height: element.getBoundingClientRect().height };
+      });
+      const normal = await style();
+      assert.equal(normal.radius, "8px");
+      assert.equal(normal.padding, "12px");
+      assert.ok(normal.height >= 44);
+      await summary.hover();
+      const hovered = await style();
+      assert.notEqual(hovered.background, normal.background);
+      assert.equal(hovered.color, normal.color, "hover changes background, not content emphasis");
+      assert.equal(hovered.height, normal.height);
+      await summary.focus();
+      assert.equal((await style()).outline, "solid", "summary reuses the shared keyboard focus treatment");
       await page.screenshot({ path: `/tmp/bibo-product-${viewport.width}.png`, fullPage: true });
       if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
       await page.getByRole("link", { name: /笔记/ }).click();

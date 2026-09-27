@@ -122,15 +122,14 @@
 .bibo-overview-brief-copy strong { @apply block text-sm font-semibold; }
 .bibo-overview-brief-copy small { @apply block mt-0.75 [color:#6c7e6c] text-xs [overflow-wrap:anywhere]; }
 .bibo-overview-brief-action { @apply flex-none text-sm; }
-.bibo-summary-card { @apply min-w-0 [overflow-wrap:anywhere] [padding:20px_24px] [background:#fffefa] [border:1px_solid_var(--bibo-hairline)] [border-radius:11px]; }
+.bibo-summary-card { @apply min-w-0 [overflow-wrap:anywhere] [padding:20px_24px] [background:var(--ui-surface)] [border:1px_solid_var(--bibo-hairline)] [border-radius:var(--ui-radius-md)]; }
 .bibo-card-heading { @apply flex justify-between gap-3 items-center [color:#6d806b] text-xs; }
 .bibo-card-heading small { @apply [color:#95a291] text-xs; }
 .bibo-summary-card h2 { @apply text-lg leading-7 font-semibold [margin:10px_0_13px]; }
 .bibo-card-empty { @apply [color:#9ba499] text-xs [margin:12px_0_0]; }
-.bibo-summary-row { @apply w-full flex [align-items:baseline] justify-between gap-4 text-left border-0 [border-top:1px_solid_#edf0e9] bg-transparent [padding:11px_0] cursor-pointer [color:#45564a]; }
-.bibo-summary-row:hover { @apply [color:var(--bibo-leaf)]; }
-.bibo-summary-row strong { @apply min-w-0 text-sm font-semibold; }
-.bibo-summary-row span { @apply flex-none text-xs [color:#879688] whitespace-nowrap; }
+.bibo-summary-row { @apply w-full min-w-0 min-h-11 flex items-center justify-between gap-3 text-left border-0 bg-transparent p-3 [color:var(--ui-ink)] whitespace-normal; }
+.bibo-summary-row strong { @apply min-w-0 flex-1 text-sm font-semibold; }
+.bibo-summary-row span { @apply flex-none text-xs [color:var(--ui-muted)] whitespace-nowrap; }
 .bibo-project-list { @apply grid [grid-template-columns:1fr] gap-1 mt-3.5; }
 .bibo-project-list button { @apply relative [min-height:58px] flex items-start justify-between gap-3 text-left bg-transparent bg-none border-0 [border-top:2px_solid_#e1e8dd] [color:#475b4b] [padding:12px_0] cursor-pointer; }
 .bibo-project-list button strong { @apply min-w-0 text-sm; }
@@ -441,7 +440,7 @@
 .bibo-brand { @apply [border-radius:var(--ui-radius-sm)]; }
 .bibo-brand:hover, .bibo-project-list button:hover, .bibo-upcoming button:hover { @apply [background:var(--ui-hover)]; }
 .bibo-mobile-nav :is(a, button):hover, .bibo-mobile-nav :is(a, button):active { @apply [background:var(--ui-hover)]; }
-.bibo-summary-row:hover, .bibo-check-row:hover { @apply [background:var(--ui-hover)]; }
+.bibo-check-row:hover { @apply [background:var(--ui-hover)]; }
 .bibo-check-row button:hover { @apply [color:var(--ui-danger)]; }
 .bibo-shell :is(a, button, summary, [role="separator"]):focus-visible { @apply [outline:2px_solid_var(--ui-focus)] [outline-offset:-2px]; }
 @media (pointer: coarse) { .bibo-session-wrap .bibo-session-item { @apply [min-height:48px] pr-12; } }
