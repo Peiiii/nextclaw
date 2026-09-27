@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { spawn, execFileSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
+import { renameSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import type { AddressInfo } from "node:net";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -40,6 +41,9 @@ async function verifyArchive(temporary: string, response: Response): Promise<voi
   assert.equal(await readFile(join(restored, "workspace", "note.txt"), "utf8"), "persist me");
   await assert.rejects(readFile(join(restored, "config.json")), { code: "ENOENT" });
   const restoredJournal = join(restored, "sessions", ".ncp-agent-journal");
+  assert.equal(await readFile(join(restoredJournal, "session.jsonl"), "utf8"), "canonical journal\n");
+  await assert.rejects(readdir(join(restoredJournal, ".message-projections")), { code: "ENOENT" });
+  assert.equal(await readFile(join(restored, "workspace", ".message-projections", "user.txt"), "utf8"), "user data");
   await assert.rejects(readFile(join(restoredJournal, ".ncp-agent-session-catalog.sqlite-wal")), { code: "ENOENT" });
   const restoredDatabase = new DatabaseSync(join(restoredJournal, ".ncp-agent-session-catalog.sqlite"), { readOnly: true });
   try {
@@ -48,12 +52,17 @@ async function verifyArchive(temporary: string, response: Response): Promise<voi
   } finally { restoredDatabase.close(); }
 }
 
-test("snapshot stays valid while NextClaw's SQLite WAL is being written", async (t) => {
+test("snapshot preserves canonical data while SQLite WAL and message projections are being written", async (t) => {
   const temporary = await mkdtemp(join(tmpdir(), "bibo-snapshot-test-"));
   const home = join(temporary, "home");
   const journal = join(home, "sessions", ".ncp-agent-journal");
   await mkdir(journal, { recursive: true });
   await mkdir(join(home, "workspace"));
+  const projection = join(journal, ".message-projections", "session");
+  await mkdir(projection, { recursive: true });
+  await writeFile(join(journal, "session.jsonl"), "canonical journal\n");
+  await mkdir(join(home, "workspace", ".message-projections"));
+  await writeFile(join(home, "workspace", ".message-projections", "user.txt"), "user data");
   await writeFile(join(home, "workspace", "note.txt"), "persist me");
   await writeFile(join(home, "config.json"), "private config");
   await writeFile(join(home, "workspace", "padding.bin"), randomBytes(3 * 1024 * 1024));
@@ -80,11 +89,22 @@ test("snapshot stays valid while NextClaw's SQLite WAL is being written", async 
   await waitForHealth(port);
 
   let writes = 0;
-  const writer = setInterval(() => { insert.run(String(++writes)); }, 1);
+  let stagedMetadata: string[] = [];
+  // Exercise the production write/rename race, not just SQLite sidecars.
+  const writer = setInterval(() => {
+    insert.run(String(++writes));
+    for (const staged of stagedMetadata) renameSync(staged, join(projection, "meta.json"));
+    stagedMetadata = [];
+    for (let index = 0; index < 64; index += 1) {
+      const staged = join(projection, `meta.json.${process.pid}.${randomUUID()}.tmp`);
+      writeFileSync(staged, JSON.stringify({ writes }));
+      stagedMetadata.push(staged);
+    }
+  }, 1);
   let response;
   try { response = await fetch(`http://127.0.0.1:${port}/snapshot`); }
   finally { clearInterval(writer); }
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 200, response.ok ? undefined : await response.text());
   assert.ok(writes > 0, "WAL changed during the snapshot");
 
   await verifyArchive(temporary, response);

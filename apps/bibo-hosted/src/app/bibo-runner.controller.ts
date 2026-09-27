@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, join, relative } from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { pipeline } from "node:stream/promises";
@@ -84,6 +84,9 @@ async function sendSnapshot(response: ServerResponse): Promise<void> {
       filter: (source, target) => {
         const name = basename(source);
         if (name === "config.json" || name === "logs" || name === "cache") return false;
+        // Derived from the journal on load; its live rebuilds/atomic renames
+        // cannot be copied consistently alongside canonical session data.
+        if (relative(home, source) === join("sessions", ".ncp-agent-journal", ".message-projections")) return false;
         if (/\.(sqlite|db)(?:-(?:wal|shm|journal))?$/.test(name)) {
           if (/\.(sqlite|db)$/.test(name)) databases.push({ source, target });
           return false;
