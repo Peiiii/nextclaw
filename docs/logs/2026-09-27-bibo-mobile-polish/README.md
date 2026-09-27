@@ -56,6 +56,12 @@ BB 三份 tsc、公共 UI tsc、Vite 构建、product smoke（桌面 1440px／�
 
 桌面／手机真实浏览器截图为 `bibo-mobile-polish/after-file-two-rows-desktop.png` 与 `after-file-two-rows-390.png`。已更新自身 `/help`、公共 UI README、同批设计与 changeset；这是 BB 专项，不适用 NextClaw 文档站、NPM、runtime、desktop 或迁移发布。真实手机系统键盘及与参考应用同视口逐像素差异未实测。主工作区已有想法文档 WIP 保留。
 
+最终从干净远程 master `046572319077fc861f6785fd4d889c20d2a2c8d0` 执行 `deploy:client`，Worker 版本 `5fac0e0c-8119-4807-9aa6-5de0212ba84a`。此前 `beb125ef9940352947c7d924288617b7408f6a35`／`840ab4dd-222c-4dca-813e-d6155ec5b2ca` 已被这次前向修正替代，未回滚或重复派发同一产物。最终线上 `index-IcKV6GvC.js` SHA256 `e524b00eea59db57dcf8f5219dc93d48895b184764dd4a9909c2362237c2ca36`、`index-WmNRfFqs.css` SHA256 `21421f0d21de13653385594086cd66f99606393228c0c4f71784f4ee1c55f216`、原 KaTeX 以及 `/help` SHA256 `df217993b14e612e6f80955e8e4dbe8cd9779fa96414b134c6c44ff3e120861d` 均与冻结产物字节相同。完整容器元数据与本批发布前相同，未构建或 rollout 镜像。
+
+最终线上实际 JS 的两行目录回放（1440／390）、资源保存／失败／冲突／竞态回放（1440／390／320）、收件箱五视口（2048／1440／1100／390／320）通过；未涉及的 composer 在本批首部署验证桌面／手机通过。最终真实模型验收 `bibo-live-9c0a4f7b`：16 段增量、1 次 display、15.695 秒，回复持久化、Agent 文件逐字内容、自动预览及桌面／手机打开均通过，专用账号产物按既有流程清理；未覆盖搜索。最后只提交发布记录，部署产物保持冻结。
+
+该文件工作区发布批次 `AUTOMATION_INTERVENTIONS: 2`：一处是上述同文件模式保留条件修正，另一处是线上目录验收 fixture 起始状态已打开工作区，须在进入文件区前显式关闭以匹配既有验收初态；同一目录验收函数的布局、草稿和失败断言保持，最终通过。只读资源下载的瞬时传输重试、初始 dispatch、元数据观察和主线 retry 不计。主线协调由既有 retry owner 保留主工作区 WIP 并自动继续，未声称本地 master 已快进。
+
 ## NPM 包发布记录
 
 不涉及 NPM 包发布。Bibo 与 personal-agent-ui 均为 private workspace package，本批添加两包 patch changeset，版本记录交后续统一批次。
