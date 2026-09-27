@@ -3,7 +3,8 @@ FROM node:22-bookworm-slim AS builder
 ENV PNPM_HOME=/pnpm
 ENV PATH=${PNPM_HOME}:${PATH}
 ENV NODE_USE_ENV_PROXY=1
-RUN corepack enable && corepack prepare pnpm@9.15.1 --activate
+RUN corepack enable && \
+    (timeout 45s corepack prepare pnpm@9.15.1 --activate || timeout 45s corepack prepare pnpm@9.15.1 --activate)
 WORKDIR /app
 
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json ./
