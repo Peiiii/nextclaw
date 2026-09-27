@@ -8,6 +8,7 @@
 - 原对齐设计冻结视觉体系：暖白与中性色正文、克制灰绿；排版12/14/16/18刻度；控件8/卡片12/浮层18px半径；4px基准间距；hover不改变字重/文字色/几何；长标题和元信息各自有空间。直角日历网格/编辑器拼接边界是语义例外，不能把所有表面无条件圆角化。没有新增平行规范文件、品牌组件或组件variant。
 - 实现概览消息/笔记/任务/日程四类摘要统一Button，删除业务hover路径，内边距12px、最小44px、标题可收缩；卡片消费12px公共token。复盘结论：已有共享组件和规范足够，本例是调用缺口；修正调用并增加真实hover/焦点/长标题回归，不新增全局Skill警告或一次性治理脚本。其它模块仍按现有共享组件合同，不宣称全产品审美审查已完成。
 - 验证：应用三套tsc、定向ESLint、构建及四尺寸product通过（1440/1280/390/320）。实际触发hover/focus，计算radius8px/padding12px/min-height44，背景变化而文字色/高度不变；超过100字标题保留状态/时间且不超边界；四摘要进入及相邻任务/日程/笔记/文件/收件箱既有操作通过。桌面概览截图目视通过。Review 0 error、1主smoke接近预算warning（485/500行）；新增24行保护本次可观察回归，没有为了消告警移走断言；治理/ratchet通过。implementation-review: passed，未更改业务数据或后端语义，不重跑模型/持久化测试。
+- 发布：`2c0732cdbe1f71111241e1bb4ac36df12b0b9aba` 合入远程master，冻结同SHA干净worktree部署Worker `8ed59b77-81c4-4048-8728-55d5120202c6`，`--containers-rollout=none` 未滚动容器。正式七路径200，入口 `/assets/index-CCe6CPU9.js` 与 `/assets/chunk-DECur_0Z.js` 字节SHA256相符。1440/320正式静态UI配受控API复验摘要圆角/内边距/hover不改文字或高度及点击进入收件箱，未写后端数据；截图 `/tmp/workspace-live-summary-{1440,320}.png`。说明文档run36295284595进行中，上批36294905159已成功。reconcile复用18523保护源区thought WIP，LOCAL_WORKTREE_RETRYING；不称本地master已快进。AUTOMATION_INTERVENTIONS: 0。
 
 ## 2026-09-27 操作按钮与 Toast 位置修订
 
