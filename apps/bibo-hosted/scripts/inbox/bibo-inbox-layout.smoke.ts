@@ -7,7 +7,17 @@ import { inboxReadingBody } from "../../src/features/space/utils/inbox-content.u
 import { inboxTime } from "../../src/features/space/utils/date-format.utils";
 
 const base = process.env.BIBO_SMOKE_BASE ?? "http://127.0.0.1:5192";
-const server = process.env.BIBO_SMOKE_BASE ? null : spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5192", "--strictPort"], { cwd: new URL("../..", import.meta.url).pathname, stdio: "ignore" });
+const server = process.env.BIBO_SMOKE_BASE ? null : spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5192", "--strictPort"], { cwd: new URL("../..", import.meta.url).pathname, stdio: ["ignore", "pipe", "pipe"] });
+const ready = server ? new Promise<void>((resolve, reject) => {
+  const timeout = setTimeout(() => reject(new Error("Inbox preview did not start")), 6000);
+  server.stdout.on("data", (data: Buffer) => {
+    if (!data.toString().includes(base)) return;
+    clearTimeout(timeout);
+    resolve();
+  });
+  server.once("exit", (code) => { clearTimeout(timeout); reject(new Error(`Inbox preview exited with ${code}; check whether port 5192 is occupied`)); });
+  server.once("error", (error) => { clearTimeout(timeout); reject(error); });
+}) : Promise.resolve();
 const title = "今日新闻简报 · 2026年9月26日";
 const body = `# ${title}\n\n> 来源：今日新闻汇总\n\n` + Array.from({ length: 12 }, (_, index) => `## ${index === 0 ? "头条要闻" : `专题 ${index}`}\n\n这一节汇总值得关注的事项。\n\n- 阅读重要进展\n- 核对消息来源\n- 记录下一步关注的事项`).join("\n\n");
 const clockNow = new Date(2026, 8, 26, 9, 20);
@@ -66,11 +76,7 @@ async function bounds(page: Page): Promise<void> {
 }
 
 try {
-  for (let attempt = 0; attempt < 60; attempt += 1) {
-    if (server?.exitCode !== null && server?.exitCode !== undefined) throw new Error(`Inbox preview exited: ${server.exitCode}`);
-    try { if ((await fetch(base)).ok) break; } catch { /* Preview is starting. */ }
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
+  await ready;
   const browser = await chromium.launch({ headless: true });
   try {
     for (const width of [2048, 1440, 1100, 390, 320]) {
@@ -83,7 +89,11 @@ try {
       const list = page.locator(".bibo-list-pane");
       const choose = async (name: string) => {
         if (width <= 1100 && await page.locator(".inbox-back").isVisible()) await page.locator(".inbox-back").click();
-        await list.getByRole("button", { name: new RegExp(name) }).click();
+        await list.getByRole("button", { name: new RegExp(name) }).click().catch(async (error: unknown) => {
+          await page.screenshot({ path: `/tmp/bibo-inbox-failure-${width}.png` });
+          console.error({ width, browserErrors: errors, visiblePage: await page.locator("body").innerText() });
+          throw error;
+        });
       };
       await choose(title);
       assert.equal(await list.locator('[role="img"][aria-label="未读"]').count(), 2);
