@@ -9,12 +9,17 @@
 ## 测试/验证/验收方式
 
 - INBOX-01、02、03：布局冒烟已通过 2048／1440／1100／390／320px。覆盖单一标题、不同正文标题保留、首标题精确匹配反例、长文滚动期间操作可达、切换消息归零、标记已读／处理后的筛选、来源 404 保留消息、横向边界、触控高度与页面错误。
-- INBOX-04：Bibo 三个配置 tsc、targeted lint、既有 Markdown 回归、治理及 ratchet 通过；上线资产验证待部署后执行。
-- 证据使用真实应用页面与代表性 API fixtures；不证明生产模型生成或真实收件箱写入。线上将验证真实入口和资产，无模型调用需求。
+- INBOX-04：Bibo 三个配置 tsc、targeted lint、既有 Markdown 回归、治理及 ratchet 通过。生产 JS／CSS 与冻结构建逐字节一致；favicon.svg／help.html 也与构建一致。生产实际资源配合 API fixtures 的五尺寸布局验收全部通过。
+- INBOX-05：deploy:client 日志无镜像构建，部署前后容器应用、镜像 digest、版本完全一致（application a03967fb-95da-496d-8c90-a4b4a010667a，version 21，digest sha256:1fdacbe0cc86db7f791a9859304dad695cee8fbc590412cfc77b2c27815b7137）。
+- 真实账号只读验证登录、会话／历史读取、桌面／手机及刷新通过；保留历史 2 条消息。证据使用真实应用页面与代表性 API fixtures；不证明真实收件箱写入或模型生成。模型额度仍为 429，本任务不触达生成链路、不消耗调用额度，不影响纯布局验收。
 
 ## 发布/部署方式
 
 布局提交 15f7057fe 经 d432c66c7 合并浏览器图标更新后已推送远程主干。首次误用全量部署入口，触发无必要的镜像构建；用户指出后停止本任务全量发布，改为 deploy:client。该入口只构建前端并使用 --containers-rollout none，复用线上容器 metadata。仍从干净的冻结远程主干执行，部署后核对版本、生产资产和容器镜像并执行主线 reconcile。无后端合同、数据迁移、runtime channel 或桌面产物变化。
+
+最终从干净且 HEAD=origin/master 的 0a74498200f9862b4fcd6e37596934f1ab5c7e25 执行 deploy:client，Worker version 3c43fccf-f096-409e-a356-209e2eab6fcb，入口 https://app.bibo.bot/inbox。布局与规范均已合入远程主干。Docs Deploy 36317155664（d432c66c7）build／全球／国内／同产物 verify 全部成功；之后仅流程和交付证据更新，不改变已上线的用户说明。
+
+AUTOMATION_INTERVENTIONS: 2：发布范围纠偏（前端误走全量，已由专用命令和交付规范消除）；Git 连接恢复（HTTPS／SSH 443 超时后使用已认证的 GitHub SSH 22，普通推送成功，未改全局网络或凭据）。本地主干 reconcile 收尾待执行。
 
 停止前观察到线上版本 8e12fd15-64d8-4076-9855-ef5983207e43，本任务日志仍处于资产上传且没有完成 Worker 发布，不能把并发版本归为本任务。停止只影响本任务部署进程树。Git HTTPS 推送曾停滞，核对远程 SHA 后只停止本任务 Git 进程，以 HTTP/1.1 有界重试完成。
 
