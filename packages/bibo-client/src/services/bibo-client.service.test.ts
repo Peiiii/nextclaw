@@ -97,3 +97,23 @@ test("delivers a delta before committed data exists", async () => {
   await completion;
   assert.deepEqual(events, ["accepted", "delta", "saving", "committed"]);
 });
+test("readFile provides validated ID and path reads", async () => {
+  const detail = { id: "f1", path: "文档.md", kind: "artifact", content: "# 你好", uri: "nextclaw://objects/file/f1", version: 1, createdAt: "now", updatedAt: "now" };
+  const inputs: unknown[] = [];
+  const client = new BiboClient({ fetch: (async (_path: RequestInfo | URL, init?: RequestInit) => {
+    inputs.push(JSON.parse(String(init?.body))); return json({ result: detail });
+  }) as typeof fetch });
+  assert.deepEqual(await client.readFile({ id: "f1" }), detail);
+  assert.deepEqual(await client.readFile({ path: "文档.md" }), detail);
+  assert.deepEqual(inputs, [{ action: "file.get", input: { id: "f1" } }, { action: "file.get", input: { path: "文档.md" } }]);
+  const invalid = new BiboClient({ fetch: (async () => json({ result: { ...detail, content: null } })) as typeof fetch });
+  await assert.rejects(invalid.readFile({ id: "f1" }), BiboClientError);
+});
+
+test("JSON replies deliver validated display events before committed", async () => {
+  const display = { id: "show", sessionId: "s1", target: { type: "file", payload: { path: "a.md", viewer: "source" } } };
+  const client = new BiboClient({ fetch: (async () => json({ text: "done", messages: [], displayEvents: [display] })) as typeof fetch });
+  const events: string[] = [];
+  await client.chat("show", (event) => events.push(event.name), "s1");
+  assert.deepEqual(events, ["show-content", "committed"]);
+});

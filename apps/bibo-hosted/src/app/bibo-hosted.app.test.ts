@@ -30,75 +30,125 @@ const worker = await import(`data:text/javascript;base64,${Buffer.from(bundle.ou
 
 const emptySpace = (): BiboSpaceState => ({ schema: 1, tasks: [], projects: [], events: [], files: [], inbox: [], deliveryStatuses: {}, replays: {} });
 
-function personalSpace(initial?: BiboSpaceState) {
-  const values = new Map<string, unknown>(initial ? [["spaceState", { chunks: 1 }], ["spaceState:0", JSON.stringify(initial)]] : []);
-  const archives = new Map<string, ArrayBuffer>();
-  let local = emptySpace();
-  let containerCalls = 0;
-  let stopped = 0;
-  let failSnapshot = false;
-  let failWrite = false;
-  let failRun = false;
-  const storage = {
-    get: async (key: string | string[]) => Array.isArray(key) ? new Map(key.filter((item) => values.has(item)).map((item) => [item, structuredClone(values.get(item))])) : structuredClone(values.get(key)),
+class PersonalSpaceFixture {
+  readonly values: Map<string, unknown>;
+  readonly archives = new Map<string, ArrayBuffer>();
+  private state = emptySpace();
+  private containerCalls = 0;
+  private stopCount = 0;
+  private snapshotFailed = false;
+  private writeFailed = false;
+  private runFailed = false;
+  private readonly storage = {
+    get: async (key: string | string[]) => Array.isArray(key) ? new Map(key.filter((item) => this.values.has(item)).map((item) => [item, structuredClone(this.values.get(item))])) : structuredClone(this.values.get(key)),
     put: async (key: string | Record<string, unknown>, value?: unknown) => {
-      if (failWrite) throw new Error("storage unavailable");
+      if (this.writeFailed) throw new Error("storage unavailable");
       const entries = typeof key === "string" ? [[key, value]] : Object.entries(key);
       for (const [, item] of entries) if (Buffer.byteLength(JSON.stringify(item)) > 2 * 1024 * 1024) throw new Error("KV value exceeds 2 MiB");
-      for (const [name, item] of entries) values.set(name as string, structuredClone(item));
+      for (const [name, item] of entries) this.values.set(name as string, structuredClone(item));
     },
-    delete: async (keys: string[]) => { for (const key of keys) values.delete(key); },
-    transaction: async (run: (transaction: unknown) => Promise<void>) => run(storage),
+    delete: async (keys: string[]) => { for (const key of keys) this.values.delete(key); },
+    transaction: async (run: (transaction: unknown) => Promise<void>) => run(this.storage),
   };
-  const localSpace = new BiboSpaceService("/unused", { load: async () => structuredClone(local), save: async (state) => { local = structuredClone(state); } });
-  const env = {
+  private readonly localSpace = new BiboSpaceService("/unused", { load: async () => structuredClone(this.state), save: async (state) => { this.state = structuredClone(state); } });
+  readonly env = {
     SNAPSHOTS: {
-      get: async (key: string) => archives.has(key) ? { body: archives.get(key) } : null,
-      head: async (key: string) => archives.has(key) ? {} : null,
-      put: async (key: string, body: ArrayBuffer) => { if (failSnapshot) throw new Error("snapshot unavailable"); archives.set(key, body); },
-      delete: async (key: string) => { archives.delete(key); },
+      get: async (key: string) => this.archives.has(key) ? { body: this.archives.get(key) } : null,
+      head: async (key: string) => this.archives.has(key) ? {} : null,
+      put: async (key: string, body: ArrayBuffer) => { if (this.snapshotFailed) throw new Error("snapshot unavailable"); this.archives.set(key, body); },
+      delete: async (key: string) => { this.archives.delete(key); },
     },
-    stop: () => { stopped += 1; },
+    stop: () => { this.stopCount += 1; },
     containerFetch: async (url: string, init?: RequestInit) => {
-      containerCalls += 1;
+      this.containerCalls += 1;
       const route = new URL(url).pathname;
       if (route === "/space/state") {
-        if (init?.method === "POST") { local = BiboSpaceService.parseState(JSON.parse(init.body as string).state); return Response.json({ ok: true }); }
-        return Response.json({ state: local });
+        if (init?.method === "POST") { this.state = BiboSpaceService.parseState(JSON.parse(init.body as string).state); return Response.json({ ok: true }); }
+        return Response.json({ state: this.state });
       }
-      if (route === "/restore") { local = JSON.parse(new TextDecoder().decode(init!.body as ArrayBuffer)); return Response.json({ ok: true }); }
-      if (route === "/snapshot") return new Response(JSON.stringify(local));
+      if (route === "/restore") { this.state = JSON.parse(new TextDecoder().decode(init!.body as ArrayBuffer)); return Response.json({ ok: true }); }
+      if (route === "/snapshot") return new Response(JSON.stringify(this.state));
       if (route === "/space") {
         const { action, input } = JSON.parse(init!.body as string);
-        if (action === "inbox.create") return Response.json({ result: await localSpace.execute(action, input) });
+        if (action === "inbox.create") return Response.json({ result: await this.localSpace.execute(action, input) });
         return Response.json({ result: { ok: true } });
       }
       if (route === "/run") {
-        const task = await localSpace.execute("task.create", { title: "Agent task" });
-        return failRun ? new Response("run failed", { status: 500 }) : Response.json({ text: "已保存", sessionId: JSON.parse(init!.body as string).sessionId, task });
+        const task = await this.localSpace.execute("task.create", { title: "Agent task" });
+        const sessionId = JSON.parse(init!.body as string).sessionId;
+        return this.runFailed ? new Response("run failed", { status: 500 }) : Response.json({ text: "已保存", sessionId, task,
+          ...(this.display ? { displayEvents: [{ id: "show-1", sessionId, target: { type: "file", payload: { path: "a.md" } } }] } : {}) });
       }
       if (route === "/sessions/delete") return Response.json({ ok: true });
       throw new Error(`Unexpected container route ${route}`);
     },
   };
-  const ctx = { storage, id: { toString: () => "account-space" } };
-  const instance = () => new worker.BiboUserContainer(ctx, env);
-  let owner = instance();
-  return {
-    values, archives, env,
-    stored: () => new BiboSpaceStateStore(storage as unknown as DurableObjectStorage).load(),
-    action: (action: string, input: Record<string, unknown> = {}) => owner.fetch(new Request("https://bibo.internal/space", { method: "POST", body: JSON.stringify({ action, input }) })),
-    run: () => owner.fetch(new Request("https://bibo.internal/run", { method: "POST", body: JSON.stringify({ message: "create task", token: "token" }) })),
-    restart: async () => { owner = instance(); await owner.onStart(); },
-    reopen: () => { owner = instance(); },
-    local: () => local,
-    calls: () => containerCalls,
-    stopped: () => stopped,
-    failSnapshot: () => { failSnapshot = true; },
-    failWrite: () => { failWrite = true; },
-    failRun: () => { failRun = true; },
-  };
+  private readonly ctx = { storage: this.storage, id: { toString: () => "account-space" }, waitUntil: (_promise: Promise<unknown>) => {} };
+  private owner: InstanceType<typeof worker.BiboUserContainer>;
+
+  constructor(initial?: BiboSpaceState, private readonly display = false) {
+    this.values = new Map(initial ? [["spaceState", { chunks: 1 }], ["spaceState:0", JSON.stringify(initial)]] : []);
+    this.owner = this.instance();
+  }
+
+  private instance = () => new worker.BiboUserContainer(this.ctx, this.env);
+  stored = () => new BiboSpaceStateStore(this.storage as unknown as DurableObjectStorage).load();
+  action = (action: string, input: Record<string, unknown> = {}) => this.owner.fetch(new Request("https://bibo.internal/space", { method: "POST", body: JSON.stringify({ action, input }) }));
+  run = (stream = false) => this.owner.fetch(new Request("https://bibo.internal/run", { method: "POST", ...(stream ? { headers: { accept: "text/event-stream" } } : {}), body: JSON.stringify({ message: "create task", token: "token" }) }));
+  cancel = (runId: string) => this.owner.fetch(new Request("https://bibo.internal/cancel", { method: "POST", body: JSON.stringify({ runId }) }));
+  restart = async () => { this.owner = this.instance(); await this.owner.onStart(); };
+  reopen = () => { this.owner = this.instance(); };
+  local = () => this.state;
+  calls = () => this.containerCalls;
+  stopped = () => this.stopCount;
+  failSnapshot = () => { this.snapshotFailed = true; };
+  failWrite = () => { this.writeFailed = true; };
+  failRun = () => { this.runFailed = true; };
 }
+
+const personalSpace = (initial?: BiboSpaceState, display = false) => new PersonalSpaceFixture(initial, display);
+
+test("Worker releases display events only after snapshot commit", async () => {
+  const saved = personalSpace(undefined, true);
+  const stream = await (await saved.run(true)).text();
+  assert.ok(stream.indexOf("event: saving") < stream.indexOf("event: show-content"));
+  assert.ok(stream.indexOf("event: show-content") < stream.indexOf("event: committed"));
+  assert.ok(saved.archives.size > 0);
+  const failed = personalSpace(undefined, true);
+  failed.failSnapshot();
+  const rejected = await (await failed.run(true)).text();
+  assert.ok(rejected.includes("event: error"));
+  assert.equal(rejected.includes("event: show-content"), false);
+  assert.equal(rejected.includes("event: committed"), false);
+});
+
+test("cancelled runs discard their file display requests", async () => {
+  const space = personalSpace(undefined, true);
+  const originalFetch = space.env.containerFetch;
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => { release = resolve; });
+  space.env.containerFetch = async (url, init) => {
+    if (new URL(url).pathname === "/run") await pending;
+    return originalFetch(url, init);
+  };
+  const response = await space.run(true);
+  const reader = response.body!.getReader();
+  const accepted = new TextDecoder().decode((await reader.read()).value);
+  const runId = JSON.parse(accepted.match(/^data: (.+)$/m)![1]!).runId;
+  try {
+    assert.equal((await space.cancel(runId)).status, 200);
+  } finally { release(); }
+  let output = "";
+  while (true) {
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    output += new TextDecoder().decode(chunk.value);
+  }
+  assert.ok(output.includes("event: error"));
+  assert.equal(output.includes("event: show-content"), false);
+  assert.equal(output.includes("event: committed"), false);
+  assert.equal(space.archives.size, 0);
+});
 
 test("structured saves persist without container or snapshots, retain conflicts and idempotence", async () => {
   const space = personalSpace();

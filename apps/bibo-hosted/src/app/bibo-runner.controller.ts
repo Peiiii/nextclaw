@@ -133,7 +133,8 @@ async function sendRun(request: IncomingMessage, response: ServerResponse): Prom
     if (streaming) response.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" });
     const sessionId = typeof body.sessionId === "string" && body.sessionId ? body.sessionId : crypto.randomUUID();
     const harness = new NextclawHarness({ homeDir: home });
-    harness.contributions.register(new BiboSpaceContribution(space, sessionId));
+    const contribution = new BiboSpaceContribution(space, sessionId);
+    harness.contributions.register(contribution);
     let result;
     try {
       await harness.start();
@@ -144,11 +145,13 @@ async function sendRun(request: IncomingMessage, response: ServerResponse): Prom
         } } : {}),
       });
     } finally { await harness.dispose(); }
+    const displayEvents = contribution.displayEvents;
     if (streaming) {
+      for (const event of displayEvents) response.write(`event: show-content\ndata: ${JSON.stringify(event)}\n\n`);
       response.end(`event: result\ndata: ${JSON.stringify({ text: result.text, sessionId: result.sessionId })}\n\n`);
       return;
     }
-    return sendJson(response, 200, { text: result.text, sessionId: result.sessionId });
+    return sendJson(response, 200, { text: result.text, sessionId: result.sessionId, displayEvents });
   } finally {
     clearTimeout(timeout);
     response.off("close", onClose);

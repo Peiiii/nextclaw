@@ -21,7 +21,7 @@ async function fixtures(page: Page) {
       delivery = { ...delivery, readAt: new Date().toISOString(), resolvedAt: body.action === "inbox.resolve" ? new Date().toISOString() : null, version: delivery.version + 1 };
       return route.fulfill({ json: { result: delivery } });
     }
-    if (body.action === "file.get" && body.input.id === "artifact-a") return route.fulfill({ json: { result: artifact } });
+    if (body.action === "file.get" && (body.input.id === "artifact-a" || body.input.path === artifact.path)) return route.fulfill({ json: { result: artifact } });
     if (body.action === "file.get" && body.input.id === "deleted") return route.fulfill({ status: 404, json: { error: "文件不存在。" } });
     if (body.action === "file.list" && body.input.query === "report.html") return route.fulfill({ json: { result: { items: [artifact], nextCursor: null } } });
     if (body.action === "file.update" && body.input.id === "artifact-a") {

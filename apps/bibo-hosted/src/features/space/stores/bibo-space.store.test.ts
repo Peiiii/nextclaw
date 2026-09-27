@@ -53,11 +53,11 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
   store.closeFile("first-file");
   assert.equal(requests[5]!.action, "file.get");
   assert.equal(requests[5]!.input.id, "restored-file");
-  responses[5]!(Response.json({ result: { id: "restored-file", path: "restored.md", kind: "document", version: 1, content: "restored content" } }));
+  responses[5]!(Response.json({ result: { id: "restored-file", path: "restored.md", kind: "document", version: 1, content: "restored content", uri: "nextclaw://objects/file/restored-file", createdAt: "now", updatedAt: "now" } }));
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(useBiboSpaceStore.getState().fileDetails["restored-file"]?.content, "restored content");
 
-  const file = (id: string, version = 1) => ({ id, path: `${id}.md`, kind: "document", version, content: "saved content" });
+  const file = (id: string, version = 1) => ({ id, path: `${id}.md`, kind: "document", version, content: "saved content", uri: `nextclaw://objects/file/${id}`, createdAt: "now", updatedAt: "now" });
   const slow = store.openFile("slow");
   const slowResponse = responses.at(-1)!;
   const fast = store.openFile("fast");

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
+import { chromium, type Page } from "playwright";
 
 const origin = "https://app.bibo.bot";
 const accountFile = process.env.BIBO_SMOKE_ACCOUNT_FILE ?? join(homedir(), ".config", "bibo-hosted", "smoke-account.json");
@@ -35,7 +35,7 @@ const headers = { cookie };
 const requestId = `bibo-live-${crypto.randomUUID().slice(0, 8)}`;
 const artifactPath = `${requestId}.md`;
 const artifactContent = `# ${requestId}\n\n真实 Agent 文件验收。`;
-const prompt = `请通过 Bibo 第一方能力创建产物文件 ${artifactPath}，内容严格为：\n${artifactContent}\n先按需查询文件领域用法，再实际执行。不要用 shell 或直接修改 JSON。成功后用一句话回复“${requestId} 已收到”，不要创建其他对象。`;
+const prompt = `请通过 Bibo 第一方能力创建产物文件 ${artifactPath}，内容严格为：\n${artifactContent}\n先按需查询文件领域用法，再实际执行。创建后调用 show_file，在右侧预览该文件。不要用 shell 或直接修改 JSON。成功后用一句话回复“${requestId} 已收到”，不要创建其他对象。`;
 const abort = new AbortController();
 const timeout = setTimeout(() => abort.abort(), 300_000);
 let createdSessionId: string | undefined;
@@ -50,7 +50,7 @@ async function space<T>(action: string, input: Record<string, unknown>, signal =
   return (await response.json() as { result: T }).result;
 }
 
-type StreamState = { accepted: boolean; saving: boolean; committed: boolean; deltaCount: number; firstDeltaMs: number; lastDeltaMs: number; savingMs: number };
+type StreamState = { accepted: boolean; saving: boolean; committed: boolean; deltaCount: number; displayCount: number };
 
 async function readSseFrames(response: Response, onFrame: (frame: string) => void): Promise<void> {
   assert.ok(response.body, "SSE response has no body");
@@ -69,16 +69,25 @@ async function readSseFrames(response: Response, onFrame: (frame: string) => voi
   }
 }
 
-function recordFrame(frame: string, state: StreamState, started: number): StreamState {
+function recordFrame(frame: string, state: StreamState): StreamState {
   const name = frame.match(/^event: (.+)$/m)?.[1];
   const data = frame.match(/^data: (.+)$/m)?.[1];
   if (!name || !data) return state;
-  const payload = JSON.parse(data) as { error?: string };
+  const payload = JSON.parse(data) as { error?: string; sessionId?: string; target?: { type?: string; payload?: { path?: string } } };
   if (name === "error") throw new Error(payload.error ?? "Chat stream failed");
-  const elapsed = Math.round(performance.now() - started);
   if (name === "accepted") return { ...state, accepted: true };
-  if (name === "delta") return { ...state, deltaCount: state.deltaCount + 1, firstDeltaMs: state.firstDeltaMs || elapsed, lastDeltaMs: elapsed };
-  if (name === "saving") return { ...state, saving: true, savingMs: elapsed };
+  if (name === "delta") {
+    assert.equal(state.saving, false, "Visible output must arrive before saving");
+    return { ...state, deltaCount: state.deltaCount + 1 };
+  }
+  if (name === "saving") return { ...state, saving: true };
+  if (name === "show-content") {
+    assert.ok(state.saving && !state.committed, "Display must follow saving and precede the terminal commit");
+    assert.equal(payload.sessionId, createdSessionId);
+    assert.equal(payload.target?.type, "file");
+    assert.ok(payload.target?.payload?.path?.endsWith(artifactPath), "Display must reference the requested artifact");
+    return { ...state, displayCount: state.displayCount + 1 };
+  }
   if (name === "committed") return { ...state, committed: true };
   return state;
 }
@@ -129,26 +138,25 @@ async function searchProbe(): Promise<{ requestId: string; resultCount: number }
   return { requestId: result.requestId, resultCount: result.results.length };
 }
 
-async function streamedRun(sessionId: string, message = prompt): Promise<{ deltaCount: number; firstDeltaMs: number; lastDeltaMs: number; savingMs: number; totalMs: number }> {
+async function streamedRun(page: Page, message = prompt): Promise<{ deltaCount: number; displayCount: number; totalMs: number }> {
   const started = performance.now();
-  const response = await fetch(`${origin}/api/chat`, {
-    method: "POST",
-    headers: { ...headers, origin, accept: "text/event-stream", "content-type": "application/json" },
-    body: JSON.stringify({ message, sessionId }),
-    signal: abort.signal,
-  });
-  assert.equal(response.status, 200, `Chat returned ${response.status}`);
-  assert.ok(response.headers.get("content-type")?.includes("text/event-stream"), "Chat must stream SSE");
-  let state: StreamState = { accepted: false, saving: false, committed: false, deltaCount: 0, firstDeltaMs: 0, lastDeltaMs: 0, savingMs: 0 };
-  await readSseFrames(response, (frame) => { state = recordFrame(frame, state, started); });
+  const result = page.waitForResponse((response) => response.url() === `${origin}/api/chat`, { timeout: 300_000 });
+  await page.getByRole("textbox", { name: /告诉 Bibo/ }).fill(message);
+  await page.getByRole("button", { name: "发送消息", exact: true }).click();
+  const response = await result;
+  assert.equal(response.status(), 200, `Chat returned ${response.status()}`);
+  assert.ok(response.headers()["content-type"]?.includes("text/event-stream"), "Chat must stream SSE");
+  let state: StreamState = { accepted: false, saving: false, committed: false, deltaCount: 0, displayCount: 0 };
+  for (const frame of (await response.text()).split("\n\n")) state = recordFrame(frame, state);
   assert.ok(state.accepted, "Run was not accepted");
   assert.ok(state.deltaCount > 0, "No live output was streamed");
   assert.ok(state.saving, "Snapshot save was not announced");
   assert.ok(state.committed, "Run did not commit to storage");
-  assert.ok(state.firstDeltaMs < state.savingMs, "First answer chunk arrived only after saving started");
-  return { deltaCount: state.deltaCount, firstDeltaMs: state.firstDeltaMs, lastDeltaMs: state.lastDeltaMs, savingMs: state.savingMs, totalMs: Math.round(performance.now() - started) };
+  if (message === prompt) assert.ok(state.displayCount > 0, "Agent did not request file display");
+  return { deltaCount: state.deltaCount, displayCount: state.displayCount, totalMs: Math.round(performance.now() - started) };
 }
 
+const browser = await chromium.launch({ headless: true });
 try {
   const account = await json<{ user?: { id: string } }>("/api/auth/me");
   assert.equal(account.user?.id, smokeAccount.userId, "Smoke account identity does not match the local credential file");
@@ -167,13 +175,21 @@ try {
   const historyPath = `/api/history?id=${encodeURIComponent(createdSessionId)}`;
   const before = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
   assert.equal(before.messages.length, 0, "New conversation must be isolated from existing history");
+  const context = await browser.newContext({ viewport: { width: 1365, height: 900 } });
+  await context.addCookies([{ name: "bibo_session", value: sessionToken, domain: "app.bibo.bot", path: "/", httpOnly: true, secure: true, sameSite: "Lax" }]);
+  const page = await context.newPage();
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
   const searchPrompt = "请先调用 web_search 搜索 Cloudflare AI Search 最新官方文档，用两句话说明它的用途并附至少一个官方来源链接。不要只凭记忆回答。";
-  const searchStream = await streamedRun(createdSessionId, searchPrompt);
+  const searchStream = await streamedRun(page, searchPrompt);
   const searched = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
   assert.equal(searched.messages.length, 2, "Search exchange must save");
   assert.equal(searched.messages.at(-2)?.text, searchPrompt);
   assert.match(searched.messages.at(-1)?.text ?? "", /https:\/\/developers\.cloudflare\.com\//, "Search-backed answer must save its source link");
-  const stream = await streamedRun(createdSessionId);
+  const stream = await streamedRun(page);
+  const workspace = page.getByRole("complementary", { name: "右侧工作区" });
+  await workspace.getByRole("heading", { name: requestId, exact: true }).waitFor();
   const after = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
   assert.equal(after.messages.length, searched.messages.length + 2, "Saved history must contain one new exchange");
   assert.equal(after.messages.at(-2)?.text, prompt, "Saved user message differs");
@@ -186,18 +202,16 @@ try {
   // The Tasks screen loads these together; cloud serialization must not reject either read.
   await Promise.all([space("project.list", { limit: 100 }), space("task.list", { limit: 100 })]);
 
-  const browser = await chromium.launch({ headless: true });
-  try {
     for (const viewport of [{ width: 1365, height: 900 }, { width: 390, height: 844 }]) {
-      const context = await browser.newContext({ viewport });
-      await context.addCookies([{ name: "bibo_session", value: sessionToken, domain: "app.bibo.bot", path: "/", httpOnly: true, secure: true, sameSite: "Lax" }]);
-      const page = await context.newPage();
-      const errors: string[] = [];
-      page.on("pageerror", (error) => errors.push(error.message));
+      await page.setViewportSize(viewport);
       await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
+      if (!await workspace.count()) await page.getByRole("button", { name: "打开右侧工作区" }).click();
       await page.locator(".ui-message").first().waitFor();
       await page.reload({ waitUntil: "networkidle" });
       await page.locator(".ui-message--assistant").filter({ hasText: requestId }).waitFor();
+      await workspace.getByRole("heading", { name: requestId, exact: true }).waitFor();
+      await page.screenshot({ path: `/tmp/bibo-live-display-${viewport.width}.png`, fullPage: true });
+      await page.getByRole("button", { name: "关闭工作区" }).click();
       const layout = await page.evaluate(() => ({
         body: document.body.scrollHeight,
         viewport: innerHeight,
@@ -217,11 +231,10 @@ try {
       await page.getByText(artifactPath, { exact: true }).first().click();
       assert.equal(await page.getByRole("textbox", { name: `编辑 ${artifactPath}` }).inputValue(), artifactContent,
         "The Files UI must read the same Agent-created object");
-      await context.close();
     }
-  } finally { await browser.close(); }
-  console.log(JSON.stringify({ ok: true, requestId, modelStream, search, searchStream, ...stream, saved: true, agentFile: true, desktop: true, mobile: true }));
+  console.log(JSON.stringify({ ok: true, requestId, modelStream, search, searchStream, ...stream, saved: true, agentFile: true, automaticPreview: true, desktop: true, mobile: true }));
 } finally {
+  await browser.close();
   clearTimeout(timeout);
   if (createdSessionId) {
     const files = await space<{ items: LiveFile[] }>("file.list", { query: artifactPath }, AbortSignal.timeout(60_000));

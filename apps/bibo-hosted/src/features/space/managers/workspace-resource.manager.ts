@@ -1,5 +1,5 @@
 import { parseSystemObjectReferenceUri } from "@nextclaw/shared";
-import { BiboClient, type BiboFile, type BiboFileDetail } from "@nextclaw/bibo-client";
+import { BiboClient } from "@nextclaw/bibo-client";
 import { navigateConversation, navigateWorkspace } from "@/app/workspace-router";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 
@@ -30,43 +30,28 @@ class WorkspaceResourceManager {
     return `/files/path/${encodeURIComponent(path)}`;
   };
 
-  private findFile = async (path: string, current: () => boolean): Promise<string | null> => {
-    let cursor: string | null = null;
-    do {
-      const page: { items: BiboFile[]; nextCursor: string | null } = await this.client.space("file.list", { query: path, limit: 100, ...(cursor ? { cursor } : {}) });
-      if (!current()) return null;
-      const id = page.items.find((file) => file.path === path && file.kind !== "folder")?.id;
-      if (id) return id;
-      cursor = page.nextCursor;
-    } while (cursor);
-    return null;
-  };
-
-  private openFile = async (href: string, view: string, current: () => boolean): Promise<void> => {
+  private openFile = async (href: string, view: string, current: () => boolean, preview?: boolean): Promise<void> => {
     if (view === "chat") useBiboSpaceStore.setState({ workspaceOpen: true, workspaceResolving: true, error: "" });
     const path = /^\/files\/path\/(.+)$/.exec(href);
-    const id = path ? await this.findFile(decodeURIComponent(path[1]!), current) : decodeURIComponent(href.slice(7));
-    if (!current()) return;
-    if (!id) throw new Error("找不到引用的文件。");
-    const file = await this.client.space<BiboFileDetail>("file.get", { id });
+    const file = await this.client.readFile(path ? { path: decodeURIComponent(path[1]!) } : { id: decodeURIComponent(href.slice(7)) });
     if (!current() || view === "chat" && !useBiboSpaceStore.getState().workspaceOpen) return;
     if (file.kind === "folder") throw new Error("此引用指向目录，请在文件模块查看。");
     const state = useBiboSpaceStore.getState();
-    if (state.view === "chat") return state.openWorkspace(id, file);
+    if (state.view === "chat") return state.openWorkspace(file.id, file, preview);
     if (state.view !== "files" && state.view !== "notes") navigateWorkspace("files");
-    await state.openFile(id, file);
+    await state.openFile(file.id, file);
   };
 
-  open = async (href: string): Promise<void> => {
+  open = async (href: string, preview?: boolean, isCurrent?: () => boolean): Promise<void> => {
     const token = ++this.request;
     const account = useBiboSpaceStore.getState().accountId;
     const view = useBiboSpaceStore.getState().view;
     const active = () => token === this.request && account === useBiboSpaceStore.getState().accountId;
-    const current = () => active() && view === useBiboSpaceStore.getState().view;
+    const current = () => active() && view === useBiboSpaceStore.getState().view && (isCurrent?.() ?? true);
     const fileRequest = href.startsWith("/files/");
     try {
       const object = /^\/(files|tasks|calendar|inbox|chat)\/([^/]+)$/.exec(href);
-      if (fileRequest) { await this.openFile(href, view, current); return; }
+      if (fileRequest) { await this.openFile(href, view, current, preview); return; }
       if (!object) throw new Error("此资源暂不支持打开。");
       const id = decodeURIComponent(object[2]!);
       const state = useBiboSpaceStore.getState();

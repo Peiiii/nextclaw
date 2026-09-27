@@ -473,4 +473,10 @@ try {
       await filesPage.close();
     }
   } finally { await browser.close(); }
-} finally { server.kill("SIGTERM"); await once(server, "exit"); }
+} finally {
+  if (server.exitCode === null && server.signalCode === null) {
+    const exited = once(server, "exit");
+    server.kill("SIGTERM");
+    await exited;
+  }
+}

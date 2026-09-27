@@ -1,4 +1,5 @@
-import { Contribution, type NcpTool } from "@nextclaw/harness";
+import { Contribution, eventKeys, type NcpTool } from "@nextclaw/harness";
+import type { BiboShowContent } from "@nextclaw/bibo-client";
 import { BiboSpaceError, type BiboSpaceService } from "@/features/bibo-domain";
 
 function params(value: unknown): Record<string, unknown> {
@@ -10,14 +11,20 @@ function params(value: unknown): Record<string, unknown> {
 }
 
 export class BiboSpaceContribution extends Contribution {
+  readonly displayEvents: BiboShowContent[] = [];
   constructor(private readonly space: BiboSpaceService, private readonly sessionId: string) {
     super({ id: "bibo.personal-space" });
   }
 
   protected setup = (): void => {
+    this.effect(() => this.kernel.eventBus.on(eventKeys.uiShowContent, (event) => {
+      if (event.target.type !== "file" || this.displayEvents.some((item) => item.id === event.id)) return;
+      this.displayEvents.push({ id: event.id, sessionId: this.sessionId, ...(event.title ? { title: event.title } : {}),
+        target: event.target });
+    }));
     const tool: NcpTool = {
       name: "bibo",
-      description: "Read and update the user's Bibo personal space: tasks, calendar, notes, files, and attention inbox. Use help to discover operations by domain or keyword; known actions can be called directly. Save generated documents, HTML/SVG or Markdown diagrams with file.create kind=artifact. File details return a stable uri: cite it as [title](uri) in your answer so the user can open the artifact in the workspace. Never invent a uri or claim a code block is a saved artifact. This is a first-party capability and needs no installation. Never edit Bibo's structured JSON by hand.",
+      description: "Read and update the user's Bibo personal space: tasks, calendar, notes, files, and attention inbox. Use help to discover operations by domain or keyword; known actions can be called directly. Save generated documents, HTML/SVG or Markdown diagrams with file.create kind=artifact. To open a saved file for the user, call show_file with the returned path; use viewer=rendered for an HTML preview or viewer=source for source. The workspace opens after the reply is saved. File details return a stable uri: cite it as [title](uri) in your answer so the user can reopen the artifact. Never invent a uri or claim a code block is a saved artifact. This is a first-party capability and needs no installation. Never edit Bibo's structured JSON by hand.",
       parameters: {
         type: "object",
         properties: {

@@ -3,9 +3,11 @@ import { Button, ConfirmDialog, LoadingState, Markdown, Notice, SegmentedControl
 import { FileActions } from "./file-actions";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
-export function FileEditor({ id, compact = false, defaultPreview = false }: { id: string; compact?: boolean; defaultPreview?: boolean }) {
+export function FileEditor({ id, compact = false, defaultPreview = false, preview: selectedPreview, onPreviewChange }: { id: string; compact?: boolean; defaultPreview?: boolean; preview?: boolean; onPreviewChange?: (preview: boolean) => void }) {
   const { fileDetails, fileDrafts, editFile, saveFile, resolveFileConflict } = useBiboSpaceStore();
-  const [preview, setPreview] = useState(defaultPreview);
+  const [localPreview, setLocalPreview] = useState(defaultPreview);
+  const preview = selectedPreview ?? localPreview;
+  const setPreview = onPreviewChange ?? setLocalPreview;
   const [recovery, setRecovery] = useState<"reload" | "overwrite" | null>(null);
   const [failure, setFailure] = useState("");
   const recover = async () => {

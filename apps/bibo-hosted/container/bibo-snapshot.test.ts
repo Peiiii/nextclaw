@@ -122,7 +122,7 @@ test("runner configures authenticated search and updates only built-in identitie
   const original = "# Bibo\n\n你是 Bibo，基于 NextClaw 的个人 AI 搭档。诚实说明已完成、未完成以及不确定的事。这个托管网页当前提供文字对话和会话继续；不要声称已经接入网页搜索、邮箱、自动提醒、后台任务或外部应用。未经用户授权，不对外操作。用户决定哪些个人信息值得记住。\n";
   await writeFile(identity, original);
   const loader = join(temporary, "harness-loader.mjs");
-  const fixture = `export class Contribution {};
+  const fixture = `export class Contribution {}; export const eventKeys = { uiShowContent: "ui.show-content" };
     export class NextclawHarness {
       contributions = { register() {} }; async start() {} async dispose() {}
       async runTask() { return { text: 'fixture answer', sessionId: 'fixture-session' }; }
