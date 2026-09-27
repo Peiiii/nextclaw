@@ -29,10 +29,10 @@ Runner 通过 SSE 发出 show-content，非流式结果携带 displayEvents。Wo
 | ID | 必须成立 | 状态 | 证据 |
 | --- | --- | --- | --- |
 | BD1 | SDK 导出展示事件类型并验证 SSE/JSON 事件及 readFile 结果 | passed | SDK tsc、14 项测试、公共根导出检查通过 |
-| BD2 | 真实 AI 保存文件并调用 show_file，保存成功后原会话右侧自动展示 | not-run | 待验证 |
+| BD2 | 真实 AI 保存文件并调用 show_file，保存成功后原会话右侧自动展示 | passed | 生产真实浏览器正常输入框调用模型，file.create → show_file → saving → show-content → committed；文件内容精确持久化，原会话自动预览 |
 | BD3 | 取消/失败不打开未提交结果；账号、会话、路径、符号链接与畸形事件不越界 | passed | Worker 取消/保存失败测试；路径/符号链接测试；SDK 事件校验；Harness 去重与释放；已有关闭/迟到读取浏览器回归与调用方会话守卫通过 |
-| BD4 | 桌面/手机打开、编辑、关闭、链接重开及刷新正常，既有发送/滚动/失败恢复不回退 | passed | 本地真实浏览器 display、resources、product smoke 通过；生产冒烟待部署 |
-| BD5 | 文档、代码 Review、Bibo Worker/Container 部署、生产冒烟及主线回流完成 | not-run | 待验证 |
+| BD4 | 桌面/手机打开、编辑、关闭、链接重开及刷新正常，既有发送/滚动/失败恢复不回退 | passed | 本地 display、resources、product smoke；生产 1365/390 浏览器自动预览、关闭、刷新与 Files 同对象读取，截图检查通过 |
+| BD5 | 文档、代码 Review、Bibo Worker/Container 部署、生产冒烟及主线回流完成 | passed | 冻结远程 master 34a31c2e5 完整部署，Worker e99bbf27、Container b32bcfb2；文档 CI 36320609259 国内/全球及 verify 通过；主线已推送，本地原有 WIP 由 reconcile retry worker 保护并接管回流 |
 
 验证矩阵：普通 Markdown/HTML，source/rendered；重复展示、缺失文件、目录、越界/符号链接、畸形事件；保存失败、取消、中断、切换账号/视图、关闭后迟到读取；刷新和旧会话。沿用既有安全 HTML/SVG 预览合同，不增加脚本执行权限。
 
