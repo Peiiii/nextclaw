@@ -114,12 +114,27 @@ async function modelStreamProbe(): Promise<{ contentChunks: number; firstContent
   return { contentChunks, firstContentMs };
 }
 
-async function streamedRun(sessionId: string): Promise<{ deltaCount: number; firstDeltaMs: number; lastDeltaMs: number; savingMs: number; totalMs: number }> {
+async function searchProbe(): Promise<{ requestId: string; resultCount: number }> {
+  const endpoint = `${origin}/api/search/exa`;
+  const body = JSON.stringify({ query: "Cloudflare AI Search official documentation" });
+  const unauthorized = await fetch(endpoint, { method: "POST", body, signal: abort.signal });
+  assert.equal(unauthorized.status, 401, "Search must require a verified account token");
+  const response = await fetch(endpoint, {
+    method: "POST", headers: { authorization: `Bearer ${sessionToken}`, "content-type": "application/json" }, body, signal: abort.signal,
+  });
+  assert.equal(response.status, 200, `Search proxy returned ${response.status}`);
+  const result = await response.json() as { requestId: string; results: Array<{ url: string; highlights?: string[] }> };
+  assert.ok(result.requestId, "Exa did not return a request ID");
+  assert.ok(result.results.some((item) => item.url.startsWith("https://developers.cloudflare.com/") && item.highlights?.length), "Search must return official sources with actual page excerpts");
+  return { requestId: result.requestId, resultCount: result.results.length };
+}
+
+async function streamedRun(sessionId: string, message = prompt): Promise<{ deltaCount: number; firstDeltaMs: number; lastDeltaMs: number; savingMs: number; totalMs: number }> {
   const started = performance.now();
   const response = await fetch(`${origin}/api/chat`, {
     method: "POST",
     headers: { ...headers, origin, accept: "text/event-stream", "content-type": "application/json" },
-    body: JSON.stringify({ message: prompt, sessionId }),
+    body: JSON.stringify({ message, sessionId }),
     signal: abort.signal,
   });
   assert.equal(response.status, 200, `Chat returned ${response.status}`);
@@ -141,6 +156,7 @@ try {
   assert.equal(missingHistory.status, 404, "An explicit missing session must not appear as a new empty conversation");
   assert.equal((await missingHistory.json() as { error: string }).error, "会话不存在或已删除。");
   const modelStream = await modelStreamProbe();
+  const search = await searchProbe();
   const creation = await fetch(`${origin}/api/sessions`, {
     method: "POST", headers: { ...headers, origin }, signal: abort.signal,
   });
@@ -151,9 +167,15 @@ try {
   const historyPath = `/api/history?id=${encodeURIComponent(createdSessionId)}`;
   const before = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
   assert.equal(before.messages.length, 0, "New conversation must be isolated from existing history");
+  const searchPrompt = "请先调用 web_search 搜索 Cloudflare AI Search 最新官方文档，用两句话说明它的用途并附至少一个官方来源链接。不要只凭记忆回答。";
+  const searchStream = await streamedRun(createdSessionId, searchPrompt);
+  const searched = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
+  assert.equal(searched.messages.length, 2, "Search exchange must save");
+  assert.equal(searched.messages.at(-2)?.text, searchPrompt);
+  assert.match(searched.messages.at(-1)?.text ?? "", /https:\/\/developers\.cloudflare\.com\//, "Search-backed answer must save its source link");
   const stream = await streamedRun(createdSessionId);
   const after = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
-  assert.equal(after.messages.length, before.messages.length + 2, "Saved history must contain one new exchange");
+  assert.equal(after.messages.length, searched.messages.length + 2, "Saved history must contain one new exchange");
   assert.equal(after.messages.at(-2)?.text, prompt, "Saved user message differs");
   assert.ok(after.messages.at(-1)?.text.includes(requestId), "Saved answer is missing the request marker");
   const files = await space<{ items: LiveFile[] }>("file.list", { query: artifactPath });
@@ -198,7 +220,7 @@ try {
       await context.close();
     }
   } finally { await browser.close(); }
-  console.log(JSON.stringify({ ok: true, requestId, modelStream, ...stream, saved: true, agentFile: true, desktop: true, mobile: true }));
+  console.log(JSON.stringify({ ok: true, requestId, modelStream, search, searchStream, ...stream, saved: true, agentFile: true, desktop: true, mobile: true }));
 } finally {
   clearTimeout(timeout);
   if (createdSessionId) {

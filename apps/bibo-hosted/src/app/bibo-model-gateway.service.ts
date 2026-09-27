@@ -1,7 +1,10 @@
 import { DurableObject } from "cloudflare:workers";
 import { currentUser, json, publicError } from "./bibo-auth.utils";
+import { reserveBiboSearch } from "@/features/search";
 
 const MAX_MODEL_REQUEST_BYTES = 128 * 1024;
+const DAILY_MODEL_LIMIT = 2000;
+const USER_DAILY_MODEL_LIMIT = 250;
 const DAILY_MODEL_LIMIT_MESSAGE = "今日试用额度已用完，请明天再试。";
 type Budget = { day: string; total: number; users: Record<string, number> };
 
@@ -13,20 +16,21 @@ export class BiboModelBudget extends DurableObject<Env> {
   override async fetch(request: Request): Promise<Response> {
     if (request.method !== "POST") return modelError("Not found", 404);
     const path = new URL(request.url).pathname;
-    if (path !== "/available" && path !== "/reserve") return modelError("Not found", 404);
+    if (path !== "/available" && path !== "/reserve" && path !== "/search") return modelError("Not found", 404);
     const { userId } = await request.json() as { userId?: unknown };
     if (typeof userId !== "string" || !userId) return modelError("Invalid user", 400);
+    if (path === "/search") return reserveBiboSearch(this.ctx.storage, userId);
     const day = new Date().toISOString().slice(0, 10);
     if (path === "/available") {
       const saved = await this.ctx.storage.get<Budget>("budget");
       const budget = saved?.day === day ? saved : { day, total: 0, users: {} };
-      return budget.total >= 200 || (budget.users[userId] ?? 0) >= 30
+      return budget.total >= DAILY_MODEL_LIMIT || (budget.users[userId] ?? 0) >= USER_DAILY_MODEL_LIMIT
         ? modelError(DAILY_MODEL_LIMIT_MESSAGE, 429) : json({ ok: true });
     }
     const reserved = await this.ctx.storage.transaction(async (storage) => {
       const saved = await storage.get<Budget>("budget");
       const budget = saved?.day === day ? saved : { day, total: 0, users: {} };
-      if (budget.total >= 200 || (budget.users[userId] ?? 0) >= 30) return false;
+      if (budget.total >= DAILY_MODEL_LIMIT || (budget.users[userId] ?? 0) >= USER_DAILY_MODEL_LIMIT) return false;
       budget.total += 1;
       budget.users[userId] = (budget.users[userId] ?? 0) + 1;
       await storage.put("budget", budget);

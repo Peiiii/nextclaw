@@ -114,6 +114,60 @@ test("snapshot preserves canonical data while SQLite WAL and message projections
   assert.deepEqual(await exited, [0, null], "idle runner exits cleanly when Cloudflare stops it");
 });
 
+test("runner configures authenticated search and updates only built-in identities", async (t) => {
+  const temporary = await mkdtemp(join(tmpdir(), "bibo-search-runner-"));
+  const home = join(temporary, "home");
+  await mkdir(join(home, "workspace"), { recursive: true });
+  const identity = join(home, "workspace", "IDENTITY.md");
+  const original = "# Bibo\n\n你是 Bibo，基于 NextClaw 的个人 AI 搭档。诚实说明已完成、未完成以及不确定的事。这个托管网页当前提供文字对话和会话继续；不要声称已经接入网页搜索、邮箱、自动提醒、后台任务或外部应用。未经用户授权，不对外操作。用户决定哪些个人信息值得记住。\n";
+  await writeFile(identity, original);
+  const loader = join(temporary, "harness-loader.mjs");
+  const fixture = `export class Contribution {};
+    export class NextclawHarness {
+      contributions = { register() {} }; async start() {} async dispose() {}
+      async runTask() { return { text: 'fixture answer', sessionId: 'fixture-session' }; }
+    }`;
+  await writeFile(loader, `export async function resolve(specifier, context, next) {
+    if (specifier === "@nextclaw/harness") return { url: ${JSON.stringify(`data:text/javascript,${encodeURIComponent(fixture)}`)}, shortCircuit: true };
+    return next(specifier, context);
+  }`);
+  const port = await freePort();
+  const runner = spawn(process.execPath, ["--experimental-loader", loader, new URL("../dist/container/bibo-runner.controller.mjs", import.meta.url).pathname], {
+    env: { ...process.env, NEXTCLAW_HOME: home, BIBO_PORT: String(port) }, stdio: "ignore",
+  });
+  t.after(async () => {
+    if (runner.exitCode === null && runner.signalCode === null) { const exited = once(runner, "exit"); runner.kill(); await exited; }
+    await rm(temporary, { recursive: true, force: true });
+  });
+  await waitForHealth(port);
+  const run = async (searchEnabled: boolean) => {
+    const response = await fetch(`http://127.0.0.1:${port}/run`, {
+      method: "POST", body: JSON.stringify({ message: "Find official sources", token: "account-token", searchEnabled }),
+    });
+    assert.equal(response.status, 200);
+    return JSON.parse(await readFile(join(home, "config.json"), "utf8")) as { search: { enabledProviders: string[]; defaults: { maxResults: number }; providers: { exa: { apiKey: string; baseUrl: string } } } };
+  };
+  const configured = await run(true);
+  assert.deepEqual(configured.search.enabledProviders, ["exa"]);
+  assert.equal(configured.search.defaults.maxResults, 10);
+  assert.equal(configured.search.providers.exa.apiKey, "account-token");
+  assert.equal(configured.search.providers.exa.baseUrl, "https://app.bibo.bot/api/search/exa");
+  assert.match(await readFile(identity, "utf8"), /Exa 网页搜索/);
+  assert.match(await readFile(identity, "utf8"), /file.create/);
+  assert.doesNotMatch(await readFile(identity, "utf8"), /不要声称已经接入网页搜索/);
+  const disabled = await run(false);
+  assert.deepEqual(disabled.search.enabledProviders, []);
+  assert.equal(disabled.search.providers.exa.apiKey, "");
+  assert.doesNotMatch(await readFile(identity, "utf8"), /支持 Exa 网页搜索/);
+  await rm(identity);
+  await run(true);
+  assert.match(await readFile(identity, "utf8"), /Exa 网页搜索/);
+  const customized = "# My Bibo\nKeep my personal identity.";
+  await writeFile(identity, customized);
+  await run(true);
+  assert.equal(await readFile(identity, "utf8"), customized);
+});
+
 test("Bibo structured data and file content survive a runner snapshot restore", async (t) => {
   const temporary = await mkdtemp(join(tmpdir(), "bibo-space-restore-"));
   const home = join(temporary, "home");
