@@ -17,7 +17,7 @@ export function TaskForm({ task, onDone, quick = false, onExpand }: { task: Bibo
     setDeleteError("");
     const result = await act("task.delete", { id: task.id, version: task.version }, "tasks");
     if (result) { setDeleting(false); finish(); }
-    else setDeleteError(useBiboSpaceStore.getState().error);
+    else setDeleteError(useBiboSpaceStore.getState().actionError);
   };
   const draftKey = task?.id ?? "new";
   const due = new Date();
@@ -62,9 +62,9 @@ export function TaskForm({ task, onDone, quick = false, onExpand }: { task: Bibo
       if (useBiboSpaceStore.getState().taskDrafts[draftKey] === draft) clearTaskDraft(draftKey);
       onDone(result.id);
       if (quick) requestAnimationFrame(() => inputRef.current?.focus());
-    } else setSaveError(useBiboSpaceStore.getState().error);
+    } else setSaveError(useBiboSpaceStore.getState().actionError);
   };
-  if (quick) return <QuickTaskInput title={title} saving={saving} inputRef={inputRef} onChange={(value) => change("title", value)} onSubmit={submit} onExpand={onExpand} />;
+  if (quick) return <QuickTaskInput title={title} saving={saving} error={saveError} inputRef={inputRef} onChange={(value) => change("title", value)} onSubmit={submit} onExpand={() => { setSaveError(""); onExpand?.(); }} />;
   return (
     <form className="bibo-editor-form task-editor" onSubmit={(event) => void submit(event)}
       onKeyDown={(event) => { if (event.key === "Enter" && event.nativeEvent.isComposing) event.preventDefault(); }}>
@@ -156,17 +156,17 @@ export function TaskForm({ task, onDone, quick = false, onExpand }: { task: Bibo
   );
 }
 
-function QuickTaskInput({ title, saving, inputRef, onChange, onSubmit, onExpand }: {
-  title: string; saving: boolean; inputRef: Ref<HTMLInputElement>; onChange: (value: string) => void;
+function QuickTaskInput({ title, saving, error, inputRef, onChange, onSubmit, onExpand }: {
+  title: string; saving: boolean; error: string; inputRef: Ref<HTMLInputElement>; onChange: (value: string) => void;
   onSubmit: (event: FormEvent) => Promise<void>; onExpand?: () => void;
 }) {
-  return <form className="task-quick-add" aria-busy={saving} onSubmit={(event) => void onSubmit(event)}
+  return <div className="task-quick-feedback"><form className="task-quick-add" aria-busy={saving} onSubmit={(event) => void onSubmit(event)}
     onKeyDown={(event) => { if (event.key === "Enter" && event.nativeEvent.isComposing) event.preventDefault(); }}>
     <Input ref={inputRef} aria-label="快速添加任务" placeholder="添加一个任务…" maxLength={160} value={title}
       onChange={(event) => onChange(event.target.value)} />
     <Button tone="primary" type="submit" disabled={saving || !title.trim()}>{saving ? "添加中…" : "＋ 新任务"}</Button>
     <IconButton type="button" label="打开完整新建任务" icon={<Ellipsis />} disabled={saving} onClick={onExpand} />
-  </form>;
+  </form>{error && <p role="alert" className="ui-overlay__error">{error}</p>}</div>;
 }
 
 function SubtaskEditor({

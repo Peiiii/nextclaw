@@ -1,6 +1,7 @@
 import { Container, getContainer } from "@cloudflare/containers";
-import { readRunStream, streamEvent, type RunResult } from "./bibo-run-stream.utils";
+import { readRunResult, readRunStream, streamEvent, type RunResult } from "./bibo-run-stream.utils";
 import { authRoute, cookieToken, currentUser, sessionUser, json, publicError } from "./bibo-auth.utils";
+import { biboSearchRoute } from "@/features/search";
 import { checkChatAvailability, modelError, modelRoute } from "./bibo-model-gateway.service";
 import { BiboSpaceService, BiboSpaceError, type BiboSpaceState } from "@/features/bibo-domain";
 import { BiboSpaceStateStore } from "./bibo-space-state.service";
@@ -183,7 +184,7 @@ export class BiboUserContainer extends Container<Env> {
       messages: [...session.messages.slice(-98), { role: "user", text: message, at }, { role: "assistant", text: result.text, at }] };
     const nextSessions = [updated, ...sessions.filter((item) => item.id !== updated.id)];
     const failed = await this.commitSnapshot({ sessions: nextSessions });
-    return failed ?? json({ text: result.text, messages: updated.messages, session: { id: updated.id, title: updated.title, updatedAt: updated.updatedAt } });
+    return failed ?? json({ text: result.text, messages: updated.messages, displayEvents: result.displayEvents ?? [], session: { id: updated.id, title: updated.title, updatedAt: updated.updatedAt } });
   };
 
   private space = async (request: Request): Promise<Response> => {
@@ -240,9 +241,10 @@ export class BiboUserContainer extends Container<Env> {
           send("accepted", { runId: active.id });
           const operation = this.executeRun(request, active, (delta) => send("delta", { text: delta }), () => send("saving", {}))
             .then(async (response) => {
-              const value = await response.json() as { error?: string; text?: string; messages?: Message[] };
-              if (response.ok) send("committed", value);
-              else send("error", { error: value.error ?? "Bibo 暂时无法完成这次任务。" });
+              const value = await response.json() as { error?: string; text?: string; messages?: Message[]; displayEvents?: RunResult["displayEvents"] };
+              if (!response.ok) return send("error", { error: value.error ?? "Bibo 暂时无法完成这次任务。" });
+              for (const event of value.displayEvents ?? []) send("show-content", event);
+              send("committed", value);
             })
             .catch((error: unknown) => {
               console.error("bibo-stream-failed", error instanceof Error ? error.message : String(error));
@@ -289,7 +291,7 @@ export class BiboUserContainer extends Container<Env> {
       const response = await this.containerFetch("http://localhost/run", {
         method: "POST",
         headers: { "content-type": "application/json", ...(onDelta ? { accept: "text/event-stream" } : {}) },
-        body: JSON.stringify({ message: payload.message, token: payload.token, sessionId: payload.session.id }),
+        body: JSON.stringify({ message: payload.message, token: payload.token, sessionId: payload.session.id, searchEnabled: Boolean(this.env.BIBO_EXA_API_KEY) }),
         signal: active.controller.signal,
       });
       if (response.status === 429) {
@@ -302,12 +304,12 @@ export class BiboUserContainer extends Container<Env> {
       }
       const result = response.headers.get("content-type")?.includes("text/event-stream")
         ? await readRunStream(response, onDelta ?? (() => undefined))
-        : await response.json() as { text?: string; sessionId?: string };
+        : readRunResult(await response.json() as RunResult);
       if (active.controller.signal.aborted) return publicError("已停止生成，本轮未保存。", 409);
-      if (!result.text || !result.sessionId) return publicError("Bibo 没有返回可保存的结果。", 502);
+      if (typeof result.text !== "string" || !result.text || result.sessionId !== payload.session.id) return publicError("Bibo 没有返回可保存的结果。", 502);
       active.phase = "saving";
       onSaving?.();
-      const saved = await this.persistRun(payload.message, { text: result.text, sessionId: result.sessionId }, payload.session);
+      const saved = await this.persistRun(payload.message, result, payload.session);
       persisted = saved.ok;
       return saved;
     } catch (error) {
@@ -376,6 +378,7 @@ export default {
     }
     const path = url.pathname;
     if (path.startsWith("/api/")) {
+      if (path === "/api/search/exa") return await biboSearchRoute(request, env, currentUser);
       if (path === "/api/model/v1/chat/completions") {
         try { return await modelRoute(request, env); }
         catch (error) {

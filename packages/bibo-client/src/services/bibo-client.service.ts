@@ -1,4 +1,6 @@
-import type { BiboChatEvent, BiboClientOptions, BiboMessage, BiboSession, BiboUser } from "../types/bibo-client.types";
+import type { BiboChatEvent, BiboClientOptions, BiboFileReadInput, BiboMessage, BiboSession, BiboUser } from "../types/bibo-client.types";
+import type { BiboFileDetail } from "../types/bibo-space.types";
+import { readFileDetail, readShowContent } from "../utils/bibo-protocol.utils";
 import { BiboClientError, isRecord, readBiboStream, readCommitted, readMessages, readSession, readUser } from "../utils/bibo-protocol.utils";
 
 function errorMessage(value: unknown): string | null {
@@ -74,6 +76,9 @@ export class BiboClient {
     return value.result as T;
   };
 
+  readFile = async (input: BiboFileReadInput): Promise<BiboFileDetail> =>
+    readFileDetail(await this.space<unknown>("file.get", input));
+
   sendCode = async (email: string): Promise<{ maskedEmail?: string }> => {
     const value = await this.request("auth/send-code", { email });
     if (!isRecord(value)) throw new BiboClientError("验证码服务返回了无效的数据。");
@@ -121,6 +126,11 @@ export class BiboClient {
       return;
     }
     const value: unknown = await response.json().catch(() => null);
-    onEvent(readCommitted(value));
+    const committed = readCommitted(value);
+    if (isRecord(value) && value.displayEvents !== undefined) {
+      if (!Array.isArray(value.displayEvents)) throw new BiboClientError("文件展示事件格式不正确。");
+      for (const event of value.displayEvents) onEvent({ name: "show-content", value: readShowContent(event) });
+    }
+    onEvent(committed);
   };
 }

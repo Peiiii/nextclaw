@@ -9,7 +9,7 @@ import {
   Dialog,
 } from "@nextclaw/personal-agent-ui";
 import { useBiboChatStore } from "@/features/chat/stores/bibo-chat.store";
-import { biboCopy as copy } from "@/features/chat/configs/bibo-copy.config";
+import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { useBiboSpaceStore } from "@/features/space";
 
 const themeOptions = [

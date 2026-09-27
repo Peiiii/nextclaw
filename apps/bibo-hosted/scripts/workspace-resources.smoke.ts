@@ -21,7 +21,7 @@ async function fixtures(page: Page) {
       delivery = { ...delivery, readAt: new Date().toISOString(), resolvedAt: body.action === "inbox.resolve" ? new Date().toISOString() : null, version: delivery.version + 1 };
       return route.fulfill({ json: { result: delivery } });
     }
-    if (body.action === "file.get" && body.input.id === "artifact-a") return route.fulfill({ json: { result: artifact } });
+    if (body.action === "file.get" && (body.input.id === "artifact-a" || body.input.path === artifact.path)) return route.fulfill({ json: { result: artifact } });
     if (body.action === "file.get" && body.input.id === "deleted") return route.fulfill({ status: 404, json: { error: "文件不存在。" } });
     if (body.action === "file.list" && body.input.query === "report.html") return route.fulfill({ json: { result: { items: [artifact], nextCursor: null } } });
     if (body.action === "file.update" && body.input.id === "artifact-a") {
@@ -160,11 +160,198 @@ async function verifyWidth(browser: Browser, width: number) {
   console.log("workspace resources verified", width);
 }
 
+async function failNext(page: Page, action: string, error: string, status = 503): Promise<void> {
+  let used = false;
+  await page.route("**/api/space", (route: Route) => {
+    if (used || route.request().postDataJSON().action !== action) return route.fallback();
+    used = true;
+    return route.fulfill({ status, contentType: "application/json", body: JSON.stringify({ error }) });
+  });
+}
+async function quiet(page: Page): Promise<void> {
+  assert.equal(await page.locator(".bibo-space-feedback").count(), 0, "no global success toast is mounted");
+  assert.equal(await page.locator(".bibo-space-error").count(), 0, "write failures are not duplicated as page read errors");
+}
+
+async function checkFeedbackQuickTask(page: Page, width: number): Promise<void> {
+  await page.goto(`${base}/tasks`, { waitUntil: "networkidle" });
+  const input = page.getByRole("textbox", { name: "快速添加任务" });
+  await failNext(page, "task.create", "任务保存失败，请重试");
+  await input.fill("反馈回归任务"); await input.press("Enter");
+  const failure = page.locator(".workspace-page > div").first().getByRole("alert");
+  await failure.waitFor();
+  assert.match(await failure.innerText(), /任务保存失败/);
+  assert.equal(await input.inputValue(), "反馈回归任务");
+  await page.waitForTimeout(4200);
+  assert.equal(await failure.isVisible(), true, "an actionable error never expires like a toast");
+  await quiet(page);
+  await page.screenshot({ path: `/tmp/bibo-feedback-task-error-${width}.png`, fullPage: true });
+  await input.press("Enter");
+  const row = page.locator(".ui-list-row-group").filter({ hasText: "反馈回归任务" });
+  await row.waitFor();
+  await page.waitForFunction(() => (document.querySelector('[aria-label="快速添加任务"]') as HTMLInputElement)?.value === "");
+  assert.equal(await failure.count(), 0);
+}
+
+async function checkFeedbackToggle(page: Page): Promise<void> {
+  const row = page.locator(".ui-list-row-group").filter({ hasText: "反馈回归任务" });
+  await failNext(page, "task.update", "勾选失败，请重试");
+  await row.getByRole("button", { name: "完成 反馈回归任务", exact: true }).click();
+  await row.getByRole("alert").waitFor();
+  assert.match(await row.innerText(), /勾选失败/);
+  await row.getByRole("button", { name: "完成 反馈回归任务", exact: true }).click();
+  await page.getByRole("button", { name: "撤销操作" }).waitFor();
+  await failNext(page, "task.update", "撤销失败，请重试");
+  await page.getByRole("button", { name: "撤销操作" }).click();
+  await page.getByText("撤销失败，请重试", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "撤销操作" }).click();
+  await page.getByRole("button", { name: "撤销操作" }).waitFor({ state: "hidden" });
+  await quiet(page);
+}
+
+async function checkFeedbackProject(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "筛选与视图", exact: true }).click();
+  await page.getByRole("button", { name: "＋ 项目", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "新建项目" });
+  await dialog.getByRole("textbox", { name: "项目名称" }).fill("反馈回归项目");
+  await failNext(page, "project.create", "项目保存失败，请重试");
+  await dialog.getByRole("button", { name: "创建", exact: true }).click();
+  await dialog.getByRole("alert").waitFor();
+  await quiet(page);
+  await dialog.getByRole("button", { name: "创建", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  assert.equal(await page.getByRole("combobox", { name: "按项目筛选" }).locator("option").filter({ hasText: "反馈回归项目" }).count(), 1);
+}
+
+async function checkFeedbackFilter(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "已完成", exact: true }).click();
+  await page.getByRole("button", { name: "打开完整新建任务" }).click();
+  const taskDialog = page.getByRole("dialog", { name: "新任务", exact: true });
+  await taskDialog.getByRole("textbox", { name: "任务名称" }).fill("筛选之外也有反馈");
+  await taskDialog.getByRole("button", { name: "保存任务", exact: true }).click();
+  await taskDialog.waitFor({ state: "hidden" });
+  await page.getByText("已保存「筛选之外也有反馈」，当前筛选下不显示。", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "查看任务", exact: true }).click();
+  assert.equal(await page.getByRole("textbox", { name: "任务名称" }).inputValue(), "筛选之外也有反馈");
+  await page.getByRole("button", { name: "取消", exact: true }).click();
+  await quiet(page);
+}
+
+async function checkFeedbackCalendar(page: Page): Promise<void> {
+  await page.goto(`${base}/calendar`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "＋ 新日程", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "新日程", exact: true });
+  await dialog.getByRole("textbox", { name: "标题", exact: true }).fill("反馈回归日程");
+  await failNext(page, "event.create", "日程保存失败，请重试");
+  await dialog.getByRole("button", { name: "保存日程", exact: true }).click();
+  await dialog.getByRole("alert").waitFor();
+  await quiet(page);
+  await dialog.getByRole("button", { name: "保存日程", exact: true }).click();
+  await dialog.waitFor({ state: "hidden" });
+  await page.getByText("反馈回归日程", { exact: true }).filter({ visible: true }).first().waitFor();
+  await quiet(page);
+}
+
+async function checkFeedbackFiles(page: Page, width: number): Promise<void> {
+  await page.goto(`${base}/files`, { waitUntil: "networkidle" });
+  await page.getByRole("treeitem", { name: "想法.md", exact: true }).click();
+  const editor = page.getByRole("textbox", { name: "编辑 想法.md" });
+  const surface = page.locator(".bibo-file-editor");
+  const save = surface.getByRole("button", { name: "保存", exact: true });
+  await editor.fill("保存失败也保留的草稿");
+  await failNext(page, "file.update", "文件保存失败，请重试");
+  await save.click();
+  await surface.getByText("文件保存失败，请重试", { exact: true }).waitFor();
+  assert.equal(await editor.inputValue(), "保存失败也保留的草稿");
+  await quiet(page);
+  await page.screenshot({ path: `/tmp/bibo-feedback-file-error-${width}.png`, fullPage: true });
+  await save.click();
+  await surface.getByText("文件保存失败，请重试", { exact: true }).waitFor({ state: "hidden" });
+  await surface.locator(".bibo-save-state").filter({ hasText: /^已保存$/ }).waitFor();
+  await checkFeedbackDuringSave(page);
+  await checkFeedbackConflict(page);
+  await quiet(page);
+  await page.screenshot({ path: `/tmp/bibo-feedback-file-saved-${width}.png`, fullPage: true });
+}
+
+async function checkFeedbackInbox(page: Page): Promise<void> {
+  await page.goto(`${base}/inbox`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: /确认方案方向/ }).click();
+  const pane = page.locator(".bibo-detail-pane");
+  await failNext(page, "inbox.read", "标记已读失败，请重试");
+  await pane.getByRole("button", { name: "标记已读", exact: true }).click();
+  await pane.getByText("标记已读失败，请重试", { exact: true }).waitFor();
+  await quiet(page);
+  await pane.getByRole("button", { name: "标记已读", exact: true }).click();
+  await pane.getByRole("button", { name: "标记已读", exact: true }).waitFor({ state: "hidden" });
+  await failNext(page, "inbox.resolve", "处理失败，请重试");
+  await pane.getByRole("button", { name: "已处理", exact: true }).click();
+  await pane.getByText("处理失败，请重试", { exact: true }).waitFor();
+  await pane.getByRole("button", { name: "已处理", exact: true }).click();
+  await pane.getByRole("button", { name: "已处理", exact: true }).waitFor({ state: "hidden" });
+  await pane.getByText(/^已处理 · /).waitFor();
+  await quiet(page);
+}
+
+async function checkFeedbackDuringSave(page: Page): Promise<void> {
+  const editor = page.getByRole("textbox", { name: "编辑 想法.md" });
+  const surface = page.locator(".bibo-file-editor");
+  const save = surface.getByRole("button", { name: "保存", exact: true });
+  let delayed = false;
+  await page.route("**/api/space", async (route) => {
+    if (delayed || route.request().postDataJSON().action !== "file.update") return route.fallback();
+    delayed = true; await new Promise((resolve) => setTimeout(resolve, 400)); await route.fallback();
+  });
+  await editor.fill("这部分正在保存"); await save.click();
+  await surface.locator(".bibo-save-state").filter({ hasText: /^保存中/ }).waitFor();
+  await editor.fill("保存中继续输入的新内容");
+  await surface.locator(".bibo-save-state").filter({ hasText: /^未保存$/ }).waitFor();
+  assert.equal(await editor.inputValue(), "保存中继续输入的新内容");
+  await save.click();
+  await surface.locator(".bibo-save-state").filter({ hasText: /^已保存$/ }).waitFor();
+}
+
+async function checkFeedbackConflict(page: Page): Promise<void> {
+  const editor = page.getByRole("textbox", { name: "编辑 想法.md" });
+  const surface = page.locator(".bibo-file-editor");
+  const save = surface.getByRole("button", { name: "保存", exact: true });
+  await editor.fill("冲突时保留我的草稿");
+  await failNext(page, "file.update", "版本冲突", 409); await save.click();
+  await surface.getByText("文件已在别处更新。你的修改仍保留在这里。", { exact: true }).waitFor();
+  assert.equal(await editor.inputValue(), "冲突时保留我的草稿");
+  await surface.getByRole("button", { name: "用当前草稿覆盖", exact: true }).click();
+  await page.getByRole("dialog", { name: "覆盖服务器内容？" }).getByRole("button", { name: "确认覆盖", exact: true }).click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await surface.locator(".bibo-save-state").filter({ hasText: /^已保存$/ }).waitFor();
+}
+
+async function verifyFeedback(browser: Browser, width: number): Promise<void> {
+  const page = await browser.newPage({ viewport: { width, height: 900 }, hasTouch: width < 600 });
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  try {
+    await mockApi(page);
+    await checkFeedbackQuickTask(page, width);
+    await checkFeedbackToggle(page);
+    await checkFeedbackProject(page);
+    await checkFeedbackFilter(page);
+    await checkFeedbackCalendar(page);
+    await checkFeedbackFiles(page, width);
+    await checkFeedbackInbox(page);
+    assert.deepEqual(errors, []);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
+    console.log("workspace feedback verified", width);
+  } catch (error) {
+    await page.screenshot({ path: `/tmp/bibo-feedback-failed-${width}.png`, fullPage: true });
+    throw error;
+  } finally { await page.close(); }
+}
+
 async function main() {
   await ready();
   const browser = await chromium.launch({ headless: true });
   try {
-    for (const width of [1440, 390, 320]) await verifyWidth(browser, width);
+    for (const width of [1440, 390, 320]) { await verifyWidth(browser, width); await verifyFeedback(browser, width); }
   } finally { await browser.close(); }
 }
 main().catch((error) => { console.error(error); process.exitCode = 1; }).finally(async () => {

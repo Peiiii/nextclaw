@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BiboClientError, readBiboStream } from "./bibo-protocol.utils";
+import { BiboClientError, readBiboStream, readShowContent } from "./bibo-protocol.utils";
 
 const encoder = new TextEncoder();
 const committed = 'event: committed\ndata: {"text":"你好","messages":[{"role":"assistant","text":"你好","at":"now"}]}\n\n';
@@ -53,4 +53,19 @@ test("invalid committed messages cannot report success", async () => {
     },
   }));
   await assert.rejects(readBiboStream(response, () => undefined), /对话记录格式不正确/);
+});
+test("display events survive byte boundaries and retain the kernel file target", async () => {
+  const value = { id: "tool:show", sessionId: "s1", title: "文档", target: { type: "file", payload: { path: "文档.md", viewer: "auto" } } };
+  const bytes = new TextEncoder().encode(`event: show-content\ndata: ${JSON.stringify(value)}\n\nevent: committed\ndata: ${JSON.stringify({ text: "已保存", messages: [] })}\n\n`);
+  let offset = 0;
+  const response = new Response(new ReadableStream({ pull: (controller) => {
+    if (offset === bytes.length) return controller.close();
+    controller.enqueue(bytes.slice(offset, offset + 1)); offset++;
+  } }));
+  const events: unknown[] = [];
+  await readBiboStream(response, (event) => events.push(event));
+  assert.deepEqual(events[0], { name: "show-content", value });
+  for (const invalid of [{ ...value, sessionId: "" }, { ...value, target: { type: "file", payload: { path: "a", viewer: "execute" } } }, { ...value, target: { type: "file", payload: null } }]) {
+    assert.throws(() => readShowContent(invalid), BiboClientError);
+  }
 });

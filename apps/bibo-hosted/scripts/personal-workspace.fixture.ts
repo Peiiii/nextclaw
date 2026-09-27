@@ -8,7 +8,7 @@ export async function mockApi(page: Page, longTitles = false, fileNavigation = f
   const sessions = [{ id: "session-a", title: "产品想法", createdAt: instant, updatedAt: instant, messageCount: 2 }];
   const messages = [{ role: "user", text: "今天先做什么？", at: instant }, { role: "assistant", text: "先整理一件最重要的事。", at: instant }];
   const projects = [{ id: "project-a", name: "Bibo", createdAt: instant, updatedAt: instant, version: 1 }];
-  const tasks = [{ id: "task-a", projectId: "project-a", title: "梳理产品方案", description: "确认界面和数据主链路", status: "active", dueAt: null, subtasks: [{ id: "subtask-a", title: "核对方案", done: false }], source: { kind: "user" }, createdAt: instant, updatedAt: instant, version: 1 }];
+  const tasks = [{ id: "task-a", projectId: "project-a", title: "梳理产品方案", description: "确认界面和数据主链路", status: "active", dueAt: null as string | null, subtasks: [{ id: "subtask-a", title: "核对方案", done: false }], source: { kind: "user" }, createdAt: instant, updatedAt: instant, version: 1 }];
   const events = [{ id: "event-a", title: "设计评审", description: "和团队对齐", startAt: eventStart.toISOString(), endAt: new Date(eventStart.getTime() + 3_600_000).toISOString(), source: { kind: "user" }, createdAt: instant, updatedAt: instant, version: 1 }];
   const inbox = [{ id: "inbox-a", kind: "decision", title: "确认方案方向", body: "Bibo 已整理好两个候选方案。请阅读后决定。", source: { kind: "task", id: "task-a" }, createdAt: instant, updatedAt: instant, readAt: null as string | null, resolvedAt: null as string | null, version: 1 }];
   const files = [{ id: "file-a", path: "想法.md", kind: "note", createdAt: instant, updatedAt: instant, version: 1 }];
@@ -32,8 +32,8 @@ export async function mockApi(page: Page, longTitles = false, fileNavigation = f
       return { result: { items: matches.slice(offset, offset + limit), nextCursor: offset + limit < matches.length ? String(offset + limit) : null } };
     }
     if (action === "file.get") {
-      const file = files.find((item) => item.id === input.id);
-      return file ? { result: { ...file, content: contents[file.id] } } : { error: "File missing", status: 404 };
+      const file = files.find((item) => input.path !== undefined ? item.path === input.path : item.id === input.id);
+      return file ? { result: { ...file, uri: `nextclaw://objects/file/${file.id}`, content: file.kind === "folder" ? null : contents[file.id] ?? "" } } : { error: "File missing", status: 404 };
     }
     if (action === "file.create") {
       const file = { id: `file-${files.length}`, path: String(input.path), kind: String(input.kind), createdAt: instant, updatedAt: instant, version: 1 };
@@ -58,12 +58,26 @@ export async function mockApi(page: Page, longTitles = false, fileNavigation = f
     if (action.startsWith("file.")) return fileAction(action, input);
     if (action === "overview.get") return { result: { inbox: inbox.filter((item) => !item.resolvedAt), events, tasks: tasks.filter((item) => item.status !== "done"), notes: files.filter((item) => item.kind === "note"), projects: [{ id: "project-a", name: "Bibo", total: tasks.length, done: tasks.filter((item) => item.status === "done").length }], counts: { unread: inbox.filter((item) => !item.readAt && !item.resolvedAt).length, activeTasks: tasks.filter((item) => item.status !== "done").length } } };
     if (action === "project.list") return { result: { items: projects, nextCursor: null } };
-    if (action === "task.list") return { result: { items: tasks, nextCursor: null } };
+    if (action === "task.list") return { result: { items: tasks.filter((task) =>
+      (!input.status || task.status === input.status) && (!input.open || !["done", "cancelled"].includes(task.status))
+      && (!input.projectId || task.projectId === input.projectId)
+      && (!input.query || `${task.title} ${task.description}`.includes(String(input.query)))
+      && (!input.dueBefore || !!task.dueAt && task.dueAt < String(input.dueBefore))
+      && (!input.dueFrom || !!task.dueAt && task.dueAt >= String(input.dueFrom))), nextCursor: null } };
     if (action === "event.list") return { result: { items: events.filter((event) => (!input.from || event.endAt >= String(input.from)) && (!input.to || event.startAt <= String(input.to))), nextCursor: null } };
     if (action === "inbox.list") return { result: { items: inbox, nextCursor: null } };
     if (action === "task.create") {
       const task = { ...tasks[0]!, ...input, id: `task-${tasks.length}`, version: 1, status: "planned" };
       tasks.push(task); return { result: task };
+    }
+    if (action === "task.update") {
+      const task = tasks.find((item) => item.id === input.id)!;
+      Object.assign(task, input, { version: task.version + 1 });
+      return { result: task };
+    }
+    if (action === "project.create") {
+      const project = { id: `project-${projects.length}`, name: String(input.name), createdAt: instant, updatedAt: instant, version: 1 };
+      projects.push(project); return { result: project };
     }
     if (action === "event.create") {
       const event = { ...events[0]!, ...input, id: `event-${events.length}`, version: 1 };

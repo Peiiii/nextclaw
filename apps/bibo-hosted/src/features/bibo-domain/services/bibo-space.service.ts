@@ -238,7 +238,7 @@ export class BiboSpaceService {
       ["inbox.read", "inbox", "标记已读", "{id,version}"],
       ["inbox.resolve", "inbox", "标记已处理", "{id,version}"],
       ["file.list", "files", "列出文件树节点；笔记可按最近编辑排序", "{kind?,query?,ancestorOf?,sort?:'recent',limit?,cursor?}"],
-      ["file.get", "files", "读取文件内容", "{id}"],
+      ["file.get", "files", "读取文件内容", "{id} 或 {path:个人空间相对/绝对路径}"],
       ["file.create", "files", "创建文件夹、笔记、文档或产物", "{path,kind,content?,requestId?}"],
       ["file.update", "files", "保存文本内容", "{id,version,content}"],
       ["file.move", "files", "改名或移动文件及目录", "{id,version,path}"],
@@ -422,7 +422,17 @@ export class BiboSpaceService {
       files.sort((a, b) => input.sort === "recent" ? b.updatedAt.localeCompare(a.updatedAt) || a.path.localeCompare(b.path, "zh-CN") : a.path.localeCompare(b.path, "zh-CN"));
       return { result: page(files, input), changed: false };
     }
-    if (action === "file.get") return { result: await this.fileDetail(find(state.files, input)), changed: false };
+    if (action === "file.get") {
+      let file: BiboFile;
+      if (input.path !== undefined) {
+        if (input.id !== undefined || typeof input.path !== "string") throw new BiboSpaceError("请提供文件编号或路径。", 400);
+        const path = this.safePath(input.path.startsWith("/") ? relative(this.root, input.path) : input.path.replace(/^\.\//, ""));
+        const known = state.files.find((item) => item.path === path);
+        if (!known) throw new BiboSpaceError("文件不存在或未保存到个人空间。", 404);
+        file = known;
+      } else file = find(state.files, input);
+      return { result: await this.fileDetail(file), changed: false };
+    }
     if (action === "file.create") return { result: await this.createFile(state, input), changed: true };
     if (action === "file.update") return { result: await this.updateFile(state, input), changed: true };
     if (action === "file.move") return { result: await this.moveFile(state, input), changed: true };

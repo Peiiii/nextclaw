@@ -54,13 +54,13 @@
 
 | ID | Required | Status | 当前证据 |
 | --- | --- | --- | --- |
-| BC1 | true | not-run | token、壳、导航、真实消息、输入器、欢迎和登录表面统一；任务/日程/收件箱/文件与右侧工作区同体系；桌面分区截图比较 |
-| BC2 | true | not-run | 桌面折叠与手机抽屉、hover/焦点/选中/禁用、唯一滚动面、无横溢 |
-| BC3 | true | not-run | 发送、流式、停止、保存、刷新、失败重试；本地受控链路与正式账号浏览器证据分别标明 |
-| BC4 | true | not-run | 组件库与 Worker/client/runner tsc、Vite 构建、定向审查、用户文档更新 |
+| BC1 | true | passed | 1512／1100／390／320px 截图及几何测量；6 个数据页和右侧工作区，经典／简约及登录页正常渲染 |
+| BC2 | true | passed | product smoke 的桌面折叠、抽屉／Escape／焦点恢复、长名称与 768px 工具栏无横溢；触屏单独验证 |
+| BC3 | true | partial | composer／product 受控链路通过发送、流式、停止、保存、刷新、失败重试；正式账号待部署后复验 |
+| BC4 | true | passed | 组件库与 Worker/client/runner tsc、Vite 构建、定向 ESLint／maintainability、范围治理、文档双语检查通过 |
 | BC5 | true | not-run | 冻结远程 master 的应用部署、线上新资源和实际会话、主线安全回流 |
-| BC6 | true | not-run | 默认经典、简约切换／刷新记忆，两主题布局一致，草稿与消息节点不重建 |
-| BC7 | true | not-run | 共享按钮／Tab／NavigationItem／Tooltip；图标宽高一致；手机反馈内缩圆角；内容条目无重复 tooltip；组件规范与开发入口 |
+| BC6 | true | passed | 默认经典、切换与刷新记忆通过，草稿和消息 DOM 身份稳定，输入器焦点外观不变 |
+| BC7 | true | passed | 图标尺寸与正方形、导航内缩反馈、文字按钮／筛选／内容无重复提示、Tab 键盘与目录导航通过；规范 owner 与开发入口已同步 |
 
 市场、录音或模型选择没有现有消费者，不增加假入口。已有任务、日程、文件预览和右侧工作区纳入共享体系和代表行为验收。未提供的 Codex 悬停/手机状态用既有交互合同适配，不能宣称从截图还原了完整原产品。
 

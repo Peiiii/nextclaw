@@ -131,7 +131,7 @@ describe("WebSearchTool", () => {
           {
             title: "Hydrogen - Exa",
             url: "https://example.com/hydrogen",
-            text: "Hydrogen is the first element in the periodic table.",
+            highlights: ["Hydrogen is the first element in the periodic table.", "It has atomic number 1."],
             publishedDate: "2026-04-01",
             author: "Example Docs"
           }
@@ -154,11 +154,13 @@ describe("WebSearchTool", () => {
           query: "what is hydrogen?",
           numResults: 3,
           type: "auto",
-          contents: { text: true }
+          contents: { highlights: true }
         })
       })
     );
     expect(result).toContain("- Hydrogen - Exa");
+    expect(result).toContain("Hydrogen is the first element in the periodic table.");
+    expect(result).toContain("It has atomic number 1.");
     expect(result).toContain("https://example.com/hydrogen");
     expect(result).toContain("Example Docs | 2026-04-01");
   });

@@ -6,7 +6,9 @@ Choose **Bibo Classic** (“Bibo 经典”) or **Minimal** (“简约”) under 
 
 The website, app and help page share a purple Bibo icon in browser tabs, making Bibo easier to find among open pages.
 
-Forms, menus, and feedback share a consistent text hierarchy, with readable input sizes on phones. Save notifications have a separate close button; errors stay near the relevant action so you can correct or retry it.
+Forms, menus, and feedback share a consistent text hierarchy, with readable input sizes on phones. Successful task, project, event, file, and inbox actions show the updated content without a duplicate success toast. Errors remain beside the relevant input, editor, or dialog until you correct or retry the action.
+
+File editors show Unsaved, Saving, and Saved in place. Changes typed during a save remain unsaved. Completing a task retains an undo action, and copying provides feedback on the copy button. A task saved outside the current filter offers a link to its details; saving an event shows its date.
 
 Sections have dedicated addresses: `/chat`, `/tasks`, `/calendar`, `/notes`, `/files`, and `/inbox`, with the overview at `/`. Open an existing conversation at `/chat/conversation-id`. Refresh, Back, and Forward preserve the current location.
 
@@ -23,6 +25,8 @@ Sections and conversations support browser Back, Forward, and direct links. Swit
 Deleted or missing conversation links show an explicit error instead of opening an unrelated conversation. Select another conversation from the list or start a new one to continue.
 
 The right workspace remembers its open state and selected file, and reloads saved content after refresh. Closing and reopening preserves current edits; save before refreshing. Failed reads show an error and a retry action. A late response cannot reopen a workspace you have closed.
+
+Ask “Create a report and preview it on the right.” After Bibo saves the file and requests its display, the workspace opens it automatically. Markdown and HTML support preview, with source editing available. You can also ask to display an existing file. Only saved files in your account’s personal space are shown; stopping generation or a failed save does not open that turn’s output. Automatic opening, closing, and reopening also work on mobile.
 
 Long conversation titles are shortened in the toolbar so New conversation and Workspace remain accessible. Open Rename from the conversation menu to view the full title. Long task, inbox, and note names use up to two lines in lists; open their details or editor to read the full content.
 
@@ -66,9 +70,13 @@ Failed file or note list reads show an error and retry action instead of an empt
 
 Failed overview, inbox, task, and calendar reads also show an error and retry action instead of empty data. Calendar keeps month navigation available, so you can retry or switch months if one month cannot load.
 
-Each account has an isolated runtime. You can clear your Bibo conversation and workspace from the web app. Inbox does not imply a connection to an external email account. External email and calendar accounts, web search, background schedules, and proactive notifications are not yet available. Structured workspace data and compressed workspace snapshots each have a 32 MiB limit; exceeding either reports a save failure.
+Each account has an isolated runtime. You can clear your Bibo conversation and workspace from the web app. Inbox does not imply a connection to an external email account. External email and calendar accounts, background schedules, and proactive notifications are not yet available. Structured workspace data and compressed workspace snapshots each have a 32 MiB limit; exceeding either reports a save failure.
 
-The initial limit is 12 requests per hour and 4,000 characters per request, with 30 model calls per account per day and 200 model calls across the service per day. Account authentication uses the NextClaw platform; Bibo provides a separate, capped model trial. When the trial quota is exhausted, Bibo reports it before sending; a new conversation does not gain an empty session, and the input remains available to retry later. Background scheduled work and proactive notifications are not available yet. Check important results before relying on them.
+Bibo supports Exa web search. Ask “Search for the latest official Cloudflare AI Search documentation and include source links.” No search key is needed. Bibo answers from relevant excerpts and links its sources; open those links to check important facts. Search queries are sent to Exa; the complete conversation is not sent to the search service.
+
+Search is capped at 100 requests per account per UTC day, 1,000 service-wide per day, and 10,000 service-wide per UTC month, with up to 10 results per search. One question may need multiple searches, and failed upstream attempts consume the allowance. A search task usually makes a model call before the tool and another after its results; both count against the model allowance. Bibo explains when search fails or runs out of quota.
+
+The initial limit is 12 requests per hour and 4,000 characters per request, with 250 model calls per account per day and 2,000 model calls across the service per day. Account authentication uses the NextClaw platform; Bibo provides a separate, capped model trial. When the trial quota is exhausted, Bibo reports it before sending; a new conversation does not gain an empty session, and the input remains available to retry later. Background scheduled work and proactive notifications are not available yet. Check important results before relying on them.
 
 See [Bibo help](https://app.bibo.bot/help.html) for usage and data details. The local-first NextClaw workspace remains available through the [installation guide](/en/guide/install).
 

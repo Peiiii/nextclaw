@@ -39,7 +39,9 @@ function getStringByKeys(source: Record<string, unknown>, keys: string[]): strin
       }
       current = current[segment];
     }
-    const value = toNonEmptyString(current);
+    const value = Array.isArray(current)
+      ? current.map(toNonEmptyString).filter((item): item is string => item !== null).join("\n")
+      : toNonEmptyString(current);
     if (value) {
       return value;
     }
@@ -206,7 +208,7 @@ function normalizeSearchResults(provider: SearchProviderName, payload: unknown):
   }
   if (provider === "exa") {
     return normalizeListResults(payload, {
-      summary: ["text", "snippet"],
+      summary: ["highlights", "text", "snippet"],
       siteName: ["author", "domain"],
       publishedAt: ["publishedDate", "published_date"],
       answer: []
@@ -343,7 +345,7 @@ export class WebSearchTool extends Tool {
           query,
           numResults: maxResults,
           type: "auto",
-          contents: { text: true }
+          contents: { highlights: true }
         })
       });
     }

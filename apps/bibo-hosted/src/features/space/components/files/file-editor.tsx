@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Button, ConfirmDialog, LoadingState, Markdown, SegmentedControl } from "@nextclaw/personal-agent-ui";
+import { Button, ConfirmDialog, LoadingState, Markdown, Notice, SegmentedControl } from "@nextclaw/personal-agent-ui";
 import { FileActions } from "./file-actions";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
-export function FileEditor({ id, compact = false, defaultPreview = false, tabId }: { id: string; compact?: boolean; defaultPreview?: boolean; tabId?: string }) {
+export function FileEditor({ id, compact = false, defaultPreview = false, tabId, preview: selectedPreview, onPreviewChange }: { id: string; compact?: boolean; defaultPreview?: boolean; tabId?: string; preview?: boolean; onPreviewChange?: (preview: boolean) => void }) {
   const { fileDetails, fileDrafts, editFile, saveFile, resolveFileConflict } = useBiboSpaceStore();
-  const [preview, setPreview] = useState(defaultPreview);
+  const [localPreview, setLocalPreview] = useState(defaultPreview);
+  const preview = selectedPreview ?? localPreview;
+  const setPreview = onPreviewChange ?? setLocalPreview;
   const [recovery, setRecovery] = useState<"reload" | "overwrite" | null>(null);
   const [failure, setFailure] = useState("");
   const recover = async () => {
@@ -13,7 +15,7 @@ export function FileEditor({ id, compact = false, defaultPreview = false, tabId 
     setFailure("");
     await resolveFileConflict(id, recovery);
     const state = useBiboSpaceStore.getState();
-    if (state.error || state.fileDrafts[id]?.conflict) setFailure(state.error || "文件再次发生变化，你的草稿仍保留。请重试。");
+    if (state.fileDrafts[id]?.error || state.fileDrafts[id]?.conflict) setFailure(state.fileDrafts[id]?.error || "文件再次发生变化，你的草稿仍保留。请重试。");
     else setRecovery(null);
   };
   const detail = fileDetails[id];
@@ -43,7 +45,7 @@ export function FileEditor({ id, compact = false, defaultPreview = false, tabId 
             ]}
             onChange={(value) => setPreview(value === "preview")}
           />
-          <span className="bibo-save-state" title={draft.dirty ? "有未保存的修改" : `已保存 · v${draft.version}`}>
+          <span className="bibo-save-state" role="status" aria-live="polite" title={draft.dirty ? "有未保存的修改" : `已保存 · v${draft.version}`}>
             {draft.saving ? draft.conflict ? "处理中…" : "保存中…" : draft.dirty ? "未保存" : "已保存"}
           </span>
           <Button tone="primary" disabled={!draft.dirty || draft.saving} onClick={() => void saveFile(id)}>
@@ -52,6 +54,7 @@ export function FileEditor({ id, compact = false, defaultPreview = false, tabId 
           <FileActions key={id} file={detail} />
         </div>
       </div>
+      {draft.error && <Notice tone="error">{draft.error}</Notice>}
       {draft.conflict && (
         <div className="file-conflict" role="alert">
           <span>文件已在别处更新。你的修改仍保留在这里。</span>
