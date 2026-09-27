@@ -1,6 +1,13 @@
 # Bibo Personal Agent 当前工作记录
 
-当前批次：[2026-09-27 全界面排版与 Toast 纠偏](#2026-09-27-全界面排版与-toast-纠偏)。
+当前批次：[2026-09-27 操作按钮与 Toast 位置修订](#2026-09-27-操作按钮与-toast-位置修订)。
+
+## 2026-09-27 操作按钮与 Toast 位置修订
+
+- 来源：用户要求以网页组件体系而非仅 Material 审查 Toast，指出回答复制的常驻文字冗余，要求举一反三建立操作按钮规范。原设计「操作按钮约束」冻结用途、尺寸、hover/focus/touch、成功与失败反馈；顶部居中是本产品此次选择，替代本文件上批底部位置，不抹去历史部署证据。
+- 一手核验：[shadcn Base UI Toast 源码](https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/bases/base/ui/toast.tsx) 使用 bottom-4/sm:right-4；[Sonner 源码](https://github.com/emilkowalski/sonner/blob/main/src/index.tsx) 默认 bottom-right。网页底部存在实际采用证据，但不能把组件默认位置等同于本产品最佳位置，更不能声称 shadcn 默认顶部。
+- 回答与代码块复用 CopyButton/原 IconButton，删除代码块重复剪贴板状态及聊天 store 复制全局提示；复制原文、成功勾两秒、权限失败就近显示且可重试。保存/新建等主要操作保留文字，图表模式切换仍用文字；没有机械地把全部操作改成图标。Toast 位于顶部64px加安全区，保留关闭和四秒消失。
+- 验证：共享包与应用三套tsc、定向ESLint、生产构建通过。完整product1440/1280/390/320验证回答剪贴板真实写入、两秒恢复、拒绝时错误且无假成功、Toast顶部64px/水平居中/关闭；Markdown1440/390/320验证代码原文复制及拒绝，触控按钮44px且无Tooltip。七模块既有交互覆盖保持通过。日志 `/tmp/operation-client.log`、`/tmp/operation-markdown.log`；桌面Toast及手机正文截图目视正常。自动维护性0 error、1既有主smoke接近500行warning（461行）；治理/ratchet通过。轻量实现Review核对状态仅归CopyButton、原文无追加文案、异步结果绑定复制快照、流式回答无复制入口，implementation-review: passed。未重测真实模型或领域持久化，本批没有改变它们。
 
 ## 2026-09-26 Tailwind 与操作容器纠偏（界面已交付，国内文档发布中）
 

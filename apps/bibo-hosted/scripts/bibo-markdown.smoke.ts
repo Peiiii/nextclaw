@@ -121,6 +121,18 @@ try {
       await page.screenshot({ path: `/tmp/bibo-markdown-inbox-${width}.png`, fullPage: true });
       await reader.getByRole("button", { name: "复制代码" }).first().click();
       assert.equal((await page.evaluate(() => navigator.clipboard.readText())).trimEnd(), longCode);
+      const copiedCode = reader.getByRole("button", { name: "已复制代码", exact: true });
+      await copiedCode.waitFor();
+      assert.equal(await copiedCode.innerText(), "", "code copy feedback is an icon");
+      if (width < 760) {
+        const copyBox = await copiedCode.boundingBox();
+        assert.ok(copyBox && copyBox.width >= 44 && copyBox.height >= 44, "touch copy action remains easy to hit");
+        assert.equal(await page.getByRole("tooltip").count(), 0, "touch copying does not open a tooltip");
+      }
+      await reader.getByRole("button", { name: "复制代码" }).first().waitFor();
+      await page.evaluate(() => { navigator.clipboard.writeText = async () => { throw new DOMException("Denied", "NotAllowedError"); }; });
+      await reader.getByRole("button", { name: "复制代码" }).first().click();
+      await reader.locator(".ui-copy-error").getByText("复制失败，重试", { exact: true }).waitFor();
       const resolve = page.getByRole("button", { name: "已处理" });
       await resolve.scrollIntoViewIfNeeded();
       assert.ok(await resolve.isVisible(), `inbox actions should remain reachable at ${width}px`);

@@ -42,8 +42,6 @@ class BiboChatOwner {
   setAuthMode = (authMode: "register" | "login"): void => this.set({ authMode, authError: "" });
   setFollowing = (following: boolean): void => this.set({ following });
   setMenuOpen = (menuOpen: boolean): void => this.set({ menuOpen });
-  copied = (): void => this.set({ status: biboCopy.copied });
-  copyFailed = (): void => this.set({ status: biboCopy.copyFailed });
 
   createSession = async (fromRoute = false): Promise<void> => {
     if (this.get().phase !== "idle") return;

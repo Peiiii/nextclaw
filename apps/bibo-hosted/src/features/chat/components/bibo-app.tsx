@@ -164,7 +164,7 @@ export function ChatPage() {
         {hasMessages && <div className="bibo-messages" ref={listRef} onScroll={onScroll} role="log" aria-live="polite" aria-relevant="additions text">
           {store.messages.map((message, index) => <Message key={`${message.at}-${index}`} role={message.role} text={message.text} mark="✳" waitingLabel={copy.waiting}
             label={message.role === "assistant" ? "Bibo" : copy.you} copyLabel={copy.copy}
-            onCopy={message.role === "assistant" ? () => { void navigator.clipboard.writeText(message.text).then(store.copied).catch(store.copyFailed); } : undefined} />)}
+            copiedLabel={copy.copied} copyFailedLabel={copy.copyFailed} />)}
           {store.pendingMessage && <><Message role="user" text={store.pendingMessage} label={copy.you} pending />
             <Message role="assistant" text={store.partial} label="Bibo" mark="✳" waitingLabel={copy.waiting} pending /></>}
         </div>}

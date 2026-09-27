@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Button } from "./button";
+import { CopyButton } from "./copy-button";
 import { Markdown, type MarkdownLabels } from "./markdown/markdown";
 
 type MessageProps = {
@@ -9,12 +9,13 @@ type MessageProps = {
   label: string;
   mark?: ReactNode;
   copyLabel?: string;
+  copiedLabel?: string;
+  copyFailedLabel?: string;
   waitingLabel?: string;
   markdownLabels?: MarkdownLabels;
-  onCopy?: () => void;
 };
 
-export function Message({ role, text, pending = false, label, mark, copyLabel, waitingLabel, markdownLabels, onCopy }: MessageProps) {
+export function Message({ role, text, pending = false, label, mark, copyLabel, copiedLabel, copyFailedLabel, waitingLabel, markdownLabels }: MessageProps) {
   return <article className={`ui-message ui-message--${role}${pending ? " ui-message--pending" : ""}`}>
     <div className="ui-message__meta">{role === "assistant" && mark && <span className="ui-message__mark" aria-hidden="true">{mark}</span>}{label}</div>
     <div className="ui-message__body">
@@ -24,8 +25,8 @@ export function Message({ role, text, pending = false, label, mark, copyLabel, w
           : pending ? <span className="ui-message__waiting">{waitingLabel}</span> : null
         : text}
     </div>
-    {role === "assistant" && !pending && onCopy && copyLabel && <div className="ui-message__actions">
-      <Button onClick={onCopy}>{copyLabel}</Button>
+    {role === "assistant" && !pending && text && copyLabel && copiedLabel && copyFailedLabel && <div className="ui-message__actions">
+      <CopyButton text={text} label={copyLabel} copiedLabel={copiedLabel} failedLabel={copyFailedLabel} />
     </div>}
   </article>;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import hljs from "highlight.js/lib/core";
 import bash from "highlight.js/lib/languages/bash";
 import css from "highlight.js/lib/languages/css";
@@ -12,6 +12,7 @@ import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
 import { Button } from "../button";
+import { CopyButton } from "../copy-button";
 import { MarkdownMermaidDiagram } from "./mermaid-diagram";
 import type { MarkdownLabels } from "./markdown";
 
@@ -36,7 +37,6 @@ for (const [name, { grammar, aliases }] of Object.entries(languages)) {
 }
 
 export function MarkdownCodeBlock({ code, language = "text", labels }: { code: string; language?: string; labels: MarkdownLabels }) {
-  const [feedback, setFeedback] = useState<"ready" | "copied" | "failed">("ready");
   const [showSource, setShowSource] = useState(false);
   const normalizedLanguage = language.trim().toLowerCase().slice(0, 32) || "text";
   const diagram = normalizedLanguage === "mermaid";
@@ -49,29 +49,12 @@ export function MarkdownCodeBlock({ code, language = "text", labels }: { code: s
     }
   }, [code, normalizedLanguage]);
 
-  useEffect(() => {
-    if (feedback === "ready") return;
-    const timer = window.setTimeout(() => setFeedback("ready"), 2000);
-    return () => window.clearTimeout(timer);
-  }, [feedback]);
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setFeedback("copied");
-    } catch {
-      setFeedback("failed");
-    }
-  };
-
   return <div className="ui-code-block">
     <div className="ui-code-block__toolbar">
       <span className="ui-code-block__language">{normalizedLanguage}</span>
       <div className="ui-code-block__actions">
         {diagram && <Button tone="text" aria-pressed={showSource} onClick={() => setShowSource(!showSource)}>{showSource ? labels.viewDiagram : labels.viewSource}</Button>}
-        <Button tone="text" onClick={() => void copy()} aria-label={feedback === "copied" ? labels.copiedCode : feedback === "failed" ? labels.copyFailed : labels.copyCode}>
-          {feedback === "copied" ? labels.copiedCode : feedback === "failed" ? labels.copyFailed : labels.copyCode}
-        </Button>
+        <CopyButton text={code} label={labels.copyCode} copiedLabel={labels.copiedCode} failedLabel={labels.copyFailed} />
       </div>
     </div>
     {diagram && !showSource

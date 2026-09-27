@@ -68,8 +68,7 @@
 
 .bibo-space-scroll { @apply flex-1 min-h-0 overflow-y-auto relative; }
 .bibo-space-scroll.is-workspace { @apply flex flex-col overflow-hidden; }
-.bibo-space-feedback { @apply fixed [z-index:8] [left:50%] [transform:translateX(-50%)] bottom-6 flex flex-col gap-2 [max-width:min(420px,_calc(100vw_-_32px))] pointer-events-none; }
-@media (max-width: 760px) { .bibo-space-feedback { @apply [bottom:calc(80px_+_env(safe-area-inset-bottom))]; } }
+.bibo-space-feedback { @apply fixed [z-index:8] [left:50%] [transform:translateX(-50%)] [top:calc(64px_+_env(safe-area-inset-top))] flex flex-col gap-2 [max-width:min(420px,_calc(100vw_-_32px))] pointer-events-none; }
 .bibo-space-feedback > * { @apply [pointer-events:auto]; }
 .bibo-space-feedback .ui-notice { @apply border [border-color:var(--ui-line)] shadow-lg; }
 .bibo-read-state { @apply flex-1 [min-height:min(440px,_calc(100dvh_-_150px))] flex flex-col items-center justify-center; }

@@ -271,7 +271,7 @@ try {
   const browser = await chromium.launch({ headless: true });
   try {
     for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }, { width: 390, height: 844 }, { width: 320, height: 740 }]) {
-      const page = await browser.newPage({ viewport });
+      const page = await browser.newPage({ viewport, permissions: ["clipboard-read", "clipboard-write"] });
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await mockApi(page);
@@ -291,6 +291,18 @@ try {
       await page.locator(".bibo-task-row").filter({ hasText: "梳理产品方案" }).waitFor();
       await page.unroute("**/api/space", delayTaskRead);
       await checkMissingSession(page, viewport.width);
+      await page.goto(`${base}/chat/session-a`, { waitUntil: "networkidle" });
+      const copyAnswer = page.getByRole("button", { name: "复制回答", exact: true });
+      assert.equal(await copyAnswer.innerText(), "", "copy uses an icon with an accessible action label");
+      await copyAnswer.click();
+      await page.getByRole("button", { name: "已复制", exact: true }).waitFor();
+      assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "先整理一件最重要的事。");
+      assert.equal(await page.locator(".bibo-status").count(), 0, "copy feedback stays beside the response");
+      await copyAnswer.waitFor();
+      await page.evaluate(() => { navigator.clipboard.writeText = async () => { throw new DOMException("Denied", "NotAllowedError"); }; });
+      await copyAnswer.click();
+      await page.locator(".ui-copy-error").getByText("无法复制，请手动选择文字。", { exact: true }).waitFor();
+      assert.equal(await page.getByRole("button", { name: "已复制", exact: true }).count(), 0, "denied clipboard never reports success");
       await page.goto(base, { waitUntil: "networkidle" });
       await page.getByRole("heading", { name: /最近你在忙这些|今天从这里开始/ }).waitFor();
       assert.equal(await page.getByText("确认方案方向").count(), 1);
@@ -307,7 +319,7 @@ try {
       assert.equal(await toast.evaluate((element) => getComputedStyle(element).fontSize), "14px", "feedback uses the same action/body-small type scale");
       const toastBox = await toast.boundingBox();
       assert.ok(toastBox && Math.abs(toastBox.x + toastBox.width / 2 - viewport.width / 2) < 2, "notification is centered in the viewport");
-      assert.ok(toastBox && toastBox.y + toastBox.height < viewport.height - (viewport.width <= 760 ? 70 : 20), "notification clears mobile navigation and the bottom edge");
+      assert.ok(toastBox && Math.abs(toastBox.y - 64) < 2, "notification stays below the header at the top of the viewport");
       assert.equal(await toast.locator(":scope > button").count(), 1, "toast has a separate close action");
       await page.screenshot({ path: `/tmp/workspace-toast-${viewport.width}.png`, animations: "disabled" });
       await toast.getByRole("button", { name: "关闭提示" }).click();
