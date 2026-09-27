@@ -51,4 +51,4 @@ contract-id: `bibo-markdown-2026-09-27`；revision: 2；parent-goal 及标准见
 - 实际 smoke 账号登录、历史读取（2 条）、桌面/手机刷新通过；availability 返回 HTTP 429「今日试用额度已用完，请明天再试」。首轮真实 Agent 返回通用错误，未取得其内部根因；后续 quota 阻断复现，不把首次失败认定为已证实的额度根因。没有调整产品额度或清空用户数据。额度恢复后用现有 `smoke:live` 补齐 MD-06。
 - 文档部署 pipeline `36297174415` 已成功：全球站、国内站与同一冻结 artifact 的一致性验证全部通过。
 - 主线回流 `LOCAL_WORKTREE_RETRYING`：主工作区原五份 thought WIP 保留，retry worker 自动接管；远程 master 已包含功能，不宣称本地镜像已同步。
-- `AUTOMATION_INTERVENTIONS: 1`：首次真实冒烟失败后重新运行既有入口；后续被每日额度阻断。只读观察与诊断不计入；未执行部署回滚或修改配额。
+- `AUTOMATION_INTERVENTIONS: 2`：首次真实冒烟失败后重新运行既有入口，后续被每日额度阻断；验收记录推送时 SSH 连接停滞，先核对远程状态，结束本任务挂起进程，再通过同一 GitHub 仓库的 HTTPS 与现有 gh credential helper 推送，未改变永久 remote/config。只读观察不计入；未执行部署回滚或修改配额。后续可由既有交付 owner 收敛有界 Git 传输恢复与额度预检，不为本次单例新增治理入口。
