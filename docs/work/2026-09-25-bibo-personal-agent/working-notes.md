@@ -11,6 +11,7 @@
 - 主干刚合入其它任务的共享Markdown与任务直存优化；本批将在冻结部署前安全集成，保留其公共渲染入口并重新验证。当前线上发布和真实AI生成验收待闭合，不用模拟API冒充真实工具/容器链路。复盘只更新本合同与端到端回归，不新增常驻提示词。
 - 集成结果：保留主干ChatMessageMarkdown公共渲染器、流式消息稳定ID、DO任务直存及快照修正；删除本批临时渲染factory改造，资源解析通过共享Markdown的urlTransform公共能力接入，脚注/图片/图表原能力保留。复用主干分页reader，不保留重复日程读取函数。工具注册从domain根移至容器app贡献入口，Worker消费domain公共服务时不加载harness；边界bundle测试先暴露动态process require，完成隔离后36项测试及应用三套tsc通过。
 - 最终构建的完整product、Markdown与1440/390/320资源回归通过，截图目视确认两栏和移动工作区。实现Review核对单一URI/打开owner、账号与最新请求保护、草稿不覆盖、路径权限及真实a语义，implementation-review: passed。集成diff自动Review 0 error，7个预算/历史目录告警包含合入主干的模块，本批store399/400；不扩大治理范围。发布必须更新后端镜像，不能使用frontend-only策略。
+- 干净冻结环境首次构建发现Vite配置的开发服务也消费shared公共产物，旧build:client只先构建agent-chat-ui。补齐shared的标准构建前置，不绕过公共package边界；首次deploy在缺dist/public时即阻止，无远程发布。正式测试账号模型availability返回429今日额度耗尽，真实模型生成项保持未验证；继续正式文件API读写和受控回答的浏览器引用验证，不绕过额度或冒充AI生成。
 
 ## 2026-09-27 视觉体系与概览摘要纠偏
 
