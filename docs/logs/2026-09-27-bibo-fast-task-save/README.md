@@ -42,4 +42,4 @@ AUTOMATION_INTERVENTIONS: 1。同期主线更新导致首次推送拒绝，终�
 
 验证：Worker／client／runner 三套 TypeScript、42 项应用测试、完整产品冒烟通过；资源／反馈与规划冒烟分别通过 1440、390、320px，涵盖快速输入重试、勾选与撤销失败、项目、筛选外保存、日程、文件错误／保存期间继续编辑／版本冲突、收件箱。截图确认手机原位状态和操作不被遮挡。Maintainability 无 error，保留既有文件预算警告；新代码治理与 backlog ratchet 通过。测试复用现有资源入口，不增加同目录独立脚本。
 
-主线集成时保留同期收件箱布局与 favicon 更新；合并后的验证、部署 identity、线上复验与文档发布证据在本节补齐。设计：[操作反馈统一优化](../../designs/2026-09-27-bibo-operation-feedback.design.md)。
+主线集成保留同期收件箱布局与 favicon 更新，收件箱写入错误位于顶部操作区下方。合并后三套 TypeScript、资源／反馈三尺寸、完整产品冒烟再次通过，收件箱布局通过 2048／1440／1100／390／320px。布局验证端口已被其它服务使用，因此使用独立预览端口；既有验证入口补充子进程退出检查，避免误测无关服务。合并 Review 与治理无开放 error，源工作区原有 thought WIP 未触碰。部署 identity、线上复验与文档发布证据在本节补齐。设计：[操作反馈统一优化](../../designs/2026-09-27-bibo-operation-feedback.design.md)。

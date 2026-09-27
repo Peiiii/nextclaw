@@ -4,17 +4,8 @@ import { Button, EmptyState, ListRow, Markdown, Notice, SegmentedControl } from 
 import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { day, datetime } from "@/features/space/utils/date-format.utils";
+import { inboxExcerpt, inboxReadingBody } from "@/features/space/utils/inbox-content.utils";
 const sourceClient = new BiboClient();
-function inboxExcerpt(body: string): string {
-  const lines = body.split(/\r?\n/).map((line) => line.trim());
-  const line = lines.find((value) => value && !/^(?:#{1,6}\s|[-*+]\s|\d+\.\s|>|\||`{3}|~{3}|-{3,})/.test(value))
-    ?? lines.find(Boolean) ?? "";
-  return line
-    .replace(/!?\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/(\*\*|__|~~|`)(.*?)\1/g, "$2")
-    .replace(/(^|[\s、，。])\*([^*]+)\*(?=\s|[.,，。、]|$)/g, "$1$2")
-    .slice(0, 85);
-}
 export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promise<void> }) {
   const { inbox, selectedInboxId, inboxSelection, selectInbox, act, navigate, openFile, saving, cursors, moreLoading, loadMore } = useBiboSpaceStore();
   const [openingSource, setOpeningSource] = useState(false);
@@ -76,11 +67,14 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
             inbox.map((item) => (
               <ListRow key={item.id} selected={selected?.id === item.id} onClick={() => { setSourceError(""); setActionFailure(""); selectInbox(item.id); }}>
                 <span className={`bibo-unread-dot${item.readAt ? " is-read" : ""}`} />
-                <span>
+                <span className="inbox-item-copy">
                   <strong>{item.title}</strong>
-                  <small>{item.resolvedAt ? "已处理 · " : item.readAt ? "已读 · " : "未读 · "}{inboxExcerpt(item.body)}</small>
+                  <small>{inboxExcerpt(item.body)}</small>
+                  <span className="inbox-item-meta">
+                    <span>{item.resolvedAt ? "已处理" : item.readAt ? "已读" : "未读"}</span>
+                    <time dateTime={item.createdAt}>{day(item.createdAt)}</time>
+                  </span>
                 </span>
-                <time>{day(item.createdAt)}</time>
               </ListRow>
             ))
           ) : (
@@ -92,48 +86,56 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
             </Button>
           )}
         </div>
-        <div className="bibo-detail-pane">
+        <div className="bibo-detail-pane inbox-detail">
           {selected ? (
             <>
-              <Button className="inbox-back" tone="text" onClick={() => { setSourceError(""); setActionFailure(""); selectInbox(null); }}>
-                ← 全部消息
-              </Button>
-              <p className="bibo-kicker">
-                {selected.kind === "decision" ? "待决定" : selected.kind === "reminder" ? "提醒" : "Bibo 送达"} ·{" "}
-                {datetime(selected.createdAt)}
-              </p>
-              <h2>{selected.title}</h2>
-              {sourceError && <Notice tone="error">{sourceError}</Notice>}
-              {selected.resolvedAt && <p className="bibo-save-state">已处理 · {datetime(selected.resolvedAt)}</p>}
-              <div className="bibo-readable">
-                <Markdown text={selected.body} density="compact" resolveResourceHref={workspaceResources.href} />
+              <div className="inbox-detail-toolbar">
+                <Button className="inbox-back" tone="text" onClick={() => { setSourceError(""); setActionFailure(""); selectInbox(null); }}>
+                  ← 全部消息
+                </Button>
+                <div className="bibo-action-row inbox-actions">
+                  {!selected.readAt && (
+                    <Button
+                      tone="secondary"
+                      disabled={saving}
+                      onClick={() => void update("inbox.read")}
+                    >
+                      标记已读
+                    </Button>
+                  )}
+                  {!selected.resolvedAt && (
+                    <Button
+                      tone="primary"
+                      disabled={saving}
+                      onClick={() => void update("inbox.resolve")}
+                    >
+                      已处理
+                    </Button>
+                  )}
+                  {selected.source.kind !== "bibo" && selected.source.id && (
+                    <Button tone="text" disabled={openingSource} onClick={() => void source(selected)}>
+                      {openingSource ? "正在打开来源…" : "查看来源 ↗"}
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="bibo-action-row">
-                {!selected.readAt && (
-                  <Button
-                    tone="secondary"
-                    disabled={saving}
-                    onClick={() => void update("inbox.read")}
-                  >
-                    标记已读
-                  </Button>
-                )}
-                {!selected.resolvedAt && (
-                  <Button
-                    tone="primary"
-                    disabled={saving}
-                    onClick={() => void update("inbox.resolve")}
-                  >
-                    已处理
-                  </Button>
-                )}
-                {selected.source.kind !== "bibo" && selected.source.id && (
-                  <Button tone="text" disabled={openingSource} onClick={() => void source(selected)}>
-                    {openingSource ? "正在打开来源…" : "查看来源 ↗"}
-                  </Button>
-                )}
+              {sourceError && <div className="inbox-detail-feedback"><Notice tone="error">{sourceError}</Notice></div>}
+              {actionFailure && <div className="inbox-detail-feedback"><Notice tone="error">{actionFailure}</Notice></div>}
+              <div className="inbox-reader" key={selected.id}>
+                <article className="inbox-article">
+                  <header className="inbox-article-heading">
+                    <p className="bibo-kicker">
+                      {selected.kind === "decision" ? "待决定" : selected.kind === "reminder" ? "提醒" : "Bibo 送达"} ·{" "}
+                      <time dateTime={selected.createdAt}>{datetime(selected.createdAt)}</time>
+                    </p>
+                    <h1 className="inbox-title">{selected.title}</h1>
+                    {selected.resolvedAt && <p className="bibo-save-state">已处理 · {datetime(selected.resolvedAt)}</p>}
+                  </header>
+                  <div className="bibo-readable">
+                    <Markdown text={inboxReadingBody(selected.body, selected.title)} density="compact" resolveResourceHref={workspaceResources.href} />
+                  </div>
+                </article>
               </div>
-              {actionFailure && <Notice tone="error">{actionFailure}</Notice>}
             </>
           ) : (
             <EmptyState title="选择一条消息" />
