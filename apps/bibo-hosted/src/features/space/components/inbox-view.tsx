@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BiboClient, BiboClientError, type BiboEvent, type BiboFileDetail, type BiboInboxItem, type BiboTask } from "@nextclaw/bibo-client";
 import { Button, EmptyState, ListRow, Markdown, Notice, SegmentedControl } from "@nextclaw/personal-agent-ui";
+import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { day, datetime } from "@/features/space/utils/date-format.utils";
 const sourceClient = new BiboClient();
@@ -15,11 +16,11 @@ function inboxExcerpt(body: string): string {
     .slice(0, 85);
 }
 export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promise<void> }) {
-  const { inbox, selectedInboxId, selectInbox, act, navigate, openFile, saving, cursors, moreLoading, loadMore } = useBiboSpaceStore();
+  const { inbox, selectedInboxId, inboxSelection, selectInbox, act, navigate, openFile, saving, cursors, moreLoading, loadMore } = useBiboSpaceStore();
   const [openingSource, setOpeningSource] = useState(false);
   const [sourceError, setSourceError] = useState("");
   const { inboxScope, setInboxScope } = useBiboSpaceStore();
-  const selected = inbox.find((item) => item.id === selectedInboxId) ?? null;
+  const selected = inbox.find((item) => item.id === selectedInboxId) ?? inboxSelection;
   const source = async (item: BiboInboxItem) => {
     if (!item.source.id) return;
     const accountId = useBiboSpaceStore.getState().accountId;
@@ -96,7 +97,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
               {sourceError && <Notice tone="error">{sourceError}</Notice>}
               {selected.resolvedAt && <p className="bibo-save-state">已处理 · {datetime(selected.resolvedAt)}</p>}
               <div className="bibo-readable">
-                <Markdown text={selected.body} density="compact" />
+                <Markdown text={selected.body} density="compact" resolveResourceHref={workspaceResources.href} />
               </div>
               <div className="bibo-action-row">
                 {!selected.readAt && (

@@ -13,15 +13,16 @@ type MessageProps = {
   copyFailedLabel?: string;
   waitingLabel?: string;
   markdownLabels?: MarkdownLabels;
+  resolveResourceHref?: (uri: string) => string | null;
 };
 
-export function Message({ role, text, pending = false, label, mark, copyLabel, copiedLabel, copyFailedLabel, waitingLabel, markdownLabels }: MessageProps) {
+export function Message({ role, text, pending = false, label, mark, copyLabel, copiedLabel, copyFailedLabel, waitingLabel, markdownLabels, resolveResourceHref }: MessageProps) {
   return <article className={`ui-message ui-message--${role}${pending ? " ui-message--pending" : ""}`}>
     <div className="ui-message__meta">{role === "assistant" && mark && <span className="ui-message__mark" aria-hidden="true">{mark}</span>}{label}</div>
     <div className="ui-message__body">
       {role === "assistant"
         ? text
-          ? <Markdown text={text} labels={markdownLabels} isStreaming={pending} />
+          ? <Markdown text={text} labels={markdownLabels} isStreaming={pending} resolveResourceHref={resolveResourceHref} />
           : pending ? <span className="ui-message__waiting">{waitingLabel}</span> : null
         : text}
     </div>

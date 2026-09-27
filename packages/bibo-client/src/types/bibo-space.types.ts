@@ -61,7 +61,7 @@ export type BiboFile = {
   version: number;
 };
 
-export type BiboFileDetail = BiboFile & { content: string | null };
+export type BiboFileDetail = BiboFile & { content: string | null; uri: string };
 
 export type BiboOverview = {
   inbox: BiboInboxItem[];

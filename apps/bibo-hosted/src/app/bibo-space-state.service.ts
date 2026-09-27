@@ -1,4 +1,4 @@
-import { BiboSpaceService, BiboSpaceError, type BiboSpaceState } from "../features/bibo-domain/services/bibo-space.service";
+import { BiboSpaceService, BiboSpaceError, type BiboSpaceState } from "@/features/bibo-domain";
 
 // Keep each SQLite-backed KV value below 2 MiB, including non-ASCII text.
 const CHUNK_CHARACTERS = 512 * 1024;

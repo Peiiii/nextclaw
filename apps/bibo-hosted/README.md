@@ -4,7 +4,7 @@ Independent Cloudflare Worker and Container service at `https://app.bibo.bot/`. 
 
 The React app consumes the hosted API through the private `@nextclaw/bibo-client` package. That package owns same-origin HTTP and incremental SSE decoding; the Zustand store owns pending and saved conversation state. See the package README for its contract and tests.
 
-Chat replies, inbox bodies and file previews use personal-agent-ui's Markdown host backed by NextClaw's shared parser and preview components. This includes explicit nested list markers, task checkboxes, all four math delimiters, scoped footnotes, Mermaid expansion and zoom, syntax highlighting, and image previews. The host retains its copy controls and HTTPS-only image policy. Run `pnpm -C apps/bibo-hosted smoke:markdown` to verify desktop and narrow-screen reading, clipboard feedback, streamed message identity, and refresh.
+Chat replies, inbox bodies and file previews use personal-agent-ui's Markdown host backed by NextClaw's shared parser and preview components. This includes explicit nested list markers, task checkboxes, all four math delimiters, scoped footnotes, Mermaid expansion and zoom, syntax highlighting, and image previews. The host retains its copy controls and HTTPS-only image policy. Run `pnpm -C apps/bibo-hosted smoke:markdown` to verify desktop and narrow-screen reading, clipboard feedback, streamed message identity, and refresh. Set `BIBO_SMOKE_BASE=https://app.bibo.bot` when running `scripts/bibo-markdown-chat.smoke.ts` to exercise deployed assets with mocked API fixtures; this does not replace the authenticated `smoke:live` model and persistence checks.
 
 ## Local frontend development
 

@@ -61,6 +61,9 @@ importers:
       '@nextclaw/harness':
         specifier: workspace:*
         version: link:../../packages/nextclaw-harness
+      '@nextclaw/shared':
+        specifier: workspace:*
+        version: link:../../packages/nextclaw-shared
     devDependencies:
       '@cloudflare/containers':
         specifier: ^0.3.7

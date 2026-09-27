@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Button, ConfirmDialog, LoadingState, Markdown, SegmentedControl } from "@nextclaw/personal-agent-ui";
 import { FileActions } from "./file-actions";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
-export function FileEditor({ id, compact = false }: { id: string; compact?: boolean }) {
+import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
+export function FileEditor({ id, compact = false, defaultPreview = false }: { id: string; compact?: boolean; defaultPreview?: boolean }) {
   const { fileDetails, fileDrafts, editFile, saveFile, resolveFileConflict } = useBiboSpaceStore();
-  const [preview, setPreview] = useState(false);
+  const [preview, setPreview] = useState(defaultPreview);
   const [recovery, setRecovery] = useState<"reload" | "overwrite" | null>(null);
   const [failure, setFailure] = useState("");
   const recover = async () => {
@@ -65,7 +66,7 @@ export function FileEditor({ id, compact = false }: { id: string; compact?: bool
           <iframe className="bibo-file-preview-frame" title={`预览 ${detail.path}`} sandbox="" srcDoc={framed} />
         ) : (
           <div className="bibo-file-preview-markdown">
-            <Markdown text={draft.content} />
+            <Markdown text={draft.content} resolveResourceHref={workspaceResources.href} />
           </div>
         )
       ) : (

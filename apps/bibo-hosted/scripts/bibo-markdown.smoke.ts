@@ -94,7 +94,7 @@ try {
       assert.equal(await reader.locator("blockquote").count(), 1);
       assert.equal(await reader.locator("table").count(), 1);
       assert.ok(await reader.locator(".katex").count() > 0);
-      assert.equal(await reader.locator("a:not([aria-disabled=true])").count(), 1, `unresolved local links must not navigate: ${await reader.locator("a").evaluateAll((nodes) => nodes.map((node) => node.outerHTML).join(" "))}`);
+      assert.equal(await reader.locator("a:not([aria-disabled=true])").count(), 2, `external and mapped resource links navigate; unsafe links do not: ${await reader.locator("a").evaluateAll((nodes) => nodes.map((node) => node.outerHTML).join(" "))}`);
       assert.equal(await reader.locator(".chat-image-fallback").count(), 1);
       await reader.locator("[data-chat-mermaid-diagram] svg").waitFor({ timeout: 15000 });
       const geometry = await page.evaluate(() => {

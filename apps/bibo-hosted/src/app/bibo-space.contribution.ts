@@ -1,5 +1,5 @@
 import { Contribution, type NcpTool } from "@nextclaw/harness";
-import { BiboSpaceError, BiboSpaceService } from "@/features/bibo-domain/services/bibo-space.service";
+import { BiboSpaceError, type BiboSpaceService } from "@/features/bibo-domain";
 
 function params(value: unknown): Record<string, unknown> {
   let parsed = value;
@@ -17,7 +17,7 @@ export class BiboSpaceContribution extends Contribution {
   protected setup = (): void => {
     const tool: NcpTool = {
       name: "bibo",
-      description: "Read and update the user's Bibo personal space: tasks, calendar, notes, files, and attention inbox. Use help to discover operations by domain or keyword; known actions can be called directly. This is a first-party capability and needs no installation. Never edit Bibo's structured JSON by hand.",
+      description: "Read and update the user's Bibo personal space: tasks, calendar, notes, files, and attention inbox. Use help to discover operations by domain or keyword; known actions can be called directly. Save generated documents, HTML/SVG or Markdown diagrams with file.create kind=artifact. File details return a stable uri: cite it as [title](uri) in your answer so the user can open the artifact in the workspace. Never invent a uri or claim a code block is a saved artifact. This is a first-party capability and needs no installation. Never edit Bibo's structured JSON by hand.",
       parameters: {
         type: "object",
         properties: {

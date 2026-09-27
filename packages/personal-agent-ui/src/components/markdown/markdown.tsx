@@ -20,12 +20,11 @@ const defaultLabels: MarkdownLabels = {
   footnotes: "注释", backToReference: "返回正文",
 };
 
-// Hosted pages have no local file-content resolver; keep unknown local links inert.
 const hostedUrl = (url: string, key: string) =>
   (key === "src" ? /^https:\/\//i.test(url) : /^(https?:\/\/|mailto:|tel:|#)/i.test(url)) ? url : "";
 
-export function Markdown({ text, labels = defaultLabels, density = "default", isStreaming = false, role = "assistant" }: {
-  text: string; labels?: MarkdownLabels; density?: "default" | "compact"; isStreaming?: boolean; role?: "user" | "assistant";
+export function Markdown({ text, labels = defaultLabels, density = "default", isStreaming = false, role = "assistant", resolveResourceHref }: {
+  text: string; labels?: MarkdownLabels; density?: "default" | "compact"; isStreaming?: boolean; role?: "user" | "assistant"; resolveResourceHref?: (uri: string) => string | null;
 }) {
   const texts = useMemo(() => ({
     copyCodeLabel: labels.copyCode, copiedCodeLabel: labels.copiedCode,
@@ -40,6 +39,6 @@ export function Markdown({ text, labels = defaultLabels, density = "default", is
     <MarkdownCodeBlock code={source} language={language} labels={labels} texts={texts} isStreaming={streaming} />, [labels, texts]);
   return <div className={`ui-markdown${density === "compact" ? " ui-markdown--compact" : ""}`}>
     <ChatMessageMarkdown text={text} role={role} texts={texts} isStreaming={isStreaming}
-      allowHtml={false} urlTransform={hostedUrl} renderCodeBlock={renderCodeBlock} />
+      allowHtml={false} urlTransform={(uri, key) => hostedUrl(uri, key) || (key === "href" ? resolveResourceHref?.(uri) ?? "" : "")} renderCodeBlock={renderCodeBlock} />
   </div>;
 }

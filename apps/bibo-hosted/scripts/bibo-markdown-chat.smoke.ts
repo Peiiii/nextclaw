@@ -3,8 +3,8 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { chromium, type Page } from "playwright";
 
-const base = "http://127.0.0.1:5198";
-const server = spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5198", "--strictPort"], {
+const base = process.env.BIBO_SMOKE_BASE ?? "http://127.0.0.1:5198";
+const server = process.env.BIBO_SMOKE_BASE ? null : spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5198", "--strictPort"], {
   cwd: new URL("..", import.meta.url).pathname, stdio: "ignore",
 });
 const at = "2026-09-27T00:00:00.000Z";
@@ -158,5 +158,5 @@ try {
     }
   } finally { await browser.close(); }
 } finally {
-  if (server.exitCode === null) { server.kill("SIGTERM"); await once(server, "exit"); }
+  if (server && server.exitCode === null) { server.kill("SIGTERM"); await once(server, "exit"); }
 }

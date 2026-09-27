@@ -9,6 +9,7 @@ import { BiboSpaceView, BiboWorkspace, useBiboSpaceStore, type BiboView } from "
 import { ArrowDown, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { SessionNavigation } from "./session-navigation";
 import { AccountMenu } from "./account-menu";
+import { workspaceResources } from "@/features/space";
 
 const suggestions = [
   { mark: "✳", label: "先认识我", text: "我想让你成为我的个人搭档。先问我三个关键问题，了解我最近最在意的目标，然后帮我选一件今天能推进的事。" },
@@ -18,7 +19,7 @@ const suggestions = [
 const MessageRow = memo(function MessageRow({ message }: { message: BiboDisplayMessage }) {
   return <Message role={message.role} text={message.text} pending={message.pending} mark="✳" waitingLabel={copy.waiting}
     label={message.role === "assistant" ? "Bibo" : copy.you} copyLabel={copy.copy}
-    copiedLabel={copy.copied} copyFailedLabel={copy.copyFailed} />;
+    copiedLabel={copy.copied} copyFailedLabel={copy.copyFailed} resolveResourceHref={workspaceResources.href} />;
 });
 const navigation: { view: BiboView; label: string; mark: string }[] = [
   { view: "overview", label: "概览", mark: "▦" }, { view: "chat", label: "对话", mark: "✳" },
@@ -109,6 +110,10 @@ export function BiboApp() {
     return () => window.removeEventListener("beforeunload", guardDrafts);
   }, []);
   useEffect(() => { if (store.user && store.messages.length) void useBiboSpaceStore.getState().refreshAfterChat(); }, [store.messages]);
+  useEffect(() => {
+    document.addEventListener("click", workspaceResources.intercept);
+    return () => document.removeEventListener("click", workspaceResources.intercept);
+  }, []);
   const closeMenu = () => store.setMenuOpen(false);
   const workspaceTitle = space.view === "chat" ? store.sessions.find((session) => session.id === store.activeSessionId)?.title ?? "新对话" : navigation.find((item) => item.view === space.view)?.label;
   const sidebarContent = <>
@@ -183,7 +188,14 @@ export function ChatPage() {
 }
 
 export function SpacePage() {
-  const view = readWorkspaceRoute(useLocation().pathname).view;
+  const route = readWorkspaceRoute(useLocation().pathname);
+  const view = route.view;
+  const account = useBiboSpaceStore((state) => state.accountId);
+  const ready = useBiboSpaceStore((state) => state.readStatus[view] === "ready");
+  useEffect(() => {
+    if (account && ready && route.resourceId) void workspaceResources.open(`/${view}/${encodeURIComponent(route.resourceId)}`);
+    else if (account && ready && route.filePath) void workspaceResources.open(`/files/path/${encodeURIComponent(route.filePath)}`);
+  }, [account, ready, view, route.resourceId, route.filePath]);
   const selectSession = useBiboChatStore((state) => state.selectSession);
   return <BiboSpaceView view={view} onOpenSession={selectSession} />;
 }

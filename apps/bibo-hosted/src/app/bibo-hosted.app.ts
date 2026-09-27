@@ -2,7 +2,7 @@ import { Container, getContainer } from "@cloudflare/containers";
 import { readRunStream, streamEvent, type RunResult } from "./bibo-run-stream.utils";
 import { authRoute, cookieToken, currentUser, sessionUser, json, publicError } from "./bibo-auth.utils";
 import { checkChatAvailability, modelError, modelRoute } from "./bibo-model-gateway.service";
-import { BiboSpaceService, BiboSpaceError, type BiboSpaceState } from "../features/bibo-domain/services/bibo-space.service";
+import { BiboSpaceService, BiboSpaceError, type BiboSpaceState } from "@/features/bibo-domain";
 import { BiboSpaceStateStore } from "./bibo-space-state.service";
 export { BiboModelBudget } from "./bibo-model-gateway.service";
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { build } from "esbuild";
-import { BiboSpaceService, type BiboSpaceState } from "../features/bibo-domain/services/bibo-space.service";
+import { BiboSpaceService, type BiboSpaceState } from "@/features/bibo-domain";
 import { BiboSpaceStateStore } from "./bibo-space-state.service";
 
 const bundle = await build({
@@ -9,7 +9,7 @@ const bundle = await build({
   bundle: true, platform: "node", format: "esm", write: false,
   plugins: [{
     name: "cloudflare-boundary",
-    setup(plugin) {
+    setup: (plugin) => {
       plugin.onResolve({ filter: /^(@cloudflare\/containers|cloudflare:workers|\.\/bibo-auth\.utils)$/ }, (args) => ({ path: args.path, namespace: "mock" }));
       plugin.onLoad({ filter: /.*/, namespace: "mock" }, (args) => ({
         contents: args.path === "cloudflare:workers"
