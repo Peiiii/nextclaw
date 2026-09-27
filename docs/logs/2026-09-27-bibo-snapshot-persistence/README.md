@@ -15,7 +15,7 @@ Active acceptance ledger（contract-id: bibo-snapshot-persistence-20260927）：
 | BIBO-SAVE-01 | true | passed | 修前同边界 500 ENOENT；修后 snapshot 测试成功、journal/用户文件保留、无派生投影、SQLite quick_check ok |
 | BIBO-SAVE-02 | true | passed | cold replay 覆盖六轮工具消息、投影缺失重建与再次冷重载，8 项恢复测试通过；旧归档格式及 restore 路径未变 |
 | BIBO-SAVE-03 | true | passed | 集成 master 后 Bibo 三份 tsc、29 项服务端测试、Vite 构建、独立动态端口 product smoke、desktop/mobile composer smoke 通过；原 WAL/SSE、kernel 冷恢复及 targeted lint 证据有效 |
-| BIBO-SAVE-04 | true | blocked | 冻结部署、镜像内修复、100% rollout、线上快照提交、75 秒后文件重读、桌面/手机刷新历史通过。新镜像连续模型对话及休眠后上下文恢复仍待验收：专用账号日配额接口返回 429；未取得本轮 inactive→running 证据 |
+| BIBO-SAVE-04 | true | blocked | 冻结部署、镜像内修复、100% rollout、线上快照提交、75 秒后文件重读、桌面/手机刷新历史、实际 inactive→running 后恢复及再次快照提交通过。新镜像连续模型对话及恢复后的模型上下文仍待验收：专用账号日配额接口返回 429 |
 
 ## 发布/部署方式
 
@@ -27,7 +27,7 @@ Active acceptance ledger（contract-id: bibo-snapshot-persistence-20260927）：
 
 其它 Bibo 任务随后从包含本修复的 master 部署。验收时当前 Worker 为 `b6d4a724-1b37-4f63-8bdc-3aae8a659694`、Container version 19，digest `f060bf2ed90fdafdc07c570b495921b5e1505bf4e4bb449db7f8fddfb6e5ace0`，rollout 100%。直接读取该 Docker 镜像内 runner 确认快照目录排除条件存在；专用账号实际实例命中同一 digest。version 18 镜像亦确认含修复。任务 worktree 快进至集成 master `1b0e04a77`，未重发旧镜像覆盖其它任务。
 
-生产证据：会话 `4c335311-d988-4295-941e-bf9c25ca39dc` 首轮曾在旧 version 16 committed（10 个 delta、7426ms）；滚动替换期间第二轮失败，该结果不计作新镜像验收。version 19 下模型请求先后受到并发 429 与日配额 429 限制。独立存储验收通过 `file.create` 触发真实快照提交，75 秒后 `file.get` 内容一致，会话原两条消息一致；桌面 1365px 与手机 390px 刷新仍显示标记，无 pageerror 或横向溢出，随后仅删除本轮测试文件。该链路不消耗模型额度，但不替代连续模型对话；控制面未观察到本轮容器休眠，因此不把间隔重读写成冷恢复。恢复材料位于任务 worktree 的 ignored `.local`，截图 `/tmp/bibo-snapshot-storage-live-{1365,390}.png`。
+生产证据：会话 `4c335311-d988-4295-941e-bf9c25ca39dc` 首轮曾在旧 version 16 committed（10 个 delta、7426ms）；滚动替换期间第二轮失败，该结果不计作新镜像验收。version 19 下模型请求先后受到并发 429 与日配额 429 限制。独立存储验收通过 `file.create` 触发真实快照提交，75 秒后 `file.get` 内容一致，会话原两条消息一致；桌面 1365px 与手机 390px 刷新仍显示标记，无 pageerror 或横向溢出，随后仅删除本轮测试文件。后续控制面确认实例于 05:36:35Z inactive；从该状态触发真实文件操作，05:38:35.572Z running，原快照 restore 成功、再次快照提交及新测试文件读写删除通过，会话历史一致。整个验证实际使用 version 19 digest。该链路不消耗模型额度，但不替代连续模型对话或模型上下文判定。恢复材料位于任务 worktree 的 ignored `.local`，截图 `/tmp/bibo-snapshot-storage-live-{1365,390}.png`。
 
 远程主线已发布；源区仍保留任务开始时的一份已有修改与四份未跟踪 thought。`release:reconcile:mainline` 返回 `LOCAL_WORKTREE_RETRYING`，自动 retry owner 负责等待安全快进；未 stash/reset/rebase 或覆盖 WIP。模型验收恢复条件：另一个已登录且可用的专用测试账号，或 UTC 次日额度恢复。已向用户请求选择，保留 Required ID 04，不缩减合同。
 
