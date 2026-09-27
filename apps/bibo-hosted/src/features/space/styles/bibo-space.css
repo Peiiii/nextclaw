@@ -249,7 +249,7 @@
 .bibo-pane-label > span { @apply flex-1; }
 .bibo-tree-scroll { @apply overflow-y-auto flex-1 min-h-0 [padding:9px_5px_18px]; }
 .file-tree-search { @apply flex flex-none items-center gap-1 p-2; }
-.file-tree-search .ui-control { @apply min-w-0 [padding:7px_9px]; }
+.file-tree-search .ui-control { @apply min-w-0; }
 .bibo-tree-row { @apply flex items-center [min-height:31px] pr-1.25 [border-radius:6px]; }
 .bibo-tree-row:hover { @apply [background:var(--ui-hover)]; }
 .bibo-tree-row.is-selected:hover { @apply [background:var(--ui-selection-hover)]; }
