@@ -1,5 +1,7 @@
 # Bibo hosted companion
 
+Forms, menus, and feedback share a consistent text hierarchy, with readable input sizes on phones. Save notifications have a separate close button; errors stay near the relevant action so you can correct or retry it.
+
 Sections have dedicated addresses: `/chat`, `/tasks`, `/calendar`, `/notes`, `/files`, and `/inbox`, with the overview at `/`. Open an existing conversation at `/chat/conversation-id`. Refresh, Back, and Forward preserve the current location.
 
 Creating a task starts with its name; expand Add details for optional properties. Complete or reopen a task directly from its list and undo the last status change. Today includes unfinished tasks due today or overdue; Upcoming includes unfinished tasks due from tomorrow onward. Undated tasks remain available in All. Search, project management, and list/board controls are under Filters and views.

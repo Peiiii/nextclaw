@@ -4,7 +4,7 @@
 .ui-icon-button:enabled:hover, .ui-icon-button:focus-visible { @apply [color:var(--ui-ink)]; }
 .ui-icon-button > span { @apply inline-flex; }
 .ui-icon-button svg { @apply [width:17px] [height:17px] [stroke-width:1.7]; }
-.ui-tooltip { @apply [z-index:1200] [max-width:min(260px,_calc(100vw_-_16px))] [padding:6px_9px] [border-radius:6px] [background:var(--ui-ink)] [color:var(--ui-surface)] [font-size:12px] [line-height:1.4] [overflow-wrap:anywhere] [box-shadow:0_2px_8px_#0002]; }
+.ui-tooltip { @apply [z-index:1200] [max-width:min(260px,_calc(100vw_-_16px))] [padding:6px_9px] [border-radius:6px] [background:var(--ui-ink)] [color:var(--ui-surface)] text-xs [line-height:1.4] [overflow-wrap:anywhere] [box-shadow:0_2px_8px_#0002]; }
 .ui-overlay-backdrop { @apply fixed [inset:0] [z-index:1000] [background:#18241e48] [animation:ui-overlay-fade_120ms_ease-out]; }
 .ui-overlay { @apply fixed [z-index:1010] flex flex-col min-w-0 [border:1px_solid_var(--ui-line)] [background:var(--ui-surface)] [color:var(--ui-ink)] [box-shadow:0_18px_70px_#18241e24] [animation:ui-overlay-fade_140ms_ease-out]; }
 .ui-overlay--dialog { @apply [top:50%] [left:50%] [transform:translate(-50%,_-50%)] [width:min(440px,_calc(100vw_-_32px))] [max-height:calc(100dvh_-_32px)] [border-radius:var(--ui-radius-lg)]; }
@@ -12,21 +12,21 @@
 .ui-overlay--sheet { @apply [inset:0_auto_0_0] [width:min(330px,_calc(100vw_-_48px))] [padding-top:env(safe-area-inset-top)] [padding-bottom:env(safe-area-inset-bottom)]; }
 .ui-overlay__header { @apply flex flex-none items-start justify-between gap-4 [padding:20px_20px_12px]; }
 .ui-overlay__header > div { @apply min-w-0; }
-.ui-overlay__title { @apply [margin:3px_0_0] [font-size:17px] [line-height:1.5] font-semibold [overflow-wrap:anywhere]; }
-.ui-overlay__description { @apply [margin:8px_0_0] [color:var(--ui-muted)] [font-size:12px] [line-height:1.6] [overflow-wrap:anywhere]; }
+.ui-overlay__title { @apply [margin:3px_0_0] text-lg leading-7 font-semibold [overflow-wrap:anywhere]; }
+.ui-overlay__description { @apply [margin:8px_0_0] [color:var(--ui-muted)] text-xs [line-height:1.6] [overflow-wrap:anywhere]; }
 .ui-overlay__body { @apply min-h-0 overflow-y-auto [overscroll-behavior:contain] [padding:8px_24px_24px]; }
 .ui-overlay--sheet .ui-overlay__body { @apply flex flex-1 overflow-hidden [padding:8px_20px_20px]; }
 .ui-overlay__body form { @apply flex flex-col gap-4; }
 .ui-overlay__body .ui-field { @apply m-0; }
 .ui-overlay__actions { @apply flex flex-wrap items-center justify-end gap-2 sticky [bottom:-24px] [padding:12px_0_0] [background:var(--ui-surface)]; }
-.ui-overlay__error { @apply m-0 [color:var(--ui-danger)] [font-size:12px] [line-height:1.6]; }
-.ui-overlay__hint { @apply m-0 [color:var(--ui-muted)] [font-size:12px] [line-height:1.6] [overflow-wrap:anywhere]; }
+.ui-overlay__error { @apply m-0 [color:var(--ui-danger)] text-xs [line-height:1.6]; }
+.ui-overlay__hint { @apply m-0 [color:var(--ui-muted)] text-xs [line-height:1.6] [overflow-wrap:anywhere]; }
 .ui-action-menu { @apply [z-index:1100] [min-width:168px] [max-width:calc(100vw_-_16px)] [max-height:var(--radix-dropdown-menu-content-available-height)] overflow-y-auto p-1.25 [border:1px_solid_var(--ui-line)] [border-radius:var(--ui-radius-md)] [background:var(--ui-surface)] [color:var(--ui-ink)] [box-shadow:0_8px_24px_#18241e1c]; }
-.ui-action-menu__item { @apply flex items-center [min-height:34px] [padding:8px_10px] [border-radius:var(--ui-radius-sm)] outline-none [color:inherit] no-underline [font-size:13px] cursor-pointer select-none; }
+.ui-action-menu__item { @apply flex items-center [min-height:34px] [padding:8px_10px] [border-radius:var(--ui-radius-sm)] outline-none [color:inherit] no-underline text-sm cursor-pointer select-none; }
 .ui-action-menu__item[data-highlighted] { @apply [background:var(--ui-hover)]; }
 .ui-action-menu__item[data-disabled] { @apply [opacity:.5] pointer-events-none; }
 .ui-action-menu__item.is-danger { @apply [color:var(--ui-danger)]; }
 @keyframes ui-overlay-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (pointer: coarse) { .ui-icon-button { @apply [width:44px] [height:44px]; } .ui-action-menu__item { @apply [min-height:44px]; } }
-@media (max-width: 760px) { .ui-overlay__body .ui-control { @apply [font-size:16px]; } .ui-overlay__actions .ui-button { @apply [min-height:44px]; } }
+@media (max-width: 760px) { .ui-overlay__actions .ui-button { @apply [min-height:44px]; } }
 @media (prefers-reduced-motion: reduce) { .ui-overlay-backdrop, .ui-overlay { @apply [animation:none]; } }

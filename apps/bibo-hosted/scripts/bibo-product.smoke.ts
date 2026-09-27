@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { chromium, type Page } from "playwright";
+import { chromium, type Page, type Route } from "playwright";
 import { mockApi } from "./personal-workspace.fixture";
 const base = "http://127.0.0.1:5189";
 const server = spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5189", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
@@ -270,11 +270,26 @@ try {
   await ready();
   const browser = await chromium.launch({ headless: true });
   try {
-    for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }, { width: 390, height: 844 }]) {
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }, { width: 390, height: 844 }, { width: 320, height: 740 }]) {
       const page = await browser.newPage({ viewport });
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await mockApi(page);
+      let releaseLoad!: () => void;
+      const loadGate = new Promise<void>((resolve) => { releaseLoad = resolve; });
+      const delayTaskRead = async (route: Route) => {
+        if (route.request().postDataJSON().action === "task.list") await loadGate;
+        await route.fallback();
+      };
+      await page.route("**/api/space", delayTaskRead);
+      try {
+        await page.goto(`${base}/tasks`, { waitUntil: "domcontentloaded" });
+        await page.getByRole("status", { name: "正在加载页面" }).waitFor();
+        assert.equal(await page.getByText("正在读取…", { exact: true }).count(), 0, "reads never render a global notification strip");
+        assert.equal(await page.getByRole("heading", { name: /正在读取/ }).count(), 0, "loading is not a page title or empty-state message");
+      } finally { releaseLoad(); }
+      await page.locator(".bibo-task-row").filter({ hasText: "梳理产品方案" }).waitFor();
+      await page.unroute("**/api/space", delayTaskRead);
       await checkMissingSession(page, viewport.width);
       await page.goto(base, { waitUntil: "networkidle" });
       await page.getByRole("heading", { name: /最近你在忙这些|今天从这里开始/ }).waitFor();
@@ -287,6 +302,16 @@ try {
       await editor.fill("# 更新过的想法");
       await page.getByRole("button", { name: "保存", exact: true }).click();
       await page.getByTitle("已保存 · v2").waitFor();
+      const toast = page.locator(".bibo-space-feedback .ui-notice--success");
+      await toast.waitFor();
+      assert.equal(await toast.evaluate((element) => getComputedStyle(element).fontSize), "14px", "feedback uses the same action/body-small type scale");
+      const toastBox = await toast.boundingBox();
+      assert.ok(toastBox && Math.abs(toastBox.x + toastBox.width / 2 - viewport.width / 2) < 2, "notification is centered in the viewport");
+      assert.ok(toastBox && toastBox.y + toastBox.height < viewport.height - (viewport.width <= 760 ? 70 : 20), "notification clears mobile navigation and the bottom edge");
+      assert.equal(await toast.locator(":scope > button").count(), 1, "toast has a separate close action");
+      await page.screenshot({ path: `/tmp/workspace-toast-${viewport.width}.png`, animations: "disabled" });
+      await toast.getByRole("button", { name: "关闭提示" }).click();
+      await toast.waitFor({ state: "hidden" });
       const editorBox = await editor.boundingBox();
       assert.ok(editorBox && editorBox.y < 180 && editorBox.height > viewport.height * .6, "note content occupies the main workspace at desktop and mobile sizes");
       assert.equal(await page.getByRole("button", { name: "保存", exact: true }).isDisabled(), true, "saved file disables the shared action");
@@ -328,6 +353,22 @@ try {
       await page.keyboard.press("ArrowDown");
       assert.equal(await calendarAction.evaluate((element) => getComputedStyle(element).outlineStyle), "solid", "shared action has keyboard focus feedback");
       assert.equal(await page.getByRole("group", { name: "日程视图" }).getByRole("button", { name: "月", exact: true }).getAttribute("aria-pressed"), "true");
+      await calendarAction.click();
+      const eventDialog = page.getByRole("dialog", { name: "新日程" });
+      await eventDialog.waitFor();
+      const typography = await eventDialog.evaluate((element) => ({
+        title: getComputedStyle(element.querySelector("h2")!).fontSize,
+        labels: Array.from(element.querySelectorAll(".ui-field"), (node) => getComputedStyle(node).fontSize),
+        inputs: Array.from(element.querySelectorAll("input"), (node) => getComputedStyle(node).fontSize),
+        actions: Array.from(element.querySelectorAll("button:not(.ui-icon-button)"), (node) => getComputedStyle(node).fontSize),
+      }));
+      assert.equal(typography.title, "18px");
+      assert.ok(typography.labels.length > 0 && typography.labels.every((size) => size === "14px"));
+      assert.ok(typography.inputs.length > 0 && typography.inputs.every((size) => size === "16px"));
+      assert.ok(typography.actions.length > 0 && typography.actions.every((size) => size === "14px"));
+      await page.screenshot({ path: `/tmp/workspace-typography-${viewport.width}.png`, animations: "disabled" });
+      await eventDialog.getByRole("button", { name: "关闭日程编辑" }).click();
+      await eventDialog.waitFor({ state: "hidden" });
       const monthCells = page.locator(".calendar-date-select");
       assert.ok([28, 35, 42].includes(await monthCells.count()), "month shows complete calendar weeks");
       const currentMonth = await page.locator(".calendar-period > strong").textContent();

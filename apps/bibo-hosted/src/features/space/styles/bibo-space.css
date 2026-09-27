@@ -28,12 +28,12 @@
 .bibo-nav-item { @apply [min-height:40px] flex items-center gap-3 [border-radius:8px] [padding:7px_12px] [color:#586459] no-underline [line-height:1.3] [transition:background_.15s_ease]; }
 .bibo-nav-item:hover, .bibo-session-wrap:hover { @apply [background:var(--ui-hover)]; }
 .bibo-nav-item.is-active:hover, .bibo-session-wrap:has(.is-active):hover { @apply [background:var(--ui-selection-hover)]; }
-.bibo-nav-item.is-active { @apply [background:#e3ebe0] [color:#36543d] [font-weight:650]; }
+.bibo-nav-item.is-active { @apply [background:#e3ebe0] [color:#36543d] font-semibold; }
 .bibo-nav-mark { @apply [width:20px] text-center [font-size:17px] [color:#738778]; }
-.bibo-nav-item small { @apply [margin-left:auto] [min-width:17px] [border-radius:10px] [padding:0_5px] [background:#d8e5d5] [font-size:10px] text-center; }
+.bibo-nav-item small { @apply [margin-left:auto] [min-width:17px] [border-radius:10px] [padding:0_5px] [background:#d8e5d5] text-xs text-center; }
 .bibo-session-nav { @apply min-h-0 overflow-y-auto mt-5.5 [border-top:1px_solid_#e0e4dc] [padding:14px_1px_0]; }
-.bibo-session-head { @apply flex items-center justify-between [padding:0_10px_6px] [font-size:11px] [color:#869183]; }
-.bibo-session-item { @apply block w-full overflow-hidden whitespace-nowrap text-ellipsis text-left no-underline border-0 [border-radius:7px] bg-transparent bg-none [padding:7px_11px] [color:#657365] [font-size:12px] cursor-pointer; }
+.bibo-session-head { @apply flex items-center justify-between [padding:0_10px_6px] text-xs [color:#869183]; }
+.bibo-session-item { @apply block w-full overflow-hidden whitespace-nowrap text-ellipsis text-left no-underline border-0 [border-radius:7px] bg-transparent bg-none [padding:7px_11px] [color:#657365] text-sm cursor-pointer; }
 .bibo-session-item.is-active { @apply [background:#e7ede3] [color:#33563d]; }
 .bibo-session-wrap { @apply relative [border-radius:var(--ui-radius-sm)]; }
 .bibo-session-wrap .bibo-session-item { @apply [min-height:36px] pr-9.5; }
@@ -54,25 +54,27 @@
 .bibo-topbar-leading { @apply flex-1 min-w-0 mr-3 font-semibold [color:#48564b]; }
 .bibo-topbar-leading > .ui-icon-button { @apply flex-none; }
 .bibo-topbar-actions { @apply flex flex-none items-center gap-2; }
-.bibo-topbar-button { @apply bg-transparent border-0 [border-radius:7px] [padding:8px_11px] [color:#647565] cursor-pointer [font-size:12px]; }
+.bibo-topbar-button { @apply bg-transparent border-0 [border-radius:7px] [padding:8px_11px] [color:#647565] cursor-pointer text-xs; }
 .bibo-topbar-button:hover { @apply [background:#eef1e9]; }
-.bibo-account { @apply ml-3 [font-size:11px] [color:#90988e]; }
+.bibo-account { @apply ml-3 text-xs [color:#90988e]; }
 .bibo-chat-layout { @apply flex flex-1 min-h-0 min-w-0; }
 .bibo-chat-column { @apply flex-1 min-w-0 min-h-0 flex flex-col [background:#fffefa]; }
 .bibo-chat-column .bibo-messages { @apply [width:min(790px,_100%)]; }
 .bibo-chat-column .bibo-composer-wrap { @apply [width:min(790px,_100%)]; }
 .bibo-workspace { @apply [width:min(42%,_620px)] [min-width:340px] min-h-0 flex flex-col [background:#f5f6f1] [border-left:1px_solid_var(--bibo-hairline)]; }
-.bibo-workspace-head { @apply [height:48px] flex-none flex items-center justify-between [padding:0_17px] [border-bottom:1px_solid_var(--bibo-hairline)] [font-size:12px]; }
-.bibo-workspace-head .ui-control { @apply flex-1 min-w-0 [max-width:calc(100%_-_40px)] [padding:5px_8px] [border-color:transparent] [background-color:transparent] [font-size:12px]; }
+.bibo-workspace-head { @apply [height:48px] flex-none flex items-center justify-between [padding:0_17px] [border-bottom:1px_solid_var(--bibo-hairline)] text-xs; }
+.bibo-workspace-head .ui-control { @apply flex-1 min-w-0 [max-width:calc(100%_-_40px)] [padding:5px_8px] [border-color:transparent] [background-color:transparent]; }
 .bibo-workspace-content { @apply flex flex-col flex-1 min-h-0 overflow-hidden; }
 
 .bibo-space-scroll { @apply flex-1 min-h-0 overflow-y-auto relative; }
 .bibo-space-scroll.is-workspace { @apply flex flex-col overflow-hidden; }
-.bibo-space-feedback { @apply absolute [z-index:8] right-4 bottom-4 [max-width:min(420px,_calc(100%_-_32px))] pointer-events-none; }
+.bibo-space-feedback { @apply fixed [z-index:8] [left:50%] [transform:translateX(-50%)] bottom-6 flex flex-col gap-2 [max-width:min(420px,_calc(100vw_-_32px))] pointer-events-none; }
+@media (max-width: 760px) { .bibo-space-feedback { @apply [bottom:calc(80px_+_env(safe-area-inset-bottom))]; } }
 .bibo-space-feedback > * { @apply [pointer-events:auto]; }
+.bibo-space-feedback .ui-notice { @apply border [border-color:var(--ui-line)] shadow-lg; }
 .bibo-read-state { @apply flex-1 [min-height:min(440px,_calc(100dvh_-_150px))] flex flex-col items-center justify-center; }
 .bibo-read-state .ui-empty-state { @apply min-h-0 pb-4; }
-.workspace-title { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap m-0 [font:inherit] font-semibold; }
+.workspace-title { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap m-0 [font-family:inherit] font-semibold; }
 .visually-hidden { @apply absolute [width:1px] [height:1px] overflow-hidden [clip-path:inset(50%)] whitespace-nowrap; }
 .bibo-page.workspace-page { @apply flex flex-col flex-1 [max-width:none] min-h-0 p-0 m-0 overflow-hidden; }
 .workspace-page .workspace-toolbar { @apply flex-none [padding:10px_16px] m-0 [min-height:56px] gap-2 [border-bottom:1px_solid_var(--ui-line)]; }
@@ -96,7 +98,7 @@
 .task-complete { @apply [width:44px] [height:44px] [font-size:22px]; }
 .calendar-mobile-agenda { @apply hidden; }
 .inbox-back { @apply hidden; }
-.inbox-layout .bibo-detail-pane h2 { @apply [overflow-wrap:anywhere] [font-size:24px] [line-height:1.35]; }
+.inbox-layout .bibo-detail-pane h2 { @apply [overflow-wrap:anywhere] text-2xl [line-height:1.35]; }
 .inbox-layout .ui-list-row > span:not(.bibo-unread-dot) { @apply min-w-0 flex-1; }
 .inbox-layout .ui-list-row strong { @apply [overflow-wrap:anywhere]; }
 .inbox-layout .ui-list-row small { @apply overflow-hidden text-ellipsis whitespace-nowrap; }
@@ -105,9 +107,9 @@
 .workspace-page > .bibo-inline-input { @apply flex-none [margin:12px_16px]; }
 .bibo-page { @apply [max-width:1480px] [min-height:100%] [margin:0_auto] [padding:39px_clamp(22px,_4vw,_70px)_65px]; }
 .bibo-page-title { @apply flex justify-between [align-items:end] gap-6 mb-6.75; }
-.bibo-kicker { @apply [color:#899787] [font-size:10px] font-bold [letter-spacing:.16em] [text-transform:uppercase] [margin:0_0_8px]; }
+.bibo-kicker { @apply [color:#899787] text-xs font-bold [letter-spacing:.16em] [text-transform:uppercase] [margin:0_0_8px]; }
 .bibo-page-title h1 { @apply [font:500_clamp(29px,_3.1vw,_43px)/1.22_Georgia,_"Songti_SC",_serif] [letter-spacing:-.03em] [margin:0_0_8px]; }
-.bibo-page-title p:last-child { @apply m-0 [color:var(--bibo-subtle)] [font-size:13px]; }
+.bibo-page-title p:last-child { @apply m-0 [color:var(--bibo-subtle)] text-sm; }
 .bibo-overview { @apply [max-width:1380px] pt-7; }
 .bibo-overview .bibo-page-title { @apply mb-6.25; }
 .bibo-overview .bibo-page-title h1 { @apply [font-size:clamp(28px,_2.6vw,_36px)]; }
@@ -118,37 +120,37 @@
 .bibo-overview-brief:hover { @apply [background:#e6eedf]; }
 .bibo-overview-brief-mark { @apply flex-none [width:24px] [height:24px] grid [place-items:center] [border-radius:50%] [background:#567358] [color:white] [font-size:15px]; }
 .bibo-overview-brief-copy { @apply min-w-0 flex-1; }
-.bibo-overview-brief-copy strong { @apply block [font-size:14px] font-semibold; }
-.bibo-overview-brief-copy small { @apply block mt-0.75 [color:#6c7e6c] [font-size:12px] [overflow-wrap:anywhere]; }
-.bibo-overview-brief-action { @apply flex-none [font-size:12px]; }
+.bibo-overview-brief-copy strong { @apply block text-sm font-semibold; }
+.bibo-overview-brief-copy small { @apply block mt-0.75 [color:#6c7e6c] text-xs [overflow-wrap:anywhere]; }
+.bibo-overview-brief-action { @apply flex-none text-sm; }
 .bibo-summary-card { @apply min-w-0 [overflow-wrap:anywhere] [padding:20px_24px] [background:#fffefa] [border:1px_solid_var(--bibo-hairline)] [border-radius:11px]; }
-.bibo-card-heading { @apply flex justify-between gap-3 items-center [color:#6d806b] [font-size:11px]; }
-.bibo-card-heading small { @apply [color:#95a291] [font-size:10px]; }
-.bibo-summary-card h2 { @apply [font:500_20px/1.38_Georgia,_"Songti_SC",_serif] [margin:10px_0_13px]; }
-.bibo-card-empty { @apply [color:#9ba499] [font-size:12px] [margin:12px_0_0]; }
+.bibo-card-heading { @apply flex justify-between gap-3 items-center [color:#6d806b] text-xs; }
+.bibo-card-heading small { @apply [color:#95a291] text-xs; }
+.bibo-summary-card h2 { @apply text-lg leading-7 font-semibold [margin:10px_0_13px]; }
+.bibo-card-empty { @apply [color:#9ba499] text-xs [margin:12px_0_0]; }
 .bibo-summary-row { @apply w-full flex [align-items:baseline] justify-between gap-4 text-left border-0 [border-top:1px_solid_#edf0e9] bg-transparent [padding:11px_0] cursor-pointer [color:#45564a]; }
 .bibo-summary-row:hover { @apply [color:var(--bibo-leaf)]; }
-.bibo-summary-row strong { @apply min-w-0 [font-size:13px] [font-weight:560]; }
-.bibo-summary-row span { @apply flex-none [font-size:11px] [color:#879688] whitespace-nowrap; }
+.bibo-summary-row strong { @apply min-w-0 text-sm font-semibold; }
+.bibo-summary-row span { @apply flex-none text-xs [color:#879688] whitespace-nowrap; }
 .bibo-project-list { @apply grid [grid-template-columns:1fr] gap-1 mt-3.5; }
 .bibo-project-list button { @apply relative [min-height:58px] flex items-start justify-between gap-3 text-left bg-transparent bg-none border-0 [border-top:2px_solid_#e1e8dd] [color:#475b4b] [padding:12px_0] cursor-pointer; }
-.bibo-project-list button strong { @apply min-w-0 [font-size:13px]; }
-.bibo-project-list button span { @apply [color:#97a396] [font-size:11px] whitespace-nowrap; }
+.bibo-project-list button strong { @apply min-w-0 text-sm; }
+.bibo-project-list button span { @apply [color:#97a396] text-xs whitespace-nowrap; }
 .bibo-project-list button i { @apply absolute [top:-2px] left-0 [height:2px] [background:#688b6a]; }
 .bibo-mobile-nav { @apply hidden; }
 
 .bibo-split { @apply grid [grid-template-columns:minmax(290px,_.85fr)_minmax(400px,_1.15fr)] [background:#fffefa] [border:1px_solid_var(--bibo-hairline)] [border-radius:13px] [min-height:min(660px,_calc(100dvh_-_235px))] overflow-hidden; }
 .bibo-list-pane { @apply min-w-0 [border-right:1px_solid_var(--bibo-hairline)] overflow-y-auto; }
 .bibo-detail-pane { @apply min-w-0 [padding:35px_clamp(24px,_3vw,_50px)] overflow-y-auto; }
-.bibo-detail-pane > h2, .bibo-editor-form h2 { @apply [overflow-wrap:anywhere] [font:500_27px/1.3_Georgia,_"Songti_SC",_serif] [margin:7px_0_24px]; }
-.bibo-readable { @apply min-w-0 [max-width:700px] [color:#5d685d] [font-size:14px]; }
-.bibo-pane-label { @apply [height:43px] flex gap-1.75 items-center [padding:0_17px] [border-bottom:1px_solid_var(--bibo-hairline)] [color:#839182] [font-size:11px]; }
+.bibo-detail-pane > h2, .bibo-editor-form h2 { @apply [overflow-wrap:anywhere] text-lg leading-7 font-semibold [margin:7px_0_24px]; }
+.bibo-readable { @apply min-w-0 [max-width:700px] [color:#5d685d] text-base leading-6; }
+.bibo-pane-label { @apply [height:43px] flex gap-1.75 items-center [padding:0_17px] [border-bottom:1px_solid_var(--bibo-hairline)] [color:#839182] text-xs; }
 .bibo-list-pane > .ui-list-row { @apply [min-height:74px]; }
 .ui-list-row > span:nth-child(2) { @apply flex-1 min-w-0; }
-.ui-list-row strong, .bibo-note-list .ui-list-row strong { @apply [display:-webkit-box] [font-size:13px] [font-weight:620]; }
+.ui-list-row strong, .bibo-note-list .ui-list-row strong { @apply [display:-webkit-box] text-sm font-semibold; }
 .ui-list-row strong, .bibo-summary-row strong, .bibo-project-list button strong { @apply [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden [overflow-wrap:anywhere]; }
-.ui-list-row small, .bibo-note-list .ui-list-row small { @apply block [color:#95a093] [font-size:11px] mt-1.25 overflow-hidden text-ellipsis whitespace-nowrap; }
-.ui-list-row time { @apply flex-none [color:#9ba59a] [font-size:10px]; }
+.ui-list-row small, .bibo-note-list .ui-list-row small { @apply block [color:#95a093] text-xs mt-1.25 overflow-hidden text-ellipsis whitespace-nowrap; }
+.ui-list-row time { @apply flex-none [color:#9ba59a] text-xs; }
 .bibo-unread-dot { @apply [width:7px] [height:7px] flex-none mt-1.5 [border-radius:50%] [background:#739274]; }
 .bibo-unread-dot.is-read { @apply bg-transparent; }
 .bibo-action-row { @apply flex gap-2.25 items-center flex-wrap mt-6.25; }
@@ -161,18 +163,18 @@
 .bibo-task-layout { @apply [grid-template-columns:minmax(360px,_1fr)_minmax(360px,_.9fr)]; }
 .bibo-task-row { @apply items-center [padding:15px_19px]; }
 .bibo-task-state { @apply [width:20px] [font-size:17px] [color:#779076]; }
-.bibo-task-row strong { @apply [font-size:13px] font-semibold; }
-.bibo-task-row small { @apply block mt-1.25 [color:#98a197] [font-size:11px]; }
-.bibo-task-status-label { @apply flex-none [margin-left:auto] [color:#788b79] [font-size:11px] whitespace-nowrap; }
+.bibo-task-row strong { @apply text-sm font-semibold; }
+.bibo-task-row small { @apply block mt-1.25 [color:#98a197] text-xs; }
+.bibo-task-status-label { @apply flex-none [margin-left:auto] [color:#788b79] text-xs whitespace-nowrap; }
 .bibo-board { @apply grid [grid-template-columns:repeat(4,_minmax(180px,_1fr))] gap-0.25 [background:var(--bibo-hairline)] [min-height:100%] overflow-x-auto; }
 .bibo-board section { @apply [background:#fffefa]; }
-.bibo-board h3 { @apply m-0 [padding:14px_12px] [font-size:12px] [color:#6b7d6b]; }
+.bibo-board h3 { @apply m-0 [padding:14px_12px] text-xs [color:#6b7d6b]; }
 .bibo-board h3 small { @apply [font-weight:normal]; }
 .bibo-board .bibo-task-row { @apply p-2.75; }
 .bibo-editor-form { @apply flex flex-col [max-width:620px]; }
 .workspace-page .task-detail-pane { @apply flex flex-col overflow-hidden; }
 .workspace-detail-head { @apply flex flex-none items-center justify-between mb-3; }
-.workspace-detail-head h2 { @apply m-0 [font-size:17px] font-semibold; }
+.workspace-detail-head h2 { @apply m-0 text-lg font-semibold; }
 .task-editor { @apply flex-1 min-h-0 [max-width:none]; }
 .task-editor-fields { @apply flex-1 min-h-0 min-w-0 overflow-auto p-0.5 border-0 m-0; }
 .task-editor > .bibo-action-row { @apply flex-none mt-3 pt-3 [border-top:1px_solid_var(--ui-line)]; }
@@ -180,16 +182,16 @@
 .bibo-inline-input .ui-control { @apply w-full; }
 .bibo-form-pair { @apply grid [grid-template-columns:repeat(2,_minmax(0,_1fr))] gap-3; }
 .bibo-subtasks { @apply [border-top:1px_solid_var(--bibo-hairline)] pt-2.25; }
-.bibo-subtasks > p { @apply [color:#6c7e6c] [font-size:11px]; }
-.bibo-editor-form .bibo-check-row { @apply flex flex-row items-center gap-2 [min-height:32px] mb-1 [color:#4f6052] [font-size:13px]; }
+.bibo-subtasks > p { @apply [color:#6c7e6c] text-xs; }
+.bibo-editor-form .bibo-check-row { @apply flex flex-row items-center gap-2 [min-height:32px] mb-1 [color:#4f6052] text-sm; }
 .bibo-check-row label { @apply flex flex-1 min-w-0 items-center gap-2 cursor-pointer; }
 .bibo-check-row input { @apply [width:auto]; }
 .bibo-check-row span { @apply flex-1; }
 .bibo-check-row .ui-icon-button { @apply flex-none; }
 .bibo-inline-input { @apply flex gap-1.75 [max-width:500px] mb-3.5; }
-.bibo-conflict { @apply [margin:0_0_16px] p-2.5 [background:#f6f0df] [color:#857451] [border-radius:7px] [font-size:12px]; }
+.bibo-conflict { @apply [margin:0_0_16px] p-2.5 [background:#f6f0df] [color:#857451] [border-radius:7px] text-xs; }
 .calendar-period { @apply flex items-center gap-2 [margin-left:auto] shrink-0; }
-.calendar-period > strong { @apply [min-width:80px] text-center [font-size:12px] [color:#536755]; }
+.calendar-period > strong { @apply [min-width:80px] text-center text-xs [color:#536755]; }
 .bibo-calendar-controls { @apply flex-wrap; }
 .bibo-calendar-controls > .ui-button { @apply shrink-0 whitespace-nowrap; }
 .bibo-task-layout:not(.is-detail-open) { @apply block; }
@@ -203,17 +205,17 @@
 .calendar-surface { @apply flex flex-col min-h-0 min-w-0; }
 .calendar-inspector { @apply min-h-0 min-w-0 overflow-auto p-5 [border-left:1px_solid_var(--ui-line)]; }
 .calendar-inspector .bibo-day-agenda { @apply p-0 border-0 [height:auto]; }
-.calendar-inspector .bibo-editor-form h2 { @apply [font-family:inherit] [font-size:17px] font-semibold [line-height:1.4] [margin:0_0_20px]; }
+.calendar-inspector .bibo-editor-form h2 { @apply [font-family:inherit] text-lg font-semibold [line-height:1.4] [margin:0_0_20px]; }
 .calendar-inspector .bibo-form-pair { @apply [grid-template-columns:1fr] gap-0; }
 .calendar-mobile-day, .calendar-mobile-back { @apply hidden; }
 .calendar-page .calendar-period { @apply ml-0; }
 .calendar-month { @apply flex flex-col flex-1 min-h-0 overflow-auto; }
 .calendar-time-scroll { @apply flex-1 min-h-0 overflow-auto; }
 .calendar-time-grid { @apply grid [width:max-content] [min-width:100%]; }
-.calendar-time-heading { @apply sticky top-0 [z-index:2] [padding:12px_8px] [background:var(--ui-surface)] [border-bottom:1px_solid_var(--bibo-hairline)] text-center [font-size:12px] whitespace-nowrap; }
+.calendar-time-heading { @apply sticky top-0 [z-index:2] [padding:12px_8px] [background:var(--ui-surface)] [border-bottom:1px_solid_var(--bibo-hairline)] text-center text-xs whitespace-nowrap; }
 .calendar-time-heading:first-child { @apply left-0 [z-index:4]; }
 .calendar-hours { @apply flex flex-col sticky left-0 [z-index:3] [background:var(--ui-surface)]; }
-.calendar-hours span { @apply [height:var(--calendar-hour-height,_48px)] flex-none text-center [font-size:10px] [color:var(--bibo-subtle)]; }
+.calendar-hours span { @apply [height:var(--calendar-hour-height,_48px)] flex-none text-center text-xs [color:var(--bibo-subtle)]; }
 .calendar-time-day { @apply relative [border-left:1px_solid_var(--bibo-hairline)] min-w-0; }
 .calendar-time-scroll { --calendar-hour-height: 48px; --calendar-minute-height: 0.8px; }
 .calendar-time-slot { @apply block w-full [height:calc(var(--calendar-hour-height)_/_2)] border-0 [border-bottom:1px_solid_var(--bibo-hairline)] bg-transparent cursor-pointer; }
@@ -222,12 +224,12 @@
 .calendar-time-slot:hover { @apply [background:var(--ui-hover)]; }
 .calendar-time-event { @apply absolute border-0 [border-left:2px_solid_var(--ui-primary)] [border-radius:4px] [background:var(--ui-selection)] [color:var(--ui-ink)] [padding:5px_6px] text-left overflow-hidden cursor-pointer; }
 .calendar-time-event strong, .calendar-time-event small { @apply block whitespace-nowrap overflow-hidden text-ellipsis; }
-.calendar-time-event strong { @apply [font-size:11px] font-semibold; }
-.calendar-time-event small { @apply [font-size:10px] mt-1 [color:var(--ui-muted)]; }
+.calendar-time-event strong { @apply text-xs font-semibold; }
+.calendar-time-event small { @apply text-xs mt-1 [color:var(--ui-muted)]; }
 .calendar-weekdays, .calendar-month-grid { @apply grid [grid-template-columns:repeat(7,_minmax(0,_1fr))]; }
 .calendar-month-grid { @apply flex-1 [grid-auto-rows:minmax(84px,_1fr)]; }
 .calendar-weekdays { @apply [background:var(--ui-canvas)] [border-bottom:1px_solid_var(--bibo-hairline)]; }
-.calendar-weekdays span { @apply [padding:10px_12px] [font-size:12px] [color:var(--bibo-subtle)]; }
+.calendar-weekdays span { @apply [padding:10px_12px] text-xs [color:var(--bibo-subtle)]; }
 .calendar-date { @apply relative p-1.5 [border-right:1px_solid_var(--bibo-hairline)] [border-bottom:1px_solid_var(--bibo-hairline)] min-w-0; }
 .calendar-date:nth-child(7n) { @apply [border-right:0]; }
 .calendar-date:nth-last-child(-n+7) { @apply [border-bottom:0]; }
@@ -235,39 +237,39 @@
 .calendar-date.is-selected { @apply [background:var(--ui-calendar-selection)]; }
 .calendar-date-select { @apply absolute [inset:0] w-full border-0 bg-transparent [color:inherit] p-0 cursor-pointer; }
 .calendar-date-select:focus-visible { @apply [outline:2px_solid_var(--ui-primary)] [outline-offset:-2px]; }
-.calendar-date-select span { @apply absolute top-1.5 left-1.5 grid [place-items:center] [width:28px] [height:28px] [border-radius:50%] [font-size:12px]; }
+.calendar-date-select span { @apply absolute top-1.5 left-1.5 grid [place-items:center] [width:28px] [height:28px] [border-radius:50%] text-xs; }
 .calendar-date.is-today .calendar-date-select span { @apply [background:var(--ui-accent,_#53694f)] [color:white]; }
 .calendar-date-events { @apply relative [z-index:1] grid gap-0.75 mt-8; }
-.calendar-date-events button { @apply flex gap-1.25 w-full min-w-0 [padding:4px_5px] border-0 [border-radius:4px] [background:var(--ui-hover,_#e8ece2)] [color:inherit] text-left [font-size:11px] cursor-pointer; }
+.calendar-date-events button { @apply flex gap-1.25 w-full min-w-0 [padding:4px_5px] border-0 [border-radius:4px] [background:var(--ui-hover,_#e8ece2)] [color:inherit] text-left text-xs cursor-pointer; }
 .calendar-date-events button:hover, .calendar-time-event:hover { @apply [background:var(--ui-selection-hover)]; }
 .calendar-date-select:hover { @apply [background:var(--ui-hover)]; }
 .calendar-date-events time { @apply [opacity:.75] flex-none; }
 .calendar-date-events span { @apply overflow-hidden whitespace-nowrap text-ellipsis; }
 .calendar-date-events .calendar-overflow { @apply bg-transparent [color:var(--bibo-subtle)]; }
 @media (max-width: 680px) {
-  .calendar-weekdays span { @apply [padding:9px_0] text-center [font-size:11px]; }
+  .calendar-weekdays span { @apply [padding:9px_0] text-center text-xs; }
   .calendar-date { @apply [min-height:94px] p-0.75; }
   .calendar-date-select span { @apply top-0.75 [left:50%] [transform:translateX(-50%)]; }
-  .calendar-date-events button { @apply [padding:3px_2px] [font-size:10px]; }
+  .calendar-date-events button { @apply [padding:3px_2px] text-xs; }
   .calendar-date-events time { @apply hidden; }
 }
 .bibo-day-agenda { @apply [padding:25px_26px] [border-right:0]; }
 .bibo-agenda-heading { @apply flex justify-between [align-items:end] gap-5 pb-4.5 [border-bottom:1px_solid_var(--bibo-hairline)]; }
-.bibo-agenda-heading h2 { @apply m-0 [font:500_25px_Georgia,_"Songti_SC",_serif]; }
-.bibo-agenda-heading > span { @apply whitespace-nowrap [color:#8d998b] [font-size:11px]; }
+.bibo-agenda-heading h2 { @apply m-0 text-lg leading-7 font-semibold; }
+.bibo-agenda-heading > span { @apply whitespace-nowrap [color:#8d998b] text-xs; }
 .bibo-agenda-items { @apply pt-3.25; }
 .bibo-agenda-event { @apply grid [grid-template-columns:75px_minmax(0,_1fr)] gap-3.75 [padding:14px_12px_14px_0]; }
-.bibo-agenda-event > span { @apply [color:#668467] [font-size:12px] [font-weight:650]; }
-.bibo-agenda-event small { @apply block mt-1 [color:#96a194] [font-size:10px] font-normal; }
-.bibo-agenda-event strong { @apply block [overflow-wrap:anywhere] [font-size:14px] [font-weight:620]; }
+.bibo-agenda-event > span { @apply [color:#668467] text-xs font-semibold; }
+.bibo-agenda-event small { @apply block mt-1 [color:#96a194] text-xs font-normal; }
+.bibo-agenda-event strong { @apply block [overflow-wrap:anywhere] text-sm font-semibold; }
 .bibo-agenda-empty { @apply flex flex-col items-start gap-2 [padding:32px_0_25px]; }
-.bibo-agenda-empty strong { @apply [font:500_20px_Georgia,_"Songti_SC",_serif]; }
-.bibo-agenda-empty span { @apply [color:#929d90] [font-size:12px]; }
+.bibo-agenda-empty strong { @apply text-lg leading-7 font-semibold; }
+.bibo-agenda-empty span { @apply [color:#929d90] text-xs; }
 .bibo-agenda-empty button { @apply pl-0 mt-1; }
 .bibo-upcoming { @apply mt-6.75 [border-top:1px_solid_var(--bibo-hairline)] pt-4.75; }
 .bibo-upcoming button { @apply flex w-full gap-3.5 [align-items:baseline] [padding:10px_0] border-0 [border-bottom:1px_solid_#eff1eb] bg-transparent text-left [color:#506551] cursor-pointer; }
-.bibo-upcoming button span { @apply [min-width:105px] [color:#8d9b8a] [font-size:11px]; }
-.bibo-upcoming button strong { @apply [font-size:12px] [font-weight:550]; }
+.bibo-upcoming button span { @apply [min-width:105px] [color:#8d9b8a] text-xs; }
+.bibo-upcoming button strong { @apply text-xs font-semibold; }
 
 .bibo-files-page { @apply [max-width:none] flex flex-col h-full; }
 .bibo-files-page .bibo-page-title { @apply flex-none; }
@@ -284,20 +286,20 @@
 .bibo-pane-label > span { @apply flex-1; }
 .bibo-tree-scroll { @apply overflow-y-auto flex-1 min-h-0 [padding:9px_5px_18px]; }
 .file-tree-search { @apply flex flex-none items-center gap-1 p-2; }
-.file-tree-search .ui-control { @apply min-w-0 [padding:7px_9px] [font-size:12px]; }
+.file-tree-search .ui-control { @apply min-w-0 [padding:7px_9px]; }
 .bibo-tree-row { @apply flex items-center [min-height:31px] pr-1.25 [border-radius:6px]; }
 .bibo-tree-row:hover { @apply [background:var(--ui-hover)]; }
 .bibo-tree-row.is-selected:hover { @apply [background:var(--ui-selection-hover)]; }
 .bibo-tree-row.is-selected { @apply [background:var(--ui-selection)]; }
-.bibo-tree-main { @apply flex-1 flex items-center gap-1.75 overflow-hidden border-0 bg-transparent bg-none text-left [color:#576a5a] cursor-pointer [font-size:12px]; }
+.bibo-tree-main { @apply flex-1 flex items-center gap-1.75 overflow-hidden border-0 bg-transparent bg-none text-left [color:#576a5a] cursor-pointer text-sm; }
 .bibo-tree-name { @apply min-w-0 overflow-hidden whitespace-nowrap text-ellipsis; }
 .bibo-tree-disclosure { @apply flex-none [width:13px] [height:13px] [color:#91a28d]; }
 .bibo-tree-disclosure svg, .bibo-file-kind-icon svg { @apply block [width:13px] [height:13px] [stroke-width:1.8]; }
 .bibo-file-kind-icon { @apply inline-flex flex-none items-center justify-center [width:15px] [height:15px] [color:#829b83]; }
 .bibo-tree-row.is-selected .bibo-file-kind-icon, .bibo-file-tab.is-active .bibo-file-kind-icon { @apply [color:var(--bibo-leaf)]; }
-.bibo-tree-empty { @apply [font-size:11px] [color:#a0aa9c] [padding:0_13px]; }
-.bibo-tree-empty-folder { @apply [margin:4px_0_9px] [color:var(--ui-muted)] [font-size:11px]; }
-.bibo-tree-search-error { @apply [padding:4px_12px] [color:var(--ui-danger)] [font-size:11px]; }
+.bibo-tree-empty { @apply text-xs [color:#a0aa9c] [padding:0_13px]; }
+.bibo-tree-empty-folder { @apply [margin:4px_0_9px] [color:var(--ui-muted)] text-xs; }
+.bibo-tree-search-error { @apply [padding:4px_12px] [color:var(--ui-danger)] text-xs; }
 .bibo-tree-search-error p { @apply [margin:0_0_5px]; }
 .bibo-note-list { @apply overflow-y-auto; }
 .bibo-note-list .ui-list-row { @apply block [min-height:65px]; }
@@ -309,24 +311,24 @@
 .bibo-file-tabs { @apply flex flex-1 min-w-0 overflow-x-auto [scrollbar-width:thin]; }
 .bibo-file-tab { @apply flex items-center flex-none [max-width:220px] [border-right:1px_solid_var(--bibo-hairline)]; }
 .bibo-file-tab.is-active { @apply [background:#f0f4ed] [box-shadow:inset_0_-2px_var(--bibo-leaf)]; }
-.bibo-file-tab > button:not(.ui-icon-button) { @apply flex items-center gap-1.5 min-w-0 border-0 bg-transparent bg-none [color:var(--ui-muted)] [font-size:11px] cursor-pointer [padding:12px_5px_12px_14px]; }
+.bibo-file-tab > button:not(.ui-icon-button) { @apply flex items-center gap-1.5 min-w-0 border-0 bg-transparent bg-none [color:var(--ui-muted)] text-sm cursor-pointer [padding:12px_5px_12px_14px]; }
 .bibo-file-tab > button:not(.ui-icon-button) > span:not(.bibo-file-kind-icon) { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap; }
 .bibo-file-tab:hover { @apply [background:var(--ui-hover)]; }
 .bibo-file-tab.is-active:hover { @apply [background:var(--ui-selection-hover)]; }
 .bibo-file-editor { @apply flex-1 min-w-0 min-h-0 flex flex-col; }
 .bibo-file-editor-head { @apply flex flex-none [min-height:48px] items-center justify-between gap-3 [padding:6px_16px] [border-bottom:1px_solid_var(--ui-line)]; }
-.file-breadcrumb { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap [color:var(--ui-muted)] [font-size:12px]; }
+.file-breadcrumb { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap [color:var(--ui-muted)] text-xs; }
 .file-editor-tools { @apply flex flex-none items-center gap-2.5 [margin-left:auto]; }
 @media (min-width: 761px) and (max-width: 900px) {
   .bibo-files-layout, .bibo-files-layout:has(.bibo-note-list) { @apply [grid-template-columns:220px_minmax(0,_1fr)]; }
   .bibo-files-layout.is-tree-collapsed { @apply [grid-template-columns:minmax(0,_1fr)]; }
   .file-breadcrumb { @apply hidden; }
 }
-.file-conflict { @apply flex-none [padding:12px_16px] [border-bottom:1px_solid_var(--ui-line)] [background:var(--ui-canvas)] [color:var(--ui-ink)] [font-size:12px]; }
+.file-conflict { @apply flex-none [padding:12px_16px] [border-bottom:1px_solid_var(--ui-line)] [background:var(--ui-canvas)] [color:var(--ui-ink)] text-xs; }
 .file-conflict > div { @apply flex flex-wrap gap-2 mt-2; }
-.bibo-save-state { @apply [color:#93a093] [font-size:11px]; }
-.bibo-file-preview-markdown, .bibo-file-preview-frame { @apply flex-1 min-h-0 overflow-auto w-full m-0 p-6 border-0 [color:var(--ui-ink)] [font-size:14px] [line-height:1.8]; }
-.bibo-file-editor textarea { @apply flex-1 min-h-0 w-full m-0 p-6 border-0 [outline:0] bg-transparent [color:var(--ui-ink)] [font:14px/1.9_ui-monospace,_SFMono-Regular,_Menlo,_Consolas,_monospace] resize-none; }
+.bibo-save-state { @apply [color:#93a093] text-xs; }
+.bibo-file-preview-markdown, .bibo-file-preview-frame { @apply flex-1 min-h-0 overflow-auto w-full m-0 p-6 border-0 [color:var(--ui-ink)] text-base leading-7; }
+.bibo-file-editor textarea { @apply flex-1 min-h-0 w-full m-0 p-6 border-0 [outline:0] bg-transparent [color:var(--ui-ink)] font-mono text-base leading-7 resize-none; }
 .bibo-file-editor textarea:focus-visible { @apply [outline:0]; }
 .bibo-file-foot { @apply [border-top:1px_solid_var(--bibo-hairline)] [padding:4px_25px] flex gap-3.75; }
 .bibo-file-editor.is-compact .file-breadcrumb { @apply hidden; }
@@ -351,14 +353,14 @@
   .calendar-surface:has(.calendar-mobile-agenda) .calendar-date { @apply [min-height:56px]; }
   .calendar-surface:has(.calendar-mobile-agenda) .calendar-month-grid { @apply [grid-auto-rows:56px] flex-none; }
   .calendar-surface:has(.calendar-mobile-agenda) .calendar-date-events { @apply hidden; }
-  .calendar-date[data-count]::after { @apply [content:attr(data-count)] absolute bottom-1 [left:50%] [transform:translateX(-50%)] [color:var(--ui-primary)] [font-size:10px] pointer-events-none; }
+  .calendar-date[data-count]::after { @apply [content:attr(data-count)] absolute bottom-1 [left:50%] [transform:translateX(-50%)] [color:var(--ui-primary)] text-xs pointer-events-none; }
   .calendar-mobile-agenda { @apply block [border-top:1px_solid_var(--ui-line)]; }
   .calendar-mobile-agenda .bibo-upcoming { @apply hidden; }
   .calendar-mobile-agenda .bibo-day-agenda { @apply [height:auto] p-4 overflow-visible; }
   .calendar-mobile-agenda .bibo-agenda-heading { @apply pb-2.5; }
-  .calendar-mobile-agenda .bibo-agenda-heading h2 { @apply [font-family:inherit] [font-size:16px] font-semibold [line-height:1.4]; }
+  .calendar-mobile-agenda .bibo-agenda-heading h2 { @apply [font-family:inherit] text-base font-semibold [line-height:1.4]; }
   .bibo-mobile-nav { @apply fixed [z-index:4] bottom-0 left-0 right-0 [height:calc(61px_+_env(safe-area-inset-bottom))] flex items-stretch justify-around [padding-bottom:env(safe-area-inset-bottom)] [border-top:1px_solid_var(--bibo-hairline)] [background:#fffefa]; }
-  .bibo-mobile-nav a, .bibo-mobile-nav button { @apply flex-1 flex flex-col items-center justify-center gap-0.5 border-0 bg-transparent bg-none [color:#8b988a] no-underline [font-size:10px] cursor-pointer; }
+  .bibo-mobile-nav a, .bibo-mobile-nav button { @apply flex-1 flex flex-col items-center justify-center gap-0.5 border-0 bg-transparent bg-none [color:#8b988a] no-underline text-xs cursor-pointer; }
   .bibo-mobile-nav a span, .bibo-mobile-nav button span { @apply [font-size:20px] [line-height:1.1]; }
   .bibo-mobile-nav .is-active { @apply [color:#41684a]; }
   .bibo-main { @apply [padding-bottom:calc(61px_+_env(safe-area-inset-bottom))]; }

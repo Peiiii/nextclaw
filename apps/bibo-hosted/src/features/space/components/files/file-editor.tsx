@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, ConfirmDialog, EmptyState, Markdown, SegmentedControl } from "@nextclaw/personal-agent-ui";
+import { Button, ConfirmDialog, LoadingState, Markdown, SegmentedControl } from "@nextclaw/personal-agent-ui";
 import { FileActions } from "./file-actions";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 export function FileEditor({ id, compact = false }: { id: string; compact?: boolean }) {
@@ -17,7 +17,7 @@ export function FileEditor({ id, compact = false }: { id: string; compact?: bool
   };
   const detail = fileDetails[id];
   const draft = fileDrafts[id];
-  if (!detail || !draft) return <EmptyState title="正在打开" />;
+  if (!detail || !draft) return <LoadingState label="正在打开文件" />;
   const html = /\.(html?|svg)$/i.test(detail.path);
   const framed = `<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:"><style>body{margin:18px;font:14px/1.7 sans-serif;color:#29312a}</style>${draft.content}`;
   return (

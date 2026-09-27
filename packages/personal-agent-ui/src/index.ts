@@ -7,7 +7,7 @@ export { Markdown, type MarkdownLabels } from "./components/markdown/markdown";
 export { Composer } from "./components/composer";
 export { Field, Input, Select, Textarea } from "./components/field";
 export { SegmentedControl } from "./components/segmented-control";
-export { EmptyState } from "./components/empty-state";
+export { EmptyState, LoadingState } from "./components/empty-state";
 export { Notice } from "./components/notice";
 export { ListRow } from "./components/list-row";
 export { PageHeader } from "./components/page-header";

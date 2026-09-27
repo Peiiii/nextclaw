@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { useEffect } from "react";
-import { Button, EmptyState, IconButton, Notice, Select } from "@nextclaw/personal-agent-ui";
+import { Button, EmptyState, IconButton, LoadingState, Notice, Select } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore, type BiboView } from "@/features/space/stores/bibo-space.store";
 import { CalendarView } from "./calendar-view";
 import { Overview } from "./overview-view";
@@ -9,8 +9,8 @@ import { Tasks } from "./tasks-view";
 import { Files } from "./files/files-view";
 import { FileEditor } from "./files/file-editor";
 
-function Status() {
-  const { loading, saving, error, notice, clearNotice } = useBiboSpaceStore();
+function Status({ showNotice = true }: { showNotice?: boolean }) {
+  const { error, notice, clearNotice } = useBiboSpaceStore();
   useEffect(() => {
     if (!notice) return;
     const timer = window.setTimeout(clearNotice, 4000);
@@ -18,9 +18,8 @@ function Status() {
   }, [notice, clearNotice]);
   return (
     <>
-      {(saving || loading) && <Notice tone="loading">{saving ? "正在保存…" : "正在读取…"}</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
-      {notice && (
+      {showNotice && notice && (
         <Notice tone="success" onDismiss={clearNotice}>
           {notice}
         </Notice>
@@ -55,7 +54,7 @@ export function BiboWorkspace() {
         <IconButton label="关闭工作区" icon={<X />} onClick={closeWorkspace} />
       </div>
       <div className="bibo-workspace-content">
-        <Status />
+        <Status showNotice={false} />
         {workspaceFileId && !current && error ? (
           <div><EmptyState title="暂时无法打开文件" /><Button onClick={() => void openWorkspace(workspaceFileId)}>重试打开</Button></div>
         ) : workspaceFileId ? (
@@ -90,10 +89,8 @@ export function BiboSpaceView({
   const status = view === "files" || view === "notes" ? "ready" : readStatus[view] ?? "loading";
   const readState = status === "ready" || view === "calendar" ? content : (
     <div className="bibo-read-state" role={status === "error" ? "alert" : "status"}>
-      <EmptyState
-        title={status === "error" ? "暂时无法读取这个页面" : "正在读取你的内容"}
-        detail={status === "error" ? error || "请检查连接后重试。" : undefined}
-      />
+      {status === "error" ? <EmptyState title="暂时无法读取这个页面" detail={error || "请检查连接后重试。"} />
+        : <LoadingState label="正在加载页面" />}
       {status === "error" && <Button tone="secondary" onClick={() => void useBiboSpaceStore.getState().load(view)}>重试读取</Button>}
     </div>
   );

@@ -1,6 +1,6 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { BiboFile } from "@nextclaw/bibo-client";
-import { Button, IconButton, Input, ListRow } from "@nextclaw/personal-agent-ui";
+import { Button, IconButton, Input, ListRow, LoadingState } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { FileActions } from "./file-actions";
 import { FileKindIcon } from "./file-kind-icon";
@@ -141,6 +141,7 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
       aria-label={fileQuery ? "文件搜索结果" : "文件目录"}
     >
       {fileQuery ? <FileSearchResults /> : tree("", 0)}
+      {files.length === 0 && !fileQuery && loading && <LoadingState label="正在加载文件" />}
       {files.length === 0 && !fileQuery && !loading && !error && <p className="bibo-tree-empty">还没有文件。从新建开始。</p>}
     </div>
   );

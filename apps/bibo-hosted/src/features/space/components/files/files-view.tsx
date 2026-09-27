@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import type { BiboFile } from "@nextclaw/bibo-client";
 import {
   EmptyState,
+  LoadingState,
   Button,
   IconButton,
   ListRow,
@@ -107,6 +108,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
             {all.length === 0 && !loading && !error && (
               <EmptyState title={noteQuery ? "没有匹配的笔记" : "还没有笔记"} />
             )}
+            {all.length === 0 && loading && <LoadingState label="正在加载笔记" />}
             {cursors.notes && <Button tone="text" disabled={moreLoading.notes} onClick={() => void loadMore("notes")}>{moreLoading.notes ? "正在加载…" : "加载更多笔记"}</Button>}
           </aside>
         )}

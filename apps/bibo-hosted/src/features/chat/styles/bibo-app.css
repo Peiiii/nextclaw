@@ -2,33 +2,33 @@
 
 html, body, #root { @apply h-full m-0 overflow-hidden; }
 body { @apply [background:var(--bibo-canvas)]; }
-button, input, textarea { @apply [font:inherit]; }
+button, input, textarea, select { @apply [font-family:inherit]; }
 .bibo-shell { @apply flex [height:100dvh] min-h-0 overflow-hidden; }
 .bibo-sidebar { @apply [width:236px] flex-none [background:var(--bibo-sidebar)] [border-right:1px_solid_var(--bibo-line)] flex flex-col min-h-0 [padding:31px_18px_24px]; }
 .bibo-brand { @apply flex items-center gap-2.75 [padding:0_11px] [color:var(--bibo-ink)] no-underline [font-size:25px] [font-weight:750] [letter-spacing:-1.4px]; }
 .bibo-brand-mark { @apply grid [place-items:center] [width:37px] [height:37px] [border-radius:12px] [background:#315d53] [color:white] [font-size:24px] font-normal; }
 .bibo-brand-dot { @apply [color:#d98c69]; }
-.bibo-sidebar-label { @apply [margin:57px_12px_14px] [font-size:11px] [letter-spacing:.16em] [color:#95a298]; }
-.bibo-nav-item { @apply w-full text-left [padding:12px_14px] [color:#365044] [font-size:14px]; }
+.bibo-sidebar-label { @apply [margin:57px_12px_14px] text-xs [letter-spacing:.16em] [color:#95a298]; }
+.bibo-nav-item { @apply w-full text-left [padding:12px_14px] [color:#365044] text-sm; }
 .bibo-nav-item.is-active { @apply [background:var(--bibo-selection)] font-semibold; }
 .bibo-sidebar-spacer { @apply flex-1; }
-.bibo-sidebar-foot { @apply flex flex-col items-start gap-3.25 [padding:0_12px] [font-size:12px] [color:var(--bibo-muted)]; }
+.bibo-sidebar-foot { @apply flex flex-col items-start gap-3.25 [padding:0_12px] text-xs [color:var(--bibo-muted)]; }
 .bibo-online { @apply flex items-center gap-2; }
 .bibo-online > span { @apply [width:7px] [height:7px] [border-radius:50%] [background:#76a585] [box-shadow:0_0_0_4px_#dce9da]; }
 .bibo-main { @apply flex flex-1 flex-col min-w-0 min-h-0 overflow-hidden; }
-.bibo-topbar { @apply flex flex-none [height:74px] items-center justify-between [border-bottom:1px_solid_#e9ebe4] [padding:0_44px] [font-size:13px] [color:#5b6d61]; }
+.bibo-topbar { @apply flex flex-none [height:74px] items-center justify-between [border-bottom:1px_solid_#e9ebe4] [padding:0_44px] text-sm [color:#5b6d61]; }
 .bibo-topbar-leading { @apply flex items-center gap-4; }
 .bibo-account { @apply block [max-width:150px] overflow-hidden text-ellipsis whitespace-nowrap; }
 .bibo-slash { @apply [color:#b4beb4] [margin:0_9px]; }
-.bibo-beta { @apply [color:#799a82] [background:#e8efdf] [border:1px_solid_#dce8d4] [border-radius:6px] [font-size:10px] font-bold [letter-spacing:.1em] [padding:7px_9px]; }
+.bibo-beta { @apply [color:#799a82] [background:#e8efdf] [border:1px_solid_#dce8d4] [border-radius:6px] text-xs font-bold [letter-spacing:.1em] [padding:7px_9px]; }
 .bibo-menu-button { @apply hidden; }
 .bibo-conversation { @apply flex flex-1 relative flex-col min-h-0 overflow-hidden; }
 .bibo-welcome { @apply [width:min(800px,_100%)] [max-height:100%] [margin:auto] [padding:22px_24px_30px] text-center overflow-y-auto; }
 .bibo-orb { @apply grid [place-items:center] [width:120px] [height:120px] [margin:0_auto_32px] [border-radius:50%] [background:radial-gradient(circle_at_28%_24%,_#e1edda,_#9cb9a6_46%,_#446e5c_100%)] [box-shadow:0_20px_38px_#607a672a] [color:#faf8ef] [font-size:72px] [font-weight:300]; }
-.bibo-eyebrow { @apply [color:#7a9782] [font-size:10px] font-bold [letter-spacing:.17em]; }
+.bibo-eyebrow { @apply [color:#7a9782] text-xs font-bold [letter-spacing:.17em]; }
 .bibo-welcome h1 { @apply [font-family:Georgia,_"Noto_Serif_SC",_serif] [font-size:clamp(42px,_5vw,_62px)] font-medium [letter-spacing:-.045em] [margin:17px_0]; }
 .bibo-suggestions { @apply flex flex-wrap justify-center gap-2.5 mt-7; }
-.bibo-suggestions .ui-button { @apply flex items-center gap-2.25 [background:var(--bibo-surface)] [border:1px_solid_var(--bibo-line)] [border-radius:10px] [padding:11px_14px] [color:#4a6355] [font-size:13px]; }
+.bibo-suggestions .ui-button { @apply flex items-center gap-2.25 [background:var(--bibo-surface)] [border:1px_solid_var(--bibo-line)] [border-radius:10px] [padding:11px_14px] [color:#4a6355] text-sm; }
 .bibo-suggestions .ui-button:hover { @apply [border-color:#a9c0aa] [background:#f5f8f1]; }
 .bibo-suggestions .ui-button span:first-child { @apply [color:#749c80] [font-size:17px]; }
 .bibo-suggestions .ui-button span:last-child { @apply [color:#9cab9f]; }
@@ -37,25 +37,25 @@ button, input, textarea { @apply [font:inherit]; }
 .bibo-jump.ui-icon-button:enabled:hover { @apply [background:var(--ui-hover)]; }
 @media (pointer: coarse) { .bibo-jump.ui-icon-button { @apply [width:44px] [height:44px]; } }
 .bibo-composer-wrap { @apply [width:min(920px,_100%)] flex-none [align-self:center] [padding:0_32px_max(15px,_env(safe-area-inset-bottom))]; }
-.bibo-status { @apply [min-height:24px] [color:#a75c47] [font-size:12px] [padding:0_3px_5px]; }
+.bibo-status { @apply [min-height:24px] [color:#a75c47] text-xs [padding:0_3px_5px]; }
 .bibo-auth-overlay { @apply fixed [z-index:10] [inset:0] grid [place-items:center] [background:#1d2e27a6] p-5.5 [backdrop-filter:blur(6px)]; }
 .bibo-auth-card { @apply [width:min(430px,_100%)] [max-height:calc(100dvh_-_44px)] overflow-y-auto [background:#fbfaf5] [border:1px_solid_var(--bibo-line)] [border-radius:22px] [box-shadow:0_30px_80px_#18291e4d] p-7.75; }
 .bibo-auth-mark { @apply grid [place-items:center] [width:43px] [height:43px] [border-radius:12px] [background:#dce9dc] [color:#416d59] [font-size:28px]; }
 .bibo-auth-card .bibo-eyebrow { @apply [margin:25px_0_8px]; }
-.bibo-auth-card h2 { @apply [font:500_30px/1.2_Georgia,_"Noto_Serif_SC",_serif] m-0; }
-.bibo-auth-card > p:not(.bibo-eyebrow) { @apply [color:var(--bibo-muted)] [font-size:13px] [line-height:1.8]; }
+.bibo-auth-card h2 { @apply text-2xl leading-8 font-semibold m-0; }
+.bibo-auth-card > p:not(.bibo-eyebrow) { @apply [color:var(--bibo-muted)] text-sm [line-height:1.8]; }
 .bibo-auth-tabs { @apply [margin:18px_0]; }
 .bibo-auth-card form { @apply flex flex-col; }
-.bibo-auth-card label { @apply [color:#526b5b] [font-size:12px] font-semibold [margin:4px_0_7px]; }
+.bibo-auth-card label { @apply [color:#526b5b] text-xs font-semibold [margin:4px_0_7px]; }
 .bibo-auth-card .ui-control { @apply mb-3.25; }
 .bibo-code-row { @apply flex gap-2; }
 .bibo-code-row input { @apply flex-1 min-w-0; }
 .bibo-code-row .ui-button { @apply [align-self:flex-start] [border:1px_solid_#ccdac9] whitespace-nowrap; }
-.bibo-auth-error { @apply [min-height:18px] [margin:0_0_8px] [color:var(--bibo-danger)] [font-size:12px]; }
-.bibo-auth-card form > .ui-button--primary { @apply [font-size:14px]; }
+.bibo-auth-error { @apply [min-height:18px] [margin:0_0_8px] [color:var(--bibo-danger)] text-xs; }
+.bibo-auth-card form > .ui-button--primary { @apply text-sm; }
 .bibo-auth-card .bibo-auth-note {
  @apply [margin:17px_0_0];
- @apply [font-size:11px]!; }
+ @apply text-xs!; }
 @media (max-width: 760px) {
   .bibo-sidebar.is-drawer { @apply [position:static] w-full p-0 border-0 bg-transparent min-h-0 flex-1; }
   .bibo-topbar { @apply [height:56px] [padding:0_16px]; }
@@ -66,7 +66,7 @@ button, input, textarea { @apply [font:inherit]; }
   .bibo-welcome { @apply [padding:20px_16px]; }
   .bibo-orb { @apply [width:96px] [height:96px] mb-4.5 [font-size:58px]; }
   .bibo-welcome h1 { @apply [font-size:43px]; }
-  .bibo-suggestions .ui-button { @apply [font-size:12px] [padding:8px_10px]; }
+  .bibo-suggestions .ui-button { @apply text-xs [padding:8px_10px]; }
 }
 @media (max-height: 620px) { .bibo-orb { @apply [width:75px] [height:75px] mb-2.5 [font-size:44px]; } .bibo-welcome h1 { @apply [margin:8px_0]; } .bibo-suggestions { @apply mt-3; } }
 @media (prefers-reduced-motion: reduce) { .bibo-sidebar { @apply [transition:none]; } }
