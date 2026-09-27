@@ -24,4 +24,4 @@
 
 发布记录包含冻结 SHA、所选入口与范围依据、发布前后资源身份及线上验收。前端部署核对实际 JS／CSS／静态文件和真实页面；声明保留容器时必须比较部署前后镜像身份，不能仅凭命令成功判断。恢复先核对已完成步骤，再从 owner checkpoint 继续，避免重复发布。
 
-Bibo 的具体命令、工具版本和适用边界由 [Bibo Build and deploy](../../../../../../apps/bibo-hosted/README.md#build-and-deploy) 与 package scripts 维护；本合同不复制服务配置或镜像引用。
+Bibo 的具体命令、工具版本和适用边界由 [Bibo Build and deploy](../../../../../../apps/bibo-hosted/README.md#build-and-deploy) 与 package scripts 维护；本合同不复制服务配置或镜像引用。Bibo 发布只覆盖应用及适用的自身服务验证，不要求更新或部署 NextClaw 文档站；文档站 CI、CDN 和镜像一致性不属于 Bibo 完成门。

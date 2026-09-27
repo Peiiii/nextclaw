@@ -76,7 +76,7 @@
 
 - 想法、设计、计划、持续循环任务、PRD、路线图和迭代记录按 Wiki 中的 `project-knowledge-governance` 下级 Skill 分流；thought、design、plan、loop 默认使用带日期和角色后缀的中文文档。
 - `docs/logs` 只记录有独立交付意义的提交/发布、跨模块长链路、重要根因、红区或大型治理批次；同批微调更新最近相关迭代，不拆细碎目录。
-- 新增或改变用户可见功能时，必须同步更新文档站中面向用户的说明；设计、内部文档、迭代记录和 changeset 都不能替代。仅影响内部实现且没有用户可用路径时，明确记录不适用依据。
+- 新增或改变 NextClaw 用户可见功能时，同步维护其文档站使用说明。独立托管产品按自身交付范围维护必要说明，不附带 NextClaw 文档站更新与部署；内部实现变化不强加用户文档。
 - 用户可见产品变化才添加 changeset；纯内部规则、测试、治理和文档不进入用户 changelog。
 - 发布必须闭合适用的 migration、deploy、smoke、文档、NPM/runtime/desktop 合同；不适用项说明理由。
 - 用户明确要求稳定 NPM 发布或完整发布时，视为授权合同内的提交、tag、GitHub Release、文档和 update channel 闭环；用户限定只发某部分时遵守限定。

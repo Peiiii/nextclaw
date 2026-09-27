@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "apps/docs/**"
+      - "!apps/docs/zh/guide/bibo.md"
+      - "!apps/docs/en/guide/bibo.md"
       - "scripts/deploy/docs/**"
       - "infra/docs-delivery/**"
       - ".github/workflows/docs-deploy.yml"
@@ -12,10 +14,12 @@ on:
   push:
     branches: [master]
     paths:
+      # Bibo is delivered independently; its legacy guide does not trigger this site.
       - "apps/docs/**"
+      - "!apps/docs/zh/guide/bibo.md"
+      - "!apps/docs/en/guide/bibo.md"
       - "scripts/deploy/docs/**"
       - "infra/docs-delivery/**"
-      - ".github/workflows/docs-deploy.yml"
       - "package.json"
       - "pnpm-lock.yaml"
   workflow_dispatch:

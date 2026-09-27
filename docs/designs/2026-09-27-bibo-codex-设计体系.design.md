@@ -50,15 +50,15 @@
 
 - contract-id：bibo-codex-design-2026-09-27
 - parent-goal：Bibo 主应用采用 Codex 参考的统一几何/布局体系并在线可用。
-- scope-revision：4，用户补充两种主题、操作控件与 Tab、tooltip 信息增益、卡片／移动导航反馈、导航行间留白、品牌无底板及图标正方形要求；无待决缩减。
+- scope-revision：5，承接两种主题、操作控件与 Tab、tooltip 信息增益、卡片／移动导航反馈、导航行间留白、品牌无底板及图标正方形要求。用户明确移除 Bibo 发布附带 NextClaw 文档站更新／部署的流程；应用部署和验证范围不变。
 
 | ID | Required | Status | 当前证据 |
 | --- | --- | --- | --- |
 | BC1 | true | passed | 1512／1100／390／320px 截图及几何测量；6 个数据页和右侧工作区，经典／简约及登录页正常渲染 |
 | BC2 | true | passed | product smoke 的桌面折叠、抽屉／Escape／焦点恢复、长名称与 768px 工具栏无横溢；触屏单独验证 |
-| BC3 | true | partial | composer／product 受控链路通过发送、流式、停止、保存、刷新、失败重试；正式账号待部署后复验 |
+| BC3 | true | passed | composer／product 受控链路通过发送、流式、停止、保存、刷新、失败重试；生产专用账号真实模型流式、保存、刷新和文件展示 smoke 通过，requestId=bibo-live-ad139586 |
 | BC4 | true | passed | 组件库与 Worker/client/runner tsc、Vite 构建、定向 ESLint／maintainability、范围治理、文档双语检查通过 |
-| BC5 | true | not-run | 冻结远程 master 的应用部署、线上新资源和实际会话、主线安全回流 |
+| BC5 | true | passed | 冻结远程 master b3c2797f2 发布应用版本 c1832472-ebdd-4b48-9786-bb4f2124716a；实际 JS/CSS、账号与会话、桌面／触屏几何复验通过；容器身份保持，远程主干完成，活跃 WIP 导致本地镜像同步由既有 retry owner 接管 |
 | BC6 | true | passed | 默认经典、切换与刷新记忆通过，草稿和消息 DOM 身份稳定，输入器焦点外观不变 |
 | BC7 | true | passed | 图标尺寸与正方形、导航内缩反馈、文字按钮／筛选／内容无重复提示、Tab 键盘与目录导航通过；规范 owner 与开发入口已同步 |
 
@@ -70,4 +70,6 @@ mode=design：基于远程新版重新审查后通过。独立反查原截图和
 
 ## 执行证据与交付记录
 
-待实现和验证后补充实际结果；视觉主观偏好需用户体验确认。
+正式入口 https://app.bibo.bot/ 已上线；默认经典，账号菜单选择简约并刷新保留，草稿／消息 DOM 身份稳定。1365／546px 鼠标、390／320px 触屏六个页面无横溢或运行错误；图标分别 32px／44px 正方形，文件搜索输入分别 36px／44px。生产收件箱分段 hover：经典 #d2dfcd、简约 #dedede，均无重复 tooltip。视觉主观偏好留给用户体验确认。
+
+文档站同步属于过宽规则引入的错误发布范围，用户明确撤销。只撤回本任务新增的双语段落，保留其它任务内容；收窄原规则与 Bibo delivery owner，移除 legacy Bibo guide 对文档站 push 的触发。文档站失败不再作为本任务缺口，不继续 CDN 恢复。

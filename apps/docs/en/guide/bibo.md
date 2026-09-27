@@ -1,9 +1,5 @@
 # Bibo hosted companion
 
-The workspace uses consistent, compact controls. On desktop, the icon rail opens each module and the conversation sidebar can collapse independently. Buttons, file tabs and view selectors share one size system, with larger touch targets on mobile. Hovering or focusing actions shows tooltips; rail hints appear to the right and toolbar hints prefer the bottom, with automatic edge avoidance.
-
-Choose **Bibo Classic** (“Bibo 经典”) or **Minimal** (“简约”) under **Appearance** (“外观主题”) in the bottom-left account menu. Classic is the default, retaining warm whites and greens; Minimal uses neutral colors with the same layout. Your choice is saved in this browser and survives refresh. On mobile, first open the top-left navigation menu.
-
 The website, app and help page share a purple Bibo icon in browser tabs, making Bibo easier to find among open pages.
 
 Forms, menus, and feedback share a consistent text hierarchy, with readable input sizes on phones. Successful task, project, event, file, and inbox actions show the updated content without a duplicate success toast. Errors remain beside the relevant input, editor, or dialog until you correct or retry the action.
