@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { chromium, type Page } from "playwright";
 
 const origin = "https://app.bibo.bot";
+const displayOnly = process.env.BIBO_SMOKE_SCOPE === "display";
 const accountFile = process.env.BIBO_SMOKE_ACCOUNT_FILE ?? join(homedir(), ".config", "bibo-hosted", "smoke-account.json");
 type SmokeAccount = { origin: string; email: string; password: string; userId: string };
 
@@ -35,7 +36,7 @@ const headers = { cookie };
 const requestId = `bibo-live-${crypto.randomUUID().slice(0, 8)}`;
 const artifactPath = `${requestId}.md`;
 const artifactContent = `# ${requestId}\n\n真实 Agent 文件验收。`;
-const prompt = `请通过 Bibo 第一方能力创建产物文件 ${artifactPath}，内容严格为：\n${artifactContent}\n先按需查询文件领域用法，再实际执行。创建后调用 show_file，在右侧预览该文件。不要用 shell 或直接修改 JSON。成功后用一句话回复“${requestId} 已收到”，不要创建其他对象。`;
+const prompt = `请调用 bibo 工具执行 file.create，input 的 path=${artifactPath}、kind=artifact、content 严格为：\n${artifactContent}\n创建后调用 show_file，path 使用返回的文件路径，viewer=rendered，在右侧预览该文件。不要用 shell 或直接修改 JSON。成功后用一句话回复“${requestId} 已收到”，不要创建其他对象。`;
 const abort = new AbortController();
 const timeout = setTimeout(() => abort.abort(), 300_000);
 let createdSessionId: string | undefined;
@@ -140,14 +141,22 @@ async function searchProbe(): Promise<{ requestId: string; resultCount: number }
 
 async function streamedRun(page: Page, message = prompt): Promise<{ deltaCount: number; displayCount: number; totalMs: number }> {
   const started = performance.now();
+  await page.evaluate(() => { Reflect.set(window, "biboSmokeStream", null); });
   const result = page.waitForResponse((response) => response.url() === `${origin}/api/chat`, { timeout: 300_000 });
   await page.getByRole("textbox", { name: /告诉 Bibo/ }).fill(message);
   await page.getByRole("button", { name: "发送消息", exact: true }).click();
   const response = await result;
   assert.equal(response.status(), 200, `Chat returned ${response.status()}`);
   assert.ok(response.headers()["content-type"]?.includes("text/event-stream"), "Chat must stream SSE");
+  await page.waitForFunction(() => Reflect.get(window, "biboSmokeStream") !== null, null, { timeout: 300_000 });
+  const captured = await page.evaluate(() => Reflect.get(window, "biboSmokeStream") as { text?: string; error?: string });
+  assert.ok(captured.text, captured.error ?? "Browser did not capture the chat stream");
   let state: StreamState = { accepted: false, saving: false, committed: false, deltaCount: 0, displayCount: 0 };
-  for (const frame of (await response.text()).split("\n\n")) state = recordFrame(frame, state);
+  try {
+    for (const frame of captured.text.split("\n\n")) state = recordFrame(frame, state);
+  } catch (error) {
+    throw new Error(`Chat failed after ${Math.round(performance.now() - started)}ms (${state.deltaCount} deltas): ${String(error)}`);
+  }
   assert.ok(state.accepted, "Run was not accepted");
   assert.ok(state.deltaCount > 0, "No live output was streamed");
   assert.ok(state.saving, "Snapshot save was not announced");
@@ -163,8 +172,8 @@ try {
   const missingHistory = await fetch(`${origin}/api/history?id=${requestId}-missing`, { headers, signal: abort.signal });
   assert.equal(missingHistory.status, 404, "An explicit missing session must not appear as a new empty conversation");
   assert.equal((await missingHistory.json() as { error: string }).error, "会话不存在或已删除。");
-  const modelStream = await modelStreamProbe();
-  const search = await searchProbe();
+  const modelStream = displayOnly ? undefined : await modelStreamProbe();
+  const search = displayOnly ? undefined : await searchProbe();
   const creation = await fetch(`${origin}/api/sessions`, {
     method: "POST", headers: { ...headers, origin }, signal: abort.signal,
   });
@@ -177,16 +186,31 @@ try {
   assert.equal(before.messages.length, 0, "New conversation must be isolated from existing history");
   const context = await browser.newContext({ viewport: { width: 1365, height: 900 } });
   await context.addCookies([{ name: "bibo_session", value: sessionToken, domain: "app.bibo.bot", path: "/", httpOnly: true, secure: true, sameSite: "Lax" }]);
+  await context.addInitScript(() => {
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (new URL(response.url).pathname === "/api/chat") {
+        void response.clone().text().then(
+          (text) => Reflect.set(window, "biboSmokeStream", { text }),
+          (error: unknown) => Reflect.set(window, "biboSmokeStream", { error: String(error) }),
+        );
+      }
+      return response;
+    };
+  });
   const page = await context.newPage();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
   const searchPrompt = "请先调用 web_search 搜索 Cloudflare AI Search 最新官方文档，用两句话说明它的用途并附至少一个官方来源链接。不要只凭记忆回答。";
-  const searchStream = await streamedRun(page, searchPrompt);
+  const searchStream = displayOnly ? undefined : await streamedRun(page, searchPrompt);
   const searched = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
-  assert.equal(searched.messages.length, 2, "Search exchange must save");
-  assert.equal(searched.messages.at(-2)?.text, searchPrompt);
-  assert.match(searched.messages.at(-1)?.text ?? "", /https:\/\/developers\.cloudflare\.com\//, "Search-backed answer must save its source link");
+  if (!displayOnly) {
+    assert.equal(searched.messages.length, 2, "Search exchange must save");
+    assert.equal(searched.messages.at(-2)?.text, searchPrompt);
+    assert.match(searched.messages.at(-1)?.text ?? "", /https:\/\/developers\.cloudflare\.com\//, "Search-backed answer must save its source link");
+  }
   const stream = await streamedRun(page);
   const workspace = page.getByRole("complementary", { name: "右侧工作区" });
   await workspace.getByRole("heading", { name: requestId, exact: true }).waitFor();
@@ -227,12 +251,21 @@ try {
       assert.deepEqual(errors, [], "Browser raised a runtime error");
       assert.ok(await page.locator(".ui-message--assistant").filter({ hasText: requestId }).count(), "Saved answer did not load after refresh");
       await page.goto(`${origin}/files`, { waitUntil: "networkidle" });
+      if (!await page.getByRole("textbox", { name: "搜索文件", exact: true }).isVisible()) {
+        await page.getByRole("button", { name: "← 目录", exact: true }).click();
+      }
       await page.getByRole("textbox", { name: "搜索文件", exact: true }).fill(artifactPath);
-      await page.getByText(artifactPath, { exact: true }).first().click();
+      await page.getByRole("region", { name: "文件搜索结果", exact: true }).getByText(artifactPath, { exact: true }).first().click();
       assert.equal(await page.getByRole("textbox", { name: `编辑 ${artifactPath}` }).inputValue(), artifactContent,
         "The Files UI must read the same Agent-created object");
     }
   console.log(JSON.stringify({ ok: true, requestId, modelStream, search, searchStream, ...stream, saved: true, agentFile: true, automaticPreview: true, desktop: true, mobile: true }));
+} catch (error) {
+  for (const context of browser.contexts()) {
+    const page = context.pages()[0];
+    if (page) await page.screenshot({ path: "/tmp/bibo-live-display-failure.png", fullPage: true }).catch(() => undefined);
+  }
+  throw error;
 } finally {
   await browser.close();
   clearTimeout(timeout);
