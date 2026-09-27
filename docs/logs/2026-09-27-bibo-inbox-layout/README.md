@@ -14,7 +14,13 @@
 
 ## 发布/部署方式
 
-待完成 Review 后精确提交并推送远程主干，从干净的冻结远程主干部署 Bibo Worker／container；随后核对版本与生产资产并执行主线 reconcile。无后端合同、数据迁移、runtime channel 或桌面产物变化。
+布局提交 15f7057fe 经 d432c66c7 合并浏览器图标更新后已推送远程主干。首次误用全量部署入口，触发无必要的镜像构建；用户指出后停止本任务全量发布，改为 deploy:client。该入口只构建前端并使用 --containers-rollout none，复用线上容器 metadata。仍从干净的冻结远程主干执行，部署后核对版本、生产资产和容器镜像并执行主线 reconcile。无后端合同、数据迁移、runtime channel 或桌面产物变化。
+
+停止前观察到线上版本 8e12fd15-64d8-4076-9855-ef5983207e43，本任务日志仍处于资产上传且没有完成 Worker 发布，不能把并发版本归为本任务。停止只影响本任务部署进程树。Git HTTPS 推送曾停滞，核对远程 SHA 后只停止本任务 Git 进程，以 HTTP/1.1 有界重试完成。
+
+用户要求“建立相关流程规范”后，更新项目交付 reference 的“独立托管应用：按产物确定发布范围”。根因是发布前未根据 ASSETS／Worker／runner 的真实归属选择入口，通用脚本触发不必要的镜像构建。规则限定独立托管应用；服务端渲染或同一镜像承载前后端是反例。沿现有 Delivery 条件入口加载，不修改 AGENTS、不新增 skill 或发现描述；Bibo 命令事实仍归 README／package scripts。验证覆盖前端、Worker、容器、混合／未知和元数据缺失的选择，实际部署证明保留镜像。后续服务产物或工具合同变化时复核，失去独立部署前提时收窄／退出本路径。
+
+规范审查：逐项走查静态前端、Worker API、runner 依赖、混合变化、SSR 同镜像与元数据缺失反例，均回到对应产物 owner，无 findings。progressive-loading 与 ratchet 通过。AGENTS 11989 bytes、顶层 Skills 16、分组 Wiki Skills 27、discovery 2895 chars、description 1489 chars、SKILL.md 82259 bytes 均未增长；仅条件交付 reference 增加 18 行。不新增宏、治理脚本或 baseline；package script 与 README 同步，实际执行验证专用入口。
 
 ## 用户/产品视角的验收步骤
 

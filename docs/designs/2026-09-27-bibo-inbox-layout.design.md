@@ -24,9 +24,14 @@
 - INBOX-02：阅读长文至末尾，操作栏仍在首屏且可操作；切换另一条消息从正文顶部开始。筛选、标记已读和处理仍走既有动作，来源错误保留消息。
 - INBOX-03：1100／390／320 单栏下选择消息、阅读、返回列表和切换筛选；无页面横向溢出，按钮不少于 44px，正文内表格／代码继续独立滚动。
 - INBOX-04：匹配范围 tsc、既有 Markdown 冒烟及布局浏览器验证通过，远程主干与生产资产一致。
+- INBOX-05：前端部署不构建、推送或 rollout 容器，部署前后容器镜像身份保持一致。
 
 浏览器使用代表性消息验证布局和操作，线上真实账号只读验证入口与资产；不需要模型生成或修改真实用户消息。截图由 AI 确认正常渲染，视觉偏好由用户判断。
 
 ## 方案 Review
 
 mode=design：核对截图目标、既有 store 动作、来源错误路径、移动返回和 Markdown 保留边界。无新增状态 owner、平行解析器或公共抽象；标题转换采用保守精确匹配，验收包含不同标题反例。design-review: passed，适用于上述范围。
+
+## 发布链路纠偏
+
+用户补充询问“更新前端还要构建镜像吗？”。Worker 对非 API 请求调用 ASSETS.fetch，容器运行独立 runner；原 deploy 入口全量构建并因 image 指向 Dockerfile 触发容器发布。本次仅前端变化，采用 deploy:client（build:client + Wrangler 4.138.0 deploy --containers-rollout none），完整后端部署仍使用原 deploy。已核对固定版本 CLI 与源码：none 分支跳过 prepareDurableObjectContainerApplications，并恢复线上容器 metadata；元数据无法恢复时在 Worker 上传前失败。方案 Review：保留唯一 Wrangler 配置与现有发布 owner，不生成第二套配置或固定镜像副本；新增 INBOX-05 验证线上容器身份。design-review: passed。
