@@ -34,13 +34,13 @@ export function FileActions({ file, tabIndex }: { file: BiboFile; tabIndex?: num
     if (saving) return;
     setFailure("");
     if (await deleteFile(file)) setDeleting(false);
-    else setFailure(useBiboSpaceStore.getState().error);
+    else setFailure(useBiboSpaceStore.getState().actionError);
   };
   const move = async () => {
     if (saving || !path.trim()) return;
     setFailure("");
     if (await moveFile(file, path.trim())) setMoving(false);
-    else setFailure(useBiboSpaceStore.getState().error);
+    else setFailure(useBiboSpaceStore.getState().actionError);
   };
   return (
     <>

@@ -2,7 +2,7 @@ import { memo, useEffect, useLayoutEffect, useRef, useState, type FormEvent } fr
 import { Link, Outlet, useLocation, useNavigation } from "react-router";
 import { navigateConversation, readWorkspaceRoute, workspaceHref } from "@/app/workspace-router";
 import { Button, Composer, IconButton, Input, Message, SegmentedControl, Sheet } from "@nextclaw/personal-agent-ui";
-import { biboCopy as copy } from "@/features/chat/configs/bibo-copy.config";
+import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { useBiboChatStore, type BiboDisplayMessage } from "@/features/chat/stores/bibo-chat.store";
 import { BiboSpaceView, BiboWorkspace, useBiboSpaceStore, type BiboView } from "@/features/space";
 

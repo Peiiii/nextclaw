@@ -83,6 +83,7 @@ async function saveSample(page: Page, input: Locator, title: string) {
   await page.locator(".bibo-task-row").filter({ hasText: title }).waitFor();
   await page.waitForFunction(() => document.querySelector<HTMLInputElement>('[aria-label="快速添加任务"]')?.value === "" && document.querySelector(".task-quick-add")?.getAttribute("aria-busy") === "false");
   const elapsed = Math.round(performance.now() - started);
+  assert.equal(await page.locator(".bibo-space-feedback").count(), 0, "saved tasks do not show a duplicate global toast");
   const timing = saved.request().timing();
   return { elapsed, span: saved.headers()["server-timing"] ?? "", request: Math.round(timing.responseEnd - timing.requestStart) };
 }

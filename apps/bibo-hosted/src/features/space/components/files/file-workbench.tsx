@@ -26,7 +26,7 @@ export function FileWorkbench({ notesOnly, toggleControlRef, onToggleTree }: { n
     await saveFile(closing);
     const state = useBiboSpaceStore.getState();
     if (state.fileDrafts[closing]?.dirty) {
-      setFailure(state.error || "文件尚未保存，请取消关闭并处理文件中的版本冲突。");
+      setFailure(state.fileDrafts[closing]?.error || "文件还有未保存的修改，请取消关闭后检查编辑内容或版本冲突。");
       return;
     }
     closeFile(closing);
