@@ -68,9 +68,7 @@
 
 .bibo-space-scroll { @apply flex-1 min-h-0 overflow-y-auto relative; }
 .bibo-space-scroll.is-workspace { @apply flex flex-col overflow-hidden; }
-.bibo-space-feedback { @apply fixed [z-index:8] [left:50%] [transform:translateX(-50%)] [top:calc(64px_+_env(safe-area-inset-top))] flex flex-col gap-2 [max-width:min(420px,_calc(100vw_-_32px))] pointer-events-none; }
-.bibo-space-feedback > * { @apply [pointer-events:auto]; }
-.bibo-space-feedback .ui-notice { @apply border [border-color:var(--ui-line)] shadow-lg; }
+.bibo-space-error { @apply flex-none flex flex-col gap-2 px-4 py-3; }
 .bibo-read-state { @apply flex-1 [min-height:min(440px,_calc(100dvh_-_150px))] flex flex-col items-center justify-center; }
 .bibo-read-state .ui-empty-state { @apply min-h-0 pb-4; }
 .workspace-title { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap m-0 [font-family:inherit] font-semibold; }
@@ -84,6 +82,8 @@
 .workspace-page .bibo-task-layout:not(.is-detail-open) { @apply [grid-template-columns:minmax(0,_1fr)]; }
 .task-filter-options { @apply flex flex-1 flex-wrap items-center gap-2; }
 .task-toolbar { @apply flex-none; }
+.task-quick-feedback { @apply flex-none; }
+.task-quick-feedback .ui-overlay__error { @apply px-4; }
 .task-quick-add { @apply flex items-center gap-2 flex-none [padding:12px_16px_4px]; }
 .task-quick-add .ui-control { @apply flex-1 min-w-0; }
 .task-quick-add .ui-button { @apply flex-none [min-height:44px]; }
@@ -91,7 +91,8 @@
 .event-duration { @apply flex gap-1 flex-wrap; }
 .event-duration [aria-pressed="true"] { @apply [background:var(--ui-selection)]; }
 .task-undo { @apply flex items-center gap-2 px-4; }
-.task-undo .ui-notice { @apply m-0 overflow-hidden text-ellipsis whitespace-nowrap; }
+.task-undo .ui-notice { @apply m-0 min-w-0 flex-1 [overflow-wrap:anywhere]; }
+.task-undo > .ui-button { @apply flex-none; }
 .bibo-task-row.is-complete strong { @apply line-through [color:var(--ui-muted)]; }
 .bibo-task-row > span:first-child { @apply flex-1 min-w-0; }
 .task-complete { @apply [width:44px] [height:44px] [font-size:22px]; }

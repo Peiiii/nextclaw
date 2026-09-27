@@ -1,5 +1,6 @@
 import type { BiboClient, BiboEvent, BiboFile, BiboInboxItem, BiboOverview, BiboProject, BiboTask } from "@nextclaw/bibo-client";
 import type { BiboView } from "@/features/space/stores/bibo-space.store";
+import { biboCopy } from "@/shared/configs/bibo-copy.config";
 
 type Page<T> = { items: T[]; nextCursor: string | null };
 type Lists = {
@@ -34,14 +35,17 @@ export function projectSavedTask(items: BiboTask[], result: BiboTask | { deleted
 
 export function savedTaskView(state: Parameters<typeof taskListFilter>[0] & {
   tasks: BiboTask[]; selectedTaskId: string | null; taskSelection: BiboTask | null;
+  taskUndo: { id: string } | null;
   readStatus: Partial<Record<BiboView, "loading" | "ready" | "error">>;
 }, saved: BiboTask | { deleted: string }) {
   return {
     tasks: projectSavedTask(state.tasks, saved, taskListFilter(state)),
+    feedback: { message: "deleted" in saved ? biboCopy.taskDeleted : biboCopy.taskSaved(saved.title), task: "deleted" in saved ? null : saved },
+    ...(("deleted" in saved ? saved.deleted : saved.id) === state.taskUndo?.id ? { taskUndo: null } : {}),
     taskSelection: "deleted" in saved
       ? state.taskSelection?.id === saved.deleted ? null : state.taskSelection
       : state.selectedTaskId === saved.id ? saved : state.taskSelection,
-    notice: "已保存。", saving: false,
+    saving: false,
     readStatus: { ...state.readStatus, tasks: "ready" as const },
   };
 }

@@ -19,8 +19,17 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
   const { inbox, selectedInboxId, inboxSelection, selectInbox, act, navigate, openFile, saving, cursors, moreLoading, loadMore } = useBiboSpaceStore();
   const [openingSource, setOpeningSource] = useState(false);
   const [sourceError, setSourceError] = useState("");
+  const [actionFailure, setActionFailure] = useState("");
   const { inboxScope, setInboxScope } = useBiboSpaceStore();
   const selected = inbox.find((item) => item.id === selectedInboxId) ?? inboxSelection;
+  const update = async (action: "inbox.read" | "inbox.resolve") => {
+    if (!selected) return;
+    const accountId = useBiboSpaceStore.getState().accountId;
+    setActionFailure("");
+    const result = await act(action, { id: selected.id, version: selected.version }, "inbox");
+    const current = useBiboSpaceStore.getState();
+    if (!result && current.accountId === accountId && current.selectedInboxId === selected.id) setActionFailure(current.actionError);
+  };
   const source = async (item: BiboInboxItem) => {
     if (!item.source.id) return;
     const accountId = useBiboSpaceStore.getState().accountId;
@@ -65,7 +74,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
           <div className="bibo-pane-label"><SegmentedControl label="收件箱范围" value={inboxScope} options={[{ value: "pending", label: "待处理" }, { value: "unread", label: "未读" }, { value: "all", label: "全部" }]} onChange={setInboxScope} /></div>
           {inbox.length ? (
             inbox.map((item) => (
-              <ListRow key={item.id} selected={selected?.id === item.id} onClick={() => { setSourceError(""); selectInbox(item.id); }}>
+              <ListRow key={item.id} selected={selected?.id === item.id} onClick={() => { setSourceError(""); setActionFailure(""); selectInbox(item.id); }}>
                 <span className={`bibo-unread-dot${item.readAt ? " is-read" : ""}`} />
                 <span>
                   <strong>{item.title}</strong>
@@ -86,7 +95,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
         <div className="bibo-detail-pane">
           {selected ? (
             <>
-              <Button className="inbox-back" tone="text" onClick={() => { setSourceError(""); selectInbox(null); }}>
+              <Button className="inbox-back" tone="text" onClick={() => { setSourceError(""); setActionFailure(""); selectInbox(null); }}>
                 ← 全部消息
               </Button>
               <p className="bibo-kicker">
@@ -104,7 +113,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
                   <Button
                     tone="secondary"
                     disabled={saving}
-                    onClick={() => void act("inbox.read", { id: selected.id, version: selected.version }, "inbox")}
+                    onClick={() => void update("inbox.read")}
                   >
                     标记已读
                   </Button>
@@ -113,7 +122,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
                   <Button
                     tone="primary"
                     disabled={saving}
-                    onClick={() => void act("inbox.resolve", { id: selected.id, version: selected.version }, "inbox")}
+                    onClick={() => void update("inbox.resolve")}
                   >
                     已处理
                   </Button>
@@ -124,6 +133,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
                   </Button>
                 )}
               </div>
+              {actionFailure && <Notice tone="error">{actionFailure}</Notice>}
             </>
           ) : (
             <EmptyState title="选择一条消息" />

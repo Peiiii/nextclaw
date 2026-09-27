@@ -1,6 +1,8 @@
 # Bibo hosted companion
 
-Forms, menus, and feedback share a consistent text hierarchy, with readable input sizes on phones. Save notifications have a separate close button; errors stay near the relevant action so you can correct or retry it.
+Forms, menus, and feedback share a consistent text hierarchy, with readable input sizes on phones. Successful task, project, event, file, and inbox actions show the updated content without a duplicate success toast. Errors remain beside the relevant input, editor, or dialog until you correct or retry the action.
+
+File editors show Unsaved, Saving, and Saved in place. Changes typed during a save remain unsaved. Completing a task retains an undo action, and copying provides feedback on the copy button. A task saved outside the current filter offers a link to its details; saving an event shows its date.
 
 Sections have dedicated addresses: `/chat`, `/tasks`, `/calendar`, `/notes`, `/files`, and `/inbox`, with the overview at `/`. Open an existing conversation at `/chat/conversation-id`. Refresh, Back, and Forward preserve the current location.
 

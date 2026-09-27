@@ -17,6 +17,7 @@ import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { datetime } from "@/features/space/utils/date-format.utils";
 import { SlidersHorizontal } from "lucide-react";
 import { TaskForm } from "./task-form";
+import { biboCopy } from "@/shared/configs/bibo-copy.config";
 
 export function Tasks() {
   const {
@@ -33,12 +34,20 @@ export function Tasks() {
     loadMore,
     taskScope,
     taskUndo,
+    feedback: { task: savedTask },
     undoTask,
     saving,
   } = useBiboSpaceStore();
   const [mode, setMode] = useState<"list" | "board">("list");
   const [projectEditor, setProjectEditor] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [undoError, setUndoError] = useState<{ id: string; version: number; message: string } | null>(null);
+  const undo = async () => {
+    if (!taskUndo) return;
+    setUndoError(null);
+    await undoTask();
+    setUndoError({ id: taskUndo.id, version: taskUndo.version, message: useBiboSpaceStore.getState().actionError });
+  };
   const visible = tasks.filter(
     (task) => !project || task.projectId === project
   );
@@ -67,7 +76,12 @@ export function Tasks() {
         onChangeMode={setMode}
         onProjectEdit={setProjectEditor}
       /></div>
-      {taskUndo && <div className="task-undo"><Notice tone="success">{taskUndo.title}</Notice><Button tone="text" disabled={saving} onClick={() => void undoTask()}>撤销操作</Button></div>}
+      {taskUndo && <div><div className="task-undo"><Notice tone="success">{biboCopy.taskToggled(taskUndo.title, taskUndo.status === "done")}</Notice><Button tone="text" disabled={saving} onClick={() => void undo()}>撤销操作</Button></div>
+        {undoError?.id === taskUndo.id && undoError.version === taskUndo.version && undoError.message && <Notice tone="error">{undoError.message}</Notice>}</div>}
+      {savedTask && !visible.some((task) => task.id === savedTask.id) && taskUndo?.id !== savedTask.id && <div className="task-undo">
+        <Notice tone="success">{biboCopy.taskOutsideFilter(savedTask.title)}</Notice>
+        <Button tone="text" onClick={() => { setCreating(false); selectTask(savedTask.id, savedTask); }}>{biboCopy.viewTask}</Button>
+      </div>}
       {projectEditor && (
         <ProjectForm
           key={projectEditor}
@@ -245,7 +259,7 @@ function ProjectForm({
       "tasks"
     );
     if (result) onDone();
-    else setFailure(useBiboSpaceStore.getState().error);
+    else setFailure(useBiboSpaceStore.getState().actionError);
   };
   const remove = async () => {
     if (!project || saving) return;
@@ -258,7 +272,7 @@ function ProjectForm({
     if (result) {
       filterTasks(taskQuery, "");
       onDone();
-    } else setFailure(useBiboSpaceStore.getState().error);
+    } else setFailure(useBiboSpaceStore.getState().actionError);
   };
   return (
     <Dialog
@@ -341,6 +355,12 @@ function TaskRow({
     cancelled: "已取消",
   }[task.status];
   const { toggleTaskDone, saving } = useBiboSpaceStore();
+  const [failure, setFailure] = useState<{ version: number; message: string } | null>(null);
+  const toggle = async () => {
+    setFailure(null);
+    await toggleTaskDone(task);
+    setFailure({ version: task.version, message: useBiboSpaceStore.getState().actionError });
+  };
   const details = [
     projectName,
     task.priority === "high" ? "高优先级" : task.priority === "low" ? "低优先级" : null,
@@ -361,11 +381,12 @@ function TaskRow({
           : task.status === "cancelled"
           ? "−"
           : "○"}
-      </span>} onClick={() => void toggleTaskDone(task)} />}
+      </span>} onClick={() => void toggle()} />}
     >
       <span>
         <strong>{task.title}</strong>
         {details && <small>{details}</small>}
+      {failure?.version === task.version && failure.message && <small role="alert" className="ui-overlay__error">{failure.message}</small>}
       </span>
       {task.status !== "planned" && <span className="bibo-task-status-label">{statusLabel}</span>}
     </ListRow>

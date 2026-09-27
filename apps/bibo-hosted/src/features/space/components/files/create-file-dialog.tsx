@@ -19,7 +19,7 @@ export function CreateFileDialog({ parent, initialKind, notesOnly, onClose }: {
     setFailure("");
     const path = `${parent ? `${parent}/` : ""}${name.trim()}${kind === "note" && !/\.md$/i.test(name.trim()) ? ".md" : ""}`;
     if (await createFile(path, kind)) onClose();
-    else setFailure(useBiboSpaceStore.getState().error);
+    else setFailure(useBiboSpaceStore.getState().actionError);
   };
   return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }} title={notesOnly ? "新笔记" : "新建文件"}
     closeLabel="关闭新建" busy={saving} description={`保存在 ${parent || "根目录"}`}>
