@@ -2,6 +2,8 @@
 
 The website, app and help page share a purple Bibo icon in browser tabs, making Bibo easier to find among open pages.
 
+The overview also features the website’s purple, wide-eyed companion beside your current summary. Follow the summary link to your inbox, tasks, or a conversation. The character scales down on phones to leave room for content and actions. It leans gently on hover or keyboard focus and stays still when reduced motion is enabled.
+
 Forms, menus, and feedback share a consistent text hierarchy, with readable input sizes on phones. Successful task, project, event, file, and inbox actions show the updated content without a duplicate success toast. Errors remain beside the relevant input, editor, or dialog until you correct or retry the action.
 
 File editors show Unsaved, Saving, and Saved in place. Changes typed during a save remain unsaved. Completing a task retains an undo action, and copying provides feedback on the copy button. A task saved outside the current filter offers a link to its details; saving an event shows its date.

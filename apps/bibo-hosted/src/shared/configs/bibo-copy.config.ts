@@ -3,6 +3,7 @@ export const biboCopy = {
   space: "个人空间",
   conversation: "对话",
   overview: "概览",
+  overviewCompanion: "日常，多一个我。",
   inbox: "收件箱",
   calendar: "日程",
   tasks: "任务",
