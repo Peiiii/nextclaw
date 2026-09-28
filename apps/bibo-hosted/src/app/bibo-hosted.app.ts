@@ -131,7 +131,7 @@ export class BiboUserContainer extends Container<Env> {
       return result;
     } catch (error) {
       logDiagnostic("worker", "edge.migration-failed", { runId: crypto.randomUUID(), ...errorDetails(error), errorCode: "EDGE_MIGRATION_FAILED" }, "error");
-      return publicError("旧会话迁移校验未通过，Bibo 仍使用原有运行方式。", 503);
+      return json({ error: "旧会话迁移校验未通过，Bibo 仍使用原有运行方式。", diagnostic: error instanceof Error ? error.message : "Unknown migration failure" }, 503);
     } finally { this.inFlight = false; }
   };
 
