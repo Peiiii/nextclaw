@@ -51,3 +51,7 @@ BB 三份 tsc、Vite 构建、routing 登录回归、product 回归、定向 ESL
 本地 Chromium iPhone 13 390×664 和 iPhone SE 320×568 初始页面无横向或纵向溢出，主按钮分别在 y=391／365，底部说明也在屏内。注册第二步的验证码、密码、成功提示、重新发送、修改邮箱和登录第二步在 390／320px 回放通过，主按钮无需滚动；模拟 320×380 键盘缩放时主按钮仍可经表单自身滚动到达。BB 三份 TypeScript 检查、Vite 构建、产品与路由回归、定向 ESLint、diff-only maintainability 及治理检查通过。真实手机软键盘与审美偏好仍须由用户在上线页面确认。
 
 此次并行覆盖暴露出 BB 命令虽在文档要求“冻结远程主干”，脚本却不检查实际 checkout。`deploy` 与 `deploy:client` 增加构建前、上传前两次 preflight，拒绝脏工作区或 HEAD 不等于远程 `master`，防止落后 worktree 再覆盖较新静态资源；不改变容器 rollout 的范围选择。
+
+最终手机首屏改版从冻结远程 `master` `fd91d4bbe4c48d86ed7f6cd2c92c775e7d4fb1ed` 经新 preflight 执行 `deploy:client`，Worker 版本 `a00f8681-ce61-4452-a5a5-9ec8f7ab66c0`。线上 `index-VXLS96O2.js` SHA-256 `2f2f110a90297b33feefd07afd64c360ba027ef4788521e223cdb3210325e08e`、`index-BcjAknct.css` SHA-256 `d38c58c8cc85675974dc84eebe42af7554cb45f10ed7ee59996c402a9b35dee6` 与冻结构建逐字节一致；四条入口均返回该版本。容器部署前后完整元数据一致，继续保留 version 23 与 `sha256:4ef68e222cc8ea7f8bdd9681aa1ca78890cda123eda9e8b522ff24b388fe364c`。线上路由、注册两步验证码发送／重发、修改邮箱及登录两步在桌面和 390／320px 回放通过；无 API mock 的线上 iPhone 13 390×664 与 iPhone SE 320×568 初始页面无纵向或横向溢出，主按钮在 y=391／365，输入计算字号 16px，浏览器脚本无错误。线上截图保存在当前任务的 `bibo-auth-entry/auth-live-final-iPhone-13.png` 和 `auth-live-final-iPhone-SE.png`。真实 iOS Safari／系统键盘未实测，审美效果仍由用户在手机上判断。
+
+本轮 `AUTOMATION_INTERVENTIONS: 1`：并行部署从落后静态产物覆盖登录页，需调查并从合并主干恢复；部署命令现对这类落后 checkout fail closed。初始发布记录中的 0 是被覆盖前那个独立 dispatch 的计数。
