@@ -129,7 +129,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
                     {selected.resolvedAt && <p className="bibo-save-state">已处理 · {datetime(selected.resolvedAt)}</p>}
                   </header>
                   <div className="bibo-readable">
-                    <Markdown text={inboxReadingBody(selected.body, selected.title)} density="compact" resolveResourceHref={workspaceResources.href} />
+                    <Markdown text={inboxReadingBody(selected.body, selected.title)} resolveResourceHref={workspaceResources.href} />
                   </div>
                 </article>
               </div>

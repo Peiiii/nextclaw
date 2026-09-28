@@ -1,6 +1,16 @@
 import assert from "node:assert/strict";
 import type { Page } from "playwright";
 
+export async function checkContentBounds(page: Page): Promise<void> {
+  const overflow = await page.locator(".bibo-topbar-leading, .bibo-topbar-actions, .workspace-toolbar, .bibo-summary-card, .ui-list-row, .bibo-detail-pane, .bibo-workspace, .ui-overlay, [role=menu], .file-editor-tools").evaluateAll((elements) => elements.flatMap((element) => {
+    const box = element.getBoundingClientRect();
+    if (!box.width || !box.height) return [];
+    return box.left < -1 || box.right > innerWidth + 1 || element.scrollWidth > element.clientWidth + 1
+      ? [{ className: element.className, left: box.left, right: box.right, width: element.clientWidth, scrollWidth: element.scrollWidth }] : [];
+  }));
+  assert.deepEqual(overflow, [], "visible content and actions must fit; an outer overflow:hidden must not conceal broken layout");
+}
+
 export async function checkThemes(page: Page, width: number, base: string): Promise<void> {
   await page.goto(`${base}/chat/session-a`, { waitUntil: "networkidle" });
   if (width > 760) await checkShellFrame(page, width);

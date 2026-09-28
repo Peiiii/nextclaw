@@ -7,6 +7,7 @@ import {
   IconButton,
   ListRow,
   Input,
+  Notice,
 } from "@nextclaw/personal-agent-ui";
 import { Plus } from "lucide-react";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
@@ -23,6 +24,9 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
     moreLoading,
     loading,
     error,
+    fileOpenError,
+    workspaceFileId,
+    workspaceOpen,
     loadMore,
     treeCollapsed,
     toggleTree,
@@ -52,6 +56,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
   return (
     <div className="bibo-page workspace-page bibo-files-page">
       {creating && <CreateFileDialog parent={parent} initialKind={kind} notesOnly={notesOnly} onClose={() => setCreating(false)} />}
+      {fileOpenError && (!workspaceOpen || fileOpenError.id !== workspaceFileId) && <Notice tone="error">{fileOpenError.message}</Notice>}
       <div
         style={
           notesOnly

@@ -3,8 +3,8 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { chromium, type Page, type Route } from "playwright";
 import { mockApi } from "./personal-workspace.fixture";
-import { checkThemes, checkControlFeedback, checkFileTabs } from "./design-system/bibo-design-system.smoke";
-import { checkWorkspaceFiles, checkFileRowActions, openWorkspaceFile } from "./design-system/workspace-file.smoke";
+import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs } from "./design-system/bibo-design-system.smoke";
+import { checkFileRowActions, checkMissingRestoredFile, checkWorkspaceFiles, openWorkspaceFile } from "./design-system/workspace-file.smoke";
 const base = "http://127.0.0.1:5189";
 const server = spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5189", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
 async function ready(): Promise<void> {
@@ -68,16 +68,6 @@ async function checkExhaustedNewConversation(page: Page): Promise<void> {
   assert.equal(await page.locator(".bibo-session-item").count(), before);
   page.off("request", onRequest);
   await page.unroute("**/api/chat/availability");
-}
-
-async function checkContentBounds(page: Page): Promise<void> {
-  const overflow = await page.locator(".bibo-topbar-leading, .bibo-topbar-actions, .workspace-toolbar, .bibo-summary-card, .ui-list-row, .bibo-detail-pane, .bibo-workspace, .ui-overlay, [role=menu], .file-editor-tools").evaluateAll((elements) => elements.flatMap((element) => {
-    const box = element.getBoundingClientRect();
-    if (!box.width || !box.height) return [];
-    return box.left < -1 || box.right > innerWidth + 1 || element.scrollWidth > element.clientWidth + 1
-      ? [{ className: element.className, left: box.left, right: box.right, width: element.clientWidth, scrollWidth: element.scrollWidth }] : [];
-  }));
-  assert.deepEqual(overflow, [], "visible content and actions must fit; an outer overflow:hidden must not conceal broken layout");
 }
 
 async function checkTreeKeyboard(page: Page): Promise<void> {
@@ -167,6 +157,11 @@ async function checkWorkspaceRecovery(page: Page): Promise<void> {
   await page.getByRole("button", { name: "重试打开", exact: true }).click();
   await editor.waitFor();
   assert.equal(await editor.inputValue(), "# 工作区保留的修改");
+  await captureWorkspace(page);
+  await checkMissingRestoredFile(page, base);
+}
+
+async function captureWorkspace(page: Page): Promise<void> {
   await checkContentBounds(page);
   await page.screenshot({ path: `/tmp/bibo-workspace-${page.viewportSize()!.width}.png` });
 }

@@ -11,9 +11,10 @@ import { FileTabs } from "./files/file-tabs";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 
 export function BiboWorkspace() {
-  const { workspaceOpen, workspaceResolving, workspaceFileId, workspacePreview, setWorkspacePreview, closeWorkspace, fileDetails, openWorkspace, error } = useBiboSpaceStore();
+  const { workspaceOpen, workspaceResolving, workspaceFileId, workspacePreview, setWorkspacePreview, closeWorkspace, fileDetails, openWorkspace, error, fileOpenError } = useBiboSpaceStore();
   if (!workspaceOpen) return null;
   const current = workspaceFileId ? fileDetails[workspaceFileId] : null;
+  const openError = fileOpenError?.id === workspaceFileId ? fileOpenError.message : "";
   return (
     <aside className="bibo-workspace" aria-label="右侧工作区">
       <div className="bibo-workspace-head" data-ui-surface="frame">
@@ -21,8 +22,8 @@ export function BiboWorkspace() {
         <IconButton label={biboCopy.fileCloseWorkspace} icon={<X />} onClick={closeWorkspace} />
       </div>
       <div className="bibo-workspace-content">
-        {error && <Notice tone="error">{error}</Notice>}
-        {workspaceResolving ? <LoadingState label="正在打开资源" /> : workspaceFileId && !current && error ? (
+        {(error || openError) && <Notice tone="error">{openError || error}</Notice>}
+        {workspaceResolving ? <LoadingState label="正在打开资源" /> : workspaceFileId && !current && (error || openError) ? (
           <div><EmptyState title="暂时无法打开文件" /><Button onClick={() => void openWorkspace(workspaceFileId)}>重试打开</Button></div>
         ) : workspaceFileId ? (
           current ? <FileEditor key={workspaceFileId} id={workspaceFileId} tabId={`bibo-workspace-file-tab-${workspaceFileId}`} compact preview={workspacePreview ?? current.kind === "artifact"} onPreviewChange={setWorkspacePreview} /> : <LoadingState label="正在打开文件" />
