@@ -1,7 +1,7 @@
-import { memo, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigation } from "react-router";
 import { readWorkspaceRoute, workspaceHref } from "@/app/workspace-router";
-import { Button, Composer, IconButton, Input, Message, SegmentedControl, Sheet, NavigationItem } from "@nextclaw/personal-agent-ui";
+import { Button, Composer, IconButton, Message, Sheet, NavigationItem } from "@nextclaw/personal-agent-ui";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { useBiboChatStore, type BiboDisplayMessage } from "@/features/chat/stores/bibo-chat.store";
 import { BiboSpaceView, BiboWorkspace, FileTabs, useBiboSpaceStore, type BiboView } from "@/features/space";
@@ -9,6 +9,7 @@ import { BiboSpaceView, BiboWorkspace, FileTabs, useBiboSpaceStore, type BiboVie
 import { ArrowDown, CalendarDays, CheckCheck, FileText, Folder, Home, Inbox, Menu, MessageCircle, PanelLeftClose, PanelLeftOpen, PanelRight, Plus, Sparkles, type LucideIcon } from "lucide-react";
 import { SessionNavigation } from "./session-navigation";
 import { AccountMenu } from "./account-menu";
+import { AuthPanel } from "./auth-panel";
 import { workspaceResources } from "@/features/space";
 
 const suggestions = [
@@ -28,50 +29,6 @@ const navigation: { view: BiboView; label: string; icon: LucideIcon }[] = [
   { view: "files", label: copy.files, icon: Folder },
 ];
 
-function AuthPanel() {
-  const mode = useBiboChatStore((state) => state.authMode);
-  const error = useBiboChatStore((state) => state.authError);
-  const setMode = useBiboChatStore((state) => state.setAuthMode);
-  const sendCode = useBiboChatStore((state) => state.sendCode);
-  const authenticate = useBiboChatStore((state) => state.authenticate);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
-  const [working, setWorking] = useState(false);
-  const [codeWorking, setCodeWorking] = useState(false);
-  const requestCode = async () => {
-    setCodeWorking(true);
-    try { await sendCode(email.trim()); }
-    finally { setCodeWorking(false); }
-  };
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setWorking(true);
-    try { await authenticate(email.trim(), password, code.trim()); }
-    finally { setWorking(false); }
-  };
-  return <div className="bibo-auth-overlay"><section className="bibo-auth-card" aria-labelledby="bibo-auth-title">
-    <div className="bibo-auth-mark">✳</div>
-    <p className="bibo-eyebrow">WELCOME TO BIBO</p>
-    <h2 id="bibo-auth-title">认识你的新搭档</h2>
-    <p>{copy.accountIntro}</p>
-    <div className="bibo-auth-tabs"><SegmentedControl label="账号操作" value={mode} options={[{ value: "register", label: copy.register }, { value: "login", label: copy.login }]} onChange={setMode} /></div>
-    <form onSubmit={submit}>
-      <label htmlFor="bibo-email">{copy.email}</label>
-      <Input id="bibo-email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" />
-      {mode === "register" && <><label htmlFor="bibo-code">{copy.code}</label><div className="bibo-code-row">
-        <Input id="bibo-code" inputMode="numeric" autoComplete="one-time-code" required value={code} onChange={(event) => setCode(event.target.value)} placeholder="输入 6 位验证码" />
-        <Button disabled={!email || codeWorking} onClick={() => void requestCode()}>{copy.sendCode}</Button>
-      </div></>}
-      <label htmlFor="bibo-password">{copy.password}</label>
-      <Input id="bibo-password" type="password" minLength={8} autoComplete={mode === "login" ? "current-password" : "new-password"} required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="至少 8 个字符" />
-      <p className="bibo-auth-error" role="alert">{error}</p>
-      <Button tone="primary" type="submit" disabled={working}>{mode === "login" ? copy.login : copy.createAccount} ↗</Button>
-    </form>
-    <p className="bibo-auth-note">账号使用 NextClaw 基础服务；Bibo 提供有上限的模型试用。请勿输入无需分享的敏感信息。</p>
-  </section></div>;
-}
-
 export function BiboApp() {
   const store = useBiboChatStore();
   const space = useBiboSpaceStore();
@@ -85,6 +42,9 @@ export function BiboApp() {
   const route = readWorkspaceRoute(location.pathname);
   const shellRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const mobileNavRef = useRef<HTMLElement>(null);
   const [mobile, setMobile] = useState(() => window.matchMedia("(max-width: 760px)").matches);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 760px)");
@@ -134,6 +94,12 @@ export function BiboApp() {
     return () => document.removeEventListener("click", workspaceResources.intercept);
   }, []);
   const closeMenu = () => store.setMenuOpen(false);
+  const authOpen = store.authChecked && !store.user;
+  useLayoutEffect(() => {
+    for (const element of [sidebarRef.current, mainRef.current, mobileNavRef.current]) {
+      if (element) element.inert = authOpen;
+    }
+  }, [authOpen, mobile]);
   const collapsedFileTree = space.view === "files" && space.treeCollapsed;
   const fileHeader = (space.view === "files" || space.view === "notes") && (space.tabs.length > 0 || collapsedFileTree) && (!mobile || !space.fileBrowserVisible || collapsedFileTree);
   const workspaceTitle = space.view === "chat" ? store.sessions.find((session) => session.id === store.activeSessionId)?.title ?? "新对话" : navigation.find((item) => item.view === space.view)?.label;
@@ -150,8 +116,8 @@ export function BiboApp() {
       </nav>}
   </>;
   return <div ref={shellRef} className={`bibo-shell${space.view === "chat" ? " is-chat" : ""}${space.sidebarCollapsed ? " is-sidebar-collapsed" : ""}${space.workspaceOpen && space.view === "chat" ? " has-workspace" : ""}`}>
-    {mobile ? <Sheet open={store.menuOpen} onOpenChange={store.setMenuOpen} title="个人空间" closeLabel="关闭导航" returnFocusRef={menuButtonRef}><aside className="bibo-sidebar is-drawer" aria-label="导航">{sidebarContent}</aside></Sheet> : <aside className="bibo-sidebar" aria-label="导航"><div className="bibo-navigation-rail"><IconButton label={space.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} icon={space.sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />} aria-expanded={!space.sidebarCollapsed} onClick={space.toggleSidebar} />{workspaceNavigation}<div className="bibo-sidebar-spacer" /><AccountMenu /></div><div className="bibo-sidebar-panel">{sidebarContent}</div></aside>}
-    <main className="bibo-main">
+    {mobile ? <Sheet open={store.menuOpen && !authOpen} onOpenChange={store.setMenuOpen} title="个人空间" closeLabel="关闭导航" returnFocusRef={menuButtonRef}><aside className="bibo-sidebar is-drawer" aria-label="导航">{sidebarContent}</aside></Sheet> : <aside ref={sidebarRef} className="bibo-sidebar" aria-label="导航"><div className="bibo-navigation-rail"><IconButton label={space.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} icon={space.sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />} aria-expanded={!space.sidebarCollapsed} onClick={space.toggleSidebar} />{workspaceNavigation}<div className="bibo-sidebar-spacer" /><AccountMenu /></div><div className="bibo-sidebar-panel">{sidebarContent}</div></aside>}
+    <main ref={mainRef} className="bibo-main">
       <header className={`bibo-topbar${fileHeader ? " is-file-header" : ""}`} data-ui-surface="frame"><div className="bibo-topbar-leading">
         <IconButton ref={menuButtonRef} className="bibo-menu-button" label="打开菜单" icon={<Menu />} tooltip={false} aria-expanded={store.menuOpen} onClick={() => store.setMenuOpen(!store.menuOpen)} />
         <h1 className={fileHeader ? "visually-hidden" : "workspace-title"} title={workspaceTitle}>{workspaceTitle}</h1>
@@ -159,8 +125,8 @@ export function BiboApp() {
       <Outlet />
       {route.view === "chat" && <BiboWorkspace />}
     </main>
-    <nav className="bibo-mobile-nav" aria-label="手机快捷导航">{navigation.slice(0, 5).map((item) => <Link key={item.view} to={workspaceHref(item.view, store.activeSessionId)} className={space.view === item.view ? "is-active" : ""} aria-current={space.view === item.view ? "page" : undefined} onClick={closeMenu}><item.icon aria-hidden="true" />{item.label}</Link>)}<button className={space.view === "notes" || space.view === "files" ? "is-active" : ""} onClick={() => store.setMenuOpen(true)}><Menu aria-hidden="true" />更多</button></nav>
-    {store.authChecked && !store.user && <AuthPanel />}
+    <nav ref={mobileNavRef} className="bibo-mobile-nav" aria-label="手机快捷导航">{navigation.slice(0, 5).map((item) => <Link key={item.view} to={workspaceHref(item.view, store.activeSessionId)} className={space.view === item.view ? "is-active" : ""} aria-current={space.view === item.view ? "page" : undefined} onClick={closeMenu}><item.icon aria-hidden="true" />{item.label}</Link>)}<button className={space.view === "notes" || space.view === "files" ? "is-active" : ""} onClick={() => store.setMenuOpen(true)}><Menu aria-hidden="true" />更多</button></nav>
+    {authOpen && <AuthPanel />}
   </div>;
 }
 
