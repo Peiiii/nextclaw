@@ -2,8 +2,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { ConfigSchema } from "@nextclaw/core";
+import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { EventBus } from "@nextclaw/shared";
+import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import { ToolProviderRunContextService } from "@kernel/contributions/tool-provider/services/tool-provider-run-context.service.js";
 import { SessionManager } from "@kernel/managers/session.manager.js";
 import { ProjectManager } from "@kernel/features/projects/index.js";
@@ -117,6 +118,23 @@ function createProvider(
 }
 
 describe("SessionToolProvider child delegation policy", () => {
+  it("keeps the question tool in an embedded UI run's restricted catalog", async () => {
+    const homeDir = mkdtempSync(join(tmpdir(), "nextclaw-embedded-question-"));
+    tempDirs.push(homeDir);
+    const configPath = join(homeDir, "config.json");
+    saveConfig(ConfigSchema.parse({ agents: { defaults: { workspace: join(homeDir, "workspace") } } }), configPath);
+    const kernel = new NextclawKernel({ homeDir, configPath, contextProfile: "embedded" });
+    kernel.toolProviderManager.restrictToTools(["bibo", "show_file", "web_search", "web_fetch", "tool_schema", "request_user_input_async"]);
+    try {
+      await kernel.start();
+      await kernel.sessionManager.createSession({ sessionId: "hosted-ui", sourceSessionMetadata: {}, task: "Ask a question" });
+      const tools = await kernel.toolProviderManager.buildTools({ ...createRequest("hosted-ui"), channel: "ui" } as never);
+      expect(tools.map(({ name }) => name)).toContain("request_user_input_async");
+    } finally {
+      await kernel.dispose();
+    }
+  });
+
   it("exposes asynchronous questions only for the native runtime", async () => {
     const providerFor = (agentRuntimeId: string) => new SessionToolProvider(
       { resolve: async () => ({

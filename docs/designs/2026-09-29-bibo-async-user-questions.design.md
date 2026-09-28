@@ -1,6 +1,6 @@
 # Bibo 异步向用户提问
 
-日期：2026-09-29。状态：实施中，线上验收发现工具发现链路缺口。上位语义见 [原生 Agent 异步提问](2026-09-28-async-user-questions.design.md)；本设计只负责 Bibo 托管入口、提交边界与界面。
+日期：2026-09-29。状态：已部署并完成线上验收。上位语义见 [原生 Agent 异步提问](2026-09-28-async-user-questions.design.md)；本设计只负责 Bibo 托管入口、提交边界与界面。
 
 ## 用户链路与验收
 
@@ -30,3 +30,7 @@ Producer：Kernel 工具与 `UserQuestionManager` → Harness 公共入口 → C
 设计依据：用户 2026-09-28 的 Native 范围、Codex 对照截图与多轮交互纠偏，以及随后明确的 Bibo 支持要求；本次用户补充的可选问号解释和推荐提示复用已完成的 Kernel 结构化字段。`docs/VISION.md` 的长期搭档与统一会话要求，验收由同一问题 ID 和同一 Agent journal 保证。
 
 design-document: required；plan: not-required（单一纵向链路、按现有提交顺序逐层实现并验证）。
+
+## 交付证据
+
+2026-09-29 从远程主干 `4214c59ac` 完整部署 Bibo Worker 与 Container。真实测试账号中，桌面 1365px 的 Agent 调用提问工具，题目、推荐和解释被持久保存，单击选项后 `committed` 历史包含问题引用与已回答终态，刷新后仍在；手机 390px 的独立会话按同一路径跳过，引用与已跳过终态也经刷新验证。两次聚焦线上验收均成功并删除各自测试会话。定向测试、三端 TypeScript、浏览器冒烟和文档镜像检查通过；完整 Bibo 测试套件中的旧 Node 测试直接导入 CSS 仍会失败，不属于本功能链路。

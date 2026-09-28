@@ -7,6 +7,8 @@ import { chromium, type Page } from "playwright";
 const origin = "https://app.bibo.bot";
 const displayOnly = process.env.BIBO_SMOKE_SCOPE === "display";
 const questionOnly = process.env.BIBO_SMOKE_SCOPE === "question";
+const questionMobile = questionOnly && process.env.BIBO_SMOKE_VIEWPORT === "mobile";
+const skipQuestion = questionOnly && process.env.BIBO_SMOKE_ACTION === "skip";
 const accountFile = process.env.BIBO_SMOKE_ACCOUNT_FILE ?? join(homedir(), ".config", "bibo-hosted", "smoke-account.json");
 type SmokeAccount = { origin: string; email: string; password: string; userId: string };
 
@@ -51,6 +53,20 @@ async function space<T>(action: string, input: Record<string, unknown>, signal =
   });
   assert.equal(response.status, 200, `${action} returned ${response.status}`);
   return (await response.json() as { result: T }).result;
+}
+
+async function cleanupSmokeSession(sessionId: string): Promise<void> {
+  if (!questionOnly) {
+    const files = await space<{ items: LiveFile[] }>("file.list", { query: artifactPath }, AbortSignal.timeout(60_000));
+    for (const file of files.items.filter((item) => item.path === artifactPath)) {
+      await space("file.delete", { id: file.id, version: file.version }, AbortSignal.timeout(60_000));
+    }
+  }
+  const cleanup = await fetch(`${origin}/api/sessions/delete`, {
+    method: "POST", headers: { ...headers, origin, "content-type": "application/json" },
+    body: JSON.stringify({ id: sessionId }), signal: AbortSignal.timeout(60_000),
+  });
+  assert.equal(cleanup.status, 200, `Smoke conversation cleanup failed: ${cleanup.status}`);
 }
 
 type StreamState = { accepted: boolean; saving: boolean; committed: boolean; deltaCount: number; displayCount: number };
@@ -171,6 +187,8 @@ async function streamedRun(page: Page, message = prompt): Promise<{ deltaCount: 
 }
 
 const browser = await chromium.launch({ headless: true });
+let smokeError: unknown;
+let smokeResult: Record<string, unknown> | undefined;
 try {
   const account = await json<{ user?: { id: string } }>("/api/auth/me");
   assert.equal(account.user?.id, smokeAccount.userId, "Smoke account identity does not match the local credential file");
@@ -189,7 +207,7 @@ try {
   const historyPath = `/api/history?id=${encodeURIComponent(createdSessionId)}`;
   const before = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
   assert.equal(before.messages.length, 0, "New conversation must be isolated from existing history");
-  const context = await browser.newContext({ viewport: { width: 1365, height: 900 } });
+  const context = await browser.newContext({ viewport: questionMobile ? { width: 390, height: 844 } : { width: 1365, height: 900 } });
   await context.addCookies([{ name: "bibo_session", value: sessionToken, domain: "app.bibo.bot", path: "/", httpOnly: true, secure: true, sameSite: "Lax" }]);
   await context.addInitScript(() => {
     const originalFetch = window.fetch.bind(window);
@@ -282,35 +300,42 @@ try {
   await panel.getByRole("heading", { name: "报告装订方式？" }).waitFor();
   await panel.getByRole("button", { name: "关闭问题" }).click();
   await page.getByRole("button", { name: "回答问题：报告装订方式？" }).click();
-  await panel.getByRole("button", { name: /胶装/ }).first().click();
+  await page.evaluate(() => { Reflect.set(window, "biboSmokeStream", null); });
+  const replyResponse = page.waitForResponse((response) => response.url() === `${origin}/api/chat`, { timeout: 300_000 });
+  if (skipQuestion) await panel.getByRole("button", { name: "跳过" }).click();
+  else await panel.getByRole("button", { name: /胶装/ }).first().click();
+  assert.equal((await replyResponse).status(), 200, "Question reply request was rejected");
+  await page.waitForFunction(() => Reflect.get(window, "biboSmokeStream") !== null, null, { timeout: 300_000 });
+  const replyStream = await page.evaluate(() => Reflect.get(window, "biboSmokeStream") as { text?: string; error?: string });
+  assert.ok(replyStream.text?.includes("event: committed"), replyStream.error ?? "Question reply did not commit");
   await page.locator(".bibo-question-reference").filter({ hasText: "报告装订方式？" }).waitFor({ timeout: 300_000 });
   const answered = await json<typeof questioned>(historyPath);
   assert.equal(answered.messages.at(-2)?.replyToQuestion?.id, asked.id, "Answer must retain its question reference");
-  assert.equal(answered.messages.at(-2)?.text, "胶装");
-  assert.equal(answered.messages.at(-2)?.replyToQuestion?.action, "answered");
-  assert.equal(answered.messages.find((item) => item.questions?.some((question) => question.id === asked.id))?.questions?.find((question) => question.id === asked.id)?.status, "answered");
+  assert.equal(answered.messages.at(-2)?.text, skipQuestion ? "跳过" : "胶装");
+  assert.equal(answered.messages.at(-2)?.replyToQuestion?.action, skipQuestion ? "dismissed" : "answered");
+  assert.equal(answered.messages.find((item) => item.questions?.some((question) => question.id === asked.id))?.questions?.find((question) => question.id === asked.id)?.status, skipQuestion ? "dismissed" : "answered");
   await page.reload({ waitUntil: "networkidle" });
   await page.locator(".bibo-question-reference").filter({ hasText: "报告装订方式？" }).waitFor();
-  console.log(JSON.stringify({ ok: true, requestId, modelStream, search, searchStream, ...stream, asyncQuestion: true,
-    ...(!questionOnly ? { saved: true, agentFile: true, automaticPreview: true, desktop: true, mobile: true } : {}) }));
+  smokeResult = { ok: true, requestId, modelStream, search, searchStream, ...stream, asyncQuestion: true,
+    ...(questionMobile ? { mobileQuestion: true } : {}), ...(skipQuestion ? { skippedQuestion: true } : {}),
+    ...(!questionOnly ? { saved: true, agentFile: true, automaticPreview: true, desktop: true, mobile: true } : {}) };
 } catch (error) {
+  smokeError = error;
   for (const context of browser.contexts()) {
     const page = context.pages()[0];
     if (page) await page.screenshot({ path: "/tmp/bibo-live-display-failure.png", fullPage: true }).catch(() => undefined);
   }
-  throw error;
 } finally {
   await browser.close();
   clearTimeout(timeout);
   if (createdSessionId) {
-    const files = await space<{ items: LiveFile[] }>("file.list", { query: artifactPath }, AbortSignal.timeout(60_000));
-    for (const file of files.items.filter((item) => item.path === artifactPath)) {
-      await space("file.delete", { id: file.id, version: file.version }, AbortSignal.timeout(60_000));
+    try {
+      await cleanupSmokeSession(createdSessionId);
+    } catch (error) {
+      if (smokeError) console.error("Smoke cleanup also failed:", error);
+      else smokeError = error;
     }
-    const cleanup = await fetch(`${origin}/api/sessions/delete`, {
-      method: "POST", headers: { ...headers, origin, "content-type": "application/json" },
-      body: JSON.stringify({ id: createdSessionId }), signal: AbortSignal.timeout(60_000),
-    });
-    assert.equal(cleanup.status, 200, `Smoke conversation cleanup failed: ${cleanup.status}`);
   }
 }
+if (smokeError) throw smokeError;
+console.log(JSON.stringify(smokeResult));
