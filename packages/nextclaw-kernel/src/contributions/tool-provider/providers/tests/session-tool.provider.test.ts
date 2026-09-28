@@ -130,6 +130,8 @@ describe("SessionToolProvider child delegation policy", () => {
     );
     const request = createRequest("current-session") as never;
     expect((await providerFor("native").provide(request)).map(({ name }) => name)).toContain("request_user_input_async");
+    expect((await providerFor("native").provide({ ...request, channel: "ui" })).map(({ name }) => name))
+      .toContain("request_user_input_async");
     expect((await providerFor("codex").provide(request)).map(({ name }) => name)).not.toContain("request_user_input_async");
     expect((await providerFor("native").provide({ ...request, channel: "telegram" })).map(({ name }) => name))
       .not.toContain("request_user_input_async");

@@ -76,6 +76,7 @@ export class NextclawHarness implements INextclawHarness {
     const session = await this.resolveTaskSession(agent, input);
     const run = await session.run({
       input: input.input,
+      channel: input.channel,
       model: input.model,
       signal: input.signal,
       onAssistantDelta: input.onAssistantDelta,

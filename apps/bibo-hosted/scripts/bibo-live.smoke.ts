@@ -6,6 +6,7 @@ import { chromium, type Page } from "playwright";
 
 const origin = "https://app.bibo.bot";
 const displayOnly = process.env.BIBO_SMOKE_SCOPE === "display";
+const questionOnly = process.env.BIBO_SMOKE_SCOPE === "question";
 const accountFile = process.env.BIBO_SMOKE_ACCOUNT_FILE ?? join(homedir(), ".config", "bibo-hosted", "smoke-account.json");
 type SmokeAccount = { origin: string; email: string; password: string; userId: string };
 
@@ -176,8 +177,8 @@ try {
   const missingHistory = await fetch(`${origin}/api/history?id=${requestId}-missing`, { headers, signal: abort.signal });
   assert.equal(missingHistory.status, 404, "An explicit missing session must not appear as a new empty conversation");
   assert.equal((await missingHistory.json() as { error: string }).error, "会话不存在或已删除。");
-  const modelStream = displayOnly ? undefined : await modelStreamProbe();
-  const search = displayOnly ? undefined : await searchProbe();
+  const modelStream = displayOnly || questionOnly ? undefined : await modelStreamProbe();
+  const search = displayOnly || questionOnly ? undefined : await searchProbe();
   const creation = await fetch(`${origin}/api/sessions`, {
     method: "POST", headers: { ...headers, origin }, signal: abort.signal,
   });
@@ -207,28 +208,31 @@ try {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
-  const searchPrompt = "请先调用 web_search 搜索 Cloudflare AI Search 最新官方文档，用两句话说明它的用途并附至少一个官方来源链接。不要只凭记忆回答。";
-  const searchStream = displayOnly ? undefined : await streamedRun(page, searchPrompt);
-  const searched = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
-  if (!displayOnly) {
-    assert.equal(searched.messages.length, 2, "Search exchange must save");
-    assert.equal(searched.messages.at(-2)?.text, searchPrompt);
-    assert.match(searched.messages.at(-1)?.text ?? "", /https:\/\/developers\.cloudflare\.com\//, "Search-backed answer must save its source link");
-  }
-  const stream = await streamedRun(page);
-  const workspace = page.getByRole("complementary", { name: "右侧工作区" });
-  await workspace.getByRole("heading", { name: requestId, exact: true }).waitFor();
-  const after = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
-  assert.equal(after.messages.length, searched.messages.length + 2, "Saved history must contain one new exchange");
-  assert.equal(after.messages.at(-2)?.text, prompt, "Saved user message differs");
-  assert.ok(after.messages.at(-1)?.text.includes(requestId), "Saved answer is missing the request marker");
-  const files = await space<{ items: LiveFile[] }>("file.list", { query: artifactPath });
-  const artifact = files.items.find((file) => file.path === artifactPath);
-  assert.ok(artifact, "Agent claimed success without creating the requested file");
-  const persisted = await space<LiveFile>("file.get", { id: artifact.id });
-  assert.equal(persisted.content, artifactContent, "Agent file content was not persisted exactly");
-  // The Tasks screen loads these together; cloud serialization must not reject either read.
-  await Promise.all([space("project.list", { limit: 100 }), space("task.list", { limit: 100 })]);
+  let searchStream: Awaited<ReturnType<typeof streamedRun>> | undefined;
+  let stream: Awaited<ReturnType<typeof streamedRun>> | undefined;
+  if (!questionOnly) {
+    const searchPrompt = "请先调用 web_search 搜索 Cloudflare AI Search 最新官方文档，用两句话说明它的用途并附至少一个官方来源链接。不要只凭记忆回答。";
+    searchStream = displayOnly ? undefined : await streamedRun(page, searchPrompt);
+    const searched = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
+    if (!displayOnly) {
+      assert.equal(searched.messages.length, 2, "Search exchange must save");
+      assert.equal(searched.messages.at(-2)?.text, searchPrompt);
+      assert.match(searched.messages.at(-1)?.text ?? "", /https:\/\/developers\.cloudflare\.com\//, "Search-backed answer must save its source link");
+    }
+    stream = await streamedRun(page);
+    const workspace = page.getByRole("complementary", { name: "右侧工作区" });
+    await workspace.getByRole("heading", { name: requestId, exact: true }).waitFor();
+    const after = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
+    assert.equal(after.messages.length, searched.messages.length + 2, "Saved history must contain one new exchange");
+    assert.equal(after.messages.at(-2)?.text, prompt, "Saved user message differs");
+    assert.ok(after.messages.at(-1)?.text.includes(requestId), "Saved answer is missing the request marker");
+    const files = await space<{ items: LiveFile[] }>("file.list", { query: artifactPath });
+    const artifact = files.items.find((file) => file.path === artifactPath);
+    assert.ok(artifact, "Agent claimed success without creating the requested file");
+    const persisted = await space<LiveFile>("file.get", { id: artifact.id });
+    assert.equal(persisted.content, artifactContent, "Agent file content was not persisted exactly");
+    // The Tasks screen loads these together; cloud serialization must not reject either read.
+    await Promise.all([space("project.list", { limit: 100 }), space("task.list", { limit: 100 })]);
 
     for (const viewport of [{ width: 1365, height: 900 }, { width: 390, height: 844 }]) {
       await page.setViewportSize(viewport);
@@ -262,9 +266,10 @@ try {
       }
       await page.getByRole("textbox", { name: "搜索文件", exact: true }).fill(artifactPath);
       await page.getByRole("region", { name: "文件搜索结果", exact: true }).getByText(artifactPath, { exact: true }).first().click();
-      assert.equal(await page.getByRole("textbox", { name: `编辑 ${artifactPath}` }).inputValue(), artifactContent,
-        "The Files UI must read the same Agent-created object");
+      await page.getByRole("heading", { name: requestId, exact: true }).waitFor();
+      await page.getByText("真实 Agent 文件验收。", { exact: true }).waitFor();
     }
+  }
   await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
   await streamedRun(page, questionPrompt);
   const questioned = await json<{ messages: Array<{ role: string; text: string; questions?: Array<{ id: string; title: string; status: string; recommendedOption?: string; optionDescriptions?: Record<string, string> }>; replyToQuestion?: { id: string; title: string; action: string } }> }>(historyPath);
@@ -286,7 +291,8 @@ try {
   assert.equal(answered.messages.find((item) => item.questions?.some((question) => question.id === asked.id))?.questions?.find((question) => question.id === asked.id)?.status, "answered");
   await page.reload({ waitUntil: "networkidle" });
   await page.locator(".bibo-question-reference").filter({ hasText: "报告装订方式？" }).waitFor();
-  console.log(JSON.stringify({ ok: true, requestId, modelStream, search, searchStream, ...stream, saved: true, agentFile: true, automaticPreview: true, desktop: true, mobile: true }));
+  console.log(JSON.stringify({ ok: true, requestId, modelStream, search, searchStream, ...stream, asyncQuestion: true,
+    ...(!questionOnly ? { saved: true, agentFile: true, automaticPreview: true, desktop: true, mobile: true } : {}) }));
 } catch (error) {
   for (const context of browser.contexts()) {
     const page = context.pages()[0];
