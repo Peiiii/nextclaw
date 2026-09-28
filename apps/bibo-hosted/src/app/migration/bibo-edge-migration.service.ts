@@ -1,4 +1,5 @@
 import type { BiboFile } from "@nextclaw/bibo-client";
+import { isHiddenNcpMessage } from "@nextclaw/ncp";
 import type { BiboSpaceState } from "@/features/bibo-domain";
 import type { exportBiboEdgeState } from "./bibo-edge-export.service";
 import { BiboSpaceStateStore } from "../bibo-space-state.service";
@@ -11,26 +12,35 @@ type UiSession = { id: string; messages: Array<{ role: string; text: string; at?
 type MigrationEvidence = { sessions: number; messages: number; files: number; workspaceTexts: number };
 const workspaceKey = (path: string) => `edgeWorkspace:${path}`;
 
-/** An older runner could save the visible reply after its journal assistant failed. Keep that
- * journal entry, mark it terminal, and add the exact visible reply to the active NCP history. */
-function recoverVisibleReply(source: LegacyExport, uiSessions: readonly UiSession[]): LegacyExport {
+/** Old UI and NCP journals could diverge. Align only an exact visible user/assistant suffix;
+ * the untouched container snapshot remains the original journal's recovery source. */
+function reconcileVisibleTranscript(source: LegacyExport, uiSessions: readonly UiSession[]): LegacyExport {
   const visible = new Map(uiSessions.map((session) => [session.id, session]));
   return { ...source, sessions: source.sessions.map((item) => {
     const ui = visible.get(item.sessionId);
     const record = item.record;
-    if (!ui || ui.messages.length !== 2 || !record || record.messages.length !== 2) return item;
-    const [uiUser, uiAssistant] = ui.messages;
-    const [journalUser, journalAssistant] = record.messages;
-    if (uiUser?.role !== "user" || uiAssistant?.role !== "assistant" || !uiAssistant.text ||
-      journalUser?.role !== "user" || journalUser.status !== "final" ||
-      journalUser.parts.filter((part) => part.type === "text").map((part) => part.text).join("") !== uiUser.text ||
-      journalAssistant?.role !== "assistant" || journalAssistant.status === "final") return item;
-    const recovered = { id: `bibo-ui-recovered-${item.sessionId}`, sessionId: item.sessionId,
-      role: "assistant" as const, status: "final" as const, timestamp: uiAssistant.at ?? journalAssistant.timestamp,
-      parts: [{ type: "text" as const, text: uiAssistant.text }] };
-    if (record.messages.some((message) => message.id === recovered.id)) return item;
-    return { ...item, record: { ...record, messages: [journalUser,
-      { ...journalAssistant, status: "error" as const }, recovered] } };
+    if (!ui?.messages.length || ui.messages[0]?.role !== "user" || !record) return item;
+    const conversational = record.messages.map((message, index) => ({ message, index }))
+      .filter(({ message }) => (message.role === "user" || message.role === "assistant") && !isHiddenNcpMessage(message));
+    const aligned = conversational.slice(-ui.messages.length);
+    if (aligned.length !== ui.messages.length || !aligned.every(({ message }, index) => {
+      const shown = ui.messages[index]!;
+      return message.role === shown.role && (message.role !== "user" || message.status === "final" &&
+        message.parts.filter((part) => part.type === "text").map((part) => part.text).join("") === shown.text);
+    })) return item;
+    const patched = [...record.messages];
+    let changed = false;
+    for (const [index, { message, index: position }] of aligned.entries()) {
+      if (message.role !== "assistant") continue;
+      const shown = ui.messages[index]!;
+      const text = message.parts.filter((part) => part.type === "text").map((part) => part.text).join("");
+      if (message.status === "final" && text === shown.text) continue;
+      patched[position] = { ...message, status: "final", parts: [
+        { type: "text", text: shown.text }, ...message.parts.filter((part) => part.type !== "text"),
+      ] };
+      changed = true;
+    }
+    return changed ? { ...item, record: { ...record, messages: patched } } : item;
   }) };
 }
 
@@ -115,7 +125,7 @@ export class BiboEdgeMigrationService {
 
   migrate = async (source: LegacyExport, uiSessions: readonly UiSession[]): Promise<MigrationEvidence> => {
     if (await this.storage.get<string>("conversationMode") === "edge") throw new Error("Bibo user already has edge conversation writes");
-    source = recoverVisibleReply(source, uiSessions);
+    source = reconcileVisibleTranscript(source, uiSessions);
     validateExport(source, uiSessions);
     const current = await this.space.load();
     if (current && JSON.stringify(current) !== JSON.stringify(source.spaceState)) throw new Error("Bibo structured space changed during migration");

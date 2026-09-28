@@ -106,7 +106,7 @@ test("orphaned unfinished journals remain intact while visible unfinished sessio
     source.sessions[0]?.record?.messages);
 });
 
-test("a two-message legacy reply is recovered only when its user journal matches the visible transcript", async () => {
+test("a legacy reply is reconciled only when its user journal matches the visible transcript", async () => {
   const at = "2026-09-29T00:00:00.000Z";
   const user = { id: "user", sessionId: "old", role: "user" as const, status: "final" as const,
     timestamp: at, parts: [{ type: "text" as const, text: "question" }] };
@@ -127,10 +127,35 @@ test("a two-message legacy reply is recovered only when its user journal matches
   const result = await migration.migrate(source, [{ id: "old", messages: [
     { role: "user", text: "question" }, { role: "assistant", text: "visible reply", at },
   ] }]);
-  assert.equal(result.messages, 3);
+  assert.equal(result.messages, 2);
   const messages = (await new BiboEdgeSessionStore(storage as unknown as DurableObjectStorage).load("old"))?.messages;
-  assert.equal(messages?.[1]?.status, "error");
+  assert.equal(messages?.[1]?.status, "final");
   assert.equal(messages?.[1]?.parts[0]?.type, "text");
-  assert.equal(messages?.[2]?.parts[0]?.type, "text");
-  assert.deepEqual(messages?.[2]?.parts, [{ type: "text", text: "visible reply" }]);
+  assert.deepEqual(messages?.[1]?.parts, [{ type: "text", text: "visible reply" }]);
+  assert.equal(source.sessions[0]?.record?.messages[1]?.status, "error", "source snapshot must stay unchanged");
+});
+
+test("multi-turn legacy transcript keeps its NCP message IDs and matches every visible reply", async () => {
+  const at = "2026-09-29T00:00:00.000Z";
+  const messages = Array.from({ length: 12 }, (_, index) => ({ id: `m-${index}`, sessionId: "old",
+    role: index % 2 ? "assistant" as const : "user" as const,
+    status: index % 4 === 3 ? "error" as const : "final" as const, timestamp: at,
+    parts: [{ type: "text" as const, text: index % 2 ? `outdated ${index}` : `user ${index}` }],
+  }));
+  const ui = messages.map((message, index) => ({ role: message.role,
+    text: index % 2 ? `visible ${index}` : `user ${index}`, at }));
+  const source: Parameters<BiboEdgeMigrationService["migrate"]>[0] = {
+    schema: 1, sessions: [{ sessionId: "old", record: { sessionId: "old", messages,
+      metadata: {}, createdAt: at, updatedAt: at } }],
+    spaceState: { schema: 1, projects: [], tasks: [], events: [], inbox: [], deliveryStatuses: {}, files: [], replays: {} },
+    files: [], workspaceTexts: {}, deliveries: null,
+  };
+  const storage = new MemoryStorage();
+  await new BiboEdgeMigrationService(storage as unknown as DurableObjectStorage).migrate(source, [{ id: "old", messages: ui }]);
+  const saved = (await new BiboEdgeSessionStore(storage as unknown as DurableObjectStorage).load("old"))?.messages;
+  assert.equal(saved?.length, 12);
+  assert.deepEqual(saved?.map((message) => message.id), messages.map((message) => message.id));
+  assert.deepEqual(saved?.map((message) => message.parts[0]), ui.map((message) => ({ type: "text", text: message.text })));
+  assert.ok(saved?.every((message) => message.status === "final"));
+  assert.equal(messages[3]?.status, "error", "the source journal remains available for rollback inspection");
 });
