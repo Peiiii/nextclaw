@@ -11,9 +11,13 @@ import {
   type CalendarMode,
 } from "@/features/space/utils/calendar.utils";
 
-import { day, datetime } from "@/features/space/utils/date-format.utils";
+import { day } from "@/features/space/utils/date-format.utils";
 import { EventForm } from "./event-form";
 const time = (value: string) => new Date(value).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+const upcomingTime = (value: string) => {
+  const date = new Date(value);
+  return `${date.getMonth() + 1}月${date.getDate()}日 · ${time(value)}`;
+};
 
 function CalendarTimeGrid({
   dates,
@@ -211,7 +215,7 @@ function CalendarAgenda({ onSelect, onCreate }: { onSelect: () => void; onCreate
       )}
       {upcoming.length > 0 && (
         <div className="bibo-upcoming">
-          <span className="bibo-kicker">接下来</span>
+          <h3>接下来</h3>
           {upcoming.map((event) => (
             <ListRow variant="card" key={event.id}
               onClick={() => {
@@ -220,7 +224,7 @@ function CalendarAgenda({ onSelect, onCreate }: { onSelect: () => void; onCreate
                 onSelect();
               }}
             >
-              <span>{datetime(event.startAt)}</span>
+              <time dateTime={event.startAt}>{upcomingTime(event.startAt)}</time>
               <strong>{event.title}</strong>
             </ListRow>
           ))}
