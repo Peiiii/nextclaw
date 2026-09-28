@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BiboClientError, readBiboStream, readShowContent } from "./bibo-protocol.utils";
+import { BiboClientError, readBiboStream, readMessages, readShowContent } from "./bibo-protocol.utils";
 
 const encoder = new TextEncoder();
 const committed = 'event: committed\ndata: {"text":"你好","messages":[{"role":"assistant","text":"你好","at":"now"}]}\n\n';
@@ -53,6 +53,18 @@ test("invalid committed messages cannot report success", async () => {
     },
   }));
   await assert.rejects(readBiboStream(response, () => undefined), /对话记录格式不正确/);
+});
+
+test("question explanations, recommendations, and reply references survive history parsing", () => {
+  const question = { id: "q1", title: "格式？", messageId: "m1", askedAt: "now", status: "answered", answer: "PDF",
+    options: ["PDF", "DOCX"], recommendedOption: "PDF", optionDescriptions: { PDF: "便于交付" } };
+  const messages = readMessages([
+    { role: "assistant", text: "我继续整理", at: "now", questions: [question] },
+    { role: "user", text: "PDF", at: "later", replyToQuestion: { id: "q1", title: "格式？", action: "answered" } },
+  ]);
+  assert.deepEqual(messages[0]?.questions?.[0], question);
+  assert.deepEqual(messages[1]?.replyToQuestion, { id: "q1", title: "格式？", action: "answered" });
+  assert.throws(() => readMessages([{ role: "assistant", text: "x", at: "now", questions: [{ ...question, recommendedOption: "TXT" }] }]), BiboClientError);
 });
 test("display events survive byte boundaries and retain the kernel file target", async () => {
   const value = { id: "tool:show", sessionId: "s1", title: "文档", target: { type: "file", payload: { path: "文档.md", viewer: "auto" } } };

@@ -118,12 +118,13 @@ export class BiboClient {
     if (!isRecord(value) || value.ok !== true) throw new BiboClientError("停止生成未得到确认。");
   };
 
-  chat = async (message: string, onEvent: (event: BiboChatEvent) => void, sessionId?: string): Promise<void> => {
+  chat = async (message: string, onEvent: (event: BiboChatEvent) => void, sessionId?: string,
+    question?: { id: string; action: "answer" | "dismiss" }): Promise<void> => {
     const response = await this.fetchResponse("/api/chat", {
       method: "POST",
       credentials: "same-origin",
       headers: { "content-type": "application/json", accept: "text/event-stream" },
-      body: JSON.stringify({ message, sessionId }),
+      body: JSON.stringify({ message, sessionId, ...(question ? { questionId: question.id, questionAction: question.action } : {}) }),
     });
     if (!response.ok) {
       const value: unknown = await response.json().catch(() => null);

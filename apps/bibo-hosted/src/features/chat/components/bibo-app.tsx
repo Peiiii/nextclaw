@@ -6,21 +6,26 @@ import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { useBiboChatStore, type BiboDisplayMessage } from "@/features/chat/stores/bibo-chat.store";
 import { BiboSpaceView, BiboWorkspace, FileTabs, useBiboSpaceStore, type BiboView } from "@/features/space";
 
-import { ArrowDown, CalendarDays, CheckCheck, FileText, Folder, Home, Inbox, Menu, MessageCircle, PanelLeftClose, PanelLeftOpen, PanelRight, Plus, Sparkles, type LucideIcon } from "lucide-react";
+import { ArrowDown, CalendarDays, CheckCheck, FileText, Folder, Home, Inbox, Menu, MessageCircle, MessageCircleQuestion, PanelLeftClose, PanelLeftOpen, PanelRight, Plus, Sparkles, type LucideIcon } from "lucide-react";
 import { SessionNavigation } from "./session-navigation";
 import { AccountMenu } from "./account-menu";
 import { AuthPanel } from "./auth-panel";
 import { workspaceResources } from "@/features/space";
+import { QuestionPanel, QuestionReference, QuestionTags } from "./session-user-questions";
 
 const suggestions = [
   { mark: "✳", label: "先认识我", text: "我想让你成为我的个人搭档。先问我三个关键问题，了解我最近最在意的目标，然后帮我选一件今天能推进的事。" },
   { mark: "▤", label: "梳理一个项目", text: "我正在做一个项目，想和你一起理清现状、目标和下一步。请先问我必要的问题。" },
   { mark: "◷", label: "整理今天", text: "今天我有不少事要做。请帮我根据重要性和精力安排一个现实可执行的计划，先问我需要的信息。" },
 ];
-const MessageRow = memo(function MessageRow({ message }: { message: BiboDisplayMessage }) {
-  return <Message role={message.role} text={message.text} pending={message.pending} mark={<Sparkles size={14} />} waitingLabel={copy.waiting}
+const MessageRow = memo(function MessageRow({ message, onOpenQuestion }: { message: BiboDisplayMessage; onOpenQuestion: (id: string) => void }) {
+  return <div className={`bibo-message-row bibo-message-row--${message.role}`}>
+    {message.replyToQuestion && <QuestionReference reference={message.replyToQuestion} />}
+    <Message role={message.role} text={message.text} pending={message.pending} mark={<Sparkles size={14} />} waitingLabel={copy.waiting}
     label={message.role === "assistant" ? "Bibo" : copy.you} copyLabel={copy.copy}
-    copiedLabel={copy.copied} copyFailedLabel={copy.copyFailed} resolveResourceHref={workspaceResources.href} />;
+    copiedLabel={copy.copied} copyFailedLabel={copy.copyFailed} resolveResourceHref={workspaceResources.href} />
+    {message.questions && <QuestionTags questions={message.questions} onOpen={onOpenQuestion} />}
+  </div>;
 });
 const navigation: { view: BiboView; label: string; icon: LucideIcon }[] = [
   { view: "overview", label: copy.overview, icon: Home }, { view: "chat", label: copy.conversation, icon: MessageCircle },
@@ -88,7 +93,6 @@ export function BiboApp() {
     window.addEventListener("beforeunload", guardDrafts);
     return () => window.removeEventListener("beforeunload", guardDrafts);
   }, []);
-  useEffect(() => { if (store.user && store.messages.length) void useBiboSpaceStore.getState().refreshAfterChat(); }, [store.messages]);
   useEffect(() => {
     document.addEventListener("click", workspaceResources.intercept);
     return () => document.removeEventListener("click", workspaceResources.intercept);
@@ -139,6 +143,8 @@ export function ChatPage() {
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messages = store.displayMessages();
+  const questions = store.messages.flatMap((message) => message.questions ?? []).filter((question) => question.status === "pending");
+  const openQuestion = questions.find((question) => question.id === store.openQuestionId);
   const hasMessages = messages.length > 0;
   const failedMessages = store.failedMessages[store.activeSessionId ?? "new"] ?? [];
   const status = store.status || store.replyErrors[store.activeSessionId ?? "new"];
@@ -161,13 +167,19 @@ export function ChatPage() {
           <div className="bibo-suggestions">{suggestions.map((suggestion) => <Button key={suggestion.label} onClick={() => { store.setDraft(suggestion.text); inputRef.current?.focus(); }}><span>{suggestion.mark}</span>{suggestion.label}<span>↗</span></Button>)}</div>
         </div>}
         {hasMessages && <div className="bibo-messages" ref={listRef} onScroll={onScroll} role="log" aria-live="polite" aria-relevant="additions text">
-          <div className="bibo-message-content">{messages.map((message) => <MessageRow key={message.id} message={message} />)}</div>
+          <div className="bibo-message-content">{messages.map((message) => <MessageRow key={message.id} message={message} onOpenQuestion={store.openQuestion} />)}</div>
         </div>}
         {hasMessages && !store.following && <IconButton className="bibo-jump" label={copy.backToLatest} icon={<ArrowDown size={18} />} feedback="filled" tooltipSide="top" onClick={jumpToLatest} />}
       </section>
       <div className="bibo-composer-wrap">
         {status && <div className="bibo-status" role="status" aria-live="polite">{status}</div>}
         {store.phase === "idle" && failedMessages.length > 0 && <Button tone="text" onClick={() => void store.send(failedMessages[0])}>{copy.retryFailed}{failedMessages.length > 1 ? ` (${failedMessages.length})` : ""}</Button>}
+        {openQuestion && <QuestionPanel key={openQuestion.id} question={openQuestion} busy={store.phase !== "idle" || sessionSwitching}
+          onClose={store.closeQuestion}
+          onAnswer={(answer) => void store.send(answer, { id: openQuestion.id, title: openQuestion.title, action: "answer" })}
+          onDismiss={() => void store.send("跳过", { id: openQuestion.id, title: openQuestion.title, action: "dismiss" })} />}
+        {!openQuestion && questions.length > 0 && <button type="button" className="bibo-question-reopen" onClick={() => store.openQuestion(questions[0].id)}>
+          <MessageCircleQuestion size={15} aria-hidden="true" />{copy.questionPending} {questions.length}</button>}
         <Composer inputRef={inputRef} value={store.draft} onChange={store.setDraft} onSend={() => void store.send()} onStop={() => void store.stop()}
           busy={store.phase !== "idle" || sessionSwitching} canStop={store.phase === "generating" && Boolean(store.runId) && store.runSessionId === store.activeSessionId}
           readOnly={sessionSwitching} busyLabel={copy.busy}

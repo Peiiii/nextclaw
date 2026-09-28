@@ -78,6 +78,16 @@ test("accepts a committed JSON reply from an older container", async () => {
   assert.deepEqual(events, ["committed"]);
 });
 
+test("question answers keep a structured relation in the same chat request", async () => {
+  let body: unknown;
+  const client = new BiboClient({ fetch: (async (_path: RequestInfo | URL, init?: RequestInit) => {
+    body = JSON.parse(String(init?.body));
+    return json({ text: "继续", messages: [] });
+  }) as typeof fetch });
+  await client.chat("PDF", () => undefined, "session-1", { id: "question-1", action: "answer" });
+  assert.deepEqual(body, { message: "PDF", sessionId: "session-1", questionId: "question-1", questionAction: "answer" });
+});
+
 test("delivers a delta before committed data exists", async () => {
   const encoder = new TextEncoder();
   let controller!: ReadableStreamDefaultController<Uint8Array>;

@@ -200,10 +200,10 @@ class BiboSpaceOwner {
   refreshAfterChat = async (): Promise<void> => {
     this.loadedCalendarMonths.clear();
     this.calendarRevision += 1;
-    await this.load("overview");
     const view = this.get().view;
-    if (view !== "overview" && view !== "chat") await this.load(view);
-    if (this.get().workspaceOpen) await this.load("files");
+    if (view === "chat" && !this.get().workspaceOpen) return;
+    if (view !== "chat") await this.load(view);
+    if (this.get().workspaceOpen && view !== "files") await this.load("files");
     for (const id of this.get().tabs) {
       if (this.get().fileDrafts[id]?.dirty) continue;
       try {

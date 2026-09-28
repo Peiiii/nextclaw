@@ -5,18 +5,23 @@ import { biboFetch } from "./routes/bibo-http.route";
 import { BiboSpaceService, BiboSpaceError, type BiboSpaceState } from "@/features/bibo-domain";
 import { BiboSpaceStateStore } from "./bibo-space-state.service";
 import { BiboRunError, errorDetails, logDiagnostic, readTrace, readRunFailure, runFailure, traceHeaders, type RunTrace } from "./diagnostics/bibo-diagnostics.utils";
+import type { BiboMessage } from "@nextclaw/bibo-client";
+import { parseBiboSpaceRequest } from "./utils/bibo-space-request.utils";
 export { BiboModelBudget } from "./bibo-model-gateway.service";
 
 const MAX_SNAPSHOT_BYTES = 32 * 1024 * 1024;
-type Message = { role: "user" | "assistant"; text: string; at: string };
+type Message = BiboMessage;
 type Session = { id: string; title: string; createdAt: string; updatedAt: string; messages: Message[] };
-type ActiveRun = RunTrace & { id: string; phase: "generating" | "saving"; controller: AbortController; acceptedAt: number };
+type PreparedRun = { message: string; token: string; session: Session; question?: { id: string; title: string; action: "answer" | "dismiss" } };
+type ActiveRun = RunTrace & { id: string; phase: "generating" | "saving"; controller: AbortController; acceptedAt: number;
+  finished: Promise<void>; complete: () => void };
 
 export class BiboUserContainer extends Container<Env> {
   defaultPort = 8080;
   sleepAfter = "5m";
   enableInternet = true;
   private inFlight = false;
+  private containerReadDone: Promise<void> | null = null;
   private spaceQueue: Promise<void> = Promise.resolve();
   private readonly spaceState = new BiboSpaceStateStore(this.ctx.storage);
   private readonly structuredSpace = new BiboSpaceService("/data", {
@@ -68,7 +73,7 @@ export class BiboUserContainer extends Container<Env> {
     const route = url.pathname;
     if (route.startsWith("/sessions") || route === "/history") {
       const mutation = request.method === "POST";
-      if (mutation && this.inFlight) return publicError("Bibo 正在处理另一项操作，请稍后再试。", 429);
+      if (mutation && (this.inFlight || route === "/sessions/delete" && this.containerReadDone)) return publicError("Bibo 正在处理另一项操作，请稍后再试。", 429);
       if (mutation) this.inFlight = true;
       try { return await this.sessionRoute(request, url); }
       finally { if (mutation) this.inFlight = false; }
@@ -93,7 +98,7 @@ export class BiboUserContainer extends Container<Env> {
   }
 
   private reset = async (): Promise<Response> => {
-    if (this.inFlight) return publicError("Bibo 正在处理任务，请完成后再清空。", 429);
+    if (this.inFlight || this.containerReadDone) return publicError("Bibo 正在处理任务，请完成后再清空。", 429);
     this.inFlight = true;
     try {
       await this.stop();
@@ -184,50 +189,75 @@ export class BiboUserContainer extends Container<Env> {
     return null;
   };
 
-  private persistRun = async (message: string, result: RunResult, session: Session): Promise<Response> => {
+  private persistRun = async (payload: PreparedRun, result: RunResult): Promise<Response> => {
     const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
     const at = new Date().toISOString();
-    const updated: Session = { ...session, title: session.messages.length === 0 && session.title === "新对话" ? message.slice(0, 40) : session.title, updatedAt: at,
-      messages: [...session.messages.slice(-98), { role: "user", text: message, at }, { role: "assistant", text: result.text, at }] };
+    const questions = result.questions ?? [];
+    const projected = payload.session.messages.map((message) => message.questions?.length
+      ? { ...message, questions: message.questions.map((question) => questions.find((latest) => latest.id === question.id) ?? question) }
+      : message);
+    const knownIds = new Set(projected.flatMap((message) => message.questions?.map((question) => question.id) ?? []));
+    const newQuestions = questions.filter((question) => !knownIds.has(question.id));
+    const retained = projected.filter((message, index) => index >= projected.length - 98 || message.questions?.some((question) => question.status === "pending"));
+    const userMessage: Message = { role: "user", text: payload.question?.action === "dismiss" ? "跳过" : payload.message, at,
+      ...(payload.question ? { replyToQuestion: { id: payload.question.id, title: payload.question.title,
+        action: payload.question.action === "answer" ? "answered" as const : "dismissed" as const } } : {}) };
+    const assistantMessage: Message = { role: "assistant", text: result.text, at,
+      ...(newQuestions.length ? { questions: newQuestions } : {}) };
+    const updated: Session = { ...payload.session, title: payload.session.messages.length === 0 && payload.session.title === "新对话" ? payload.message.slice(0, 40) : payload.session.title, updatedAt: at,
+      messages: [...retained, userMessage, assistantMessage] };
     const nextSessions = [updated, ...sessions.filter((item) => item.id !== updated.id)];
     const failed = await this.commitSnapshot({ sessions: nextSessions });
     return failed ?? json({ text: result.text, messages: updated.messages, displayEvents: result.displayEvents ?? [], session: { id: updated.id, title: updated.title, updatedAt: updated.updatedAt } });
   };
 
-  private space = async (request: Request): Promise<Response> => {
-    if (this.inFlight) return publicError("Bibo 正在处理另一项操作，请稍后再试。", 429);
-    this.inFlight = true;
-    let needsRestore = false;
+  private executeContainerSpace = async (raw: string, write: boolean): Promise<Response> => {
+    let needsRestore = write;
     try {
-      const raw = await request.text();
-      if (new TextEncoder().encode(raw).byteLength > 1_100_000) return publicError("内容过大。", 413);
-      const body = JSON.parse(raw) as { action?: unknown; input?: unknown };
-      if (!body || typeof body.action !== "string") return publicError("缺少操作名称。", 400);
-      if (/^(task|project|event)\./.test(body.action)) {
-        const started = performance.now();
-        const result = await this.structuredSpace.execute(body.action, body.input ?? {});
-        return json({ result }, 200, { "server-timing": `space;dur=${(performance.now() - started).toFixed(1)}` });
-      }
       await this.syncContainerSpace(await this.structuredSpace.exportState());
-      const write = /\.(create|update|move|delete|read|resolve)$/.test(body.action);
-      needsRestore = write;
       const response = await this.containerFetch("http://localhost/space", {
         method: "POST", headers: { "content-type": "application/json" }, body: raw,
       });
-      const resultText = await response.text();
-      const result = new Response(resultText, { status: response.status, headers: { ...Object.fromEntries(response.headers), "cache-control": "no-store" } });
+      const result = new Response(await response.text(), { status: response.status, headers: { ...Object.fromEntries(response.headers), "cache-control": "no-store" } });
       if (!response.ok || !write) return result;
       const failed = await this.commitSnapshot();
-      if (failed) return failed;
-      needsRestore = false;
-      return result;
+      if (!failed) needsRestore = false;
+      return failed ?? result;
+    } finally {
+      if (needsRestore) await this.stop().catch(() => undefined);
+    }
+  };
+
+  private space = async (request: Request): Promise<Response> => {
+    let locked = false;
+    let readDone: Promise<void> | null = null;
+    let completeRead: () => void = () => undefined;
+    try {
+      const parsed = await parseBiboSpaceRequest(request);
+      if (parsed instanceof Response) return parsed;
+      const { raw, action, input, readOnly, structured } = parsed;
+      if (readOnly && !structured) while (this.activeRun) await this.activeRun.finished;
+      if (this.inFlight && (!readOnly || !this.activeRun)) return publicError("Bibo 正在处理另一项操作，请稍后再试。", 429);
+      if (!readOnly && this.containerReadDone) return publicError("Bibo 正在处理另一项操作，请稍后再试。", 429);
+      if (!readOnly) { this.inFlight = true; locked = true; }
+      if (structured) {
+        const started = performance.now();
+        const result = await this.structuredSpace.execute(action, input);
+        return json({ result }, 200, { "server-timing": `space;dur=${(performance.now() - started).toFixed(1)}` });
+      }
+      if (readOnly) {
+        readDone = new Promise<void>((resolve) => { completeRead = resolve; });
+        this.containerReadDone = readDone;
+      }
+      return await this.executeContainerSpace(raw, /\.(create|update|move|delete|read|resolve)$/.test(action));
     } catch (error) {
       if (error instanceof BiboSpaceError) return publicError(error.message, error.status);
       logDiagnostic("worker", "space.failed", { ...readTrace(request.headers), ...errorDetails(error), errorCode: "SPACE_FAILED" }, "error");
       return publicError("操作未能保存，请保留内容后重试。", 503);
     } finally {
-      if (needsRestore) await this.stop().catch(() => undefined);
-      this.inFlight = false;
+      if (readDone && this.containerReadDone === readDone) this.containerReadDone = null;
+      if (readDone) completeRead();
+      if (locked) this.inFlight = false;
     }
   };
 
@@ -239,7 +269,9 @@ export class BiboUserContainer extends Container<Env> {
     }
     this.inFlight = true;
     const streaming = request.headers.get("accept")?.includes("text/event-stream") ?? false;
-    const active: ActiveRun = { ...trace, id: trace.runId, phase: "generating", controller: new AbortController(), acceptedAt: Date.now() };
+    let complete!: () => void;
+    const finished = new Promise<void>((resolve) => { complete = resolve; });
+    const active: ActiveRun = { ...trace, id: trace.runId, phase: "generating", controller: new AbortController(), acceptedAt: Date.now(), finished, complete };
     this.activeRun = active;
     logDiagnostic("worker", "run.accepted", active);
     if (streaming) {
@@ -276,28 +308,38 @@ export class BiboUserContainer extends Container<Env> {
     return this.executeRun(request, active);
   };
 
-  private prepareRun = async (request: Request): Promise<{ message: string; token: string; session: Session } | Response> => {
-    const payload = await request.json() as { message?: unknown; token?: unknown; sessionId?: unknown };
+  private prepareRun = async (request: Request): Promise<PreparedRun | Response> => {
+    const payload = await request.json() as { message?: unknown; token?: unknown; sessionId?: unknown; questionId?: unknown; questionAction?: unknown };
     if (typeof payload.message !== "string" || !payload.message.trim() || payload.message.length > 4000 || typeof payload.token !== "string") {
       return publicError("请输入 1 到 4000 字的消息。", 400);
+    }
+    const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
+    const session = typeof payload.sessionId === "string" ? sessions.find((item) => item.id === payload.sessionId) : sessions[0];
+    if (payload.sessionId && !session) return publicError("会话不存在。", 404);
+    let question: PreparedRun["question"];
+    if (payload.questionId !== undefined) {
+      if (typeof payload.questionId !== "string" || !payload.questionId ||
+        (payload.questionAction !== "answer" && payload.questionAction !== "dismiss") || !session) return publicError("问题编号不正确。", 400);
+      const found = session.messages.flatMap((message) => message.questions ?? []).find((item) => item.id === payload.questionId);
+      if (!found || found.status !== "pending") return publicError("这个问题已经处理，请刷新会话。", 409);
+      question = { id: found.id, title: found.title, action: payload.questionAction };
     }
     const now = Date.now();
     const recent = (await this.ctx.storage.get<number[]>("runs") ?? []).filter((at) => now - at < 3_600_000);
     if (recent.length >= 100) return publicError("本小时对话次数已用完，请稍后再来。", 429);
     await this.ctx.storage.put("runs", [...recent, now]);
-    const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
-    const session = typeof payload.sessionId === "string" ? sessions.find((item) => item.id === payload.sessionId) : sessions[0];
-    if (payload.sessionId && !session) return publicError("会话不存在。", 404);
     const time = new Date().toISOString();
     return { message: payload.message.trim(), token: payload.token,
-      session: session ?? { id: crypto.randomUUID(), title: "新对话", createdAt: time, updatedAt: time, messages: [] } };
+      session: session ?? { id: crypto.randomUUID(), title: "新对话", createdAt: time, updatedAt: time, messages: [] },
+      ...(question ? { question } : {}) };
   };
 
-  private generateRun = async (payload: { message: string; token: string; session: Session }, active: ActiveRun, onDelta?: (text: string) => void): Promise<RunResult> => {
+  private generateRun = async (payload: PreparedRun, active: ActiveRun, onDelta?: (text: string) => void): Promise<RunResult> => {
     const response = await this.containerFetch("http://localhost/run", {
       method: "POST",
       headers: { "content-type": "application/json", ...traceHeaders(active), ...(onDelta ? { accept: "text/event-stream" } : {}) },
-      body: JSON.stringify({ message: payload.message, token: payload.token, sessionId: payload.session.id, searchEnabled: Boolean(this.env.BIBO_EXA_API_KEY) }),
+      body: JSON.stringify({ message: payload.message, token: payload.token, sessionId: payload.session.id, searchEnabled: Boolean(this.env.BIBO_EXA_API_KEY),
+        ...(payload.question ? { questionId: payload.question.id, questionAction: payload.question.action } : {}) }),
       signal: active.controller.signal,
     });
     if (response.status === 429) {
@@ -324,6 +366,13 @@ export class BiboUserContainer extends Container<Env> {
     return result;
   };
 
+  private prepareContainerForRun = async (active: ActiveRun): Promise<void> => {
+    const started = Date.now();
+    await this.containerReadDone;
+    await this.syncContainerSpace(await this.structuredSpace.exportState());
+    logDiagnostic("worker", "run.space-ready", { ...active, durationMs: Date.now() - started });
+  };
+
   private executeRun = async (request: Request, active: ActiveRun, onDelta?: (text: string) => void, onSaving?: () => void): Promise<Response> => {
     let attemptedRun = false;
     let persisted = false;
@@ -339,16 +388,14 @@ export class BiboUserContainer extends Container<Env> {
       logDiagnostic("worker", "run.started", active);
       attemptedRun = true;
       stage = "restore-and-sync";
-      const syncStarted = Date.now();
-      await this.syncContainerSpace(await this.structuredSpace.exportState());
-      logDiagnostic("worker", "run.space-ready", { ...active, durationMs: Date.now() - syncStarted });
+      await this.prepareContainerForRun(active);
       stage = "generate";
       const result = await this.generateRun(payload, active, onDelta);
       active.phase = "saving";
       stage = "save";
       logDiagnostic("worker", "run.saving", active);
       onSaving?.();
-      const saved = await this.persistRun(payload.message, result, payload.session);
+      const saved = await this.persistRun(payload, result);
       persisted = saved.ok;
       if (!persisted) logDiagnostic("worker", "run.save-failed", { ...active, stage, status: saved.status, errorCode: "RUN_SAVE_FAILED" }, "error");
       return saved;
@@ -369,6 +416,7 @@ export class BiboUserContainer extends Container<Env> {
     logDiagnostic("worker", "run.finished", { ...active, stage: result.stage, persisted: result.persisted, durationMs: Date.now() - result.started });
     this.inFlight = false;
     if (this.activeRun === active) this.activeRun = null;
+    active.complete();
   };
 }
 

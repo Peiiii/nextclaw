@@ -163,6 +163,7 @@ export class NextclawSessionRegistry implements INextclawSessionRegistry {
           abortSignal: input.signal,
           config: kernel.configManager.config,
           content: input.input,
+          channel: input.channel,
           metadata: input.model?.trim()
             ? { model: input.model.trim() }
             : undefined,

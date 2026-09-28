@@ -1,6 +1,18 @@
 export type BiboUser = { id: string; email: string };
 
-export type BiboMessage = { role: "user" | "assistant"; text: string; at: string };
+export type BiboQuestion = {
+  id: string;
+  title: string;
+  messageId: string;
+  askedAt: string;
+  status: "pending" | "answered" | "dismissed";
+  options?: string[];
+  recommendedOption?: string;
+  optionDescriptions?: Record<string, string>;
+  answer?: string;
+};
+export type BiboQuestionReference = { id: string; title: string; action: "answered" | "dismissed" };
+export type BiboMessage = { role: "user" | "assistant"; text: string; at: string; questions?: BiboQuestion[]; replyToQuestion?: BiboQuestionReference };
 export type BiboSession = { id: string; title: string; createdAt: string; updatedAt: string; messageCount?: number };
 
 export type BiboShowContent = {

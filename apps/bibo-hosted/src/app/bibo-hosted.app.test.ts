@@ -94,7 +94,9 @@ class PersonalSpaceFixture {
   private instance = () => new worker.BiboUserContainer(this.ctx, this.env);
   stored = () => new BiboSpaceStateStore(this.storage as unknown as DurableObjectStorage).load();
   action = (action: string, input: Record<string, unknown> = {}) => this.owner.fetch(new Request("https://bibo.internal/space", { method: "POST", body: JSON.stringify({ action, input }) }));
+  createSession = () => this.owner.fetch(new Request("https://bibo.internal/sessions/new", { method: "POST" }));
   run = (stream = false) => this.owner.fetch(new Request("https://bibo.internal/run", { method: "POST", ...(stream ? { headers: { accept: "text/event-stream" } } : {}), body: JSON.stringify({ message: "create task", token: "token" }) }));
+  ownerFetch = (request: Request) => this.owner.fetch(request);
   cancel = (runId: string) => this.owner.fetch(new Request("https://bibo.internal/cancel", { method: "POST", body: JSON.stringify({ runId }) }));
   restart = async () => { this.owner = this.instance(); await this.owner.onStart(); };
   reopen = () => { this.owner = this.instance(); };
@@ -169,6 +171,38 @@ test("Worker releases display events only after snapshot commit", async () => {
   assert.equal(rejected.includes("event: committed"), false);
 });
 
+test("questions and quoted answers commit with the Agent snapshot and survive a new DO instance", async () => {
+  const space = personalSpace();
+  const original = space.env.containerFetch;
+  const prompt = { id: "q-1", messageId: "assistant-question-1", askedAt: "2026-09-29T00:00:00Z", title: "报告格式？",
+    options: ["PDF", "DOCX"], recommendedOption: "PDF", optionDescriptions: { PDF: "适合直接交付" }, status: "pending" };
+  space.env.containerFetch = async (url, init) => {
+    if (new URL(url).pathname !== "/run") return original(url, init);
+    const body = JSON.parse(String(init?.body)) as { sessionId: string; questionId?: string; questionAction?: string; message: string };
+    if (body.questionId) {
+      assert.equal(body.questionId, prompt.id);
+      assert.equal(body.questionAction, "answer");
+      assert.equal(body.message, "DOCX");
+      return Response.json({ text: "已按 DOCX 准备", sessionId: body.sessionId,
+        questions: [{ ...prompt, status: "answered", answer: "DOCX" }] });
+    }
+    return Response.json({ text: "我会先整理内容", sessionId: body.sessionId, questions: [prompt] });
+  };
+  const first = await (await space.run()).json() as { session: { id: string }; messages: Array<{ questions?: unknown[] }> };
+  assert.equal(first.messages.at(-1)?.questions?.length, 1);
+  const answer = () => new Request("https://bibo.internal/run", { method: "POST", body: JSON.stringify({
+    sessionId: first.session.id, message: "DOCX", token: "token", questionId: "q-1", questionAction: "answer",
+  }) });
+  const second = await (await space.ownerFetch(answer())).json() as { messages: Array<{ questions?: Array<{ status: string }>; replyToQuestion?: { id: string; title: string; action: string }; text: string }> };
+  assert.equal(second.messages.find((message) => message.questions?.length)?.questions?.[0]?.status, "answered");
+  assert.deepEqual(second.messages.at(-2)?.replyToQuestion, { id: "q-1", title: "报告格式？", action: "answered" });
+  assert.equal(second.messages.at(-1)?.text, "已按 DOCX 准备");
+  assert.equal((await space.ownerFetch(answer())).status, 409);
+  space.reopen();
+  const history = await (await space.ownerFetch(new Request(`https://bibo.internal/history?id=${first.session.id}`))).json() as { messages: typeof second.messages };
+  assert.deepEqual(history.messages, second.messages);
+});
+
 test("cancelled runs discard their file display requests", async () => {
   const space = personalSpace(undefined, true);
   const originalFetch = space.env.containerFetch;
@@ -214,6 +248,62 @@ test("structured saves persist without container or snapshots, retain conflicts 
   space.failWrite();
   assert.equal((await space.action("task.create", { title: "Must not be saved" })).status, 503);
   assert.equal((await space.stored())!.tasks.length, 1);
+});
+
+test("a slow personal-space read does not reject chat, while writes remain exclusive", async () => {
+  const space = personalSpace();
+  const originalFetch = space.env.containerFetch;
+  const order: string[] = [];
+  let readStarted!: () => void;
+  let releaseRead!: () => void;
+  const reading = new Promise<void>((resolve) => { readStarted = resolve; });
+  const readGate = new Promise<void>((resolve) => { releaseRead = resolve; });
+  space.env.containerFetch = async (url, init) => {
+    const route = new URL(url).pathname;
+    if (route === "/space") {
+      const action = JSON.parse(init!.body as string).action;
+      order.push(action);
+      if (action === "overview.get") { readStarted(); await readGate; }
+    }
+    if (route === "/run") order.push("run");
+    return originalFetch(url, init);
+  };
+  const overview = space.action("overview.get");
+  await reading;
+  assert.equal((await space.createSession()).status, 200, "opening a conversation does not depend on space reads");
+  const queuedRead = space.action("file.list");
+  const chat = space.run();
+  releaseRead();
+  assert.equal((await overview).status, 200);
+  assert.equal((await chat).status, 200, "chat waits for the current read instead of rejecting it");
+  assert.equal((await queuedRead).status, 200);
+  assert.deepEqual(order.slice(0, 3), ["overview.get", "run", "file.list"], "queued reads cannot get ahead of chat");
+
+  let runStarted!: () => void;
+  let releaseRun!: () => void;
+  const generating = new Promise<void>((resolve) => { runStarted = resolve; });
+  const runGate = new Promise<void>((resolve) => { releaseRun = resolve; });
+  space.env.containerFetch = async (url, init) => {
+    if (new URL(url).pathname === "/run") { runStarted(); await runGate; }
+    return originalFetch(url, init);
+  };
+  const run = space.run();
+  await generating;
+  assert.equal((await space.action("task.list")).status, 200, "structured reads do not take the chat lock");
+  assert.equal((await space.action("task.create", { title: "Too early" })).status, 429, "writes still wait for chat");
+  const containerRead = space.action("file.list");
+  releaseRun();
+  assert.equal((await run).status, 200);
+  assert.equal((await containerRead).status, 200, "container reads resume after chat finishes");
+  assert.equal((await space.action("task.create", { title: "After chat" })).status, 200);
+  assert.deepEqual((await space.stored())!.tasks.map((task) => task.title), ["Agent task", "Agent task", "After chat"]);
+
+  space.env.containerFetch = async (url, init) => {
+    if (new URL(url).pathname === "/space") throw new Error("read interrupted");
+    return originalFetch(url, init);
+  };
+  assert.equal((await space.action("file.list")).status, 503);
+  assert.equal((await space.run()).status, 200, "a failed read must release the runner gate");
 });
 
 test("snapshot hydration and restarts preserve newer DO tasks and staged inbox writes", async () => {
