@@ -9,7 +9,7 @@ export { Field, Input, Select, Textarea } from "./components/field";
 export { SegmentedControl } from "./components/segmented-control";
 export { EmptyState, LoadingState } from "./components/empty-state";
 export { Notice } from "./components/notice";
-export { ListRow } from "./components/list-row";
+export { ListRow, RowActionTray } from "./components/list-row";
 export { PageHeader } from "./components/page-header";
 export { Dialog, Sheet } from "./components/overlays/overlay";
 export { ConfirmDialog } from "./components/overlays/confirm-dialog";

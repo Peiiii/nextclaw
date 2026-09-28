@@ -61,18 +61,55 @@ export async function checkWorkspaceFiles(page: Page, width: number, base: strin
   await workspace.getByRole("button", { name: "关闭工作区" }).click();
 }
 
-export async function checkFileRowActions(page: Page, base: string): Promise<void> {
-  await page.goto(`${base}/files`, { waitUntil: "networkidle" });
-  const backToDirectory = page.locator(".file-mobile-back button");
-  if (await backToDirectory.isVisible()) await backToDirectory.click();
-  const fileRow = page.locator(".bibo-tree-row").filter({ has: page.getByRole("treeitem", { name: "review-document-0.md", exact: true }) });
-  const rowAction = fileRow.getByRole("button", { name: "管理文件 review-document-0.md" });
+async function checkFileActionReveal(fileRow: Locator, rowAction: Locator): Promise<void> {
+  const resting = await fileRow.evaluate((row) => ({
+    touch: matchMedia("(hover: none)").matches,
+    opacity: getComputedStyle(row.querySelector(".ui-row-action-tray")!).opacity,
+    pointerEvents: getComputedStyle(row.querySelector(".ui-row-action-tray")!).pointerEvents,
+    mainRight: row.querySelector(".bibo-tree-main")!.getBoundingClientRect().right,
+    rowRight: row.getBoundingClientRect().right,
+  }));
+  assert.equal(resting.opacity, resting.touch ? "1" : "0", "file actions are revealed on hover or remain available on touch screens");
+  assert.equal(resting.pointerEvents, "none", "hidden file actions do not intercept row clicks");
+  assert.ok(resting.mainRight >= resting.rowRight - 8, "hidden actions do not reserve title width");
+  await fileRow.hover();
   await rowAction.hover();
   const feedback = await rowAction.evaluate((button) => ({
     icon: getComputedStyle(button, "::before").backgroundColor,
     row: getComputedStyle(button.closest(".bibo-tree-row")!).backgroundColor,
   }));
   assert.notEqual(feedback.icon, feedback.row, "file actions remain visible against the hovered row");
+}
+
+async function checkNoteRowActions(page: Page, base: string, backToDirectory: Locator): Promise<void> {
+  await page.goto(`${base}/notes`, { waitUntil: "networkidle" });
+  if (await backToDirectory.isVisible()) await backToDirectory.click();
+  const noteRow = page.locator(".bibo-note-list .ui-list-row-group").filter({ hasText: "想法.md" });
+  const noteAction = noteRow.getByRole("button", { name: "管理笔记 想法.md" });
+  if (await page.evaluate(() => matchMedia("(hover: none)").matches)) {
+    await noteAction.click();
+    await page.getByRole("menuitem", { name: "移动 / 重命名" }).waitFor();
+    await page.keyboard.press("Escape");
+    return;
+  }
+  await noteRow.locator(".ui-list-row").click();
+  await noteAction.hover();
+  const note = await noteRow.evaluate((row) => ({
+    parent: getComputedStyle(row).backgroundColor,
+    child: getComputedStyle(row.querySelector(".ui-list-row")!).backgroundColor,
+    icon: getComputedStyle(row.querySelector(".ui-icon-button")!, "::before").backgroundColor,
+  }));
+  assert.equal(note.child, "rgba(0, 0, 0, 0)", "selected note draws one row background");
+  assert.notEqual(note.icon, note.parent, "more-action hover is visible on a selected note");
+}
+
+export async function checkFileRowActions(page: Page, base: string): Promise<void> {
+  await page.goto(`${base}/files`, { waitUntil: "networkidle" });
+  const backToDirectory = page.locator(".file-mobile-back button");
+  if (await backToDirectory.isVisible()) await backToDirectory.click();
+  const fileRow = page.locator(".bibo-tree-row").filter({ has: page.getByRole("treeitem", { name: "review-document-0.md", exact: true }) });
+  const rowAction = fileRow.getByRole("button", { name: "管理文件 review-document-0.md" });
+  await checkFileActionReveal(fileRow, rowAction);
   await rowAction.click();
   await page.getByRole("menuitem", { name: "移动 / 重命名" }).waitFor();
   await page.getByRole("menuitem", { name: "删除", exact: true }).click();
@@ -86,12 +123,11 @@ export async function checkFileRowActions(page: Page, base: string): Promise<voi
   await page.getByRole("treeitem", { name: "review-document-1.md" }).waitFor();
   await page.getByRole("textbox", { name: "搜索文件" }).fill("review-document-1");
   const searchRow = page.locator(".ui-list-row-group").filter({ hasText: "review-document-1.md" });
+  await searchRow.hover();
   await searchRow.getByRole("button", { name: "管理文件 review-document-1.md" }).click();
   await page.getByRole("menuitem", { name: "删除", exact: true }).waitFor();
   await page.keyboard.press("Escape");
-  await page.goto(`${base}/notes`, { waitUntil: "networkidle" });
-  if (await backToDirectory.isVisible()) await backToDirectory.click();
-  await page.locator(".bibo-note-list").getByRole("button", { name: "管理笔记 想法.md" }).waitFor();
+  await checkNoteRowActions(page, base, backToDirectory);
 }
 
 async function checkFileDrafts(page: Page, workspace: Locator, width: number): Promise<void> {

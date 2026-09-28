@@ -268,9 +268,8 @@
 .file-tree-search { @apply flex flex-none items-center gap-1 p-2; }
 .file-tree-search .ui-control { @apply min-w-0; }
 .bibo-tree-row { @apply flex items-center [min-height:31px] pr-1.25 [border-radius:6px]; }
-.bibo-tree-row:hover { @apply [background:var(--ui-hover)]; }
-.bibo-tree-row:is(:hover, :focus-within, .is-selected) { --ui-icon-hover: var(--ui-selection-hover); }
-.bibo-tree-row.is-selected:hover { @apply [background:var(--ui-selection-hover)]; }
+.bibo-tree-row:is(:hover, :focus-within) { @apply [background:var(--ui-hover)]; }
+.bibo-tree-row.is-selected:is(:hover, :focus-within) { @apply [background:var(--ui-selection-hover)]; }
 .bibo-tree-row.is-selected { @apply [background:var(--ui-selection)]; }
 .bibo-tree-main { @apply flex-1 flex self-stretch min-h-8 items-center gap-2 overflow-hidden border-0 bg-transparent bg-none text-left [color:var(--ui-muted)] cursor-pointer text-base; }
 .bibo-tree-name { @apply min-w-0 overflow-hidden whitespace-nowrap text-ellipsis; }

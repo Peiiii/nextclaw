@@ -153,7 +153,18 @@ select.ui-control:focus-visible { @apply [outline:2px_solid_var(--ui-focus)] [ou
 .ui-list-row:hover { @apply [background:var(--ui-hover)]; }
 .ui-list-row.is-selected { @apply [background:var(--ui-selection)]; }
 .ui-list-row.is-selected:hover { @apply [background:var(--ui-selection-hover)]; }
+.ui-list-row-group > .ui-list-row:is(:hover, .is-selected, .is-selected:hover) { @apply bg-transparent; }
 .ui-list-row:focus-visible { @apply [outline:2px_solid_var(--ui-focus)] [outline-offset:-2px]; }
+.ui-row-action-host { @apply relative; --ui-row-action-surface: var(--ui-surface); }
+.ui-row-action-host:is(:hover, :focus-within) { --ui-row-action-surface: var(--ui-hover); --ui-icon-hover: var(--ui-selection-hover); }
+.ui-row-action-host.is-selected { --ui-row-action-surface: var(--ui-selection); }
+.ui-row-action-host.is-selected:is(:hover, :focus-within) { --ui-row-action-surface: var(--ui-selection-hover); --ui-icon-hover: color-mix(in srgb, var(--ui-selection-hover) 82%, var(--ui-ink)); }
+.ui-row-action-tray { @apply absolute isolate [z-index:1] right-1 [top:50%] flex items-center [transform:translateY(-50%)] [opacity:0] pointer-events-none; }
+.ui-row-action-tray::before { @apply content-[""] absolute -z-10 [right:0] [top:0] [bottom:0] [width:calc(100%_+_88px)] [background:linear-gradient(to_right,_transparent,_var(--ui-row-action-surface)_40%)]; }
+.ui-row-action-tray .ui-icon-button { @apply pointer-events-none; }
+.ui-row-action-host:is(:hover, :focus-within) > .ui-row-action-tray, .ui-row-action-host:has(.ui-row-action-tray [data-state="open"]) > .ui-row-action-tray { @apply [opacity:1]; }
+.ui-row-action-host:is(:hover, :focus-within) > .ui-row-action-tray .ui-icon-button, .ui-row-action-host:has(.ui-row-action-tray [data-state="open"]) > .ui-row-action-tray .ui-icon-button { @apply pointer-events-auto; }
+@media (hover: none) { .ui-row-action-tray { @apply [opacity:1]; } .ui-row-action-tray .ui-icon-button { @apply pointer-events-auto; } }
 .ui-list-row--card { @apply relative w-full m-0 [min-height:44px] items-center justify-between [padding:8px_12px] border-0 overflow-hidden; }
 .ui-message { @apply flex flex-col w-full gap-2 text-base leading-7 [overflow-wrap:anywhere]; }
 .ui-message--user { @apply [align-self:flex-end] [width:auto] [max-width:min(78%,_680px)] items-end; }

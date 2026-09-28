@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { workspaceHref } from "@/app/workspace-router";
-import { LoaderCircle, Plus } from "lucide-react";
+import { LoaderCircle, MoreVertical, Plus } from "lucide-react";
 import type { BiboSession } from "@nextclaw/bibo-client";
 import {
   ActionMenu,
@@ -46,6 +46,7 @@ function SessionActions({ session }: { session: BiboSession }) {
       <ActionMenu
         label={`管理会话 ${session.title}`}
         triggerRef={trigger}
+        trigger={<IconButton ref={trigger} label={`管理会话 ${session.title}`} tooltip="更多操作" tooltipSide="top" icon={<MoreVertical />} />}
         transferringFocus={mode !== null}
       >
         <ActionMenuItem onSelect={() => open("rename")}>重命名</ActionMenuItem>
