@@ -26,6 +26,7 @@ async function checkEditor(page: Page, width: number) {
   await checkDraftRecovery(page);
   await checkConflicts(page);
   await checkTypingDuringSave(page);
+  await checkScrollContinuity(page);
   await checkLayout(page, width);
   assert.deepEqual(errors, []);
   console.log(`Markdown editor ${width}px: preview, live/source, IME, history, search, draft recovery, conflicts and concurrent saves passed`);
@@ -150,6 +151,18 @@ async function checkLayout(page: Page, width: number) {
     const box = button.getBoundingClientRect(); return box.left >= 0 && box.right <= innerWidth;
   }));
   assert.equal(controls, true, "mode and save controls fit narrow screens");
+}
+
+async function checkScrollContinuity(page: Page) {
+  await editorFor(page).fill(Array.from({ length: 100 }, (_, index) => `## 第 ${index + 1} 节\n\n长文阅读与编辑的位置保持。`).join("\n\n"));
+  await mode(page, "预览").click();
+  await page.locator(".bibo-file-preview-markdown").evaluate((element) => { element.scrollTop = (element.scrollHeight - element.clientHeight) / 2; });
+  await page.waitForFunction(() => document.querySelector(".bibo-file-preview-markdown")!.scrollTop > 100);
+  await mode(page, "源码").click();
+  await page.waitForFunction(() => document.querySelector(".cm-scroller")!.scrollTop > 100);
+  await mode(page, "预览").click();
+  await page.waitForFunction(() => document.querySelector(".bibo-file-preview-markdown")!.scrollTop > 100);
+  await mode(page, "源码").click();
 }
 
 try {

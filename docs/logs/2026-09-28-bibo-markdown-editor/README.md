@@ -11,7 +11,7 @@
 ## 测试/验证/验收方式
 
 - Worker、client、runner 三份 tsc；personal-agent-ui tsc；Vite production build。
-- 完整产品 smoke（独立 5299 端口）覆盖原有聊天、文件/笔记、关闭重开、保存刷新、桌面手机与主题。
+- 完整产品 smoke（进程隔离端口及构建 HTML 身份校验）覆盖原有聊天、文件/笔记、关闭重开、保存刷新、桌面手机与主题。
 - 编辑定向 smoke：1440/390/320px 默认预览、格式与源码高亮、真实 Chromium IME composition、节点身份、撤销重做、查找、列表续行、刷新草稿、503 重试、409 恢复及保存中继续输入。
 - 草稿单测覆盖账号隔离、基版本、保存清理、无效数据和存储配额错误。原 store Node 测试因已有 router → app CSS 导入而无法在 tsx 中加载；不计为通过，改以真实页面组装链路证明本次状态行为。
 - targeted ESLint、governance、ratchet 与 maintainability 检查；脚本和 store 既有近预算提示保留，无新增预算豁免。
@@ -29,7 +29,7 @@
 
 ## 可维护性总结汇总
 
-复用 existing file-state 纯状态转换与 Bibo store 保存 owner，不引入第二文档模型、存储 API 或富文本 serializer。共享编辑器归现有 Markdown 组件目录，第三方编辑器生命周期通过 effect 同步，业务网络与恢复不进入 UI 包。维护性告警已通过按职责归位关闭；这属于本次实现调整，不新增全局规则。端口冲突教训落实为现有产品 smoke 的端口参数，避免验证到别的 worktree。
+复用现有 file-state 纯状态转换与 Bibo store 保存 owner，不引入第二文档模型、存储 API 或富文本 serializer。共享编辑器归现有 Markdown 组件目录，第三方编辑器生命周期通过 effect 同步，业务网络与恢复不进入 UI 包。维护性告警已通过按职责归位关闭；这属于本次实现调整，不新增全局规则。端口冲突教训落实为现有产品 smoke 的进程隔离端口、产物身份校验与直接管理 Vite 子进程，避免验证到别的 worktree。
 
 ## NPM 包发布记录
 
