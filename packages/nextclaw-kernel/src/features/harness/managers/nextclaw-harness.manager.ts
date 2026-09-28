@@ -5,6 +5,7 @@ import { NextclawContributionRegistry } from "@kernel/features/harness/managers/
 import { NextclawKernelFacade } from "@kernel/features/harness/managers/nextclaw-kernel-capability.manager.js";
 import type { NextclawRun } from "@kernel/features/harness/managers/nextclaw-run.manager.js";
 import { NextclawSessionRegistry } from "@kernel/features/harness/managers/nextclaw-session.manager.js";
+import { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
 import {
   NextclawHarnessError,
   type INextclawAgent,
@@ -16,6 +17,8 @@ import {
   type NextclawHarnessOptions,
   type NextclawTaskInput,
   type NextclawTaskResult,
+  type NextclawUserQuestion,
+  type NextclawUserQuestionReply,
 } from "@kernel/features/harness/types/nextclaw-harness.types.js";
 
 type HarnessState = "idle" | "starting" | "started" | "disposed";
@@ -79,6 +82,28 @@ export class NextclawHarness implements INextclawHarness {
       onEvent: input.onEvent,
     });
     return await run.result();
+  };
+
+  listUserQuestions = async (sessionId: string): Promise<NextclawUserQuestion[]> =>
+    await this.requireKernel().userQuestions.list(sessionId);
+
+  answerUserQuestion = async (input: {
+    sessionId: string;
+    questionId: string;
+    action: "answer" | "dismiss";
+    answer?: string;
+    signal?: AbortSignal;
+    onEvent?: NextclawTaskInput["onEvent"];
+    onAssistantDelta?: NextclawTaskInput["onAssistantDelta"];
+  }): Promise<NextclawUserQuestionReply> => {
+    const kernel = this.requireKernel();
+    const resolution = await kernel.userQuestions.resolveAndWaitForReply(input,
+      new AgentRunClient({ eventBus: kernel.eventBus, ingress: kernel.ingress }), {
+        abortSignal: input.signal,
+        onEvent: input.onEvent,
+        onAssistantDelta: input.onAssistantDelta,
+      });
+    return { question: resolution.question, text: resolution.text };
   };
 
   dispose = async (): Promise<void> => {

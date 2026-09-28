@@ -20,6 +20,7 @@ import type {
   AgentRuntimeSessionTypeOption,
 } from "@kernel/features/runtime-registry/index.js";
 import type { Contribution } from "@kernel/features/harness/managers/nextclaw-contribution.manager.js";
+import type { UserQuestionView } from "@kernel/managers/user-question.manager.js";
 
 export type NextclawHarnessErrorCode =
   | "invalid_input"
@@ -62,6 +63,12 @@ export type NextclawTaskResult = {
   runId: string | null;
   text: string;
   completedMessage: NcpMessage | null;
+};
+
+export type NextclawUserQuestion = UserQuestionView;
+export type NextclawUserQuestionReply = {
+  question: NextclawUserQuestion;
+  text: string | null;
 };
 
 export type NextclawHarnessOptions = {
@@ -257,6 +264,16 @@ export interface INextclawHarness {
   readonly contributions: INextclawContributionRegistry;
   start(): Promise<void>;
   runTask(input: NextclawTaskInput): Promise<NextclawTaskResult>;
+  listUserQuestions(sessionId: string): Promise<NextclawUserQuestion[]>;
+  answerUserQuestion(input: {
+    sessionId: string;
+    questionId: string;
+    action: "answer" | "dismiss";
+    answer?: string;
+    signal?: AbortSignal;
+    onEvent?: (event: NcpEndpointEvent) => void;
+    onAssistantDelta?: (delta: string) => void;
+  }): Promise<NextclawUserQuestionReply>;
   dispose(): Promise<void>;
 }
 
