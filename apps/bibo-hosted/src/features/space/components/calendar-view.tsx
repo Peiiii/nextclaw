@@ -98,6 +98,19 @@ function CalendarTimeGrid({
 const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 function CalendarMonthGrid({ onSelect, onCreate }: { onSelect: () => void; onCreate: (date: Date) => void }) {
   const { events, calendarDate: anchor, setCalendarDate: setAnchor, selectEvent } = useBiboSpaceStore();
+  const pendingOutsideClick = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (pendingOutsideClick.current !== null) window.clearTimeout(pendingOutsideClick.current);
+  }, [anchor]);
+  const cancelPendingOutsideClick = () => {
+    if (pendingOutsideClick.current !== null) window.clearTimeout(pendingOutsideClick.current);
+    pendingOutsideClick.current = null;
+  };
+  const selectDate = (date: Date) => {
+    setAnchor(date);
+    selectEvent(null);
+    onSelect();
+  };
   const today = new Date();
   return (
     <div className="calendar-month" aria-label="月历">
@@ -120,11 +133,25 @@ function CalendarMonthGrid({ onSelect, onCreate }: { onSelect: () => void; onCre
                 aria-label={`${day(date.toISOString())}，${items.length} 项安排`}
                 aria-pressed={isSameDay(date, anchor)}
                 aria-current={isSameDay(date, today) ? "date" : undefined}
-                onDoubleClick={() => { const start = new Date(date); start.setHours(9, 0, 0, 0); onCreate(start); }}
-                onClick={() => {
-                  setAnchor(date);
-                  selectEvent(null);
-                  onSelect();
+                onBlur={cancelPendingOutsideClick}
+                onDoubleClick={() => {
+                  cancelPendingOutsideClick();
+                  const start = new Date(date);
+                  start.setHours(9, 0, 0, 0);
+                  onCreate(start);
+                }}
+                onClick={(event) => {
+                  cancelPendingOutsideClick();
+                  if (event.detail > 1) return;
+                  if (event.detail !== 0 && (date.getFullYear() !== anchor.getFullYear() || date.getMonth() !== anchor.getMonth())) {
+                    // Keep the original cell mounted until a possible double-click completes.
+                    pendingOutsideClick.current = window.setTimeout(() => {
+                      pendingOutsideClick.current = null;
+                      selectDate(date);
+                    }, 500);
+                    return;
+                  }
+                  selectDate(date);
                 }}
               >
                 <span>{date.getDate()}</span>
@@ -264,7 +291,7 @@ export function CalendarView() {
   };
   const create = (date?: Date) => {
     setSlot(date ?? null);
-    if (date) setAnchor(date);
+    if (date && mode !== "month") setAnchor(date);
     selectEvent(null);
     setCreating(true);
     setDetailsOpen(true);
