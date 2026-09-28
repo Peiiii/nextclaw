@@ -4,6 +4,7 @@ import "./styles/overlays.css";
 export { Button } from "./components/button";
 export { Message } from "./components/message";
 export { Markdown, type MarkdownLabels } from "./components/markdown/markdown";
+export { MarkdownEditor, type MarkdownEditorLabels } from "./components/markdown/markdown-editor";
 export { Composer } from "./components/composer";
 export { Field, Input, Select, Textarea } from "./components/field";
 export { SegmentedControl } from "./components/segmented-control";

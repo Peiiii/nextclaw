@@ -3,6 +3,29 @@ import type { BiboFile, BiboFileDetail } from "@nextclaw/bibo-client";
 
 type WorkspaceState = ReturnType<typeof useBiboSpaceStore.getState>;
 
+export function savedFileState(state: WorkspaceState, detail: BiboFileDetail, submittedContent: string): Partial<WorkspaceState> {
+  const id = detail.id;
+  const current = state.fileDrafts[id];
+  if (!current) return {};
+  const editedDuringSave = current.content !== submittedContent;
+  return {
+    fileDetails: { ...state.fileDetails, [id]: detail },
+    fileDrafts: { ...state.fileDrafts, [id]: { content: editedDuringSave ? current.content : detail.content ?? "", version: detail.version, dirty: editedDuringSave, saving: false } },
+  };
+}
+
+export function closedFileState(state: WorkspaceState, id: string): Partial<WorkspaceState> {
+  const tabs = state.tabs.filter((tab) => tab !== id);
+  const fileDetails = { ...state.fileDetails }; delete fileDetails[id];
+  const fileDrafts = { ...state.fileDrafts }; delete fileDrafts[id];
+  const neighbor = state.tabs[state.tabs.indexOf(id) + 1] ?? state.tabs[state.tabs.indexOf(id) - 1] ?? null;
+  return {
+    tabs, fileDetails, fileDrafts, activeFileId: state.activeFileId === id ? neighbor : state.activeFileId,
+    fileBrowserVisible: tabs.length === 0 ? true : state.fileBrowserVisible,
+    ...(state.workspaceFileId === id ? { workspaceFileId: neighbor, workspacePreview: null } : {}),
+  };
+}
+
 export function openedFileState(state: WorkspaceState, detail: BiboFileDetail, ancestors: BiboFile[], active: boolean): Partial<WorkspaceState> {
   const id = detail.id;
   const draft = state.fileDrafts[id];

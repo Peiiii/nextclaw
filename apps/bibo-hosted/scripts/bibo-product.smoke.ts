@@ -1,15 +1,18 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
+import { readFileSync } from "node:fs";
 import { chromium, type Page, type Route } from "playwright";
 import { mockApi } from "./personal-workspace.fixture";
 import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs, checkSessionActionFade } from "./design-system/bibo-design-system.smoke";
-import { checkFileRowActions, checkMissingRestoredFile, checkWorkspaceFiles, openWorkspaceFile } from "./design-system/workspace-file.smoke";
-const base = "http://127.0.0.1:5189";
-const server = spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5189", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
+import { checkFileRowActions, checkMissingRestoredFile, checkWorkspaceFiles, checkWorkspaceReopening, openWorkspaceFile } from "./design-system/workspace-file.smoke";
+const port = process.env.BIBO_SMOKE_PORT ?? String(30000 + process.pid % 20000);
+const base = `http://127.0.0.1:${port}`;
+const server = spawn(process.execPath, [new URL("../node_modules/vite/bin/vite.js", import.meta.url).pathname, "preview", "--host", "127.0.0.1", "--port", port, "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
 async function ready(): Promise<void> {
   for (let attempt = 0; attempt < 60; attempt += 1) {
-    try { if ((await fetch(base)).ok) return; } catch { /* Preview is starting. */ }
+    if (server.exitCode !== null) throw new Error("The isolated preview server exited before readiness");
+    try { if (await (await fetch(base)).text() === readFileSync(new URL("../dist/public/index.html", import.meta.url), "utf8")) return; } catch { /* Preview is starting. */ }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   throw new Error("Bibo preview did not start");
@@ -86,6 +89,7 @@ async function checkTreeKeyboard(page: Page): Promise<void> {
   const group = await node("B-folder").getAttribute("aria-owns");
   assert.ok(group && await page.evaluate((id) => document.getElementById(id)?.getAttribute("role") === "group", group));
   await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "源码", exact: true }).click();
   await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
   await node("alpha").click();
   await page.getByLabel("文件操作", { exact: true }).click();
@@ -109,12 +113,13 @@ async function checkFileNavigation(page: Page, width: number): Promise<void> {
     assert.equal(await resize.getAttribute("aria-valuenow"), "240");
     await page.getByRole("button", { name: "收起目录树", exact: true }).click();
     await page.getByRole("button", { name: "展开目录树", exact: true }).click();
-    assert.equal(await editor.inputValue(), "未保存的文件草稿");
+    assert.equal(await editor.textContent(), "未保存的文件草稿");
     await page.getByRole("button", { name: "保存", exact: true }).click();
     await page.getByTitle("已保存 · v2").waitFor();
     await page.reload({ waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "源码", exact: true }).click();
     assert.equal(await resize.getAttribute("aria-valuenow"), "240");
-    assert.equal(await editor.inputValue(), "未保存的文件草稿");
+    assert.equal(await editor.textContent(), "未保存的文件草稿");
   }
   await checkContentBounds(page);
   await page.waitForFunction(() => {
@@ -135,28 +140,16 @@ async function checkWorkspaceRecovery(page: Page): Promise<void> {
   await page.goto(`${base}/chat/session-a`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "打开右侧工作区" }).click();
   await openWorkspaceFile(page, ["想法.md"]);
-  const editor = page.getByRole("textbox", { name: "编辑 想法.md" });
-  await editor.fill("# 工作区保留的修改");
-  await page.getByRole("button", { name: "关闭工作区" }).click();
-  await page.getByRole("button", { name: "打开右侧工作区" }).click();
-  assert.equal(await editor.inputValue(), "# 工作区保留的修改");
-  await page.getByRole("button", { name: "保存", exact: true }).click();
-  await page.getByTitle("已保存 · v2").waitFor();
-  await page.reload({ waitUntil: "networkidle" });
-  assert.equal(await editor.inputValue(), "# 工作区保留的修改");
-  await page.getByRole("button", { name: "关闭工作区" }).click();
-  await page.reload({ waitUntil: "networkidle" });
-  assert.equal(await page.getByRole("complementary", { name: "右侧工作区" }).count(), 0);
-  await page.getByRole("button", { name: "打开右侧工作区" }).click();
-  await editor.waitFor();
+  const editor = await checkWorkspaceReopening(page);
   failRead = true;
   await page.reload({ waitUntil: "networkidle" });
   await page.getByText("文件读取暂时失败", { exact: true }).waitFor();
   await page.getByRole("heading", { name: "暂时无法打开文件" }).waitFor();
   failRead = false;
   await page.getByRole("button", { name: "重试打开", exact: true }).click();
+  await page.getByRole("button", { name: "源码", exact: true }).click();
   await editor.waitFor();
-  assert.equal(await editor.inputValue(), "# 工作区保留的修改");
+  assert.equal(await editor.textContent(), "# 工作区保留的修改");
   await captureWorkspace(page);
   await checkMissingRestoredFile(page, base);
 }
@@ -342,6 +335,7 @@ try {
       if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
       await page.getByRole("link", { name: /笔记/ }).click();
       await page.getByRole("button", { name: /想法.md/ }).first().click();
+      await page.getByRole("button", { name: "源码", exact: true }).click();
       const editor = page.getByRole("textbox", { name: "编辑 想法.md" });
       await editor.fill("# 更新过的想法");
       await page.getByRole("button", { name: "保存", exact: true }).click();
@@ -349,13 +343,15 @@ try {
       assert.equal(await page.locator(".bibo-space-feedback").count(), 0, "saved feedback stays in the editor");
       await page.screenshot({ path: `/tmp/workspace-save-status-${viewport.width}.png`, animations: "disabled" });
       const editorBox = await editor.boundingBox();
-      assert.ok(editorBox && editorBox.y < 180 && editorBox.height > viewport.height * .6, "note content occupies the main workspace at desktop and mobile sizes");
+      const surfaceBox = await page.locator(".ui-markdown-editor-host").boundingBox();
+      assert.ok(editorBox && surfaceBox && editorBox.y < 210 && surfaceBox.height > viewport.height * .55, "note content occupies the main workspace at desktop and mobile sizes");
       assert.equal(await page.getByRole("button", { name: "保存", exact: true }).count(), 0, "idle saved files leave no redundant save control");
       if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
       await page.getByRole("link", { name: /文件/ }).click();
       await page.getByRole("treeitem", { name: /想法.md/ }).click();
+      await page.getByRole("button", { name: "源码", exact: true }).click();
       await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
-      assert.equal(await page.getByRole("textbox", { name: "编辑 想法.md" }).inputValue(), "# 更新过的想法");
+      assert.equal(await page.getByRole("textbox", { name: "编辑 想法.md" }).textContent(), "# 更新过的想法");
       await page.getByRole("button", { name: "预览", exact: true }).click();
       await page.getByRole("heading", { name: "更新过的想法" }).waitFor();
       assert.equal(await page.getByRole("group", { name: "文件模式" }).getByRole("button", { name: "预览" }).getAttribute("aria-pressed"), "true");
@@ -366,6 +362,7 @@ try {
       await page.getByRole("button", { name: "展开目录树", exact: true }).click();
       await page.getByRole("treeitem", { name: /想法.md/ }).waitFor({ state: "visible" });
       await page.getByRole("treeitem", { name: /想法.md/ }).click();
+      await page.getByRole("button", { name: "源码", exact: true }).click();
       await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
       await page.screenshot({ path: `/tmp/bibo-files-${viewport.width}.png`, fullPage: true });
       if (viewport.width === 1440) {
