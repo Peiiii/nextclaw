@@ -49,7 +49,6 @@ async function checkEditor(page: Page, width: number) {
 
 async function checkWriting(page: Page) {
   await openSource(page);
-  const editor = editorFor(page);
   await replaceSource(page, documentText);
   await mode(page, "编辑").click();
   await richFor(page).locator("h1").waitFor();
@@ -97,7 +96,6 @@ async function checkCrossBlockHistory(page: Page) {
 }
 
 async function checkHistoryAndSearch(page: Page) {
-  const editor = editorFor(page);
   assert.ok((await contentOf(page)).includes("中文输入不会丢失"));
   await page.getByRole("button", { name: /查找与替换/ }).filter({ visible: true }).click();
   const search = page.locator(".cm-search input[name=search]");
@@ -109,12 +107,13 @@ async function checkHistoryAndSearch(page: Page) {
 
 async function checkRichObjects(page: Page) {
   const original = await contentOf(page);
-  const extra = "---\ntitle: 保留元数据\n---\n\n" + original + "\n\n| 名称 | 状态 |\n| --- | --- |\n| 功能 | 待办 |\n\n脚注[^note]。\n\n[^note]: 原始脚注\n\n<!-- 保留注释 -->\n\n[unused]: https://example.com/reference\n\n```mermaid\nflowchart LR\n A[输入] --> B[保存]\n```\n\n最后一段";
+  const extra = "---\ntitle: 保留元数据\n---\n\n" + original + "\n\n| 名称 | 状态 |\n| --- | --- |\n| 功能 | 待办 |\n\n- [ ] 检查待办对齐\n\n脚注[^note]。\n\n[^note]: 原始脚注\n\n<!-- 保留注释 -->\n\n[unused]: https://example.com/reference\n\n```mermaid\nflowchart LR\n A[输入] --> B[保存]\n```\n\n最后一段";
   await replaceSource(page, extra);
   await mode(page, "编辑").click();
   const rich = richFor(page);
   await rich.locator("table").waitFor();
   await rich.locator(".ui-rich-diagram-preview svg").waitFor();
+  await checkTaskItem(page);
   await openSource(page);
   assert.equal(await contentOf(page), extra, "mode changes never rewrite the original source");
   await mode(page, "编辑").click();
@@ -137,6 +136,19 @@ async function checkRichObjects(page: Page) {
   await openSource(page);
   const saved = await contentOf(page);
   for (const preserved of ["title: 保留元数据", "[^note]: 原始脚注", "<!-- 保留注释 -->", "[unused]: https://example.com/reference", "a^2+b^2=c^2", "```typescript", "中文输入不会丢失"]) assert.ok(saved.includes(preserved), `preserved ${preserved}`);
+}
+
+async function checkTaskItem(page: Page) {
+  const task = richFor(page).locator("li[data-type=taskItem]").first();
+  const aligned = await task.evaluate((element) => {
+    const box = element.querySelector("input")!.getBoundingClientRect();
+    const text = element.querySelector("p")!.getBoundingClientRect();
+    return Math.abs(box.top - text.top) < 12 && box.right < text.left;
+  });
+  assert.equal(aligned, true, "task checkbox and text share one row");
+  await task.getByRole("checkbox").check();
+  assert.equal(await task.getAttribute("data-checked"), "true");
+  await task.getByRole("checkbox").uncheck();
 }
 
 async function formatAction(page: Page, name: string) {
@@ -167,7 +179,10 @@ async function checkListEditing(page: Page) {
   await replaceSource(page, "- 连续列表");
   await mode(page, "编辑").click();
   await richFor(page).locator("li p").click();
-  await page.keyboard.press("End");
+  await richFor(page).locator("li p").evaluate((paragraph) => {
+    const range = document.createRange(); range.selectNodeContents(paragraph); range.collapse(false);
+    const selection = window.getSelection()!; selection.removeAllRanges(); selection.addRange(range);
+  });
   await page.keyboard.press("Enter");
   await page.keyboard.insertText("第二项");
   await page.keyboard.press("Tab");
@@ -186,7 +201,6 @@ async function checkListEditing(page: Page) {
 }
 
 async function checkDraftRecovery(page: Page) {
-  const editor = editorFor(page);
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await page.getByTitle("已保存 · v2").waitFor();
   await page.reload({ waitUntil: "networkidle" });
@@ -211,7 +225,6 @@ async function checkDraftRecovery(page: Page) {
 }
 
 async function checkConflicts(page: Page) {
-  const editor = editorFor(page);
   await page.evaluate(async () => {
     await fetch("/api/space", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "file.update", input: { id: "file-a", version: 3, content: "# 外部更新" } }) });
   });
@@ -227,7 +240,6 @@ async function checkConflicts(page: Page) {
 }
 
 async function checkTypingDuringSave(page: Page) {
-  const editor = editorFor(page);
   let releaseSave: (() => void) | undefined;
   let delaying = true;
   await page.route("**/api/space", async (route) => {
@@ -254,7 +266,6 @@ async function checkTypingDuringSave(page: Page) {
 }
 
 async function checkLayout(page: Page, width: number) {
-  const editor = editorFor(page);
   await replaceSource(page, documentText);
   await mode(page, "编辑").click();
   await richFor(page).press("ControlOrMeta+End");

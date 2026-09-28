@@ -21,7 +21,7 @@ export function markdownEditorExtensions(labels: MarkdownEditorLabels, inspect: 
     StarterKit.configure({ codeBlock: false, link: { openOnClick: false, autolink: false } }),
     Markdown, TableKit.configure({ table: { resizable: true } }),
     Image.configure({ inline: true }),
-    TaskList, TaskItem.configure({ nested: true, a11y: { checkboxLabel: (node) => `${labels.rich.taskList}: ${node.textContent}` } }),
+    TaskList, TaskItem.configure({ nested: true, HTMLAttributes: { "data-type": "taskItem" }, a11y: { checkboxLabel: (node) => `${labels.rich.taskList}: ${node.textContent}` } }),
     Mathematics.configure({
       katexOptions: { throwOnError: false },
       inlineOptions: { onClick: (node, position) => inspect({ kind: "math", value: node.attrs.latex, inline: true, position }) },
