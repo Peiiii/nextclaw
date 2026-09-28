@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { BiboTask, BiboProject } from "@nextclaw/bibo-client";
 import {
   Button,
+  ActionMenu,
+  ActionMenuItem,
   ConfirmDialog,
   Dialog,
   EmptyState,
@@ -10,12 +12,13 @@ import {
   Input,
   ListRow,
   Notice,
+  RowActionTray,
   SegmentedControl,
   Select,
 } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { datetime } from "@/features/space/utils/date-format.utils";
-import { ChevronRight, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, MoreVertical, SlidersHorizontal } from "lucide-react";
 import { TaskForm } from "./task-form";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 
@@ -355,12 +358,21 @@ function TaskRow({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const { toggleTaskDone, saving } = useBiboSpaceStore();
+  const { act, toggleTaskDone, saving } = useBiboSpaceStore();
   const [failure, setFailure] = useState<{ version: number; message: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const moreTrigger = useRef<HTMLButtonElement>(null);
   const toggle = async () => {
     setFailure(null);
     await toggleTaskDone(task);
     setFailure({ version: task.version, message: useBiboSpaceStore.getState().actionError });
+  };
+  const remove = async () => {
+    if (saving) return;
+    setDeleteError("");
+    if (await act("task.delete", { id: task.id, version: task.version }, "tasks")) setDeleting(false);
+    else setDeleteError(useBiboSpaceStore.getState().actionError);
   };
   const details = [
     showStatus && (task.status === "active" || task.status === "cancelled") ? biboCopy.taskStatus[task.status] : null,
@@ -372,7 +384,7 @@ function TaskRow({
       : null,
   ].filter(Boolean).join(" · ");
   return (
-    <ListRow className={`bibo-task-row${task.status === "done" ? " is-complete" : task.status === "cancelled" ? " is-cancelled" : ""}`} selected={selected} onClick={onSelect} leadingAction={
+    <><div className={`ui-list-row-group ui-row-action-host${selected ? " is-selected" : ""}`}>
       <IconButton className="task-complete" disabled={saving || task.status === "cancelled"}
         label={`${task.status === "done" ? "重新打开" : "完成"} ${task.title}`}
         icon={<span aria-hidden="true">
@@ -383,13 +395,23 @@ function TaskRow({
           : task.status === "cancelled"
           ? "−"
           : "○"}
-      </span>} onClick={() => void toggle()} />}
-    >
-      <span>
-        <strong>{task.title}</strong>
-        {details && <small>{details}</small>}
-      {failure?.version === task.version && failure.message && <small role="alert" className="ui-overlay__error">{failure.message}</small>}
-      </span>
-    </ListRow>
+      </span>} onClick={() => void toggle()} />
+      <ListRow className={`bibo-task-row${task.status === "done" ? " is-complete" : task.status === "cancelled" ? " is-cancelled" : ""}`} selected={selected} onClick={onSelect}>
+        <span>
+          <strong>{task.title}</strong>
+          {details && <small>{details}</small>}
+          {failure?.version === task.version && failure.message && <small role="alert" className="ui-overlay__error">{failure.message}</small>}
+        </span>
+      </ListRow>
+      <RowActionTray><ActionMenu label={`更多操作 ${task.title}`} triggerRef={moreTrigger}
+        trigger={<IconButton ref={moreTrigger} label={`更多操作 ${task.title}`} tooltip="更多操作" tooltipSide="top" icon={<MoreVertical />} />}
+        transferringFocus={deleting}>
+        <ActionMenuItem danger disabled={saving} onSelect={() => { setDeleteError(""); setDeleting(true); }}>删除任务</ActionMenuItem>
+      </ActionMenu></RowActionTray>
+    </div>
+    <ConfirmDialog open={deleting} onOpenChange={setDeleting} title="删除任务？"
+      description={`「${task.title}」及其子任务将被删除，此操作目前不可撤销。`}
+      cancelLabel="取消" confirmLabel="删除任务" busyLabel="正在删除…"
+      busy={saving} error={deleteError} onConfirm={() => void remove()} returnFocusRef={moreTrigger} /></>
   );
 }

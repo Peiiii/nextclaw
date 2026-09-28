@@ -29,7 +29,7 @@
 
 ## 协作与 Git 安全
 
-- 未经用户明确要求，不得 commit、push、建 PR、发布、部署或执行破坏性 Git 操作。
+- Git 外部与破坏性操作须授权；Bibo 默认授权见 [Bibo 规范](apps/bibo-hosted/AGENTS.md)。
 - 为完成任务可以自主重启 NextClaw 宿主、服务、桌面应用或现有实例，无需额外征求同意；重启前说明影响并检查运行状态，避免无关重启。
 - 工作区可能有用户或其它任务的改动；不得覆盖、revert、格式化或混入无关改动。触达已修改文件前先读懂现状并做双向范围审计。
 - 主工作区常驻 `master`，允许任务前期起草；首次写入前记录已有改动与本任务归属。切入隔离 worktree 时按 [Worktree 合同](.agents/skills/development-lifecycle/references/parallel-worktree-development.md)迁移本任务全部草稿（含 skill、规则与文档），核对完整后仅撤掉源区对应改动，后续统一写目标 worktree；提交前及收尾核查源区无本任务遗漏。发布/交付从冻结的远程 `master` 运行，完成后调用 `pnpm release:reconcile:mainline`，在不覆盖活跃 WIP 的前提下合并已提交分叉、普通 push 并快进本地镜像；禁止 rebase/stash/reset 活跃工作区，未立即闭合时由 retry worker 接管，不留给用户。
