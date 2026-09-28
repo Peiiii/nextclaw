@@ -1,5 +1,17 @@
 # @nextclaw/harness
 
+## 0.2.27
+
+### Patch Changes
+
+- e901514: Bibo 的原生 Agent 可以在继续处理任务时提出可选答复的问题；网页支持推荐项、选项解释、引用式回答和刷新恢复。
+- 31b9162: 缩短 Bibo 发送消息后的首字等待：新会话合并额度检查，精简嵌入式 Harness 的工具与上下文，并延长活跃会话的容器闲置窗口；保留 Agent 身份、记忆及安全规则。
+- Updated dependencies [e901514]
+- Updated dependencies [54ddd77]
+- Updated dependencies [31b9162]
+- Updated dependencies [b99507f]
+  - @nextclaw/kernel@0.19.1
+
 ## 0.2.26
 
 ### Patch Changes

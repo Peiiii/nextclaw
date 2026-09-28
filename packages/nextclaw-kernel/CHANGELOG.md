@@ -1,5 +1,31 @@
 # @nextclaw/kernel
 
+## 0.19.1
+
+### Patch Changes
+
+- e901514: Bibo 的原生 Agent 可以在继续处理任务时提出可选答复的问题；网页支持推荐项、选项解释、引用式回答和刷新恢复。
+- 54ddd77: Bibo 普通对话和个人空间操作改由边缘会话运行，保留旧会话、文件与问答状态，并避免每条消息启动用户容器及生成整份快照。NextClaw 的通用对话输入与上下文能力增加可移植入口，现有 Node 宿主继续使用相同语义。
+- 31b9162: 缩短 Bibo 发送消息后的首字等待：新会话合并额度检查，精简嵌入式 Harness 的工具与上下文，并延长活跃会话的容器闲置窗口；保留 Agent 身份、记忆及安全规则。
+- b99507f: 原生 Agent 可在执行任务时异步向用户提问并继续处理独立工作。用户可以在会话中逐题回答或跳过；问题与状态会在刷新后保留，回答会送入同一会话。
+- Updated dependencies
+- Updated dependencies [54ddd77]
+- Updated dependencies [6302ba5]
+  - @nextclaw/ncp@0.11.3
+  - @nextclaw/core@0.18.5
+  - @nextclaw/channel-extension-feishu@0.2.42
+  - @nextclaw/channel-extension-weixin@0.2.42
+  - @nextclaw/ncp-agent-runtime@0.4.27
+  - @nextclaw/ncp-agent-runtime-next@0.1.29
+  - @nextclaw/ncp-mcp@0.2.55
+  - @nextclaw/ncp-toolkit@0.6.28
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.27
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.55
+  - @nextclaw/shared@0.8.4
+  - @nextclaw/mcp@0.3.55
+  - @nextclaw/runtime@0.4.54
+  - @nextclaw/app-runtime@0.16.11
+
 ## 0.19.0
 
 ### Minor Changes

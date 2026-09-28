@@ -1,5 +1,13 @@
 # @nextclaw/ncp-mcp
 
+## 0.2.55
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/ncp@0.11.3
+  - @nextclaw/mcp@0.3.55
+
 ## 0.2.54
 
 ### Patch Changes
