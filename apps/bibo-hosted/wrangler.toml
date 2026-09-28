@@ -36,7 +36,7 @@ new_sqlite_classes = ["BiboModelBudget"]
 class_name = "BiboUserContainer"
 image = "./Dockerfile"
 image_build_context = "../.."
-max_instances = 5
+max_instances = 20
 instance_type = "basic"
 
 [observability]

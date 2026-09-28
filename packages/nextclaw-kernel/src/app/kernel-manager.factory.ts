@@ -239,6 +239,7 @@ export function createKernelSessionManagers(params: {
   legacyProjectStorePath: string;
   projectDatabasePath: string;
   sessionsDir: string;
+  sessionTitleEnabled?: boolean;
 }): {
   journalStore: NcpAgentSessionJournalStore;
   observations: ObservationManager;
@@ -285,7 +286,7 @@ export function createKernelSessionManagers(params: {
     current: null,
   };
   const sessionManager = new SessionManager({
-    providerManager: kernel.llmProviders,
+    providerManager: params.sessionTitleEnabled === false ? undefined : kernel.llmProviders,
     agentContextWindowManager,
     agentManager,
     configManager,
@@ -324,11 +325,12 @@ export function createKernelSessionManagers(params: {
 
 export function createKernelContributions(
   kernel: NextclawKernel,
+  contextProfile: "default" | "embedded" = "default",
 ): KernelContribution[] {
   return [
     new ToolProviderContribution(kernel),
     new LearningLoopContribution(kernel),
-    new ContextProviderContribution(kernel),
+    new ContextProviderContribution(kernel, contextProfile),
     new AgentRunRuntimeContribution(kernel),
     new ContextWindowContribution(kernel),
   ];

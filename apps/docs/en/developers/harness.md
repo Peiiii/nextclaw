@@ -44,6 +44,8 @@ const result = await run.result();
 
 `NextclawHarnessOptions` passes kernel options such as `homeDir`, `configPath`, `builtInAppsDirectory`, `productVersion`, and an activity sink.
 
+Embedded apps can use `allowedToolNames` to limit the tools visible and callable by the model, including tools registered by the host. Omitting it keeps the full catalog. `contextProfile: 'embedded'` retains safety, agent identity and memory, execution policy, and current session context while omitting NextClaw host guidance. A host that manages its own session titles and search index can set `sessionTitleEnabled: false` and `sessionSearchEnabled: false`. The defaults retain full NextClaw behavior. Slash commands cannot bypass a configured tool allowlist.
+
 `NextclawTaskInput` includes:
 
 - `input`: non-empty text.

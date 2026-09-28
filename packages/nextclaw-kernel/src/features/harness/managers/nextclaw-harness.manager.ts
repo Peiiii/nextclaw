@@ -37,6 +37,7 @@ export class NextclawHarness implements INextclawHarness {
       this.requireKernel,
       this.onRunCreated,
       this.onRunSettled,
+      this.options.allowedToolNames === undefined,
     );
     this.sessions = sessions;
     this.agents = new NextclawAgentRegistry(
@@ -131,6 +132,7 @@ export class NextclawHarness implements INextclawHarness {
     let kernel: NextclawKernel | undefined;
     try {
       kernel = new NextclawKernel(this.options);
+      if (this.options.allowedToolNames) kernel.toolProviderManager.restrictToTools(this.options.allowedToolNames);
       await kernel.extensions.load({ config: kernel.configManager.config });
       await kernel.start();
       await this.contributionRegistry.start(new NextclawKernelFacade(kernel));

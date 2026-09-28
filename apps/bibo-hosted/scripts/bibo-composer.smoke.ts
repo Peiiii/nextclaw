@@ -41,10 +41,6 @@ async function setupComposer(page: Page, width: number): Promise<MockState> {
   const state = new MockState();
   await page.route("**/api/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path === "/api/chat/availability") {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      return route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true }) });
-    }
     if (path === "/api/sessions" && route.request().method() === "POST") {
       state.creates += 1;
       return route.fulfill({ contentType: "application/json", body: JSON.stringify({ session }) });
@@ -155,7 +151,7 @@ async function checkCancellation(page: Page, state: MockState): Promise<void> {
   assert.equal(await input.inputValue(), "新的下一条", "failure must not overwrite the next draft");
   await retry.click();
   await page.waitForFunction(() => document.documentElement.dataset.composerStream === "ready");
-  assert.equal(await page.locator(".ui-message--pending.ui-message--user").innerText(), "你\n下一条草稿");
+  assert.equal((await page.locator(".ui-message--pending.ui-message--user").innerText()).replace(/\n+/g, "\n"), "你\n下一条草稿");
   await frame(page, "accepted", { runId: "run-3" });
   await frame(page, "saving", {});
   state.setMessages([...state.messages, { role: "user", text: "下一条草稿", at }, { role: "assistant", text: "重试成功。", at }]);
@@ -259,9 +255,10 @@ async function checkBackgroundFailure(page: Page): Promise<void> {
 async function checkSwitchDuringCreation(page: Page, state: MockState): Promise<void> {
   let release = () => {};
   const available = new Promise<void>((resolve) => { release = resolve; });
-  await page.route("**/api/chat/availability", async (route) => {
+  await page.route("**/api/sessions", async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
     await available;
-    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true }) });
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ session }) });
   });
   await openBlankConversation(page);
   const { input, send } = controls(page);
@@ -278,6 +275,7 @@ async function checkSwitchDuringCreation(page: Page, state: MockState): Promise<
   await send.waitFor();
   assert.equal(await input.inputValue(), "创建期间也保留我的草稿");
   assert.equal(await page.getByText("空白会话的回复", { exact: true }).count(), 0);
+  await page.unroute("**/api/sessions");
 }
 
 async function verifyViewport(page: Page, width: number): Promise<void> {

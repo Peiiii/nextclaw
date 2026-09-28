@@ -40,6 +40,17 @@ try {
 
 ## 平台扩展
 
+嵌入到只提供少量业务能力的应用时，可在构造时收窄模型工具和上下文。`allowedToolNames` 是整个运行的静态工具允许列表，包含宿主 Contribution 注册的工具名；`contextProfile: "embedded"` 保留安全、身份、记忆、执行规则和当前会话上下文，省略 NextClaw 宿主专属说明。若宿主自己管理会话标题与搜索索引，可关闭对应后台能力。默认选项保持 NextClaw 的完整行为。
+
+```ts
+const harness = new NextclawHarness({
+  allowedToolNames: ["business_action", "web_search", "web_fetch"],
+  contextProfile: "embedded",
+  sessionSearchEnabled: false,
+  sessionTitleEnabled: false,
+});
+```
+
 扩展通过 `Contribution` 使用受限的 `this.kernel` façade。首批可组合能力包括 `tools`、`context`、`models`、`runtimes` 和 `mcp`；它们都随 Harness 自动启动和逆序释放。
 
 ```ts

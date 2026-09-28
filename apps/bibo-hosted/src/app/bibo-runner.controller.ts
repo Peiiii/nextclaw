@@ -136,7 +136,13 @@ async function sendRun(request: IncomingMessage, response: ServerResponse, reque
   response.on("close", onClose);
   try {
     if (streaming) response.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" });
-    const harness = new NextclawHarness({ homeDir: home });
+    const harness = new NextclawHarness({
+      homeDir: home,
+      allowedToolNames: ["bibo", "show_file", "web_search", "web_fetch", "tool_schema"],
+      contextProfile: "embedded",
+      sessionSearchEnabled: false,
+      sessionTitleEnabled: false,
+    });
     const contribution = new BiboSpaceContribution(space, sessionId);
     harness.contributions.register(contribution);
     let result;
