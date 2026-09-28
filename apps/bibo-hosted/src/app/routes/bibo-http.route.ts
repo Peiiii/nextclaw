@@ -4,6 +4,12 @@ import { biboSearchRoute } from "@/features/search";
 import { checkChatAvailability, modelError, modelRoute } from "@/app/bibo-model-gateway.service";
 import { errorDetails, logDiagnostic, readTrace, runFailure, traceHeaders, type RunTrace } from "@/app/diagnostics/bibo-diagnostics.utils";
 
+async function createSession(env: Env, userId: string): Promise<Response> {
+  const unavailable = await checkChatAvailability(env, userId);
+  if (unavailable) return unavailable;
+  return await getContainer(env.BIBO_USER, `user:${userId}`).fetch("https://bibo.internal/sessions/new", { method: "POST" });
+}
+
 async function userRoute(request: Request, env: Env, url: URL): Promise<Response> {
   const path = url.pathname;
   const token = cookieToken(request);
@@ -13,7 +19,7 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
   if (!user || !token) return publicError("请先登录。", 401);
   const container = getContainer(env.BIBO_USER, `user:${user.id}`);
   if (path === "/api/sessions" && request.method === "GET") return await container.fetch("https://bibo.internal/sessions");
-  if (path === "/api/sessions" && request.method === "POST") return await container.fetch("https://bibo.internal/sessions/new", { method: "POST" });
+  if (path === "/api/sessions" && request.method === "POST") return await createSession(env, user.id);
   if (path === "/api/sessions/rename" && request.method === "POST") return await container.fetch("https://bibo.internal/sessions/rename", {
     method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
   });

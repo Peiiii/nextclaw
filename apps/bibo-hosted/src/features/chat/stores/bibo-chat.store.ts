@@ -219,8 +219,6 @@ class BiboChatOwner {
 
   private createRunSession = async (message: string, current: () => boolean): Promise<string | null> => {
     try {
-      await biboClient.chatAvailability();
-      if (!current()) return null;
       const session = await biboClient.createSession();
       if (!current()) return null;
       const route = readWorkspaceRoute();

@@ -53,9 +53,9 @@ async function checkNewConversation(page: Page): Promise<void> {
 }
 
 async function checkExhaustedNewConversation(page: Page): Promise<void> {
-  await page.route("**/api/chat/availability", (route) => route.fulfill({
+  await page.route("**/api/sessions", (route) => route.request().method() === "POST" ? route.fulfill({
     status: 429, contentType: "application/json", body: JSON.stringify({ error: "今日试用额度已用完，请明天再试。" }),
-  }));
+  }) : route.fallback());
   let creates = 0;
   const onRequest = (request: { url(): string; method(): string }) => {
     if (new URL(request.url()).pathname === "/api/sessions" && request.method() === "POST") creates += 1;
@@ -67,10 +67,10 @@ async function checkExhaustedNewConversation(page: Page): Promise<void> {
   await page.getByRole("button", { name: "发送消息", exact: true }).click();
   await page.getByText(/今日试用额度已用完/).waitFor();
   assert.equal(await page.getByRole("textbox", { name: /告诉 Bibo/ }).inputValue(), "请记录我的想法");
-  assert.equal(creates, 0, "exhausted model budget must not create a blank session");
+  assert.equal(creates, 1, "new session must check the budget in its only creation request");
   assert.equal(await page.locator(".bibo-session-item").count(), before);
   page.off("request", onRequest);
-  await page.unroute("**/api/chat/availability");
+  await page.unroute("**/api/sessions");
 }
 
 async function checkTreeKeyboard(page: Page): Promise<void> {

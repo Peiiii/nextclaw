@@ -98,6 +98,9 @@ export type NextclawKernelOptions = {
   runtimeVersion?: string;
   productActivitySink?: ProductActivitySink;
   desktopHost?: DesktopHost;
+  contextProfile?: "default" | "embedded";
+  sessionSearchEnabled?: boolean;
+  sessionTitleEnabled?: boolean;
 };
 
 type NextclawKernelRuntimeControl<TGatewayInput, TUiInput, TStartInput> = {
@@ -185,7 +188,7 @@ export class NextclawKernel {
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly contributions: KernelContribution[];
   private gatewayController: GatewayController | undefined;
-  constructor(options: NextclawKernelOptions = {}) {
+  constructor(private readonly options: NextclawKernelOptions = {}) {
     const sessionsDir = resolveKernelSessionsDir(options);
     const desktopHost = options.desktopHost ?? new UnavailableDesktopHost();
     this.capabilityGrants = new CapabilityGrantManager(resolveKernelCapabilityGrantStorePath(options));
@@ -225,6 +228,7 @@ export class NextclawKernel {
       observationStorePath: resolveKernelObservationStorePath(options),
       legacyProjectStorePath: resolveKernelLegacyProjectStorePath(options), projectDatabasePath: resolveKernelProjectDatabasePath(options),
       sessionsDir,
+      sessionTitleEnabled: options.sessionTitleEnabled,
     }));
     this.inboxDeliveryManager = new InboxDeliveryManager({
       eventBus: this.eventBus,
@@ -317,7 +321,7 @@ export class NextclawKernel {
     this.plannedRestartRecovery = createKernelPlannedRestartRecovery(
       this, resolveKernelPlannedRestartRecoveryPath(options),
     );
-    this.contributions = createKernelContributions(this);
+    this.contributions = createKernelContributions(this, options.contextProfile);
   }
 
   private createCapabilityGrantLegacyMigration = (options: NextclawKernelOptions) =>
@@ -351,7 +355,7 @@ export class NextclawKernel {
     await this.appPackageManager.start();
     await this.appDataManager.start();
     await this.serviceAppManager.start();
-    void this.sessionSearch.start();
+    if (this.options.sessionSearchEnabled !== false) void this.sessionSearch.start();
     this.mcpManager.start();
     this.providerModelCatalog.start();
     await this.projectManager.initialize();

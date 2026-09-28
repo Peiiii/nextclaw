@@ -69,6 +69,7 @@ export class NextclawSessionRegistry implements INextclawSessionRegistry {
     private readonly requireKernel: () => NextclawKernel,
     private readonly onRunCreated?: (run: NextclawRun) => void,
     private readonly onRunSettled?: (run: NextclawRun) => void,
+    private readonly allowSlashCommands = true,
   ) {}
 
   forAgent = (agentId: string): INextclawAgentSessions => ({
@@ -167,6 +168,7 @@ export class NextclawSessionRegistry implements INextclawSessionRegistry {
             : undefined,
           onAssistantDelta: input.onAssistantDelta,
           onEvent: input.onEvent,
+          allowSlashCommands: this.allowSlashCommands,
           sessionKey: sessionId,
         });
       },

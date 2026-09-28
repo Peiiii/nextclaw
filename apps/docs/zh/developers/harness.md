@@ -44,6 +44,8 @@ const result = await run.result();
 
 `NextclawHarnessOptions` 用于传递 kernel 的 `homeDir`、`configPath`、`builtInAppsDirectory`、`productVersion` 和 activity sink。
 
+嵌入式应用可用 `allowedToolNames` 限定模型可见及可调用的工具名，包括宿主注册的工具；未设置时保留完整工具目录。`contextProfile: 'embedded'` 保留安全、Agent 身份与记忆、执行规则和当前会话，省略 NextClaw 宿主说明。宿主若自行维护会话标题和搜索索引，可设置 `sessionTitleEnabled: false`、`sessionSearchEnabled: false`。默认值保留完整 NextClaw 行为。设置工具允许列表后，斜杠命令不会绕过该限制。
+
 `NextclawTaskInput` 包含：
 
 - `input`：非空文本。

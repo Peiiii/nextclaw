@@ -32,7 +32,7 @@
 .workspace-page .bibo-split { @apply flex-1 min-h-0 border-0 [border-radius:0] overflow-hidden; }
 .workspace-page .bibo-list-pane, .workspace-page .bibo-detail-pane { @apply min-h-0 [max-height:none] h-full overflow-auto; }
 .workspace-page .bibo-detail-pane { @apply p-6; }
-.workspace-page .bibo-task-layout { @apply [grid-template-columns:minmax(0,_1fr)_minmax(300px,_.8fr)]; }
+.workspace-page .bibo-task-layout { @apply flex-1 min-h-0 overflow-hidden [grid-template-columns:minmax(0,_1fr)_minmax(300px,_.8fr)]; }
 .workspace-page .bibo-task-layout:not(.is-detail-open) { @apply [grid-template-columns:minmax(0,_1fr)]; }
 .task-filter-options { @apply flex [flex-basis:100%] flex-wrap items-center gap-2; }
 .task-filter-options > .ui-control { @apply [flex:1_1_180px] [max-width:260px]; }

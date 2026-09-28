@@ -37,7 +37,7 @@ const workspace = fs.readFileSync(workspacePath, 'utf8');
 const packages = projects.map(project => `  - ${JSON.stringify(path.relative('/app', project.path))}`).join('\n');
 fs.writeFileSync(workspacePath, workspace.replace(/^packages:\n(?:[ \t]+[^\n]*\n)*/, `packages:\n${packages}\n`));
 NODE
-RUN pnpm --registry=https://registry.npmjs.org --filter @nextclaw/bibo-hosted deploy --prod /out
+RUN timeout 180s pnpm --registry=https://registry.npmjs.org --fetch-timeout=30000 --fetch-retries=1 --filter @nextclaw/bibo-hosted deploy --prod /out
 
 FROM node:22-bookworm-slim
 WORKDIR /app

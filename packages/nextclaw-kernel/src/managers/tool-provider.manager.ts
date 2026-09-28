@@ -27,6 +27,7 @@ export type ToolRunContext = {
 
 export class ToolProviderManager {
   private readonly providers = new Set<ToolProvider>();
+  private allowedToolNames: ReadonlySet<string> | null = null;
 
   constructor(
     private readonly diagnostics?: Pick<DiagnosticRuntime, "record">,
@@ -39,13 +40,25 @@ export class ToolProviderManager {
     };
   };
 
+  /** An embedding may narrow the catalog before its first run. */
+  restrictToTools = (names: readonly string[]): void => {
+    const allowed = new Set(names);
+    this.allowedToolNames = this.allowedToolNames === null
+      ? allowed : new Set([...this.allowedToolNames].filter((name) => allowed.has(name)));
+  };
+
   buildTools = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {
     const tools: NcpTool[] = [];
-    tools.push(this.wrapTool(new ToolSchemaTool(() => tools), request));
-    const seen = new Set<string>([TOOL_SCHEMA_NAME]);
+    const seen = new Set<string>();
+    if (this.isAllowed(TOOL_SCHEMA_NAME)) {
+      tools.push(this.wrapTool(new ToolSchemaTool(() => tools), request));
+      seen.add(TOOL_SCHEMA_NAME);
+    }
     for (const provider of [...this.providers]) {
       for (const tool of await provider.provide(request)) {
+        if (!this.isAllowed(tool.name)) continue;
         if (seen.has(tool.name)) {
+          if (this.allowedToolNames !== null) throw new Error(`Restricted tool catalog has a duplicate name: ${tool.name}`);
           continue;
         }
         seen.add(tool.name);
@@ -54,6 +67,9 @@ export class ToolProviderManager {
     }
     return tools;
   };
+
+  private readonly isAllowed = (name: string): boolean =>
+    this.allowedToolNames === null || this.allowedToolNames.has(name);
 
   dispose = (): void => {
     this.providers.clear();

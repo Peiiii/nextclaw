@@ -286,6 +286,10 @@ test("exhausted model budget rejects chat before forwarding without changing the
   const env = { BIBO_MODEL_BUDGET: { getByName: () => ({ fetch: (url: string, init: RequestInit) => budget.fetch(new Request(url, init)) }) }, BIBO_USER: {} };
   const check = await worker.default.fetch(new Request("https://app.bibo.bot/api/chat/availability"), env);
   assert.equal(check.status, 429);
+  const creation = await worker.default.fetch(new Request("https://app.bibo.bot/api/sessions", {
+    method: "POST", headers: { origin: "https://app.bibo.bot" },
+  }), env);
+  assert.equal(creation.status, 429);
   const response = await worker.default.fetch(new Request("https://app.bibo.bot/api/chat", {
     method: "POST", headers: { origin: "https://app.bibo.bot", "content-type": "application/json" },
     body: JSON.stringify({ message: "创建一个任务" }),

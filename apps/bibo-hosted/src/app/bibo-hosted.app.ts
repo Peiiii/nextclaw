@@ -10,11 +10,11 @@ export { BiboModelBudget } from "./bibo-model-gateway.service";
 const MAX_SNAPSHOT_BYTES = 32 * 1024 * 1024;
 type Message = { role: "user" | "assistant"; text: string; at: string };
 type Session = { id: string; title: string; createdAt: string; updatedAt: string; messages: Message[] };
-type ActiveRun = RunTrace & { id: string; phase: "generating" | "saving"; controller: AbortController };
+type ActiveRun = RunTrace & { id: string; phase: "generating" | "saving"; controller: AbortController; acceptedAt: number };
 
 export class BiboUserContainer extends Container<Env> {
   defaultPort = 8080;
-  sleepAfter = "1m";
+  sleepAfter = "5m";
   enableInternet = true;
   private inFlight = false;
   private spaceQueue: Promise<void> = Promise.resolve();
@@ -239,7 +239,7 @@ export class BiboUserContainer extends Container<Env> {
     }
     this.inFlight = true;
     const streaming = request.headers.get("accept")?.includes("text/event-stream") ?? false;
-    const active: ActiveRun = { ...trace, id: trace.runId, phase: "generating", controller: new AbortController() };
+    const active: ActiveRun = { ...trace, id: trace.runId, phase: "generating", controller: new AbortController(), acceptedAt: Date.now() };
     this.activeRun = active;
     logDiagnostic("worker", "run.accepted", active);
     if (streaming) {
@@ -309,8 +309,15 @@ export class BiboUserContainer extends Container<Env> {
       const failure = readRunFailure(await response.json().catch(() => null));
       throw failure.code === "RUN_FAILED" ? new BiboRunError("RUNNER_REQUEST_FAILED", 502, failure.message) : failure;
     }
+    let firstDelta = true;
     const result = response.headers.get("content-type")?.includes("text/event-stream")
-      ? await readRunStream(response, onDelta ?? (() => undefined))
+      ? await readRunStream(response, (delta) => {
+        if (firstDelta && delta) {
+          firstDelta = false;
+          logDiagnostic("worker", "run.first-delta", { ...active, durationMs: Date.now() - active.acceptedAt });
+        }
+        onDelta?.(delta);
+      })
       : readRunResult(await response.json() as RunResult);
     if (active.controller.signal.aborted) throw runFailure(null, true);
     if (typeof result.text !== "string" || !result.text || result.sessionId !== payload.session.id) throw new Error("Runner result is invalid");
@@ -332,7 +339,9 @@ export class BiboUserContainer extends Container<Env> {
       logDiagnostic("worker", "run.started", active);
       attemptedRun = true;
       stage = "restore-and-sync";
+      const syncStarted = Date.now();
       await this.syncContainerSpace(await this.structuredSpace.exportState());
+      logDiagnostic("worker", "run.space-ready", { ...active, durationMs: Date.now() - syncStarted });
       stage = "generate";
       const result = await this.generateRun(payload, active, onDelta);
       active.phase = "saving";
