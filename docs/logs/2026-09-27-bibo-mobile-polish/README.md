@@ -95,3 +95,11 @@ BB 三份 tsc、公共 UI tsc、Vite 构建、product smoke（桌面 1440px／�
 冻结远程 master `aa4156550b3f33b510058eccbfd934ae175ec726` 后执行 `deploy:client --containers-rollout none`，Worker 版本 `dc9cf177-1918-405f-bf8f-560e4a87c0e0`。线上 JS `index-CtEcxxAx.js` SHA256 `ec43cc6e9372a04e62e8c4f9817961684b5d1bcc9c446d9a0d410380b5c98395`、CSS `index-BJD-BEbS.css` SHA256 `ef27a15752cc59bc906590713a424c3dc2b279ab9abf0c2efb16981822347059`、KaTeX 与 `/help` 均与本次构建逐字节相同。生产域名上以 API fixture 回放了 1440／390px 会话渐隐和文件树、搜索结果、笔记菜单，收件箱五视口回归也通过。容器 id `a03967fb-95da-496d-8c90-a4b4a010667a`、镜像 SHA256 `4ef68e222cc8ea7f8bdd9681aa1ca78890cda123eda9e8b522ff24b388fe364c`、version 23、5 实例及更新时间部署前后相同。真实手机系统浏览器和本用户账号数据未直接回放；本批由线上静态资产一致性及模拟桌面／手机交互证明前端结果，不重复调用真实模型。
 
 本次为已有界面反馈纠偏，不新增用户操作或帮助页入口；已有前端交互规范已经要求悬浮操作默认零占位，具体实现收敛到公共组件，无需增写平行规则。`AUTOMATION_INTERVENTIONS: 0`。主工作区既有想法文档 WIP 保留，主线回流交现有 reconcile owner 判定。
+
+## 手机认证页比例与操作渐隐纠偏（2026-09-28）
+
+用户从真实手机指出登录页的角色被表单截断、表单下方有大量空白，也指出会话渐隐过宽、笔记行默认出现无来由的渐隐块。认证页根因是固定 184px 品牌区和撑满剩余高度的表单，再用 `margin-top:auto` 把安全提示推到底部；现让品牌区按视口高度变化，角色完整位于表单之上，表单按内容自然排列，试用提示紧跟主按钮。窄屏品牌主句与提示分别收为完整两行与单行；验证码／密码第二步的小角色也完整露出。会话标题的渐隐收至按钮前 42px 起始、按钮前 8px 完全遮盖，公共 RowActionTray 删除渐隐伪元素；桌面 hover／焦点和触屏常显的按钮规则保留。
+
+本地最终版在 390×844、390×664、320×568 真实浏览器视口实拍：注册首屏角色不截断、不撞文案，主按钮与试用提示均在首屏且间隔 18px，无横向或纵向溢出；320×380 模拟键盘高度时认证页可滚动至主按钮。注册／登录第二步、验证码发送与重发、修改邮箱及返回链路通过。经典／简约两主题已复看。BB 三份 tsc、公共 UI tsc、Vite 构建、完整 product smoke、routing smoke、定向 ESLint、diff-only maintainability（0 错误／0 提醒）及 diff 空白检查通过；最新并行 Markdown 编辑器主干合入后重新跑过上述关键验收。实际 iOS Safari 软键盘、用户账号真实注册及用户主观喜好未直接验证。
+
+从冻结远程 master `f69951ba4` 执行 `deploy:client --containers-rollout none`，Worker 版本 `3c39a9c9-9d65-4d99-9885-7cb5105e85d7`。生产 HTML 所引用的入口 JS `index-ENV4n3_X.js` SHA256 `41d5b4e38ba5c054cc81b6381de3f4e6390853d2b0580dfb81d55a0817d45c55`、CSS `index-N3m1ICYQ.css` SHA256 `c7a4c4813aa8ef14bbc62b1db538858b571d5af25ff2d70eeeaad4b5e3c23278`、其余直引 JS 与 `/help` 均与冻结构建逐字节相同。生产域名加载真实资产并用 API fixture 模拟未登录状态，在 390×844、390×664、320×568、320×380、1440×900 实拍首屏和第二步；1440／390px 会话渐隐、文件与笔记操作，以及五视口收件箱回放通过。容器 id、镜像 `sha256:5321b947e19e609a4b75b703b558786ae0924f53cd1716e4b30ebea376df0852`、version 24 和更新时间部署前后相同；实例数的运行时波动不作为镜像变更。此次只发布客户端与 Worker 静态资产，未部署 NPM、runtime 或桌面应用。
