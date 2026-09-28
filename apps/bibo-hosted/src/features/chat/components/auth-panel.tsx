@@ -65,7 +65,7 @@ export function AuthPanel() {
     <div className="bibo-auth-story">
       <div className="bibo-auth-wordmark">Bibo<span>.</span></div>
       <div className="bibo-auth-scene" aria-hidden="true"><span className="bibo-auth-halo" /><BiboCompanion className="bibo-auth-companion" /><span className="bibo-auth-spark bibo-auth-spark-one">✳</span><span className="bibo-auth-spark bibo-auth-spark-two">✦</span></div>
-      <div className="bibo-auth-story-copy"><span className="bibo-auth-story-kicker">你的个人 AI 搭档</span><h1>有你在意的事，<br />就有我帮忙的地方。</h1><p>从一个想法、一项待办，或一段对话开始。</p></div>
+      <div className="bibo-auth-story-copy"><span className="bibo-auth-story-kicker">你的个人 AI 搭档</span><h1>你在意的事，<br />我陪你一起做。</h1><p>从一个想法、一项待办，或一段对话开始。</p></div>
       <p className="bibo-auth-story-foot">想法 · 日程 · 待办 · 文件</p>
     </div>
     <div className="bibo-auth-form-pane">
@@ -81,7 +81,7 @@ export function AuthPanel() {
         {feedback && (!mobile || mobileDetails) && <p className={`bibo-auth-feedback is-${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}>{feedback.kind === "success" && <Check size={16} aria-hidden="true" />}{feedback.message}</p>}
         <Button className="bibo-auth-submit" tone="primary" type="submit" disabled={working || (mobile && mobileStep === "email" && codeWorking)}>{working ? "请稍候…" : mobile && mobileStep === "email" ? "继续" : mode === "login" ? copy.login : copy.createAccount}<ArrowRight size={17} aria-hidden="true" /></Button>
       </form>
-      <p className="bibo-auth-note">Bibo 提供有限的免费试用，请勿输入敏感信息。</p>
+      <p className="bibo-auth-note">免费试用额度有限，请勿输入敏感信息。</p>
     </div>
   </section></div>;
 }
