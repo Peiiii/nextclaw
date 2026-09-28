@@ -214,15 +214,15 @@
 .calendar-date:nth-child(7n) { @apply [border-right:0]; }
 .calendar-date:nth-last-child(-n+7) { @apply [border-bottom:0]; }
 .calendar-date.is-outside { @apply [background:var(--ui-canvas)] [color:var(--bibo-subtle)]; }
-.calendar-date.is-selected { @apply [background:var(--ui-calendar-selection)]; }
 .calendar-date-select { @apply absolute [inset:0] w-full border-0 bg-transparent [color:inherit] p-0 cursor-pointer; }
 .calendar-date-select:focus-visible { @apply [outline:2px_solid_var(--ui-primary)] [outline-offset:-2px]; }
 .calendar-date-select span { @apply absolute top-1.5 left-1.5 grid [place-items:center] [width:28px] [height:28px] [border-radius:50%] text-base; }
-.calendar-date.is-today .calendar-date-select span { @apply [background:var(--ui-primary)] [color:white]; }
+.calendar-date-select:hover span { @apply [background:var(--ui-hover)]; }
+.calendar-date.is-today .calendar-date-select span { @apply [box-shadow:inset_0_0_0_1.5px_var(--ui-primary)] [color:var(--ui-primary)] font-semibold; }
+.calendar-date.is-selected .calendar-date-select span { @apply [background:var(--ui-primary)] [color:white] [box-shadow:none] font-semibold; }
 .calendar-date-events { @apply relative [z-index:1] grid gap-0.75 mt-8; }
 .calendar-date-events button { @apply flex gap-1.25 w-full min-w-0 [padding:4px_5px] border-0 [border-radius:4px] [background:var(--ui-hover)] [color:inherit] text-left text-xs cursor-pointer; }
 .calendar-date-events button:hover, .calendar-time-event:hover { @apply [background:var(--ui-selection-hover)]; }
-.calendar-date-select:hover { @apply [background:var(--ui-hover)]; }
 .calendar-date-events time { @apply [opacity:.75] flex-none; }
 .calendar-date-events span { @apply overflow-hidden whitespace-nowrap text-ellipsis; }
 .calendar-date-events .calendar-overflow { @apply bg-transparent [color:var(--bibo-subtle)]; }

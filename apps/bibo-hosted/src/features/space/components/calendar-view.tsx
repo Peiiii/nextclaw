@@ -119,6 +119,7 @@ function CalendarMonthGrid({ onSelect, onCreate }: { onSelect: () => void; onCre
                 className="calendar-date-select"
                 aria-label={`${day(date.toISOString())}，${items.length} 项安排`}
                 aria-pressed={isSameDay(date, anchor)}
+                aria-current={isSameDay(date, today) ? "date" : undefined}
                 onDoubleClick={() => { const start = new Date(date); start.setHours(9, 0, 0, 0); onCreate(start); }}
                 onClick={() => {
                   setAnchor(date);

@@ -272,7 +272,6 @@ select.ui-control:focus-visible { @apply [outline:2px_solid_var(--ui-focus)] [ou
 @keyframes ui-composer-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .ui-composer__spinner { @apply [animation:none]; } }
 @media (max-width: 760px) { .ui-message--user { @apply [max-width:88%]; } }
-:root { --ui-calendar-selection: var(--ui-hover); }
 .ui-page-header { @apply flex items-center justify-between gap-5 mb-5; }
 .ui-page-header h1 { @apply m-0 text-2xl [line-height:1.35] font-semibold [letter-spacing:-.02em]; }
 .ui-page-header__eyebrow { @apply text-base [color:var(--ui-muted)] [margin:0_0_8px]; }
