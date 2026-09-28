@@ -95,6 +95,7 @@ body { @apply text-base leading-6; }
 .ui-button--secondary:enabled:hover { @apply [background:var(--ui-selection-hover)]; }
 .ui-button--text { @apply [padding:4px_6px]; }
 [data-ui-surface="frame"] .ui-button:is(.ui-button--quiet,.ui-button--text,.ui-button--icon):enabled:hover { @apply [background:var(--ui-selection-hover)]; }
+[data-ui-surface="frame"] { --ui-icon-hover: var(--ui-selection-hover); }
 .ui-button--icon { @apply inline-grid [place-items:center] [min-width:30px] [min-height:30px] p-0.75 [font-size:19px] [line-height:1]; }
 .ui-button--danger { @apply [color:var(--ui-danger)]; }
 .ui-button--danger:enabled:hover { @apply [background:var(--ui-error-surface)]; }
@@ -144,6 +145,7 @@ select.ui-control:focus-visible { @apply [outline:2px_solid_var(--ui-focus)] [ou
 .ui-list-row { @apply [width:calc(100%_-_16px)] [margin:4px_8px] min-w-0 [min-height:56px] flex items-center gap-3 border-0 [border-radius:var(--ui-radius-sm)] bg-transparent [padding:10px_12px] [color:var(--ui-ink)] [font-family:inherit] text-left [overflow-wrap:anywhere] cursor-pointer; }
 .ui-list-row-group { @apply flex items-center min-w-0 pl-2 [margin:4px_8px] [border-radius:var(--ui-radius-sm)]; }
 .ui-list-row-group:hover, .ui-list-row-group:focus-within { @apply [background:var(--ui-hover)]; }
+.ui-list-row-group:is(:hover, :focus-within, .is-selected) { --ui-icon-hover: var(--ui-selection-hover); }
 .ui-list-row-group.is-selected { @apply [background:var(--ui-selection)]; }
 .ui-list-row-group.is-selected:hover { @apply [background:var(--ui-selection-hover)]; }
 .ui-list-row-group > .ui-list-row { @apply flex-1 m-0 border-0 pl-2 bg-transparent; }

@@ -7,7 +7,7 @@
 .ui-icon-button--plain { @apply relative isolate; }
 .ui-icon-button--plain:is(:enabled:hover, :enabled:active, :focus-visible) { @apply bg-transparent; }
 .ui-icon-button--plain::before { @apply content-[""] absolute -z-10 [top:50%] [left:50%] [transform:translate(-50%,_-50%)] [width:32px] [height:32px] [border-radius:var(--ui-radius-sm)]; }
-.ui-icon-button--plain:enabled:hover::before { @apply [background:var(--ui-hover)]; }
+.ui-icon-button--plain:enabled:hover::before, .ui-icon-button--plain:focus-visible::before { @apply [background:var(--ui-icon-hover,_var(--ui-hover))]; }
 .ui-icon-button--plain:enabled:active::before, .ui-icon-button--plain[aria-pressed="true"]::before { @apply [background:var(--ui-selection)]; }
 .ui-tooltip { @apply [z-index:1200] [max-width:min(260px,_calc(100vw_-_16px))] [padding:6px_9px] [border-radius:6px] [background:var(--ui-ink)] [color:var(--ui-surface)] text-base [line-height:1.4] [overflow-wrap:anywhere] [box-shadow:0_2px_8px_#0002]; }
 .ui-tooltip__arrow { @apply [fill:var(--ui-ink)]; }

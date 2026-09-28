@@ -157,8 +157,8 @@ export function EventForm({
 function EventDescription({ value, disabled, onChange }: { value: string; disabled: boolean; onChange: (value: string) => void }) {
   const [open, setOpen] = useState(Boolean(value));
   return <>
-    <Button tone="text" type="button" disabled={disabled} aria-expanded={open} onClick={() => setOpen(!open)}>
-      {open ? "收起说明" : "添加说明"}
+    <Button className="event-description-toggle" tone="text" type="button" disabled={disabled} aria-expanded={open} onClick={() => setOpen(!open)}>
+      {open ? "收起说明" : "＋ 添加说明"}
     </Button>
     {open && <Field label="说明"><Textarea rows={5} disabled={disabled} value={value}
       onChange={(event) => onChange(event.target.value)} placeholder="地点、准备事项或背景" /></Field>}

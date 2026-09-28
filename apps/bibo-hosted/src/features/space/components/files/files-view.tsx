@@ -13,6 +13,7 @@ import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { day } from "@/features/space/utils/date-format.utils";
 import { FileTree } from "./file-tree";
 import { FileWorkbench } from "./file-workbench";
+import { FileActions } from "./file-actions";
 import { CreateFileDialog } from "./create-file-dialog";
 export function Files({ notesOnly }: { notesOnly: boolean }) {
   const {
@@ -96,14 +97,13 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
             </div>
             <div className="file-tree-search"><Input aria-label="搜索笔记" placeholder="搜索笔记名称" value={noteQuery} onChange={(event) => searchNotes(event.target.value)} /></div>
             {all.map((file) => (
-              <ListRow
-                key={file.id}
-                selected={activeFileId === file.id}
-                onClick={() => void openFile(file.id)}
-              >
-                <strong>{file.path.split("/").at(-1)}</strong>
-                <small>{day(file.updatedAt)}</small>
-              </ListRow>
+              <div className={`ui-list-row-group${activeFileId === file.id ? " is-selected" : ""}`} key={file.id}>
+                <ListRow selected={activeFileId === file.id} onClick={() => void openFile(file.id)}>
+                  <strong>{file.path.split("/").at(-1)}</strong>
+                  <small>{day(file.updatedAt)}</small>
+                </ListRow>
+                <FileActions file={file} />
+              </div>
             ))}
             {all.length === 0 && !loading && !error && (
               <EmptyState title={noteQuery ? "没有匹配的笔记" : "还没有笔记"} />

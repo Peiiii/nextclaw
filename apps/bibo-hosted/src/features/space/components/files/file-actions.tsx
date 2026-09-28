@@ -13,14 +13,14 @@ import {
 } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 
-export function FileActions({ file, tabIndex }: { file: BiboFile; tabIndex?: number }) {
+export function FileActions({ file, tabIndex, label }: { file: BiboFile; tabIndex?: number; label?: string }) {
   const { moveFile, deleteFile, saving, fileDetails, fileDrafts } = useBiboSpaceStore();
   const [moving, setMoving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [path, setPath] = useState(file.path);
   const [failure, setFailure] = useState("");
   const trigger = useRef<HTMLButtonElement>(null);
-  const label = file.kind === "folder" ? `管理目录 ${file.path}` : "文件操作";
+  const actionLabel = label ?? `${file.kind === "folder" ? "管理目录" : file.kind === "note" ? "管理笔记" : "管理文件"} ${file.path}`;
   const startMove = () => {
     setPath(file.path);
     setFailure("");
@@ -44,18 +44,17 @@ export function FileActions({ file, tabIndex }: { file: BiboFile; tabIndex?: num
   };
   return (
     <>
-
-        <ActionMenu
-          label={label}
-          triggerRef={trigger}
-          trigger={<IconButton ref={trigger} label={label} icon={<MoreVertical />} tabIndex={tabIndex} />}
-          transferringFocus={moving || deleting}
-        >
-          <ActionMenuItem onSelect={startMove}>移动 / 重命名</ActionMenuItem>
-          <ActionMenuItem danger disabled={saving} onSelect={() => { setFailure(""); setDeleting(true); }}>
-            删除
-          </ActionMenuItem>
-        </ActionMenu>
+      <ActionMenu
+        label={actionLabel}
+        triggerRef={trigger}
+        trigger={<IconButton ref={trigger} label={actionLabel} icon={<MoreVertical />} tabIndex={tabIndex} />}
+        transferringFocus={moving || deleting}
+      >
+        <ActionMenuItem onSelect={startMove}>移动 / 重命名</ActionMenuItem>
+        <ActionMenuItem danger disabled={saving} onSelect={() => { setFailure(""); setDeleting(true); }}>
+          删除
+        </ActionMenuItem>
+      </ActionMenu>
       <Dialog
         open={moving}
         onOpenChange={setMoving}

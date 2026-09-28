@@ -4,7 +4,7 @@ import { once } from "node:events";
 import { chromium, type Page, type Route } from "playwright";
 import { mockApi } from "./personal-workspace.fixture";
 import { checkThemes, checkControlFeedback, checkFileTabs } from "./design-system/bibo-design-system.smoke";
-import { checkWorkspaceFiles, openWorkspaceFile } from "./design-system/workspace-file.smoke";
+import { checkWorkspaceFiles, checkFileRowActions, openWorkspaceFile } from "./design-system/workspace-file.smoke";
 const base = "http://127.0.0.1:5189";
 const server = spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5189", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
 async function ready(): Promise<void> {
@@ -199,13 +199,13 @@ async function checkLongConversation(page: Page, width: number): Promise<void> {
     const button = row.querySelector<HTMLButtonElement>(".session-actions button")!;
     const box = button.getBoundingClientRect();
     return { truncated: label.scrollWidth > label.clientWidth,
-      overflow: getComputedStyle(label).textOverflow,
-      separated: label.getBoundingClientRect().right <= box.left,
+      mask: getComputedStyle(label).maskImage,
+      fullWidth: label.getBoundingClientRect().right >= box.left,
       opacity: getComputedStyle(button.parentElement!).opacity,
       topmost: document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)?.closest("button") === button };
   });
-  assert.equal(sidebar.truncated && sidebar.separated && sidebar.topmost, true, "long title leaves an unobstructed action target");
-  assert.equal(sidebar.overflow, "ellipsis");
+  assert.equal(sidebar.truncated && sidebar.fullWidth && sidebar.topmost, true, "long title uses the full row and keeps actions on top");
+  assert.match(sidebar.mask, /linear-gradient/, "long title fades at the edge without a reserved button slot");
   assert.equal(sidebar.opacity, "1", "more actions are fully opaque when revealed");
   await page.getByRole("button", { name: /^管理会话/ }).click();
   await page.getByRole("menuitem", { name: "重命名" }).click();
@@ -260,6 +260,14 @@ async function checkMobileDrawerTooltip(page: Page, width: number, touch: boolea
   if (touch) await trigger.tap(); else await trigger.click();
   const drawer = page.getByRole("dialog", { name: "个人空间" });
   await drawer.waitFor();
+  const nav = await drawer.locator(".bibo-primary-nav").evaluate((element) => {
+    const first = element.querySelector("a")!;
+    const navBox = element.getBoundingClientRect();
+    const itemBox = first.getBoundingClientRect();
+    return { justify: getComputedStyle(element).justifyItems, left: itemBox.left - navBox.left, right: navBox.right - itemBox.right };
+  });
+  assert.equal(nav.justify, "normal", "mobile drawer navigation remains left aligned");
+  assert.ok(Math.abs(nav.left - nav.right) <= 1, "mobile navigation fills the drawer instead of centering its labels");
   await page.waitForTimeout(400);
   assert.equal(await page.getByRole("tooltip").count(), 0, "opening a mobile drawer must not display a tooltip");
   assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("role")), "dialog");
@@ -477,6 +485,7 @@ try {
       const filesPage = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width < 760 });
       await checkFileNavigation(filesPage, width);
       await checkWorkspaceFiles(filesPage, width, base);
+      await checkFileRowActions(filesPage, base);
       await filesPage.close();
     }
   } finally { await browser.close(); }

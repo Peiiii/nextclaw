@@ -38,6 +38,7 @@ export async function checkThemes(page: Page, width: number, base: string): Prom
 
 async function checkShellFrame(page: Page, width: number): Promise<void> {
   await page.getByRole("button", { name: "打开右侧工作区" }).click();
+  await checkRailCenter(page, ".bibo-sidebar-panel");
   const frame = await page.evaluate(() => {
     const nodes = [".bibo-shell", ".bibo-navigation-rail", ".bibo-topbar", ".bibo-workspace-head"].map((selector) => document.querySelector<HTMLElement>(selector)!);
     const colors = nodes.map((node) => {
@@ -61,8 +62,21 @@ async function checkShellFrame(page: Page, width: number): Promise<void> {
   await page.screenshot({ path: `/tmp/bibo-frame-${width}.png` });
   await page.getByRole("button", { name: "关闭工作区" }).click();
   await page.getByRole("button", { name: "收起侧边栏" }).click();
+  await checkRailCenter(page, ".bibo-chat-layout");
   assert.ok(await page.locator(".bibo-chat-layout").evaluate((node) => parseFloat(getComputedStyle(node).borderTopLeftRadius) >= 16), "collapsed navigation retains the inner rounded surface");
   await page.getByRole("button", { name: "展开侧边栏" }).click();
+}
+
+async function checkRailCenter(page: Page, contentSelector: string): Promise<void> {
+  const spacing = await page.evaluate((selector) => {
+    const rail = document.querySelector(".bibo-navigation-rail")!.getBoundingClientRect();
+    const item = document.querySelector(".bibo-navigation-rail .bibo-nav-item")!.getBoundingClientRect();
+    const account = document.querySelector(".bibo-navigation-rail .account-menu-trigger")!.getBoundingClientRect();
+    const content = document.querySelector(selector)!.getBoundingClientRect();
+    return { left: item.left - rail.left, right: content.left - item.right, accountCenter: account.left + account.width / 2, itemCenter: item.left + item.width / 2 };
+  }, contentSelector);
+  assert.equal(spacing.left, spacing.right, "rail navigation has equal visible margins beside its content surface");
+  assert.equal(spacing.accountCenter, spacing.itemCenter, "account and navigation icons share a centerline");
 }
 
 export async function checkControlFeedback(page: Page, width: number, base: string): Promise<void> {
@@ -91,6 +105,25 @@ export async function checkControlFeedback(page: Page, width: number, base: stri
   assert.ok(box && box.x >= 0 && box.x + box.width <= width, "tooltips avoid viewport edges");
   await page.mouse.move(width - 20, 250);
   await hint.waitFor({ state: "hidden" });
+  if (width > 760) await checkIconFeedback(page, base);
+}
+
+async function checkIconFeedback(page: Page, base: string): Promise<void> {
+  await page.goto(`${base}/chat/session-a`, { waitUntil: "networkidle" });
+  const frameAction = page.locator(".bibo-topbar-actions .ui-icon-button").first();
+  await frameAction.hover();
+  const frameFeedback = await frameAction.evaluate((element) => ({
+    hover: getComputedStyle(element, "::before").backgroundColor,
+    surface: getComputedStyle(element.closest(".bibo-shell")!).backgroundColor,
+  }));
+  assert.notEqual(frameFeedback.hover, frameFeedback.surface, "shared icon hover contrasts with the frame background");
+  const sidebarAction = page.locator(".bibo-session-head .ui-icon-button");
+  await sidebarAction.hover();
+  const sidebarFeedback = await sidebarAction.evaluate((element) => ({
+    hover: getComputedStyle(element, "::before").backgroundColor,
+    surface: getComputedStyle(element.closest(".bibo-sidebar-panel")!).backgroundColor,
+  }));
+  assert.notEqual(sidebarFeedback.hover, sidebarFeedback.surface, "shared icon hover contrasts with the sidebar background");
 }
 
 async function checkNavigationFeedback(page: Page, width: number): Promise<void> {

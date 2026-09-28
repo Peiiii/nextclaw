@@ -30,16 +30,18 @@ function FileSearchResults() {
   return (
     <>
       {fileMatches.map((file) => (
-        <ListRow
-          key={file.id}
-          onClick={() => (file.kind === "folder" ? void searchFiles(`${file.path}/`) : void openFile(file.id))}
-        >
-          <FileKindIcon file={file} />
-          <span>
-            <strong>{file.path.split("/").at(-1)}</strong>
-            <small>{file.path}</small>
-          </span>
-        </ListRow>
+        <div className="ui-list-row-group" key={file.id}>
+          <ListRow
+            onClick={() => (file.kind === "folder" ? void searchFiles(`${file.path}/`) : void openFile(file.id))}
+          >
+            <FileKindIcon file={file} />
+            <span>
+              <strong>{file.path.split("/").at(-1)}</strong>
+              <small>{file.path}</small>
+            </span>
+          </ListRow>
+          <FileActions file={file} />
+        </div>
       ))}
       {fileSearchLoading ? (
         <p className="bibo-tree-empty">正在搜索…</p>
@@ -116,10 +118,8 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
               <FileKindIcon file={file} expanded={!!expanded[file.id]} />
               <span className="bibo-tree-name">{file.path.split("/").at(-1)}</span>
             </button></Tooltip>
-            {file.kind === "folder" && <>
-              <IconButton label={`在 ${file.path} 下创建`} icon={<Plus />} tabIndex={tabStop === file.id ? 0 : -1} onClick={() => onCreate(file.path)} />
-              <FileActions file={file} tabIndex={tabStop === file.id ? 0 : -1} />
-            </>}
+            {file.kind === "folder" && <IconButton label={`在 ${file.path} 下创建`} icon={<Plus />} tabIndex={tabStop === file.id ? 0 : -1} onClick={() => onCreate(file.path)} />}
+            <FileActions file={file} tabIndex={tabStop === file.id ? 0 : -1} />
           </div>
           {file.kind === "folder" && expanded[file.id] && (
             <div id={`${treeId}-${file.id}`} role="group">

@@ -48,6 +48,7 @@
 .task-quick-add .ui-icon-button { @apply flex-none; }
 .event-duration { @apply flex gap-1 flex-wrap; }
 .event-duration [aria-pressed="true"] { @apply [background:var(--ui-selection)]; }
+.event-description-toggle.ui-button { @apply self-start pl-0; }
 .task-undo { @apply flex items-center gap-2 px-4; }
 .task-undo .ui-notice { @apply m-0 min-w-0 flex-1 [overflow-wrap:anywhere]; }
 .task-undo > .ui-button { @apply flex-none; }
@@ -233,7 +234,7 @@
   .calendar-date-events time { @apply hidden; }
 }
 .bibo-day-agenda { @apply [padding:25px_26px] [border-right:0]; }
-.bibo-agenda-heading { @apply flex justify-between [align-items:end] gap-5 pb-4.5 [border-bottom:1px_solid_var(--bibo-hairline)]; }
+.bibo-agenda-heading { @apply grid [grid-template-columns:minmax(0,_1fr)_auto_auto] items-center gap-3 pb-4.5 [border-bottom:1px_solid_var(--bibo-hairline)]; }
 .bibo-agenda-heading h2 { @apply m-0 text-lg leading-7 font-semibold; }
 .bibo-agenda-heading > span { @apply whitespace-nowrap [color:var(--ui-muted)] text-base; }
 .bibo-agenda-items { @apply pt-3.25; }
@@ -246,8 +247,9 @@
 .bibo-agenda-empty span { @apply [color:var(--ui-muted)] text-base; }
 .bibo-agenda-empty button { @apply pl-0 mt-1; }
 .bibo-upcoming { @apply mt-6.75 [border-top:1px_solid_var(--bibo-hairline)] pt-4.75; }
-.bibo-upcoming button span { @apply [min-width:105px] [color:var(--ui-muted)] text-base; }
-.bibo-upcoming button strong { @apply text-base font-semibold; }
+.bibo-upcoming .ui-list-row { @apply grid [grid-template-columns:90px_minmax(0,_1fr)] gap-3 items-start [padding:10px_12px]; }
+.bibo-upcoming button span { @apply [color:var(--ui-muted)] text-base whitespace-nowrap; }
+.bibo-upcoming button strong { @apply min-w-0 text-base font-semibold; }
 
 .bibo-files-page { @apply [max-width:none] flex flex-col h-full; }
 .bibo-files-page .bibo-page-title { @apply flex-none; }
@@ -267,6 +269,7 @@
 .file-tree-search .ui-control { @apply min-w-0; }
 .bibo-tree-row { @apply flex items-center [min-height:31px] pr-1.25 [border-radius:6px]; }
 .bibo-tree-row:hover { @apply [background:var(--ui-hover)]; }
+.bibo-tree-row:is(:hover, :focus-within, .is-selected) { --ui-icon-hover: var(--ui-selection-hover); }
 .bibo-tree-row.is-selected:hover { @apply [background:var(--ui-selection-hover)]; }
 .bibo-tree-row.is-selected { @apply [background:var(--ui-selection)]; }
 .bibo-tree-main { @apply flex-1 flex self-stretch min-h-8 items-center gap-2 overflow-hidden border-0 bg-transparent bg-none text-left [color:var(--ui-muted)] cursor-pointer text-base; }
@@ -295,7 +298,7 @@
 .file-directory-location { @apply flex items-center gap-1 [border-bottom:1px_solid_var(--ui-line)] pb-1 mb-1; }
 .file-directory-location span { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap; }
 .file-directory-entry.ui-button { @apply w-full justify-start gap-2; }
-.file-directory-entry > span { @apply flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left; }
+.file-directory-entry > span:not(.bibo-file-kind-icon) { @apply flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left; }
 .file-directory-entry > svg { @apply w-4 h-4 flex-none; }
 @media (min-width: 761px) and (max-width: 900px) {
   .bibo-files-layout, .bibo-files-layout:has(.bibo-note-list) { @apply [grid-template-columns:220px_minmax(0,_1fr)]; }

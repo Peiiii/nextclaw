@@ -49,7 +49,7 @@ export function FileEditor({ id, compact = false, defaultPreview = false, tabId,
             {draft.saving ? copy.fileSaving : draft.dirty ? copy.fileUnsaved : copy.fileSaved}
           </span>
           {(draft.dirty || draft.saving) && <Button tone="primary" disabled={draft.saving} onClick={() => void saveFile(id)}>{draft.saving ? copy.fileSaving : copy.fileSave}</Button>}
-          <FileActions key={id} file={detail} />
+          <FileActions key={id} file={detail} label="文件操作" />
         </div>
       </div>
       {draft.error && <Notice tone="error">{draft.error}</Notice>}
