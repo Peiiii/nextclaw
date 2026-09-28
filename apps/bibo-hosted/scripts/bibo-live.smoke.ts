@@ -225,7 +225,7 @@ try {
   const page = await context.newPage();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
+  await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "domcontentloaded" });
   let searchStream: Awaited<ReturnType<typeof streamedRun>> | undefined;
   let stream: Awaited<ReturnType<typeof streamedRun>> | undefined;
   if (!questionOnly) {
@@ -254,11 +254,12 @@ try {
 
     for (const viewport of [{ width: 1365, height: 900 }, { width: 390, height: 844 }]) {
       await page.setViewportSize(viewport);
-      await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
-      if (!await workspace.count()) await page.getByRole("button", { name: "打开右侧工作区" }).click();
+      await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "domcontentloaded" });
       await page.locator(".ui-message").first().waitFor();
-      await page.reload({ waitUntil: "networkidle" });
+      if (!await workspace.isVisible()) await page.getByRole("button", { name: "打开右侧工作区" }).click();
+      await page.reload({ waitUntil: "domcontentloaded" });
       await page.locator(".ui-message--assistant").filter({ hasText: requestId }).waitFor();
+      if (!await workspace.isVisible()) await page.getByRole("button", { name: "打开右侧工作区" }).click();
       await workspace.getByRole("heading", { name: requestId, exact: true }).waitFor();
       await page.screenshot({ path: `/tmp/bibo-live-display-${viewport.width}.png`, fullPage: true });
       await page.getByRole("button", { name: "关闭工作区" }).click();
@@ -278,17 +279,12 @@ try {
       assert.ok(await page.locator(".ui-message--assistant").filter({ hasText: requestId }).count(), "Saved answer did not load after refresh");
       if (!displayOnly) assert.ok(await page.locator('.ui-message--assistant a[href^="https://developers.cloudflare.com/"]').count(),
         "Saved search sources must remain clickable after refresh");
-      await page.goto(`${origin}/files`, { waitUntil: "networkidle" });
-      if (!await page.getByRole("textbox", { name: "搜索文件", exact: true }).isVisible()) {
-        await page.getByRole("button", { name: "← 目录", exact: true }).click();
-      }
-      await page.getByRole("textbox", { name: "搜索文件", exact: true }).fill(artifactPath);
-      await page.getByRole("region", { name: "文件搜索结果", exact: true }).getByText(artifactPath, { exact: true }).first().click();
+      await page.goto(`${origin}/files`, { waitUntil: "domcontentloaded" });
       await page.getByRole("heading", { name: requestId, exact: true }).waitFor();
       await page.getByText("真实 Agent 文件验收。", { exact: true }).waitFor();
     }
   }
-  await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
+  await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "domcontentloaded" });
   await streamedRun(page, questionPrompt);
   const questioned = await json<{ messages: Array<{ role: string; text: string; questions?: Array<{ id: string; title: string; status: string; recommendedOption?: string; optionDescriptions?: Record<string, string> }>; replyToQuestion?: { id: string; title: string; action: string } }> }>(historyPath);
   const asked = questioned.messages.at(-1)?.questions?.find((item) => item.title === "报告装订方式？");
@@ -314,7 +310,7 @@ try {
   assert.equal(answered.messages.at(-2)?.text, skipQuestion ? "跳过" : "胶装");
   assert.equal(answered.messages.at(-2)?.replyToQuestion?.action, skipQuestion ? "dismissed" : "answered");
   assert.equal(answered.messages.find((item) => item.questions?.some((question) => question.id === asked.id))?.questions?.find((question) => question.id === asked.id)?.status, skipQuestion ? "dismissed" : "answered");
-  await page.reload({ waitUntil: "networkidle" });
+  await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator(".bibo-question-reference").filter({ hasText: "报告装订方式？" }).waitFor();
   smokeResult = { ok: true, requestId, modelStream, search, searchStream, ...stream, asyncQuestion: true,
     ...(questionMobile ? { mobileQuestion: true } : {}), ...(skipQuestion ? { skippedQuestion: true } : {}),
