@@ -32,17 +32,25 @@ export { SystemObjectReferenceContextProvider } from "./providers/system-object-
 export { UiResourceReferenceContextProvider } from "./providers/ui-resource-reference-context.provider.js";
 
 export class ContextProviderContribution extends Contribution {
-  constructor(private readonly kernel: NextclawKernel) {
+  constructor(private readonly kernel: NextclawKernel, private readonly profile: "default" | "embedded" = "default") {
     super();
   }
 
   protected setup = (): void => {
     const context = new ContextProviderRunContextService(this.kernel);
 
-    for (const provider of [
+    const safety = createSafetyContextProvider();
+    const executionPolicy = new ExecutionPolicyContextProvider(context);
+    const providers = this.profile === "embedded" ? [
+      safety,
+      new AgentBootstrapContextProvider(context),
+      new WorkspaceMemoryContextProvider(context),
+      executionPolicy,
+      new CurrentSessionContextProvider(context),
+    ] : [
       createToolCallStyleContextProvider(),
       createChatComposerTokensContextProvider(),
-      createSafetyContextProvider(),
+      safety,
       createCliQuickReferenceContextProvider(),
       createSelfUpdateContextProvider(),
       createMessagingContextProvider(),
@@ -59,11 +67,12 @@ export class ContextProviderContribution extends Contribution {
       new AgentBootstrapContextProvider(context),
       new WorkspaceMemoryContextProvider(context),
       new SkillsContextProvider(context),
-      new ExecutionPolicyContextProvider(context),
+      executionPolicy,
       new SystemObjectReferenceContextProvider(this.kernel.assetStore),
       new UiResourceReferenceContextProvider(),
       new CurrentSessionContextProvider(context),
-    ]) {
+    ];
+    for (const provider of providers) {
       this.effect(() => this.kernel.contextProviderManager.register(provider));
     }
   };

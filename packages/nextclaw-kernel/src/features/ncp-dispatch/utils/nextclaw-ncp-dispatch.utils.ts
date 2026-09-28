@@ -26,6 +26,7 @@ export type DirectPromptDispatchParams = {
   abortSignal?: AbortSignal;
   onAssistantDelta?: (delta: string) => void;
   onEvent?: (event: NcpEndpointEvent) => void;
+  allowSlashCommands?: boolean;
 };
 
 export type DirectPromptDispatchResult = {
@@ -156,7 +157,7 @@ export async function startPromptOverNcpExecution(
     metadata,
     agentId,
   });
-  const commandResult = await executeSlashCommandMaybe({
+  const commandResult = params.allowSlashCommands === false ? null : await executeSlashCommandMaybe({
     config,
     rawContent: content,
     channel: message.channel,

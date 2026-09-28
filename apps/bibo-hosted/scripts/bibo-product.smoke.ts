@@ -5,8 +5,8 @@ import { chromium, type Page, type Route } from "playwright";
 import { mockApi } from "./personal-workspace.fixture";
 import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs } from "./design-system/bibo-design-system.smoke";
 import { checkFileRowActions, checkMissingRestoredFile, checkWorkspaceFiles, openWorkspaceFile } from "./design-system/workspace-file.smoke";
-const base = "http://127.0.0.1:5189";
-const server = spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5189", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
+const base = process.env.BIBO_SMOKE_BASE ?? "http://127.0.0.1:5189";
+const server = process.env.BIBO_SMOKE_BASE ? null : spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5189", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
 async function ready(): Promise<void> {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     try { if ((await fetch(base)).ok) return; } catch { /* Preview is starting. */ }
@@ -50,9 +50,9 @@ async function checkNewConversation(page: Page): Promise<void> {
 }
 
 async function checkExhaustedNewConversation(page: Page): Promise<void> {
-  await page.route("**/api/chat/availability", (route) => route.fulfill({
+  await page.route("**/api/sessions", (route) => route.request().method() === "POST" ? route.fulfill({
     status: 429, contentType: "application/json", body: JSON.stringify({ error: "今日试用额度已用完，请明天再试。" }),
-  }));
+  }) : route.fallback());
   let creates = 0;
   const onRequest = (request: { url(): string; method(): string }) => {
     if (new URL(request.url()).pathname === "/api/sessions" && request.method() === "POST") creates += 1;
@@ -64,10 +64,10 @@ async function checkExhaustedNewConversation(page: Page): Promise<void> {
   await page.getByRole("button", { name: "发送消息", exact: true }).click();
   await page.getByText(/今日试用额度已用完/).waitFor();
   assert.equal(await page.getByRole("textbox", { name: /告诉 Bibo/ }).inputValue(), "请记录我的想法");
-  assert.equal(creates, 0, "exhausted model budget must not create a blank session");
+  assert.equal(creates, 1, "new session must check the budget in its only creation request");
   assert.equal(await page.locator(".bibo-session-item").count(), before);
   page.off("request", onRequest);
-  await page.unroute("**/api/chat/availability");
+  await page.unroute("**/api/sessions");
 }
 
 async function checkTreeKeyboard(page: Page): Promise<void> {
@@ -485,7 +485,7 @@ try {
     }
   } finally { await browser.close(); }
 } finally {
-  if (server.exitCode === null && server.signalCode === null) {
+  if (server && server.exitCode === null && server.signalCode === null) {
     const exited = once(server, "exit");
     server.kill("SIGTERM");
     await exited;

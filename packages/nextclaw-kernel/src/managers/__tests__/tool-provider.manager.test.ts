@@ -44,6 +44,15 @@ describe("ToolProviderManager", () => {
     ]);
   });
 
+  it("limits an embedded catalog and rejects duplicate allowed names", async () => {
+    const manager = new ToolProviderManager();
+    manager.register({ provide: () => [createTool("bibo"), createTool("exec")] });
+    manager.restrictToTools(["bibo"]);
+    expect((await manager.buildTools({ message: createMessage() })).map((tool) => tool.name)).toEqual(["bibo"]);
+    manager.register({ provide: () => [createTool("bibo")] });
+    await expect(manager.buildTools({ message: createMessage() })).rejects.toThrow("duplicate name");
+  });
+
   it("unregisters providers through the disposer returned from register", async () => {
     const manager = new ToolProviderManager();
     const dispose = manager.register({

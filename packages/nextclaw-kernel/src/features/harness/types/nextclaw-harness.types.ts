@@ -70,6 +70,12 @@ export type NextclawHarnessOptions = {
   builtInAppsDirectory?: string;
   portableServiceRunnerPath?: string;
   productVersion?: string;
+  /** Static tool catalog for an embedded app; omitted keeps the full NextClaw catalog. */
+  allowedToolNames?: readonly string[];
+  /** Preserve safety, identity and memory while omitting host-specific context. */
+  contextProfile?: "default" | "embedded";
+  sessionSearchEnabled?: boolean;
+  sessionTitleEnabled?: boolean;
   productActivitySink?: {
     record: (signal: {
       kind: "intent_accepted" | "run_succeeded";
