@@ -114,6 +114,15 @@ test("snapshot preserves canonical data while SQLite WAL and message projections
   assert.deepEqual(await exited, [0, null], "idle runner exits cleanly when Cloudflare stops it");
 });
 
+async function verifyFailedRun(port: number): Promise<void> {
+  const failed = await fetch(`http://127.0.0.1:${port}/run`, { method: "POST", headers: { accept: "text/event-stream", "x-bibo-run-id": "failed-run" }, body: JSON.stringify({ message: "failure", token: "account-token", sessionId: "runner-test-session" }) });
+  const failedBody = await failed.text();
+  assert.equal(failed.status, 200);
+  assert.match(failedBody, /MODEL_INPUT_TOO_LARGE/);
+  assert.match(failedBody, /failed-run/);
+  assert.doesNotMatch(failedBody, /private-upstream-content/);
+}
+
 test("runner configures authenticated search and updates only built-in identities", async (t) => {
   const temporary = await mkdtemp(join(tmpdir(), "bibo-search-runner-"));
   const home = join(temporary, "home");
@@ -125,7 +134,13 @@ test("runner configures authenticated search and updates only built-in identitie
   const fixture = `export class Contribution {}; export const eventKeys = { uiShowContent: "ui.show-content" };
     export class NextclawHarness {
       contributions = { register() {} }; async start() {} async dispose() {}
-      async runTask() { return { text: 'fixture answer', sessionId: 'fixture-session' }; }
+      async runTask(input) {
+        if (input.input === 'failure') throw new Error('Chat Completions API failed (413): private-upstream-content');
+        input.onEvent?.({ type: 'message.sent', payload: { message: { metadata: {
+          nextclaw_timeline_kind: 'context_compaction', checkpoint: { status: 'compressed', phase: 'pre-run', summary: 'private-summary' }
+        } } } });
+        return { text: 'fixture answer', sessionId: 'fixture-session' };
+      }
     }`;
   await writeFile(loader, `export async function resolve(specifier, context, next) {
     if (specifier === "@nextclaw/harness") return { url: ${JSON.stringify(`data:text/javascript,${encodeURIComponent(fixture)}`)}, shortCircuit: true };
@@ -133,8 +148,11 @@ test("runner configures authenticated search and updates only built-in identitie
   }`);
   const port = await freePort();
   const runner = spawn(process.execPath, ["--experimental-loader", loader, new URL("../dist/container/bibo-runner.controller.mjs", import.meta.url).pathname], {
-    env: { ...process.env, NEXTCLAW_HOME: home, BIBO_PORT: String(port) }, stdio: "ignore",
+    env: { ...process.env, NEXTCLAW_HOME: home, BIBO_PORT: String(port) }, stdio: ["ignore", "pipe", "pipe"],
   });
+  let runnerLogs = "";
+  runner.stdout.on("data", (chunk) => { runnerLogs += chunk.toString(); });
+  runner.stderr.on("data", (chunk) => { runnerLogs += chunk.toString(); });
   t.after(async () => {
     if (runner.exitCode === null && runner.signalCode === null) { const exited = once(runner, "exit"); runner.kill(); await exited; }
     await rm(temporary, { recursive: true, force: true });
@@ -142,7 +160,7 @@ test("runner configures authenticated search and updates only built-in identitie
   await waitForHealth(port);
   const run = async (searchEnabled: boolean) => {
     const response = await fetch(`http://127.0.0.1:${port}/run`, {
-      method: "POST", body: JSON.stringify({ message: "Find official sources", token: "account-token", searchEnabled }),
+      method: "POST", headers: { "x-bibo-run-id": "runner-test-run", "x-bibo-session-id": "runner-test-session" }, body: JSON.stringify({ message: "Find official sources", token: "account-token", sessionId: "runner-test-session", searchEnabled }),
     });
     assert.equal(response.status, 200);
     return JSON.parse(await readFile(join(home, "config.json"), "utf8")) as { search: { enabledProviders: string[]; defaults: { maxResults: number }; providers: { exa: { apiKey: string; baseUrl: string } } } };
@@ -166,6 +184,14 @@ test("runner configures authenticated search and updates only built-in identitie
   await writeFile(identity, customized);
   await run(true);
   assert.equal(await readFile(identity, "utf8"), customized);
+  const config = JSON.parse(await readFile(join(home, "config.json"), "utf8"));
+  assert.equal(config.providers.nextclaw.extraHeaders["x-bibo-run-id"], "runner-test-run");
+  assert.equal(config.providers.nextclaw.extraHeaders["x-bibo-session-id"], "runner-test-session");
+  await verifyFailedRun(port);
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.match(runnerLogs, /"compactionStatus":"compressed"/);
+  assert.match(runnerLogs, /"errorCode":"MODEL_INPUT_TOO_LARGE"/);
+  assert.doesNotMatch(runnerLogs, /private-summary|private-upstream-content|account-token/);
 });
 
 test("Bibo structured data and file content survive a runner snapshot restore", async (t) => {

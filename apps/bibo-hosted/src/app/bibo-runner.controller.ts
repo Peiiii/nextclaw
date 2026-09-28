@@ -11,6 +11,7 @@ import { backup, DatabaseSync } from "node:sqlite";
 import { NextclawHarness } from "@nextclaw/harness";
 import { BiboSpaceError, BiboSpaceService } from "@/features/bibo-domain";
 import { BiboSpaceContribution } from "./bibo-space.contribution";
+import { BiboRunError, errorDetails, logDiagnostic, readTrace, runFailure, traceHeaders, type RunTrace } from "./diagnostics/bibo-diagnostics.utils";
 
 const home = process.env.NEXTCLAW_HOME ?? "/data";
 const runtimeId = randomUUID();
@@ -45,7 +46,7 @@ async function readJson<T>(request: IncomingMessage, maxBytes = 32_768): Promise
   return JSON.parse(Buffer.concat(chunks).toString("utf8")) as T;
 }
 
-function configure(token: string, searchEnabled: boolean): void {
+function configure(token: string, searchEnabled: boolean, trace: RunTrace): void {
   const path = join(home, "config.json");
   let config: RunnerConfig = {};
   if (existsSync(path)) {
@@ -59,6 +60,7 @@ function configure(token: string, searchEnabled: boolean): void {
       enabled: true,
       apiBase: "https://app.bibo.bot/api/model/v1",
       apiKey: token,
+      extraHeaders: traceHeaders(trace),
       models: [model],
     },
   };
@@ -118,20 +120,22 @@ async function sendSnapshot(response: ServerResponse): Promise<void> {
   }
 }
 
-async function sendRun(request: IncomingMessage, response: ServerResponse): Promise<void> {
+async function sendRun(request: IncomingMessage, response: ServerResponse, requestTrace: RunTrace): Promise<void> {
   const body = await readJson<RunBody>(request);
   if (typeof body.message !== "string" || !body.message.trim() || body.message.length > 4000 || typeof body.token !== "string" || body.token.length > 4096) {
     return sendJson(response, 400, { error: "Invalid request" });
   }
-  configure(body.token, body.searchEnabled === true);
+  const sessionId = typeof body.sessionId === "string" && body.sessionId ? body.sessionId : crypto.randomUUID();
+  const trace = { ...requestTrace, sessionId };
+  configure(body.token, body.searchEnabled === true, trace);
+  logDiagnostic("container", "run.started", { ...trace, runtimeId });
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 85_000);
+  const timeout = setTimeout(() => controller.abort(new BiboRunError("RUN_TIMEOUT", 504, "本次生成超时，本轮未保存，请稍后重试。")), 85_000);
   const streaming = request.headers.accept?.includes("text/event-stream");
   const onClose = () => { if (!response.writableEnded) controller.abort(); };
   response.on("close", onClose);
   try {
     if (streaming) response.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" });
-    const sessionId = typeof body.sessionId === "string" && body.sessionId ? body.sessionId : crypto.randomUUID();
     const harness = new NextclawHarness({ homeDir: home });
     const contribution = new BiboSpaceContribution(space, sessionId);
     harness.contributions.register(contribution);
@@ -140,22 +144,37 @@ async function sendRun(request: IncomingMessage, response: ServerResponse): Prom
       await harness.start();
       result = await harness.runTask({
         input: body.message.trim(), sessionId, signal: controller.signal,
+        onEvent: (event) => {
+          if (event.type !== "message.sent") return;
+          const message = (event.payload as { message?: { metadata?: Record<string, unknown> } }).message;
+          if (message?.metadata?.nextclaw_timeline_kind !== "context_compaction") return;
+          const checkpoint = message.metadata.checkpoint as { status?: string; phase?: string } | undefined;
+          logDiagnostic("container", "context.compaction", { ...trace, compactionStatus: checkpoint?.status, phase: checkpoint?.phase });
+        },
         ...(streaming ? { onAssistantDelta: (delta: string) => {
           if (!response.destroyed && delta) response.write(`event: delta\ndata: ${JSON.stringify({ text: delta })}\n\n`);
         } } : {}),
       });
     } finally { await harness.dispose(); }
-    const displayEvents = contribution.displayEvents;
-    if (streaming) {
-      for (const event of displayEvents) response.write(`event: show-content\ndata: ${JSON.stringify(event)}\n\n`);
-      response.end(`event: result\ndata: ${JSON.stringify({ text: result.text, sessionId: result.sessionId })}\n\n`);
-      return;
-    }
-    return sendJson(response, 200, { text: result.text, sessionId: result.sessionId, displayEvents });
+    logDiagnostic("container", "run.generated", { ...trace, runtimeId });
+    sendRunResult(response, result, contribution.displayEvents, Boolean(streaming));
+  } catch (error) {
+    const failure = runFailure(controller.signal.aborted ? controller.signal.reason : error, controller.signal.aborted);
+    logDiagnostic("container", "run.failed", { ...trace, ...errorDetails(error), errorCode: failure.code }, "error");
+    throw failure;
   } finally {
     clearTimeout(timeout);
     response.off("close", onClose);
   }
+}
+
+function sendRunResult(response: ServerResponse, result: { text: string; sessionId: string }, displayEvents: BiboSpaceContribution["displayEvents"], streaming: boolean): void {
+  if (streaming) {
+    for (const event of displayEvents) response.write(`event: show-content\ndata: ${JSON.stringify(event)}\n\n`);
+    response.end(`event: result\ndata: ${JSON.stringify({ text: result.text, sessionId: result.sessionId })}\n\n`);
+    return;
+  }
+  return sendJson(response, 200, { text: result.text, sessionId: result.sessionId, displayEvents });
 }
 
 async function importSpaceState(request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -176,6 +195,11 @@ async function deleteSession(request: IncomingMessage, response: ServerResponse)
 let busy = false;
 const server = createServer(async (request, response) => {
   const route = new URL(request.url ?? "/", "http://localhost").pathname;
+  const trace = readTrace(new Headers({
+    "x-bibo-run-id": String(request.headers["x-bibo-run-id"] ?? ""),
+    "x-bibo-session-id": String(request.headers["x-bibo-session-id"] ?? ""),
+  }));
+  const started = Date.now();
   if (route === "/health") return sendJson(response, 200, { ok: true });
   if (busy) return sendJson(response, 429, { error: "Bibo is busy" });
   busy = true;
@@ -187,7 +211,7 @@ const server = createServer(async (request, response) => {
     if (route === "/snapshot" && request.method === "GET") return await sendSnapshot(response);
     if (route === "/space/state" && request.method === "GET") return sendJson(response, 200, { state: await space.exportState() });
     if (route === "/space/state" && request.method === "POST") return await importSpaceState(request, response);
-    if (route === "/run" && request.method === "POST") return await sendRun(request, response);
+    if (route === "/run" && request.method === "POST") return await sendRun(request, response, trace);
     if (route === "/sessions/delete" && request.method === "POST") return await deleteSession(request, response);
     if (route === "/space" && request.method === "POST") {
       const body = await readJson<{ action?: unknown; input?: unknown }>(request, 1_100_000);
@@ -198,10 +222,16 @@ const server = createServer(async (request, response) => {
     return sendJson(response, 404, { error: "Not found" });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("bibo-runner-error", message);
+    const failure = runFailure(error);
+    logDiagnostic("container", "request.failed", { ...trace, ...errorDetails(error), stage: route, errorCode: failure.code, status: failure.status, runtimeId, durationMs: Date.now() - started }, "error");
+    if (route === "/run") {
+      const value = { error: failure.message, code: failure.code, status: failure.status, ...trace };
+      if (!response.headersSent) sendJson(response, failure.status, value);
+      else if (!response.destroyed) response.end(`event: error\ndata: ${JSON.stringify(value)}\n\n`);
+      return;
+    }
     if (!response.headersSent) sendJson(response, error instanceof BiboSpaceError ? error.status : message.includes("429") || message.includes("今日试用额度") ? 429 : 500, {
       error: error instanceof BiboSpaceError ? error.message : message.includes("429") || message.includes("今日试用额度") ? "今日试用额度已用完，请明天再试。" : "Bibo could not complete this task. Please retry.",
-      ...(route === "/snapshot" ? { diagnostic: message.slice(0, 300) } : {}),
     });
     else if (!response.destroyed && route === "/run") response.end(`event: error\ndata: ${JSON.stringify({ error: "Bibo 暂时无法完成这次任务，请稍后重试。" })}\n\n`);
     else response.destroy();

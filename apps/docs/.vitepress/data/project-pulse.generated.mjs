@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-09-27T08:04:19.700Z",
+  "generatedAt": "2026-09-28T08:39:18.797Z",
   "hero": {
-    "currentLoc": 313398,
-    "testLoc": 133261,
-    "trackedFiles": 3335,
-    "recentCommitCount": 719,
+    "currentLoc": 313944,
+    "testLoc": 133616,
+    "trackedFiles": 3347,
+    "recentCommitCount": 746,
     "activeDays30": 30,
     "recentReleaseCount": 51,
     "latestReleaseDate": "2026-09-26",
-    "latestNoteDate": "2026-09-26",
+    "latestNoteDate": "2026-09-27",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 3389997,
-    "basePercentOfBenchmark": 9.24,
-    "lighterByPercent": 90.76
+    "benchmarkCodeLines": 3358188,
+    "basePercentOfBenchmark": 9.35,
+    "lighterByPercent": 90.65
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-05-31",
-        "label": "05-31",
-        "value": 172514
-      },
       {
         "key": "2026-06-01",
         "label": "06-01",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-09-27",
         "label": "09-27",
         "value": 313398
+      },
+      {
+        "key": "2026-09-28",
+        "label": "09-28",
+        "value": 313944
       }
     ],
     "testLocDaily": [
@@ -1317,14 +1317,14 @@ export default {
         "key": "2026-09-27",
         "label": "09-27",
         "value": 133261
+      },
+      {
+        "key": "2026-09-28",
+        "label": "09-28",
+        "value": 133616
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-08-29",
-        "label": "08-29",
-        "value": 53
-      },
       {
         "key": "2026-08-30",
         "label": "08-30",
@@ -1468,15 +1468,15 @@ export default {
       {
         "key": "2026-09-27",
         "label": "09-27",
-        "value": 31
+        "value": 91
+      },
+      {
+        "key": "2026-09-28",
+        "label": "09-28",
+        "value": 20
       }
     ],
     "commitWeekly": [
-      {
-        "key": "2026-07-06",
-        "label": "07-06",
-        "value": 35
-      },
       {
         "key": "2026-07-13",
         "label": "07-13",
@@ -1530,7 +1530,12 @@ export default {
       {
         "key": "2026-09-21",
         "label": "09-21",
-        "value": 166
+        "value": 226
+      },
+      {
+        "key": "2026-09-28",
+        "label": "09-28",
+        "value": 20
       }
     ],
     "releaseMonthly": [
@@ -1617,12 +1622,12 @@ export default {
         "codeLines": 17107,
         "testCodeLines": 9111,
         "files": 175,
-        "sharePercent": 5.5
+        "sharePercent": 5.4
       },
       {
         "name": "packages/nextclaw-core",
-        "codeLines": 16746,
-        "testCodeLines": 6940,
+        "codeLines": 16748,
+        "testCodeLines": 6942,
         "files": 178,
         "sharePercent": 5.3
       },
@@ -1645,7 +1650,7 @@ export default {
         "codeLines": 13654,
         "testCodeLines": 10891,
         "files": 159,
-        "sharePercent": 4.4
+        "sharePercent": 4.3
       },
       {
         "name": "packages/nextclaw-app-runtime",
@@ -1657,14 +1662,14 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 3389997,
-      "basePercentOfBenchmark": 9.24,
-      "lighterByPercent": 90.76
+      "benchmarkCodeLines": 3358188,
+      "basePercentOfBenchmark": 9.35,
+      "lighterByPercent": 90.65
     },
     "recentReleaseBatches": [
       {
         "date": "2026-09-26",
-        "tagCount": 11,
+        "tagCount": 12,
         "sampleTags": [
           "@nextclaw/client-sdk@0.12.12",
           "@nextclaw/companion@0.2.69",
@@ -1720,6 +1725,21 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-09-27-nextclaw-v0-57-3",
+        "date": "2026-09-27",
+        "tags": [],
+        "en": {
+          "title": "2026-09-27 · NextClaw v0.57.3",
+          "description": "Keep the composer steady when sending messages, with draft protection and failure recovery preserved.",
+          "href": "/en/notes/2026-09-27-nextclaw-v0-57-3"
+        },
+        "zh": {
+          "title": "2026-09-27 · NextClaw v0.57.3",
+          "description": "发送消息时保持输入区稳定，保留草稿保护和异常恢复。",
+          "href": "/zh/notes/2026-09-27-nextclaw-v0-57-3"
+        }
+      },
       {
         "slug": "2026-09-26-nextclaw-v0-57-2",
         "date": "2026-09-26",
@@ -3149,9 +3169,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-09-27T08:04:17.317Z",
+    "locGeneratedAt": "2026-09-28T08:39:16.886Z",
     "sourceCount": {
-      "notes": 72,
+      "notes": 73,
       "scopes": 8
     }
   }

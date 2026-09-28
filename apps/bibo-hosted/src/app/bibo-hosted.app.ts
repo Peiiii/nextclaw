@@ -1,15 +1,16 @@
-import { Container, getContainer } from "@cloudflare/containers";
+import { Container } from "@cloudflare/containers";
 import { readRunResult, readRunStream, streamEvent, type RunResult } from "./bibo-run-stream.utils";
-import { authRoute, cookieToken, currentUser, sessionUser, json, publicError } from "./bibo-auth.utils";
-import { biboSearchRoute } from "@/features/search";
-import { checkChatAvailability, modelError, modelRoute } from "./bibo-model-gateway.service";
+import { json, publicError } from "./bibo-auth.utils";
+import { biboFetch } from "./routes/bibo-http.route";
 import { BiboSpaceService, BiboSpaceError, type BiboSpaceState } from "@/features/bibo-domain";
 import { BiboSpaceStateStore } from "./bibo-space-state.service";
+import { BiboRunError, errorDetails, logDiagnostic, readTrace, readRunFailure, runFailure, traceHeaders, type RunTrace } from "./diagnostics/bibo-diagnostics.utils";
 export { BiboModelBudget } from "./bibo-model-gateway.service";
 
 const MAX_SNAPSHOT_BYTES = 32 * 1024 * 1024;
 type Message = { role: "user" | "assistant"; text: string; at: string };
 type Session = { id: string; title: string; createdAt: string; updatedAt: string; messages: Message[] };
+type ActiveRun = RunTrace & { id: string; phase: "generating" | "saving"; controller: AbortController };
 
 export class BiboUserContainer extends Container<Env> {
   defaultPort = 8080;
@@ -22,7 +23,7 @@ export class BiboUserContainer extends Container<Env> {
     load: () => this.loadSpaceState(),
     save: (state) => this.spaceState.save(state),
   });
-  private activeRun: { id: string; phase: "generating" | "saving"; controller: AbortController } | null = null;
+  private activeRun: ActiveRun | null = null;
 
   override async onStart(): Promise<void> {
     const snapshotKey = await this.ctx.storage.get<string>("snapshotKey");
@@ -79,6 +80,7 @@ export class BiboUserContainer extends Container<Env> {
       if (!body || !active || body.runId !== active.id) return publicError("这次生成已经结束。", 409);
       if (active.phase === "saving") return publicError("回答正在保存，请稍后查看。", 409);
       active.controller.abort();
+      logDiagnostic("worker", "run.cancelled", { ...active, stage: active.phase });
       return json({ ok: true });
     }
     if (route === "/space" && request.method === "POST") {
@@ -149,7 +151,7 @@ export class BiboUserContainer extends Container<Env> {
       needsRestore = false;
       return json({ ok: true });
     } catch (error) {
-      console.error("bibo-session-delete-failed", error instanceof Error ? error.message : String(error));
+      logDiagnostic("worker", "session.delete-failed", { ...readTrace(request.headers), ...errorDetails(error), errorCode: "SESSION_DELETE_FAILED" }, "error");
       return publicError("会话删除失败，请稍后再试。", 503);
     } finally {
       if (needsRestore) await this.stop().catch(() => undefined);
@@ -157,13 +159,17 @@ export class BiboUserContainer extends Container<Env> {
   };
 
   private commitSnapshot = async (metadata: Record<string, unknown> = {}): Promise<Response | null> => {
+    const trace = this.activeRun ?? { runId: crypto.randomUUID() };
+    logDiagnostic("worker", "snapshot.started", trace);
     const spaceState = await this.readContainerSpace();
-    const snapshot = await this.containerFetch("http://localhost/snapshot");
+    const snapshot = await this.containerFetch("http://localhost/snapshot", { headers: traceHeaders(trace) });
     if (!snapshot.ok) {
-      console.error("bibo-snapshot-failed", snapshot.status, (await snapshot.text()).slice(0, 300));
+      await snapshot.body?.cancel();
+      logDiagnostic("worker", "snapshot.failed", { ...trace, status: snapshot.status, errorCode: "SNAPSHOT_FAILED" }, "error");
       return publicError("结果未能保存，请重试。", 503);
     }
     const archive = await snapshot.arrayBuffer();
+    logDiagnostic("worker", "snapshot.created", { ...trace, snapshotBytes: archive.byteLength });
     if (archive.byteLength > MAX_SNAPSHOT_BYTES) return publicError("个人空间已达到当前容量限制。", 507);
     const oldKey = await this.ctx.storage.get<string>("snapshotKey") ?? this.ctx.id.toString();
     const nextKey = `${this.ctx.id.toString()}/snapshots/${crypto.randomUUID()}`;
@@ -173,7 +179,8 @@ export class BiboUserContainer extends Container<Env> {
       await this.env.SNAPSHOTS.delete(nextKey).catch(() => undefined);
       throw error;
     }
-    await this.env.SNAPSHOTS.delete(oldKey).catch((error: unknown) => console.error("bibo-old-snapshot-delete-failed", error));
+    logDiagnostic("worker", "snapshot.committed", { ...trace, persisted: true });
+    await this.env.SNAPSHOTS.delete(oldKey).catch((error: unknown) => logDiagnostic("worker", "snapshot.cleanup-failed", { ...trace, ...errorDetails(error), errorCode: "SNAPSHOT_CLEANUP_FAILED" }, "warn"));
     return null;
   };
 
@@ -216,7 +223,7 @@ export class BiboUserContainer extends Container<Env> {
       return result;
     } catch (error) {
       if (error instanceof BiboSpaceError) return publicError(error.message, error.status);
-      console.error("bibo-space-failed", error instanceof Error ? error.message : String(error));
+      logDiagnostic("worker", "space.failed", { ...readTrace(request.headers), ...errorDetails(error), errorCode: "SPACE_FAILED" }, "error");
       return publicError("操作未能保存，请保留内容后重试。", 503);
     } finally {
       if (needsRestore) await this.stop().catch(() => undefined);
@@ -225,11 +232,16 @@ export class BiboUserContainer extends Container<Env> {
   };
 
   private run = async (request: Request): Promise<Response> => {
-    if (this.inFlight) return publicError("Bibo 正在处理上一条消息，请稍后再试。", 429);
+    const trace = readTrace(request.headers);
+    if (this.inFlight) {
+      logDiagnostic("worker", "run.rejected", { ...trace, status: 429, errorCode: "RUN_BUSY" }, "warn");
+      return publicError("Bibo 正在处理上一条消息，请稍后再试。", 429);
+    }
     this.inFlight = true;
     const streaming = request.headers.get("accept")?.includes("text/event-stream") ?? false;
-    const active = { id: crypto.randomUUID(), phase: "generating" as "generating" | "saving", controller: new AbortController() };
+    const active: ActiveRun = { ...trace, id: trace.runId, phase: "generating", controller: new AbortController() };
     this.activeRun = active;
+    logDiagnostic("worker", "run.accepted", active);
     if (streaming) {
       let disconnected = false;
       const body = new ReadableStream<Uint8Array>({
@@ -241,20 +253,21 @@ export class BiboUserContainer extends Container<Env> {
           send("accepted", { runId: active.id });
           const operation = this.executeRun(request, active, (delta) => send("delta", { text: delta }), () => send("saving", {}))
             .then(async (response) => {
-              const value = await response.json() as { error?: string; text?: string; messages?: Message[]; displayEvents?: RunResult["displayEvents"] };
-              if (!response.ok) return send("error", { error: value.error ?? "Bibo 暂时无法完成这次任务。" });
+              const value = await response.json() as { error?: string; code?: string; text?: string; messages?: Message[]; displayEvents?: RunResult["displayEvents"] };
+              if (!response.ok) return send("error", { error: value.error ?? "Bibo 暂时无法完成这次任务。", code: value.code, runId: active.id });
               for (const event of value.displayEvents ?? []) send("show-content", event);
               send("committed", value);
             })
             .catch((error: unknown) => {
-              console.error("bibo-stream-failed", error instanceof Error ? error.message : String(error));
-              send("error", { error: "Bibo 暂时无法完成这次任务，请稍后重试。" });
+              logDiagnostic("worker", "stream.failed", { ...active, errorCode: runFailure(error).code }, "error");
+              send("error", { error: "Bibo 暂时无法完成这次任务，请稍后重试。", runId: active.id });
             })
             .finally(() => { if (!disconnected) controller.close(); });
           this.ctx.waitUntil(operation);
         },
         cancel: () => {
           disconnected = true;
+          logDiagnostic("worker", "client.disconnected", { ...active, stage: active.phase });
           if (active.phase === "generating") active.controller.abort();
         },
       });
@@ -280,121 +293,74 @@ export class BiboUserContainer extends Container<Env> {
       session: session ?? { id: crypto.randomUUID(), title: "新对话", createdAt: time, updatedAt: time, messages: [] } };
   };
 
-  private executeRun = async (request: Request, active: { id: string; phase: "generating" | "saving"; controller: AbortController }, onDelta?: (text: string) => void, onSaving?: () => void): Promise<Response> => {
+  private generateRun = async (payload: { message: string; token: string; session: Session }, active: ActiveRun, onDelta?: (text: string) => void): Promise<RunResult> => {
+    const response = await this.containerFetch("http://localhost/run", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...traceHeaders(active), ...(onDelta ? { accept: "text/event-stream" } : {}) },
+      body: JSON.stringify({ message: payload.message, token: payload.token, sessionId: payload.session.id, searchEnabled: Boolean(this.env.BIBO_EXA_API_KEY) }),
+      signal: active.controller.signal,
+    });
+    if (response.status === 429) {
+      logDiagnostic("worker", "run.rejected", { ...active, stage: "generate", status: 429, errorCode: "RUNNER_BUSY_OR_LIMITED" }, "warn");
+      const limited = await response.json().catch(() => null) as { error?: string } | null;
+      throw new BiboRunError("MODEL_RATE_LIMITED", 429, limited?.error ?? "今日试用额度已用完，请明天再试。");
+    }
+    if (!response.ok) {
+      const failure = readRunFailure(await response.json().catch(() => null));
+      throw failure.code === "RUN_FAILED" ? new BiboRunError("RUNNER_REQUEST_FAILED", 502, failure.message) : failure;
+    }
+    const result = response.headers.get("content-type")?.includes("text/event-stream")
+      ? await readRunStream(response, onDelta ?? (() => undefined))
+      : readRunResult(await response.json() as RunResult);
+    if (active.controller.signal.aborted) throw runFailure(null, true);
+    if (typeof result.text !== "string" || !result.text || result.sessionId !== payload.session.id) throw new Error("Runner result is invalid");
+    return result;
+  };
+
+  private executeRun = async (request: Request, active: ActiveRun, onDelta?: (text: string) => void, onSaving?: () => void): Promise<Response> => {
     let attemptedRun = false;
     let persisted = false;
+    let stage = "prepare";
+    const started = Date.now();
     try {
       const payload = await this.prepareRun(request);
-      if (payload instanceof Response) return payload;
+      if (payload instanceof Response) {
+        logDiagnostic("worker", "run.rejected", { ...active, stage, status: payload.status, errorCode: "RUN_INVALID_OR_LIMITED" }, "warn");
+        return payload;
+      }
+      active.sessionId = payload.session.id;
+      logDiagnostic("worker", "run.started", active);
       attemptedRun = true;
+      stage = "restore-and-sync";
       await this.syncContainerSpace(await this.structuredSpace.exportState());
-      const response = await this.containerFetch("http://localhost/run", {
-        method: "POST",
-        headers: { "content-type": "application/json", ...(onDelta ? { accept: "text/event-stream" } : {}) },
-        body: JSON.stringify({ message: payload.message, token: payload.token, sessionId: payload.session.id, searchEnabled: Boolean(this.env.BIBO_EXA_API_KEY) }),
-        signal: active.controller.signal,
-      });
-      if (response.status === 429) {
-        const limited = await response.json().catch(() => null) as { error?: string } | null;
-        return publicError(limited?.error ?? "今日试用额度已用完，请明天再试。", 429);
-      }
-      if (!response.ok) {
-        console.error("bibo-run-response-failed", response.status, (await response.text()).slice(0, 300));
-        return publicError("Bibo 暂时无法完成这次任务，请稍后重试。", 502);
-      }
-      const result = response.headers.get("content-type")?.includes("text/event-stream")
-        ? await readRunStream(response, onDelta ?? (() => undefined))
-        : readRunResult(await response.json() as RunResult);
-      if (active.controller.signal.aborted) return publicError("已停止生成，本轮未保存。", 409);
-      if (typeof result.text !== "string" || !result.text || result.sessionId !== payload.session.id) return publicError("Bibo 没有返回可保存的结果。", 502);
+      stage = "generate";
+      const result = await this.generateRun(payload, active, onDelta);
       active.phase = "saving";
+      stage = "save";
+      logDiagnostic("worker", "run.saving", active);
       onSaving?.();
       const saved = await this.persistRun(payload.message, result, payload.session);
       persisted = saved.ok;
+      if (!persisted) logDiagnostic("worker", "run.save-failed", { ...active, stage, status: saved.status, errorCode: "RUN_SAVE_FAILED" }, "error");
       return saved;
     } catch (error) {
-      console.error("bibo-container-run-failed", error instanceof Error ? error.message : String(error));
-      return publicError("Bibo 暂时无法完成这次任务，请稍后重试。", 503);
+      const failure = runFailure(error, active.controller.signal.aborted);
+      logDiagnostic("worker", "run.failed", { ...active, ...errorDetails(error), stage, status: failure.status, errorCode: failure.code }, "error");
+      return json({ error: failure.message, code: failure.code, runId: active.id }, failure.status);
     } finally {
-      if (attemptedRun && !persisted) await this.stop().catch(() => undefined);
-      this.inFlight = false;
-      if (this.activeRun === active) this.activeRun = null;
+      await this.finishRun(active, { attemptedRun, persisted, stage, started });
     }
+  };
+
+  private finishRun = async (active: ActiveRun, result: { attemptedRun: boolean; persisted: boolean; stage: string; started: number }): Promise<void> => {
+    if (result.attemptedRun && !result.persisted) {
+      try { await this.stop(); logDiagnostic("worker", "run.rollback", { ...active, persisted: false }); }
+      catch (error) { logDiagnostic("worker", "run.rollback-failed", { ...active, ...errorDetails(error), errorCode: "ROLLBACK_FAILED" }, "error"); }
+    }
+    logDiagnostic("worker", "run.finished", { ...active, stage: result.stage, persisted: result.persisted, durationMs: Date.now() - result.started });
+    this.inFlight = false;
+    if (this.activeRun === active) this.activeRun = null;
   };
 }
 
-async function userRoute(request: Request, env: Env, url: URL): Promise<Response> {
-  const path = url.pathname;
-  const token = cookieToken(request);
-  const authStarted = performance.now();
-  const user = path === "/api/space" ? await sessionUser(token) : await currentUser(token);
-  const authMs = performance.now() - authStarted;
-  if (!user || !token) return publicError("请先登录。", 401);
-  const container = getContainer(env.BIBO_USER, `user:${user.id}`);
-  if (path === "/api/sessions" && request.method === "GET") return await container.fetch("https://bibo.internal/sessions");
-  if (path === "/api/sessions" && request.method === "POST") return await container.fetch("https://bibo.internal/sessions/new", { method: "POST" });
-  if (path === "/api/sessions/rename" && request.method === "POST") return await container.fetch("https://bibo.internal/sessions/rename", {
-    method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
-  });
-  if (path === "/api/sessions/delete" && request.method === "POST") return await container.fetch("https://bibo.internal/sessions/delete", {
-    method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
-  });
-  if (path === "/api/history" && request.method === "GET") return await container.fetch(`https://bibo.internal/history${url.search}`);
-  if (path === "/api/chat/availability" && request.method === "GET") return await checkChatAvailability(env, user.id) ?? json({ ok: true });
-  if (path === "/api/space" && request.method === "POST") {
-    const response = await container.fetch("https://bibo.internal/space", {
-      method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
-    });
-    const headers = new Headers(response.headers);
-    headers.append("server-timing", `auth;dur=${authMs.toFixed(1)}`);
-    return new Response(response.body, { status: response.status, headers });
-  }
-  if (path === "/api/reset" && request.method === "POST") return await container.fetch("https://bibo.internal/reset", { method: "POST" });
-  if (path === "/api/cancel" && request.method === "POST") return await container.fetch("https://bibo.internal/cancel", {
-    method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
-  });
-  if (path === "/api/chat" && request.method === "POST") {
-    const body = await request.json() as { message?: unknown; sessionId?: unknown };
-    if (typeof body.message === "string" && body.message.trim()) {
-      const unavailable = await checkChatAvailability(env, user.id);
-      if (unavailable) return unavailable;
-    }
-    return await container.fetch("https://bibo.internal/run", {
-      method: "POST",
-      headers: { "content-type": "application/json", ...(request.headers.get("accept")?.includes("text/event-stream") ? { accept: "text/event-stream" } : {}) },
-      body: JSON.stringify({ message: body.message, sessionId: body.sessionId, token }),
-    });
-  }
-  return publicError("Not found", 404);
-}
-
-export default {
-  fetch: async (request: Request, env: Env): Promise<Response> => {
-    const url = new URL(request.url);
-    if (url.hostname === "bibo.bot") {
-      if (request.method !== "GET" && request.method !== "HEAD") return publicError("Not found", 404);
-      const path = url.pathname.replace(/^\/app\/?/, "/");
-      return Response.redirect(`https://app.bibo.bot${path}${url.search}`, 308);
-    }
-    const path = url.pathname;
-    if (path.startsWith("/api/")) {
-      if (path === "/api/search/exa") return await biboSearchRoute(request, env, currentUser);
-      if (path === "/api/model/v1/chat/completions") {
-        try { return await modelRoute(request, env); }
-        catch (error) {
-          console.error("bibo-model-error", error instanceof Error ? error.message : String(error));
-          return modelError("模型服务暂时不可用。", 503);
-        }
-      }
-      if (request.method !== "GET" && request.headers.get("origin") !== url.origin) return publicError("请求来源不正确。", 403);
-      try {
-        if (path.startsWith("/api/auth/")) return await authRoute(request, path);
-        return await userRoute(request, env, url);
-      } catch (error) {
-        console.error("bibo-edge-error", error instanceof Error ? error.message : String(error));
-        return publicError("Bibo 暂时无法连接，请稍后重试。", 503);
-      }
-    }
-    return await env.ASSETS.fetch(request);
-  },
-};
+export default { fetch: biboFetch };
