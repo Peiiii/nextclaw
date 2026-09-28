@@ -275,6 +275,7 @@ class BiboChatOwner {
             return { runMessages: history, ...(state.activeSessionId === sessionId ? { messages: history, status: "" } : {}), pendingMessage: null, pendingIds: null, partial: "",
               sessions: event.value.session ? [event.value.session, ...state.sessions.filter((item) => item.id !== event.value.session?.id)] : state.sessions };
           });
+          void useBiboSpaceStore.getState().refreshAfterChat();
         }
       }, sessionId);
       if (!currentRun()) return;
@@ -321,6 +322,7 @@ class BiboChatOwner {
       const user = this.get().user;
       if (user) sessionStorage.removeItem(pendingKey(user.id));
       this.clearFailedInput(sessionId, message);
+      void useBiboSpaceStore.getState().refreshAfterChat();
     } else {
       this.restoreFailedInput(message, sessionId);
       this.set((state) => ({ replyErrors: { ...state.replyErrors, [sessionId]: `${errorText(error)} ${biboCopy.retry}` } }));

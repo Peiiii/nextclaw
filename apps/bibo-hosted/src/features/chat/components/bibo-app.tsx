@@ -88,7 +88,6 @@ export function BiboApp() {
     window.addEventListener("beforeunload", guardDrafts);
     return () => window.removeEventListener("beforeunload", guardDrafts);
   }, []);
-  useEffect(() => { if (store.user && store.messages.length) void useBiboSpaceStore.getState().refreshAfterChat(); }, [store.messages]);
   useEffect(() => {
     document.addEventListener("click", workspaceResources.intercept);
     return () => document.removeEventListener("click", workspaceResources.intercept);
