@@ -8,5 +8,5 @@
 - 真实页面 1440/390/320px：输入与中文 IME、跨段删除、撤销重做、表格行列、公式、链接/图片、源码保真、草稿/失败/冲突/并发保存、滚动和边界通过；持续补充 Mermaid 回归。
 - 实际集成 300 节 / CPU4x 按键到下一帧 p95 17.9ms（本机 Chromium 探索性结果，不代表真机全部范围）。
 - 本地用户预览：`http://127.0.0.1:43988/files/6672ac2a-bcd6-4833-8bde-ea54becec684`；Vite mode ui，独立临时数据，进程需保留供用户反馈。
-- UI/宿主 tsc 和初轮 production build 已通过；原产品 smoke 通过。当前收尾验证、Review 未完；尚未 commit/push/deploy，本任务不可宣称上线。
-- 下一步：完成剩余验证、Review、更新合同证据、冻结远程 master 部署 client、真实保存刷新、主线回流。用户可边预览边反馈，无待决批准。
+- UI/宿主 tsc 和初轮 production build 已通过；原产品 smoke 通过。Review 通过；源码已提交并推送 master，冻结 bcb0d3846 完成正式部署。
+- 已完成：Worker f56e774c-51cb-4baa-845a-cf75675f6ff0，真实账号笔记保存/刷新与发布资源三宽度回归通过。容器前后version24、digest5321b947保持一致。主线回流 LOCAL_WORKTREE_RETRYING，原有文档WIP保留，自动worker接管。无用户阻塞。
