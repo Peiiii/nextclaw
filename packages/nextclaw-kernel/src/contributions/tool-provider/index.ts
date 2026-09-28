@@ -66,6 +66,7 @@ export class ToolProviderContribution extends Contribution {
         this.kernel.sessionManager,
         this.kernel.sessionRequests,
         this.kernel.sessionSearch,
+        this.kernel.userQuestions,
       ),
       new AssetToolProvider(this.kernel.assetStore),
       new ServiceActionToolProvider(

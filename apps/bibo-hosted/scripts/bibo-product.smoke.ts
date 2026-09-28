@@ -4,7 +4,7 @@ import { once } from "node:events";
 import { readFileSync } from "node:fs";
 import { chromium, type Page, type Route } from "playwright";
 import { mockApi, openMarkdownSource } from "./personal-workspace.fixture";
-import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs } from "./design-system/bibo-design-system.smoke";
+import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs, checkSessionActionFade } from "./design-system/bibo-design-system.smoke";
 import { checkFileRowActions, checkMissingRestoredFile, checkWorkspaceFiles, checkWorkspaceReopening, openWorkspaceFile } from "./design-system/workspace-file.smoke";
 const port = process.env.BIBO_SMOKE_PORT ?? String(30000 + process.pid % 20000);
 const base = `http://127.0.0.1:${port}`;
@@ -195,6 +195,7 @@ async function checkLongConversation(page: Page, width: number): Promise<void> {
   assert.equal(sidebar.truncated && sidebar.fullWidth && sidebar.topmost, true, "long title uses the full row and keeps actions on top");
   assert.match(sidebar.mask, /linear-gradient/, "long title fades at the edge without a reserved button slot");
   assert.equal(sidebar.opacity, "1", "more actions are fully opaque when revealed");
+  await checkSessionActionFade(page.locator(".bibo-session-wrap"));
   await page.getByRole("button", { name: /^管理会话/ }).click();
   await page.getByRole("menuitem", { name: "重命名" }).click();
   await checkContentBounds(page);
@@ -408,6 +409,14 @@ try {
       assert.notEqual(await page.locator(".calendar-period > strong").textContent(), currentMonth);
       await page.getByRole("button", { name: "今天", exact: true }).click();
       assert.equal(await page.locator(".calendar-period > strong").textContent(), currentMonth);
+      if (await page.locator(".calendar-date.is-outside .calendar-date-select").count() === 0) {
+        await page.getByRole("button", { name: "下一段时间" }).click();
+      }
+      await page.locator(".calendar-date.is-outside .calendar-date-select").first().dblclick({ position: { x: 12, y: 12 } });
+      assert.equal(await page.locator(".bibo-read-state:visible").count(), 0, "double-clicking an adjacent-month date keeps the calendar visible");
+      await eventDialog.getByRole("button", { name: "关闭日程编辑" }).click();
+      await eventDialog.waitFor({ state: "hidden" });
+      await page.getByRole("button", { name: "今天", exact: true }).click();
       await page.locator(".bibo-space-scroll").evaluate((element) => element.scrollTo({ top: 0 }));
       await page.screenshot({ path: `/tmp/bibo-calendar-${viewport.width}.png`, fullPage: true });
       const eventBox = await page.getByRole("button", { name: /设计评审/ }).first().boundingBox();

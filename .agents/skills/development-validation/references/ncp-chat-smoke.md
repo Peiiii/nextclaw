@@ -2,10 +2,10 @@
 
 使用仓库 smoke 入口验证指定 `session-type + model` 的真实 NCP SSE 链路，避免临时拼 `curl` 或只看 UI。
 
+本项目真实模型验收优先使用原生 Agent 的 `codex-sub/gpt-6-luna`；该模型不可用时再用已配置的 DeepSeek 模型。不要为验收改试 MiniMax，当前账户的 MiniMax 请求已返回余额不足（2026-09-28）。模型可用性变化时重新核对本条。
+
 ```bash
-pnpm smoke:ncp-chat -- --session-type native --model dashscope/qwen3-coder-next --port 18792
-pnpm smoke:ncp-chat -- --session-type codex --model dashscope/qwen3-coder-next --prompt "Reply exactly OK" --json
-pnpm smoke:ncp-chat -- --session-type claude --model minimax/MiniMax-M2.5 --port 18794
+pnpm smoke:ncp-chat -- --session-type native --model codex-sub/gpt-6-luna --port 18792
 ```
 
 基础成功条件：退出码 0、`Result: PASS`、assistant text 非空，且没有 `run.error` / `message.failed`。JSON 模式断言 `ok: true`、非空 `assistantText` 和通常为 `run.finished` 的 terminal event。

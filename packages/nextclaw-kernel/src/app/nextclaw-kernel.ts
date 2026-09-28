@@ -24,6 +24,7 @@ import {
 } from "@kernel/managers/system-object-reference.manager.js";
 import { McpManager } from "@kernel/managers/mcp.manager.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
+import { UserQuestionManager } from "@kernel/managers/user-question.manager.js";
 import { SessionContextCompactionManager } from "@kernel/managers/session-context-compaction.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import type { PlannedRestartRecoveryManager } from "@kernel/managers/planned-restart-recovery.manager.js";
@@ -160,6 +161,7 @@ export class NextclawKernel {
   readonly assetStore: LocalAssetStore;
   readonly mcpManager: McpManager;
   readonly sessionManager: SessionManager;
+  private userQuestionManager: UserQuestionManager | null = null;
   readonly inboxDeliveryManager: InboxDeliveryManager;
   readonly systemObjectReferenceManager: SystemObjectReferenceManager;
   readonly panelAppManager: PanelAppManager;
@@ -333,6 +335,10 @@ export class NextclawKernel {
         await this.serviceAppManager.matchesCapabilityGrant(grant),
       workspacePath: getWorkspacePath(this.configManager.config.agents.defaults.workspace),
     });
+
+  get userQuestions(): UserQuestionManager {
+    return this.userQuestionManager ??= new UserQuestionManager(this.sessionManager, this.sessionRunManager, this.ingress);
+  }
 
   listSessionTypes = (params?: AgentRuntimeSessionTypeDescribeParams) =>
     this.agentRuntimeManager.listSessionTypes(params);

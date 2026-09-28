@@ -7,6 +7,7 @@ import type {
   UiNcpSessionPendingInputsView,
   UiNcpSessionTokenUsageView,
 } from "@nextclaw-server/shared/types/server-api.types.js";
+import type { UiNcpSessionUserQuestionsView } from "@nextclaw-server/features/sessions/types/session-user-question-api.types.js";
 import type { UiNcpSessionObservationsView } from "@nextclaw-server/features/sessions/types/session-observation-api.types.js";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
 import { CONTEXT_COMPACTION_METADATA_KEY } from "@nextclaw/core";
@@ -15,6 +16,7 @@ import {
   isSessionContextCompactionError,
   isSessionMessageCursorError,
   isSessionSettingsError,
+  UserQuestionError,
 } from "@nextclaw/kernel";
 import { SessionSkillsViewBuilder } from "@nextclaw-server/features/sessions/services/session-skills-view.service.js";
 import {
@@ -356,6 +358,47 @@ export class NcpSessionRoutesController {
       inputs: [...this.options.kernel.agentRunRequestManager.pendingInputs.listPendingInputs(sessionId)],
     };
     return c.json(ok(payload));
+  };
+
+  readonly listSessionUserQuestions = async (c: Context) => {
+    const sessionId = decodeURIComponent(c.req.param("sessionId"));
+    try {
+      const payload: UiNcpSessionUserQuestionsView = {
+        sessionId,
+        questions: await this.options.kernel.userQuestions.list(sessionId),
+      };
+      return c.json(ok(payload));
+    } catch (error) {
+      if (error instanceof UserQuestionError) {
+        return c.json(err(error.code, error.message), error.code === "NOT_FOUND" ? 404 : 409);
+      }
+      throw error;
+    }
+  };
+
+  readonly resolveSessionUserQuestion = async (c: Context) => {
+    const sessionId = decodeURIComponent(c.req.param("sessionId"));
+    const questionId = decodeURIComponent(c.req.param("questionId"));
+    const body = await readJson<Record<string, unknown>>(c.req.raw);
+    if (!body.ok || !body.data || (body.data.action !== "answer" && body.data.action !== "dismiss") ||
+        (body.data.action === "answer" && typeof body.data.answer !== "string")) {
+      return c.json(err("INVALID_BODY", "action must be answer or dismiss; answer requires text."), 400);
+    }
+    try {
+      const payload = await this.options.kernel.userQuestions.resolve({
+        sessionId,
+        questionId,
+        action: body.data.action,
+        ...(typeof body.data.answer === "string" ? { answer: body.data.answer } : {}),
+      });
+      return c.json(ok(payload));
+    } catch (error) {
+      if (error instanceof UserQuestionError) {
+        const status = error.code === "NOT_FOUND" ? 404 : error.code === "INVALID_ANSWER" ? 400 : 409;
+        return c.json(err(error.code, error.message), status);
+      }
+      throw error;
+    }
   };
 
   readonly steerSessionQueuedInput = async (c: Context) => {

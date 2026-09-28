@@ -16,6 +16,7 @@ import {
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import {
   adaptChatMessage,
+  readChatUserQuestionReply,
   type ChatMessageSource,
 } from "@/features/chat/features/message/utils/chat-message.utils";
 import { buildChatMessageProcessSummary } from "@/features/chat/features/message/utils/chat-message-process-summary.utils";
@@ -70,6 +71,7 @@ import { formatDateTime, t, type I18nLanguage } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 import type { SessionMessageToolPayloadState } from "@/features/chat/features/ncp/hooks/use-ncp-session-message-history";
 import { ChatMessageObservationEvent } from "@/features/chat/features/message/components/chat-message-observation-event";
+import { UserQuestionInlineQuestions, UserQuestionReplyReference } from "@/features/chat/features/conversation/components/session-user-questions";
 import {
   isObservationEventPartExtensionType,
   readObservationEventPartData,
@@ -166,6 +168,7 @@ class ChatMessageViewModelAdapter {
           processSummary,
           executionSummaryLabel: executionPresentation?.summaryLabel,
           moreActions,
+          userQuestionReply: readChatUserQuestionReply(message) ?? undefined,
         },
         parts: adaptNcpMessagePartsForChat(message.parts) as ChatMessageSource["parts"],
       };
@@ -407,6 +410,10 @@ export function ChatMessageListContainer({
   }, []);
   const renderCustomPart = useCallback(
     (part: Extract<ChatMessageViewModel["parts"][number], { type: "custom" }>) => {
+      if (part.customType === "nextclaw.user-question") {
+        return <UserQuestionInlineQuestions data={part.data} />;
+      }
+      if (part.customType === "nextclaw.user-question-reply") return <UserQuestionReplyReference data={part.data} />;
       if (isObservationEventPartExtensionType(part.customType)) {
         const event = readObservationEventPartData(part.data);
         return event ? <ChatMessageObservationEvent event={event} /> : undefined;

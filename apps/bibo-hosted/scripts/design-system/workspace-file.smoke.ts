@@ -90,11 +90,13 @@ async function checkFileActionReveal(fileRow: Locator, rowAction: Locator): Prom
     touch: matchMedia("(hover: none)").matches,
     opacity: getComputedStyle(row.querySelector(".ui-row-action-tray")!).opacity,
     pointerEvents: getComputedStyle(row.querySelector(".ui-row-action-tray")!).pointerEvents,
+    gradient: getComputedStyle(row.querySelector(".ui-row-action-tray")!, "::before").backgroundImage,
     mainRight: row.querySelector(".bibo-tree-main")!.getBoundingClientRect().right,
     rowRight: row.getBoundingClientRect().right,
   }));
   assert.equal(resting.opacity, resting.touch ? "1" : "0", "file actions are revealed on hover or remain available on touch screens");
   assert.equal(resting.pointerEvents, "none", "hidden file actions do not intercept row clicks");
+  assert.equal(resting.gradient, "none", "row action buttons have no built-in fade");
   assert.ok(resting.mainRight >= resting.rowRight - 8, "hidden actions do not reserve title width");
   await fileRow.hover();
   await rowAction.hover();
@@ -110,6 +112,7 @@ async function checkNoteRowActions(page: Page, base: string, backToDirectory: Lo
   if (await backToDirectory.isVisible()) await backToDirectory.click();
   const noteRow = page.locator(".bibo-note-list .ui-list-row-group").filter({ hasText: "想法.md" });
   const noteAction = noteRow.getByRole("button", { name: "管理笔记 想法.md" });
+  assert.equal(await noteRow.locator(".ui-row-action-tray").evaluate((tray) => getComputedStyle(tray, "::before").backgroundImage), "none", "note actions have no built-in fade");
   if (await page.evaluate(() => matchMedia("(hover: none)").matches)) {
     await noteAction.click();
     await page.getByRole("menuitem", { name: "移动 / 重命名" }).waitFor();

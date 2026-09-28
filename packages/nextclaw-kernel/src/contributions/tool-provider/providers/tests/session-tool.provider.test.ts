@@ -117,6 +117,24 @@ function createProvider(
 }
 
 describe("SessionToolProvider child delegation policy", () => {
+  it("exposes asynchronous questions only for the native runtime", async () => {
+    const providerFor = (agentRuntimeId: string) => new SessionToolProvider(
+      { resolve: async () => ({
+        session: { agentRuntimeId, metadata: {} },
+        toolRunContext: { handoffDepth: 0, metadata: {}, sessionId: "current-session" },
+      }) } as never,
+      {} as never,
+      {} as never,
+      { isReady: () => false } as never,
+      {} as never,
+    );
+    const request = createRequest("current-session") as never;
+    expect((await providerFor("native").provide(request)).map(({ name }) => name)).toContain("request_user_input_async");
+    expect((await providerFor("codex").provide(request)).map(({ name }) => name)).not.toContain("request_user_input_async");
+    expect((await providerFor("native").provide({ ...request, channel: "telegram" })).map(({ name }) => name))
+      .not.toContain("request_user_input_async");
+  });
+
   it("keeps tool declarations stable while the search index becomes ready", async () => {
     let ready = false;
     const provider = createProvider({}, {}, { isReady: () => ready });

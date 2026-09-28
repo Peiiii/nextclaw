@@ -134,6 +134,9 @@ select.ui-control:focus-visible { @apply [outline:2px_solid_var(--ui-focus)] [ou
   .ui-segmented-control button { @apply [min-width:44px] [min-height:44px]; }
   .ui-segmented-control::before { @apply [top:6px] [bottom:6px]; }
 }
+.ui-segmented-control[data-size="md"]::before { @apply inset-0; }
+.ui-segmented-control[data-size="md"] button { @apply [min-height:44px]; }
+.ui-segmented-control[data-size="md"] button > span { @apply flex items-center justify-center [min-height:36px]; }
 .ui-empty-state { @apply [min-height:250px] flex items-center justify-center flex-col text-center p-7.5; }
 .ui-loading-state { @apply flex items-center justify-center p-8 [color:var(--ui-muted)]; }
 .ui-empty-state > span { @apply grid [place-items:center] [width:48px] [height:48px] [border-radius:50%] [background:var(--ui-selection)] [color:var(--ui-primary)] [font-size:23px]; }
@@ -159,12 +162,10 @@ select.ui-control:focus-visible { @apply [outline:2px_solid_var(--ui-focus)] [ou
 .ui-list-row.is-selected:hover { @apply [background:var(--ui-selection-hover)]; }
 .ui-list-row-group > .ui-list-row:is(:hover, .is-selected, .is-selected:hover) { @apply bg-transparent; }
 .ui-list-row:focus-visible { @apply [outline:2px_solid_var(--ui-focus)] [outline-offset:-2px]; }
-.ui-row-action-host { @apply relative; --ui-row-action-surface: var(--ui-surface); }
-.ui-row-action-host:is(:hover, :focus-within) { --ui-row-action-surface: var(--ui-hover); --ui-icon-hover: var(--ui-selection-hover); }
-.ui-row-action-host.is-selected { --ui-row-action-surface: var(--ui-selection); }
-.ui-row-action-host.is-selected:is(:hover, :focus-within) { --ui-row-action-surface: var(--ui-selection-hover); --ui-icon-hover: color-mix(in srgb, var(--ui-selection-hover) 82%, var(--ui-ink)); }
+.ui-row-action-host { @apply relative; }
+.ui-row-action-host:is(:hover, :focus-within) { --ui-icon-hover: var(--ui-selection-hover); }
+.ui-row-action-host.is-selected:is(:hover, :focus-within) { --ui-icon-hover: color-mix(in srgb, var(--ui-selection-hover) 82%, var(--ui-ink)); }
 .ui-row-action-tray { @apply absolute isolate [z-index:1] right-1 [top:50%] flex items-center [transform:translateY(-50%)] [opacity:0] pointer-events-none; }
-.ui-row-action-tray::before { @apply content-[""] absolute -z-10 [right:0] [top:0] [bottom:0] [width:calc(100%_+_88px)] [background:linear-gradient(to_right,_transparent,_var(--ui-row-action-surface)_40%)]; }
 .ui-row-action-tray .ui-icon-button { @apply pointer-events-none; }
 .ui-row-action-host:is(:hover, :focus-within) > .ui-row-action-tray, .ui-row-action-host:has(.ui-row-action-tray [data-state="open"]) > .ui-row-action-tray { @apply [opacity:1]; }
 .ui-row-action-host:is(:hover, :focus-within) > .ui-row-action-tray .ui-icon-button, .ui-row-action-host:has(.ui-row-action-tray [data-state="open"]) > .ui-row-action-tray .ui-icon-button { @apply pointer-events-auto; }
@@ -266,7 +267,6 @@ select.ui-control:focus-visible { @apply [outline:2px_solid_var(--ui-focus)] [ou
 @keyframes ui-composer-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .ui-composer__spinner { @apply [animation:none]; } }
 @media (max-width: 760px) { .ui-message--user { @apply [max-width:88%]; } }
-:root { --ui-calendar-selection: var(--ui-hover); }
 .ui-page-header { @apply flex items-center justify-between gap-5 mb-5; }
 .ui-page-header h1 { @apply m-0 text-2xl [line-height:1.35] font-semibold [letter-spacing:-.02em]; }
 .ui-page-header__eyebrow { @apply text-base [color:var(--ui-muted)] [margin:0_0_8px]; }

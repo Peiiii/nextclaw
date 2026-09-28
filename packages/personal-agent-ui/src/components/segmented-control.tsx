@@ -1,12 +1,13 @@
 type Option<Value extends string> = { value: Value; label: string };
 
-export function SegmentedControl<Value extends string>({ label, value, options, onChange }: {
+export function SegmentedControl<Value extends string>({ label, value, options, onChange, size = "sm" }: {
   label: string;
   value: Value;
   options: readonly Option<Value>[];
   onChange: (value: Value) => void;
+  size?: "sm" | "md";
 }) {
-  return <div className="ui-segmented-control" role="group" aria-label={label}>{options.map((option) =>
+  return <div className="ui-segmented-control" data-size={size} role="group" aria-label={label}>{options.map((option) =>
     <button key={option.value} type="button" aria-pressed={value === option.value} onClick={() => onChange(option.value)}><span>{option.label}</span></button>,
   )}</div>;
 }

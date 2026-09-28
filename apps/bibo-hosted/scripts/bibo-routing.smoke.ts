@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { chromium, type Page } from "playwright";
+import { chromium, type Locator, type Page } from "playwright";
 
 const base = process.env.BIBO_SMOKE_BASE ?? "http://127.0.0.1:5198";
 const server = process.env.BIBO_SMOKE_BASE ? null : spawn(process.execPath, [new URL("../node_modules/vite/bin/vite.js", import.meta.url).pathname, "preview", "--host", "127.0.0.1", "--port", "5198", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: ["ignore", "pipe", "pipe"] });
@@ -178,6 +178,27 @@ async function verifyViewport(page: Page, width: number) {
   console.log(`Routing ${width}: history, drafts, blank chat, direct links, refresh, race and missing session passed`);
 }
 
+async function checkMobileAuthLayout(page: Page, auth: Locator, submit: Locator): Promise<void> {
+  const [story, mascot, copy, form, note, action] = await Promise.all([
+    auth.locator(".bibo-auth-story").boundingBox(), auth.locator(".bibo-auth-companion").boundingBox(),
+    auth.locator(".bibo-auth-story-copy").boundingBox(), auth.locator(".bibo-auth-form-pane").boundingBox(),
+    auth.locator(".bibo-auth-note").boundingBox(), submit.boundingBox(),
+  ]);
+  assert.ok(story && mascot && copy && form && note && action);
+  assert.ok(mascot.y >= story.y && mascot.y + mascot.height <= form.y - 12, "the companion stays complete above the form");
+  assert.ok(mascot.y + mascot.height <= copy.y - 12, "the companion has breathing room above the centered welcome copy");
+  assert.ok(note.y - (action.y + action.height) <= 24, "the note follows the primary action without a blank panel");
+  assert.ok(note.y + note.height <= page.viewportSize()!.height, "the note stays on the first screen");
+  assert.equal(await auth.evaluate((card) => card.scrollHeight <= card.clientHeight + 1 && document.documentElement.scrollWidth <= innerWidth), true, "the initial mobile form has no viewport overflow");
+}
+
+async function checkShortViewportAction(page: Page, submit: Locator, width: number): Promise<void> {
+  await page.setViewportSize({ width, height: 380 });
+  await submit.scrollIntoViewIfNeeded();
+  const box = await submit.boundingBox();
+  assert.ok(box && box.y >= 0 && box.y + box.height <= 380, "keyboard-height view can scroll to the primary action");
+}
+
 async function verifyCompactAuth(page: Page, width: number) {
   let codeRequests = 0;
   await page.route("**/api/**", async (route) => {
@@ -195,7 +216,11 @@ async function verifyCompactAuth(page: Page, width: number) {
   const assertActionFits = async () => {
     const box = await submit.boundingBox();
     assert.ok(box && box.y >= 0 && box.y + box.height <= page.viewportSize()!.height, `${width}px primary action must fit without scrolling`);
+    const mascot = await auth.locator(".bibo-auth-companion").boundingBox();
+    const form = await auth.locator(".bibo-auth-form-pane").boundingBox();
+    assert.ok(mascot && form && mascot.y + mascot.height <= form.y - 12, "the companion stays complete through both authentication steps");
   };
+  await checkMobileAuthLayout(page, auth, submit);
   await assertActionFits();
   assert.equal(await auth.getByLabel("密码", { exact: true }).count(), 0);
   await auth.getByRole("textbox", { name: "邮箱", exact: true }).fill("test@example.com");
@@ -218,6 +243,7 @@ async function verifyCompactAuth(page: Page, width: number) {
   await auth.getByLabel("密码", { exact: true }).waitFor();
   assert.equal(await auth.getByLabel("邮箱验证码", { exact: true }).count(), 0);
   await assertActionFits();
+  if (width === 320) await checkShortViewportAction(page, submit, width);
   console.log(`Auth ${width}: email, code delivery, details, edit and login fit without scrolling`);
 }
 

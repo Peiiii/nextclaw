@@ -65,13 +65,13 @@ export function AuthPanel() {
     <div className="bibo-auth-story">
       <div className="bibo-auth-wordmark">Bibo<span>.</span></div>
       <div className="bibo-auth-scene" aria-hidden="true"><span className="bibo-auth-halo" /><BiboCompanion className="bibo-auth-companion" /><span className="bibo-auth-spark bibo-auth-spark-one">✳</span><span className="bibo-auth-spark bibo-auth-spark-two">✦</span></div>
-      <div className="bibo-auth-story-copy"><span className="bibo-auth-story-kicker">你的个人 AI 搭档</span><h1>有你在意的事，<br />就有我帮忙的地方。</h1><p>从一个想法、一项待办，或一段对话开始。</p></div>
+      <div className="bibo-auth-story-copy"><span className="bibo-auth-story-kicker">你的个人 AI 搭档</span><h1>你在意的事，<br />我陪你一起做。</h1><p>从一个想法、一项待办，或一段对话开始。</p></div>
       <p className="bibo-auth-story-foot">想法 · 日程 · 待办 · 文件</p>
     </div>
     <div className="bibo-auth-form-pane">
       {mobileDetails && <button className="bibo-auth-back" type="button" onClick={() => setMobileStep("email")}><ArrowLeft size={18} aria-hidden="true" />返回</button>}
       <div className="bibo-auth-form-head"><p className="bibo-auth-eyebrow">很高兴见到你</p><h2 ref={titleRef} id="bibo-auth-title" tabIndex={mobileDetails ? -1 : undefined}>{title}</h2><p>{description}</p></div>
-      {!mobileDetails && <div className="bibo-auth-tabs"><SegmentedControl label="账号操作" value={mode} options={[{ value: "register", label: copy.register }, { value: "login", label: copy.login }]} onChange={changeMode} /></div>}
+      {!mobileDetails && <div className="bibo-auth-tabs"><SegmentedControl size="md" label="账号操作" value={mode} options={[{ value: "register", label: copy.register }, { value: "login", label: copy.login }]} onChange={changeMode} /></div>}
       <form onSubmit={submit} aria-busy={working}>
         {!mobileDetails ? <div className="bibo-auth-field"><label htmlFor="bibo-email">{copy.email}</label><Input ref={emailRef} id="bibo-email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="你的邮箱地址" /></div> : <p className="bibo-auth-email-summary">{email}<button type="button" onClick={() => setMobileStep("email")}>修改</button></p>}
         {(!mobile || mobileDetails) && <>
@@ -81,7 +81,7 @@ export function AuthPanel() {
         {feedback && (!mobile || mobileDetails) && <p className={`bibo-auth-feedback is-${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}>{feedback.kind === "success" && <Check size={16} aria-hidden="true" />}{feedback.message}</p>}
         <Button className="bibo-auth-submit" tone="primary" type="submit" disabled={working || (mobile && mobileStep === "email" && codeWorking)}>{working ? "请稍候…" : mobile && mobileStep === "email" ? "继续" : mode === "login" ? copy.login : copy.createAccount}<ArrowRight size={17} aria-hidden="true" /></Button>
       </form>
-      <p className="bibo-auth-note">Bibo 提供有限的免费试用，请勿输入敏感信息。</p>
+      <p className="bibo-auth-note">免费试用额度有限，请勿输入敏感信息。</p>
     </div>
   </section></div>;
 }
