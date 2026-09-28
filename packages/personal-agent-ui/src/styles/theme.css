@@ -134,6 +134,9 @@ select.ui-control:focus-visible { @apply [outline:2px_solid_var(--ui-focus)] [ou
   .ui-segmented-control button { @apply [min-width:44px] [min-height:44px]; }
   .ui-segmented-control::before { @apply [top:6px] [bottom:6px]; }
 }
+.ui-segmented-control[data-size="md"]::before { @apply inset-0; }
+.ui-segmented-control[data-size="md"] button { @apply [min-height:44px]; }
+.ui-segmented-control[data-size="md"] button > span { @apply flex items-center justify-center [min-height:36px]; }
 .ui-empty-state { @apply [min-height:250px] flex items-center justify-center flex-col text-center p-7.5; }
 .ui-loading-state { @apply flex items-center justify-center p-8 [color:var(--ui-muted)]; }
 .ui-empty-state > span { @apply grid [place-items:center] [width:48px] [height:48px] [border-radius:50%] [background:var(--ui-selection)] [color:var(--ui-primary)] [font-size:23px]; }

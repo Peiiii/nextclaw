@@ -38,6 +38,8 @@ TabList 用左／右、Home／End 移动焦点，Enter／Space 激活，避免�
 
 分段控件的外层底板使用 hover token，悬停选项使用对比更强的 selection-hover token 与 ink 文字；选中项使用 surface。验收必须比较真实底板上的悬停色，不能只证明背景色数值发生变化。
 
+SegmentedControl 默认 `size="sm"` 用于紧凑筛选；`size="md"` 用于与表单输入并列的主要模式选择，可见底板 44px、选中面 36px，鼠标和触屏一致。认证页使用 md，与 44px 输入框和主按钮形成协调比例；应用不单独覆盖其选中、hover 或高度。
+
 图标导航栏同样须比较实际承载面的颜色，底板已用 hover token 时，悬停反馈使用 selection-hover。会话入口是 flex 行，长标题放在独立的 `min-width:0` 可收缩截断节点中；右侧操作保留独立空间，hover、键盘焦点和菜单展开时完整显示，不能靠裁切文字为按钮让位。
 
 ### Tooltip

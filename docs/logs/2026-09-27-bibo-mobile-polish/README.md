@@ -100,6 +100,8 @@ BB 三份 tsc、公共 UI tsc、Vite 构建、product smoke（桌面 1440px／�
 
 ### 后续构图纠偏
 
+随后的用户截图指出认证切换条 32px、选中面 24px，与 46px 提交按钮失衡。共享 SegmentedControl 增加显式 `md` 尺寸，底板 44px／选中面 36px；认证入口消费，默认 sm 的筛选条不变。实拍桌面与 320／390px 手机复核，公共 UI 与 BB tsc、定向 ESLint、路由认证回归及 diff-only maintainability 均通过。此前发布多次在 Cloudflare 服务元数据 GET 上超时；随后同一接口独立请求返回 200，继续从冻结主干发布，不将失败尝试记为上线。
+
 用户随后要求将方法与触发分两层沉淀。共享 `ai-development-system` 在 `ad905c1` 更新既有 `iterative-quality-convergence` 与 lifecycle 路由，项目经官方 upgrade 同步且 lock 校验一致；本地 `commands/commands.md` 新增 `/迭代优化`，不把方法复制进宏。完整画面观察、每轮最大差距、两轮无效则返看方案、不满意时继续返工归方法 owner；显式宏／自然表达／连续同类纠偏归入口，普通单点优化不自动升级。
 
 触发场景审查：①`/迭代优化 登录页` 执行；②“自己评审到满意”为同义调用；③进行中连续指出同类比例问题主动进入；④单问“满意吗”不新建循环，但已有循环继续；⑤“解释该宏”只解释；⑥“只本地，预算两轮”保留范围与预算，必需项未达则报未完成，不发布。宏不增加外部操作授权。上游 payload 校验和 6 项分发测试、项目渐进加载与 ratchet 均通过；AGENTS、顶层／Wiki skill 数和 discovery 字符不增加，未新增检查脚本或 baseline。方法修改可独立回退到上游前版；普通修复不承担额外循环成本。

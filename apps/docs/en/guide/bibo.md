@@ -1,6 +1,6 @@
 # Bibo hosted companion
 
-The mobile welcome screen places the companion, greeting, and email form in one continuous column. Continue and the trial note fit common small screens. The header contracts on the code or password step to leave room for input.
+The mobile welcome screen places the companion, greeting, and email form in one continuous column. Continue and the trial note fit common small screens. The header contracts on the code or password step to leave room for input. The registration/login switch uses a height consistent with the fields, with clear selection feedback on desktop and mobile.
 
 NextClaw manages context budgeting and automatic compaction for long conversations. Bibo no longer blocks normal conversations with the former 128 KiB request cap. Failures distinguish oversized model requests, rate limits, compaction failures, and timeouts; an unsaved turn is never reported as saved. Share the conversation link and approximate failure time with the maintainer, who can investigate server-side historical logs without requiring a live browser session.
 
