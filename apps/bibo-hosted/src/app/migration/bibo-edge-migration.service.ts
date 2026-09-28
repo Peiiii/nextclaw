@@ -20,9 +20,14 @@ function validateExport(source: LegacyExport, uiSessions: readonly UiSession[]):
     const lastUiAssistant = [...session.messages].reverse().find((message) => message.role === "assistant");
     const lastNcpAssistant = [...(record?.messages ?? [])].reverse().find((message) => message.role === "assistant" && message.status === "final");
     const lastNcpText = lastNcpAssistant?.parts.filter((part) => part.type === "text").map((part) => part.text).join("");
-    if (lastUiAssistant && lastNcpText !== lastUiAssistant.text) throw new Error(`Old Bibo session ${session.id} differs from its NCP journal`);
+    if (lastUiAssistant && lastNcpText !== lastUiAssistant.text) {
+      const finalTexts = (record?.messages ?? []).filter((message) => message.role === "assistant" && message.status === "final")
+        .map((message) => message.parts.filter((part) => part.type === "text").map((part) => part.text).join(""));
+      throw new Error(`Old Bibo session ${session.id} differs from its NCP journal (uiChars=${lastUiAssistant.text.length}, ncpChars=${lastNcpText?.length ?? 0}, earlierMatch=${finalTexts.includes(lastUiAssistant.text)}, finalCount=${finalTexts.length})`);
+    }
   }
-  if (source.sessions.some(({ record }) => record?.messages.some((message) => message.status === "pending" || message.status === "streaming"))) {
+  const visibleSessionIds = new Set(uiSessions.map((session) => session.id));
+  if (source.sessions.some(({ sessionId, record }) => visibleSessionIds.has(sessionId) && record?.messages.some((message) => message.status === "pending" || message.status === "streaming"))) {
     throw new Error("An old Bibo session has an unfinished NCP message");
   }
   const fileIds = new Set(source.spaceState.files.filter((file) => file.kind !== "folder").map((file) => file.id));

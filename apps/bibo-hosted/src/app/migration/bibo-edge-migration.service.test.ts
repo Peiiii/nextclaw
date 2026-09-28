@@ -85,3 +85,23 @@ test("long old sessions and many workspace texts migrate and delete within Cloud
     transaction as DurableObjectTransaction, {}, sessions.prepareDelete("long-session", saved)));
   assert.equal(await sessions.load("long-session"), null);
 });
+
+test("orphaned unfinished journals remain intact while visible unfinished sessions stay on legacy", async () => {
+  const at = "2026-09-29T00:00:00.000Z";
+  const source: Parameters<BiboEdgeMigrationService["migrate"]>[0] = {
+    schema: 1, sessions: [{ sessionId: "orphan", record: { sessionId: "orphan", messages: [{
+      id: "unfinished", sessionId: "orphan", role: "assistant", status: "streaming", timestamp: at,
+      parts: [{ type: "text", text: "unfinished reply" }],
+    }], metadata: {}, createdAt: at, updatedAt: at } }],
+    spaceState: { schema: 1, projects: [], tasks: [], events: [], inbox: [], deliveryStatuses: {}, files: [], replays: {} },
+    files: [], workspaceTexts: {}, deliveries: null,
+  };
+  const storage = new MemoryStorage();
+  const migration = new BiboEdgeMigrationService(storage as unknown as DurableObjectStorage);
+  await assert.rejects(migration.migrate(source, [{ id: "orphan", messages: [] }]), /unfinished/);
+  assert.equal(storage.values.has("conversationMode"), false);
+  await migration.migrate(source, []);
+  assert.equal(storage.values.get("conversationMode"), "edge");
+  assert.deepEqual((await new BiboEdgeSessionStore(storage as unknown as DurableObjectStorage).load("orphan"))?.messages,
+    source.sessions[0]?.record?.messages);
+});
