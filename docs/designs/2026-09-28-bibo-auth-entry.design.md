@@ -34,4 +34,10 @@
 
 未登录实际渲染已检查 1440×900、768×800、390×844、320×700、320×568，以及 900×500 矮桌面视口；经典和简约两主题的桌面／手机画面均可读，无页面横向溢出。320×568 注册表单高度 568px、内容 806px，卡片可独立滚动到提交按钮；模拟视口缩至 320×380 时聚焦密码框会将其滚入可见区域。桌面 500px 高时品牌文案完整保留，表单独立滚动。验证码成功使用正常提示色，失败使用错误色并保留邮箱；切到登录清理旧反馈。真实系统软键盘仍需在设备上主观确认。
 
-BB 三份 tsc、Vite 构建、routing 登录回归、product 回归、定向 ESLint、diff-only maintainability 和新增代码治理通过。登录成功后背景恢复可操作；注册期间背景处于 inert。视觉设计待用户查看本地预览并判断品牌气质，此记录不代表已发布线上。
+BB 三份 tsc、Vite 构建、routing 登录回归、product 回归、定向 ESLint、diff-only maintainability 和新增代码治理通过。登录成功后背景恢复可操作；注册期间背景处于 inert。视觉设计仍可由用户在实际页面上判断品牌气质。
+
+## 线上发布与验收
+
+2026-09-28 从干净的远程 `master` 提交 `8baa6e83e94b0b115c0bcb47b3f7fe53dd9583ae` 执行 `pnpm -C apps/bibo-hosted run deploy:client`，只构建并发布客户端与宿主 Worker 静态资产，未构建或 rollout 容器。Worker 版本 `3e4d438e-f20c-4c08-a751-a99618302cb6`，入口为 `https://app.bibo.bot/`。发布前后容器完整元数据一致：镜像 `sha256:b32bcfb2cde302b69944695df41ee5395ee3f27a6d1d6acc36cc1515f55b381a`、version 22、5 实例。
+
+线上入口 JS `index-DILd1CPX.js`、CSS `index-BK8KlexV.css`、KaTeX 产物及 `/help` 与冻结构建逐字节 SHA-256 相同。线上 1440px／390px 的路由、历史、草稿、登录切换、退出后认证与导航回放通过。未经 API mock 的线上首次访问在 1440×844、390×844、320×568 下显示品牌角色和注册表单，背景处于 inert，无页面横向溢出或浏览器脚本错误；320px 矮屏表单可独立滚动。没有使用真实账号提交注册或登录，真实手机软键盘仍未实测。此批发布 `AUTOMATION_INTERVENTIONS: 0`。
