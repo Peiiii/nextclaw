@@ -1,5 +1,7 @@
 # Bibo hosted companion
 
+NextClaw manages context budgeting and automatic compaction for long conversations. Bibo no longer blocks normal conversations with the former 128 KiB request cap. Failures distinguish oversized model requests, rate limits, compaction failures, and timeouts; an unsaved turn is never reported as saved. Share the conversation link and approximate failure time with the maintainer, who can investigate server-side historical logs without requiring a live browser session.
+
 The website, app and help page share a purple Bibo icon in browser tabs, making Bibo easier to find among open pages.
 
 The overview features the website’s purple, wide-eyed companion beside the welcome greeting. The character is decorative: it is not clickable and does not react to summary interactions. A separate summary link below opens your inbox, tasks, or a conversation. The character scales down on phones to leave room for content and actions.

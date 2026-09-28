@@ -10,7 +10,7 @@ const bundle = await build({
   plugins: [{
     name: "cloudflare-boundary",
     setup: (plugin) => {
-      plugin.onResolve({ filter: /^(@cloudflare\/containers|cloudflare:workers|\.\/bibo-auth\.utils)$/ }, (args) => ({ path: args.path, namespace: "mock" }));
+      plugin.onResolve({ filter: /^(@cloudflare\/containers|cloudflare:workers|(?:\.{1,2}\/|@\/app\/)bibo-auth\.utils)$/ }, (args) => ({ path: args.path, namespace: "mock" }));
       plugin.onLoad({ filter: /.*/, namespace: "mock" }, (args) => ({
         contents: args.path === "cloudflare:workers"
           ? "export class DurableObject { constructor(ctx, env) { this.ctx = ctx; this.env = env; } }"
@@ -107,6 +107,53 @@ class PersonalSpaceFixture {
 }
 
 const personalSpace = (initial?: BiboSpaceState, display = false) => new PersonalSpaceFixture(initial, display);
+
+test("streamed model rejection preserves code, rolls back, and correlates terminal diagnostics", async (t) => {
+  const logs: string[] = [];
+  t.mock.method(console, "info", (line: string) => logs.push(line));
+  t.mock.method(console, "error", (line: string) => logs.push(line));
+  const fixture = personalSpace(emptySpace());
+  const original = fixture.env.containerFetch;
+  fixture.env.containerFetch = async (url: string, init?: RequestInit) => {
+    if (new URL(url).pathname !== "/run") return original(url, init);
+    const headers = new Headers(init?.headers);
+    assert.ok(headers.get("x-bibo-run-id"));
+    assert.ok(headers.get("x-bibo-session-id"));
+    return new Response('event: error\ndata: {"code":"MODEL_INPUT_TOO_LARGE","status":413,"error":"private-upstream-message"}\n\n', { headers: { "content-type": "text/event-stream" } });
+  };
+  const response = await fixture.run(true);
+  const text = await response.text();
+  assert.equal(response.status, 200);
+  assert.match(text, /MODEL_INPUT_TOO_LARGE/);
+  assert.ok(!text.includes("private-upstream-message"));
+  assert.equal(fixture.archives.size, 0);
+  assert.equal(fixture.stopped(), 1);
+  const records = logs.map((line) => JSON.parse(line));
+  assert.equal(new Set(records.map((record) => record.runId)).size, 1);
+  assert.ok(records.some((record) => record.event === "run.failed" && record.status === 413 && record.sessionId));
+  assert.ok(records.some((record) => record.event === "run.finished" && record.persisted === false));
+});
+
+test("model gateway forwards context above 128 KiB and records only sizes", async (t) => {
+  const logs: string[] = [];
+  t.mock.method(console, "info", (line: string) => logs.push(line));
+  let forwarded = false;
+  t.mock.method(globalThis, "fetch", async (_url: string, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body));
+    assert.ok(Buffer.byteLength(String(init?.body)) > 128 * 1024);
+    assert.equal(body.messages[0].content.length, 150000);
+    forwarded = true;
+    return Response.json({ choices: [] });
+  });
+  const response = await worker.default.fetch(new Request("https://app.bibo.bot/api/model/v1/chat/completions", {
+    method: "POST", headers: { authorization: "Bearer private-token", "x-bibo-run-id": "run-long", "x-bibo-session-id": "session-long" },
+    body: JSON.stringify({ messages: [{ role: "user", content: "x".repeat(150000) }] }),
+  }), { BIBO_DEEPSEEK_API_KEY: "private-api-key", BIBO_MODEL_BUDGET: { getByName: () => ({ fetch: async () => Response.json({ ok: true }) }) } });
+  assert.equal(response.status, 200);
+  assert.ok(forwarded);
+  assert.ok(logs.every((line) => !line.includes("private-") && !line.includes("xxxxx")));
+  assert.ok(logs.some((line) => JSON.parse(line).requestBytes > 128 * 1024));
+});
 
 test("Worker releases display events only after snapshot commit", async () => {
   const saved = personalSpace(undefined, true);

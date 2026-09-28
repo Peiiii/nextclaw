@@ -1,4 +1,5 @@
 import { readShowContent, type BiboShowContent } from "@nextclaw/bibo-client";
+import { readRunFailure } from "./diagnostics/bibo-diagnostics.utils";
 export type RunResult = { text: string; sessionId: string; displayEvents?: BiboShowContent[] };
 
 export function readRunResult(value: RunResult): RunResult {
@@ -34,7 +35,7 @@ export async function readRunStream(response: Response, onDelta: (text: string) 
         if (event === "show-content") displayEvents.push(readShowContent(payload));
         if (event === "delta" && typeof payload.text === "string") onDelta(payload.text);
         if (event === "result" && typeof payload.text === "string" && typeof payload.sessionId === "string") result = { text: payload.text, sessionId: payload.sessionId };
-        if (event === "error") throw new Error(payload.error ?? "Runner failed");
+        if (event === "error") throw readRunFailure(payload);
       }
       if (done) break;
     }

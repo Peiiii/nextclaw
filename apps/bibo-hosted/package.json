@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "logs": "tsx scripts/diagnostics/bibo-logs.controller.ts",
+    "test:diagnostics": "pnpm build:runner && tsx --test container/bibo-snapshot.test.ts src/app/bibo-hosted.app.test.ts src/app/diagnostics/bibo-diagnostics.utils.test.ts src/app/bibo-run-stream.utils.test.ts",
     "tsc": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit && tsc -p tsconfig.runner.json --noEmit",
     "build:ui-dependencies": "pnpm --filter @nextclaw/shared build && pnpm --filter @nextclaw/agent-chat-ui build",
     "build:client": "pnpm build:ui-dependencies && vite build",
