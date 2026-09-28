@@ -181,11 +181,22 @@ export class BiboEdgeConversationService {
   };
 
   commit = async (sessionId: string, result: BiboEdgeRunResult, metadata: Record<string, unknown>): Promise<void> => {
-    const session = new BiboEdgeSessionStore(this.storage).prepareCommit(sessionId, result.previousSession, result.ncpSession);
-    const entries = { ...metadata, ...session.entries };
-    if (result.spaceState) await this.spaceStore.save(result.spaceState, entries, result.files, session.deletes);
-    else await this.storage.transaction(async (transaction) =>
-      applyBiboStorageChanges(transaction, entries, session.deletes));
-    result.files.rollback();
+    let stage = "prepare-session";
+    try {
+      const session = new BiboEdgeSessionStore(this.storage).prepareCommit(sessionId, result.previousSession, result.ncpSession);
+      const entries = { ...metadata, ...session.entries };
+      stage = result.spaceState ? "save-space" : "save-session";
+      if (result.spaceState) await this.spaceStore.save(result.spaceState, entries, result.files, session.deletes);
+      else await this.storage.transaction(async (transaction) =>
+        applyBiboStorageChanges(transaction, entries, session.deletes));
+      result.files.rollback();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const errorCode = /storage limit|too large|exceeds/i.test(message) ? "STORAGE_SIZE" :
+        /transaction/i.test(message) ? "STORAGE_TRANSACTION" :
+        /duplicate message/i.test(message) ? "DUPLICATE_MESSAGE" : "EDGE_COMMIT_FAILED";
+      logDiagnostic("worker", "edge.commit-failed", { runId: "edge-commit", sessionId, stage, errorCode, ...errorDetails(error) }, "error");
+      throw error;
+    }
   };
 }
