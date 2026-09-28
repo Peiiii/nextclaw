@@ -38,6 +38,7 @@ class BiboSpaceOwner {
   readStatus: Partial<Record<BiboView, "loading" | "ready" | "error">> = {};
   saving = false;
   error = "";
+  fileOpenError: { id: string; message: string } | null = null;
   actionError = "";
   feedback: { message: string; task: BiboTask | null } = { message: "", task: null };
   overview: BiboOverview | null = null;
@@ -92,7 +93,7 @@ class BiboSpaceOwner {
 
   activateView = (view: BiboView): void => {
     if (this.get().view === view) return;
-    this.set({ view, error: "", actionError: "", feedback: { message: "", task: null }, ...(["files", "notes"].includes(view) ? { fileBrowserVisible: true } : {}) });
+    this.set({ view, error: "", fileOpenError: null, actionError: "", feedback: { message: "", task: null }, ...(["files", "notes"].includes(view) ? { fileBrowserVisible: true } : {}) });
     if (view !== "chat" && this.get().accountId) void this.load(view);
   };
 
@@ -125,7 +126,7 @@ class BiboSpaceOwner {
   workspacePreview: boolean | null = null;
   setWorkspacePreview = (workspacePreview: boolean): void => this.set({ workspacePreview });
   openWorkspace = async (id: string, verified?: BiboFileDetail, preview?: boolean): Promise<void> => {
-    this.set((state) => ({ workspaceOpen: true, workspaceFileId: id, workspacePreview: preview ?? (!verified && state.workspaceFileId === id ? state.workspacePreview : null), error: "" }));
+    this.set((state) => ({ workspaceOpen: true, workspaceFileId: id, workspacePreview: preview ?? (!verified && state.workspaceFileId === id ? state.workspacePreview : null), fileOpenError: null }));
     this.saveLayout();
     await this.openFile(id, verified);
   };
@@ -287,7 +288,7 @@ class BiboSpaceOwner {
 
   openFile = async (id: string, verified?: BiboFileDetail): Promise<void> => {
     const request = ++this.fileOpenRequest;
-    this.closedFiles.delete(id);
+    this.closedFiles.delete(id); this.set({ fileOpenError: null });
     const cached = verified ? undefined : this.get().fileDetails[id];
     if (cached) {
       this.set((state) => ({ activeFileId: id, tabs: state.tabs.includes(id) ? state.tabs : [...state.tabs, id] }));
@@ -301,11 +302,10 @@ class BiboSpaceOwner {
       this.set((state) => openedFileState(state, detail, ancestors.items, request === this.fileOpenRequest));
       if (request === this.fileOpenRequest) this.revealFile(id);
     } catch (error) {
-      if (error instanceof BiboClientError && error.status === 404 && this.get().workspaceFileId !== id && this.get().tabs.includes(id) && !this.get().fileDrafts[id]) this.closeFile(id);
-      if (request === this.fileOpenRequest) this.set({ error: message(error) });
+      if (error instanceof BiboClientError && error.status === 404 && this.get().tabs.includes(id) && !this.get().fileDrafts[id]) { this.closeFile(id); return; }
+      if (request === this.fileOpenRequest) this.set({ fileOpenError: { id, message: message(error) } });
     }
   };
-
   closeFile = (id: string, discard = false): void => {
     const draft = this.get().fileDrafts[id];
     if (draft?.saving || (draft?.dirty && !discard)) return;
