@@ -34,7 +34,8 @@ const profile = { contextTokens: 200_000, reservedContextTokens: 10_000 };
 
 function finalizeRun(manager: DefaultNcpAgentConversationStateManager,
   saved: BiboEdgeSession | null, events: readonly NcpEndpointEvent[], spaceState: BiboSpaceState | undefined,
-  spaceChanged: boolean, files: BiboSpaceFileStore, displayEvents: BiboShowContent[]): BiboEdgeRunResult {
+  spaceChanged: boolean, files: BiboSpaceFileStore, displayEvents: BiboShowContent[],
+  tools: readonly NcpTool[], runId: string, sessionId: string): BiboEdgeRunResult {
   const messages = manager.getSnapshot().messages;
   const assistant = [...messages].reverse().find((message) => message.role === "assistant" && message.status === "final");
   const text = assistant?.parts.filter((part) => part.type === "text").map((part) => part.text).join("") ?? "";
@@ -47,6 +48,7 @@ function finalizeRun(manager: DefaultNcpAgentConversationStateManager,
   }
   const checkpoint = readLatestContextCompactionCheckpoint(messages);
   if (checkpoint) metadata[CONTEXT_COMPACTION_METADATA_KEY] = checkpoint;
+  logDiagnostic("worker", "edge.tool-summary", { runId, sessionId, ...summarizeToolCalls(events, tools) });
   return { text, previousSession: saved, ncpSession: { version: 1, messages: [...messages], metadata },
     spaceState: spaceChanged ? spaceState : undefined, files, events, displayEvents,
     questions: projectUserQuestions(messages) as BiboQuestion[] };
@@ -63,8 +65,9 @@ function createInputMessage(sessionId: string, message: string, saved: BiboEdgeS
     timestamp: new Date().toISOString(), parts: [{ type: "text", text: message }] };
 }
 
-function reportEdgeRunError(events: readonly NcpEndpointEvent[], tools: readonly NcpTool[], runId: string,
-  sessionId: string, reason: unknown): void {
+function summarizeToolCalls(events: readonly NcpEndpointEvent[], tools: readonly NcpTool[]): {
+  toolCount: number; toolSummary: string;
+} {
   const counts = new Map<string, number>();
   const knownTools = new Set(tools.map((tool) => tool.name));
   for (const event of events) {
@@ -72,14 +75,19 @@ function reportEdgeRunError(events: readonly NcpEndpointEvent[], tools: readonly
     const name = knownTools.has(event.payload.toolName) ? event.payload.toolName : "unknown";
     counts.set(name, (counts.get(name) ?? 0) + 1);
   }
+  return { toolCount: [...counts.values()].reduce((total, count) => total + count, 0),
+    toolSummary: [...counts].map(([name, count]) => `${name}:${count}`).join(",") };
+}
+
+function reportEdgeRunError(events: readonly NcpEndpointEvent[], tools: readonly NcpTool[], runId: string,
+  sessionId: string, reason: unknown): void {
   const message = reason instanceof Error ? reason.message : String(reason);
   const details = errorDetails(reason);
   const errorType = /Tool call limit reached/.test(message) ? "ToolCallLimit" :
     /Assistant step completed without/.test(message) ? "AssistantStepMissing" :
     /not available in this run/.test(message) ? "ToolUnavailable" : details.errorType ?? "NcpRunError";
   logDiagnostic("worker", "edge.agent-error", { runId, sessionId, errorType, errorLocation: details.errorLocation,
-    toolCount: [...counts.values()].reduce((total, count) => total + count, 0),
-    toolSummary: [...counts].map(([name, count]) => `${name}:${count}`).join(",") }, "error");
+    ...summarizeToolCalls(events, tools) }, "error");
 }
 
 /** Host adapter around the same NCP loop, model input and compaction used by the Node Kernel. */
@@ -163,7 +171,8 @@ export class BiboEdgeConversationService {
       const runError = events.find((event) => event.type === NcpEventType.RunError);
       if (runError) reportEdgeRunError(events, tools, input.runId, input.sessionId, runError.payload.error ?? "");
       if (input.signal?.aborted || runError) throw runFailure(runError?.payload.error, input.signal?.aborted);
-      return finalizeRun(manager, saved, events, spaceState, spaceChanged, files, displayEvents);
+      return finalizeRun(manager, saved, events, spaceState, spaceChanged, files, displayEvents, tools,
+        input.runId, input.sessionId);
     } catch (error) {
       reportEdgeRunError(events, tools, input.runId, input.sessionId, error);
       files.rollback();
