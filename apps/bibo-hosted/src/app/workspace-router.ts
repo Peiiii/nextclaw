@@ -40,6 +40,10 @@ export function navigateWorkspace(view: BiboView): void {
   if (target !== `${router.state.location.pathname}${router.state.location.search}`) void router.navigate(target);
 }
 
+export function navigateResource(href: string): void {
+  if (href !== `${router.state.location.pathname}${router.state.location.search}`) void router.navigate(href);
+}
+
 export function navigateConversation(sessionId: string | null, replace = false): void {
   const target = workspaceHref("chat", sessionId);
   if (target !== `${router.state.location.pathname}${router.state.location.search}`) void router.navigate(target, { replace });

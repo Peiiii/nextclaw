@@ -1,6 +1,6 @@
 import { parseSystemObjectReferenceUri } from "@nextclaw/shared";
 import { BiboClient } from "@nextclaw/bibo-client";
-import { navigateConversation, navigateWorkspace } from "@/app/workspace-router";
+import { navigateConversation, navigateResource, navigateWorkspace } from "@/app/workspace-router";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 
 class WorkspaceResourceManager {
@@ -20,25 +20,35 @@ class WorkspaceResourceManager {
       } catch { return uri; }
       return uri;
     }
+    if (/^file:/i.test(uri)) {
+      try {
+        const url = new URL(uri);
+        if (url.protocol !== "file:" || url.hostname && url.hostname.toLowerCase() !== "localhost") return null;
+        return this.pathHref(decodeURIComponent(url.pathname));
+      } catch { return null; }
+    }
     if (/^\/(files|tasks|calendar|inbox|chat)\/[^/]+$/.test(uri)) return uri;
-    if (!uri.includes(":") && !uri.startsWith("//") && /\.[a-z0-9]+(?:#.*)?$/i.test(uri)) return this.pathHref(uri.replace(/^\.\//, "").replace(/^\/workspace\//, ""));
-    return null;
+    if (/^[a-z][a-z\d+.-]*:/i.test(uri) || uri.startsWith("//")) return null;
+    try {
+      const path = decodeURIComponent(uri.split(/[?#]/, 1)[0] ?? "").replace(/^\.\//, "").replace(/^\/workspace\//, "");
+      return this.pathHref(path);
+    } catch { return null; }
   };
 
   private pathHref = (path: string): string | null => {
-    if (!path || path.startsWith("/") || path.includes("\\") || path.split("/").some((part) => !part || part === "." || part === "..")) return null;
+    if (!path || path.startsWith("//") || path.includes("\\") || path.split("/").some((part, index) => !part && index !== 0 || part === "." || part === "..")) return null;
     return `/files/path/${encodeURIComponent(path)}`;
   };
 
   private openFile = async (href: string, view: string, current: () => boolean, preview?: boolean): Promise<void> => {
     if (view === "chat") useBiboSpaceStore.setState({ workspaceOpen: true, workspaceResolving: true, error: "" });
+    if (view !== "chat" && view !== "files" && view !== "notes") { navigateResource(href); return; }
     const path = /^\/files\/path\/(.+)$/.exec(href);
     const file = await this.client.readFile(path ? { path: decodeURIComponent(path[1]!) } : { id: decodeURIComponent(href.slice(7)) });
     if (!current() || view === "chat" && !useBiboSpaceStore.getState().workspaceOpen) return;
     if (file.kind === "folder") throw new Error("此引用指向目录，请在文件模块查看。");
     const state = useBiboSpaceStore.getState();
     if (state.view === "chat") return state.openWorkspace(file.id, file, preview);
-    if (state.view !== "files" && state.view !== "notes") navigateWorkspace("files");
     await state.openFile(file.id, file);
   };
 

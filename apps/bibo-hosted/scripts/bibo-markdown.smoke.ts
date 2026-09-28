@@ -103,10 +103,18 @@ try {
         const first = paragraphs[0]!.getBoundingClientRect();
         const second = paragraphs[1]!.getBoundingClientRect();
         const table = reader.querySelector(".chat-table-wrap")!;
-        const blocks = Array.from(reader.querySelector(".chat-markdown")!.children);
+        const markdown = reader.querySelector(".chat-markdown")!;
+        const blocks = Array.from(markdown.children);
         const code = reader.querySelector(".ui-code-block pre")!;
         return {
           whiteSpace: getComputedStyle(reader).whiteSpace,
+          typography: {
+            body: getComputedStyle(markdown).fontSize,
+            lineHeight: parseFloat(getComputedStyle(markdown).lineHeight),
+            h1: getComputedStyle(reader.querySelector("h1")!).fontSize,
+            h2: getComputedStyle(reader.querySelector("h2")!).fontSize,
+            h3: getComputedStyle(reader.querySelector("h3")!).fontSize,
+          },
           paragraphGap: second.top - first.bottom,
           pageWidth: document.documentElement.scrollWidth,
           viewport: innerWidth,
@@ -117,7 +125,8 @@ try {
         };
       });
       assert.equal(geometry.whiteSpace, "normal");
-      assert.ok(geometry.markers.filter((item) => !item.task).every((item) => item.style !== "none"), "ordinary list items retain markers");
+      assert.deepEqual(geometry.typography, { body: "14.8px", lineHeight: 25.456, h1: "19.52px", h2: "17.92px", h3: "16.32px" });
+      assert.ok(geometry.markers.filter((item) => !item.task).every((item) => item.style !== "none"), `ordinary list items retain markers: ${JSON.stringify(geometry.markers)}`);
       assert.ok(geometry.markers.filter((item) => item.task).every((item) => item.style === "none"), "task items show checkboxes without duplicate bullets");
       assert.ok(geometry.paragraphGap >= 0 && geometry.paragraphGap <= 16, `paragraph gap: ${geometry.paragraphGap}`);
       assert.ok(geometry.pageWidth <= geometry.viewport + 1, `page overflow at ${width}px`);

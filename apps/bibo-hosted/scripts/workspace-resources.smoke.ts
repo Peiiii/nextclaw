@@ -6,13 +6,14 @@ import { mockApi } from "./personal-workspace.fixture";
 
 const base = process.env.RESOURCE_SMOKE_ORIGIN ?? "http://127.0.0.1:5394";
 const server = process.env.RESOURCE_SMOKE_ORIGIN ? null : spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5394", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
-const reply = "[产物](nextclaw://objects/file/artifact-a) · [笔记](nextclaw://objects/file/file-a) · [路径引用](nextclaw://file/workspace/report.html) · [外部网站](https://example.com) · [未知资源](nextclaw://unknown/example) · [失效文件](nextclaw://objects/file/deleted) · [任务引用](nextclaw://objects/task/task-a) · [日程引用](nextclaw://objects/event/event-a) · [送达引用](nextclaw://objects/inbox-delivery/outside-inbox) · [危险](javascript:alert(1))";
+const reply = "[产物](nextclaw://objects/file/artifact-a) · [笔记](nextclaw://objects/file/file-a) · [路径引用](nextclaw://file/workspace/report.html) · [搭档启动卡.md](/data/workspace/搭档启动卡.md) · [相对文件](./搭档启动卡.md) · [本机文件 URI](file:///data/workspace/%E6%90%AD%E6%A1%A3%E5%90%AF%E5%8A%A8%E5%8D%A1.md) · [远端文件 URI](file://remote.example/share.md) · [越界文件](/etc/hosts) · [外部网站](https://example.com) · [未知资源](nextclaw://unknown/example) · [失效文件](nextclaw://objects/file/deleted) · [任务引用](nextclaw://objects/task/task-a) · [日程引用](nextclaw://objects/event/event-a) · [送达引用](nextclaw://objects/inbox-delivery/outside-inbox) · [危险](javascript:alert(1))";
 let artifact = { id: "artifact-a", path: "report.html", kind: "artifact", uri: "nextclaw://objects/file/artifact-a", content: "<h1>成果预览</h1><p>图表方案</p>", version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+const starter = { id: "starter", path: "搭档启动卡.md", kind: "artifact", uri: "nextclaw://objects/file/starter", content: "# 搭档启动卡\n\n这是一份已保存的文档。[文内同一文件](./搭档启动卡.md)", version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
 
 async function fixtures(page: Page) {
-  let delivery = { id: "outside-inbox", kind: "decision", title: "列表以外的送达", body: "来自资源引用", source: { kind: "bibo" }, version: 1, readAt: null as string | null, resolvedAt: null as string | null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  let delivery = { id: "outside-inbox", kind: "decision", title: "列表以外的送达", body: "来自资源引用：[收件箱里的启动卡](/data/workspace/搭档启动卡.md)", source: { kind: "bibo" }, version: 1, readAt: null as string | null, resolvedAt: null as string | null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
   await mockApi(page);
-  await page.route("**/api/history*", (route) => route.fulfill({ json: { messages: [{ role: "assistant", text: reply, at: new Date().toISOString() }] } }));
+  await page.route("**/api/history*", (route) => route.fulfill({ json: { messages: [{ role: "user", text: "我的文件：[我的启动卡](/data/workspace/搭档启动卡.md)", at: new Date().toISOString() }, { role: "assistant", text: reply, at: new Date().toISOString() }] } }));
   await page.route("**/api/space", async (route) => {
     const body = route.request().postDataJSON();
     if (body.action === "inbox.get" && body.input.id === delivery.id) return route.fulfill({ json: { result: delivery } });
@@ -22,6 +23,8 @@ async function fixtures(page: Page) {
       return route.fulfill({ json: { result: delivery } });
     }
     if (body.action === "file.get" && (body.input.id === "artifact-a" || body.input.path === artifact.path)) return route.fulfill({ json: { result: artifact } });
+    if (body.action === "file.get" && [starter.path, "/data/workspace/搭档启动卡.md"].includes(body.input.path)) return route.fulfill({ json: { result: starter } });
+    if (body.action === "file.get" && body.input.path === "/etc/hosts") return route.fulfill({ status: 400, json: { error: "文件路径不正确。" } });
     if (body.action === "file.get" && body.input.id === "deleted") return route.fulfill({ status: 404, json: { error: "文件不存在。" } });
     if (body.action === "file.list" && body.input.query === "report.html") return route.fulfill({ json: { result: { items: [artifact], nextCursor: null } } });
     if (body.action === "file.update" && body.input.id === "artifact-a") {
@@ -69,6 +72,35 @@ async function verifyFailures(page: Page, workspace: Locator) {
   await page.getByRole("button", { name: "关闭工作区" }).click();
   await page.getByRole("link", { name: "路径引用", exact: true }).click();
   await workspace.frameLocator("iframe").getByRole("heading", { name: "保存后的产物" }).waitFor();
+}
+
+async function verifyMarkdownFileLinks(page: Page, workspace: Locator): Promise<void> {
+  const close = page.getByRole("button", { name: "关闭工作区" });
+  if (await close.count()) await close.click();
+  const absolute = page.getByRole("link", { name: "搭档启动卡.md", exact: true });
+  assert.equal(await absolute.getAttribute("href"), `/files/path/${encodeURIComponent("/data/workspace/搭档启动卡.md")}`);
+  assert.equal(await absolute.evaluate((node) => getComputedStyle(node).textDecorationLine), "underline");
+  for (const name of ["搭档启动卡.md", "相对文件", "本机文件 URI"]) {
+    await page.getByRole("link", { name, exact: true }).click();
+    await workspace.getByRole("heading", { name: "搭档启动卡", exact: true }).waitFor();
+    if (name === "搭档启动卡.md") {
+      await workspace.getByRole("link", { name: "文内同一文件", exact: true }).click();
+      await workspace.getByRole("heading", { name: "搭档启动卡", exact: true }).waitFor();
+    }
+    await page.getByRole("button", { name: "关闭工作区" }).click();
+  }
+  await page.getByRole("link", { name: "我的启动卡", exact: true }).click();
+  await workspace.getByRole("heading", { name: "搭档启动卡", exact: true }).waitFor();
+  await page.getByRole("button", { name: "关闭工作区" }).click();
+  const remote = page.getByRole("link", { name: "远端文件 URI", exact: true });
+  assert.equal(await remote.getAttribute("aria-disabled"), "true");
+  await page.getByRole("link", { name: "越界文件", exact: true }).click();
+  await workspace.getByText("文件路径不正确。", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "关闭工作区" }).click();
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("link", { name: "搭档启动卡.md", exact: true }).click();
+  await workspace.getByRole("heading", { name: "搭档启动卡", exact: true }).waitFor();
+  await page.getByRole("button", { name: "关闭工作区" }).click();
 }
 
 async function verifyConcurrency(page: Page, workspace: Locator, link: Locator) {
@@ -123,8 +155,28 @@ async function verifyModules(page: Page) {
       await page.getByRole("button", { name: "标记已读", exact: true }).waitFor({ state: "hidden" });
       await page.getByRole("button", { name: "已处理", exact: true }).click();
       await page.getByText(/^已处理 ·/).waitFor();
+      await page.getByRole("link", { name: "收件箱里的启动卡", exact: true }).click();
+      await page.waitForURL("**/files/path/**");
+      await page.getByRole("tab", { name: "搭档启动卡.md", exact: true }).waitFor();
     } else await page.getByRole("textbox", { name: path === "/tasks" ? "任务名称" : "标题", exact: true }).waitFor();
   }
+}
+
+async function verifyNeutralMarkdown(page: Page, width: number): Promise<void> {
+  await page.evaluate(() => localStorage.setItem("bibo-ui-theme", "neutral"));
+  await page.goto(`${base}/chat/session-a`, { waitUntil: "networkidle" });
+  const link = page.getByRole("link", { name: "我的启动卡", exact: true });
+  await link.waitFor();
+  const colors = await link.evaluate((node) => ({ ink: getComputedStyle(node).color, surface: getComputedStyle(node.closest(".ui-message__body")!).backgroundColor }));
+  const luminance = (rgb: string) => rgb.match(/\d+/g)!.slice(0, 3).map(Number).map((channel) => {
+    const value = channel / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  }).reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index]!, 0);
+  const ink = luminance(colors.ink);
+  const surface = luminance(colors.surface);
+  const contrast = (Math.max(ink, surface) + 0.05) / (Math.min(ink, surface) + 0.05);
+  assert.ok(contrast >= 4.5, `neutral theme user link contrast: ${contrast}`);
+  await page.screenshot({ path: `/tmp/bibo-markdown-neutral-${width}.png` });
 }
 
 async function verifyWidth(browser: Browser, width: number) {
@@ -151,10 +203,12 @@ async function verifyWidth(browser: Browser, width: number) {
   assert.equal(new URL(page.url()).pathname, "/chat/session-a", "opening a resource retains the conversation");
   await page.screenshot({ path: `/tmp/workspace-resource-${width}.png` });
   await verifyEdits(page, workspace, link);
+  await verifyMarkdownFileLinks(page, workspace);
   await verifyFailures(page, workspace);
   if (width === 1440) await verifyConcurrency(page, workspace, link);
   await verifyStandalone(page);
   await verifyModules(page);
+  await verifyNeutralMarkdown(page, width);
   assert.deepEqual(errors, []);
   await page.close();
   console.log("workspace resources verified", width);

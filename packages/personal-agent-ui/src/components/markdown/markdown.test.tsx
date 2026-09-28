@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Markdown } from "./markdown";
+import { Message } from "../message";
 
 describe("shared Markdown renderer", () => {
   it("renders GFM, math, and a usable code block in one document", () => {
@@ -34,5 +35,16 @@ describe("shared Markdown renderer", () => {
     const html = renderToStaticMarkup(<Markdown text={'```unknown\n<a href="evil">\n```'} />);
     expect(html).toContain("unknown");
     expect(html).toContain("&lt;a href=&quot;evil&quot;&gt;");
+  });
+
+  it("renders user message file links through the same safe Markdown host", () => {
+    const text = "[搭档启动卡.md](/data/workspace/搭档启动卡.md) [危险](javascript:alert(1))";
+    const html = renderToStaticMarkup(<Message role="user" text={text} label="你" resolveResourceHref={(uri) =>
+      decodeURIComponent(uri) === "/data/workspace/搭档启动卡.md" ? "/files/path/starter" : null
+    } />);
+    expect(html).toContain('href="/files/path/starter"');
+    expect(html).toContain("搭档启动卡.md");
+    expect(html).not.toContain("href=\"javascript:");
+    expect(html).toContain('aria-disabled="true"');
   });
 });
