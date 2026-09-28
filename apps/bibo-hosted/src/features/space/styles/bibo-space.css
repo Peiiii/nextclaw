@@ -244,7 +244,7 @@
 .bibo-agenda-items .bibo-agenda-event.is-selected:hover { @apply [background:var(--ui-selection-hover)]; }
 .bibo-agenda-time { @apply block [color:var(--ui-muted)] text-base font-normal whitespace-nowrap; }
 .bibo-agenda-event strong { @apply block mt-1 [overflow-wrap:anywhere] [font-size:16px] font-semibold [line-height:1.45]; }
-.bibo-agenda-event small { @apply block mt-1 [color:var(--ui-muted)] text-base font-normal [line-height:1.5] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] whitespace-normal [overflow-wrap:anywhere] overflow-hidden; }
+.bibo-agenda-event small { @apply mt-1 [color:var(--ui-muted)] text-base font-normal [line-height:1.5] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] whitespace-normal [overflow-wrap:anywhere] overflow-hidden; }
 .bibo-agenda-empty { @apply flex flex-col items-start gap-2 [padding:32px_0_25px]; }
 .bibo-agenda-empty strong { @apply text-lg leading-7 font-semibold; }
 .bibo-agenda-empty span { @apply [color:var(--ui-muted)] text-base; }
