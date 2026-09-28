@@ -66,6 +66,8 @@ export type {
   NextclawSessionRunInput,
   NextclawTaskInput,
   NextclawTaskResult,
+  NextclawUserQuestion,
+  NextclawUserQuestionReply,
   ProviderCatalogPlugin,
   ProviderSpec,
 } from "./types/nextclaw-harness.types.js";

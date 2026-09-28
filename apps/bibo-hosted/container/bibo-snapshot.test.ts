@@ -133,7 +133,9 @@ test("runner configures authenticated search and updates only built-in identitie
   const loader = join(temporary, "harness-loader.mjs");
   const fixture = `export class Contribution {}; export const eventKeys = { uiShowContent: "ui.show-content" };
     export class NextclawHarness {
+      constructor(options) { if (!options.allowedToolNames.includes('request_user_input_async')) throw new Error('Question tool is unavailable'); }
       contributions = { register() {} }; async start() {} async dispose() {}
+      async listUserQuestions() { return []; }
       async runTask(input) {
         if (input.input === 'failure') throw new Error('Chat Completions API failed (413): private-upstream-content');
         input.onEvent?.({ type: 'message.sent', payload: { message: { metadata: {

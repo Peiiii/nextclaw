@@ -8,7 +8,7 @@ import { randomUUID } from "node:crypto";
 import { pipeline } from "node:stream/promises";
 import type { Readable } from "node:stream";
 import { backup, DatabaseSync } from "node:sqlite";
-import { NextclawHarness } from "@nextclaw/harness";
+import { NextclawHarness, type NcpEndpointEvent, type NextclawTaskInput, type NextclawUserQuestion } from "@nextclaw/harness";
 import { BiboSpaceError, BiboSpaceService } from "@/features/bibo-domain";
 import { BiboSpaceContribution } from "./bibo-space.contribution";
 import { BiboRunError, errorDetails, logDiagnostic, readTrace, runFailure, traceHeaders, type RunTrace } from "./diagnostics/bibo-diagnostics.utils";
@@ -28,7 +28,7 @@ type RunnerConfig = {
   providers?: Record<string, Record<string, unknown>>;
   search?: Record<string, unknown>;
 };
-type RunBody = { message?: unknown; token?: unknown; sessionId?: unknown; searchEnabled?: unknown };
+type RunBody = { message?: unknown; token?: unknown; sessionId?: unknown; searchEnabled?: unknown; questionId?: unknown; questionAction?: unknown };
 
 function sendJson(response: ServerResponse, status: number, value: unknown): void {
   response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-runtime-id": runtimeId });
@@ -120,9 +120,33 @@ async function sendSnapshot(response: ServerResponse): Promise<void> {
   }
 }
 
+async function executeHarnessRun(input: { message: string; sessionId: string; questionId?: string; questionAction?: "answer" | "dismiss" },
+  signal: AbortSignal, callbacks: Pick<NextclawTaskInput, "onEvent" | "onAssistantDelta">): Promise<{ text: string; questions: NextclawUserQuestion[]; displayEvents: BiboSpaceContribution["displayEvents"] }> {
+  const harness = new NextclawHarness({
+      homeDir: home,
+      allowedToolNames: ["bibo", "show_file", "web_search", "web_fetch", "tool_schema", "request_user_input_async"],
+      contextProfile: "embedded",
+      sessionSearchEnabled: false,
+      sessionTitleEnabled: false,
+  });
+  const contribution = new BiboSpaceContribution(space, input.sessionId);
+  harness.contributions.register(contribution);
+  try {
+    await harness.start();
+    const result = input.questionId
+      ? await harness.answerUserQuestion({ sessionId: input.sessionId, questionId: input.questionId,
+          action: input.questionAction!, ...(input.questionAction === "answer" ? { answer: input.message.trim() } : {}), signal, ...callbacks })
+      : await harness.runTask({ input: input.message.trim(), sessionId: input.sessionId, signal, ...callbacks });
+    if (!result.text) throw new BiboRunError("QUESTION_ALREADY_RESOLVED", 409, "这个问题已经处理，请刷新会话。");
+    return { text: result.text, questions: await harness.listUserQuestions(input.sessionId), displayEvents: contribution.displayEvents };
+  } finally { await harness.dispose(); }
+}
+
 async function sendRun(request: IncomingMessage, response: ServerResponse, requestTrace: RunTrace): Promise<void> {
   const body = await readJson<RunBody>(request);
-  if (typeof body.message !== "string" || !body.message.trim() || body.message.length > 4000 || typeof body.token !== "string" || body.token.length > 4096) {
+  const questionReply = body.questionId !== undefined;
+  if (typeof body.message !== "string" || !body.message.trim() || body.message.length > 4000 || typeof body.token !== "string" || body.token.length > 4096 ||
+    (questionReply && (typeof body.questionId !== "string" || !body.questionId || !["answer", "dismiss"].includes(String(body.questionAction))))) {
     return sendJson(response, 400, { error: "Invalid request" });
   }
   const sessionId = typeof body.sessionId === "string" && body.sessionId ? body.sessionId : crypto.randomUUID();
@@ -136,21 +160,8 @@ async function sendRun(request: IncomingMessage, response: ServerResponse, reque
   response.on("close", onClose);
   try {
     if (streaming) response.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" });
-    const harness = new NextclawHarness({
-      homeDir: home,
-      allowedToolNames: ["bibo", "show_file", "web_search", "web_fetch", "tool_schema"],
-      contextProfile: "embedded",
-      sessionSearchEnabled: false,
-      sessionTitleEnabled: false,
-    });
-    const contribution = new BiboSpaceContribution(space, sessionId);
-    harness.contributions.register(contribution);
-    let result;
-    try {
-      await harness.start();
-      result = await harness.runTask({
-        input: body.message.trim(), sessionId, signal: controller.signal,
-        onEvent: (event) => {
+    const callbacks = {
+        onEvent: (event: NcpEndpointEvent) => {
           if (event.type !== "message.sent") return;
           const message = (event.payload as { message?: { metadata?: Record<string, unknown> } }).message;
           if (message?.metadata?.nextclaw_timeline_kind !== "context_compaction") return;
@@ -160,10 +171,11 @@ async function sendRun(request: IncomingMessage, response: ServerResponse, reque
         ...(streaming ? { onAssistantDelta: (delta: string) => {
           if (!response.destroyed && delta) response.write(`event: delta\ndata: ${JSON.stringify({ text: delta })}\n\n`);
         } } : {}),
-      });
-    } finally { await harness.dispose(); }
+    };
+    const { text, questions, displayEvents } = await executeHarnessRun({ message: body.message, sessionId,
+      ...(questionReply ? { questionId: body.questionId as string, questionAction: body.questionAction as "answer" | "dismiss" } : {}) }, controller.signal, callbacks);
     logDiagnostic("container", "run.generated", { ...trace, runtimeId });
-    sendRunResult(response, result, contribution.displayEvents, Boolean(streaming));
+    sendRunResult(response, { text, sessionId }, questions, displayEvents, Boolean(streaming));
   } catch (error) {
     const failure = runFailure(controller.signal.aborted ? controller.signal.reason : error, controller.signal.aborted);
     logDiagnostic("container", "run.failed", { ...trace, ...errorDetails(error), errorCode: failure.code }, "error");
@@ -174,13 +186,13 @@ async function sendRun(request: IncomingMessage, response: ServerResponse, reque
   }
 }
 
-function sendRunResult(response: ServerResponse, result: { text: string; sessionId: string }, displayEvents: BiboSpaceContribution["displayEvents"], streaming: boolean): void {
+function sendRunResult(response: ServerResponse, result: { text: string; sessionId: string }, questions: NextclawUserQuestion[], displayEvents: BiboSpaceContribution["displayEvents"], streaming: boolean): void {
   if (streaming) {
     for (const event of displayEvents) response.write(`event: show-content\ndata: ${JSON.stringify(event)}\n\n`);
-    response.end(`event: result\ndata: ${JSON.stringify({ text: result.text, sessionId: result.sessionId })}\n\n`);
+    response.end(`event: result\ndata: ${JSON.stringify({ text: result.text, sessionId: result.sessionId, questions })}\n\n`);
     return;
   }
-  return sendJson(response, 200, { text: result.text, sessionId: result.sessionId, displayEvents });
+  return sendJson(response, 200, { text: result.text, sessionId: result.sessionId, questions, displayEvents });
 }
 
 async function importSpaceState(request: IncomingMessage, response: ServerResponse): Promise<void> {

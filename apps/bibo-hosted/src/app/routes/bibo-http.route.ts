@@ -41,7 +41,7 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
     method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
   });
   if (path === "/api/chat" && request.method === "POST") {
-    const body = await request.json() as { message?: unknown; sessionId?: unknown };
+    const body = await request.json() as { message?: unknown; sessionId?: unknown; questionId?: unknown; questionAction?: unknown };
     const trace: RunTrace = { runId: crypto.randomUUID(), ...(typeof body.sessionId === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(body.sessionId) ? { sessionId: body.sessionId } : {}) };
     if (typeof body.message === "string" && body.message.trim()) {
       const unavailable = await checkChatAvailability(env, user.id);
@@ -50,7 +50,7 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
     return await container.fetch("https://bibo.internal/run", {
       method: "POST",
       headers: { "content-type": "application/json", ...traceHeaders(trace), ...(request.headers.get("accept")?.includes("text/event-stream") ? { accept: "text/event-stream" } : {}) },
-      body: JSON.stringify({ message: body.message, sessionId: body.sessionId, token }),
+      body: JSON.stringify({ message: body.message, sessionId: body.sessionId, questionId: body.questionId, questionAction: body.questionAction, token }),
     });
   }
   return publicError("Not found", 404);

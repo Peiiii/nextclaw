@@ -36,7 +36,8 @@ const headers = { cookie };
 const requestId = `bibo-live-${crypto.randomUUID().slice(0, 8)}`;
 const artifactPath = `${requestId}.md`;
 const artifactContent = `# ${requestId}\n\n真实 Agent 文件验收。`;
-const prompt = `请调用 bibo 工具执行 file.create，input 严格使用这个 JSON：${JSON.stringify({ path: artifactPath, kind: "artifact", content: artifactContent })}。content 必须与 JSON 字符串逐字一致，不添加末尾换行。创建后调用 show_file，path 使用返回的文件路径，viewer=rendered，在右侧预览该文件。不要用 shell 或直接修改 JSON。成功后用一句话回复“${requestId} 已收到”，不要创建其他对象。`;
+  const prompt = `请调用 bibo 工具执行 file.create，input 严格使用这个 JSON：${JSON.stringify({ path: artifactPath, kind: "artifact", content: artifactContent })}。content 必须与 JSON 字符串逐字一致，不添加末尾换行。创建后调用 show_file，path 使用返回的文件路径，viewer=rendered，在右侧预览该文件。不要用 shell 或直接修改 JSON。成功后用一句话回复“${requestId} 已收到”，不要创建其他对象。`;
+const questionPrompt = "请立即调用 request_user_input_async 工具问我‘报告装订方式？’，选项为‘订书钉’和‘胶装’，推荐‘胶装’，并给‘胶装’加上‘适合正式交付’的简短解释。工具保存问题后用一句话说明你会等待我的选择；不要替我选择。";
 const abort = new AbortController();
 const timeout = setTimeout(() => abort.abort(), 300_000);
 let createdSessionId: string | undefined;
@@ -266,6 +267,27 @@ try {
       assert.ok(editorText.includes(requestId) && editorText.includes("真实 Agent 文件验收。"),
         "The Files UI must read the same Agent-created object");
     }
+  await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
+  await streamedRun(page, questionPrompt);
+  const questioned = await json<{ messages: Array<{ role: string; text: string; questions?: Array<{ id: string; title: string; status: string; recommendedOption?: string; optionDescriptions?: Record<string, string> }>; replyToQuestion?: { id: string; title: string; action: string } }> }>(historyPath);
+  const asked = questioned.messages.at(-1)?.questions?.find((item) => item.title === "报告装订方式？");
+  assert.ok(asked, "The model did not use the async user question tool");
+  assert.equal(asked.status, "pending");
+  assert.equal(asked.recommendedOption, "胶装");
+  assert.equal(asked.optionDescriptions?.["胶装"], "适合正式交付");
+  const panel = page.getByRole("region", { name: "问题" });
+  await panel.getByRole("heading", { name: "报告装订方式？" }).waitFor();
+  await panel.getByRole("button", { name: "关闭问题" }).click();
+  await page.getByRole("button", { name: "回答问题：报告装订方式？" }).click();
+  await panel.getByRole("button", { name: /胶装/ }).first().click();
+  await page.locator(".bibo-question-reference").filter({ hasText: "报告装订方式？" }).waitFor({ timeout: 300_000 });
+  const answered = await json<typeof questioned>(historyPath);
+  assert.equal(answered.messages.at(-2)?.replyToQuestion?.id, asked.id, "Answer must retain its question reference");
+  assert.equal(answered.messages.at(-2)?.text, "胶装");
+  assert.equal(answered.messages.at(-2)?.replyToQuestion?.action, "answered");
+  assert.equal(answered.messages.find((item) => item.questions?.some((question) => question.id === asked.id))?.questions?.find((question) => question.id === asked.id)?.status, "answered");
+  await page.reload({ waitUntil: "networkidle" });
+  await page.locator(".bibo-question-reference").filter({ hasText: "报告装订方式？" }).waitFor();
   console.log(JSON.stringify({ ok: true, requestId, modelStream, search, searchStream, ...stream, saved: true, agentFile: true, automaticPreview: true, desktop: true, mobile: true }));
 } catch (error) {
   for (const context of browser.contexts()) {

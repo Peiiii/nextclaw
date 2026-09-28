@@ -10,6 +10,7 @@ import { SessionManager } from "@kernel/managers/session.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { UserQuestionManager, type UserQuestionError } from "@kernel/managers/user-question.manager.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
+import type { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
 
 const tempDirs: string[] = [];
 afterEach(() => {
@@ -119,6 +120,21 @@ describe("UserQuestionManager", () => {
       .rejects.toMatchObject({ code: "CONFLICT" });
     await first;
     expect(accepted).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits for a hosted answer while keeping the original question relation", async () => {
+    const { questions, accepted } = await createFixture();
+    const [questionId] = (await questions.ask("native-session", [{ title: "Which format?", options: ["PDF", "DOCX"] }])).questionIds;
+    const client = { sendAndWaitForReply: vi.fn(async (payload: AgentRunSendIngressPayload) => {
+      if (!("message" in payload) || !payload.message) throw new Error("Expected structured input");
+      const handle = await accepted(payload.message);
+      return { handle, text: "I will use DOCX.", completedMessage: {} };
+    }) } as unknown as AgentRunClient;
+    const result = await questions.resolveAndWaitForReply({ sessionId: "native-session", questionId: questionId!, action: "answer", answer: "DOCX" }, client);
+    expect(result.text).toBe("I will use DOCX.");
+    expect(result.question).toMatchObject({ id: questionId, status: "answered", answer: "DOCX" });
+    expect(accepted.mock.calls[0]?.[0].metadata).toMatchObject({ nextclaw_user_question_id: questionId, nextclaw_user_question_title: "Which format?" });
+    expect((await questions.resolveAndWaitForReply({ sessionId: "native-session", questionId: questionId!, action: "answer", answer: "DOCX" }, client)).text).toBeNull();
   });
 
   it("rejects a recommendation that is not one of the suggested options", async () => {

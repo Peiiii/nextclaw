@@ -3,6 +3,7 @@ import { NcpEventType, type NcpMessage, type NcpRunHandle } from "@nextclaw/ncp"
 import { ingressKeys, type AgentRunSendIngressPayload, type Ingress } from "@nextclaw/shared";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { SessionRunManager } from "@kernel/managers/session-run.manager.js";
+import type { AgentRunClient, AgentRunReplyOptions } from "@kernel/services/agent-run-client.service.js";
 
 export const USER_QUESTION_EXTENSION_TYPE = "nextclaw.user-question";
 const QUESTION_ID_METADATA_KEY = "nextclaw_user_question_id";
@@ -31,6 +32,8 @@ export type UserQuestionResolution = {
   question: UserQuestionView;
   handle: NcpRunHandle | null;
 };
+
+export type UserQuestionReplyResolution = UserQuestionResolution & { text: string | null };
 
 export class UserQuestionError extends Error {
   constructor(readonly code: "NOT_FOUND" | "INVALID_ANSWER" | "CONFLICT" | "UNSUPPORTED_RUNTIME", message: string) {
@@ -202,7 +205,30 @@ export class UserQuestionManager {
     }
   };
 
+  resolveAndWaitForReply = async (
+    input: { sessionId: string; questionId: string; action: "answer" | "dismiss"; answer?: string },
+    client: AgentRunClient,
+    options: AgentRunReplyOptions = {},
+  ): Promise<UserQuestionReplyResolution> => {
+    const prepared = await this.prepareResolution(input);
+    if (!prepared.payload) return { question: prepared.question, handle: null, text: null };
+    const reply = await client.sendAndWaitForReply(prepared.payload, options);
+    const question = (await this.list(input.sessionId)).find(({ id }) => id === input.questionId);
+    return { question: question ?? prepared.question, handle: reply.handle, text: reply.text };
+  };
+
   private resolveOnce = async (input: { sessionId: string; questionId: string; action: "answer" | "dismiss"; answer?: string }): Promise<UserQuestionResolution> => {
+    const prepared = await this.prepareResolution(input);
+    if (!prepared.payload) return { question: prepared.question, handle: null };
+    const handle = await this.ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.send,
+      payload: prepared.payload,
+    }, { source: "user-question" });
+    const updated = (await this.list(input.sessionId)).find(({ id }) => id === prepared.question.id);
+    return { question: updated ?? prepared.question, handle };
+  };
+
+  private prepareResolution = async (input: { sessionId: string; questionId: string; action: "answer" | "dismiss"; answer?: string }): Promise<{ question: UserQuestionView; payload: AgentRunSendIngressPayload | null }> => {
     await this.assertNativeSession(input.sessionId);
     const answer = input.answer?.trim();
     if (input.action === "answer" && !answer) {
@@ -215,10 +241,7 @@ export class UserQuestionManager {
           (input.action === "answer" && question.answer !== answer)) {
         throw new UserQuestionError("CONFLICT", "This question has already been resolved differently.");
       }
-      return {
-        question,
-        handle: null,
-      };
+      return { question, payload: null };
     }
     const action = input.action === "answer" ? "answered" : "dismissed";
     const text = action === "answered"
@@ -245,12 +268,7 @@ export class UserQuestionManager {
       delivery: "prefer-steer",
       idempotencyKey: `user-question:${question.id}`,
     };
-    const handle = await this.ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>({
-      type: ingressKeys.agentRun.send,
-      payload,
-    }, { source: "user-question" });
-    const updated = (await this.list(input.sessionId)).find(({ id }) => id === question.id);
-    return { question: updated ?? question, handle };
+    return { question, payload };
   };
 
   private assertNativeSession = async (sessionId: string): Promise<void> => {
