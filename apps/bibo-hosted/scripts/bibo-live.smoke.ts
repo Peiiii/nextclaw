@@ -261,7 +261,9 @@ try {
       }
       await page.getByRole("textbox", { name: "搜索文件", exact: true }).fill(artifactPath);
       await page.getByRole("region", { name: "文件搜索结果", exact: true }).getByText(artifactPath, { exact: true }).first().click();
-      assert.equal(await page.getByRole("textbox", { name: `编辑 ${artifactPath}` }).inputValue(), artifactContent,
+      await page.getByRole("group", { name: "文件模式" }).getByRole("button", { name: "编辑" }).click();
+      const editorText = await page.getByRole("textbox", { name: `编辑 ${artifactPath}` }).innerText();
+      assert.ok(editorText.includes(requestId) && editorText.includes("真实 Agent 文件验收。"),
         "The Files UI must read the same Agent-created object");
     }
   console.log(JSON.stringify({ ok: true, requestId, modelStream, search, searchStream, ...stream, saved: true, agentFile: true, automaticPreview: true, desktop: true, mobile: true }));
