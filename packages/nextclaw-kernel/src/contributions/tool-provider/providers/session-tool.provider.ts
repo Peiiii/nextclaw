@@ -43,7 +43,7 @@ export class SessionToolProvider implements ToolProvider {
       new SessionsHistoryTool(this.sessionManager),
       new SessionsUpdateTool(this.sessionManager),
     ];
-    if (this.userQuestions && session?.agentRuntimeId === "native" && !request.channel) {
+    if (this.userQuestions && session?.agentRuntimeId === "native" && (!request.channel || request.channel === "ui")) {
       tools.push(new RequestUserInputAsyncTool(this.userQuestions, sessionId));
     }
     if (!isChildSession) {

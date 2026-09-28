@@ -134,7 +134,7 @@ async function executeHarnessRun(input: { message: string; sessionId: string; qu
     const result = input.questionId
       ? await harness.answerUserQuestion({ sessionId: input.sessionId, questionId: input.questionId,
           action: input.questionAction!, ...(input.questionAction === "answer" ? { answer: input.message.trim() } : {}), signal, ...callbacks })
-      : await harness.runTask({ input: input.message.trim(), sessionId: input.sessionId, signal, ...callbacks });
+      : await harness.runTask({ input: input.message.trim(), sessionId: input.sessionId, channel: "ui", signal, ...callbacks });
     if (!result.text) throw new BiboRunError("QUESTION_ALREADY_RESOLVED", 409, "这个问题已经处理，请刷新会话。");
     return { text: result.text, questions: await harness.listUserQuestions(input.sessionId), displayEvents: contribution.displayEvents };
   } finally { await harness.dispose(); }

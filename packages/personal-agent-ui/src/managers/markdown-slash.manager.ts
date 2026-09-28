@@ -1,8 +1,9 @@
 import type { Editor } from "@tiptap/core";
 import type { Transaction } from "@tiptap/pm/state";
+import { markdownCommandItems } from "../configs/markdown-commands.config";
 import type { MarkdownEditorLabels, MarkdownSlashItem, MarkdownSlashState } from "../types/markdown-editor.types";
 
-/** A session starts only from typing '/', never from selection or pasted text. */
+/** A session starts from typing '/' or explicit insertion, never from selection or pasted text. */
 export class MarkdownSlashManager {
   private start?: number;
   private state: MarkdownSlashState | null = null;
@@ -12,15 +13,7 @@ export class MarkdownSlashManager {
     this.updateLabels(labels);
   }
   updateLabels = (labels: MarkdownEditorLabels) => {
-    this.items = [
-      { id: "paragraph", label: labels.rich.paragraph, keywords: "text paragraph 正文" },
-      ...([1, 2, 3] as const).map(level => ({ id: `h${level}` as "h1" | "h2" | "h3", label: `${labels.rich.heading} ${level}`, keywords: `heading title h${level} 标题` })),
-      { id: "list", label: labels.list, keywords: "bullet list 列表" },
-      ...(["orderedList", "taskList", "quote", "table", "codeBlock"] as const).map(id => ({ id, label: labels.rich[id], keywords: id.toLowerCase() })),
-      { id: "inlineMath", label: labels.rich.inlineMath, keywords: "math equation latex inline 公式" },
-      { id: "math", label: labels.rich.blockMath, keywords: "math equation latex block display 公式" },
-      ...(["image", "link", "divider"] as const).map(id => ({ id, label: labels.rich[id], keywords: id.toLowerCase() })),
-    ];
+    this.items = markdownCommandItems(labels);
     if (this.state) {
       this.state = { ...this.state, items: this.state.items.map(item => this.items.find(candidate => candidate.id === item.id) ?? item) };
       this.changed(this.state);
@@ -33,6 +26,13 @@ export class MarkdownSlashManager {
     }
     return false;
   }
+  open = (editor: Editor) => {
+    const selection = editor.state.selection;
+    if (!selection.empty || selection.$from.parent.type.name !== "paragraph" || selection.$from.parent.content.size) return;
+    this.start = selection.from;
+    editor.view.dispatch(editor.state.tr.insertText("/"));
+    editor.view.focus();
+  };
   update = (editor: Editor, transaction: Transaction) => {
     if (this.start === undefined) return;
     this.start = transaction.mapping.map(this.start, -1);
@@ -41,7 +41,7 @@ export class MarkdownSlashManager {
     const text = editor.state.doc.textBetween(this.start, from);
     if (!text.startsWith("/") || /\s/.test(text)) return this.close();
     const query = text.slice(1).toLowerCase();
-    const items = this.items.filter(item => `${item.label} ${item.keywords}`.toLowerCase().includes(query));
+    const items = this.items.filter(item => `${item.id} ${item.label} ${item.keywords}`.toLowerCase().includes(query));
     const coords = editor.view.coordsAtPos(this.start);
     const previous = this.state?.items[this.state.index]?.id;
     const index = Math.max(0, items.findIndex(item => item.id === previous));

@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { chromium, type Page } from "playwright";
 import { checkBlockInteractions } from "./markdown-block-interactions.smoke";
+import { checkNotionInteractions } from "./markdown-notion-interactions.smoke";
+import { checkImageUploads } from "./markdown-image-interactions.smoke";
+import { checkDocumentStructure } from "./markdown-structure-interactions.smoke";
 import { mockApi } from "../personal-workspace.fixture";
 
 const port = String(30000 + process.pid % 20000);
@@ -37,6 +40,9 @@ async function checkEditor(page: Page, width: number) {
   assert.equal(await mode(page, "预览").getAttribute("aria-pressed"), "true");
   assert.equal(await page.locator(".cm-editor").count(), 0, "reader does not mount an editor until needed");
   await checkContextualWriting(page);
+  await checkNotionInteractions(page, openSource, replaceSource);
+  await checkImageUploads(page, openSource, replaceSource);
+  await checkDocumentStructure(page, openSource, replaceSource);
   await checkWriting(page);
   await checkRichObjects(page);
   await checkHistoryAndSearch(page);
@@ -293,16 +299,16 @@ async function checkRichLinks(page: Page) {
   await rich.locator("p").last().click();
   await page.keyboard.press("ControlOrMeta+End");
   await formatAction(page, "链接");
-  await page.getByRole("dialog").getByRole("textbox").fill("https://example.com/bibo");
+  await page.getByRole("dialog").getByRole("textbox", { name: "地址", exact: true }).fill("https://example.com/bibo");
   await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
   assert.equal(await rich.locator('a[href="https://example.com/bibo"]').count(), 1);
   await formatAction(page, "图片");
-  await page.getByRole("dialog").getByRole("textbox").fill("https://example.com/image.png");
+  await page.getByRole("dialog").getByRole("textbox", { name: "地址", exact: true }).fill("https://example.com/image.png");
   await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
   assert.equal(await rich.locator('img[src="https://example.com/image.png"]').count(), 1);
   await rich.locator('img[src="https://example.com/image.png"]').click();
   await rich.locator('img[src="https://example.com/image.png"]').dblclick();
-  await page.getByRole("dialog").getByRole("textbox").fill("https://example.com/updated.png");
+  await page.getByRole("dialog").getByRole("textbox", { name: "地址", exact: true }).fill("https://example.com/updated.png");
   await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
   assert.equal(await rich.locator('img[src="https://example.com/updated.png"]').count(), 1);
   await rich.locator('img[src="https://example.com/updated.png"]').click();
@@ -409,10 +415,10 @@ async function checkLayout(page: Page, width: number) {
   await richFor(page).press("ControlOrMeta+End");
   await page.screenshot({ path: `/tmp/bibo-markdown-editor-${width}.png` });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, "no page overflow");
-  const controls = await page.locator(".file-editor-tools button, .ui-markdown-editor-toolbar button:visible").evaluateAll((buttons) => buttons.every((button) => {
-    const box = button.getBoundingClientRect(); return box.left >= 0 && box.right <= innerWidth;
+  const overflowing = await page.locator(".file-editor-tools button:visible, .ui-markdown-editor-toolbar button:visible").evaluateAll(buttons => buttons.flatMap(button => {
+    const box = button.getBoundingClientRect(); return box.left < -1 || box.right > innerWidth + 1 ? [{ label: button.getAttribute("aria-label") || button.textContent, left: box.left, right: box.right, viewport: innerWidth }] : [];
   }));
-  assert.equal(controls, true, "mode and save controls fit narrow screens");
+  assert.deepEqual(overflowing, [], "mode and save controls fit narrow screens");
 }
 
 async function checkScrollContinuity(page: Page) {

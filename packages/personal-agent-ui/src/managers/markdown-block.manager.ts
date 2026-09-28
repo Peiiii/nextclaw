@@ -5,7 +5,7 @@ import { NodeSelection, TextSelection, type Transaction } from "@tiptap/pm/state
 import type { MarkdownAnchor, MarkdownInspector } from "../types/markdown-editor.types";
 
 export type MarkdownBlockState = { position: number; kind: string; anchor: MarkdownAnchor; open: boolean; convertible: boolean };
-export type MarkdownBlockFormat = "paragraph" | "h1" | "h2" | "h3" | "codeBlock" | "quote" | "list" | "orderedList" | "taskList";
+export type MarkdownBlockFormat = "paragraph" | "h1" | "h2" | "h3" | "codeBlock" | "quote" | "callout" | "toggle" | "list" | "orderedList" | "taskList";
 export type MarkdownBlockAction = "duplicate" | "delete" | "before" | "after" | "edit" | "copy";
 
 /** One transient block target; document content and history stay in ProseMirror. */
@@ -13,7 +13,6 @@ export class MarkdownBlockManager {
   private editor?: Editor;
   element?: HTMLDivElement;
   private resize?: ResizeObserver;
-  private pending = 0;
   private state: MarkdownBlockState | null = null;
   constructor(private readonly changed: (state: MarkdownBlockState | null) => void,
     private readonly inspect: (value: MarkdownInspector) => void) {}
@@ -28,7 +27,7 @@ export class MarkdownBlockManager {
         for (let ancestor = 1; ancestor < depth; ancestor++) {
           if (["table", "blockquote"].includes($pos.node(ancestor).type.name)) return 1000;
         }
-        return ["bulletList", "orderedList", "taskList"].includes(node.type.name) ? 1000 : 0;
+        return ["bulletList", "orderedList", "taskList", "detailsSummary", "detailsContent"].includes(node.type.name) ? 1000 : 0;
       } }] }),
       onNodeChange: ({ node, pos }) => { if (!this.state?.open) { if (node) this.target(pos); else this.clear(); } },
     });
@@ -91,16 +90,57 @@ export class MarkdownBlockManager {
     this.state = null; this.changed(null);
     if (locked) this.editor?.commands.setMeta("lockDragHandle", false);
   };
-  focus = () => { this.editor?.view.focus(); };
-  openAtSelection = () => {
+  focus = () => { if (this.editor && !this.editor.view.hasFocus()) this.editor.view.focus(); };
+  targetSelection = () => {
     const editor = this.editor;
     if (!editor) return;
-    const box = editor.view.coordsAtPos(editor.state.selection.from);
-    editor.view.dom.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: box.left + 1, clientY: (box.top + box.bottom) / 2 }));
-    cancelAnimationFrame(this.pending);
-    this.pending = requestAnimationFrame(this.open);
+    const selection = editor.state.selection;
+    if (selection instanceof NodeSelection && selection.node.isBlock) { this.target(selection.from); return; }
+    const position = selection.$from;
+    let depth = 1;
+    for (let index = 1; index <= position.depth; index++) {
+      const kind = position.node(index).type.name;
+      if (["listItem", "taskItem"].includes(kind)) depth = index;
+      if (["table", "blockquote"].includes(kind)) break;
+    }
+    if (position.depth) this.target(position.before(depth));
+    else this.clear();
   };
-  destroy = () => { this.resize?.disconnect(); cancelAnimationFrame(this.pending); };
+  key = (event: KeyboardEvent) => {
+    const editor = this.editor;
+    if (!editor || editor.view.composing || event.isComposing) return false;
+    const selection = editor.state.selection;
+    if (event.key === "Escape" && !(selection instanceof NodeSelection)) {
+      this.targetSelection();
+      if (!this.state) return false;
+      editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(editor.state.doc, this.state.position)));
+    } else if (event.key === "Enter" && !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey && selection instanceof NodeSelection) {
+      if (selection.node.isTextblock || ["listItem", "taskItem", "blockquote", "details"].includes(selection.node.type.name)) {
+        editor.view.dispatch(editor.state.tr.setSelection(TextSelection.near(editor.state.doc.resolve(selection.from + 1))));
+      } else { this.targetSelection(); void this.perform("after"); }
+    } else if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "d") {
+      this.targetSelection(); void this.perform("duplicate");
+    } else if (event.altKey && event.shiftKey && ["ArrowUp", "ArrowDown"].includes(event.key)) {
+      this.targetSelection(); this.move(event.key === "ArrowUp" ? -1 : 1);
+    } else return false;
+    event.preventDefault(); return true;
+  };
+  private move = (direction: -1 | 1) => {
+    const editor = this.editor, state = this.state;
+    if (!editor || !state) return;
+    const position = editor.state.doc.resolve(state.position), node = editor.state.doc.nodeAt(state.position);
+    const siblingIndex = position.index() + direction;
+    if (!node || siblingIndex < 0 || siblingIndex >= position.parent.childCount) return;
+    const sibling = position.parent.child(siblingIndex);
+    const destination = state.position + (direction < 0 ? -sibling.nodeSize : sibling.nodeSize);
+    const transaction = closeHistory(editor.state.tr).delete(state.position, state.position + node.nodeSize).insert(destination, node);
+    editor.view.dispatch(transaction.setSelection(NodeSelection.create(transaction.doc, destination)).scrollIntoView());
+    editor.view.dispatch(closeHistory(editor.state.tr));
+  };
+  openAtSelection = () => {
+    this.targetSelection(); this.open();
+  };
+  destroy = () => { this.resize?.disconnect(); };
   convert = (format: MarkdownBlockFormat) => {
     const editor = this.editor, state = this.state;
     if (!editor || !state?.convertible) return;
@@ -110,12 +150,14 @@ export class MarkdownBlockManager {
     if (format === "paragraph") chain.setParagraph().run();
     else if (format === "codeBlock") chain.setCodeBlock().run();
     else if (format === "quote") chain.toggleBlockquote().run();
+    else if (format === "callout") chain.setBlockquote().updateAttributes("blockquote", { callout: "note" }).run();
+    else if (format === "toggle") chain.setDetails().updateAttributes("details", { open: true }).run();
     else if (format === "list") chain.toggleBulletList().run();
     else if (format === "orderedList") chain.toggleOrderedList().run();
     else if (format === "taskList") chain.toggleTaskList().run();
     else chain.setHeading({ level: Number(format.slice(1)) as 1 | 2 | 3 }).run();
     editor.view.dispatch(closeHistory(editor.state.tr));
-    requestAnimationFrame(() => { if (!editor.isDestroyed) editor.view.focus(); });
+    this.focus();
   };
   perform = async (action: MarkdownBlockAction) => {
     const editor = this.editor, state = this.state;
@@ -144,6 +186,6 @@ export class MarkdownBlockManager {
     }
     editor.view.dispatch(transaction.scrollIntoView());
     editor.view.dispatch(closeHistory(editor.state.tr));
-    requestAnimationFrame(() => { if (!editor.isDestroyed) editor.view.focus(); });
+    this.focus();
   };
 }

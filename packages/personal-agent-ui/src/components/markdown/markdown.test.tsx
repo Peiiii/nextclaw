@@ -37,6 +37,21 @@ describe("shared Markdown renderer", () => {
     expect(html).toContain("&lt;a href=&quot;evil&quot;&gt;");
   });
 
+  it("renders portable document table/image attributes while stripping active HTML", () => {
+    const html = renderToStaticMarkup(<Markdown document text={[
+      '<table width="240"><colgroup><col width="160"><col width="80"></colgroup><tbody><tr><th colspan="2">Title</th></tr><tr><td align="center">Cell</td><td>Other</td></tr></tbody></table>',
+      '<img src="/api/assets/12345678-1234-4123-8123-123456789012" width="180" alt="Description" title="Caption" onerror="alert(1)">',
+      '<script>alert(1)</script><iframe src="https://example.com"></iframe>',
+      '<a href="javascript:alert(1)" onclick="alert(1)" style="position:fixed">Unsafe</a>',
+    ].join("\n\n")} />);
+    expect(html).toContain('<col width="160"');
+    expect(html).toContain('colSpan="2"');
+    expect(html).toContain('text-align:center');
+    expect(html).toContain('width:180px');
+    expect(html).toContain('Caption');
+    for (const unsafe of ["<script", "<iframe", "onerror=", "onclick=", "javascript:", "position:fixed"]) expect(html).not.toContain(unsafe);
+  });
+
   it("renders user message file links through the same safe Markdown host", () => {
     const text = "[搭档启动卡.md](/data/workspace/搭档启动卡.md) [危险](javascript:alert(1))";
     const html = renderToStaticMarkup(<Message role="user" text={text} label="你" resolveResourceHref={(uri) =>

@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 import { MarkdownEditorManager } from "../../managers/markdown-editor.manager";
 import { MarkdownEditorToolbar } from "./markdown-editor-toolbar";
 import { MarkdownInsertDialog } from "./markdown-insert-dialog";
 import { MarkdownSlashMenu, MarkdownBlockHandle } from "./markdown-context-tools";
+import { MarkdownSelectionToolbar } from "./markdown-context-tools";
 import type { MarkdownBlockState } from "../../managers/markdown-block.manager";
 import { Button } from "../button";
+import { IconButton } from "../icon-button";
 import type { MarkdownEditorProps, MarkdownSelection, MarkdownInspector, MarkdownSlashState } from "../../types/markdown-editor.types";
 import "katex/dist/katex.min.css";
 import "../../styles/rich-markdown-editor.css";
@@ -22,7 +25,7 @@ export function RichMarkdownEditor(props: MarkdownEditorProps) {
   if (!props.active && inspector) setInspector(null);
   const [slash, setSlash] = useState<MarkdownSlashState | null>(null);
   const [block, setBlock] = useState<MarkdownBlockState | null>(null);
-  const [selection, setSelection] = useState<MarkdownSelection>({ bold: false, italic: false, heading: 0, undo: false, redo: false, table: false });
+  const [selection, setSelection] = useState<MarkdownSelection>({ bold: false, italic: false, strike: false, code: false, link: false, heading: 0, undo: false, redo: false, table: false });
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
   const [replacement, setReplacement] = useState("");
@@ -44,6 +47,8 @@ export function RichMarkdownEditor(props: MarkdownEditorProps) {
   }, [props.active, ready]);
   return <div className="ui-markdown-editor ui-rich-markdown-editor">
     <MarkdownEditorToolbar labels={props.labels} selection={selection} manager={ready ? manager.current : undefined} onSearch={() => setSearching((value) => !value)} />
+    {selection.uploading && <div className="ui-markdown-upload-status" role="status">{text.uploadingImage}</div>}
+    {selection.uploadError && <div className="ui-markdown-upload-status" role="alert"><span>{selection.uploadError}</span><IconButton label={text.close} icon={<X />} onClick={() => manager.current?.clearUploadError()} /></div>}
     {searching && <div className="ui-markdown-search" role="search" onKeyDown={(event) => { if (event.key === "Escape") { setSearching(false); manager.current?.focus(); } }}>
       <input autoFocus aria-label={text.find} placeholder={text.find} value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); manager.current?.searchAction(event.shiftKey ? "previous" : "next"); } }} />
       <input aria-label={text.replace} placeholder={text.replace} value={replacement} onChange={(event) => setReplacement(event.target.value)} />
@@ -54,8 +59,9 @@ export function RichMarkdownEditor(props: MarkdownEditorProps) {
     <div className="ui-rich-markdown-scroll" hidden={!ready || Boolean(error)} ref={scroller} onScroll={(event) => { if (props.active) { const element = event.currentTarget; props.onScrollProgress?.(element.scrollTop / Math.max(1, element.scrollHeight - element.clientHeight)); manager.current?.refreshContext(); } }}>
       <div className="ui-rich-markdown-host" ref={host} />
     </div>
-    {props.active && inspector && <MarkdownInsertDialog key={`${inspector.kind}:${inspector.position}:${inspector.value}`} inspector={inspector} labels={props.labels} onClose={() => setInspector(null)} onApply={(value) => manager.current?.applyInspector(inspector, value)} onReturnFocus={() => manager.current?.focus()} />}
+    {props.active && inspector && <MarkdownInsertDialog key={`${inspector.kind}:${inspector.position}:${inspector.value}`} inspector={inspector} labels={props.labels} onClose={() => setInspector(null)} onApply={(value, image) => manager.current?.applyInspector(inspector, value, image)} onReturnFocus={() => manager.current?.focus()} onUpload={props.uploadImage ? (file, image) => void manager.current?.uploadImage(file, image) : undefined} />}
     {props.active && manager.current && slash && <MarkdownSlashMenu state={slash} labels={props.labels} manager={manager.current} />}
-    {props.active && manager.current && block && <MarkdownBlockHandle state={block} labels={props.labels} manager={manager.current.blocks} />}
+    {props.active && manager.current && !inspector && !slash && !block?.open && <MarkdownSelectionToolbar selection={selection} labels={props.labels} manager={manager.current} />}
+    {props.active && manager.current && block && <MarkdownBlockHandle state={block} labels={props.labels} manager={manager.current.blocks} onInsert={() => void manager.current?.insertBlock(true)} />}
   </div>;
 }

@@ -1,6 +1,6 @@
 # Bibo 异步向用户提问
 
-日期：2026-09-29。状态：已实现，待线上验收。上位语义见 [原生 Agent 异步提问](2026-09-28-async-user-questions.design.md)；本设计只负责 Bibo 托管入口、提交边界与界面。
+日期：2026-09-29。状态：已部署并完成线上验收。上位语义见 [原生 Agent 异步提问](2026-09-28-async-user-questions.design.md)；本设计只负责 Bibo 托管入口、提交边界与界面。
 
 ## 用户链路与验收
 
@@ -15,6 +15,8 @@
 ## 主链路与边界
 
 1. Runner 给 Bibo 的原生 Agent 开放 `request_user_input_async`。本轮完成时向 Harness 查询全量问题，把结果随原有 `/run` 结果返回。Bibo DO 在同一次快照提交中把新问题挂到本轮 assistant 消息；既有问题的终态按 Kernel 投影更新。未提交的流式内容不成为正式问题。
+
+   线上复验发现只加白名单不足：Harness 的直接 prompt 默认标记 `cli` channel，而 Kernel 的问题工具仅在无 channel 的 Native Web 会话出现。Bibo 现在通过 Harness 公共输入把本轮标记为 `ui`，工具提供器仅对无 channel 或 `ui` 的原生会话开放提问；普通 CLI 与消息渠道继续排除。工具白名单和会话来源两个条件均需满足。
 2. 用户对某题作答或跳过，Client SDK 走鉴权 Worker → 本人 DO → Container → Harness → Kernel `UserQuestionManager`。Kernel 构造含问题 ID、原题和答案的标准用户消息，经原生 Agent 输入主链路送入同会话，并等待 Agent 回复。Container 返回回复和最新问题投影。DO 把带引用的用户消息、Agent 回复、问题终态与 Container 快照一起提交；提交失败则重启容器回滚到上一次快照。
 3. DO 在每账号单次运行锁内串行结算；跨账号由账号容器隔离。当前 Bibo 的快照事务不允许在上一轮生成或保存期间并发提交第二条消息；问题可在本轮结束后操作，Agent 发问本身仍不阻塞本轮。这里是 Bibo 的托管提交边界，不改变 Native Web 的运行中插话能力。Bibo 不新增轮询或付费服务。
 4. UI 用与 composer 同宽同层的临时面板；新问题首见自动打开，关闭后可点消息内标签重开。推荐项有轻量标记；仅有解释时出现独立问号，鼠标悬停、键盘聚焦、触控点按均可读，点问号不提交。回答引用仅显示原题摘要，状态以图标／标签表达。选项直接提交，自定义项常显且单行输入不改变高度；答后面板关闭，待答入口只在需要找回旧题时显示。
@@ -28,3 +30,7 @@ Producer：Kernel 工具与 `UserQuestionManager` → Harness 公共入口 → C
 设计依据：用户 2026-09-28 的 Native 范围、Codex 对照截图与多轮交互纠偏，以及随后明确的 Bibo 支持要求；本次用户补充的可选问号解释和推荐提示复用已完成的 Kernel 结构化字段。`docs/VISION.md` 的长期搭档与统一会话要求，验收由同一问题 ID 和同一 Agent journal 保证。
 
 design-document: required；plan: not-required（单一纵向链路、按现有提交顺序逐层实现并验证）。
+
+## 交付证据
+
+2026-09-29 从远程主干 `4214c59ac` 完整部署 Bibo Worker 与 Container。真实测试账号中，桌面 1365px 的 Agent 调用提问工具，题目、推荐和解释被持久保存，单击选项后 `committed` 历史包含问题引用与已回答终态，刷新后仍在；手机 390px 的独立会话按同一路径跳过，引用与已跳过终态也经刷新验证。两次聚焦线上验收均成功并删除各自测试会话。定向测试、三端 TypeScript、浏览器冒烟和文档镜像检查通过；完整 Bibo 测试套件中的旧 Node 测试直接导入 CSS 仍会失败，不属于本功能链路。

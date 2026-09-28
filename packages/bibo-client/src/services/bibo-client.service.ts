@@ -79,6 +79,14 @@ export class BiboClient {
   readFile = async (input: BiboFileReadInput): Promise<BiboFileDetail> =>
     readFileDetail(await this.space<unknown>("file.get", input));
 
+  uploadImage = async (file: Blob): Promise<string> => {
+    const response = await this.fetchResponse("/api/assets", { method: "POST", credentials: "same-origin", body: file });
+    const value: unknown = await response.json().catch(() => null);
+    if (!response.ok) throw new BiboClientError(errorMessage(value) ?? "图片上传失败，请重试。", response.status);
+    if (!isRecord(value) || typeof value.url !== "string" || !/^\/api\/assets\/[0-9a-f-]{36}$/.test(value.url)) throw new BiboClientError("图片上传返回了无效的地址。");
+    return value.url;
+  };
+
   sendCode = async (email: string): Promise<{ maskedEmail?: string }> => {
     const value = await this.request("auth/send-code", { email });
     if (!isRecord(value)) throw new BiboClientError("验证码服务返回了无效的数据。");

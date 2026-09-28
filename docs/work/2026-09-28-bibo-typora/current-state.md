@@ -1,6 +1,19 @@
 # 当前执行状态
 
+## 第四轮：Notion 文档对标版本已上线
+
+ND-01～07 passed，open-required无；Goal可完成。范围、参照和产品边界见2026-09-29-bibo-notion-document design/plan；本次交付明细与证据见原Markdown日志第四轮，不把Notion全平台或所有像素一致性作为已证明结论。
+
+源码45e013cd5，合并主干后部署冻结a84a06bb1873abc85376eb3d152c4775f18a5975，Worker77921879-0f4c-4fda-a34e-35748380c6c2。私有图片、富表格、折叠/提示块、选区格式、统一块操作、目录/排版均已在完整写作链验证。三宽度编辑回归、两主题/模拟触摸、产品smoke、类型/build/安全测试通过，CPU4x的300节输入p95=10.4ms；真实线上1440/390保存刷新和图片上传读取/权限验证通过。入口JS/CSS/编辑器模块与冻结构建字节一致，容器version26/image29d54cfbc50b/max20保持不变。
+
+Review无未关闭功能/架构finding；自动维护性检查仍有store404行预算项，主观审查确认新增6行账号隔离回调属于必要的单owner凝聚增长，不以删保护、压行或空转发层满足数字。其它告警为既有目录例外及近预算提示。治理检查通过。复盘沿既有交互skill，不重复新增规则。
+
+本地预览：http://127.0.0.1:43988/files/6672ac2a-bcd6-4833-8bde-ea54becec684 。session90332、home `/tmp/bibo-notion-preview.ealLTq`；原用户文档/草稿已保留，禁止重新seed或删除。主工作区原有thought及6个未跟踪文档未动，本任务无源区遗漏。远程master完成，reconcile为LOCAL_WORKTREE_RETRYING，既有worker36697自动接管活跃WIP后的回流。AUTOMATION_INTERVENTIONS: 0。
+
+下方为第三轮历史记录，不覆盖上述当前结论。
+
 ## 第三轮：已部署并通过线上编辑验收
+
 
 2026-09-29：统一官方 Drag Handle owner 已接入；紧凑块/行列手柄、菜单、拖动、嵌套列表、贴边选择态及新增单元格焦点完成。行内公式与公式块有独立名称/说明和插入路径；空段落 `$$`+Space/Enter、取消保留、多行 aligned 及源码往返通过。修复 slash manager 初始化文案快照不随 props 更新的问题。1440/390/320px 完整编辑回归通过，300节 CPU4x p95 21.6ms；触摸手柄及缩窄关闭菜单通过。UI/宿主三份 tsc、构建、产品 smoke、治理检查通过；diff maintainability 零错误、测试脚本近预算一项提示，主观复核通过。已部署冻结 15f6e33a8，Worker 7b18a339-0412-468f-81c0-14a01220459b。发布资源1440/390/320px完整回归通过（CPU4x p95 12.8ms）；真实账号1440/390px创建、保存、刷新通过；只清理本轮测试笔记。容器version24/image5321b947/max20保持不变。
 

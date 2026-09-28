@@ -1,6 +1,7 @@
 import { getContainer } from "@cloudflare/containers";
 import { authRoute, cookieToken, currentUser, isPlatformAdmin, sessionUser, json, publicError } from "@/app/bibo-auth.utils";
 import { biboSearchRoute } from "@/features/search";
+import { biboAssetsRoute } from "@/features/assets";
 import { checkChatAvailability, modelError, modelRoute } from "@/app/bibo-model-gateway.service";
 import { errorDetails, logDiagnostic, readTrace, runFailure, traceHeaders, type RunTrace } from "@/app/diagnostics/bibo-diagnostics.utils";
 
@@ -24,13 +25,20 @@ async function adminEdgeRoute(request: Request, env: Env, path: string): Promise
   return getContainer(env.BIBO_USER, `user:${body.userId}`).fetch(`https://bibo.internal/edge/${operation}`, { method: "POST" });
 }
 
+function withAuthTiming(response: Response, authMs: number): Response {
+  const headers = new Headers(response.headers);
+  headers.append("server-timing", `auth;dur=${authMs.toFixed(1)}`);
+  return new Response(response.body, { status: response.status, headers });
+}
+
 async function userRoute(request: Request, env: Env, url: URL): Promise<Response> {
   const path = url.pathname;
   const token = cookieToken(request);
   const authStarted = performance.now();
-  const user = path === "/api/space" ? await sessionUser(token) : await currentUser(token);
+  const user = path === "/api/space" || path === "/api/assets" || path.startsWith("/api/assets/") ? await sessionUser(token) : await currentUser(token);
   const authMs = performance.now() - authStarted;
   if (!user || !token) return publicError("请先登录。", 401);
+  if (path === "/api/assets" || path.startsWith("/api/assets/")) return biboAssetsRoute(request, env.SNAPSHOTS, user.id);
   const container = getContainer(env.BIBO_USER, `user:${user.id}`);
   if (path === "/api/sessions" && request.method === "GET") return await container.fetch("https://bibo.internal/sessions");
   if (path === "/api/sessions" && request.method === "POST") return await createSession(env, user.id);
@@ -46,9 +54,7 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
     const response = await container.fetch("https://bibo.internal/space", {
       method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
     });
-    const headers = new Headers(response.headers);
-    headers.append("server-timing", `auth;dur=${authMs.toFixed(1)}`);
-    return new Response(response.body, { status: response.status, headers });
+    return withAuthTiming(response, authMs);
   }
   if (path === "/api/reset" && request.method === "POST") return await container.fetch("https://bibo.internal/reset", { method: "POST" });
   if (path === "/api/cancel" && request.method === "POST") return await container.fetch("https://bibo.internal/cancel", {

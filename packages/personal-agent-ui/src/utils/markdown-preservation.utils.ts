@@ -41,6 +41,7 @@ export const RawMarkdownInline = Node.create({
     name: "rawMarkdownInline", level: "inline",
     start: (source) => /\[\^|</.exec(source)?.index ?? -1,
     tokenize: (source) => {
+      if (/^<(u|mark)>[\s\S]*?<\/\1>/.test(source)) return undefined;
       const match = /^\[\^[^\]]+\]/.exec(source) || /^<!--[\s\S]*?-->/.exec(source) || /^<\/?[A-Za-z][A-Za-z0-9-]*(?:\s[^>]*|\s*\/?)>/.exec(source);
       return match ? { type: "rawMarkdownInline", raw: match[0] } : undefined;
     },

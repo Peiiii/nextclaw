@@ -74,11 +74,16 @@ export function markdownCodeView(labels: MarkdownEditorLabels): NodeViewRenderer
 
 class MarkdownImageNodeView {
   readonly dom = document.createElement("span");
+  private readonly frame = document.createElement("span");
   private readonly image = document.createElement("img");
+  private readonly caption = document.createElement("span");
+  private drag?: AbortController;
   private node: Node;
-  constructor(context: NodeViewRendererProps, inspect: (value: MarkdownInspector) => void) {
+  constructor(private readonly context: NodeViewRendererProps, inspect: (value: MarkdownInspector) => void, labels: MarkdownEditorLabels) {
     this.node = context.node;
     this.dom.className = "ui-rich-image";
+    this.frame.className = "ui-rich-image-frame";
+    this.caption.className = "ui-rich-image-caption";
     this.image.addEventListener("click", event => {
       const position = context.getPos();
       if (position === undefined) return;
@@ -90,15 +95,54 @@ class MarkdownImageNodeView {
       const position = context.getPos();
       if (position !== undefined) { event.preventDefault(); inspect({ kind: "image", value: this.node.attrs.src, position }); }
     });
-    this.render(); this.dom.append(this.image);
+    this.frame.append(this.image);
+    for (const side of [-1, 1]) {
+      const handle = document.createElement("button");
+      handle.type = "button"; handle.tabIndex = -1; handle.setAttribute("aria-label", labels.rich.resizeImage);
+      handle.className = `ui-rich-image-resize ${side === -1 ? "is-left" : "is-right"}`;
+      handle.addEventListener("pointerdown", event => this.resize(event, handle, side));
+      this.frame.append(handle);
+    }
+    this.dom.append(this.frame, this.caption); this.render();
   }
-  private render = () => { this.image.src = this.node.attrs.src; this.image.alt = this.node.attrs.alt ?? ""; this.image.title = this.node.attrs.title ?? ""; };
+  private render = () => {
+    this.image.src = this.node.attrs.src; this.image.alt = this.node.attrs.alt ?? "";
+    this.caption.textContent = this.node.attrs.title ?? "";
+    this.dom.style.width = this.node.attrs.width ? `${this.node.attrs.width}px` : "";
+    this.image.style.width = this.node.attrs.width ? "100%" : "";
+  };
+  private resize = (event: PointerEvent, handle: HTMLButtonElement, side: number) => {
+    event.preventDefault(); event.stopPropagation();
+    const start = event.clientX, initial = this.image.getBoundingClientRect().width;
+    const maximum = this.dom.parentElement?.clientWidth ?? initial;
+    this.drag?.abort(); this.drag = new AbortController();
+    const signal = this.drag.signal;
+    let width = initial;
+    handle.setPointerCapture(event.pointerId);
+    handle.addEventListener("pointermove", move => {
+      width = Math.round(Math.max(40, Math.min(maximum, initial + side * (move.clientX - start))));
+      this.dom.style.width = `${width}px`; this.image.style.width = "100%";
+    }, { signal });
+    handle.addEventListener("pointerup", () => {
+      this.drag?.abort();
+      const position = this.context.getPos();
+      if (position !== undefined && width !== initial) {
+        const editor = this.context.editor;
+        editor.view.dispatch(closeHistory(editor.state.tr).setNodeMarkup(position, undefined, { ...this.node.attrs, width, height: null }));
+        editor.view.dispatch(closeHistory(editor.state.tr));
+      }
+      this.render();
+    }, { signal });
+    handle.addEventListener("pointercancel", () => { this.drag?.abort(); this.render(); }, { signal });
+  };
   update = (next: Node) => { if (next.type !== this.node.type) return false; this.node = next; this.render(); return true; };
   selectNode = () => { this.dom.classList.add("ProseMirror-selectednode"); };
   deselectNode = () => { this.dom.classList.remove("ProseMirror-selectednode"); };
   ignoreMutation = () => true;
+  stopEvent = (event: Event) => Boolean((event.target as Element).closest?.(".ui-rich-image-resize"));
+  destroy = () => { this.drag?.abort(); };
 }
 
-export function markdownImageView(inspect: (value: MarkdownInspector) => void): NodeViewRenderer {
-  return context => new MarkdownImageNodeView(context, inspect);
+export function markdownImageView(inspect: (value: MarkdownInspector) => void, labels: MarkdownEditorLabels): NodeViewRenderer {
+  return context => new MarkdownImageNodeView(context, inspect, labels);
 }

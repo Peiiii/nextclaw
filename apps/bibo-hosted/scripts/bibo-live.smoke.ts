@@ -6,6 +6,9 @@ import { chromium, type Page } from "playwright";
 
 const origin = "https://app.bibo.bot";
 const displayOnly = process.env.BIBO_SMOKE_SCOPE === "display";
+const questionOnly = process.env.BIBO_SMOKE_SCOPE === "question";
+const questionMobile = questionOnly && process.env.BIBO_SMOKE_VIEWPORT === "mobile";
+const skipQuestion = questionOnly && process.env.BIBO_SMOKE_ACTION === "skip";
 const accountFile = process.env.BIBO_SMOKE_ACCOUNT_FILE ?? join(homedir(), ".config", "bibo-hosted", "smoke-account.json");
 type SmokeAccount = { origin: string; email: string; password: string; userId: string };
 
@@ -50,6 +53,20 @@ async function space<T>(action: string, input: Record<string, unknown>, signal =
   });
   assert.equal(response.status, 200, `${action} returned ${response.status}`);
   return (await response.json() as { result: T }).result;
+}
+
+async function cleanupSmokeSession(sessionId: string): Promise<void> {
+  if (!questionOnly) {
+    const files = await space<{ items: LiveFile[] }>("file.list", { query: artifactPath }, AbortSignal.timeout(60_000));
+    for (const file of files.items.filter((item) => item.path === artifactPath)) {
+      await space("file.delete", { id: file.id, version: file.version }, AbortSignal.timeout(60_000));
+    }
+  }
+  const cleanup = await fetch(`${origin}/api/sessions/delete`, {
+    method: "POST", headers: { ...headers, origin, "content-type": "application/json" },
+    body: JSON.stringify({ id: sessionId }), signal: AbortSignal.timeout(60_000),
+  });
+  assert.equal(cleanup.status, 200, `Smoke conversation cleanup failed: ${cleanup.status}`);
 }
 
 type StreamState = { accepted: boolean; saving: boolean; committed: boolean; deltaCount: number; displayCount: number };
@@ -170,14 +187,16 @@ async function streamedRun(page: Page, message = prompt): Promise<{ deltaCount: 
 }
 
 const browser = await chromium.launch({ headless: true });
+let smokeError: unknown;
+let smokeResult: Record<string, unknown> | undefined;
 try {
   const account = await json<{ user?: { id: string } }>("/api/auth/me");
   assert.equal(account.user?.id, smokeAccount.userId, "Smoke account identity does not match the local credential file");
   const missingHistory = await fetch(`${origin}/api/history?id=${requestId}-missing`, { headers, signal: abort.signal });
   assert.equal(missingHistory.status, 404, "An explicit missing session must not appear as a new empty conversation");
   assert.equal((await missingHistory.json() as { error: string }).error, "会话不存在或已删除。");
-  const modelStream = displayOnly ? undefined : await modelStreamProbe();
-  const search = displayOnly ? undefined : await searchProbe();
+  const modelStream = displayOnly || questionOnly ? undefined : await modelStreamProbe();
+  const search = displayOnly || questionOnly ? undefined : await searchProbe();
   const creation = await fetch(`${origin}/api/sessions`, {
     method: "POST", headers: { ...headers, origin }, signal: abort.signal,
   });
@@ -188,7 +207,7 @@ try {
   const historyPath = `/api/history?id=${encodeURIComponent(createdSessionId)}`;
   const before = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
   assert.equal(before.messages.length, 0, "New conversation must be isolated from existing history");
-  const context = await browser.newContext({ viewport: { width: 1365, height: 900 } });
+  const context = await browser.newContext({ viewport: questionMobile ? { width: 390, height: 844 } : { width: 1365, height: 900 } });
   await context.addCookies([{ name: "bibo_session", value: sessionToken, domain: "app.bibo.bot", path: "/", httpOnly: true, secure: true, sameSite: "Lax" }]);
   await context.addInitScript(() => {
     const originalFetch = window.fetch.bind(window);
@@ -206,37 +225,41 @@ try {
   const page = await context.newPage();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
-  const searchPrompt = "请先调用 web_search 搜索 Cloudflare AI Search 最新官方文档，用两句话说明它的用途并附至少一个官方来源链接。不要只凭记忆回答。";
-  const searchStream = displayOnly ? undefined : await streamedRun(page, searchPrompt);
-  const searched = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
-  if (!displayOnly) {
-    assert.equal(searched.messages.length, 2, "Search exchange must save");
-    assert.equal(searched.messages.at(-2)?.text, searchPrompt);
-    assert.match(searched.messages.at(-1)?.text ?? "", /https:\/\/developers\.cloudflare\.com\//, "Search-backed answer must save its source link");
-  }
-  const stream = await streamedRun(page);
-  const workspace = page.getByRole("complementary", { name: "右侧工作区" });
-  await workspace.getByRole("heading", { name: requestId, exact: true }).waitFor();
-  const after = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
-  assert.equal(after.messages.length, searched.messages.length + 2, "Saved history must contain one new exchange");
-  assert.equal(after.messages.at(-2)?.text, prompt, "Saved user message differs");
-  assert.ok(after.messages.at(-1)?.text.includes(requestId), "Saved answer is missing the request marker");
-  const files = await space<{ items: LiveFile[] }>("file.list", { query: artifactPath });
-  const artifact = files.items.find((file) => file.path === artifactPath);
-  assert.ok(artifact, "Agent claimed success without creating the requested file");
-  const persisted = await space<LiveFile>("file.get", { id: artifact.id });
-  assert.equal(persisted.content, artifactContent, "Agent file content was not persisted exactly");
-  // The Tasks screen loads these together; cloud serialization must not reject either read.
-  await Promise.all([space("project.list", { limit: 100 }), space("task.list", { limit: 100 })]);
+  await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "domcontentloaded" });
+  let searchStream: Awaited<ReturnType<typeof streamedRun>> | undefined;
+  let stream: Awaited<ReturnType<typeof streamedRun>> | undefined;
+  if (!questionOnly) {
+    const searchPrompt = "请先调用 web_search 搜索 Cloudflare AI Search 最新官方文档，用两句话说明它的用途并附至少一个官方来源链接。不要只凭记忆回答。";
+    searchStream = displayOnly ? undefined : await streamedRun(page, searchPrompt);
+    const searched = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
+    if (!displayOnly) {
+      assert.equal(searched.messages.length, 2, "Search exchange must save");
+      assert.equal(searched.messages.at(-2)?.text, searchPrompt);
+      assert.match(searched.messages.at(-1)?.text ?? "", /https:\/\/developers\.cloudflare\.com\//, "Search-backed answer must save its source link");
+    }
+    stream = await streamedRun(page);
+    const workspace = page.getByRole("complementary", { name: "右侧工作区" });
+    await workspace.getByRole("heading", { name: requestId, exact: true }).waitFor();
+    const after = await json<{ messages: Array<{ role: string; text: string }> }>(historyPath);
+    assert.equal(after.messages.length, searched.messages.length + 2, "Saved history must contain one new exchange");
+    assert.equal(after.messages.at(-2)?.text, prompt, "Saved user message differs");
+    assert.ok(after.messages.at(-1)?.text.includes(requestId), "Saved answer is missing the request marker");
+    const files = await space<{ items: LiveFile[] }>("file.list", { query: artifactPath });
+    const artifact = files.items.find((file) => file.path === artifactPath);
+    assert.ok(artifact, "Agent claimed success without creating the requested file");
+    const persisted = await space<LiveFile>("file.get", { id: artifact.id });
+    assert.equal(persisted.content, artifactContent, "Agent file content was not persisted exactly");
+    // The Tasks screen loads these together; cloud serialization must not reject either read.
+    await Promise.all([space("project.list", { limit: 100 }), space("task.list", { limit: 100 })]);
 
     for (const viewport of [{ width: 1365, height: 900 }, { width: 390, height: 844 }]) {
       await page.setViewportSize(viewport);
-      await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
-      if (!await workspace.count()) await page.getByRole("button", { name: "打开右侧工作区" }).click();
+      await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "domcontentloaded" });
       await page.locator(".ui-message").first().waitFor();
-      await page.reload({ waitUntil: "networkidle" });
+      if (!await workspace.isVisible()) await page.getByRole("button", { name: "打开右侧工作区" }).click();
+      await page.reload({ waitUntil: "domcontentloaded" });
       await page.locator(".ui-message--assistant").filter({ hasText: requestId }).waitFor();
+      if (!await workspace.isVisible()) await page.getByRole("button", { name: "打开右侧工作区" }).click();
       await workspace.getByRole("heading", { name: requestId, exact: true }).waitFor();
       await page.screenshot({ path: `/tmp/bibo-live-display-${viewport.width}.png`, fullPage: true });
       await page.getByRole("button", { name: "关闭工作区" }).click();
@@ -256,18 +279,12 @@ try {
       assert.ok(await page.locator(".ui-message--assistant").filter({ hasText: requestId }).count(), "Saved answer did not load after refresh");
       if (!displayOnly) assert.ok(await page.locator('.ui-message--assistant a[href^="https://developers.cloudflare.com/"]').count(),
         "Saved search sources must remain clickable after refresh");
-      await page.goto(`${origin}/files`, { waitUntil: "networkidle" });
-      if (!await page.getByRole("textbox", { name: "搜索文件", exact: true }).isVisible()) {
-        await page.getByRole("button", { name: "← 目录", exact: true }).click();
-      }
-      await page.getByRole("textbox", { name: "搜索文件", exact: true }).fill(artifactPath);
-      await page.getByRole("region", { name: "文件搜索结果", exact: true }).getByText(artifactPath, { exact: true }).first().click();
-      await page.getByRole("group", { name: "文件模式" }).getByRole("button", { name: "编辑" }).click();
-      const editorText = await page.getByRole("textbox", { name: `编辑 ${artifactPath}` }).innerText();
-      assert.ok(editorText.includes(requestId) && editorText.includes("真实 Agent 文件验收。"),
-        "The Files UI must read the same Agent-created object");
+      await page.goto(`${origin}/files`, { waitUntil: "domcontentloaded" });
+      await page.getByRole("heading", { name: requestId, exact: true }).waitFor();
+      await page.getByText("真实 Agent 文件验收。", { exact: true }).waitFor();
     }
-  await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "networkidle" });
+  }
+  await page.goto(`${origin}/chat/${encodeURIComponent(createdSessionId)}`, { waitUntil: "domcontentloaded" });
   await streamedRun(page, questionPrompt);
   const questioned = await json<{ messages: Array<{ role: string; text: string; questions?: Array<{ id: string; title: string; status: string; recommendedOption?: string; optionDescriptions?: Record<string, string> }>; replyToQuestion?: { id: string; title: string; action: string } }> }>(historyPath);
   const asked = questioned.messages.at(-1)?.questions?.find((item) => item.title === "报告装订方式？");
@@ -279,34 +296,42 @@ try {
   await panel.getByRole("heading", { name: "报告装订方式？" }).waitFor();
   await panel.getByRole("button", { name: "关闭问题" }).click();
   await page.getByRole("button", { name: "回答问题：报告装订方式？" }).click();
-  await panel.getByRole("button", { name: /胶装/ }).first().click();
+  await page.evaluate(() => { Reflect.set(window, "biboSmokeStream", null); });
+  const replyResponse = page.waitForResponse((response) => response.url() === `${origin}/api/chat`, { timeout: 300_000 });
+  if (skipQuestion) await panel.getByRole("button", { name: "跳过" }).click();
+  else await panel.getByRole("button", { name: /胶装/ }).first().click();
+  assert.equal((await replyResponse).status(), 200, "Question reply request was rejected");
+  await page.waitForFunction(() => Reflect.get(window, "biboSmokeStream") !== null, null, { timeout: 300_000 });
+  const replyStream = await page.evaluate(() => Reflect.get(window, "biboSmokeStream") as { text?: string; error?: string });
+  assert.ok(replyStream.text?.includes("event: committed"), replyStream.error ?? "Question reply did not commit");
   await page.locator(".bibo-question-reference").filter({ hasText: "报告装订方式？" }).waitFor({ timeout: 300_000 });
   const answered = await json<typeof questioned>(historyPath);
   assert.equal(answered.messages.at(-2)?.replyToQuestion?.id, asked.id, "Answer must retain its question reference");
-  assert.equal(answered.messages.at(-2)?.text, "胶装");
-  assert.equal(answered.messages.at(-2)?.replyToQuestion?.action, "answered");
-  assert.equal(answered.messages.find((item) => item.questions?.some((question) => question.id === asked.id))?.questions?.find((question) => question.id === asked.id)?.status, "answered");
-  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(answered.messages.at(-2)?.text, skipQuestion ? "跳过" : "胶装");
+  assert.equal(answered.messages.at(-2)?.replyToQuestion?.action, skipQuestion ? "dismissed" : "answered");
+  assert.equal(answered.messages.find((item) => item.questions?.some((question) => question.id === asked.id))?.questions?.find((question) => question.id === asked.id)?.status, skipQuestion ? "dismissed" : "answered");
+  await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator(".bibo-question-reference").filter({ hasText: "报告装订方式？" }).waitFor();
-  console.log(JSON.stringify({ ok: true, requestId, modelStream, search, searchStream, ...stream, saved: true, agentFile: true, automaticPreview: true, desktop: true, mobile: true }));
+  smokeResult = { ok: true, requestId, modelStream, search, searchStream, ...stream, asyncQuestion: true,
+    ...(questionMobile ? { mobileQuestion: true } : {}), ...(skipQuestion ? { skippedQuestion: true } : {}),
+    ...(!questionOnly ? { saved: true, agentFile: true, automaticPreview: true, desktop: true, mobile: true } : {}) };
 } catch (error) {
+  smokeError = error;
   for (const context of browser.contexts()) {
     const page = context.pages()[0];
     if (page) await page.screenshot({ path: "/tmp/bibo-live-display-failure.png", fullPage: true }).catch(() => undefined);
   }
-  throw error;
 } finally {
   await browser.close();
   clearTimeout(timeout);
   if (createdSessionId) {
-    const files = await space<{ items: LiveFile[] }>("file.list", { query: artifactPath }, AbortSignal.timeout(60_000));
-    for (const file of files.items.filter((item) => item.path === artifactPath)) {
-      await space("file.delete", { id: file.id, version: file.version }, AbortSignal.timeout(60_000));
+    try {
+      await cleanupSmokeSession(createdSessionId);
+    } catch (error) {
+      if (smokeError) console.error("Smoke cleanup also failed:", error);
+      else smokeError = error;
     }
-    const cleanup = await fetch(`${origin}/api/sessions/delete`, {
-      method: "POST", headers: { ...headers, origin, "content-type": "application/json" },
-      body: JSON.stringify({ id: createdSessionId }), signal: AbortSignal.timeout(60_000),
-    });
-    assert.equal(cleanup.status, 200, `Smoke conversation cleanup failed: ${cleanup.status}`);
   }
 }
+if (smokeError) throw smokeError;
+console.log(JSON.stringify(smokeResult));

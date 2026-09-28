@@ -1,6 +1,6 @@
 import { Editor, type JSONContent } from "@tiptap/core";
 import type { Node } from "@tiptap/pm/model";
-import type { Command } from "@tiptap/pm/state";
+import { NodeSelection, TextSelection, type Command, type SelectionBookmark } from "@tiptap/pm/state";
 import { closeHistory } from "@tiptap/pm/history";
 import { SearchQuery, setSearchState, findNext, findPrev, replaceNext, replaceAll } from "prosemirror-search";
 import { markdownEditorExtensions } from "../configs/markdown-editor.config";
@@ -16,6 +16,11 @@ export class MarkdownEditorManager {
   private pending?: ReturnType<typeof setTimeout>;
   private dirty = false;
   private previousSelection = "";
+  private dismissedSelection = "";
+  private readonly uploads = new Map<symbol, SelectionBookmark>();
+  private uploadError = "";
+  clearUploadError = () => { this.uploadError = ""; this.notify(); };
+  private contentRevision = 0;
   private readonly slash: MarkdownSlashManager;
   readonly blocks: MarkdownBlockManager;
 
@@ -26,11 +31,7 @@ export class MarkdownEditorManager {
     this.props = props;
     this.projected = props.value;
     this.blocks = new MarkdownBlockManager(blockChanged, this.openInspector);
-    this.slash = new MarkdownSlashManager(props.labels, slashChanged, item => {
-      if (item.id === "paragraph") this.heading(0);
-      else if (/^h[123]$/.test(item.id)) this.heading(Number(item.id.slice(1)));
-      else this.run(item.id as MarkdownAction);
-    });
+    this.slash = new MarkdownSlashManager(props.labels, slashChanged, item => this.insertCommand(item.id));
   }
 
   mount = (root: HTMLElement) => {
@@ -45,6 +46,7 @@ export class MarkdownEditorManager {
         attributes: { role: "textbox", "aria-label": this.props.label, "aria-multiline": "true", spellcheck: "true", "data-placeholder": this.props.labels.rich.commandHint },
         handleKeyDown: (_view, event) => {
           if (this.editor && this.slash.key(this.editor, event)) return true;
+          if (this.blocks.key(event)) return true;
           if (event.key === "Enter" && !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.isComposing && this.openMathShortcut()) { event.preventDefault(); return true; }
           if (event.key === "F10" && event.shiftKey) { event.preventDefault(); this.blocks.openAtSelection(); return true; }
           if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") { event.preventDefault(); this.openSearch(); return true; }
@@ -52,6 +54,13 @@ export class MarkdownEditorManager {
           return false;
         },
         handleTextInput: (_view, from, _to, text) => text === " " && this.openMathShortcut() || (this.editor ? this.slash.input(this.editor, from, text) : false),
+        handlePaste: (_view, event) => this.uploadFiles(Array.from(event.clipboardData?.files ?? [])),
+        handleDrop: (view, event, _slice, moved) => {
+          if (moved || !this.props.uploadImage || !event.dataTransfer?.files.length) return false;
+          const position = view.posAtCoords({ left: event.clientX, top: event.clientY });
+          if (position) view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(position.pos))));
+          return this.uploadFiles(Array.from(event.dataTransfer.files));
+        },
         handleDOMEvents: { pointerdown: (_view, event) => { this.blocks.reveal(event); return false; }, click: (view, event) => {
           const link = (event.target as Element).closest("a");
           if (link) {
@@ -64,8 +73,9 @@ export class MarkdownEditorManager {
         } },
       },
       onUpdate: () => { this.dirty = true; clearTimeout(this.pending); this.pending = setTimeout(() => this.flush(), 250); },
-      onTransaction: ({ transaction }) => { this.notify(); this.blocks.update(transaction); if (this.editor) this.slash.update(this.editor, transaction); },
-      onBlur: () => { this.flush(); this.slash.close(); },
+      onTransaction: ({ transaction }) => { this.uploads.forEach((bookmark, id) => this.uploads.set(id, bookmark.map(transaction.mapping))); this.notify(); this.blocks.update(transaction); if (this.editor) this.slash.update(this.editor, transaction); },
+      onFocus: () => this.notify(),
+      onBlur: () => { this.flush(); this.slash.close(); this.notify(); },
     });
     this.blocks.bind(this.editor);
     this.baseline = { text: this.projected, doc: this.editor.state.doc };
@@ -81,7 +91,8 @@ export class MarkdownEditorManager {
     const editor = this.editor;
     if (!editor) return;
     const coords = editor.view.coordsAtPos(value.position ?? editor.state.selection.from);
-    this.inspect({ ...value, anchor: { x: coords.left, y: coords.top, width: 1, height: coords.bottom - coords.top } });
+    const attrs = value.kind === "image" && value.position !== undefined ? editor.state.doc.nodeAt(value.position)?.attrs : undefined;
+    this.inspect({ ...value, ...(value.kind === "image" ? { image: { alt: String(attrs?.alt ?? ""), title: String(attrs?.title ?? ""), width: attrs?.width ? Number(attrs.width) : null } } : {}), anchor: { x: coords.left, y: coords.top, width: 1, height: coords.bottom - coords.top } });
   };
   private openMathShortcut = () => {
     const editor = this.editor;
@@ -94,6 +105,44 @@ export class MarkdownEditorManager {
   chooseSlash = (index: number) => { if (this.editor) this.slash.choose(this.editor, index); }
   highlightSlash = (index: number) => { this.slash.highlight(index); }
   closeSlash = () => { this.slash.close(); }
+  insertCommand = (id: MarkdownSlashState["items"][number]["id"]) => {
+    if (id === "paragraph") this.heading(0);
+    else if (id === "h1" || id === "h2" || id === "h3") this.heading(Number(id.slice(1)));
+    else this.run(id);
+  };
+  private uploadFiles = (files: File[]) => {
+    if (!this.props.uploadImage || !files.length) return false;
+    void this.uploadImage(files);
+    return true;
+  };
+  uploadImage = async (input: File | File[], image?: MarkdownInspector["image"]) => {
+    const editor = this.editor, upload = this.props.uploadImage;
+    if (!editor || !upload) return;
+    const id = Symbol("image-upload");
+    const revision = this.contentRevision;
+    this.uploads.set(id, editor.state.selection.getBookmark()); this.uploadError = ""; this.notify();
+    try {
+      const files = Array.isArray(input) ? input : [input];
+      const sources = await Promise.all(files.map(upload));
+      const bookmark = this.uploads.get(id);
+      if (editor.isDestroyed || !bookmark) return;
+      if (revision !== this.contentRevision || this.props.active === false && this.props.value !== this.projected) throw new Error(this.props.labels.rich.uploadContentChanged);
+      const selection = bookmark.resolve(editor.state.doc);
+      const images = sources.map((src, index) => editor.schema.nodes.image.create({ src, ...image, alt: image?.alt || files[index].name.replace(/\.[^.]+$/, "") }));
+      const transaction = closeHistory(editor.state.tr);
+      if (selection.$from.parent.type.contentMatch.matchType(editor.schema.nodes.image)) transaction.replaceWith(selection.from, selection.to, images);
+      else transaction.insert(selection instanceof NodeSelection || !selection.$from.depth ? selection.to : selection.$from.after(), editor.schema.nodes.paragraph.create(null, images));
+      editor.view.dispatch(transaction); editor.view.dispatch(closeHistory(editor.state.tr)); this.flush();
+    } catch (error) { this.uploadError = error instanceof Error ? error.message : this.props.labels.rich.error; }
+    finally { this.uploads.delete(id); if (!editor.isDestroyed) this.notify(); }
+  };
+  insertBlock = async (fromHandle = false) => {
+    const editor = this.editor;
+    if (!editor) return;
+    if (!fromHandle) this.blocks.targetSelection();
+    if (fromHandle || editor.state.selection.$from.parent.type.name !== "paragraph" || editor.state.selection.$from.parent.content.size || !editor.state.selection.empty) await this.blocks.perform("after");
+    this.slash.open(editor);
+  };
   refreshContext = () => { this.notify(); this.blocks.refresh(); if (this.editor) this.slash.update(this.editor, this.editor.state.tr); }
 
   private flushOnSave = (event: KeyboardEvent) => {
@@ -121,21 +170,45 @@ export class MarkdownEditorManager {
     const doc = editor.schema.nodeFromJSON(json);
     this.projected = props.value;
     this.baseline = { text: props.value, doc };
-    if (!doc.eq(editor.state.doc)) editor.view.dispatch(editor.state.tr.replaceWith(0, editor.state.doc.content.size, doc.content).setMeta("preventUpdate", true).setMeta("addToHistory", false));
+    if (!doc.eq(editor.state.doc)) {
+      this.contentRevision++;
+      editor.view.dispatch(editor.state.tr.replaceWith(0, editor.state.doc.content.size, doc.content).setMeta("preventUpdate", true).setMeta("addToHistory", false));
+    }
   }
 
   private notify = () => {
     const editor = this.editor;
     if (!editor) return;
+    if (editor.state.selection.empty) this.dismissedSelection = "";
     const value: MarkdownSelection = {
-      bold: editor.isActive("bold"), italic: editor.isActive("italic"),
+      bold: editor.isActive("bold"), italic: editor.isActive("italic"), strike: editor.isActive("strike"), code: editor.isActive("code"), link: editor.isActive("link"),
+      underline: editor.isActive("underline"), highlight: editor.isActive("highlight"),
       undo: editor.can().undo(), redo: editor.can().redo(),
       heading: editor.isActive("heading") ? Number(editor.getAttributes("heading").level) : 0,
       table: editor.isActive("table"), codeLanguage: editor.isActive("codeBlock") ? String(editor.getAttributes("codeBlock").language ?? "plaintext") : undefined,
+      anchor: this.selectionAnchor(),
+      mergeCells: editor.isActive("table") && editor.can().mergeCells(), splitCell: editor.isActive("table") && editor.can().splitCell(),
+      uploading: this.uploads.size > 0, uploadError: this.uploadError,
     };
     const identity = JSON.stringify(value);
     if (identity !== this.previousSelection) { this.previousSelection = identity; this.changed(value); }
   }
+
+  private selectionAnchor = () => {
+    const editor = this.editor;
+    if (!editor || this.props.active === false || !editor.isFocused || editor.view.composing || editor.isActive("codeBlock")) return;
+    const selection = editor.state.selection;
+    if (!(selection instanceof TextSelection) || selection.empty || this.dismissedSelection === `${selection.from}:${selection.to}`) return;
+    const first = editor.view.coordsAtPos(selection.from), last = editor.view.coordsAtPos(selection.to);
+    const viewport = editor.view.dom.closest(".ui-rich-markdown-scroll")?.getBoundingClientRect();
+    if (!viewport || first.top < viewport.top || first.top > viewport.bottom) return;
+    return { x: Math.min(first.left, last.left), y: first.top, width: Math.max(1, Math.abs(last.left - first.left)), height: first.bottom - first.top };
+  };
+  dismissSelectionTools = () => {
+    const selection = this.editor?.state.selection;
+    this.dismissedSelection = selection ? `${selection.from}:${selection.to}` : "";
+    this.notify();
+  };
 
   private command = (command: Command) => { const view = this.editor?.view; if (view) command(view.state, view.dispatch, view); }
   heading = (level: number) => { const chain = this.editor?.chain().focus(); if (level) chain?.setHeading({ level: level as 1 | 2 | 3 | 4 | 5 | 6 }).run(); else chain?.setParagraph().run(); }
@@ -149,17 +222,21 @@ export class MarkdownEditorManager {
     }
     const chain = editor.chain().focus();
     const actions = {
-      bold: () => chain.toggleBold(), italic: () => chain.toggleItalic(), code: () => chain.toggleCode(),
+      bold: () => chain.toggleBold(), italic: () => chain.toggleItalic(), code: () => chain.toggleCode(), clearFormatting: () => chain.unsetAllMarks(),
+      underline: () => chain.toggleUnderline(), highlight: () => chain.toggleHighlight(),
+      toggle: () => editor.isActive("details") ? chain.unsetDetails() : chain.setDetails().updateAttributes("details", { open: true }),
+      callout: () => chain.setBlockquote().updateAttributes("blockquote", { callout: "note" }),
       strike: () => chain.toggleStrike(), list: () => chain.toggleBulletList(), orderedList: () => chain.toggleOrderedList(),
       taskList: () => chain.toggleTaskList(), quote: () => chain.toggleBlockquote(), divider: () => chain.setHorizontalRule(),
       table: () => chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }), codeBlock: () => chain.toggleCodeBlock(),
       undo: () => chain.undo(), redo: () => chain.redo(), addRow: () => chain.addRowAfter(), addColumn: () => chain.addColumnAfter(),
       deleteRow: () => chain.deleteRow(), deleteColumn: () => chain.deleteColumn(),
+      mergeCells: () => chain.mergeCells(), splitCell: () => chain.splitCell(),
     };
     actions[action]().run();
   }
 
-  applyInspector = (inspector: MarkdownInspector, value: string) => {
+  applyInspector = (inspector: MarkdownInspector, value: string, image?: MarkdownInspector["image"]) => {
     const editor = this.editor;
     if (!editor) return;
     editor.view.dispatch(closeHistory(editor.state.tr));
@@ -173,8 +250,8 @@ export class MarkdownEditorManager {
       if (current?.type.name !== "paragraph" || current.textContent !== "$$") return;
       chain.insertContentAt(inspector.replace, { type: "blockMath", attrs: { latex: value } }).run();
     } else if (inspector.position !== undefined) {
-      editor.view.dispatch(editor.state.tr.setNodeMarkup(inspector.position, undefined, { ...editor.state.doc.nodeAt(inspector.position)?.attrs, [inspector.kind === "math" ? "latex" : "src"]: value }));
-    } else if (inspector.kind === "image") chain.setImage({ src: value, alt: this.props.labels.rich.image }).run();
+      editor.view.dispatch(editor.state.tr.setNodeMarkup(inspector.position, undefined, { ...editor.state.doc.nodeAt(inspector.position)?.attrs, ...(inspector.kind === "image" ? { ...image, height: null } : {}), [inspector.kind === "math" ? "latex" : "src"]: value }));
+    } else if (inspector.kind === "image") chain.setImage({ src: value, alt: image?.alt, title: image?.title, width: image?.width ?? undefined }).run();
     else if (inspector.inline) chain.insertInlineMath({ latex: value }).run();
     else chain.insertBlockMath({ latex: value }).run();
     this.flush();
@@ -185,6 +262,7 @@ export class MarkdownEditorManager {
   searchAction = (action: "next" | "previous" | "replace" | "all") => { this.command(({ next: findNext, previous: findPrev, replace: replaceNext, all: replaceAll })[action]); }
   focus = () => { this.editor?.view.focus(); }
   destroy = () => {
+    this.uploads.clear();
     this.flush();
     window.removeEventListener("pagehide", this.flush);
     window.removeEventListener("beforeunload", this.flush);

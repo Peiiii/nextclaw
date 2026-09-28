@@ -46,6 +46,7 @@ export class NextclawHarnessError extends Error {
 
 export type NextclawTaskInput = {
   input: string;
+  channel?: string;
   agentId?: string;
   sessionId?: string;
   model?: string;
@@ -111,6 +112,7 @@ export type NextclawSessionCreateInput = {
 
 export type NextclawSessionRunInput = {
   input: string;
+  channel?: string;
   model?: string;
   signal?: AbortSignal;
   onEvent?: (event: NcpEndpointEvent) => void;

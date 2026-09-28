@@ -15,6 +15,12 @@ const client = new BiboClient();
 const message = (error: unknown) => error instanceof Error ? error.message : "操作暂时失败，请稍后再试。";
 
 class BiboSpaceOwner {
+  uploadImage = async (file: File): Promise<string> => {
+    const account = this.get().accountId;
+    const url = await client.uploadImage(file);
+    if (account !== this.get().accountId) throw new Error("账号已切换，请重新上传图片。");
+    return url;
+  };
   private readonly instanceId = Symbol("space-owner");
   accountId: string | null = null;
   calendarDate = new Date();

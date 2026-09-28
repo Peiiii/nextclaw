@@ -3,7 +3,7 @@ import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { chromium } from "playwright";
+import { chromium, type Page } from "playwright";
 
 const origin = "https://app.bibo.bot";
 const accountFile = process.env.BIBO_SMOKE_ACCOUNT_FILE ?? join(homedir(), ".config/bibo-hosted/smoke-account.json");
@@ -37,6 +37,27 @@ async function space<T>(action: string, input: Record<string, unknown>): Promise
   }, { action, input });
 }
 let created = false;
+async function checkLiveImage(page: Page) {
+  await page.getByRole("button", { name: "更多格式", exact: true }).click();
+  await page.getByRole("menuitem", { name: "图片", exact: true }).click();
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1sAAAAASUVORK5CYII=", "base64");
+  await page.getByRole("dialog", { name: "图片", exact: true }).locator("input[type=file]").setInputFiles({ name: "deployment-test.png", mimeType: "image/png", buffer: png });
+  const image = page.locator(".tiptap:visible img[src^='/api/assets/']");
+  await image.waitFor();
+  const src = await image.getAttribute("src");
+  assert.ok(src);
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
+  assert.ok((await space<File>("file.get", { path })).content.includes(src));
+  await page.reload({ waitUntil: "networkidle" });
+  await page.locator(`.ui-markdown-document img[src='${src}']`).waitFor();
+  await page.waitForFunction(source => { const image = document.querySelector(`img[src='${source}']`) as HTMLImageElement; return image?.complete && image.naturalWidth === 1; }, src);
+  const anonymous = await browser.newContext();
+  assert.equal((await anonymous.request.get(origin + src)).status(), 401, "private assets require authentication");
+  await anonymous.close();
+  assert.equal((await context.request.post(origin + "/api/assets", { headers: { origin: "https://example.com" }, data: png })).status(), 403, "cross-site uploads are rejected before storage");
+  console.log("Production private image: real upload, save, reload, authenticated display and access checks passed");
+}
 try {
   await page.goto(`${origin}/notes`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "新笔记", exact: true }).click();
@@ -68,6 +89,7 @@ try {
     await page.keyboard.press("ControlOrMeta+s");
     await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
     assert.ok((await space<File>("file.get", { path })).content.includes("正文编辑真实保存"));
+    if (width === 1440) await checkLiveImage(page);
     await page.screenshot({ path: `/tmp/bibo-markdown-editor-live-${width}.png` });
     console.log(`Production ${width}px: UI creation, editing, exact persisted Markdown and refreshed preview passed`);
   }

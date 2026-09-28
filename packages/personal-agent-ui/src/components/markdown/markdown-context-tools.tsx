@@ -1,13 +1,37 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { Type, Heading1, Heading2, Heading3, List, ListOrdered, ListTodo, Quote, Table2, Code2, Sigma, Image, Link, Minus, GripVertical, Copy, Trash2, Pencil, ArrowUpToLine, ArrowDownToLine } from "lucide-react";
+import { Type, Code2, Plus, GripVertical, Copy, Trash2, Pencil, ArrowUpToLine, ArrowDownToLine, Bold, Italic, Strikethrough, Underline, Highlighter, Code, Link, RemoveFormatting } from "lucide-react";
+import { markdownCommands } from "../../configs/markdown-commands.config";
 import { AnchoredPopover, Popover } from "../overlays/popover";
 import { IconButton } from "../icon-button";
 import type { MarkdownBlockManager, MarkdownBlockState, MarkdownBlockAction, MarkdownBlockFormat } from "../../managers/markdown-block.manager";
 import type { MarkdownEditorManager } from "../../managers/markdown-editor.manager";
-import type { MarkdownEditorLabels, MarkdownSlashState } from "../../types/markdown-editor.types";
+import type { MarkdownEditorLabels, MarkdownSlashState, MarkdownSelection } from "../../types/markdown-editor.types";
 
-const commandIcons = { paragraph: Type, h1: Heading1, h2: Heading2, h3: Heading3, list: List, orderedList: ListOrdered, taskList: ListTodo, quote: Quote, table: Table2, codeBlock: Code2, math: Sigma, inlineMath: Sigma, image: Image, link: Link, divider: Minus };
+const commandIcon = (id: string) => markdownCommands.find(item => item.id === id)!.icon;
+
+export function MarkdownSelectionToolbar({ selection, labels, manager }: {
+  selection: MarkdownSelection; labels: MarkdownEditorLabels; manager: MarkdownEditorManager;
+}) {
+  if (!selection.anchor) return null;
+  const items = [
+    { action: "bold", icon: Bold, label: labels.bold },
+    { action: "italic", icon: Italic, label: labels.italic },
+    { action: "underline", icon: Underline, label: labels.rich.underline },
+    { action: "highlight", icon: Highlighter, label: labels.rich.highlight },
+    { action: "strike", icon: Strikethrough, label: labels.rich.strike },
+    { action: "code", icon: Code, label: labels.code },
+    { action: "link", icon: Link, label: labels.rich.link },
+    { action: "clearFormatting", icon: RemoveFormatting, label: labels.rich.clearFormatting },
+  ] as const;
+  return <AnchoredPopover anchor={selection.anchor} side="top" label={labels.rich.selectionTools}
+    className="ui-markdown-selection-popover" passive onClose={manager.dismissSelectionTools}>
+    <div role="toolbar" aria-label={labels.rich.selectionTools} onMouseDown={event => event.preventDefault()}>
+      {items.map(({ action, icon: Icon, label }) => <IconButton key={action} label={label} icon={<Icon />}
+        aria-pressed={action === "clearFormatting" ? undefined : selection[action]} onClick={() => manager.run(action)} />)}
+    </div>
+  </AnchoredPopover>;
+}
 
 function navigateBlockMenu(event: KeyboardEvent<HTMLDivElement>) {
   const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("[role=menuitem]"));
@@ -33,12 +57,14 @@ export function MarkdownSlashMenu({ state, labels, manager }: { state: MarkdownS
     <div className="ui-markdown-command-heading">{labels.rich.commands}</div>
     <div className="ui-markdown-command-list" ref={list} role="listbox" aria-label={labels.rich.commands}>
       {state.items.map((item, index) => {
-        const Icon = commandIcons[item.id];
-        return <button key={item.id} ref={index === state.index ? active : undefined} type="button" role="option"
+        const Icon = commandIcon(item.id);
+        return <Fragment key={item.id}>
+          {(index === 0 || state.items[index - 1].group !== item.group) && <div role="presentation" className="ui-markdown-command-group">{labels.rich[item.group]}</div>}
+          <button ref={index === state.index ? active : undefined} type="button" role="option"
           aria-label={item.label} aria-selected={index === state.index} onPointerMove={() => manager.highlightSlash(index)} onMouseDown={event => event.preventDefault()} onClick={() => manager.chooseSlash(index)}>
           <span className="ui-markdown-command-icon"><Icon size={18} /></span>
           <span><span className="ui-markdown-command-label">{item.label}</span><span className="ui-markdown-command-description">{labels.rich.commandDescriptions[item.id]}</span></span>
-        </button>;
+        </button></Fragment>;
       })}
       {!state.items.length && <p>{labels.rich.noResults}</p>}
     </div>
@@ -46,10 +72,11 @@ export function MarkdownSlashMenu({ state, labels, manager }: { state: MarkdownS
   </AnchoredPopover>;
 }
 
-export function MarkdownBlockHandle({ state, labels, manager }: { state: MarkdownBlockState; labels: MarkdownEditorLabels; manager: MarkdownBlockManager }) {
+export function MarkdownBlockHandle({ state, labels, manager, onInsert }: { state: MarkdownBlockState; labels: MarkdownEditorLabels; manager: MarkdownBlockManager; onInsert: () => void }) {
   return <>
     {manager.element && createPortal(<>
-      <IconButton label={labels.rich.blockActions} icon={<GripVertical />} aria-expanded={state.open} aria-haspopup="menu" onClick={manager.open} />
+      <IconButton className="ui-markdown-block-add" label={labels.rich.commands} icon={<Plus />} onMouseDown={event => event.stopPropagation()} onClick={onInsert} />
+      <IconButton label={labels.rich.blockActions} icon={<GripVertical />} aria-expanded={state.open} aria-haspopup="menu" onClick={manager.open} onContextMenu={event => { event.preventDefault(); manager.open(); }} />
     </>, manager.element)}
     {state.open && <MarkdownBlockMenu state={state} labels={labels} manager={manager} />}
   </>;
@@ -86,11 +113,11 @@ function MarkdownBlockMenu({ state, labels, manager }: { state: MarkdownBlockSta
 
 function MarkdownBlockConversion({ labels, manager }: { labels: MarkdownEditorLabels; manager: MarkdownBlockManager }) {
   const [open, setOpen] = useState(false);
-  const formats: MarkdownBlockFormat[] = ["paragraph", "h1", "h2", "h3", "list", "orderedList", "taskList", "quote", "codeBlock"];
+  const formats: MarkdownBlockFormat[] = ["paragraph", "h1", "h2", "h3", "list", "orderedList", "taskList", "quote", "callout", "toggle", "codeBlock"];
   const label = (format: MarkdownBlockFormat) => format.startsWith("h") ? `${labels.rich.heading} ${format.slice(1)}` : format === "list" ? labels.list : labels.rich[format as Exclude<MarkdownBlockFormat, "h1" | "h2" | "h3" | "list">];
   return <Popover open={open} onOpenChange={setOpen} side="right" label={labels.rich.turnInto} trigger={<button type="button" role="menuitem" className="ui-markdown-block-action" aria-haspopup="menu"><Type size={18} /><span>{labels.rich.turnInto}</span><span aria-hidden="true" className="ui-markdown-block-chevron">›</span></button>}>
     <div role="menu" aria-label={labels.rich.turnInto} className="ui-markdown-block-formats" onKeyDown={navigateBlockMenu}>
-      {formats.map(format => { const Icon = commandIcons[format]; return <button type="button" role="menuitem" className="ui-markdown-block-action" key={format} onClick={() => manager.convert(format)}><Icon size={18} />{label(format)}</button>; })}
+      {formats.map(format => { const Icon = commandIcon(format); return <button type="button" role="menuitem" className="ui-markdown-block-action" key={format} onClick={() => manager.convert(format)}><Icon size={18} />{label(format)}</button>; })}
     </div>
   </Popover>;
 }
