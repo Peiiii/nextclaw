@@ -17,7 +17,7 @@ import { createBiboSpaceTool } from "@/features/bibo-domain/tools/bibo-space.too
 import { BiboSpaceStateStore } from "../bibo-space-state.service";
 import { BiboSpaceFileStore } from "../stores/bibo-space-file.store";
 import { BiboEdgeSessionStore, type BiboEdgeSession } from "../stores/bibo-edge-session.store";
-import { logDiagnostic, runFailure } from "../diagnostics/bibo-diagnostics.utils";
+import { errorDetails, logDiagnostic, runFailure } from "../diagnostics/bibo-diagnostics.utils";
 import { applyBiboStorageChanges } from "../utils/bibo-storage.utils";
 
 export type BiboEdgeRunResult = {
@@ -65,7 +65,7 @@ function createInputMessage(sessionId: string, message: string, saved: BiboEdgeS
 }
 
 function reportEdgeRunError(events: readonly NcpEndpointEvent[], tools: readonly NcpTool[], runId: string,
-  sessionId: string, reason: string): void {
+  sessionId: string, reason: unknown): void {
   const counts = new Map<string, number>();
   const knownTools = new Set(tools.map((tool) => tool.name));
   for (const event of events) {
@@ -73,10 +73,12 @@ function reportEdgeRunError(events: readonly NcpEndpointEvent[], tools: readonly
     const name = knownTools.has(event.payload.toolName) ? event.payload.toolName : "unknown";
     counts.set(name, (counts.get(name) ?? 0) + 1);
   }
-  const errorType = /Tool call limit reached/.test(reason) ? "ToolCallLimit" :
-    /Assistant step completed without/.test(reason) ? "AssistantStepMissing" :
-    /not available in this run/.test(reason) ? "ToolUnavailable" : "NcpRunError";
-  logDiagnostic("worker", "edge.agent-error", { runId, sessionId, errorType,
+  const message = reason instanceof Error ? reason.message : String(reason);
+  const details = errorDetails(reason);
+  const errorType = /Tool call limit reached/.test(message) ? "ToolCallLimit" :
+    /Assistant step completed without/.test(message) ? "AssistantStepMissing" :
+    /not available in this run/.test(message) ? "ToolUnavailable" : details.errorType ?? "NcpRunError";
+  logDiagnostic("worker", "edge.agent-error", { runId, sessionId, errorType, errorLocation: details.errorLocation,
     toolCount: [...counts.values()].reduce((total, count) => total + count, 0),
     toolSummary: [...counts].map(([name, count]) => `${name}:${count}`).join(",") }, "error");
 }
@@ -164,6 +166,7 @@ export class BiboEdgeConversationService {
       if (input.signal?.aborted || runError) throw runFailure(runError?.payload.error, input.signal?.aborted);
       return finalizeRun(manager, saved, events, spaceState, spaceChanged, files, displayEvents);
     } catch (error) {
+      reportEdgeRunError(events, tools, input.runId, input.sessionId, error);
       files.rollback();
       throw error;
     }
