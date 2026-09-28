@@ -1,5 +1,12 @@
 # @nextclaw/shared
 
+## 0.8.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/ncp@0.11.3
+
 ## 0.8.3
 
 ### Patch Changes

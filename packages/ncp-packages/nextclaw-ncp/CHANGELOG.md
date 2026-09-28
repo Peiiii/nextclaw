@@ -1,5 +1,14 @@
 # @nextclaw/ncp
 
+## 0.11.3
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/ncp
+
 ## 0.11.2
 
 ### Patch Changes

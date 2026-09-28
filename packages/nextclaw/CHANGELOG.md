@@ -1,5 +1,36 @@
 # nextclaw
 
+## 0.58.0
+
+### Minor Changes
+
+- 54ddd77: Bibo 普通对话和个人空间操作改由边缘会话运行，保留旧会话、文件与问答状态，并避免每条消息启动用户容器及生成整份快照。NextClaw 的通用对话输入与上下文能力增加可移植入口，现有 Node 宿主继续使用相同语义。
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [e901514]
+- Updated dependencies [54ddd77]
+- Updated dependencies [6302ba5]
+- Updated dependencies [31b9162]
+- Updated dependencies [b99507f]
+  - @nextclaw/ncp@0.11.3
+  - @nextclaw/kernel@0.19.1
+  - @nextclaw/core@0.18.5
+  - @nextclaw/server@0.23.13
+  - @nextclaw/ncp-agent-runtime@0.4.27
+  - @nextclaw/ncp-mcp@0.2.55
+  - @nextclaw/ncp-toolkit@0.6.28
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.25
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.27
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.55
+  - @nextclaw/service@0.7.7
+  - @nextclaw/shared@0.8.4
+  - @nextclaw/remote@0.3.70
+  - @nextclaw/mcp@0.3.55
+  - @nextclaw/runtime@0.4.54
+  - @nextclaw/app-runtime@0.16.11
+
 ## 0.57.3
 
 ### Patch Changes

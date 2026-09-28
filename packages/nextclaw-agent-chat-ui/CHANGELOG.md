@@ -1,5 +1,12 @@
 # @nextclaw/agent-chat-ui
 
+## 0.12.3
+
+### Patch Changes
+
+- acb0740: Fix repeated footnote identifiers and broken reference jumps across messages, preserve preformatted code without nested containers, and retain loading feedback for incomplete streamed formulas. Bibo now shares NextClaw Markdown rendering, including math, Mermaid, highlighted code, image previews and improved list/table layout.
+- 45e013c: Preserve portable Markdown table widths, image captions and sizes, inline emphasis, and formatted disclosure titles while keeping HTML sanitized. Recognize GitHub-style callouts in document content.
+
 ## 0.12.2
 
 ### Patch Changes
