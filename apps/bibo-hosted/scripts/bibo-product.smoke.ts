@@ -4,7 +4,7 @@ import { once } from "node:events";
 import { chromium, type Page, type Route } from "playwright";
 import { mockApi } from "./personal-workspace.fixture";
 import { checkThemes, checkControlFeedback, checkFileTabs } from "./design-system/bibo-design-system.smoke";
-import { checkWorkspaceFiles, openWorkspaceFile } from "./design-system/workspace-file.smoke";
+import { checkMissingRestoredFile, checkWorkspaceFiles, openWorkspaceFile } from "./design-system/workspace-file.smoke";
 const base = "http://127.0.0.1:5189";
 const server = spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5189", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
 async function ready(): Promise<void> {
@@ -167,6 +167,11 @@ async function checkWorkspaceRecovery(page: Page): Promise<void> {
   await page.getByRole("button", { name: "重试打开", exact: true }).click();
   await editor.waitFor();
   assert.equal(await editor.inputValue(), "# 工作区保留的修改");
+  await captureWorkspace(page);
+  await checkMissingRestoredFile(page, base);
+}
+
+async function captureWorkspace(page: Page): Promise<void> {
   await checkContentBounds(page);
   await page.screenshot({ path: `/tmp/bibo-workspace-${page.viewportSize()!.width}.png` });
 }

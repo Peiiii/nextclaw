@@ -6,6 +6,16 @@ export async function openWorkspaceFile(page: Page, parts: readonly string[]): P
   for (const name of parts) await page.getByRole("dialog", { name: "浏览目录" }).getByRole("button", { name, exact: true }).click();
 }
 
+export async function checkMissingRestoredFile(page: Page, base: string): Promise<void> {
+  await page.evaluate(() => localStorage.setItem("space-layout:smoke", JSON.stringify({
+    tabs: ["file-a", "missing-file"], activeFileId: "file-a", workspaceOpen: true, workspaceFileId: "missing-file",
+  })));
+  await page.goto(`${base}/files`, { waitUntil: "networkidle" });
+  await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
+  assert.equal(await page.getByText("File missing", { exact: true }).count(), 0, "a missing restored tab must not warn about the existing file");
+  assert.equal(await page.locator(".bibo-file-tab").count(), 1, "the missing restored tab is removed");
+}
+
 async function checkTwoRows(page: Page, surface: Locator, width: number, workspace: boolean): Promise<void> {
   const layout = await surface.evaluate((node, workspace) => {
     const header = document.querySelector(workspace ? ".bibo-workspace-head" : ".bibo-topbar")!.getBoundingClientRect();

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
+import type { useBiboSpaceStore as BiboSpaceStoreHook } from "./bibo-space.store";
 
 test("space lifecycle isolates accounts, preserves failed drafts and safely resumes file tabs", async (t) => {
   const originalWindow = globalThis.window;
@@ -221,8 +222,38 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
     assert.equal(useBiboSpaceStore.getState().feedback.message, "");
     assert.equal(useBiboSpaceStore.getState().actionError, "");
   });
+  await checkMissingFileWarning(t, useBiboSpaceStore, requests, responses);
   await checkWriteFeedback(t, responses, overview);
 });
+
+async function checkMissingFileWarning(t: TestContext, useBiboSpaceStore: typeof BiboSpaceStoreHook,
+  requests: Array<{ action: string; input: Record<string, unknown> }>, responses: Array<(response: Response) => void>): Promise<void> {
+  await t.test("a missing restored file cannot leave a deletion warning on another file", async () => {
+    const current = useBiboSpaceStore.getState();
+    const real = { id: "real-file", path: "工作台/周报.md", kind: "document", version: 1, content: "still here", createdAt: "now", updatedAt: "now" };
+    useBiboSpaceStore.setState({ tabs: ["missing-file", real.id], activeFileId: real.id, workspaceOpen: true, workspaceFileId: "missing-file", fileDetails: { [real.id]: real as never }, fileDrafts: {}, error: "", fileOpenError: null });
+    const load = current.load("files");
+    responses.at(-1)!(Response.json({ result: { items: [real], nextCursor: null } }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(requests.at(-1)?.action, "file.get");
+    assert.equal(requests.at(-1)?.input.id, "missing-file");
+    responses.at(-1)!(Response.json({ error: "对象不存在或已删除。" }, { status: 404 }));
+    await load;
+    const restored = useBiboSpaceStore.getState();
+    assert.deepEqual(restored.tabs, [real.id]);
+    assert.equal(restored.workspaceFileId, real.id);
+    assert.equal(restored.error, "");
+    assert.equal(restored.fileOpenError, null);
+
+    const failed = current.openFile("old-list-row");
+    responses.at(-1)!(Response.json({ error: "对象不存在或已删除。" }, { status: 404 }));
+    await failed;
+    assert.equal(useBiboSpaceStore.getState().fileOpenError?.id, "old-list-row");
+    await current.openFile(real.id);
+    assert.equal(useBiboSpaceStore.getState().fileOpenError, null);
+    assert.equal(useBiboSpaceStore.getState().error, "");
+  });
+}
 
 
 async function checkWriteFeedback(t: TestContext, responses: Array<(response: Response) => void>, overview: (count: number) => unknown): Promise<void> {
