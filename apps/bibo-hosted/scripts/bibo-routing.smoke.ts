@@ -128,11 +128,19 @@ async function checkLogin(page: Page) {
   await page.locator(".bibo-auth-card").waitFor();
   await page.goto(`${base}/chat/a`, { waitUntil: "networkidle" });
   const auth = page.locator(".bibo-auth-card");
+  assert.equal(await auth.getAttribute("role"), "dialog");
+  assert.equal(await page.locator("main").evaluate((element) => (element as HTMLElement).inert), true, "background navigation is unavailable during authentication");
+  if (page.viewportSize()!.width < 761) {
+    const box = (await auth.boundingBox())!;
+    assert.equal(box.x, 0, "mobile authentication owns the whole viewport");
+    assert.equal(box.width, page.viewportSize()!.width);
+  }
   await auth.getByRole("button", { name: "登录", exact: true }).first().click();
   await auth.getByRole("textbox", { name: "邮箱", exact: true }).fill("test@example.com");
   await auth.getByLabel("密码", { exact: true }).fill("test-password");
-  await auth.getByRole("button", { name: /登录 ↗/ }).click();
+  await auth.locator('button[type="submit"]').click();
   await auth.waitFor({ state: "hidden" });
+  assert.equal(await page.locator("main").evaluate((element) => (element as HTMLElement).inert), false);
   await page.getByText("正文 a", { exact: true }).waitFor();
 }
 

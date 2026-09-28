@@ -34,7 +34,7 @@ class BiboChatOwner {
   phase: Phase = "idle";
   runId: string | null = null;
   status = "";
-  authError = "";
+  authFeedback: { kind: "success" | "error"; message: string } | null = null;
   authMode: "register" | "login" = "register";
   following = true;
   menuOpen = false;
@@ -45,7 +45,7 @@ class BiboChatOwner {
   ) {}
 
   setDraft = (draft: string): void => this.set((state) => ({ draft, drafts: { ...state.drafts, [state.activeSessionId ?? "new"]: draft } }));
-  setAuthMode = (authMode: "register" | "login"): void => this.set({ authMode, authError: "" });
+  setAuthMode = (authMode: "register" | "login"): void => this.set({ authMode, authFeedback: null });
   setFollowing = (following: boolean): void => this.set({ following });
   setMenuOpen = (menuOpen: boolean): void => this.set({ menuOpen });
 
@@ -175,22 +175,22 @@ class BiboChatOwner {
   };
 
   sendCode = async (email: string): Promise<void> => {
-    this.set({ authError: "" });
+    this.set({ authFeedback: null });
     try {
       const result = await biboClient.sendCode(email);
-      this.set({ authError: `验证码已发往 ${result.maskedEmail ?? email}。请检查邮箱。` });
-    } catch (error) { this.set({ authError: errorText(error) }); }
+      if (this.get().authMode === "register" && !this.get().user) this.set({ authFeedback: { kind: "success", message: `验证码已发往 ${result.maskedEmail ?? email}。请检查邮箱。` } });
+    } catch (error) { if (this.get().authMode === "register") this.set({ authFeedback: { kind: "error", message: errorText(error) } }); }
   };
 
   authenticate = async (email: string, password: string, code: string): Promise<void> => {
-    this.set({ authError: "" });
+    this.set({ authFeedback: null });
     try {
       const user = this.get().authMode === "login"
         ? await biboClient.login(email, password)
         : await biboClient.register(email, password, code);
-      this.set({ user });
+      this.set({ user, authFeedback: null });
       await this.bootstrap();
-    } catch (error) { this.set({ authError: errorText(error) }); }
+    } catch (error) { this.set({ authFeedback: { kind: "error", message: errorText(error) } }); }
   };
 
   logout = async (): Promise<void> => {
@@ -199,7 +199,7 @@ class BiboChatOwner {
     const user = this.get().user;
     if (user) sessionStorage.removeItem(pendingKey(user.id));
     try { await biboClient.logout(); } catch { /* Clear the local session view. */ }
-    this.set({ user: null, authChecked: true, sessions: [], activeSessionId: null, messages: [], draft: "", drafts: {}, failedMessages: {}, replyErrors: {}, phase: "idle", runSessionId: null, runMessages: [], runId: null, pendingMessage: null, pendingIds: null, partial: "", sessionLoading: false, status: "", menuOpen: false });
+    this.set({ user: null, authChecked: true, authFeedback: null, sessions: [], activeSessionId: null, messages: [], draft: "", drafts: {}, failedMessages: {}, replyErrors: {}, phase: "idle", runSessionId: null, runMessages: [], runId: null, pendingMessage: null, pendingIds: null, partial: "", sessionLoading: false, status: "", menuOpen: false });
     replaceConversationContext(null);
   };
 
