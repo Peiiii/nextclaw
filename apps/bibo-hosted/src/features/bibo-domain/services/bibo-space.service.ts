@@ -26,6 +26,7 @@ export type BiboFileStorage = {
   delete(file: BiboFile, removed: readonly BiboFile[]): Promise<void>;
   rollback(): void;
 };
+export type BiboDeliveryStorage = { read(): Promise<string | null> };
 
 type Actor = { kind: "user" | "agent"; sessionId?: string };
 type ActionResult = { result: unknown; changed: boolean };
@@ -101,7 +102,8 @@ export class BiboSpaceService {
   private readonly deliveriesPath: string;
   private queue: Promise<void> = Promise.resolve();
 
-  constructor(home: string, private readonly stateStorage?: StateStorage, private readonly fileStorage?: BiboFileStorage) {
+  constructor(home: string, private readonly stateStorage?: StateStorage, private readonly fileStorage?: BiboFileStorage,
+    private readonly deliveryStorage?: BiboDeliveryStorage) {
     this.root = resolve(home, "workspace");
     this.statePath = resolve(home, "bibo", "state.json");
     this.deliveriesPath = resolve(home, "inbox", "deliveries.json");
@@ -198,12 +200,14 @@ export class BiboSpaceService {
   };
 
   private inboxItems = async (state: State): Promise<BiboInboxItem[]> => {
-    let source: string;
-    try { source = await readFile(this.deliveriesPath, "utf8"); }
+    let source: string | null;
+    if (this.deliveryStorage) source = await this.deliveryStorage.read();
+    else try { source = await readFile(this.deliveriesPath, "utf8"); }
     catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return state.inbox;
       throw error;
     }
+    if (source === null) return state.inbox;
     const value: unknown = JSON.parse(source);
     if (!value || typeof value !== "object" || !Array.isArray((value as { deliveries?: unknown }).deliveries)) throw new BiboSpaceError("Bibo 暂时无法读取 Agent 送达。", 500);
     const deliveries = ((value as { deliveries: unknown[] }).deliveries).filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item) && typeof (item as Record<string, unknown>).id === "string");

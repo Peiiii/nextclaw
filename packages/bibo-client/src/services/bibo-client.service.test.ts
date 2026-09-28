@@ -84,8 +84,9 @@ test("question answers keep a structured relation in the same chat request", asy
     body = JSON.parse(String(init?.body));
     return json({ text: "继续", messages: [] });
   }) as typeof fetch });
-  await client.chat("PDF", () => undefined, "session-1", { id: "question-1", action: "answer" });
-  assert.deepEqual(body, { message: "PDF", sessionId: "session-1", questionId: "question-1", questionAction: "answer" });
+  await client.chat("PDF", () => undefined, "session-1", { id: "question-1", action: "answer" }, "send-1");
+  assert.deepEqual(body, { message: "PDF", sessionId: "session-1", questionId: "question-1", questionAction: "answer",
+    clientRequestId: "send-1" });
 });
 
 test("delivers a delta before committed data exists", async () => {

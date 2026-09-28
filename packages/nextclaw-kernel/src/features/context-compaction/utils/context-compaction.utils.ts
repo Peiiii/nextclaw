@@ -1,10 +1,9 @@
-import { randomUUID } from "node:crypto";
 import {
   type NcpEndpointEvent,
   type NcpMessage,
   NcpEventType,
 } from "@nextclaw/ncp";
-import { readCompressedContextCompactionCheckpoint, type ContextCompactionCheckpoint } from "@nextclaw/core";
+import { readCompressedContextCompactionCheckpoint, type ContextCompactionCheckpoint } from "@nextclaw/core/context-compaction-checkpoint";
 import { MODEL_ROUND_PART_OFFSETS } from "@nextclaw/ncp-agent-runtime";
 
 export const NEXTCLAW_TIMELINE_KIND_METADATA_KEY = "nextclaw_timeline_kind";
@@ -158,7 +157,7 @@ function readCheckpointCoveredUntil(checkpoint: ContextCompactionCheckpoint): st
 }
 
 export function createContextCompactionMessageId(): string {
-  return `context-compaction-message-${randomUUID()}`;
+  return `context-compaction-message-${crypto.randomUUID()}`;
 }
 
 export function buildContextCompactionTimelineNcpMessage(params: {

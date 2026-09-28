@@ -10,8 +10,9 @@ const EAGER_TOOL_NAMES = new Set([
 
 /** Model-facing disclosure only; execution continues to validate the original schema. */
 export function selectToolModelParameters(tool: NcpTool): NcpTool["parameters"] {
-  return EAGER_TOOL_NAMES.has(tool.name) || !tool.parameters || JSON.stringify(tool.parameters).length <= 160
-    ? tool.parameters : { type: "object" };
+  const parameters = tool.modelParameters ?? tool.parameters;
+  return EAGER_TOOL_NAMES.has(tool.name) || !parameters || JSON.stringify(parameters).length <= 160
+    ? parameters : { type: "object" };
 }
 
 export class ToolSchemaTool implements NcpTool {
@@ -24,13 +25,21 @@ export class ToolSchemaTool implements NcpTool {
     additionalProperties: false,
   };
 
-  constructor(private readonly readTools: () => readonly NcpTool[]) {}
+  readonly modelParameters?: NcpTool["parameters"];
+  readonly validateArgs?: (value: Record<string, unknown>) => string[];
+
+  constructor(private readonly readTools: () => readonly NcpTool[], portableValidation = false) {
+    if (portableValidation) {
+      this.modelParameters = this.parameters;
+      this.validateArgs = (value) => typeof value.name === "string" && value.name.trim() ? [] : ["name is required"];
+    }
+  }
 
   execute = async (args: unknown): Promise<unknown> => {
     const name = args && typeof args === "object" && "name" in args ? args.name : null;
     if (typeof name !== "string" || !name.trim()) throw new Error("Tool name is required.");
     const tool = this.readTools().find((candidate) => candidate.name === name.trim());
     if (!tool) throw new Error(`Tool is not in the current allowed catalog: ${name}`);
-    return structuredClone({ name: tool.name, description: tool.description, parameters: tool.parameters });
+    return structuredClone({ name: tool.name, description: tool.description, parameters: tool.modelParameters ?? tool.parameters });
   };
 }

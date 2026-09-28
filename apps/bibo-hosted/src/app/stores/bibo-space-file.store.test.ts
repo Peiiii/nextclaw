@@ -3,6 +3,7 @@ import test from "node:test";
 import type { BiboFileDetail } from "@nextclaw/bibo-client";
 import { BiboSpaceService } from "@/features/bibo-domain";
 import { BiboSpaceStateStore } from "../bibo-space-state.service";
+import { BiboSpaceFileStore } from "./bibo-space-file.store";
 
 class MemoryStorage {
   values = new Map<string, unknown>();
@@ -68,4 +69,23 @@ test("DO file content keeps the Node byte limit for multibyte text", async () =>
   const content = "中".repeat(349_526);
   await assert.rejects(space.execute("file.create", { path: "large.md", kind: "artifact", content }), /1 MiB/);
   assert.equal(storage.values.size, 0);
+});
+
+test("run-scoped file changes stay private until session and space commit together", async () => {
+  const storage = new MemoryStorage();
+  const store = new BiboSpaceStateStore(storage as unknown as DurableObjectStorage);
+  const files = new BiboSpaceFileStore(storage as unknown as DurableObjectStorage);
+  let stagedState = await store.load();
+  const space = new BiboSpaceService("/data", {
+    load: async () => stagedState,
+    save: async (state) => { stagedState = structuredClone(state); },
+  }, files, { read: async () => null });
+  const created = await space.execute("file.create", { path: "run.md", kind: "artifact", content: "uncommitted" }) as BiboFileDetail;
+  assert.equal(storage.values.size, 0);
+  assert.equal((await space.execute("file.get", { id: created.id }) as BiboFileDetail).content, "uncommitted");
+  await assert.rejects(createSpace(storage).space.execute("file.get", { id: created.id }), /不存在/);
+  await store.save(stagedState!, { "ncpSession:session-1": { messages: ["committed"] } }, files);
+  assert.equal(storage.values.get(`spaceFile:${created.id}`), "uncommitted");
+  assert.deepEqual(storage.values.get("ncpSession:session-1"), { messages: ["committed"] });
+  assert.equal((await createSpace(storage).space.execute("file.get", { id: created.id }) as BiboFileDetail).content, "uncommitted");
 });

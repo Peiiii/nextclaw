@@ -90,7 +90,7 @@ Failed file or note list reads show an error and retry action instead of an empt
 
 Failed overview, inbox, task, and calendar reads also show an error and retry action instead of empty data. Calendar keeps month navigation available, so you can retry or switch months if one month cannot load.
 
-Each account has an isolated runtime. You can clear your Bibo conversation and workspace from the web app. Inbox does not imply a connection to an external email account. External email and calendar accounts, background schedules, and proactive notifications are not yet available. Structured workspace data and compressed workspace snapshots each have a 32 MiB limit; exceeding either reports a save failure.
+Each account's conversations and personal space are stored separately. Ordinary chat and personal file operations do not wait for a dedicated runtime to start. You can clear your Bibo conversation and workspace from the web app. Inbox does not imply a connection to an external email account. External email and calendar accounts, background schedules, and proactive notifications are not yet available. Structured workspace data has a 32 MiB limit, and each text file has a 1 MiB limit; exceeding either reports a save failure.
 
 Bibo supports Exa web search. Ask “Search for the latest official Cloudflare AI Search documentation and include source links.” No search key is needed. Bibo answers from relevant excerpts and links its sources; open those links to check important facts. Search queries are sent to Exa; the complete conversation is not sent to the search service.
 

@@ -1,4 +1,4 @@
-import { estimateInputTokens } from "@nextclaw/core";
+import { estimateInputTokens } from "@nextclaw/core/model-input-budget";
 import type { NcpTool, OpenAITool } from "@nextclaw/ncp";
 import { buildOpenAiFunctionTool } from "@nextclaw/ncp-agent-runtime";
 import { TOOL_SCHEMA_NAME, selectToolModelParameters } from "@kernel/tools/tool-schema.tools.js";
@@ -18,7 +18,7 @@ export function buildProviderTools(tools: readonly NcpTool[]): OpenAITool[] {
   return tools.map((tool): OpenAITool => buildOpenAiFunctionTool({
     name: tool.name,
     description: tool.description,
-    parameters: hasSchemaLookup ? selectToolModelParameters(tool) : tool.parameters,
+    parameters: hasSchemaLookup ? selectToolModelParameters(tool) : tool.modelParameters ?? tool.parameters,
   }));
 }
 

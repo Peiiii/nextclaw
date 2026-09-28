@@ -8,7 +8,7 @@ type Phase = "idle" | "generating" | "stopping" | "saving";
 export type BiboDisplayMessage = BiboMessage & { id: string; pending?: boolean };
 const biboClient = new BiboClient();
 const pendingKey = (id: string) => `bibo-pending-${id}`;
-type PendingRun = { message: string; previousLastAt?: string; sessionId: string; questionId?: string };
+type PendingRun = { message: string; previousLastAt?: string; sessionId: string; questionId?: string; clientRequestId?: string };
 const runWasSaved = (pending: PendingRun, sessionId: string | null, messages: BiboMessage[]) =>
   pending.sessionId === sessionId && messages.at(-1)?.at !== pending.previousLastAt && messages.at(-2)?.role === "user" &&
   messages.at(-2)?.text === pending.message && (!pending.questionId || messages.at(-2)?.replyToQuestion?.id === pending.questionId);
@@ -286,7 +286,12 @@ class BiboChatOwner {
       sessionId = await this.createRunSession(message, currentRun);
       if (!sessionId) return;
     }
-    sessionStorage.setItem(pendingKey(user.id), JSON.stringify({ message, previousLastAt, sessionId, ...(question ? { questionId: question.id } : {}) }));
+    const previousPending = JSON.parse(sessionStorage.getItem(pendingKey(user.id)) ?? "null") as PendingRun | null;
+    const clientRequestId = previousPending?.message === message && previousPending.sessionId === sessionId &&
+      previousPending.previousLastAt === previousLastAt && previousPending.questionId === question?.id && previousPending.clientRequestId
+      ? previousPending.clientRequestId : crypto.randomUUID();
+    sessionStorage.setItem(pendingKey(user.id), JSON.stringify({ message, previousLastAt, sessionId, clientRequestId,
+      ...(question ? { questionId: question.id } : {}) }));
     this.set({ pendingMessage: message, pendingQuestion: question ? { id: question.id, title: question.title, action: question.action === "answer" ? "answered" : "dismissed" } : null,
       pendingIds: [crypto.randomUUID(), crypto.randomUUID()], partial: "", phase: "generating", runId: null,
       ...(this.get().activeSessionId === sessionId ? { status: "", following: true } : {}) });
@@ -308,7 +313,7 @@ class BiboChatOwner {
           if (this.get().activeSessionId === sessionId) this.openFirstUnseenQuestion(event.value.messages);
           void useBiboSpaceStore.getState().refreshAfterChat();
         }
-      }, sessionId, question);
+      }, sessionId, question, clientRequestId);
       if (!currentRun()) return;
       const shown = output.display;
       const current = () => this.get().user?.id === user.id && this.get().activeSessionId === sessionId && useBiboSpaceStore.getState().view === "chat";

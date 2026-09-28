@@ -1,6 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { authRoute, currentUser, sessionUser } from "./bibo-auth.utils";
+import { authRoute, currentUser, isPlatformAdmin, sessionUser } from "./bibo-auth.utils";
+
+test("edge administration accepts only a platform-verified admin token", async (t) => {
+  const requests: string[] = [];
+  t.mock.method(globalThis, "fetch", async (url: string, init: RequestInit) => {
+    const token = new Headers(init.headers).get("authorization")?.slice(7);
+    requests.push(`${new URL(url).pathname}:${token}`);
+    return Response.json({ ok: token === "admin" }, { status: token === "admin" ? 200 : 403 });
+  });
+  assert.equal(await isPlatformAdmin(null), false);
+  assert.equal(await isPlatformAdmin("user"), false);
+  assert.equal(await isPlatformAdmin("admin"), true);
+  assert.deepEqual(requests, ["/platform/admin/overview:user", "/platform/admin/overview:admin"]);
+});
 
 test("verified identity cache is token-bound, expires, respects token expiry and never caches denial", async (t) => {
   const previousCaches = Object.getOwnPropertyDescriptor(globalThis, "caches");

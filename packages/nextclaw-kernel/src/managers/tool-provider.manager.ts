@@ -83,6 +83,7 @@ export class ToolProviderManager {
       name: tool.name,
       description: tool.description,
       parameters: tool.parameters,
+      modelParameters: tool.modelParameters,
       supportsParallelToolCalls: tool.supportsParallelToolCalls,
       ...(tool.validateArgs ? { validateArgs: tool.validateArgs.bind(tool) } : {}),
       execute: async (args, context) => {

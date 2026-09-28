@@ -1,5 +1,5 @@
 import { getContainer } from "@cloudflare/containers";
-import { authRoute, cookieToken, currentUser, sessionUser, json, publicError } from "@/app/bibo-auth.utils";
+import { authRoute, cookieToken, currentUser, isPlatformAdmin, sessionUser, json, publicError } from "@/app/bibo-auth.utils";
 import { biboSearchRoute } from "@/features/search";
 import { checkChatAvailability, modelError, modelRoute } from "@/app/bibo-model-gateway.service";
 import { errorDetails, logDiagnostic, readTrace, runFailure, traceHeaders, type RunTrace } from "@/app/diagnostics/bibo-diagnostics.utils";
@@ -8,6 +8,20 @@ async function createSession(env: Env, userId: string): Promise<Response> {
   const unavailable = await checkChatAvailability(env, userId);
   if (unavailable) return unavailable;
   return await getContainer(env.BIBO_USER, `user:${userId}`).fetch("https://bibo.internal/sessions/new", { method: "POST" });
+}
+
+async function adminEdgeRoute(request: Request, env: Env, path: string): Promise<Response> {
+  if (request.method !== "POST") return publicError("Not found", 404);
+  const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null;
+  if (!(token && env.BIBO_EDGE_ADMIN_TOKEN && token === env.BIBO_EDGE_ADMIN_TOKEN) && !await isPlatformAdmin(token)) {
+    return publicError("无权执行此操作。", 403);
+  }
+  const operation = path === "/api/admin/edge/migrate" ? "migrate" : path === "/api/admin/edge/rollback" ? "rollback" :
+    path === "/api/admin/edge/status" ? "status" : null;
+  if (!operation) return publicError("Not found", 404);
+  const body = await request.json().catch(() => null) as { userId?: unknown } | null;
+  if (!body || typeof body.userId !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(body.userId)) return publicError("用户编号不正确。", 400);
+  return getContainer(env.BIBO_USER, `user:${body.userId}`).fetch(`https://bibo.internal/edge/${operation}`, { method: "POST" });
 }
 
 async function userRoute(request: Request, env: Env, url: URL): Promise<Response> {
@@ -41,7 +55,7 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
     method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
   });
   if (path === "/api/chat" && request.method === "POST") {
-    const body = await request.json() as { message?: unknown; sessionId?: unknown; questionId?: unknown; questionAction?: unknown };
+    const body = await request.json() as { message?: unknown; sessionId?: unknown; questionId?: unknown; questionAction?: unknown; clientRequestId?: unknown };
     const trace: RunTrace = { runId: crypto.randomUUID(), ...(typeof body.sessionId === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(body.sessionId) ? { sessionId: body.sessionId } : {}) };
     if (typeof body.message === "string" && body.message.trim()) {
       const unavailable = await checkChatAvailability(env, user.id);
@@ -50,7 +64,8 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
     return await container.fetch("https://bibo.internal/run", {
       method: "POST",
       headers: { "content-type": "application/json", ...traceHeaders(trace), ...(request.headers.get("accept")?.includes("text/event-stream") ? { accept: "text/event-stream" } : {}) },
-      body: JSON.stringify({ message: body.message, sessionId: body.sessionId, questionId: body.questionId, questionAction: body.questionAction, token }),
+      body: JSON.stringify({ message: body.message, sessionId: body.sessionId, questionId: body.questionId,
+        questionAction: body.questionAction, clientRequestId: body.clientRequestId, token, userId: user.id }),
     });
   }
   return publicError("Not found", 404);
@@ -76,6 +91,7 @@ export const biboFetch = async (request: Request, env: Env): Promise<Response> =
       if (request.method !== "GET" && request.headers.get("origin") !== url.origin) return publicError("请求来源不正确。", 403);
       try {
         if (path.startsWith("/api/auth/")) return await authRoute(request, path);
+        if (path.startsWith("/api/admin/edge/")) return await adminEdgeRoute(request, env, path);
         return await userRoute(request, env, url);
       } catch (error) {
         logDiagnostic("worker", "request.failed", { ...readTrace(request.headers), ...errorDetails(error), errorCode: "EDGE_REQUEST_FAILED" }, "error");

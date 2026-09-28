@@ -1,8 +1,5 @@
 import { isAbsolute } from "node:path";
-import {
-  normalizeToolParams,
-  type ToolExecutionContext,
-} from "@nextclaw/core";
+import { normalizeToolParams, type ToolExecutionContext } from "@nextclaw/core/tool-base";
 import type { NcpTool } from "@nextclaw/ncp";
 import {
   createPanelAppResourceUri,
@@ -287,8 +284,25 @@ const SHOW_CONTENT_TOOL_SPECS: readonly ShowContentToolSpec[] = [
 export function createShowContentTools(
   eventBus: ShowContentEventBus,
   resolvePanelAppDisplayTarget?: ResolvePanelAppDisplayTarget,
+  portableValidation = false,
 ): readonly NcpTool[] {
   return SHOW_CONTENT_TOOL_SPECS.map(
-    (spec) => new ShowContentDisplayTool(eventBus, spec, resolvePanelAppDisplayTarget),
+    (spec) => {
+      const tool = new ShowContentDisplayTool(eventBus, spec, resolvePanelAppDisplayTarget);
+      if (!portableValidation) return tool;
+      return {
+        name: tool.name,
+        description: tool.description,
+        modelParameters: spec.parameters,
+        validateArgs: (args: Record<string, unknown>) => {
+          const properties = (spec.parameters as { properties?: Record<string, unknown> })?.properties ?? {};
+          const unknown = Object.keys(args).filter((key) => !(key in properties));
+          if (unknown.length > 0) return unknown.map((key) => `${key} is not allowed`);
+          try { spec.normalize(args); return []; }
+          catch (error) { return [error instanceof Error ? error.message : String(error)]; }
+        },
+        execute: tool.execute,
+      } satisfies NcpTool;
+    },
   );
 }

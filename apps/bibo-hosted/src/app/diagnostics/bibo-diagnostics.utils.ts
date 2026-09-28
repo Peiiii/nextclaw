@@ -48,6 +48,7 @@ export function runFailure(error: unknown, aborted = false): BiboRunError {
   if (error instanceof BiboRunError) return error;
   const message = error instanceof Error ? error.message : String(error);
   if (aborted || (error instanceof Error && error.name === "AbortError")) return new BiboRunError("RUN_CANCELLED", 409, "本次生成已停止或超时，本轮未保存。");
+  if (message.includes("BIBO_MODEL_QUOTA_EXHAUSTED")) return new BiboRunError("MODEL_RATE_LIMITED", 429, "今日试用额度已用完，请明天再试。");
   if (/\b413\b|模型输入过长/.test(message)) return new BiboRunError("MODEL_INPUT_TOO_LARGE", 413, "本次模型请求超过传输上限，本轮未保存。重复发送相同内容无法解决，请联系维护者。");
   if (/\b429\b|今日试用额度/.test(message)) return new BiboRunError("MODEL_RATE_LIMITED", 429, "模型服务达到用量或频率限制，请稍后再试。");
   if (/context compaction/i.test(message)) return new BiboRunError("CONTEXT_COMPACTION_FAILED", 502, "上下文整理未能完成，本轮未保存，请稍后重试。");

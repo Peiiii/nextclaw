@@ -10,6 +10,51 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./conversation-projection": {
+      "development": "./src/features/context-compaction/utils/context-compaction.utils.ts",
+      "types": "./dist/features/context-compaction/utils/context-compaction.utils.d.ts",
+      "default": "./dist/features/context-compaction/utils/context-compaction.utils.js"
+    },
+    "./model-input": {
+      "development": "./src/services/agent-run-model-input-builder.service.ts",
+      "types": "./dist/services/agent-run-model-input-builder.service.d.ts",
+      "default": "./dist/services/agent-run-model-input-builder.service.js"
+    },
+    "./context-compaction": {
+      "development": "./src/features/context-compaction/services/context-compaction-preflight.service.ts",
+      "types": "./dist/features/context-compaction/services/context-compaction-preflight.service.d.ts",
+      "default": "./dist/features/context-compaction/services/context-compaction-preflight.service.js"
+    },
+    "./context-compaction-runtime": {
+      "development": "./src/managers/agent-run-context-compaction.manager.ts",
+      "types": "./dist/managers/agent-run-context-compaction.manager.d.ts",
+      "default": "./dist/managers/agent-run-context-compaction.manager.js"
+    },
+    "./show-content": {
+      "development": "./src/tools/show-content.tools.ts",
+      "types": "./dist/tools/show-content.tools.d.ts",
+      "default": "./dist/tools/show-content.tools.js"
+    },
+    "./user-question": {
+      "development": "./src/utils/user-question.utils.ts",
+      "types": "./dist/utils/user-question.utils.d.ts",
+      "default": "./dist/utils/user-question.utils.js"
+    },
+    "./user-question-tool": {
+      "development": "./src/tools/user-question.tools.ts",
+      "types": "./dist/tools/user-question.tools.d.ts",
+      "default": "./dist/tools/user-question.tools.js"
+    },
+    "./tool-schema": {
+      "development": "./src/tools/tool-schema.tools.ts",
+      "types": "./dist/tools/tool-schema.tools.d.ts",
+      "default": "./dist/tools/tool-schema.tools.js"
+    },
+    "./onboarding-context": {
+      "development": "./src/utils/agent-onboarding-context.utils.ts",
+      "types": "./dist/utils/agent-onboarding-context.utils.d.ts",
+      "default": "./dist/utils/agent-onboarding-context.utils.js"
+    },
     "./update-contract": {
       "development": "./src/types/update-contract.types.ts",
       "types": "./dist/types/update-contract.types.d.ts",
@@ -26,7 +71,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts src/types/update-contract.types.ts src/utils/automatic-update-check.utils.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension && tsdown src/utils/automatic-update-check.utils.ts --format cjs --out-dir dist/cjs --no-clean --target es2022 --no-fixedExtension",
+    "build": "tsdown src/index.ts src/features/context-compaction/services/context-compaction-preflight.service.ts src/features/context-compaction/utils/context-compaction.utils.ts src/managers/agent-run-context-compaction.manager.ts src/services/agent-run-model-input-builder.service.ts src/tools/show-content.tools.ts src/tools/user-question.tools.ts src/tools/tool-schema.tools.ts src/utils/agent-onboarding-context.utils.ts src/utils/user-question.utils.ts src/types/update-contract.types.ts src/utils/automatic-update-check.utils.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension && tsdown src/utils/automatic-update-check.utils.ts --format cjs --out-dir dist/cjs --no-clean --target es2022 --no-fixedExtension",
     "prepack": "pnpm run build",
     "lint": "eslint .",
     "test": "vitest run",

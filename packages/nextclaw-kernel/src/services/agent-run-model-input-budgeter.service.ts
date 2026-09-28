@@ -1,9 +1,8 @@
 import {
   InputBudgetPruner,
   type InputBudgetPruneResult,
-} from "@nextclaw/core";
+} from "@nextclaw/core/model-input-budget";
 import type { OpenAIChatMessage } from "@nextclaw/ncp";
-import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { AgentRunSpec } from "@kernel/types/agent-run.types.js";
 
 export type AgentRunModelInputBudgeterPruneParams = {
@@ -21,10 +20,14 @@ export type AgentRunModelInputBudgeterPruneResult = Omit<
   messages: OpenAIChatMessage[];
 };
 
+export type AgentModelInputBudgetProfileResolver = {
+  resolveAgentProfile(agentId: string): { contextTokens: number; reservedContextTokens: number };
+};
+
 export class AgentRunModelInputBudgeter {
   private readonly inputBudgetPruner = new InputBudgetPruner();
 
-  constructor(private readonly agentManager: AgentManager) {}
+  constructor(private readonly agentManager: AgentModelInputBudgetProfileResolver) {}
 
   prune = async (
     params: AgentRunModelInputBudgeterPruneParams,

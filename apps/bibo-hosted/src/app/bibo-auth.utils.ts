@@ -36,6 +36,12 @@ export async function currentUser(token: string | null): Promise<BiboUser | null
   return status === 200 && value.ok ? value.data?.user ?? null : null;
 }
 
+export async function isPlatformAdmin(token: string | null): Promise<boolean> {
+  if (!token) return false;
+  const { status, value } = await platformRequest<unknown>("/platform/admin/overview", token);
+  return status === 200 && value.ok;
+}
+
 async function identityCache(token: string) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
   const key = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");

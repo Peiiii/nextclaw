@@ -2,7 +2,7 @@ import type { NcpMessage } from "@nextclaw/ncp";
 import {
   buildContextCompactionModelProjection,
   type ContextCompactionModelProjection,
-} from "@kernel/features/context-compaction/index.js";
+} from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
 
 export type AgentRunMessageProjectParams = {
   sessionId: string;

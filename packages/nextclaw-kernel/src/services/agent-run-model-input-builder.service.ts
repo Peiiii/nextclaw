@@ -2,7 +2,7 @@ import {
   ncpMessageToOpenAiMessages,
   type LocalAssetStore,
 } from "@nextclaw/ncp-agent-runtime";
-import { estimateInputTokens } from "@nextclaw/core";
+import { estimateInputTokens } from "@nextclaw/core/model-input-budget";
 import type {
   AgentModelInputBuildRequest,
   AgentModelInputBuilder,
@@ -12,14 +12,19 @@ import type {
   NcpMessage,
   OpenAIChatMessage,
 } from "@nextclaw/ncp";
-import { isContextCompactionProjectionMessage } from "@kernel/features/context-compaction/index.js";
+import { isContextCompactionProjectionMessage } from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
 import { stripCompactedSessionOnboardingSections } from "@kernel/utils/agent-onboarding-context.utils.js";
 import type { AgentRunMessageProjector } from "./agent-run-message-projector.service.js";
 import type { AgentRunModelInputBudgeter } from "./agent-run-model-input-budgeter.service.js";
 import { buildProviderTools } from "@kernel/utils/agent-model-input-budget.utils.js";
 import { appendCurrentTimeContextTail, serializeModelInputTail } from "@kernel/utils/agent-model-input-tail.utils.js";
-import { buildObservationEventModelMessage } from "@kernel/features/observation/index.js";
+import { buildObservationEventModelMessage } from "@kernel/features/observation/utils/observation.utils.js";
 import type { RequestContextTailManager } from "@kernel/managers/request-context-tail.manager.js";
+
+export { AgentRunMessageProjector } from "./agent-run-message-projector.service.js";
+export { AgentRunModelInputBudgeter } from "./agent-run-model-input-budgeter.service.js";
+export type { AgentModelInputBudgetProfileResolver } from "./agent-run-model-input-budgeter.service.js";
+export { appendCurrentTimeContextTail, serializeModelInputTail } from "@kernel/utils/agent-model-input-tail.utils.js";
 
 function readSystemContent(messages: OpenAIChatMessage[]): string[] {
   return messages

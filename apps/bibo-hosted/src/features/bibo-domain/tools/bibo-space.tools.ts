@@ -44,7 +44,9 @@ export function createBiboSpaceTool(space: BiboSpaceService, sessionId: string, 
   return {
     name: "bibo",
     description: "Read and update the user's Bibo personal space: tasks, calendar, notes, files, and attention inbox. Use help to discover operations by domain or keyword; known actions can be called directly. Save generated documents, HTML/SVG or Markdown diagrams with file.create kind=artifact. To open a saved file for the user, call show_file with the returned path; use viewer=rendered for an HTML preview or viewer=source for source. The workspace opens after the reply is saved. File details return a stable uri: cite it as [title](uri) in your answer so the user can reopen the artifact. Never invent a uri or claim a code block is a saved artifact. This is a first-party capability and needs no installation. Never edit Bibo's structured JSON by hand.",
-    ...(portableValidation ? { validateArgs: validatePortableArgs } : { parameters: biboSpaceToolParameters }),
+    ...(portableValidation
+      ? { modelParameters: biboSpaceToolParameters, validateArgs: validatePortableArgs }
+      : { parameters: biboSpaceToolParameters }),
     execute: async (raw: unknown) => {
       const value = params(raw);
       if (value.operation === "help") {

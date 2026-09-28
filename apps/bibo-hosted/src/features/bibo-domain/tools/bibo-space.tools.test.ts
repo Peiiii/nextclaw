@@ -13,6 +13,7 @@ test("Node and portable Bibo tools share the same behavior and schema", async ()
   const portable = createBiboSpaceTool(space, "session-1", true);
   assert.deepEqual(node.parameters, biboSpaceToolParameters);
   assert.equal(portable.parameters, undefined);
+  assert.deepEqual(portable.modelParameters, biboSpaceToolParameters);
   assert.deepEqual(portable.validateArgs?.({ operation: "call", action: "task.list", input: {} }), []);
   assert.ok(portable.validateArgs?.({ operation: "call", unknown: true }).some((issue) => issue.includes("unknown")));
   assert.ok(portable.validateArgs?.({ operation: "unknown" }).some((issue) => issue.includes("operation")));
