@@ -69,7 +69,8 @@ test("long old sessions and many workspace texts migrate and delete within Cloud
   const messages = Array.from({ length: 260 }, (_, index) => ({ id: `message-${index}`, sessionId: "long-session",
     role: index % 2 ? "assistant" as const : "user" as const, status: "final" as const, timestamp: at,
     parts: [{ type: "text" as const, text: `turn ${index}` }] }));
-  const workspaceTexts = Object.fromEntries(Array.from({ length: 151 }, (_, index) => [`note-${index}.txt`, `note ${index}`]));
+  const workspaceTexts = { ...Object.fromEntries(Array.from({ length: 151 }, (_, index) => [`note-${index}.txt`, `note ${index}`])),
+    "记忆/我的 笔记.md": "可以保留中文路径" };
   const source: Parameters<BiboEdgeMigrationService["migrate"]>[0] = {
     schema: 1, sessions: [{ sessionId: "long-session", record: { sessionId: "long-session", messages,
       metadata: {}, createdAt: at, updatedAt: at } }],
@@ -77,7 +78,8 @@ test("long old sessions and many workspace texts migrate and delete within Cloud
     files: [], workspaceTexts, deliveries: null,
   };
   const result = await new BiboEdgeMigrationService(storage as unknown as DurableObjectStorage).migrate(source, []);
-  assert.deepEqual(result, { sessions: 1, messages: 260, files: 0, workspaceTexts: 151 });
+  assert.deepEqual(result, { sessions: 1, messages: 260, files: 0, workspaceTexts: 152 });
+  assert.equal(storage.values.get("edgeWorkspace:记忆/我的 笔记.md"), "可以保留中文路径");
   const sessions = new BiboEdgeSessionStore(storage as unknown as DurableObjectStorage);
   const saved = await sessions.load("long-session");
   assert.equal(saved?.messages.length, 260);

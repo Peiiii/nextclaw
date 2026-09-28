@@ -95,7 +95,8 @@ export class BiboEdgeMigrationService {
     for (const { id, content } of source.files) await files.create(byId.get(id) as BiboFile, content);
     const workspaceEntries: Record<string, unknown> = { edgeWorkspaceIndex: Object.keys(source.workspaceTexts), agentDeliveries: source.deliveries };
     for (const [path, content] of Object.entries(source.workspaceTexts)) {
-      if (path.length > 512 || path.split("/").some((part) => !part || part === "." || part === ".." || part.startsWith(".") || !/^[a-zA-Z0-9._-]+$/.test(part))) {
+      if (path.length > 512 || path.includes("\\") || path.includes("\0") || path.startsWith("/") ||
+        path.split("/").some((part) => !part || part === "." || part === ".." || part.startsWith("."))) {
         throw new Error("Invalid workspace text path");
       }
       workspaceEntries[workspaceKey(path)] = content;
