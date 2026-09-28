@@ -85,3 +85,13 @@ BB 三份 tsc、公共 UI tsc、Vite 构建、product smoke（桌面 1440px／�
 ## NPM 包发布记录
 
 不涉及 NPM 包发布。Bibo 与 personal-agent-ui 均为 private workspace package，本批添加两包 patch changeset，版本记录交后续统一批次。
+
+## 会话与文件行操作反馈纠偏（2026-09-28）
+
+用户在生产站指出长会话标题仍透到更多按钮旁边、笔记行 hover 后出现双层底色与过长提示、文件树每行操作常显。实测会话标题末端仅有 28px 渐隐，按钮遮挡层宽 52px，且靠近按钮才变成不透明。现加宽按钮后的渐隐覆盖，桌面／手机在按钮左侧分别留出约 20px／14px 的纯背景隔离；默认状态仍由标题占满整行。笔记的选中背景改为整行唯一绘制，更多按钮继续复用公共 IconButton 和 ActionMenu，提示缩短为「更多操作」。公共 RowActionTray 统一文件树、搜索结果和笔记行：桌面 hover 或键盘焦点出现，触屏常显，默认不占标题宽度；渐隐层不接收点击，仅实际按钮可命中。
+
+本地 BB 与公共 UI tsc、Vite 构建、完整 product smoke、1440／390px 定向文件与笔记操作回归、ESLint、diff-only maintainability（0 错误／0 提醒）、新增代码治理和 backlog ratchet 均通过。视觉截图复核了默认／hover、选中及手机触屏状态；未改文件持久化、Worker 或容器链路。先前新增的回归断言使单函数超过语句预算，已按文件行反馈与笔记行反馈拆开，同一回归再次通过。
+
+冻结远程 master `aa4156550b3f33b510058eccbfd934ae175ec726` 后执行 `deploy:client --containers-rollout none`，Worker 版本 `dc9cf177-1918-405f-bf8f-560e4a87c0e0`。线上 JS `index-CtEcxxAx.js` SHA256 `ec43cc6e9372a04e62e8c4f9817961684b5d1bcc9c446d9a0d410380b5c98395`、CSS `index-BJD-BEbS.css` SHA256 `ef27a15752cc59bc906590713a424c3dc2b279ab9abf0c2efb16981822347059`、KaTeX 与 `/help` 均与本次构建逐字节相同。生产域名上以 API fixture 回放了 1440／390px 会话渐隐和文件树、搜索结果、笔记菜单，收件箱五视口回归也通过。容器 id `a03967fb-95da-496d-8c90-a4b4a010667a`、镜像 SHA256 `4ef68e222cc8ea7f8bdd9681aa1ca78890cda123eda9e8b522ff24b388fe364c`、version 23、5 实例及更新时间部署前后相同。真实手机系统浏览器和本用户账号数据未直接回放；本批由线上静态资产一致性及模拟桌面／手机交互证明前端结果，不重复调用真实模型。
+
+本次为已有界面反馈纠偏，不新增用户操作或帮助页入口；已有前端交互规范已经要求悬浮操作默认零占位，具体实现收敛到公共组件，无需增写平行规则。`AUTOMATION_INTERVENTIONS: 0`。主工作区既有想法文档 WIP 保留，主线回流交现有 reconcile owner 判定。
