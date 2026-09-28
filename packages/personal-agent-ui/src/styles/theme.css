@@ -42,6 +42,10 @@
   --ui-danger: #b44d43;
   --ui-focus: #8070c5;
   --ui-code-surface: #f7f7f7;
+  --ui-syntax-keyword: #8250a8;
+  --ui-syntax-string: #24683d;
+  --ui-syntax-number: #92511e;
+  --ui-syntax-code: #315da8;
   --ui-quote-surface: #f8f8f8;
   --ui-placeholder: #a3a3a3;
   --ui-error-surface: #fcf0ee;
