@@ -21,7 +21,13 @@
 
 授权来自“那你来落地上线”。只影响前端，采用干净远程 master 的 `pnpm -C apps/bibo-hosted run deploy:client`，无数据库迁移、NPM、桌面或容器 rollout。
 
-部署前容器 `bibo-hosted-bibousercontainer` application version 23，image digest `sha256:4ef68e222cc8ea7f8bdd9681aa1ca78890cda123eda9e8b522ff24b388fe364c`。部署 SHA、Worker 版本和上线验证结果在执行后补齐。
+部署冻结 SHA：`836bc2c92999fce60f113fbded29f29e8c26c4c8`，已包含并行主线 `aa4156550` 的界面修正。部署前后两次 preflight 通过。正式 Worker 版本：`7379a7ce-1103-45ac-bf99-4741d46093a1`。
+
+部署前后容器 `bibo-hosted-bibousercontainer` application version 均为 23，image digest 均为 `sha256:4ef68e222cc8ea7f8bdd9681aa1ca78890cda123eda9e8b522ff24b388fe364c`，确认未 rollout。
+
+正式站 1440/390/320px 定向 fixture 验收全部通过，覆盖实际部署资源的编辑、IME、长文滚动、草稿恢复、失败与冲突。独立真实账号通过正常 UI 创建笔记，在 1440px 和 390px 编辑／保存，服务端逐字内容校验、刷新默认预览全部通过；仅删除本轮测试笔记。线上截图 `/tmp/bibo-markdown-editor-live-{1440,390}.png`。
+
+`pnpm release:reconcile:mainline` 返回 `LOCAL_WORKTREE_RETRYING`：远程 master 已完成，本地主工作区因原有活跃文档 WIP 保留不动，自动 retry worker 已接管；本任务源区无遗漏。AUTOMATION_INTERVENTIONS: 0。
 
 ## 用户/产品视角的验收步骤
 
