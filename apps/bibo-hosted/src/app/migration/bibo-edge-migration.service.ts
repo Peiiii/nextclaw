@@ -23,7 +23,7 @@ function validateExport(source: LegacyExport, uiSessions: readonly UiSession[]):
     if (lastUiAssistant && lastNcpText !== lastUiAssistant.text) {
       const finalTexts = (record?.messages ?? []).filter((message) => message.role === "assistant" && message.status === "final")
         .map((message) => message.parts.filter((part) => part.type === "text").map((part) => part.text).join(""));
-      throw new Error(`Old Bibo session ${session.id} differs from its NCP journal (uiChars=${lastUiAssistant.text.length}, ncpChars=${lastNcpText?.length ?? 0}, earlierMatch=${finalTexts.includes(lastUiAssistant.text)}, finalCount=${finalTexts.length})`);
+      throw new Error(`Old Bibo session ${session.id} differs from its NCP journal (uiCount=${session.messages.length}, ncpCount=${record?.messages.length ?? 0}, uiChars=${lastUiAssistant.text.length}, ncpChars=${lastNcpText?.length ?? 0}, earlierMatch=${finalTexts.includes(lastUiAssistant.text)}, finalCount=${finalTexts.length})`);
     }
   }
   const visibleSessionIds = new Set(uiSessions.map((session) => session.id));
