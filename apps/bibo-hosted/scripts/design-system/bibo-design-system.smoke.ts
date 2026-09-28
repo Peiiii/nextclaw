@@ -1,5 +1,24 @@
 import assert from "node:assert/strict";
-import type { Page } from "playwright";
+import type { Locator, Page } from "playwright";
+
+export async function checkSessionActionFade(row: Locator): Promise<void> {
+  const fade = await row.evaluate((element) => {
+    const actions = element.querySelector<HTMLElement>(".session-actions")!;
+    const button = actions.querySelector<HTMLButtonElement>("button")!;
+    const actionBox = actions.getBoundingClientRect();
+    const buttonBox = button.getBoundingClientRect();
+    const style = getComputedStyle(actions, "::before");
+    const stop = style.backgroundImage.match(/calc\(100% - ([\d.]+)px\)/);
+    return {
+      beforeButton: buttonBox.left - (actionBox.right - Number.parseFloat(style.width)),
+      opaqueGap: stop ? buttonBox.left - (actionBox.right - Number(stop[1])) : -1,
+      linkHit: document.elementFromPoint(buttonBox.left - 15, buttonBox.y + buttonBox.height / 2)?.closest("a") === element.querySelector("a"),
+    };
+  });
+  assert.ok(fade.beforeButton >= 36 && fade.beforeButton <= 48, "title fading starts close to the action button");
+  assert.ok(fade.opaqueGap >= 6 && fade.opaqueGap <= 10, "title becomes fully covered just before the action button");
+  assert.equal(fade.linkHit, true, "the visual fade does not intercept the conversation link");
+}
 
 export async function checkContentBounds(page: Page): Promise<void> {
   const overflow = await page.locator(".bibo-topbar-leading, .bibo-topbar-actions, .workspace-toolbar, .bibo-summary-card, .ui-list-row, .bibo-detail-pane, .bibo-workspace, .ui-overlay, [role=menu], .file-editor-tools").evaluateAll((elements) => elements.flatMap((element) => {

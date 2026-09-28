@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { chromium, type Page, type Route } from "playwright";
 import { mockApi } from "./personal-workspace.fixture";
-import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs } from "./design-system/bibo-design-system.smoke";
+import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs, checkSessionActionFade } from "./design-system/bibo-design-system.smoke";
 import { checkFileRowActions, checkMissingRestoredFile, checkWorkspaceFiles, openWorkspaceFile } from "./design-system/workspace-file.smoke";
 const base = "http://127.0.0.1:5189";
 const server = spawn("pnpm", ["exec", "vite", "preview", "--host", "127.0.0.1", "--port", "5189", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
@@ -202,6 +202,7 @@ async function checkLongConversation(page: Page, width: number): Promise<void> {
   assert.equal(sidebar.truncated && sidebar.fullWidth && sidebar.topmost, true, "long title uses the full row and keeps actions on top");
   assert.match(sidebar.mask, /linear-gradient/, "long title fades at the edge without a reserved button slot");
   assert.equal(sidebar.opacity, "1", "more actions are fully opaque when revealed");
+  await checkSessionActionFade(page.locator(".bibo-session-wrap"));
   await page.getByRole("button", { name: /^管理会话/ }).click();
   await page.getByRole("menuitem", { name: "重命名" }).click();
   await checkContentBounds(page);
