@@ -28,6 +28,11 @@ test("edge NCP tool turn stages a file and commits it with the full conversation
   const llmApi: NcpLLMApi = { generate: async function* (input) {
     modelCalls += 1;
     assert.equal(input.tools?.some((tool) => tool.function.name === "bibo"), true);
+    assert.equal(input.tools?.some((tool) => tool.function.name === "tool_schema"), false);
+    const biboSchema = input.tools?.find((tool) => tool.function.name === "bibo")?.function.parameters as { properties?: Record<string, unknown> } | undefined;
+    const showFileSchema = input.tools?.find((tool) => tool.function.name === "show_file")?.function.parameters as { properties?: Record<string, unknown> } | undefined;
+    assert.ok(biboSchema?.properties?.operation);
+    assert.ok(showFileSchema?.properties?.path);
     if (modelCalls === 1) {
       yield { id: "tool-call", choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id: "call-1", function: {
         name: "bibo", arguments: JSON.stringify({ operation: "call", action: "file.create", input: { path: "note.md", kind: "artifact", content: "saved" } }),

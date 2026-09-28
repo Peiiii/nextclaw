@@ -7,7 +7,6 @@ import { readLatestContextCompactionCheckpoint } from "@nextclaw/kernel/conversa
 import { CONTEXT_COMPACTION_METADATA_KEY } from "@nextclaw/core/context-compaction";
 import { createShowContentTools } from "@nextclaw/kernel/show-content";
 import { createPortableRequestUserInputAsyncTool } from "@nextclaw/kernel/user-question-tool";
-import { ToolSchemaTool } from "@nextclaw/kernel/tool-schema";
 import { createQuestionMessage, createQuestionResolutionMessage, projectUserQuestions } from "@nextclaw/kernel/user-question";
 import type { CompactionSummaryProvider } from "@nextclaw/kernel/context-compaction";
 import { BiboSpaceService, type BiboSpaceState } from "@/features/bibo-domain";
@@ -141,7 +140,7 @@ export class BiboEdgeConversationService {
       return { accepted: true, questionIds: created.questionIds };
     });
     const tools: NcpTool[] = [];
-    tools.push(new ToolSchemaTool(() => tools, true), createBiboSpaceTool(space, input.sessionId, true), showFile, questionTool, ...(input.tools ?? []));
+    tools.push(createBiboSpaceTool(space, input.sessionId, true), showFile, questionTool, ...(input.tools ?? []));
     const compaction = new AgentRunContextCompactionManager({ resolveAgentProfileForRun: () => profile }, this.summaryProvider);
     const runtime = new DefaultNcpAgentRuntime({
       llmApi: this.llmApi,
