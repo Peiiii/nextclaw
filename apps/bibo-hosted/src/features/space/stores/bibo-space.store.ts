@@ -4,8 +4,9 @@ import { calendarMonthRange } from "@/features/space/utils/calendar.utils";
 import { readBiboTheme, readWorkspaceLayout, revealedFileLayout, writeBiboTheme, writeWorkspaceLayout, type BiboTheme } from "@/features/space/utils/workspace-layout.utils";
 import { readCalendarEvents, readNextSpacePage, readSpaceLists, savedTaskView, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
 import { navigateWorkspace } from "@/app/workspace-router";
-import { fileDeletionState, openedFileState } from "@/features/space/utils/file-state.utils";
+import { closedFileState, fileDeletionState, openedFileState, savedFileState } from "@/features/space/utils/file-state.utils";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
+import { readFileDrafts, writeFileDrafts } from "@/features/space/utils/file-draft-storage.utils";
 import type { Page, FileDraft, TaskDraft, EventDraft } from "@/features/space/types/bibo-space.types";
 export type { TaskDraft, EventDraft } from "@/features/space/types/bibo-space.types";
 
@@ -71,12 +72,20 @@ class BiboSpaceOwner {
   activeFileId: string | null = null;
   fileDetails: Record<string, BiboFileDetail> = {};
   fileDrafts: Record<string, FileDraft> = {};
+  draftStorageError = "";
   taskDrafts: Record<string, TaskDraft> = {};
   eventDrafts: Record<string, EventDraft> = {};
 
   constructor(private readonly setState: StoreApi<BiboSpaceOwner>["setState"], private readonly get: StoreApi<BiboSpaceOwner>["getState"]) {}
   private set = (update: Partial<BiboSpaceOwner> | ((state: BiboSpaceOwner) => Partial<BiboSpaceOwner>)): void => {
-    if (this.get()?.instanceId === this.instanceId) this.setState(update);
+    if (this.get()?.instanceId !== this.instanceId) return;
+    const previous = this.get().fileDrafts;
+    this.setState(update);
+    const state = this.get();
+    if (state.accountId && state.fileDrafts !== previous) {
+      const error = writeFileDrafts(state.accountId, state.fileDrafts) ? "" : biboCopy.fileDraftStorageFailed;
+      if (state.draftStorageError !== error) this.setState({ draftStorageError: error });
+    }
   };
 
   bindAccount = (accountId: string | null, reset = false): void => {
@@ -84,7 +93,8 @@ class BiboSpaceOwner {
     const owner = new BiboSpaceOwner(this.setState, this.get);
     owner.view = this.get().view;
     owner.accountId = accountId;
-    if (accountId && !reset) Object.assign(owner, readWorkspaceLayout(accountId));
+    if (accountId && reset) owner.draftStorageError = writeFileDrafts(accountId, {}) ? "" : biboCopy.fileDraftStorageFailed;
+    if (accountId && !reset) Object.assign(owner, readWorkspaceLayout(accountId), { fileDrafts: readFileDrafts(accountId) });
     this.setState(owner, true);
     if (accountId) void owner.load();
   };
@@ -310,14 +320,7 @@ class BiboSpaceOwner {
     const draft = this.get().fileDrafts[id];
     if (draft?.saving || (draft?.dirty && !discard)) return;
     this.closedFiles.add(id);
-    this.set((state) => {
-      const tabs = state.tabs.filter((tab) => tab !== id);
-      const fileDetails = { ...state.fileDetails }; delete fileDetails[id];
-      const fileDrafts = { ...state.fileDrafts }; delete fileDrafts[id];
-      const neighbor = state.tabs[state.tabs.indexOf(id) + 1] ?? state.tabs[state.tabs.indexOf(id) - 1] ?? null;
-      return { tabs, fileDetails, fileDrafts, activeFileId: state.activeFileId === id ? neighbor : state.activeFileId, fileBrowserVisible: tabs.length === 0 ? true : state.fileBrowserVisible,
-        ...(state.workspaceFileId === id ? { workspaceFileId: neighbor, workspacePreview: null } : {}) };
-    });
+    this.set((state) => closedFileState(state, id));
     this.saveLayout();
     const active = this.get().activeFileId;
     if (active && !this.get().fileDetails[active]) void this.openFile(active);
@@ -331,12 +334,7 @@ class BiboSpaceOwner {
     this.set((state) => ({ fileDrafts: { ...state.fileDrafts, [id]: { ...draft, saving: true, error: undefined } } }));
     try {
       const detail = await client.space<BiboFileDetail>("file.update", { id, version: draft.version, content: draft.content });
-      this.set((state) => {
-        const current = state.fileDrafts[id];
-        if (!current) return {};
-        const editedDuringSave = current.content !== draft.content;
-        return { fileDetails: { ...state.fileDetails, [id]: detail }, fileDrafts: { ...state.fileDrafts, [id]: { content: editedDuringSave ? current!.content : detail.content ?? "", version: detail.version, dirty: editedDuringSave, saving: false } } };
-      });
+      this.set((state) => savedFileState(state, detail, draft.content));
       await this.load(this.get().view === "notes" ? "notes" : "files");
     } catch (error) {
       const conflict = error instanceof BiboClientError && error.status === 409;

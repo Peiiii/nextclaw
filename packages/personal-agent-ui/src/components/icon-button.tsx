@@ -8,7 +8,7 @@ type IconButtonProps = Omit<
 > & {
   label: string;
   icon: ReactNode;
-  tooltip?: boolean;
+  tooltip?: boolean | string;
   tooltipSide?: TooltipSide;
   feedback?: "plain" | "filled";
 };
@@ -19,7 +19,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       ref={ref}
       tone="icon"
       aria-label={label}
-      tooltip={tooltip ? label : false}
+      tooltip={tooltip === true ? label : tooltip || false}
       tooltipSide={tooltipSide}
       className={`ui-icon-button ui-icon-button--${feedback} ${className}`}
     >

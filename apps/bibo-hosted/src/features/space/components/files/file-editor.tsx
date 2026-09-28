@@ -1,13 +1,16 @@
-import { useState } from "react";
-import { Button, ConfirmDialog, LoadingState, Markdown, Notice, SegmentedControl } from "@nextclaw/personal-agent-ui";
+import { useRef, useState } from "react";
+import { Button, ConfirmDialog, LoadingState, Markdown, MarkdownEditor, Notice, SegmentedControl } from "@nextclaw/personal-agent-ui";
 import { FileActions } from "./file-actions";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
 import { FileBreadcrumbs } from "./file-breadcrumbs";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
-export function FileEditor({ id, compact = false, defaultPreview = false, tabId, preview: selectedPreview, onPreviewChange }: { id: string; compact?: boolean; defaultPreview?: boolean; tabId?: string; preview?: boolean; onPreviewChange?: (preview: boolean) => void }) {
-  const { fileDetails, fileDrafts, editFile, saveFile, resolveFileConflict, openWorkspace, openFile } = useBiboSpaceStore();
+export function FileEditor({ id, compact = false, defaultPreview = true, tabId, preview: selectedPreview, onPreviewChange }: { id: string; compact?: boolean; defaultPreview?: boolean; tabId?: string; preview?: boolean; onPreviewChange?: (preview: boolean) => void }) {
+  const { fileDetails, fileDrafts, draftStorageError, editFile, saveFile, resolveFileConflict, openWorkspace, openFile } = useBiboSpaceStore();
   const [localPreview, setLocalPreview] = useState(defaultPreview);
+  const [source, setSource] = useState(selectedPreview === false);
+  const [editorOpened, setEditorOpened] = useState(selectedPreview === false || !defaultPreview);
+  const previewScroll = useRef(0);
   const preview = selectedPreview ?? localPreview;
   const setPreview = onPreviewChange ?? setLocalPreview;
   const [recovery, setRecovery] = useState<"reload" | "overwrite" | null>(null);
@@ -24,6 +27,12 @@ export function FileEditor({ id, compact = false, defaultPreview = false, tabId,
   const draft = fileDrafts[id];
   if (!detail || !draft) return <LoadingState label="正在打开文件" />;
   const html = /\.(html?|svg)$/i.test(detail.path);
+  const markdown = /\.(md|markdown|mdown)$/i.test(detail.path);
+  const changeMode = (mode: string) => {
+    setSource(mode === "source");
+    if (mode !== "preview") setEditorOpened(true);
+    setPreview(mode === "preview");
+  };
   const framed = `<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:"><style>body{margin:18px;font:14px/1.7 sans-serif;color:#29312a}</style>${draft.content}`;
   return (
     <div className={`bibo-file-editor${compact ? " is-compact" : ""}`} role={tabId ? "tabpanel" : undefined} id={tabId ? `${tabId}-panel` : undefined} aria-labelledby={tabId} onKeyDown={(event) => {
@@ -38,20 +47,19 @@ export function FileEditor({ id, compact = false, defaultPreview = false, tabId,
         <div className="file-editor-tools">
           <SegmentedControl
             label="文件模式"
-            value={preview ? "preview" : "edit"}
+            value={preview ? "preview" : source || !markdown ? "source" : "edit"}
             options={[
-              { value: "edit", label: copy.fileEdit },
               { value: "preview", label: copy.filePreview },
+              ...(markdown ? [{ value: "edit", label: copy.fileEdit }] : []),
+              { value: "source", label: copy.fileSource },
             ]}
-            onChange={(value) => setPreview(value === "preview")}
+            onChange={changeMode}
           />
-          <span className="bibo-save-state visually-hidden" role="status" aria-live="polite" title={draft.dirty ? "有未保存的修改" : `已保存 · v${draft.version}`}>
-            {draft.saving ? copy.fileSaving : draft.dirty ? copy.fileUnsaved : copy.fileSaved}
-          </span>
           {(draft.dirty || draft.saving) && <Button tone="primary" disabled={draft.saving} onClick={() => void saveFile(id)}>{draft.saving ? copy.fileSaving : copy.fileSave}</Button>}
           <FileActions key={id} file={detail} label="文件操作" />
         </div>
       </div>
+      {draftStorageError && <Notice tone="error">{draftStorageError}</Notice>}
       {draft.error && <Notice tone="error">{draft.error}</Notice>}
       {draft.conflict && (
         <div className="file-conflict" role="alert">
@@ -62,23 +70,22 @@ export function FileEditor({ id, compact = false, defaultPreview = false, tabId,
           </div>
         </div>
       )}
-      {preview ? (
+      {preview && (
         html ? (
           <iframe className="bibo-file-preview-frame" title={`预览 ${detail.path}`} sandbox="" srcDoc={framed} />
         ) : (
-          <div className="bibo-file-preview-markdown">
+          <div className="bibo-file-preview-markdown" ref={(element) => { if (element) element.scrollTop = previewScroll.current * Math.max(0, element.scrollHeight - element.clientHeight); }} onScroll={(event) => { const element = event.currentTarget; previewScroll.current = element.scrollTop / Math.max(1, element.scrollHeight - element.clientHeight); }}>
             <Markdown text={draft.content} resolveResourceHref={workspaceResources.href} />
           </div>
         )
-      ) : (
-        <textarea
-          aria-label={`编辑 ${detail.path}`}
-          spellCheck={false}
-          value={draft.content}
-          onChange={(event) => editFile(id, event.target.value)}
-          placeholder="从这里开始写…"
-        />
       )}
+      {(editorOpened || !preview) && <div className="bibo-file-editor-surface" hidden={preview}>
+        <MarkdownEditor value={draft.content} onChange={(value) => editFile(id, value)} source={source || !markdown} active={!preview} label={`${copy.fileEdit} ${detail.path}`} labels={copy.markdownEditor} scrollProgress={previewScroll.current} onScrollProgress={(progress) => { if (!preview) previewScroll.current = progress; }} />
+      </div>}
+      <div className="bibo-file-editor-status" role="status" aria-live="polite" title={draft.dirty ? copy.fileUnsaved : `已保存 · v${draft.version}`}>
+        <span>{draft.saving ? copy.fileSaving : draft.conflict ? copy.fileConflict : draft.error ? copy.fileSaveFailed : draft.dirty ? copy.fileUnsaved : copy.fileSaved}</span>
+        {draft.dirty && !draftStorageError && <span>{copy.fileDraftProtected}</span>}
+      </div>
       <ConfirmDialog open={recovery !== null} onOpenChange={(open) => { if (!open) setRecovery(null); }}
         title={recovery === "reload" ? "读取最新版本？" : "覆盖服务器内容？"}
         description={recovery === "reload" ? "当前未保存的修改将被放弃，替换为服务器最新版本。" : "将使用当前草稿覆盖服务器最新内容；如果期间再次发生修改，保存仍会被阻止。"}

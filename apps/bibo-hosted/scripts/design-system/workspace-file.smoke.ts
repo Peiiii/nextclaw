@@ -1,6 +1,27 @@
 import assert from "node:assert/strict";
 import type { Locator, Page, Route } from "playwright";
 
+export async function checkWorkspaceReopening(page: Page): Promise<Locator> {
+  await page.getByRole("button", { name: "源码", exact: true }).click();
+  const editor = page.getByRole("textbox", { name: "编辑 想法.md" });
+  await editor.fill("# 工作区保留的修改");
+  await page.getByRole("button", { name: "关闭工作区" }).click();
+  await page.getByRole("button", { name: "打开右侧工作区" }).click();
+  assert.equal(await editor.textContent(), "# 工作区保留的修改");
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.getByTitle("已保存 · v2").waitFor();
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "源码", exact: true }).click();
+  assert.equal(await editor.textContent(), "# 工作区保留的修改");
+  await page.getByRole("button", { name: "关闭工作区" }).click();
+  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await page.getByRole("complementary", { name: "右侧工作区" }).count(), 0);
+  await page.getByRole("button", { name: "打开右侧工作区" }).click();
+  await page.getByRole("button", { name: "源码", exact: true }).click();
+  await editor.waitFor();
+  return editor;
+}
+
 export async function openWorkspaceFile(page: Page, parts: readonly string[]): Promise<void> {
   await page.getByRole("button", { name: "浏览目录", exact: true }).click();
   for (const name of parts) {
@@ -19,6 +40,7 @@ export async function checkMissingRestoredFile(page: Page, base: string): Promis
     tabs: ["file-a", "missing-file"], activeFileId: "file-a", workspaceOpen: true, workspaceFileId: "missing-file",
   })));
   await page.goto(`${base}/files`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "源码", exact: true }).click();
   await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
   assert.equal(await page.getByText("File missing", { exact: true }).count(), 0, "a missing restored tab must not warn about the existing file");
   assert.equal(await page.locator(".bibo-file-tab").count(), 1, "the missing restored tab is removed");
@@ -28,7 +50,7 @@ async function checkTwoRows(page: Page, surface: Locator, width: number, workspa
   const layout = await surface.evaluate((node, workspace) => {
     const header = document.querySelector(workspace ? ".bibo-workspace-head" : ".bibo-topbar")!.getBoundingClientRect();
     const tools = node.querySelector(".bibo-file-editor-head")!.getBoundingClientRect();
-    const content = node.querySelector("textarea, .bibo-file-preview-markdown, iframe")!.getBoundingClientRect();
+    const content = node.querySelector(".bibo-file-editor-surface:not([hidden]), .bibo-file-preview-markdown, iframe")!.getBoundingClientRect();
     const overflowControls = Array.from(node.querySelectorAll(".bibo-file-editor-head button")).flatMap((button) => {
       const box = button.getBoundingClientRect();
       return box.top >= tools.top && box.bottom <= tools.bottom ? [] : [{ label: button.textContent, top: box.top, bottom: box.bottom, toolbarTop: tools.top, toolbarBottom: tools.bottom }];
@@ -56,9 +78,52 @@ export async function checkWorkspaceFiles(page: Page, width: number, base: strin
   while (await workspace.getByRole("button", { name: /^关闭 / }).count()) await workspace.getByRole("button", { name: /^关闭 / }).first().click();
   await workspace.getByRole("heading", { name: "选择文件或笔记" }).waitFor();
   await openWorkspaceFile(page, ["想法.md"]);
+  await workspace.getByRole("button", { name: "源码", exact: true }).click();
   await workspace.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
   await checkDirectoryRead(page, base);
   await workspace.getByRole("button", { name: "关闭工作区" }).click();
+}
+
+async function checkFileActionReveal(fileRow: Locator, rowAction: Locator): Promise<void> {
+  const resting = await fileRow.evaluate((row) => ({
+    touch: matchMedia("(hover: none)").matches,
+    opacity: getComputedStyle(row.querySelector(".ui-row-action-tray")!).opacity,
+    pointerEvents: getComputedStyle(row.querySelector(".ui-row-action-tray")!).pointerEvents,
+    mainRight: row.querySelector(".bibo-tree-main")!.getBoundingClientRect().right,
+    rowRight: row.getBoundingClientRect().right,
+  }));
+  assert.equal(resting.opacity, resting.touch ? "1" : "0", "file actions are revealed on hover or remain available on touch screens");
+  assert.equal(resting.pointerEvents, "none", "hidden file actions do not intercept row clicks");
+  assert.ok(resting.mainRight >= resting.rowRight - 8, "hidden actions do not reserve title width");
+  await fileRow.hover();
+  await rowAction.hover();
+  const feedback = await rowAction.evaluate((button) => ({
+    icon: getComputedStyle(button, "::before").backgroundColor,
+    row: getComputedStyle(button.closest(".bibo-tree-row")!).backgroundColor,
+  }));
+  assert.notEqual(feedback.icon, feedback.row, "file actions remain visible against the hovered row");
+}
+
+async function checkNoteRowActions(page: Page, base: string, backToDirectory: Locator): Promise<void> {
+  await page.goto(`${base}/notes`, { waitUntil: "networkidle" });
+  if (await backToDirectory.isVisible()) await backToDirectory.click();
+  const noteRow = page.locator(".bibo-note-list .ui-list-row-group").filter({ hasText: "想法.md" });
+  const noteAction = noteRow.getByRole("button", { name: "管理笔记 想法.md" });
+  if (await page.evaluate(() => matchMedia("(hover: none)").matches)) {
+    await noteAction.click();
+    await page.getByRole("menuitem", { name: "移动 / 重命名" }).waitFor();
+    await page.keyboard.press("Escape");
+    return;
+  }
+  await noteRow.locator(".ui-list-row").click();
+  await noteAction.hover();
+  const note = await noteRow.evaluate((row) => ({
+    parent: getComputedStyle(row).backgroundColor,
+    child: getComputedStyle(row.querySelector(".ui-list-row")!).backgroundColor,
+    icon: getComputedStyle(row.querySelector(".ui-icon-button")!, "::before").backgroundColor,
+  }));
+  assert.equal(note.child, "rgba(0, 0, 0, 0)", "selected note draws one row background");
+  assert.notEqual(note.icon, note.parent, "more-action hover is visible on a selected note");
 }
 
 export async function checkFileRowActions(page: Page, base: string): Promise<void> {
@@ -67,12 +132,7 @@ export async function checkFileRowActions(page: Page, base: string): Promise<voi
   if (await backToDirectory.isVisible()) await backToDirectory.click();
   const fileRow = page.locator(".bibo-tree-row").filter({ has: page.getByRole("treeitem", { name: "review-document-0.md", exact: true }) });
   const rowAction = fileRow.getByRole("button", { name: "管理文件 review-document-0.md" });
-  await rowAction.hover();
-  const feedback = await rowAction.evaluate((button) => ({
-    icon: getComputedStyle(button, "::before").backgroundColor,
-    row: getComputedStyle(button.closest(".bibo-tree-row")!).backgroundColor,
-  }));
-  assert.notEqual(feedback.icon, feedback.row, "file actions remain visible against the hovered row");
+  await checkFileActionReveal(fileRow, rowAction);
   await rowAction.click();
   await page.getByRole("menuitem", { name: "移动 / 重命名" }).waitFor();
   await page.getByRole("menuitem", { name: "删除", exact: true }).click();
@@ -86,17 +146,17 @@ export async function checkFileRowActions(page: Page, base: string): Promise<voi
   await page.getByRole("treeitem", { name: "review-document-1.md" }).waitFor();
   await page.getByRole("textbox", { name: "搜索文件" }).fill("review-document-1");
   const searchRow = page.locator(".ui-list-row-group").filter({ hasText: "review-document-1.md" });
+  await searchRow.hover();
   await searchRow.getByRole("button", { name: "管理文件 review-document-1.md" }).click();
   await page.getByRole("menuitem", { name: "删除", exact: true }).waitFor();
   await page.keyboard.press("Escape");
-  await page.goto(`${base}/notes`, { waitUntil: "networkidle" });
-  if (await backToDirectory.isVisible()) await backToDirectory.click();
-  await page.locator(".bibo-note-list").getByRole("button", { name: "管理笔记 想法.md" }).waitFor();
+  await checkNoteRowActions(page, base, backToDirectory);
 }
 
 async function checkFileDrafts(page: Page, workspace: Locator, width: number): Promise<void> {
   const directory = page.getByRole("dialog", { name: "浏览目录" });
   const editor = workspace.getByRole("textbox", { name: "编辑 B-folder/nested/readme.md" });
+  await workspace.getByRole("button", { name: "源码", exact: true }).click();
   await editor.fill("# 目录切换保留草稿");
   await checkTwoRows(page, workspace, width, true);
   await workspace.getByRole("button", { name: "预览", exact: true }).click();
@@ -114,12 +174,17 @@ async function checkFileDrafts(page: Page, workspace: Locator, width: number): P
   await directory.getByRole("button", { name: "返回上级目录" }).click();
   await directory.getByRole("button", { name: "想法.md", exact: true }).click();
   await workspace.getByRole("tab", { name: "B-folder/nested/readme.md", exact: true }).click();
-  assert.equal(await editor.inputValue(), "# 目录切换保留草稿");
+  await workspace.getByRole("button", { name: "源码", exact: true }).click();
+  assert.equal(await editor.textContent(), "# 目录切换保留草稿");
   await workspace.getByRole("button", { name: "关闭 B-folder/nested/readme.md", exact: true }).click();
   await page.getByRole("dialog", { name: "保存文件修改？" }).getByRole("button", { name: "取消", exact: true }).click();
-  assert.equal(await editor.inputValue(), "# 目录切换保留草稿");
+  assert.equal(await editor.textContent(), "# 目录切换保留草稿");
   await workspace.getByRole("button", { name: "保存", exact: true }).click();
   await workspace.getByTitle("已保存 · v2").waitFor();
+  await checkCloseNeighbor(workspace);
+}
+
+async function checkCloseNeighbor(workspace: Locator): Promise<void> {
   const names = await workspace.getByRole("tab").evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label")!));
   const index = names.indexOf("B-folder/nested/readme.md");
   const neighbor = names[index + 1] ?? names[index - 1]!;

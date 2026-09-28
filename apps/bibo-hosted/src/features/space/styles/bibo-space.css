@@ -268,9 +268,8 @@
 .file-tree-search { @apply flex flex-none items-center gap-1 p-2; }
 .file-tree-search .ui-control { @apply min-w-0; }
 .bibo-tree-row { @apply flex items-center [min-height:31px] pr-1.25 [border-radius:6px]; }
-.bibo-tree-row:hover { @apply [background:var(--ui-hover)]; }
-.bibo-tree-row:is(:hover, :focus-within, .is-selected) { --ui-icon-hover: var(--ui-selection-hover); }
-.bibo-tree-row.is-selected:hover { @apply [background:var(--ui-selection-hover)]; }
+.bibo-tree-row:is(:hover, :focus-within) { @apply [background:var(--ui-hover)]; }
+.bibo-tree-row.is-selected:is(:hover, :focus-within) { @apply [background:var(--ui-selection-hover)]; }
 .bibo-tree-row.is-selected { @apply [background:var(--ui-selection)]; }
 .bibo-tree-main { @apply flex-1 flex self-stretch min-h-8 items-center gap-2 overflow-hidden border-0 bg-transparent bg-none text-left [color:var(--ui-muted)] cursor-pointer text-base; }
 .bibo-tree-name { @apply min-w-0 overflow-hidden whitespace-nowrap text-ellipsis; }
@@ -308,8 +307,9 @@
 .file-conflict > div { @apply flex flex-wrap gap-2 mt-2; }
 .bibo-save-state { @apply [color:var(--ui-muted)] text-base; }
 .bibo-file-preview-markdown, .bibo-file-preview-frame { @apply flex-1 min-h-0 overflow-auto w-full m-0 p-6 border-0 [color:var(--ui-ink)] text-base leading-7; }
-.bibo-file-editor textarea { @apply flex-1 min-h-0 w-full m-0 p-6 border-0 [outline:0] bg-transparent [color:var(--ui-ink)] font-mono text-base leading-7 resize-none; }
-.bibo-file-editor textarea:focus-visible { @apply [outline:0]; }
+.bibo-file-editor-surface { @apply flex flex-1 min-h-0 min-w-0; }
+.bibo-file-editor-surface[hidden] { display: none; }
+.bibo-file-editor-status { @apply flex flex-none flex-wrap justify-between gap-2 px-4 py-1 [border-top:1px_solid_var(--ui-line)] [color:var(--ui-muted)] text-base; }
 .bibo-file-foot { @apply [border-top:1px_solid_var(--bibo-hairline)] [padding:4px_25px] flex gap-3.75; }
 
 @media (max-width: 1100px) {
@@ -394,7 +394,6 @@
   .bibo-file-tree, .bibo-note-list { @apply flex-none [max-height:210px] [border-right:0] [border-bottom:1px_solid_var(--bibo-hairline)]; }
   .bibo-file-tree .bibo-tree-scroll { @apply [height:auto] pb-2; }
   .bibo-file-workbench { @apply flex-1 min-h-0; }
-  .bibo-file-editor textarea { @apply w-full [padding:20px_16px]; }
   .bibo-file-preview-markdown, .bibo-file-preview-frame { @apply w-full [padding:20px_16px]; }
   .bibo-form-pair { @apply [grid-template-columns:1fr] gap-0; }
 }

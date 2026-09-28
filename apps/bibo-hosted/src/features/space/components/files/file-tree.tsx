@@ -1,6 +1,6 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { BiboFile } from "@nextclaw/bibo-client";
-import { Button, IconButton, Input, ListRow, LoadingState, Tooltip } from "@nextclaw/personal-agent-ui";
+import { Button, IconButton, Input, ListRow, LoadingState, RowActionTray, Tooltip } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { FileActions } from "./file-actions";
 import { FileKindIcon } from "./file-kind-icon";
@@ -30,7 +30,7 @@ function FileSearchResults() {
   return (
     <>
       {fileMatches.map((file) => (
-        <div className="ui-list-row-group" key={file.id}>
+        <div className="ui-list-row-group ui-row-action-host" key={file.id}>
           <ListRow
             onClick={() => (file.kind === "folder" ? void searchFiles(`${file.path}/`) : void openFile(file.id))}
           >
@@ -40,7 +40,7 @@ function FileSearchResults() {
               <small>{file.path}</small>
             </span>
           </ListRow>
-          <FileActions file={file} />
+          <RowActionTray><FileActions file={file} /></RowActionTray>
         </div>
       ))}
       {fileSearchLoading ? (
@@ -93,7 +93,7 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
       .map((file, index) => (
         <div key={file.id} role="none">
           <div
-            className={`bibo-tree-row${activeFileId === file.id ? " is-selected" : ""}`}
+            className={`bibo-tree-row ui-row-action-host${activeFileId === file.id ? " is-selected" : ""}`}
             style={{ paddingLeft: 12 + level * 17 }}
             onFocusCapture={() => setTreeFocus(file.id)}
           >
@@ -118,8 +118,10 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
               <FileKindIcon file={file} expanded={!!expanded[file.id]} />
               <span className="bibo-tree-name">{file.path.split("/").at(-1)}</span>
             </button></Tooltip>
-            {file.kind === "folder" && <IconButton label={`在 ${file.path} 下创建`} icon={<Plus />} tabIndex={tabStop === file.id ? 0 : -1} onClick={() => onCreate(file.path)} />}
-            <FileActions file={file} tabIndex={tabStop === file.id ? 0 : -1} />
+            <RowActionTray>
+              {file.kind === "folder" && <IconButton label={`在 ${file.path} 下创建`} tooltip="新建" tooltipSide="top" icon={<Plus />} tabIndex={tabStop === file.id ? 0 : -1} onClick={() => onCreate(file.path)} />}
+              <FileActions file={file} tabIndex={tabStop === file.id ? 0 : -1} />
+            </RowActionTray>
           </div>
           {file.kind === "folder" && expanded[file.id] && (
             <div id={`${treeId}-${file.id}`} role="group">

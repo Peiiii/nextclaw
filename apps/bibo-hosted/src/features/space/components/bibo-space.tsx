@@ -26,7 +26,7 @@ export function BiboWorkspace() {
         {workspaceResolving ? <LoadingState label="正在打开资源" /> : workspaceFileId && !current && (error || openError) ? (
           <div><EmptyState title="暂时无法打开文件" /><Button onClick={() => void openWorkspace(workspaceFileId)}>重试打开</Button></div>
         ) : workspaceFileId ? (
-          current ? <FileEditor key={workspaceFileId} id={workspaceFileId} tabId={`bibo-workspace-file-tab-${workspaceFileId}`} compact preview={workspacePreview ?? current.kind === "artifact"} onPreviewChange={setWorkspacePreview} /> : <LoadingState label="正在打开文件" />
+          current ? <FileEditor key={workspaceFileId} id={workspaceFileId} tabId={`bibo-workspace-file-tab-${workspaceFileId}`} compact preview={workspacePreview ?? true} onPreviewChange={setWorkspacePreview} /> : <LoadingState label="正在打开文件" />
         ) : (
           <EmptyState title="选择文件或笔记" />
         )}

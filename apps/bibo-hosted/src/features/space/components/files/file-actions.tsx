@@ -47,7 +47,7 @@ export function FileActions({ file, tabIndex, label }: { file: BiboFile; tabInde
       <ActionMenu
         label={actionLabel}
         triggerRef={trigger}
-        trigger={<IconButton ref={trigger} label={actionLabel} icon={<MoreVertical />} tabIndex={tabIndex} />}
+        trigger={<IconButton ref={trigger} label={actionLabel} tooltip="更多操作" tooltipSide="top" icon={<MoreVertical />} tabIndex={tabIndex} />}
         transferringFocus={moving || deleting}
       >
         <ActionMenuItem onSelect={startMove}>移动 / 重命名</ActionMenuItem>
