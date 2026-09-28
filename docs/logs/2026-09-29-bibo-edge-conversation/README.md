@@ -39,6 +39,8 @@
 - 此探索不迁移生产数据、不对外发布；结果与偏差在本节续记。
 - 首轮 `esbuild --platform=browser --conditions=development`：`@nextclaw/ncp-agent-runtime-next` 有 8 个 Node builtin 解析阻塞，主要是自身 `node:crypto`/`node:perf_hooks`，以及旧 runtime 根入口带入 `node:fs`、`node:path` 的本地资产/用户内容实现。把 Node builtin 临时标为 external 后产物约 315 KiB，但仍保留本地文件模块，**不是 Worker 可运行证明**。完整 `@nextclaw/kernel` 根入口出现 452 个解析错误（只打印前 12 个），连外置 `node:*` 后仍由第三方 Node SDK 带入 `child_process` 等模块。证据说明必须建立真正可移植的窄入口，不能把完整 Kernel 直接放进 Worker。探针产物仅在 `/tmp`，未改源码或生产。
 - 第二轮在 **本地 workerd** 用 `nodejs_compat` 实际加载 `@nextclaw/ncp-agent-runtime-next`，执行其 `DefaultNcpAgentRuntime.run`：伪模型流产生 `run.started → message.text-start/delta/end → message.completed → run.finished`，assistant 最终消息为 `worker runtime ok`，无 `run.error`；一次本地观测运行约 **7 毫秒**。这推翻了“旧 runtime 根入口含 Node 依赖就无法在 Worker 加载”的过强推断，但只证明 Agent 循环的最小切片，未证明真实模型、工具、上下文、长期状态和生产资源限额。旧版 Wrangler 的本地 workerd 最高支持兼容日期 2026-02-19，目标线上日期是 2026-09-24；正式纵向验证须用版本匹配的 Wrangler。
+- 第三轮沿同一公共 runtime 通过线上 Bibo 模型代理发起**真实流式模型请求**，模型回复“边缘运行验证成功。”，NCP 事件正常以 `run.finished` 结束，无运行错误；本地 Worker 计时 **4.544 秒**（n=1，含真实模型及网络，不能推出 p95 或相对加速）。复用 `@nextclaw/ncp-toolkit` 的 `DefaultNcpAgentConversationStateManager` 也能在 workerd 加载；适配 `getSnapshot()` 将活动中的 `streamingMessage` 包含在 runtime 视图后，完整收敛为 final 消息。Kernel 自身也使用这两个公共组件，说明现有通用合同可以成为双宿主共用路径。
+- 工具轮次暴露真实 Worker 兼容阻塞：给 `NcpTool.parameters` 传 JSON Schema 时，当前公共 runtime 调用 Ajv 的运行时 `compile()`，workerd 报 `Code generation from strings disallowed for this context`，工具未执行。使用 NCP 既有 `NcpTool.validateArgs` 合同做无动态代码生成的参数验证，并在模型输入构建器独立提供同一工具的 OpenAI Schema 后，本地工具调用、工具结果、第二轮模型与最终消息都通过，`toolInvoked=true`、`modelCalls=2`、无 `run.error`。正式实现须让一个工具定义同时生成供模型看的 Schema 与 Worker 可执行验证，避免这项实验中的两处手写定义漂移；Node 现有 Ajv 路径不得被削弱。
 - 对旧假忙补丁运行一次定向 diff-only maintainability guard，报告 3 个 `max-statements` 错误（空间处理、执行编排、runner 计时所在函数）和 4 个警告；该补丁不能按现状提交上线。先前设计指出的并发根因仍成立，需在保持语义前提下收敛状态与函数职责。
 
 ### 2026-09-29：旧会话假忙方案 Review（mode=design）
@@ -69,6 +71,14 @@
 - 修订冒烟定位后第三轮通过：模型代理输出 **52 个内容块，首内容 2.474 秒**；搜索返回 **10 条结果**；搜索对话 **256 个 delta、总 9.815 秒**；文件创建对话 **25 个 delta、总 10.575 秒**，答案与文件持久化、自动预览、桌面和手机刷新均通过。命令总耗时 **61.71 秒**，测试数据按脚本清理。该样本含工具且受模型波动影响，不能作为 BE-02 的无工具首字分位数。
 - 此发布仅修复 `/space` 读与 `/run` 假互斥，**不**满足零容器、首字速度、成本或架构目标。原用户一小时前旧会话未以其身份直接发消息，特定会话的复验仍是 BE-03 缺口。
 
+### 2026-09-29：边缘文件与工具接口的第一刀及自审
+
+- 在隔离分支把 Bibo 工具注册拆出为同一 `createBiboSpaceTool` 工厂；Node 原 JSON Schema 路径不变，Worker 模式通过 NCP 现有 `validateArgs` 扩展点避开 Ajv 的动态代码生成。真实本地 workerd 导入实际 Bibo 工具代码后完成伪模型 `task.list` 调用、工具结果和第二轮回答，无 `run.error`。这只证明工具切片，没有替代生产文件工具、搜索或 `show_file`。
+- `BiboSpaceService` 增加文件正文存储口；旧 Node 本地读写仍为默认。新增 DO 文件存储草稿按文件 ID 暂存，在 `BiboSpaceStateStore.save` 中与文件索引同事务提交。定向测试覆盖创建、重新打开、更新、移动、删除及失败事务不留半成品；新测试已加入 Bibo 包测试命令。Bibo 三套 TypeScript、14 项定向测试、定向 ESLint 和 `git diff --check` 通过。DO 草稿仍未接入线上类，且 Agent run 级延迟提交/失败回滚、旧文件导入和真实 DO 事务验证未完成。
+- 自审发现先前关于文件容量的判断错误：请求校验允许最多 100 万字符，但旧 Node 实际写入还限制 **1 MiB UTF-8**。撤回一度引入的分块扩容草稿，保留原字节上限，并增加多字节文本边界测试，避免因误读合同扩大变更范围。
+- 尝试把现有 Kernel `AgentRunModelInputBuilder` 直接载入本地 workerd 失败：`@nextclaw/core`/Kernel 根入口带入原生 `sharp`。把 `sharp` 改为动态 import 的临时实验仍失败，已撤回，工作区无该改动。架构设计据此收敛为真实的宿主无关公共入口；不能让 Bibo 复制压缩投影与模型输入逻辑。
+- 为防长任务漂移，新增[可执行计划](../../plans/2026-09-29-bibo-edge-conversation.plan.md)并刷新[当前状态](../../work/2026-09-29-bibo-edge-conversation/current-state.md)。BE-01 至 BE-08 仍全部开放；源码切片未提交、未生产切换。
+
 ## 迭代完成说明
 
 进行中。旧会话假忙局部修复已经上线；新架构和迁移尚未完成。根因阶段性定位为每条消息必经用户容器/完整 Harness 初始化，旧会话假忙来自 `/space` 读锁与 `/run` 冲突。完整延迟占比和性能分位数未定位，后续按真实链路分段测量。
@@ -87,7 +97,7 @@
 
 ## 可维护性总结汇总
 
-进行中，尚未修改架构源码。目标为复用单一 NextClaw 对话语义并仅抽真实宿主边界；旧假忙补丁曾有维护性 finding，需返工审查。文件组织 planned-path preflight 已运行，源码 diff-only 检查和主观 Review 待实施后执行。
+进行中，已有未提交的 Bibo 文件与工具接口切片；目标为复用单一 NextClaw 对话语义并仅抽真实宿主边界。旧假忙补丁的维护性问题已返工并通过局部 Review；新切片仍待 diff-only 检查和最终 Review。文件组织 planned-path preflight 已运行。
 
 ## NPM 包发布记录
 

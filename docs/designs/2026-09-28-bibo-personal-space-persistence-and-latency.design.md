@@ -19,6 +19,8 @@
 
 补充可移植性实测：在本地 workerd 开启 `nodejs_compat` 后，现有公共入口 `@nextclaw/ncp-agent-runtime-next` 能加载并完成一次伪模型流，产生完整 NCP run 与 message 事件，约 7 毫秒。这说明早先浏览器平台 esbuild 的 Node builtin 解析失败不能直接判定 Worker 失败。**完整 Kernel 入口仍含大量 Node 文件、进程和服务能力**，不能照搬；模型、文件工具、长会话、压缩、持久化和生产资源限制尚未在 Worker 证明。优先沿现有公共 Agent runtime 的 `AgentRuntimeSessionState`、`AgentModelInputBuilder`、`NcpLLMApi` 和 `NcpTool` 合同做纵向实验，再决定是否需要改动 NextClaw；不能预设必须大范围重构。
 
+后续实验已把真实模型流和纯内存工具轮次跑通。公共 `@nextclaw/ncp-toolkit` 的会话状态管理器也能在 Worker 运行；当前 NextClaw Kernel 自身消费同一 runtime 和状态管理器。新的关键阻塞在**工具参数校验**：现有 Ajv 对动态 JSON Schema 的运行时编译需要 Worker 禁止的字符串代码生成。NCP 已有 `NcpTool.validateArgs` 无 JIT 扩展点，实测可运行工具和第二轮模型；正式路径须从一份工具定义派生模型 Schema 和 Worker 验证器，并保持 Node 的原校验与工具体验。这个证据将设计的 NextClaw 改动范围从“预设拆 Kernel”收窄为“先复用已存在的通用 runtime/状态合同，确有缺口时才抽宿主端口”，但尚不足以宣布 Bibo 可迁移。
+
 ## 候选架构
 
 | 候选 | 首字与扩缩容 | 平台成本 | 工程代价与主要风险 |
@@ -210,3 +212,11 @@ Workers 单 isolate 128 MB；Node 兼容层中的 `node:sqlite` 和 `node:child_
 - 更快的运行平台不能掩盖模型本身的尾延迟；需要按阶段埋点，分别优化初始化、上下文、外部服务与流式传输。
 - DO 的单用户顺序执行适合会话状态，但超长工具任务、CPU 密集压缩及大文件要验证资源和切分策略；常用小文件放 DO 还是 R2 的阈值，以及边缘和共享 Node 的成本交叉点，都未知。
 - 紧急修复错误 `RUN_BUSY` 已独立通过维护性检查并部署，生产真实账号冒烟已通过；特定旧会话仍待直接复验。它不能替代持久化与运行架构迁移。
+
+## 2026-09-29 可运行切片后的设计收敛
+
+- 真实本地 workerd 已证明公共 NCP Agent runtime、会话状态管理器、模型流和一个 Bibo 工具轮次能运行；这只裁决**循环内核可移植**，不代表完整 NextClaw 对话语义或生产分位数过关。实际 `AgentRunModelInputBuilder` 直接导入 workerd 会经 Kernel/Core 根入口加载原生 `sharp` 并在启动时失败；动态 import 也被当前 Wrangler 打入启动 bundle。下一刀应给模型输入、压缩投影和预算提供真正窄的、宿主无关的公共入口，并让 Node Kernel 自身消费，避免在 Bibo 重写上下文语义。
+- `NcpTool.parameters` 在 workerd 的执行验证会触发 Ajv 运行时编译而失败。Bibo 工具已抽为同一工厂：Node 保留原 schema 验证，Worker 在模型输入仍发送同一 schema、执行时使用公共 NCP `validateArgs` 扩展点做无 JIT 验证。后续应在通用合同中说明 schema 的“呈现”和“执行验证”可分别由宿主实现；不为 Bibo 增加第二套工具业务逻辑。
+- Bibo 文件层已有独立 `BiboFileStorage` 接口切片：Node 原路径不变；DO 草稿以稳定文件 ID 存正文并随结构化元数据同事务提交。复核旧 Node 路径确认文件上限是 **1 MiB UTF-8 字节**，不是请求层允许的最多 100 万字符；DO 必须维持相同字节限制。此切片尚未接入生产；完整 Agent run 的文件变动必须延迟到最终会话提交，不能沿普通空间操作的每次 `save` 直接生效。
+- 旧用户迁移不能靠 DO 当前 `sessions` UI 投影重建 Agent 上下文，因为其消息只保留约 100 条，而且独立于 R2 快照内的 NCP journal、压缩检查点及身份/记忆。应从旧容器经通用 NextClaw 会话读取合同导出完整 NCP 数据，与 R2 文件和 DO 元数据对账；若无法提前枚举旧用户，先使用 R2 快照中的 DO ID 清单，补充无快照但有 DO 会话的情况。首次旧用户聊天若需要当场启动容器导入，则 BE-01 和 BE-02 均不达标，不能以“惰性迁移”偷换目标。
+- 旧 Node `BiboSpaceService` 的 Agent 送达收件箱还从本地 `inbox/deliveries.json` 桥接。边缘切换前必须导入此事实或给它一个通用的送达读取接口；不能简单忽略该路径而宣称体验不退化。
