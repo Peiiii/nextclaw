@@ -97,6 +97,7 @@
 - 80 次边缘纯聊天使成功计数 **17→97**、容器启动计数 **1→1**，模型调用累计增加 80。82 条无工具生产日志的运行墙钟合计 **98.73 秒**，约 **120 秒/百条**；不是实测 CPU 或 Cloudflare 账单。[架构成本表](../../designs/2026-09-28-bibo-personal-space-persistence-and-latency.design.md#粗略成本边界非报价)按千名月活、每人每月 300/900/1800 条同负载补齐 A/B/E 平台费用，模型与搜索另列，并明确容器池情景范围与共享包含额度。
 - NextClaw 当前源码在独立 Node 宿主完成真实 NCP `native` + DeepSeek 聊天，服务重启后同会话正确回忆标记；测试实例随后停止。Core/Kernel/NCP runtime/NextClaw CLI TypeScript 检查通过，Kernel **710/710**、Core 定向 **22/22** 通过。Bibo 包完整 **87/87** 通过；Node/tsx 默认不认识 CSS 导入，测试时使用 `/tmp` 的仅忽略 `.css` 的临时 loader，产品源码未为此改动。隔离实例的 `codex-sub/gpt-6-luna` 曾在 120 秒超时，此 provider 未由这次真实宿主冒烟证明。
 - 闲置超过一小时的旧会话已找到，但压测账号触发产品每小时 100 条限额；此次返回的是限额消息而非假 `RUN_BUSY`。待滚动窗口释放后发消息验证上下文与容器计数，不以限额响应冒充旧会话通过。
+- 稳定产品包 `0.58.0` 的首次 exact-SHA 预构建（Actions `36493530544`）在约 **218 秒**后由严格 lint 拦截：Kernel `user-question.manager.ts` 留有未使用的 `NcpMessage` 类型导入。首次父发布 `36493595071` 因缺少同 SHA 的合格产物失败，**未执行 NPM 发布**。移除该导入后，定向 TypeScript/lint、diff-only 维护性检查和本地完整 `release:check:strict` 均通过；以新主干 SHA 重新生成预构建并恢复发布，不跳过门禁。
 
 ## 迭代完成说明
 

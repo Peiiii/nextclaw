@@ -1,4 +1,4 @@
-import { NcpEventType, type NcpMessage, type NcpRunHandle } from "@nextclaw/ncp";
+import { NcpEventType, type NcpRunHandle } from "@nextclaw/ncp";
 import { ingressKeys, type AgentRunSendIngressPayload, type Ingress } from "@nextclaw/shared";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { SessionRunManager } from "@kernel/managers/session-run.manager.js";
