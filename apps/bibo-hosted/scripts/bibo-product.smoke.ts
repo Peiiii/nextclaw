@@ -482,7 +482,7 @@ try {
     }
   } finally { await browser.close(); }
 } finally {
-  if (server && server.exitCode === null && server.signalCode === null) {
+  if (server.exitCode === null && server.signalCode === null) {
     const exited = once(server, "exit");
     server.kill("SIGTERM");
     await exited;
