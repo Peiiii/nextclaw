@@ -17,7 +17,7 @@ import { createBiboSpaceTool } from "@/features/bibo-domain/tools/bibo-space.too
 import { BiboSpaceStateStore } from "../bibo-space-state.service";
 import { BiboSpaceFileStore } from "../stores/bibo-space-file.store";
 import { BiboEdgeSessionStore, type BiboEdgeSession } from "../stores/bibo-edge-session.store";
-import { runFailure } from "../diagnostics/bibo-diagnostics.utils";
+import { logDiagnostic, runFailure } from "../diagnostics/bibo-diagnostics.utils";
 import { applyBiboStorageChanges } from "../utils/bibo-storage.utils";
 
 export type BiboEdgeRunResult = {
@@ -62,6 +62,23 @@ function createInputMessage(sessionId: string, message: string, saved: BiboEdgeS
   }
   return { id: `user-message-${crypto.randomUUID()}`, sessionId, role: "user", status: "final",
     timestamp: new Date().toISOString(), parts: [{ type: "text", text: message }] };
+}
+
+function reportEdgeRunError(events: readonly NcpEndpointEvent[], tools: readonly NcpTool[], runId: string,
+  sessionId: string, reason: string): void {
+  const counts = new Map<string, number>();
+  const knownTools = new Set(tools.map((tool) => tool.name));
+  for (const event of events) {
+    if (event.type !== NcpEventType.MessageToolCallStart) continue;
+    const name = knownTools.has(event.payload.toolName) ? event.payload.toolName : "unknown";
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  const errorType = /Tool call limit reached/.test(reason) ? "ToolCallLimit" :
+    /Assistant step completed without/.test(reason) ? "AssistantStepMissing" :
+    /not available in this run/.test(reason) ? "ToolUnavailable" : "NcpRunError";
+  logDiagnostic("worker", "edge.agent-error", { runId, sessionId, errorType,
+    toolCount: [...counts.values()].reduce((total, count) => total + count, 0),
+    toolSummary: [...counts].map(([name, count]) => `${name}:${count}`).join(",") }, "error");
 }
 
 /** Host adapter around the same NCP loop, model input and compaction used by the Node Kernel. */
@@ -143,6 +160,7 @@ export class BiboEdgeConversationService {
         if (event.type === NcpEventType.MessageTextDelta) input.onDelta?.(event.payload.delta);
       }
       const runError = events.find((event) => event.type === NcpEventType.RunError);
+      if (runError) reportEdgeRunError(events, tools, input.runId, input.sessionId, runError.payload.error ?? "");
       if (input.signal?.aborted || runError) throw runFailure(runError?.payload.error, input.signal?.aborted);
       return finalizeRun(manager, saved, events, spaceState, spaceChanged, files, displayEvents);
     } catch (error) {

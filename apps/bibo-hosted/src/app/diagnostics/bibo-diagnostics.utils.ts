@@ -1,7 +1,7 @@
 export type RunTrace = { runId: string; sessionId?: string };
 type DiagnosticFields = RunTrace & {
   stage?: string; status?: number; errorCode?: string; durationMs?: number;
-  requestBytes?: number; messageCount?: number; toolCount?: number;
+  requestBytes?: number; messageCount?: number; toolCount?: number; toolSummary?: string;
   snapshotBytes?: number; persisted?: boolean; runtimeId?: string;
   compactionStatus?: string; phase?: string;
   errorType?: string; errorLocation?: string;
@@ -23,7 +23,8 @@ export function logDiagnostic(component: "worker" | "container" | "model", event
     schema: "bibo.diagnostic/v1", timestamp: new Date().toISOString(), level, component, event,
     runId: fields.runId, sessionId: fields.sessionId, stage: fields.stage, status: fields.status,
     errorCode: fields.errorCode, durationMs: fields.durationMs, requestBytes: fields.requestBytes,
-    messageCount: fields.messageCount, toolCount: fields.toolCount, snapshotBytes: fields.snapshotBytes,
+    messageCount: fields.messageCount, toolCount: fields.toolCount, toolSummary: fields.toolSummary,
+    snapshotBytes: fields.snapshotBytes,
     persisted: fields.persisted, runtimeId: fields.runtimeId, compactionStatus: fields.compactionStatus, phase: fields.phase,
     errorType: fields.errorType, errorLocation: fields.errorLocation,
   };
