@@ -48,7 +48,8 @@ function finalizeRun(manager: DefaultNcpAgentConversationStateManager,
   }
   const checkpoint = readLatestContextCompactionCheckpoint(messages);
   if (checkpoint) metadata[CONTEXT_COMPACTION_METADATA_KEY] = checkpoint;
-  logDiagnostic("worker", "edge.tool-summary", { runId, sessionId, ...summarizeToolCalls(events, tools) });
+  logDiagnostic("worker", "edge.tool-summary", { runId, sessionId, ...summarizeToolCalls(events, tools),
+    displayCount: displayEvents.length, showFileStatus: showFileStatus(events, displayEvents) });
   return { text, previousSession: saved, ncpSession: { version: 1, messages: [...messages], metadata },
     spaceState: spaceChanged ? spaceState : undefined, files, events, displayEvents,
     questions: projectUserQuestions(messages) as BiboQuestion[] };
@@ -77,6 +78,30 @@ function summarizeToolCalls(events: readonly NcpEndpointEvent[], tools: readonly
   }
   return { toolCount: [...counts.values()].reduce((total, count) => total + count, 0),
     toolSummary: [...counts].map(([name, count]) => `${name}:${count}`).join(",") };
+}
+
+function showFileStatus(events: readonly NcpEndpointEvent[], displayEvents: readonly BiboShowContent[]): string {
+  const callIds = new Set<string>();
+  for (const event of events) if (event.type === NcpEventType.MessageToolCallStart && event.payload.toolName === "show_file") {
+    callIds.add(event.payload.toolCallId);
+  }
+  if (!callIds.size) return "not-called";
+  if (displayEvents.length) return "emitted";
+  const chunks: string[] = [];
+  for (const event of events) {
+    if (event.type === NcpEventType.MessageToolCallArgs && callIds.has(event.payload.toolCallId)) { chunks.length = 0; chunks.push(event.payload.args); }
+    if (event.type === NcpEventType.MessageToolCallArgsDelta && callIds.has(event.payload.toolCallId)) chunks.push(event.payload.delta);
+  }
+  if (!chunks.length) return "no-args";
+  try {
+    const parsed: unknown = JSON.parse(chunks.join(""));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return "non-object-args";
+    const value = parsed as Record<string, unknown>;
+    if (typeof value.path !== "string" || !value.path.trim()) return "missing-path";
+    if (value.viewer !== undefined && !["auto", "source", "rendered"].includes(String(value.viewer))) return "invalid-viewer";
+    if (Object.keys(value).some((key) => !["path", "title", "purpose", "line", "column", "viewer", "params"].includes(key))) return "unknown-arg";
+    return "not-emitted";
+  } catch { return "invalid-json"; }
 }
 
 function reportEdgeRunError(events: readonly NcpEndpointEvent[], tools: readonly NcpTool[], runId: string,
