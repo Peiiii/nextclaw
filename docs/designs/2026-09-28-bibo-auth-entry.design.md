@@ -41,3 +41,13 @@ BB 三份 tsc、Vite 构建、routing 登录回归、product 回归、定向 ESL
 2026-09-28 从干净的远程 `master` 提交 `8baa6e83e94b0b115c0bcb47b3f7fe53dd9583ae` 执行 `pnpm -C apps/bibo-hosted run deploy:client`，只构建并发布客户端与宿主 Worker 静态资产，未构建或 rollout 容器。Worker 版本 `3e4d438e-f20c-4c08-a751-a99618302cb6`，入口为 `https://app.bibo.bot/`。发布前后容器完整元数据一致：镜像 `sha256:b32bcfb2cde302b69944695df41ee5395ee3f27a6d1d6acc36cc1515f55b381a`、version 22、5 实例。
 
 线上入口 JS `index-DILd1CPX.js`、CSS `index-BK8KlexV.css`、KaTeX 产物及 `/help` 与冻结构建逐字节 SHA-256 相同。线上 1440px／390px 的路由、历史、草稿、登录切换、退出后认证与导航回放通过。未经 API mock 的线上首次访问在 1440×844、390×844、320×568 下显示品牌角色和注册表单，背景处于 inert，无页面横向溢出或浏览器脚本错误；320px 矮屏表单可独立滚动。没有使用真实账号提交注册或登录，真实手机软键盘仍未实测。此批发布 `AUTOMATION_INTERVENTIONS: 0`。
+
+## 回访纠偏：手机首屏与并行部署
+
+用户从真实手机反馈仍看到旧入口。复查发现 09:21 的客户端版本 `3e4d438e-f20c-4c08-a751-a99618302cb6` 曾在生产生效，但 09:25 的并行 BB 故障修复部署 `afff6f75-bfe3-4f2e-a2f8-7270b2eb6a3f` 将入口静态资源退回 `index-C9zmtr0Y.js`；不是手机缓存。故障修复随后合入远程主干 `ab654b705d4e05ecdb56afbdc151d2faf323469b`。从该主干执行客户端恢复部署，Worker 版本 `e6d0d22f-ae0c-4751-b8d4-ec551137b14a`；`app.bibo.bot`、带参数首页、workers.dev 与 `bibo.bot/app/` 跳转均重新返回 `index-DILd1CPX.js`，JS／CSS 与构建逐字节相同，诊断任务升级的容器 image `sha256:4ef68e222cc8ea7f8bdd9681aa1ca78890cda123eda9e8b522ff24b388fe364c`、version 23 保持不变。恢复后线上 iPhone 13／SE 视口与 1440／390 路由回放通过。
+
+真实手机随后反馈新版仍须滚动才能看到注册操作，版面也显得堆叠。原因是手机把桌面完整品牌介绍和三项表单直接纵向排列，320×568 的主按钮位于首屏下方。改为手机分步：第一步只显示角色、单句定位、模式切换、邮箱与「继续」；注册继续时沿现有 API 自动请求验证码，第二步输入验证码与密码，可重新发送、返回修改邮箱；登录继续时只输入密码。桌面仍使用原双栏完整表单。短屏保留 44px 输入、46px 主按钮和可滚动的键盘状态，不用缩小普通字号换取装下所有字段；手机认证输入单独使用 16px，避免 iOS 聚焦 14px 输入时放大页面。手机的次要说明固定在底部，第二步收起；不新增账号 API 或状态 owner。
+
+本地 Chromium iPhone 13 390×664 和 iPhone SE 320×568 初始页面无横向或纵向溢出，主按钮分别在 y=391／365，底部说明也在屏内。注册第二步的验证码、密码、成功提示、重新发送、修改邮箱和登录第二步在 390／320px 回放通过，主按钮无需滚动；模拟 320×380 键盘缩放时主按钮仍可经表单自身滚动到达。BB 三份 TypeScript 检查、Vite 构建、产品与路由回归、定向 ESLint、diff-only maintainability 及治理检查通过。真实手机软键盘与审美偏好仍须由用户在上线页面确认。
+
+此次并行覆盖暴露出 BB 命令虽在文档要求“冻结远程主干”，脚本却不检查实际 checkout。`deploy` 与 `deploy:client` 增加构建前、上传前两次 preflight，拒绝脏工作区或 HEAD 不等于远程 `master`，防止落后 worktree 再覆盖较新静态资源；不改变容器 rollout 的范围选择。

@@ -4,7 +4,7 @@ NextClaw manages context budgeting and automatic compaction for long conversatio
 
 The website, app and help page share a purple Bibo icon in browser tabs, making Bibo easier to find among open pages.
 
-The first visit shows Bibo's purple companion beside the sign-up form on desktop. On phones, a full-screen welcome view leads into the email, verification-code, and password fields; scroll to reach the rest of the form on a small screen. Existing users can switch to Log in and resume their conversations and personal space. Code delivery success or failure appears in the form, and a failed attempt keeps the email you entered.
+The first visit shows Bibo's purple companion beside the sign-up form on desktop. On phones, enter your email first and tap Continue, then enter the verification code and password. Existing users can switch to Log in, continue to the password step, and resume their conversations and personal space. Code delivery success or failure appears in the form; you can go back to change the email without losing it.
 
 The overview features the website’s purple, wide-eyed companion beside the welcome greeting. The character is decorative: it is not clickable and does not react to summary interactions. A separate summary link below opens your inbox, tasks, or a conversation. The character scales down on phones to leave room for content and actions.
 

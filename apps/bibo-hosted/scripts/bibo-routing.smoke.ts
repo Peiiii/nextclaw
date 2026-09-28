@@ -137,6 +137,11 @@ async function checkLogin(page: Page) {
   }
   await auth.getByRole("button", { name: "登录", exact: true }).first().click();
   await auth.getByRole("textbox", { name: "邮箱", exact: true }).fill("test@example.com");
+  if (page.viewportSize()!.width < 761) {
+    assert.equal(await auth.getByLabel("密码", { exact: true }).count(), 0, "mobile starts with one focused email step");
+    await auth.locator('button[type="submit"]').click();
+    await auth.getByLabel("密码", { exact: true }).waitFor();
+  }
   await auth.getByLabel("密码", { exact: true }).fill("test-password");
   await auth.locator('button[type="submit"]').click();
   await auth.waitFor({ state: "hidden" });
@@ -173,6 +178,49 @@ async function verifyViewport(page: Page, width: number) {
   console.log(`Routing ${width}: history, drafts, blank chat, direct links, refresh, race and missing session passed`);
 }
 
+async function verifyCompactAuth(page: Page, width: number) {
+  let codeRequests = 0;
+  await page.route("**/api/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/auth/send-code") {
+      codeRequests++;
+      return route.fulfill({ contentType: "application/json", body: JSON.stringify({ maskedEmail: "t***@example.com" }) });
+    }
+    return route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ error: "请登录" }) });
+  });
+  await page.goto(base, { waitUntil: "networkidle" });
+  const auth = page.locator(".bibo-auth-card");
+  await auth.waitFor();
+  const submit = auth.locator('button[type="submit"]');
+  const assertActionFits = async () => {
+    const box = await submit.boundingBox();
+    assert.ok(box && box.y >= 0 && box.y + box.height <= page.viewportSize()!.height, `${width}px primary action must fit without scrolling`);
+  };
+  await assertActionFits();
+  assert.equal(await auth.getByLabel("密码", { exact: true }).count(), 0);
+  await auth.getByRole("textbox", { name: "邮箱", exact: true }).fill("test@example.com");
+  await submit.click();
+  await auth.getByLabel("密码", { exact: true }).waitFor();
+  await auth.getByLabel("邮箱验证码", { exact: true }).waitFor();
+  await auth.getByText("验证码已发往", { exact: false }).waitFor();
+  assert.equal(codeRequests, 1);
+  await Promise.all([
+    page.waitForResponse((response) => new URL(response.url()).pathname === "/api/auth/send-code"),
+    auth.getByRole("button", { name: "重新发送" }).click(),
+  ]);
+  assert.equal(codeRequests, 2);
+  await assertActionFits();
+  await page.screenshot({ path: `/tmp/bibo-auth-details-${width}.png` });
+  await auth.getByRole("button", { name: "修改" }).click();
+  assert.equal(await auth.getByRole("textbox", { name: "邮箱", exact: true }).inputValue(), "test@example.com");
+  await auth.getByRole("button", { name: "登录", exact: true }).click();
+  await submit.click();
+  await auth.getByLabel("密码", { exact: true }).waitFor();
+  assert.equal(await auth.getByLabel("邮箱验证码", { exact: true }).count(), 0);
+  await assertActionFits();
+  console.log(`Auth ${width}: email, code delivery, details, edit and login fit without scrolling`);
+}
+
 try {
   await ready;
   const browser = await chromium.launch();
@@ -180,6 +228,10 @@ try {
     for (const width of [1440, 390]) {
       const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width < 760 });
       try { await verifyViewport(page, width); } finally { await page.close(); }
+    }
+    for (const width of [390, 320]) {
+      const page = await browser.newPage({ viewport: { width, height: width === 320 ? 568 : 844 }, hasTouch: true });
+      try { await verifyCompactAuth(page, width); } finally { await page.close(); }
     }
   } finally { await browser.close(); }
 } finally {
