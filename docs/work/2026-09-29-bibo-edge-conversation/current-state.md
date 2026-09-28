@@ -2,9 +2,9 @@
 
 ## 身份与入口
 
-- 交付：Bibo 普通对话零容器、旧状态迁移和 NextClaw 通用对话能力；状态：生产验证中；最近核对：2026-09-29。
+- 交付：Bibo 普通对话零容器、旧状态迁移和 NextClaw 通用对话能力；状态：已交付，线上观察中；最近核对：2026-09-29。
 - 验收以 [BIBO-EDGE-2026-09-29](acceptance-contract.md) 为准；设计见[整体架构方案](../../designs/2026-09-28-bibo-personal-space-persistence-and-latency.design.md)，证据见[迭代日志](../../logs/2026-09-29-bibo-edge-conversation/README.md)。用户已授权实现、主干、部署及适用发布。
-- 实现已推送远程 `master`；稳定包发布 tag `nextclaw@0.58.0` 指向 `e3c8d35a3`，该提交已在远程主干历史中。Bibo 线上 Worker 源码为 `a41574b8f`，版本 `5bbee09c-6cd3-473a-b287-b31593e0165b`；后续提交仅涉及测试、文档、Kernel 无用导入与版本记录，未改变 Bibo 线上行为。实现工作区 `/Users/peiwang/.codex/worktrees/bibo-reply-latency/nextbot` 待最终文档提交后与发布主干安全合并。主工作区有其它活跃 WIP，不得覆盖；发布工作区 `/Users/peiwang/.codex/worktrees/bibo-hotfix-release/nextbot` 已快进到发布主干。
+- 实现与最终文档已推送远程 `master`；稳定包发布 tag `nextclaw@0.58.0` 指向 `e3c8d35a3`，该提交已在远程主干历史中且 branch closure 检查通过。Bibo 线上 Worker 源码为 `a41574b8f`，版本 `5bbee09c-6cd3-473a-b287-b31593e0165b`；后续提交仅涉及测试、文档、Kernel 无用导入与版本记录，未改变 Bibo 线上行为。主工作区有其它活跃 WIP，对账器返回 `LOCAL_WORKTREE_RETRYING` 并交由后台 owner 安全快进；未覆盖其内容。
 
 ## 已证明
 
@@ -16,11 +16,12 @@
 - 专用生产测试账号做过一次边缘→旧容器→边缘的真实回迁，旧/新路径对照各完成 24 条消息并删除临时会话；回迁前后 **5 个既有会话**的历史 SHA-256 摘要完全相同，最终模式为 edge。全过程容器启动 +2（旧容器阶段）、边缘运行 +24；此前 80 条纯聊天的边缘阶段容器启动 +0。
 - NextClaw 当前源码构建的独立本地实例在 18937 端口通过 NCP `native` + `deepseek/deepseek-flash` 真实聊天；在服务重启后，同一会话正确回忆标记。Core、Kernel、NCP runtime 与 `nextclaw` CLI TypeScript 检查通过；Kernel 全套 **710/710**、Core 相关 **22/22** 通过。测试实例已停止。`nextclaw@0.58.0` 已发布到 NPM `latest`，46/46 包版本、跨平台/Node 安装矩阵、旧版升级和四平台 stable runtime 公开 manifest 均通过。`codex-sub/gpt-6-luna` 在该隔离实例 120 秒超时，DeepSeek 路径的通过不能替代该 provider 验证。
 
-## 尚未闭合
+## 已知限制与持续观察
 
-1. 同段 24 对 24 的整体 p95 下降 78.5%，BE-02 已按预定门槛通过；此前 38 对 120 的跨时段比较仅下降 47.9%，保留为波动界限。最终自审须同时展示两组结果，不以小样本掩盖长期尾部风险。
+1. 同段 24 对 24 的整体 p95 下降 78.5%，BE-02 按预定门槛通过；此前 38 对 120 的跨时段比较仅下降 47.9%，保留为波动界限。样本不能证明长期尾部分布恒定。
 2. 同负载 A/B/E 的 300/900/1800 条费用表及每人总额已完成，真实 Worker CPU/墙钟调用日志已取得；完整 CPU/存储账单仍未到期，保留公开单价、包含额度与未测量的限制。
-3. NextClaw `0.58.0` 的包、安装/升级与 runtime 已闭合；完成最终 Review、合同账本与文档提交。首次 `pnpm release:reconcile:mainline` 返回 `LOCAL_WORKTREE_RETRYING`：主工作区 tracked WIP 受保护且无本地独有提交，自动 retry worker 接管；最终远程主线闭合后再核验状态。
+3. `codex-sub` 真实 provider 路径在隔离 Node 实例超时，历史偶发 `save-edge` 错误未被证明永久消失；本次实际 DeepSeek、文件、旧会话与迁移链路均通过，最近生产错误事件计数为 0。
+4. NextClaw `0.58.0` 的包、安装/升级与 runtime 已闭合；首次 `pnpm release:reconcile:mainline` 返回 `LOCAL_WORKTREE_RETRYING`，主工作区 tracked WIP 受保护且无本地独有提交，后台 retry worker 接管。本地镜像待 WIP 释放后自动快进，不影响已闭合的远程主线。
 
 ## 环境与诊断
 
