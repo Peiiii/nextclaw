@@ -78,6 +78,10 @@ BB 三份 tsc、公共 UI tsc、Vite 构建、product smoke（桌面 1440px／�
 
 用户继续指出新日程“添加说明”孤立居中、侧栏日期／数量／新建按钮不在同一中线。表单按钮改左对齐并沿用 16px 字段间距；侧栏标题行改为弹性标题列加两个固定操作列并垂直居中。真实本地浏览器测得三项中心 y 均为 125px；手机 390px 展开说明后上下各 16px，弹窗宽 358px，无页面横溢。
 
+本批与同期主干的缺失文件提示、Markdown 文件链接实现合并；冲突仅在产品回归脚本导入和静态帮助文案，合并后保留两边行为。将通用页面越界检查从 500 行边界的产品脚本移到既有设计系统验收模块。合并后的 BB 三份 tsc、公共 UI tsc、Vite 构建、product、Markdown、资源保存／失败／冲突回归、定向 ESLint、skill 渐进加载及 diff-only maintainability 通过（0 错误，4 条原有预算提醒）。
+
+从干净远程 master `3e9d2fa2ee434dd4ff5ff90125724e527ea46915` 执行 `deploy:client --containers-rollout none`，Worker 版本 `03c40026-4164-404a-aec8-bd5568498965`。线上入口引用的 `index-C9zmtr0Y.js` SHA256 `44e497e636eddc32f35c00599e25af7759d2240b7c374c0792f9d59b7e582b78`、`index-Bxts0dEv.css` SHA256 `66e6088f4033128d070dfdff3c231bf53bcf621d29c91dae725829d9ce80f647`、KaTeX JS 及 `/help` 均与冻结构建字节一致；部署前后完整容器元数据相同。线上实际资产回放通过 1440／390px 文件两行工作区与文件行更多、移动／重命名／确认删除，资源与日程回归覆盖 1440／390／320px，收件箱覆盖 2048／1440／1100／390／320px。本批仅前端与文案，不重复调用真实模型；真实 Agent 链路沿用上轮验收证据。最终只追加本发布记录，不再部署静态资产。
+
 ## NPM 包发布记录
 
 不涉及 NPM 包发布。Bibo 与 personal-agent-ui 均为 private workspace package，本批添加两包 patch changeset，版本记录交后续统一批次。
