@@ -45,6 +45,7 @@ export function createRehypeChatMarkdownIds(prefix: string) {
 /** Sanitize before KaTeX; retain only the data consumed by our Markdown components. */
 export const chatMarkdownHtmlSchema = {
   ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames ?? []), "colgroup", "col", "mark", "u"],
   attributes: {
     ...defaultSchema.attributes,
     div: [...(defaultSchema.attributes?.div ?? []), "dataFrontmatter", "dataChatMathPending", "ariaBusy"],
@@ -54,6 +55,7 @@ export const chatMarkdownHtmlSchema = {
     ],
     code: [["className", /^language-./, "math-inline", "math-display"]],
     details: ["open"],
+    blockquote: [...(defaultSchema.attributes?.blockquote ?? []), ["dataCallout", "note", "tip", "important", "warning", "caution"]],
   },
   protocols: {
     ...defaultSchema.protocols,

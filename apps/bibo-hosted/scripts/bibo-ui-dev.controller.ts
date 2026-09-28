@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Plugin } from "vite";
 import { BiboSpaceService, BiboSpaceError } from "../src/features/bibo-domain/services/bibo-space.service";
+import { serveBiboPreviewAsset } from "./markdown-editor/bibo-assets-preview.service";
 
 type Message = { role: "user" | "assistant"; text: string; at: string };
 
@@ -71,9 +72,10 @@ export function biboUiDevController(): Plugin {
   const sessions = [{ id: "preview-session", title: "一起打磨个人空间", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), messageCount: messages.length }];
   const histories = new Map<string, Message[]>([["preview-session", messages]]);
   const spaceReady = (async () => {
-    const home = await mkdtemp(join(tmpdir(), "personal-agent-preview-"));
-    await mkdir(join(home, "workspace"));
+    const home = process.env.BIBO_UI_HOME || await mkdtemp(join(tmpdir(), "personal-agent-preview-"));
+    await mkdir(join(home, "workspace"), { recursive: true });
     const space = new BiboSpaceService(home);
+    if (process.env.BIBO_UI_HOME) return { home, space };
     const project = await space.execute("project.create", { name: "个人空间" }) as { id: string };
     await space.execute("task.create", { title: "完成这一轮体验评审", description: "核对原型、日程和文件工作区。", projectId: project.id, priority: "high", status: "active" });
     await space.execute("file.create", { path: "笔记", kind: "folder" });
@@ -167,13 +169,18 @@ export function biboUiDevController(): Plugin {
     name: "bibo-local-ui-preview",
     apply: "serve",
     configureServer: (server) => {
-      server.httpServer?.once("close", () => { void spaceReady.then(({ home }) => rm(home, { recursive: true, force: true })); });
+      const assets = async (request: IncomingMessage, response: ServerResponse) => {
+        const { biboAssetsRoute } = await server.ssrLoadModule("/src/features/assets/index.ts");
+        return serveBiboPreviewAsset(request, response, (await spaceReady).home, biboAssetsRoute);
+      };
+      server.httpServer?.once("close", () => { if (!process.env.BIBO_UI_HOME) void spaceReady.then(({ home }) => rm(home, { recursive: true, force: true })); });
       server.middlewares.use(async (request, response, next) => {
         const pathname = request.url?.split("?", 1)[0];
         if (!pathname?.startsWith("/api/")) return next();
 
         try {
           if (pathname === "/api/auth/me") return json(response, { user });
+          if (pathname === "/api/assets" || pathname.startsWith("/api/assets/")) return assets(request, response);
           if (pathname === "/api/chat/availability") return json(response, { ok: true });
           if (pathname === "/api/history") {
             const selectedId = new URL(request.url!, "http://localhost").searchParams.get("id");

@@ -16,6 +16,7 @@ export function ChatMessageImagePreview({
   zoomOutLabel,
   title,
   fallbackLabel,
+  width,
 }: {
   alt: string;
   expandLabel: string;
@@ -27,6 +28,7 @@ export function ChatMessageImagePreview({
   zoomOutLabel?: string;
   title?: string;
   fallbackLabel?: string;
+  width?: string | number;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [failedSource, setFailedSource] = useState<string | null>(null);
@@ -38,10 +40,12 @@ export function ChatMessageImagePreview({
       <span
         data-chat-message-image-preview
         className="group/image relative block w-fit max-w-[min(100%,32rem)] overflow-hidden rounded-lg"
+        style={Number(width) > 0 ? { width: Number(width) } : undefined}
       >
         <button
           type="button"
           className="block w-fit max-w-[min(100%,32rem)] text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+          style={Number(width) > 0 ? { width: "100%" } : undefined}
           onClick={openLightbox}
           onDoubleClick={(event) => {
             event.preventDefault();
@@ -57,8 +61,10 @@ export function ChatMessageImagePreview({
             referrerPolicy="no-referrer"
             onError={() => setFailedSource(src)}
             className="block h-auto w-auto max-h-[26rem] max-w-full rounded-lg bg-transparent object-contain"
+            style={Number(width) > 0 ? { width: "100%" } : undefined}
           />
         </button>
+        {title && <span className="chat-image-caption">{title}</span>}
         <ChatMessagePreviewToolbar
           actions={[
             {

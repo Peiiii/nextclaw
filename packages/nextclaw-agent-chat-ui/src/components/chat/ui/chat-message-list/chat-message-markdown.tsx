@@ -11,6 +11,7 @@ import {
 import type { Components, Options } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { remarkChatCallout } from "./utils/chat-markdown-callout.utils";
 import remarkFrontmatter from "remark-frontmatter";
 import { remarkFrontmatterDisplay } from "./utils/chat-frontmatter.utils";
 import { ChatMarkdownFrontmatter } from "./chat-markdown-frontmatter";
@@ -163,7 +164,7 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
     const { texts } = useChatMessageMarkdownRuntime();
     return <ChatMarkdownDetails node={node} open={open} label={texts.detailsLabel ?? "Details"}>{children}</ChatMarkdownDetails>;
   },
-  summary: () => null,
+  summary: ({ children }) => <>{children}</>,
   div: function ChatMarkdownBlock({ node: _node, children, ...rest }) {
     const { texts } = useChatMessageMarkdownRuntime();
     const source = (rest as Record<string, unknown>)["data-frontmatter"];
@@ -289,10 +290,11 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
     );
   },
 
-  table: function ChatMarkdownTable({ node: _node, children, ...rest }) {
+  table: function ChatMarkdownTable({ node: _node, children, width, ...rest }) {
+    const fixedWidth = Number(width);
     return (
       <div className="chat-table-wrap">
-        <table {...rest}>{children}</table>
+        <table {...rest} style={Number.isFinite(fixedWidth) && fixedWidth > 0 ? { width: fixedWidth } : undefined}>{children}</table>
       </div>
     );
   },
@@ -313,7 +315,7 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
     );
   },
 
-  img: function ChatMarkdownImage({ node: _node, src, alt, title }) {
+  img: function ChatMarkdownImage({ node: _node, src, alt, title, width }) {
     const { resolveFileContentUrl, texts } = useChatMessageMarkdownRuntime();
     const safeSrc = resolveSafeChatResourceHref(src);
     if (!safeSrc) {
@@ -336,6 +338,7 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
         sizeLabel={null}
         src={resolvedSrc}
         title={title}
+        width={width}
         fallbackLabel={texts.imageAltLabel}
         zoomInLabel={texts.previewZoomInLabel}
         zoomOutLabel={texts.previewZoomOutLabel}
@@ -414,7 +417,7 @@ export function ChatMessageMarkdown({
     ? [remarkGfm, remarkMath, createRemarkLatexDelimitersPlugin(markdown), createRemarkInlineTokenPlugin(inlineTokens)]
     : [remarkGfm, remarkMath, createRemarkLatexDelimitersPlugin(markdown)];
   if (isStreaming) remarkPlugins.push(createRemarkStreamingMathPlugin(markdown));
-  if (!inline) remarkPlugins.unshift(remarkFrontmatter, remarkFrontmatterDisplay);
+  if (!inline) remarkPlugins.unshift(remarkFrontmatter, remarkFrontmatterDisplay, remarkChatCallout);
   const WrapperTag = inline ? "span" : "div";
 
   return (

@@ -22,7 +22,7 @@ const defaultLabels: MarkdownLabels = {
 };
 
 const hostedUrl = (url: string, key: string) =>
-  (key === "src" ? /^https:\/\//i.test(url) : /^(https?:\/\/|mailto:|tel:|#)/i.test(url)) ? url : "";
+  (key === "src" ? /^(https:\/\/|\/(?!\/))/i.test(url) : /^(https?:\/\/|mailto:|tel:|#)/i.test(url)) ? url : "";
 
 export function Markdown({ text, labels = defaultLabels, isStreaming = false, role = "assistant", resolveResourceHref, document = false }: {
   text: string; labels?: MarkdownLabels; isStreaming?: boolean; role?: "user" | "assistant"; resolveResourceHref?: (uri: string) => string | null; document?: boolean;
@@ -40,6 +40,6 @@ export function Markdown({ text, labels = defaultLabels, isStreaming = false, ro
     <MarkdownCodeBlock code={source} language={language} labels={labels} texts={texts} isStreaming={streaming} />, [labels, texts]);
   return <div className={`ui-markdown${document ? " ui-markdown-document" : ""}`}>
     <ChatMessageMarkdown text={text} role={role} texts={texts} isStreaming={isStreaming}
-      allowHtml={false} urlTransform={(uri, key) => hostedUrl(uri, key) || (key === "href" ? resolveResourceHref?.(uri) ?? "" : "")} renderCodeBlock={renderCodeBlock} />
+      allowHtml={document} urlTransform={(uri, key) => hostedUrl(uri, key) || (key === "href" ? resolveResourceHref?.(uri) ?? "" : "")} renderCodeBlock={renderCodeBlock} />
   </div>;
 }
