@@ -1,6 +1,7 @@
 import { ChatMessageMarkdown, type ChatMessageTexts } from "@nextclaw/agent-chat-ui";
 import { useCallback, useMemo } from "react";
 import { MarkdownCodeBlock } from "./code-block";
+import "../../styles/markdown-document.css";
 
 export type MarkdownLabels = {
   copyCode: string; copiedCode: string; copyFailed: string;

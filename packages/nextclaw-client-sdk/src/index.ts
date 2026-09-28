@@ -223,6 +223,8 @@ export type {
   UiNcpSessionPendingInputView,
   UiNcpSessionPendingInputsView,
   UiNcpSessionTokenUsageView,
+  UiNcpSessionUserQuestionsView,
+  UiNcpSessionUserQuestionResolutionView,
   UiServerEvent,
 } from "@nextclaw/server";
 export type {

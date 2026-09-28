@@ -28,6 +28,7 @@ export type {
   UpdateProjectWorkStateInput,
 } from "@nextclaw-server/features/projects/index.js";
 export * from "@nextclaw-server/shared/types/server-api.types.js";
+export * from "@nextclaw-server/features/sessions/types/session-user-question-api.types.js";
 export * from "@nextclaw-server/features/runtime-control/index.js";
 export * from "@nextclaw-server/features/auth/utils/auth-bridge.utils.js";
 export type {

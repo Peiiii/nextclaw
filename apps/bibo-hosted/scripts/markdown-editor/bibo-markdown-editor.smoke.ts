@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { chromium, type Page } from "playwright";
+import { checkBlockInteractions } from "./markdown-block-interactions.smoke";
 import { mockApi } from "../personal-workspace.fixture";
 
 const port = String(30000 + process.pid % 20000);
@@ -35,6 +36,7 @@ async function checkEditor(page: Page, width: number) {
   await page.getByRole("heading", { name: "一个想法" }).waitFor();
   assert.equal(await mode(page, "预览").getAttribute("aria-pressed"), "true");
   assert.equal(await page.locator(".cm-editor").count(), 0, "reader does not mount an editor until needed");
+  await checkContextualWriting(page);
   await checkWriting(page);
   await checkRichObjects(page);
   await checkHistoryAndSearch(page);
@@ -45,6 +47,136 @@ async function checkEditor(page: Page, width: number) {
   await checkLayout(page, width);
   assert.deepEqual(errors, []);
   console.log(`Markdown editor ${width}px: preview, live/source, IME, history, search, draft recovery, conflicts and concurrent saves passed`);
+}
+
+async function checkContextualWriting(page: Page) {
+  await openSource(page);
+  await replaceSource(page, "# 对齐标题\n\n普通段落 **强调** 与 `code`。\n\n## 第二节\n\n- 第一项\n- 第二项\n\n> 引用\n\n| 名称 | 状态 |\n| --- | --- |\n| 内容 | 正常 |\n\n```typescript\nconst value = 1;\n```\n\n公式 $E=mc^2$ 与 [可编辑链接](https://example.com)\n\n![图片](https://example.com/image.png)\n\n$$\na^2+b^2=c^2\n$$\n\n结束");
+  const geometry = async (selector: string) => page.locator(selector).evaluate(root => {
+    const origin = root.getBoundingClientRect();
+    return Array.from(root.querySelectorAll("h1,h2,blockquote,table,pre,img[src],.katex-display")).map(element => {
+      const box = element.getBoundingClientRect(); const style = getComputedStyle(element);
+      return { tag: element.tagName, x: box.x, y: box.y - origin.y, width: box.width, height: box.height, font: style.fontSize, line: style.lineHeight, color: style.color };
+    });
+  });
+  await mode(page, "预览").click();
+  await page.locator(".ui-markdown-document img").waitFor();
+  const reading = await geometry(".ui-markdown-document > .chat-markdown");
+  await mode(page, "编辑").click();
+  await richFor(page).waitFor();
+  const editing = await geometry(".tiptap");
+  assert.equal(reading.length, editing.length);
+  for (let index = 0; index < reading.length; index++) {
+    for (const key of ["x", "y", "width", "height"] as const) assert.ok(Math.abs(reading[index][key] - editing[index][key]) < 2, `${reading[index].tag} ${key} matches between read and edit: ${reading[index][key]} / ${editing[index][key]}`);
+    if (reading[index].tag !== "IMG") for (const key of ["font", "line", "color"] as const) assert.equal(reading[index][key], editing[index][key]);
+  }
+  await checkInlineInspectors(page);
+  await checkTableAndCommands(page);
+  await checkBlockInteractions(page, openSource, replaceSource);
+  await checkMathShortcut(page);
+  await checkMathCommandTypes(page);
+}
+
+async function checkMathShortcut(page: Page) {
+  for (const key of ["Space", "Enter"]) {
+    await openSource(page); await replaceSource(page, "公式示例\n\n继续写作");
+    await mode(page, "编辑").click();
+    await richFor(page).getByText("继续写作", { exact: true }).click();
+    await page.waitForFunction(() => { const el = document.querySelector(".tiptap") as HTMLElement & { editor: { state: { selection: { $from: { parent: { textContent: string } } } } } }; return el.editor.state.selection.$from.parent.textContent === "继续写作"; });
+    await richFor(page).press("ControlOrMeta+End");
+    await richFor(page).press("Enter");
+    await page.keyboard.type("$$"); await page.keyboard.press(key);
+    const math = page.getByRole("dialog", { name: "公式块", exact: true });
+    await math.locator("textarea").waitFor();
+    await math.getByRole("button", { name: "关闭", exact: true }).click();
+    assert.equal(await richFor(page).locator(":scope > p").last().innerText(), "$$", "cancel keeps the original shortcut text");
+    await page.waitForFunction(() => document.activeElement?.classList.contains("tiptap"));
+    await page.keyboard.press(key);
+    await math.getByRole("button", { name: "多行示例", exact: true }).click();
+    await math.locator(".mtable").waitFor();
+    await math.locator("textarea").press("ControlOrMeta+Enter");
+    await richFor(page).locator("[data-type=block-math] .mtable").waitFor();
+    assert.equal(await richFor(page).locator(":scope > p").allTextContents().then(items => items.includes("$$")), false);
+    await mode(page, "预览").click();
+    await page.locator(".ui-markdown-document .katex-display .mtable").waitFor();
+    await openSource(page);
+    const source = await contentOf(page);
+    assert.ok(source.includes("$$\n\\begin{aligned}"));
+    assert.ok(source.includes("\\\\\nd &= e + f"), "multiline LaTeX survives serialization");
+  }
+}
+
+async function checkMathCommandTypes(page: Page) {
+  for (const [name, selector] of [["行内公式", "p [data-type=inline-math]"], ["公式块", ":scope > [data-type=block-math]"]]) {
+    await openSource(page); await replaceSource(page, "公式类型");
+    await mode(page, "编辑").click();
+    await richFor(page).getByText("公式类型", { exact: true }).click();
+    await page.waitForFunction(() => { const el = document.querySelector(".tiptap") as HTMLElement & { editor: { state: { selection: { $from: { parent: { textContent: string } } } } } }; return el.editor.state.selection.$from.parent.textContent === "公式类型"; });
+    await richFor(page).press("ControlOrMeta+End"); await richFor(page).press("Enter");
+    await page.keyboard.type("/math");
+    const options = page.getByRole("listbox").getByRole("option");
+    assert.deepEqual(await options.allTextContents(), ["行内公式嵌入文字，与正文同行显示", "公式块独占一块，可编辑多行公式"]);
+    await page.screenshot({ path: `/tmp/bibo-math-options-${page.viewportSize()!.width}.png` });
+    await page.getByRole("option", { name, exact: true }).click();
+    const dialog = page.getByRole("dialog", { name, exact: true });
+    await dialog.locator("textarea").fill("x^2");
+    await dialog.locator("textarea").press("ControlOrMeta+Enter");
+    await richFor(page).locator(selector).waitFor();
+    await mode(page, "预览").click();
+    assert.equal(await page.locator(".ui-markdown-document .katex-display").count(), name === "公式块" ? 1 : 0);
+    await openSource(page);
+    assert.ok((await contentOf(page)).includes(name === "公式块" ? "$$\nx^2\n$$" : "$x^2$"));
+  }
+}
+
+async function checkInlineInspectors(page: Page) {
+  await richFor(page).locator("a").click();
+  const link = page.getByRole("dialog", { name: "链接", exact: true });
+  await link.getByRole("textbox").fill("https://example.com/updated");
+  await link.getByRole("button", { name: "确认", exact: true }).click();
+  assert.equal(await richFor(page).locator("a").getAttribute("href"), "https://example.com/updated");
+  await richFor(page).locator("a").click();
+  await link.getByRole("button", { name: "取消链接", exact: true }).click();
+  assert.equal(await richFor(page).locator("a").count(), 0);
+  assert.ok((await richFor(page).innerText()).includes("可编辑链接"));
+  await richFor(page).locator(".tiptap-mathematics-render").first().click();
+  const math = page.getByRole("dialog", { name: "行内公式", exact: true });
+  await math.locator("textarea").fill("\\frac{a}{b}");
+  await math.locator(".katex .mfrac").waitFor();
+  assert.equal(await page.locator(".ui-overlay-backdrop").count(), 0, "math stays in a nonmodal contextual panel");
+  await math.locator("textarea").press("ControlOrMeta+Enter");
+  await richFor(page).locator(".katex .mfrac").waitFor();
+}
+
+async function checkTableAndCommands(page: Page) {
+  await richFor(page).locator("td").first().click();
+  const table = richFor(page).locator(".ui-rich-table");
+  assert.equal(await page.getByRole("dialog", { name: "表格", exact: true }).count(), 0, "typing in a cell never opens an obstructing panel");
+  await table.getByRole("button", { name: "新增一行", exact: true }).click();
+  await table.getByRole("button", { name: "新增一列", exact: true }).click();
+  assert.equal(await richFor(page).locator("tr").count(), 3);
+  assert.equal(await richFor(page).locator("tr").first().locator("th,td").count(), 3);
+  await page.keyboard.press("Escape");
+  await richFor(page).locator(":scope > p").last().click();
+  await richFor(page).locator(":scope > p").last().evaluate(paragraph => {
+    const range = document.createRange(); range.selectNodeContents(paragraph); range.collapse(false);
+    const selection = window.getSelection()!; selection.removeAllRanges(); selection.addRange(range);
+  });
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("/table");
+  const commands = page.getByRole("listbox", { name: "插入内容" });
+  await commands.getByRole("option", { name: "表格", exact: true }).waitFor();
+  assert.equal(await richFor(page).evaluate(element => element === document.activeElement), true, "slash does not steal typing focus");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("ArrowLeft");
+  assert.equal(await commands.count(), 0, "dismissed slash does not revive on selection changes");
+  await page.keyboard.press("ArrowRight");
+  for (let index = 0; index < 6; index++) await page.keyboard.press("Backspace");
+  await page.keyboard.type("/table");
+  await page.keyboard.press("Enter");
+  assert.equal(await richFor(page).locator("table").count(), 2);
+  await page.keyboard.press("Escape");
+
 }
 
 async function checkWriting(page: Page) {
@@ -169,9 +301,15 @@ async function checkRichLinks(page: Page) {
   await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
   assert.equal(await rich.locator('img[src="https://example.com/image.png"]').count(), 1);
   await rich.locator('img[src="https://example.com/image.png"]').click();
+  await rich.locator('img[src="https://example.com/image.png"]').dblclick();
   await page.getByRole("dialog").getByRole("textbox").fill("https://example.com/updated.png");
   await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
   assert.equal(await rich.locator('img[src="https://example.com/updated.png"]').count(), 1);
+  await rich.locator('img[src="https://example.com/updated.png"]').click();
+  await page.keyboard.press("Backspace");
+  assert.equal(await rich.locator("img").count(), 0, "selected image deletes as a whole");
+  await page.keyboard.press("ControlOrMeta+z");
+  assert.equal(await rich.locator('img[src="https://example.com/updated.png"]').count(), 1, "undo restores deleted image");
 }
 
 async function checkListEditing(page: Page) {

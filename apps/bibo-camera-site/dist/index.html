@@ -17,7 +17,13 @@
     <header>
       <a class="brand" href="#" aria-label="Bibo 首页">bibo<span>●</span></a>
       <p>你的云端个人 AI 搭档</p>
-      <button id="about" aria-haspopup="dialog" aria-controls="info">认识 Bibo <span>＋</span></button>
+      <nav class="site-actions" aria-label="Bibo 导航">
+        <button id="about" aria-haspopup="dialog" aria-controls="info">认识 Bibo <span>＋</span></button>
+        <a class="app-entry" href="https://app.bibo.bot/">
+          <span class="entry-eyes" aria-hidden="true"><i></i><i></i></span>
+          进入 Bibo <span class="entry-arrow" aria-hidden="true">↗</span>
+        </a>
+      </nav>
     </header>
     <main>
       <div class="intro">
@@ -128,10 +134,17 @@
         Bibo 是你的个人 AI
         搭档。帮你查资料、做计划、持续跟进，逐渐熟悉你的背景和偏好。
       </p>
-      <p>产品计划由官方云端托管。你决定它能做什么、哪些事需要先确认。</p>
+      <p>现在，可以在云端应用里开始和 Bibo 聊天。你决定聊什么，也决定下一步。</p>
       <p class="disclosure">
         这是四帧交互概念，使用预设内容；没有访问摄像头，也没有执行真实 AI 任务。
       </p>
+      <div class="app-invitation">
+        <p>这次，聊聊你的日常。</p>
+        <a class="app-entry" href="https://app.bibo.bot/">
+          <span class="entry-eyes" aria-hidden="true"><i></i><i></i></span>
+          进入 Bibo <span class="entry-arrow" aria-hidden="true">↗</span>
+        </a>
+      </div>
       <button class="back" id="back">回到我们的一天 ↗</button>
     </dialog>
   </body>

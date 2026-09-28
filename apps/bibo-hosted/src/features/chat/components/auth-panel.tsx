@@ -71,7 +71,7 @@ export function AuthPanel() {
     <div className="bibo-auth-form-pane">
       {mobileDetails && <button className="bibo-auth-back" type="button" onClick={() => setMobileStep("email")}><ArrowLeft size={18} aria-hidden="true" />返回</button>}
       <div className="bibo-auth-form-head"><p className="bibo-auth-eyebrow">很高兴见到你</p><h2 ref={titleRef} id="bibo-auth-title" tabIndex={mobileDetails ? -1 : undefined}>{title}</h2><p>{description}</p></div>
-      {!mobileDetails && <div className="bibo-auth-tabs"><SegmentedControl label="账号操作" value={mode} options={[{ value: "register", label: copy.register }, { value: "login", label: copy.login }]} onChange={changeMode} /></div>}
+      {!mobileDetails && <div className="bibo-auth-tabs"><SegmentedControl size="md" label="账号操作" value={mode} options={[{ value: "register", label: copy.register }, { value: "login", label: copy.login }]} onChange={changeMode} /></div>}
       <form onSubmit={submit} aria-busy={working}>
         {!mobileDetails ? <div className="bibo-auth-field"><label htmlFor="bibo-email">{copy.email}</label><Input ref={emailRef} id="bibo-email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="你的邮箱地址" /></div> : <p className="bibo-auth-email-summary">{email}<button type="button" onClick={() => setMobileStep("email")}>修改</button></p>}
         {(!mobile || mobileDetails) && <>

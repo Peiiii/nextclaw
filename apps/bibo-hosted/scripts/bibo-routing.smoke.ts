@@ -186,7 +186,7 @@ async function checkMobileAuthLayout(page: Page, auth: Locator, submit: Locator)
   ]);
   assert.ok(story && mascot && copy && form && note && action);
   assert.ok(mascot.y >= story.y && mascot.y + mascot.height <= form.y - 12, "the companion stays complete above the form");
-  assert.ok(copy.x + copy.width <= mascot.x + 1, "headline and companion occupy separate columns");
+  assert.ok(mascot.y + mascot.height <= copy.y - 12, "the companion has breathing room above the centered welcome copy");
   assert.ok(note.y - (action.y + action.height) <= 24, "the note follows the primary action without a blank panel");
   assert.ok(note.y + note.height <= page.viewportSize()!.height, "the note stays on the first screen");
   assert.equal(await auth.evaluate((card) => card.scrollHeight <= card.clientHeight + 1 && document.documentElement.scrollWidth <= innerWidth), true, "the initial mobile form has no viewport overflow");

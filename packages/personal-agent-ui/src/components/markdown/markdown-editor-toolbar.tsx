@@ -6,7 +6,7 @@ import type { MarkdownAction, MarkdownEditorLabels, MarkdownSelection } from "..
 
 export function MarkdownEditorToolbar({ labels, selection, manager, onSearch }: { labels: MarkdownEditorLabels; selection: MarkdownSelection; manager?: MarkdownEditorManager; onSearch: () => void }) {
   const text = labels.rich;
-  const actions: MarkdownAction[] = ["orderedList", "taskList", "quote", "link", "image", "table", "codeBlock", "math", "strike", "divider"];
+  const actions = ["orderedList", "taskList", "quote", "link", "image", "table", "codeBlock", "inlineMath", "math", "strike", "divider"] as const satisfies readonly MarkdownAction[];
   return <div className="ui-markdown-editor-toolbar" role="toolbar" aria-label={labels.toolbar}>
     <select aria-label={text.heading} value={selection.heading} onChange={(event) => manager?.heading(Number(event.target.value))}>
       <option value={0}>{text.paragraph}</option>
@@ -17,7 +17,7 @@ export function MarkdownEditorToolbar({ labels, selection, manager, onSearch }: 
     <IconButton label={labels.list} icon={<List />} onClick={() => manager?.run("list")} />
     <ActionMenu label={labels.more} transferringFocus>
       <ActionMenuItem onSelect={() => manager?.run("code")}>{labels.code}</ActionMenuItem>
-      {actions.map((action) => <ActionMenuItem key={action} onSelect={() => manager?.run(action)}>{text[action as keyof typeof text]}</ActionMenuItem>)}
+      {actions.map((action) => <ActionMenuItem key={action} onSelect={() => manager?.run(action)}>{action === "math" ? text.blockMath : text[action]}</ActionMenuItem>)}
       {selection.table && (["addRow", "addColumn", "deleteRow", "deleteColumn"] as const).map((action) => <ActionMenuItem key={action} onSelect={() => manager?.run(action)}>{text[action]}</ActionMenuItem>)}
       <ActionMenuItem disabled={!selection.undo} onSelect={() => manager?.run("undo")}>{labels.undo}</ActionMenuItem>
       <ActionMenuItem disabled={!selection.redo} onSelect={() => manager?.run("redo")}>{labels.redo}</ActionMenuItem>

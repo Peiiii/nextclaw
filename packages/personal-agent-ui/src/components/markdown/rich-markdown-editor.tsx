@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { MarkdownEditorManager } from "../../managers/markdown-editor.manager";
 import { MarkdownEditorToolbar } from "./markdown-editor-toolbar";
 import { MarkdownInsertDialog } from "./markdown-insert-dialog";
+import { MarkdownSlashMenu, MarkdownBlockHandle } from "./markdown-context-tools";
+import type { MarkdownBlockState } from "../../managers/markdown-block.manager";
 import { Button } from "../button";
-import type { MarkdownEditorProps, MarkdownSelection, MarkdownInspector } from "../../types/markdown-editor.types";
+import type { MarkdownEditorProps, MarkdownSelection, MarkdownInspector, MarkdownSlashState } from "../../types/markdown-editor.types";
 import "katex/dist/katex.min.css";
 import "../../styles/rich-markdown-editor.css";
+import "../../styles/markdown-document.css";
 
 export function RichMarkdownEditor(props: MarkdownEditorProps) {
   const host = useRef<HTMLDivElement>(null);
@@ -16,16 +19,20 @@ export function RichMarkdownEditor(props: MarkdownEditorProps) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
   const [inspector, setInspector] = useState<MarkdownInspector | null>(null);
+  if (!props.active && inspector) setInspector(null);
+  const [slash, setSlash] = useState<MarkdownSlashState | null>(null);
+  const [block, setBlock] = useState<MarkdownBlockState | null>(null);
   const [selection, setSelection] = useState<MarkdownSelection>({ bold: false, italic: false, heading: 0, undo: false, redo: false, table: false });
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
   const [replacement, setReplacement] = useState("");
   const text = props.labels.rich;
+  const didMount = (failure?: string) => { if (failure) setError(failure); else setReady(true); };
   useEffect(() => {
     let cancelled = false;
-    const editor = new MarkdownEditorManager(current.current, (state) => { if (!cancelled) setSelection(state); }, () => setSearching(true), setInspector);
+    const editor = new MarkdownEditorManager(current.current, (state) => { if (!cancelled) setSelection(state); }, () => setSearching(true), setInspector, setSlash, setBlock, failure => { if (!cancelled) didMount(failure); });
     manager.current = editor;
-    try { editor.mount(host.current!); setReady(true); } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    editor.mount(host.current!);
     return () => { cancelled = true; manager.current = undefined; editor.destroy(); };
   }, []);
   useEffect(() => { manager.current?.update(props); }, [props]);
@@ -43,10 +50,12 @@ export function RichMarkdownEditor(props: MarkdownEditorProps) {
       {(["previous", "next", "replace", "all"] as const).map((action) => <Button key={action} tone="text" onClick={() => manager.current?.searchAction(action)}>{action === "all" ? text.replaceAll : text[action]}</Button>)}
       <Button tone="text" onClick={() => { setSearching(false); manager.current?.focus(); }}>{text.close}</Button>
     </div>}
-    {error ? <div role="alert">{text.error} {error}</div> : !ready && <div role="status">{text.loading}</div>}
-    <div className="ui-rich-markdown-scroll" ref={scroller} onScroll={(event) => { if (props.active) { const element = event.currentTarget; props.onScrollProgress?.(element.scrollTop / Math.max(1, element.scrollHeight - element.clientHeight)); } }}>
+    {error ? <div className="ui-markdown-editor-loading" role="alert">{text.error} {error}</div> : !ready && <div className="ui-markdown-editor-loading" role="status">{text.loading}</div>}
+    <div className="ui-rich-markdown-scroll" hidden={!ready || Boolean(error)} ref={scroller} onScroll={(event) => { if (props.active) { const element = event.currentTarget; props.onScrollProgress?.(element.scrollTop / Math.max(1, element.scrollHeight - element.clientHeight)); manager.current?.refreshContext(); } }}>
       <div className="ui-rich-markdown-host" ref={host} />
     </div>
-    {inspector && <MarkdownInsertDialog inspector={inspector} labels={props.labels} onClose={() => setInspector(null)} onApply={(value) => manager.current?.applyInspector(inspector, value)} />}
+    {props.active && inspector && <MarkdownInsertDialog key={`${inspector.kind}:${inspector.position}:${inspector.value}`} inspector={inspector} labels={props.labels} onClose={() => setInspector(null)} onApply={(value) => manager.current?.applyInspector(inspector, value)} onReturnFocus={() => manager.current?.focus()} />}
+    {props.active && manager.current && slash && <MarkdownSlashMenu state={slash} labels={props.labels} manager={manager.current} />}
+    {props.active && manager.current && block && <MarkdownBlockHandle state={block} labels={props.labels} manager={manager.current.blocks} />}
   </div>;
 }

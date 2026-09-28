@@ -250,6 +250,18 @@ function isToolInvocationPart(
 function buildExtensionPart(
   part: Extract<ChatMessagePartSource, { type: "extension" }>,
 ): Extract<ChatMessagePartViewModel, { type: "custom" }> | null {
+  if (part.extensionType === "nextclaw.user-question") {
+    const questions = typeof part.data === "object" && part.data !== null
+      ? (part.data as { questions?: unknown }).questions
+      : null;
+    if (!Array.isArray(questions) || !questions.length || typeof questions[0]?.id !== "string") return null;
+    return {
+      type: "custom",
+      id: questions[0].id,
+      customType: part.extensionType,
+      data: part.data,
+    };
+  }
   if (isObservationEventPartExtensionType(part.extensionType)) {
     const data = readObservationEventPartData(part.data);
     if (!data) return null;

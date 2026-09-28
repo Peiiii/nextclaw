@@ -214,15 +214,15 @@
 .calendar-date:nth-child(7n) { @apply [border-right:0]; }
 .calendar-date:nth-last-child(-n+7) { @apply [border-bottom:0]; }
 .calendar-date.is-outside { @apply [background:var(--ui-canvas)] [color:var(--bibo-subtle)]; }
-.calendar-date.is-selected { @apply [background:var(--ui-calendar-selection)]; }
 .calendar-date-select { @apply absolute [inset:0] w-full border-0 bg-transparent [color:inherit] p-0 cursor-pointer; }
 .calendar-date-select:focus-visible { @apply [outline:2px_solid_var(--ui-primary)] [outline-offset:-2px]; }
 .calendar-date-select span { @apply absolute top-1.5 left-1.5 grid [place-items:center] [width:28px] [height:28px] [border-radius:50%] text-base; }
-.calendar-date.is-today .calendar-date-select span { @apply [background:var(--ui-primary)] [color:white]; }
+.calendar-date-select:hover span { @apply [background:var(--ui-hover)]; }
+.calendar-date.is-selected .calendar-date-select span { @apply [background:var(--ui-selection)] [color:var(--ui-primary)] [box-shadow:inset_0_0_0_1px_var(--ui-primary)] font-semibold; }
+.calendar-date.is-today .calendar-date-select span { @apply [background:var(--ui-primary)] [color:white] [box-shadow:none] font-semibold; }
 .calendar-date-events { @apply relative [z-index:1] grid gap-0.75 mt-8; }
 .calendar-date-events button { @apply flex gap-1.25 w-full min-w-0 [padding:4px_5px] border-0 [border-radius:4px] [background:var(--ui-hover)] [color:inherit] text-left text-xs cursor-pointer; }
 .calendar-date-events button:hover, .calendar-time-event:hover { @apply [background:var(--ui-selection-hover)]; }
-.calendar-date-select:hover { @apply [background:var(--ui-hover)]; }
 .calendar-date-events time { @apply [opacity:.75] flex-none; }
 .calendar-date-events span { @apply overflow-hidden whitespace-nowrap text-ellipsis; }
 .calendar-date-events .calendar-overflow { @apply bg-transparent [color:var(--bibo-subtle)]; }
@@ -234,22 +234,26 @@
   .calendar-date-events time { @apply hidden; }
 }
 .bibo-day-agenda { @apply [padding:25px_26px] [border-right:0]; }
-.bibo-agenda-heading { @apply grid [grid-template-columns:minmax(0,_1fr)_auto_auto] items-center gap-3 pb-4.5 [border-bottom:1px_solid_var(--bibo-hairline)]; }
-.bibo-agenda-heading h2 { @apply m-0 text-lg leading-7 font-semibold; }
-.bibo-agenda-heading > span { @apply whitespace-nowrap [color:var(--ui-muted)] text-base; }
-.bibo-agenda-items { @apply pt-3.25; }
-.bibo-agenda-event { @apply block [padding:12px_16px]; }
-.bibo-agenda-time { @apply block [color:var(--ui-muted)] text-base font-medium whitespace-nowrap; }
-.bibo-agenda-event strong { @apply mt-1 [overflow-wrap:anywhere] text-base font-semibold; }
-.bibo-agenda-event small { @apply block mt-1 [color:var(--ui-muted)] text-base font-normal [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] whitespace-normal [overflow-wrap:anywhere] overflow-hidden; }
+.bibo-agenda-heading { @apply grid [grid-template-columns:minmax(0,_1fr)_auto_auto] items-center gap-2 pb-3 [border-bottom:1px_solid_var(--bibo-hairline)]; }
+.bibo-agenda-heading h2 { @apply m-0 [font-size:16px] leading-6 font-semibold; }
+.bibo-agenda-heading > span { @apply whitespace-nowrap [color:var(--ui-muted)] text-xs; }
+.bibo-agenda-items { @apply grid gap-2 pt-3; }
+.bibo-agenda-items .bibo-agenda-event { @apply block w-full m-0 [min-height:0] [padding:14px_16px] [border:1px_solid_var(--ui-line)] [border-radius:var(--ui-radius-md)] [background:var(--ui-canvas)]; }
+.bibo-agenda-items .bibo-agenda-event:is(:hover, :focus-visible) { @apply [background:var(--ui-hover)]; }
+.bibo-agenda-items .bibo-agenda-event.is-selected { @apply [background:var(--ui-selection)]; }
+.bibo-agenda-items .bibo-agenda-event.is-selected:hover { @apply [background:var(--ui-selection-hover)]; }
+.bibo-agenda-time { @apply block [color:var(--ui-muted)] text-base font-normal whitespace-nowrap; }
+.bibo-agenda-event strong { @apply block mt-1 [overflow-wrap:anywhere] [font-size:16px] font-semibold [line-height:1.45]; }
+.bibo-agenda-event small { @apply mt-1 [color:var(--ui-muted)] text-base font-normal [line-height:1.5] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] whitespace-normal [overflow-wrap:anywhere] overflow-hidden; }
 .bibo-agenda-empty { @apply flex flex-col items-start gap-2 [padding:32px_0_25px]; }
 .bibo-agenda-empty strong { @apply text-lg leading-7 font-semibold; }
 .bibo-agenda-empty span { @apply [color:var(--ui-muted)] text-base; }
 .bibo-agenda-empty button { @apply pl-0 mt-1; }
-.bibo-upcoming { @apply mt-6.75 [border-top:1px_solid_var(--bibo-hairline)] pt-4.75; }
-.bibo-upcoming .ui-list-row { @apply grid [grid-template-columns:90px_minmax(0,_1fr)] gap-3 items-start [padding:10px_12px]; }
-.bibo-upcoming button span { @apply [color:var(--ui-muted)] text-base whitespace-nowrap; }
-.bibo-upcoming button strong { @apply min-w-0 text-base font-semibold; }
+.bibo-upcoming { @apply mt-6 [border-top:1px_solid_var(--bibo-hairline)] pt-4; }
+.bibo-upcoming h3 { @apply m-0 mb-2 [color:var(--ui-muted)] text-base font-medium; }
+.bibo-upcoming .ui-list-row { @apply flex flex-col items-start gap-0.5 [padding:9px_12px]; }
+.bibo-upcoming time { @apply [color:var(--ui-muted)] text-base; }
+.bibo-upcoming strong { @apply min-w-0 text-base font-medium [line-height:1.45]; }
 
 .bibo-files-page { @apply [max-width:none] flex flex-col h-full; }
 .bibo-files-page .bibo-page-title { @apply flex-none; }
@@ -309,6 +313,7 @@
 .bibo-file-preview-markdown, .bibo-file-preview-frame { @apply flex-1 min-h-0 overflow-auto w-full m-0 p-6 border-0 [color:var(--ui-ink)] text-base leading-7; }
 .bibo-file-editor-surface { @apply flex flex-1 min-h-0 min-w-0; }
 .bibo-file-editor-surface[hidden] { display: none; }
+.bibo-file-preview-markdown { padding:0; }
 .bibo-file-editor-status { @apply flex flex-none flex-wrap justify-between gap-2 px-4 py-1 [border-top:1px_solid_var(--ui-line)] [color:var(--ui-muted)] text-base; }
 .bibo-file-foot { @apply [border-top:1px_solid_var(--bibo-hairline)] [padding:4px_25px] flex gap-3.75; }
 
@@ -394,7 +399,7 @@
   .bibo-file-tree, .bibo-note-list { @apply flex-none [max-height:210px] [border-right:0] [border-bottom:1px_solid_var(--bibo-hairline)]; }
   .bibo-file-tree .bibo-tree-scroll { @apply [height:auto] pb-2; }
   .bibo-file-workbench { @apply flex-1 min-h-0; }
-  .bibo-file-preview-markdown, .bibo-file-preview-frame { @apply w-full [padding:20px_16px]; }
+  .bibo-file-preview-frame { @apply w-full [padding:20px_16px]; }
   .bibo-form-pair { @apply [grid-template-columns:1fr] gap-0; }
 }
 

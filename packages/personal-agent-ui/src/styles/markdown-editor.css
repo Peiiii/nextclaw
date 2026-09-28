@@ -1,5 +1,6 @@
 .ui-markdown-mode { display:flex; flex:1; min-height:0; min-width:0; }
 .ui-markdown-mode[hidden] { display:none; }
+.ui-markdown-editor-loading { flex:1; min-width:0; display:flex; align-items:center; justify-content:center; padding:24px; text-align:center; color:var(--ui-muted); }
 .ui-markdown-editor { display:flex; flex:1; flex-direction:column; min-height:0; min-width:0; color:var(--ui-ink); container-type:inline-size; }
 .ui-markdown-editor-formats { display:flex; gap:4px; }
 .ui-markdown-editor-more { display:none; }
