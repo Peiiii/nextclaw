@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceDigest": "0f4bad0509b0ca613ab7cc54a6c61cd9e5018be30fc309a3da6bde1c2ab0882d",
-  "sourceCommit": "7fa2e81b1b1b4b303f163f99c183bc10fb05bbc5",
+  "sourceDigest": "9a83fbec4c00e7c405fbbfa2f9f664fd97374f9a100ab6ba68e152bf64fec30d",
+  "sourceCommit": "ad905c1530cd0f59e0eb9acc39801b66a0504539",
   "files": {
     ".agents/skills/development-delivery/SKILL.md": "c64210b0c3417bc233544174d740c00749da6b75e8da0b945f77f88ec29311a9",
     ".agents/skills/development-delivery/references/release-evolution.md": "6a65a471aa350e6e172aa69dca48cb740900792191f49090f81c1e526322f144",
@@ -13,7 +13,7 @@
     ".agents/skills/development-design/references/feature-design-gate.md": "d4ae2655fd37e4c5de6aee572de85a1fd22c8aba218ee4636d96efaeb92ac3f3",
     ".agents/skills/development-implementation/SKILL.md": "a5eb655a9ab7cf7ee4867cff1e71961007bb8fa58d2d05d473a965a2dcd1524c",
     ".agents/skills/development-implementation/references/implementation-craft.md": "14dc3d8f2a67324a8b46fdba69f6c4cae325c83206fd1f6d5242d35f79cf8e76",
-    ".agents/skills/development-lifecycle/SKILL.md": "9169204b8d6bafef7ea995e6fbd828be104d8a9edae659649b17210c316339bb",
+    ".agents/skills/development-lifecycle/SKILL.md": "666f54b915ee60632c0ffe23bc6eb01d91a7b5ad0d342ad8d6c5a8c5071c9288",
     ".agents/skills/development-lifecycle/references/major-delivery.md": "22aab96c14a502277c510218a5093b02315914dcc6b659743b476902e92a674f",
     ".agents/skills/development-lifecycle/references/token-efficient-delegation.md": "fb8fddd2ca8cd4cc95db1b34f55e06e71333251261c2e44a44d9a4c1022564bb",
     ".agents/skills/development-retrospective/SKILL.md": "c6be0684c95302becd6e56af37c2aaaee9aca7f8399364dde4bd0c51419938bb",
@@ -41,7 +41,7 @@
     ".agents/wiki/skills/process/iteration-work-notes/SKILL.md": "af726351d52ecca92c34e4cbee130bcbc42b80dfc4e8ae11d0e2b011713ffb75",
     ".agents/wiki/skills/process/iteration-work-notes/agents/openai.yaml": "c77610195e3a9fbc7cb7e1fa54f111d6144525e549685a401c07b470049dc77e",
     ".agents/wiki/skills/process/iteration-work-notes/references/major-delivery-records.md": "820de8664f52872ccbbf516cf563b0677c46960ece01996fe02b5de7ce25230b",
-    ".agents/wiki/skills/process/iterative-quality-convergence/SKILL.md": "ddda59a3877c1e11350b4044b51da0f1f5c565b2a6a15124586e354ac874554b",
+    ".agents/wiki/skills/process/iterative-quality-convergence/SKILL.md": "99bee41a2724d5c8519eeffb20ec4681db1a3f08b32d7d6f1de940a1de88db44",
     ".agents/wiki/skills/process/iterative-quality-convergence/agents/openai.yaml": "9d99c7f160833dd6e604e886a31b5d1defc2fdb8a7b5143c81e22b4b9f90f334",
     ".agents/wiki/skills/process/project-knowledge-governance/SKILL.md": "56b64c2e0064dd3dc1ba3f3b0fa68162b7cf897a30e6384b00505b9571ba3b79",
     ".agents/wiki/skills/process/project-knowledge-governance/references/development-plan-contract.md": "f191318f23310aa85e180805b3da701e568a18eec91a5b4cd02a096553ebc2ea",
