@@ -12,8 +12,8 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
   if (!props.source && !opened.rich) setOpened({ ...opened, rich: true });
   return <>
     {opened.rich && <div className="ui-markdown-mode" hidden={props.source}>
-      <Suspense fallback={<div role="status">{props.labels.rich.loading}</div>}><RichMarkdownEditor {...props} active={props.active !== false && !props.source} /></Suspense>
+      <Suspense fallback={<div className="ui-markdown-editor-loading" role="status">{props.labels.rich.loading}</div>}><RichMarkdownEditor {...props} active={props.active !== false && !props.source} /></Suspense>
     </div>}
-    {opened.source && <div className="ui-markdown-mode" hidden={!props.source}><Suspense fallback={<div role="status">{props.labels.rich.loading}</div>}><SourceMarkdownEditor {...props} active={props.active !== false && props.source} /></Suspense></div>}
+    {opened.source && <div className="ui-markdown-mode" hidden={!props.source}><Suspense fallback={<div className="ui-markdown-editor-loading" role="status">{props.labels.rich.loading}</div>}><SourceMarkdownEditor {...props} active={props.active !== false && props.source} /></Suspense></div>}
   </>;
 }

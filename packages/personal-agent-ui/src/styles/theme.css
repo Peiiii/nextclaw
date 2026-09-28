@@ -190,11 +190,6 @@ select.ui-control:focus-visible { @apply [outline:2px_solid_var(--ui-focus)] [ou
 .ui-markdown h1 { @apply [font-size:1.22rem]; }
 .ui-markdown h2 { @apply [font-size:1.12rem]; }
 .ui-markdown h3 { @apply [font-size:1.02rem]; }
-.ui-markdown.ui-markdown-document { max-width:764px; margin:0 auto; padding-bottom:76px; }
-.ui-markdown-document .chat-markdown { font-size:15px; line-height:1.85; }
-.ui-markdown-document h1 { font-size:1.9em; }
-.ui-markdown-document h2 { font-size:1.55em; }
-.ui-markdown-document h3 { font-size:1.3em; }
 .ui-markdown :is(h4, h5, h6) { @apply [font-size:.96rem]; }
 .ui-markdown :is(ul, ol) { @apply m-0 [padding-left:1.5rem] [list-style-position:outside]; }
 .ui-markdown ul { @apply list-disc; }

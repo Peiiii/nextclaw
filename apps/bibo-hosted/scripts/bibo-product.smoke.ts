@@ -409,6 +409,14 @@ try {
       assert.notEqual(await page.locator(".calendar-period > strong").textContent(), currentMonth);
       await page.getByRole("button", { name: "今天", exact: true }).click();
       assert.equal(await page.locator(".calendar-period > strong").textContent(), currentMonth);
+      if (await page.locator(".calendar-date.is-outside .calendar-date-select").count() === 0) {
+        await page.getByRole("button", { name: "下一段时间" }).click();
+      }
+      await page.locator(".calendar-date.is-outside .calendar-date-select").first().dblclick({ position: { x: 12, y: 12 } });
+      assert.equal(await page.locator(".bibo-read-state:visible").count(), 0, "double-clicking an adjacent-month date keeps the calendar visible");
+      await eventDialog.getByRole("button", { name: "关闭日程编辑" }).click();
+      await eventDialog.waitFor({ state: "hidden" });
+      await page.getByRole("button", { name: "今天", exact: true }).click();
       await page.locator(".bibo-space-scroll").evaluate((element) => element.scrollTo({ top: 0 }));
       await page.screenshot({ path: `/tmp/bibo-calendar-${viewport.width}.png`, fullPage: true });
       const eventBox = await page.getByRole("button", { name: /设计评审/ }).first().boundingBox();

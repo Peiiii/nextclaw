@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore, type ReactElement } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactElement } from "react";
 import * as Primitive from "@radix-ui/react-tooltip";
 
 export type TooltipSide = "top" | "right" | "bottom" | "left";
@@ -21,14 +21,26 @@ export function Tooltip({ label, children, side = "bottom", enabled = true, only
   const popupOpen = children.props["aria-haspopup"] && children.props["aria-expanded"] === true;
   const allowed = hover && enabled && !popupOpen;
   const [hint, setHint] = useState({ allowed, open: false });
+  const trigger = useRef<HTMLElement>();
+  useEffect(() => {
+    if (!hint.open || !trigger.current) return;
+    const element = trigger.current;
+    const observer = new ResizeObserver(() => {
+      if (!element.getClientRects().length) setHint(value => ({ ...value, open: false }));
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [hint.open]);
   if (hint.allowed !== allowed) setHint({ allowed, open: false });
   const needsHint = (element: HTMLElement) => !onlyWhenTruncated || [element, ...Array.from(element.querySelectorAll<HTMLElement>("span"))]
     .some((part) => part.scrollWidth > part.clientWidth);
   return <Primitive.Provider delayDuration={350} skipDelayDuration={100} disableHoverableContent>
     <Primitive.Root open={allowed && hint.open} onOpenChange={(open) => setHint({ allowed, open })}>
       <Primitive.Trigger asChild onPointerMove={(event) => {
+        trigger.current = event.currentTarget;
         if (!needsHint(event.currentTarget)) event.preventDefault();
       }} onFocus={(event) => {
+        trigger.current = event.currentTarget;
         if (!event.currentTarget.matches(":focus-visible") || !needsHint(event.currentTarget)) event.preventDefault();
       }}>{children}</Primitive.Trigger>
       <Primitive.Portal>
