@@ -238,10 +238,10 @@
 .bibo-agenda-heading h2 { @apply m-0 text-lg leading-7 font-semibold; }
 .bibo-agenda-heading > span { @apply whitespace-nowrap [color:var(--ui-muted)] text-base; }
 .bibo-agenda-items { @apply pt-3.25; }
-.bibo-agenda-event { @apply grid [grid-template-columns:75px_minmax(0,_1fr)] gap-3.75 [padding:14px_12px_14px_0]; }
-.bibo-agenda-event > span { @apply [color:var(--ui-muted)] text-base font-semibold; }
-.bibo-agenda-event small { @apply block mt-1 [color:var(--ui-muted)] text-base font-normal; }
-.bibo-agenda-event strong { @apply block [overflow-wrap:anywhere] text-base font-semibold; }
+.bibo-agenda-event { @apply block [padding:12px_16px]; }
+.bibo-agenda-time { @apply block [color:var(--ui-muted)] text-base font-medium whitespace-nowrap; }
+.bibo-agenda-event strong { @apply mt-1 [overflow-wrap:anywhere] text-base font-semibold; }
+.bibo-agenda-event small { @apply block mt-1 [color:var(--ui-muted)] text-base font-normal [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] whitespace-normal [overflow-wrap:anywhere] overflow-hidden; }
 .bibo-agenda-empty { @apply flex flex-col items-start gap-2 [padding:32px_0_25px]; }
 .bibo-agenda-empty strong { @apply text-lg leading-7 font-semibold; }
 .bibo-agenda-empty span { @apply [color:var(--ui-muted)] text-base; }

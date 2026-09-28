@@ -1,3 +1,5 @@
+.ui-markdown-mode { display:flex; flex:1; min-height:0; min-width:0; }
+.ui-markdown-mode[hidden] { display:none; }
 .ui-markdown-editor { display:flex; flex:1; flex-direction:column; min-height:0; min-width:0; color:var(--ui-ink); container-type:inline-size; }
 .ui-markdown-editor-formats { display:flex; gap:4px; }
 .ui-markdown-editor-more { display:none; }
@@ -14,17 +16,6 @@
 .ui-markdown-editor.is-source .cm-scroller { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
 .ui-markdown-editor .cm-selectionBackground, .ui-markdown-editor .cm-focused .cm-selectionBackground { background:var(--ui-selection); }
 .ui-markdown-editor .cm-cursor { border-left-color:var(--ui-ink); }
-.ui-markdown-editor .cm-md-heading { font-weight:650; padding-top:12px; padding-bottom:6px; line-height:1.5; }
-.ui-markdown-editor.is-live .cm-md-heading, .ui-markdown-editor.is-live .cm-md-heading .cm-syntax-keyword { color:var(--ui-ink); }
-.ui-markdown-editor .cm-md-h1 { font-size:1.8em; }
-.ui-markdown-editor .cm-md-h2 { font-size:1.5em; }
-.ui-markdown-editor .cm-md-h3 { font-size:1.25em; }
-.ui-markdown-editor .cm-md-strong { font-weight:700; }
-.ui-markdown-editor .cm-md-em { font-style:italic; }
-.ui-markdown-editor .cm-md-strike { text-decoration:line-through; }
-.ui-markdown-editor .cm-md-code, .ui-markdown-editor .cm-md-code-line { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; background:var(--ui-hover); }
-.ui-markdown-editor .cm-md-quote { color:var(--ui-muted); border-left:3px solid var(--ui-line); }
-.ui-markdown-editor .cm-md-link { text-decoration:underline; text-underline-offset:3px; }
 .ui-markdown-editor .cm-syntax-keyword { color:var(--ui-syntax-keyword); }
 .ui-markdown-editor .cm-syntax-string { color:var(--ui-syntax-string); }
 .ui-markdown-editor .cm-syntax-number { color:var(--ui-syntax-number); }

@@ -40,3 +40,29 @@
 ## NPM 包发布记录
 
 不适用：独立托管 Bibo 前端上线。两个私有包的用户可见变化已写 changeset，不触发 NextClaw NPM/runtime/desktop 发布。
+
+
+## 同日第二轮：正文直接编辑与体验优先
+
+用户反馈第一版仍不像成熟的 Markdown 写作体验，要求 AI 自定目标、集中排查并对标 Typora；进一步纠偏“用户体验是第一位的，开发成本比较小”，并要求提供可尽早反馈的预览链接。此轮继承上线授权，独立验收合同见 [BT-01..08](../../work/2026-09-28-bibo-typora/acceptance-contract.md)，设计见 [正文编辑设计](../../designs/2026-09-28-bibo-typora.design.md)。此前 CodeMirror 即时装饰结论仅描述上一版，不代表本轮最终架构。
+
+最终选择 Tiptap 3.31.3 / ProseMirror 作为正文内核，CodeMirror 仅作为精确源码入口；移除 Milkdown 试验依赖和旧 liveDecorations。选择依据为 [24组性能与保真实验](artifacts/2026-09-28-editor-benchmark.md)，不是“现成组件更多、开发更便宜”。两内核分别按需加载，停顿250ms转换Markdown，保存/失焦/离开立即同步，避免每个按键全文转换。新增表格行列、链接/图片改址、公式编辑、代码高亮与 Mermaid 预览；原文节点保护 frontmatter、HTML、脚注和引用定义。保存/版本/草稿 owner 不变。
+
+当前证据：UI与宿主三份 tsc、targeted ESLint、production build、产品 smoke 通过；编辑 smoke 覆盖1440/390/320px、中文IME、跨段删除与撤销、列表缩进退出、对象编辑、精确模式往返、草稿恢复、503/409、保存中继续富文本输入。集成300节CPU4x按键到下一帧p95约12–18ms；单机模拟，不宣称全设备等价。主入口JS gzip由约519KB降至348KB，两个编辑内核不由默认阅读加载。图表React root延迟清理修复StrictMode卸载警告。
+
+用户预览为本机43988端口的独立临时空间，已提供直达测试笔记链接；可自由修改，不影响线上。使用既有UI开发入口，不引入平行预览架构。
+
+Review：单 manager 管理事务与投影，两个编辑视图各持自身历史但共用Markdown草稿；格式和插入UI复用共享控件。自动检查零错误，产品smoke既有近预算告警不扩大处理。无新全局规则；体验优先偏好写入个人知识库原领域，未对该独立仓库提交。第二轮尚待线上验收，不以第一轮生产证据替代。
+
+成品复查补充：真实整页发现待办勾选框与正文错行，根因为内核 NodeView 未输出静态 data-type；通过扩展的正式 HTMLAttributes 配置修复，并新增桌面/窄屏位置与勾选回归。修后截图 `/tmp/bibo-user-preview.png` 已复看。普通产品脚本近预算及编辑 smoke 增长为已审查提示，后者按写作、对象、列表、存储各自函数组织，无维护性错误。合并主干的类型缓存通过重建 kernel/harness 产物闭合，合并后产品 smoke 通过。
+
+
+### 第二轮正式部署与验收
+
+2026-09-28 冻结 `bcb0d384645e5445503229412341cbaa74995cfc`，使用 `deploy:client`，两次 clean/remote-master preflight 均通过。Worker `f56e774c-51cb-4baa-845a-cf75675f6ff0`；线上 HTML 引用 `/assets/index-BRdnLowS.js`，与本次构建一致。早先一次并发主干更新由 preflight 在上传前拒绝，随后正常合并日程提交并重验，没有强推或覆盖别人工作。
+
+本轮实际部署前后容器均为 application version24，image `sha256:5321b947e19e609a4b75b703b558786ae0924f53cd1716e4b30ebea376df0852`，max_instances20。此前version23到24属于并行延迟任务的后端发布，本轮等其发布完成后才冻结镜像基线；没有镜像构建或rollout。
+
+线上发布资源定向 smoke 在1440/390/320px全部通过，含中文IME、跨段历史、表格、待办对齐/勾选、列表缩进/退出、公式、图表、链接/图片、保真、草稿/失败/冲突及保存中继续输入。正式资源300节CPU4x按键到下一帧p95为13.4ms（本机Chromium）。真实账号在1440/390px通过正常UI创建唯一测试笔记，源码逐字保存，刷新默认预览，正文输入后立即Cmd/Ctrl+S保存并由服务端读取确认；仅清理本轮测试笔记。线上截图 `/tmp/bibo-markdown-editor-live-{1440,390}.png`。
+
+远程master已闭合；`release:reconcile:mainline`返回LOCAL_WORKTREE_RETRYING，现有retry worker自动处理主工作区原有文档WIP，任务无源区遗漏。无需数据库迁移、NPM/runtime/desktop或文档站部署。AUTOMATION_INTERVENTIONS: 0。BT-01..08均有有效通过证据；审美和真实设备全平台体验不冒充已经用户验收。

@@ -1,4 +1,9 @@
-import type { Page } from "playwright";
+import type { Locator, Page } from "playwright";
+
+export async function openMarkdownSource(page: Page, scope: Page | Locator = page): Promise<void> {
+  await scope.getByRole("button", { name: "文件操作", exact: true }).click();
+  await page.getByRole("menuitem", { name: "源码", exact: true }).click();
+}
 
 const instant = "2026-09-25T09:00:00.000Z";
 
