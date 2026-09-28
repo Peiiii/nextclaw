@@ -1,4 +1,5 @@
 import type { NcpEndpointEvent } from "@nextclaw/ncp";
+import type { AppEventEnvelope } from "@nextclaw/shared";
 import { NcpEventType } from "@nextclaw/ncp";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { SessionActivityPreviewEventService } from "@kernel/contributions/session-activity-preview/index.js";
@@ -9,6 +10,7 @@ import { readEventSessionId } from "@kernel/utils/session-manager.utils.js";
 import type { UnfinishedNcpAgentRun } from "@kernel/utils/ncp-agent-unfinished-run.utils.js";
 
 const SESSION_METADATA_PATCH_RUN_METADATA_KIND = "session_metadata_patch";
+export const PERSISTED_SESSION_EVENT_SOURCE = "session-event-coordinator:persisted";
 
 type SessionEventIngestionServiceOptions = {
   appendSessionEvent: (params: {
@@ -22,7 +24,7 @@ type SessionEventIngestionServiceOptions = {
     sessionId: string,
     metadata: Record<string, unknown>,
   ) => Promise<boolean>;
-  subscribe: (handler: (event: NcpEndpointEvent) => void) => () => void;
+  subscribe: (handler: (event: NcpEndpointEvent, envelope: AppEventEnvelope<NcpEndpointEvent>) => void) => () => void;
 };
 
 function isDurableSessionEvent(event: NcpEndpointEvent): boolean {
@@ -61,7 +63,8 @@ export class SessionEventIngestionService {
     });
   }
 
-  handleEvent = (event: NcpEndpointEvent): void => {
+  handleEvent = (event: NcpEndpointEvent, envelope: AppEventEnvelope<NcpEndpointEvent>): void => {
+    if (envelope.source === PERSISTED_SESSION_EVENT_SOURCE) return;
     void this.ingestEvent(event).catch((error: unknown) => {
       const sessionId = readEventSessionId(event);
       if (sessionId) {

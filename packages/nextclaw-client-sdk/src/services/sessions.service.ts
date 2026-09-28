@@ -10,6 +10,8 @@ import type {
   UiNcpSessionPendingInputView,
   UiNcpSessionPendingInputsView,
   UiNcpSessionTokenUsageView,
+  UiNcpSessionUserQuestionsView,
+  UiNcpSessionUserQuestionResolutionView,
 } from "@nextclaw/server";
 import type { EventBus } from "@nextclaw/shared";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
@@ -120,6 +122,23 @@ export class SessionsService {
   ): Promise<UiNcpSessionPendingInputsView> => {
     return await this.requestService.get<UiNcpSessionPendingInputsView>(
       `/api/ncp/sessions/${encodeURIComponent(sessionId)}/pending-inputs`,
+    );
+  };
+
+  readonly listUserQuestions = async (sessionId: string): Promise<UiNcpSessionUserQuestionsView> => {
+    return await this.requestService.get<UiNcpSessionUserQuestionsView>(
+      `/api/ncp/sessions/${encodeURIComponent(sessionId)}/user-questions`,
+    );
+  };
+
+  readonly resolveUserQuestion = async (
+    sessionId: string,
+    questionId: string,
+    input: { action: "answer" | "dismiss"; answer?: string },
+  ): Promise<UiNcpSessionUserQuestionResolutionView> => {
+    return await this.requestService.post<UiNcpSessionUserQuestionResolutionView>(
+      `/api/ncp/sessions/${encodeURIComponent(sessionId)}/user-questions/${encodeURIComponent(questionId)}/resolve`,
+      input,
     );
   };
 

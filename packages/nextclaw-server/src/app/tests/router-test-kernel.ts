@@ -101,6 +101,10 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       deleteSession: async () => undefined,
       getContextWindow: async () => null,
     } as never,
+    userQuestions: {
+      list: async () => [],
+      resolve: async () => unavailable("userQuestions.resolve"),
+    } as never,
     sessionRunManager: {
       deleteSessionRun: () => false,
     } as never,
