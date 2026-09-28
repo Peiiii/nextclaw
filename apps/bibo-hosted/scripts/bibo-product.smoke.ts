@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { readFileSync } from "node:fs";
 import { chromium, type Page, type Route } from "playwright";
-import { mockApi } from "./personal-workspace.fixture";
+import { mockApi, openMarkdownSource } from "./personal-workspace.fixture";
 import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs } from "./design-system/bibo-design-system.smoke";
 import { checkFileRowActions, checkMissingRestoredFile, checkWorkspaceFiles, checkWorkspaceReopening, openWorkspaceFile } from "./design-system/workspace-file.smoke";
 const port = process.env.BIBO_SMOKE_PORT ?? String(30000 + process.pid % 20000);
@@ -89,7 +89,7 @@ async function checkTreeKeyboard(page: Page): Promise<void> {
   const group = await node("B-folder").getAttribute("aria-owns");
   assert.ok(group && await page.evaluate((id) => document.getElementById(id)?.getAttribute("role") === "group", group));
   await page.keyboard.press("Enter");
-  await page.getByRole("button", { name: "源码", exact: true }).click();
+  await openMarkdownSource(page);
   await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
   await node("alpha").click();
   await page.getByLabel("文件操作", { exact: true }).click();
@@ -117,7 +117,7 @@ async function checkFileNavigation(page: Page, width: number): Promise<void> {
     await page.getByRole("button", { name: "保存", exact: true }).click();
     await page.getByTitle("已保存 · v2").waitFor();
     await page.reload({ waitUntil: "networkidle" });
-    await page.getByRole("button", { name: "源码", exact: true }).click();
+    await openMarkdownSource(page);
     assert.equal(await resize.getAttribute("aria-valuenow"), "240");
     assert.equal(await editor.textContent(), "未保存的文件草稿");
   }
@@ -147,7 +147,7 @@ async function checkWorkspaceRecovery(page: Page): Promise<void> {
   await page.getByRole("heading", { name: "暂时无法打开文件" }).waitFor();
   failRead = false;
   await page.getByRole("button", { name: "重试打开", exact: true }).click();
-  await page.getByRole("button", { name: "源码", exact: true }).click();
+  await openMarkdownSource(page);
   await editor.waitFor();
   assert.equal(await editor.textContent(), "# 工作区保留的修改");
   await captureWorkspace(page);
@@ -334,7 +334,7 @@ try {
       if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
       await page.getByRole("link", { name: /笔记/ }).click();
       await page.getByRole("button", { name: /想法.md/ }).first().click();
-      await page.getByRole("button", { name: "源码", exact: true }).click();
+      await openMarkdownSource(page);
       const editor = page.getByRole("textbox", { name: "编辑 想法.md" });
       await editor.fill("# 更新过的想法");
       await page.getByRole("button", { name: "保存", exact: true }).click();
@@ -348,7 +348,7 @@ try {
       if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
       await page.getByRole("link", { name: /文件/ }).click();
       await page.getByRole("treeitem", { name: /想法.md/ }).click();
-      await page.getByRole("button", { name: "源码", exact: true }).click();
+      await openMarkdownSource(page);
       await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
       assert.equal(await page.getByRole("textbox", { name: "编辑 想法.md" }).textContent(), "# 更新过的想法");
       await page.getByRole("button", { name: "预览", exact: true }).click();
@@ -361,7 +361,7 @@ try {
       await page.getByRole("button", { name: "展开目录树", exact: true }).click();
       await page.getByRole("treeitem", { name: /想法.md/ }).waitFor({ state: "visible" });
       await page.getByRole("treeitem", { name: /想法.md/ }).click();
-      await page.getByRole("button", { name: "源码", exact: true }).click();
+      await openMarkdownSource(page);
       await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
       await page.screenshot({ path: `/tmp/bibo-files-${viewport.width}.png`, fullPage: true });
       if (viewport.width === 1440) {

@@ -1,0 +1,722 @@
+[
+  {
+    "mode": "tiptap",
+    "cpu": 1,
+    "count": 30,
+    "sync": false,
+    "chars": 3641,
+    "mount": {
+      "ms": 126.40000009536743,
+      "nodes": 357,
+      "text": 2198,
+      "heap": 10000000
+    },
+    "keyToFrame": {
+      "p50": 8.36,
+      "p95": 9.73,
+      "max": 14.06
+    },
+    "dispatch": {
+      "p50": 0.2,
+      "p95": 0.5,
+      "max": 1.2
+    },
+    "serialize": {
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    "heap": 10000000,
+    "errors": []
+  },
+  {
+    "mode": "tiptap",
+    "cpu": 1,
+    "count": 30,
+    "sync": true,
+    "chars": 3641,
+    "mount": {
+      "ms": 161.5,
+      "nodes": 357,
+      "text": 2198,
+      "heap": 10000000
+    },
+    "keyToFrame": {
+      "p50": 8.35,
+      "p95": 10.02,
+      "max": 10.68
+    },
+    "dispatch": {
+      "p50": 0.6,
+      "p95": 2.5,
+      "max": 3.7
+    },
+    "serialize": {
+      "p50": 0.4,
+      "p95": 1.9,
+      "max": 2.3
+    },
+    "heap": 10000000,
+    "errors": []
+  },
+  {
+    "mode": "milkdown-core",
+    "cpu": 1,
+    "count": 30,
+    "sync": false,
+    "chars": 3641,
+    "mount": {
+      "ms": 79,
+      "nodes": 344,
+      "text": 2198,
+      "heap": 10000000
+    },
+    "keyToFrame": {
+      "p50": 8.32,
+      "p95": 9.06,
+      "max": 11.03
+    },
+    "dispatch": {
+      "p50": 0.4,
+      "p95": 0.9,
+      "max": 1.7
+    },
+    "serialize": {
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    "heap": 10000000,
+    "errors": []
+  },
+  {
+    "mode": "milkdown-core",
+    "cpu": 1,
+    "count": 30,
+    "sync": true,
+    "chars": 3641,
+    "mount": {
+      "ms": 85,
+      "nodes": 344,
+      "text": 2198,
+      "heap": 10000000
+    },
+    "keyToFrame": {
+      "p50": 16.69,
+      "p95": 17.61,
+      "max": 24.54
+    },
+    "dispatch": {
+      "p50": 6.2,
+      "p95": 9.3,
+      "max": 13.8
+    },
+    "serialize": {
+      "p50": 3.1,
+      "p95": 4.4,
+      "max": 7.7
+    },
+    "heap": 10000000,
+    "errors": []
+  },
+  {
+    "mode": "crepe",
+    "cpu": 1,
+    "count": 30,
+    "sync": false,
+    "chars": 3641,
+    "mount": {
+      "ms": 228.30000019073486,
+      "nodes": 1249,
+      "text": 6185,
+      "heap": 16100000
+    },
+    "keyToFrame": {
+      "p50": 8.45,
+      "p95": 10.87,
+      "max": 17.65
+    },
+    "dispatch": {
+      "p50": 0.8,
+      "p95": 1.7,
+      "max": 3.6
+    },
+    "serialize": {
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    "heap": 16100000,
+    "errors": []
+  },
+  {
+    "mode": "crepe",
+    "cpu": 1,
+    "count": 30,
+    "sync": true,
+    "chars": 3641,
+    "mount": {
+      "ms": 193.10000038146973,
+      "nodes": 1249,
+      "text": 6185,
+      "heap": 16100000
+    },
+    "keyToFrame": {
+      "p50": 16.96,
+      "p95": 23.64,
+      "max": 26.18
+    },
+    "dispatch": {
+      "p50": 7.4,
+      "p95": 11.4,
+      "max": 14.7
+    },
+    "serialize": {
+      "p50": 3.6,
+      "p95": 5.9,
+      "max": 7.8
+    },
+    "heap": 16100000,
+    "errors": []
+  },
+  {
+    "mode": "tiptap",
+    "cpu": 1,
+    "count": 300,
+    "sync": false,
+    "chars": 36700,
+    "mount": {
+      "ms": 286.2999997138977,
+      "nodes": 3543,
+      "text": 22270,
+      "heap": 11900000
+    },
+    "keyToFrame": {
+      "p50": 8.65,
+      "p95": 17.11,
+      "max": 17.36
+    },
+    "dispatch": {
+      "p50": 0.3,
+      "p95": 1.4,
+      "max": 3.4
+    },
+    "serialize": {
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    "heap": 11900000,
+    "errors": []
+  },
+  {
+    "mode": "tiptap",
+    "cpu": 1,
+    "count": 300,
+    "sync": true,
+    "chars": 36700,
+    "mount": {
+      "ms": 201.59999990463257,
+      "nodes": 3543,
+      "text": 22270,
+      "heap": 11900000
+    },
+    "keyToFrame": {
+      "p50": 15.12,
+      "p95": 17.07,
+      "max": 18.19
+    },
+    "dispatch": {
+      "p50": 3.5,
+      "p95": 5.3,
+      "max": 9
+    },
+    "serialize": {
+      "p50": 3.2,
+      "p95": 4.7,
+      "max": 7.6
+    },
+    "heap": 11900000,
+    "errors": []
+  },
+  {
+    "mode": "milkdown-core",
+    "cpu": 1,
+    "count": 300,
+    "sync": false,
+    "chars": 36700,
+    "mount": {
+      "ms": 203,
+      "nodes": 3422,
+      "text": 22270,
+      "heap": 31200000
+    },
+    "keyToFrame": {
+      "p50": 8.86,
+      "p95": 16.9,
+      "max": 17.04
+    },
+    "dispatch": {
+      "p50": 1.7,
+      "p95": 2.6,
+      "max": 4.3
+    },
+    "serialize": {
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    "heap": 31200000,
+    "errors": []
+  },
+  {
+    "mode": "milkdown-core",
+    "cpu": 1,
+    "count": 300,
+    "sync": true,
+    "chars": 36700,
+    "mount": {
+      "ms": 238.2999997138977,
+      "nodes": 3422,
+      "text": 22270,
+      "heap": 33100000
+    },
+    "keyToFrame": {
+      "p50": 66.64,
+      "p95": 91,
+      "max": 116.01
+    },
+    "dispatch": {
+      "p50": 56.5,
+      "p95": 65.1,
+      "max": 100.6
+    },
+    "serialize": {
+      "p50": 28.6,
+      "p95": 37.8,
+      "max": 52.2
+    },
+    "heap": 33100000,
+    "errors": []
+  },
+  {
+    "mode": "crepe",
+    "cpu": 1,
+    "count": 300,
+    "sync": false,
+    "chars": 36700,
+    "mount": {
+      "ms": 522.5,
+      "nodes": 11752,
+      "text": 59251,
+      "heap": 24500000
+    },
+    "keyToFrame": {
+      "p50": 16.59,
+      "p95": 22.25,
+      "max": 35.52
+    },
+    "dispatch": {
+      "p50": 4.1,
+      "p95": 5.9,
+      "max": 9.1
+    },
+    "serialize": {
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    "heap": 24500000,
+    "errors": []
+  },
+  {
+    "mode": "crepe",
+    "cpu": 1,
+    "count": 300,
+    "sync": true,
+    "chars": 36700,
+    "mount": {
+      "ms": 786.5,
+      "nodes": 11752,
+      "text": 59251,
+      "heap": 26000000
+    },
+    "keyToFrame": {
+      "p50": 75.61,
+      "p95": 89.37,
+      "max": 107.83
+    },
+    "dispatch": {
+      "p50": 64.8,
+      "p95": 77,
+      "max": 80.8
+    },
+    "serialize": {
+      "p50": 30.8,
+      "p95": 38.4,
+      "max": 39.1
+    },
+    "heap": 26000000,
+    "errors": []
+  },
+  {
+    "mode": "tiptap",
+    "cpu": 4,
+    "count": 30,
+    "sync": false,
+    "chars": 3641,
+    "mount": {
+      "ms": 328.59999990463257,
+      "nodes": 357,
+      "text": 2198,
+      "heap": 10000000
+    },
+    "keyToFrame": {
+      "p50": 8.52,
+      "p95": 17.75,
+      "max": 27.84
+    },
+    "dispatch": {
+      "p50": 0.9,
+      "p95": 2.6,
+      "max": 4.4
+    },
+    "serialize": {
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    "heap": 10000000,
+    "errors": []
+  },
+  {
+    "mode": "tiptap",
+    "cpu": 4,
+    "count": 30,
+    "sync": true,
+    "chars": 3641,
+    "mount": {
+      "ms": 357.09999990463257,
+      "nodes": 357,
+      "text": 2198,
+      "heap": 10000000
+    },
+    "keyToFrame": {
+      "p50": 16.47,
+      "p95": 18.37,
+      "max": 38.75
+    },
+    "dispatch": {
+      "p50": 3.3,
+      "p95": 7,
+      "max": 16.3
+    },
+    "serialize": {
+      "p50": 2.1,
+      "p95": 4.4,
+      "max": 9.6
+    },
+    "heap": 10000000,
+    "errors": []
+  },
+  {
+    "mode": "milkdown-core",
+    "cpu": 4,
+    "count": 30,
+    "sync": false,
+    "chars": 3641,
+    "mount": {
+      "ms": 376.2999997138977,
+      "nodes": 344,
+      "text": 2198,
+      "heap": 10000000
+    },
+    "keyToFrame": {
+      "p50": 25.18,
+      "p95": 61.22,
+      "max": 88.54
+    },
+    "dispatch": {
+      "p50": 2.7,
+      "p95": 5.3,
+      "max": 10
+    },
+    "serialize": {
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    "heap": 10000000,
+    "errors": []
+  },
+  {
+    "mode": "milkdown-core",
+    "cpu": 4,
+    "count": 30,
+    "sync": true,
+    "chars": 3641,
+    "mount": {
+      "ms": 458.90000009536743,
+      "nodes": 344,
+      "text": 2198,
+      "heap": 10000000
+    },
+    "keyToFrame": {
+      "p50": 49.58,
+      "p95": 67.82,
+      "max": 104.91
+    },
+    "dispatch": {
+      "p50": 32.1,
+      "p95": 51.1,
+      "max": 82.1
+    },
+    "serialize": {
+      "p50": 15.5,
+      "p95": 23.7,
+      "max": 45.7
+    },
+    "heap": 10000000,
+    "errors": []
+  },
+  {
+    "mode": "crepe",
+    "cpu": 4,
+    "count": 30,
+    "sync": false,
+    "chars": 3641,
+    "mount": {
+      "ms": 778.5,
+      "nodes": 1249,
+      "text": 6185,
+      "heap": 16100000
+    },
+    "keyToFrame": {
+      "p50": 19.99,
+      "p95": 59.43,
+      "max": 114.44
+    },
+    "dispatch": {
+      "p50": 6,
+      "p95": 9.1,
+      "max": 14.5
+    },
+    "serialize": {
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    "heap": 16100000,
+    "errors": []
+  },
+  {
+    "mode": "crepe",
+    "cpu": 4,
+    "count": 30,
+    "sync": true,
+    "chars": 3641,
+    "mount": {
+      "ms": 835.5999999046326,
+      "nodes": 1249,
+      "text": 6185,
+      "heap": 16100000
+    },
+    "keyToFrame": {
+      "p50": 51.24,
+      "p95": 85.52,
+      "max": 97.15
+    },
+    "dispatch": {
+      "p50": 34.6,
+      "p95": 51.4,
+      "max": 59
+    },
+    "serialize": {
+      "p50": 15.5,
+      "p95": 21.1,
+      "max": 25.8
+    },
+    "heap": 16100000,
+    "errors": []
+  },
+  {
+    "mode": "tiptap",
+    "cpu": 4,
+    "count": 300,
+    "sync": false,
+    "chars": 36700,
+    "mount": {
+      "ms": 1026.5,
+      "nodes": 3543,
+      "text": 22270,
+      "heap": 11900000
+    },
+    "keyToFrame": {
+      "p50": 18.11,
+      "p95": 38.65,
+      "max": 54.54
+    },
+    "dispatch": {
+      "p50": 1.8,
+      "p95": 4.4,
+      "max": 12.8
+    },
+    "serialize": {
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    "heap": 11900000,
+    "errors": []
+  },
+  {
+    "mode": "tiptap",
+    "cpu": 4,
+    "count": 300,
+    "sync": true,
+    "chars": 36700,
+    "mount": {
+      "ms": 834.6999998092651,
+      "nodes": 3543,
+      "text": 22270,
+      "heap": 11900000
+    },
+    "keyToFrame": {
+      "p50": 33.62,
+      "p95": 41.96,
+      "max": 63.83
+    },
+    "dispatch": {
+      "p50": 15.5,
+      "p95": 23.2,
+      "max": 37.7
+    },
+    "serialize": {
+      "p50": 14.5,
+      "p95": 20,
+      "max": 31.3
+    },
+    "heap": 11900000,
+    "errors": []
+  },
+  {
+    "mode": "milkdown-core",
+    "cpu": 4,
+    "count": 300,
+    "sync": false,
+    "chars": 36700,
+    "mount": {
+      "ms": 796.5,
+      "nodes": 3422,
+      "text": 22270,
+      "heap": 29400000
+    },
+    "keyToFrame": {
+      "p50": 32.85,
+      "p95": 37.49,
+      "max": 58.4
+    },
+    "dispatch": {
+      "p50": 10,
+      "p95": 17.3,
+      "max": 25.1
+    },
+    "serialize": {
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    "heap": 29400000,
+    "errors": []
+  },
+  {
+    "mode": "milkdown-core",
+    "cpu": 4,
+    "count": 300,
+    "sync": true,
+    "chars": 36700,
+    "mount": {
+      "ms": 1126.9000000953674,
+      "nodes": 3422,
+      "text": 22270,
+      "heap": 29400000
+    },
+    "keyToFrame": {
+      "p50": 292.03,
+      "p95": 342.21,
+      "max": 436.02
+    },
+    "dispatch": {
+      "p50": 251.7,
+      "p95": 313.7,
+      "max": 397
+    },
+    "serialize": {
+      "p50": 128.9,
+      "p95": 152.1,
+      "max": 204.2
+    },
+    "heap": 29400000,
+    "errors": []
+  },
+  {
+    "mode": "crepe",
+    "cpu": 4,
+    "count": 300,
+    "sync": false,
+    "chars": 36700,
+    "mount": {
+      "ms": 2578.9000000953674,
+      "nodes": 11905,
+      "text": 60161,
+      "heap": 24500000
+    },
+    "keyToFrame": {
+      "p50": 66.88,
+      "p95": 124.43,
+      "max": 182.44
+    },
+    "dispatch": {
+      "p50": 28.8,
+      "p95": 40.1,
+      "max": 47.1
+    },
+    "serialize": {
+      "p50": null,
+      "p95": null,
+      "max": null
+    },
+    "heap": 24500000,
+    "errors": []
+  },
+  {
+    "mode": "crepe",
+    "cpu": 4,
+    "count": 300,
+    "sync": true,
+    "chars": 36700,
+    "mount": {
+      "ms": 2770,
+      "nodes": 11933,
+      "text": 60194,
+      "heap": 26000000
+    },
+    "keyToFrame": {
+      "p50": 342.59,
+      "p95": 382.87,
+      "max": 437.33
+    },
+    "dispatch": {
+      "p50": 291.1,
+      "p95": 343,
+      "max": 388.8
+    },
+    "serialize": {
+      "p50": 136.5,
+      "p95": 158.5,
+      "max": 187.9
+    },
+    "heap": 26000000,
+    "errors": []
+  }
+]

@@ -29,7 +29,7 @@ export function FileEditor({ id, compact = false, defaultPreview = true, tabId, 
   const html = /\.(html?|svg)$/i.test(detail.path);
   const markdown = /\.(md|markdown|mdown)$/i.test(detail.path);
   const changeMode = (mode: string) => {
-    setSource(mode === "source");
+    if (mode !== "preview") setSource(mode === "source");
     if (mode !== "preview") setEditorOpened(true);
     setPreview(mode === "preview");
   };
@@ -38,7 +38,8 @@ export function FileEditor({ id, compact = false, defaultPreview = true, tabId, 
     <div className={`bibo-file-editor${compact ? " is-compact" : ""}`} role={tabId ? "tabpanel" : undefined} id={tabId ? `${tabId}-panel` : undefined} aria-labelledby={tabId} onKeyDown={(event) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
-        if (draft.dirty && !draft.saving) void saveFile(id);
+        const latest = useBiboSpaceStore.getState().fileDrafts[id];
+        if (latest?.dirty && !latest.saving) void saveFile(id);
       }
     }}>
       <div className="bibo-file-editor-head">
@@ -47,16 +48,16 @@ export function FileEditor({ id, compact = false, defaultPreview = true, tabId, 
         <div className="file-editor-tools">
           <SegmentedControl
             label="文件模式"
-            value={preview ? "preview" : source || !markdown ? "source" : "edit"}
+            value={preview ? "preview" : source && markdown ? "source" : "edit"}
             options={[
               { value: "preview", label: copy.filePreview },
-              ...(markdown ? [{ value: "edit", label: copy.fileEdit }] : []),
-              { value: "source", label: copy.fileSource },
+              { value: "edit", label: copy.fileEdit },
+              ...(source && markdown ? [{ value: "source", label: copy.fileSource }] : []),
             ]}
             onChange={changeMode}
           />
           {(draft.dirty || draft.saving) && <Button tone="primary" disabled={draft.saving} onClick={() => void saveFile(id)}>{draft.saving ? copy.fileSaving : copy.fileSave}</Button>}
-          <FileActions key={id} file={detail} label="文件操作" />
+          <FileActions key={id} file={detail} label="文件操作" onSource={markdown ? () => changeMode("source") : undefined} />
         </div>
       </div>
       {draftStorageError && <Notice tone="error">{draftStorageError}</Notice>}
@@ -75,7 +76,7 @@ export function FileEditor({ id, compact = false, defaultPreview = true, tabId, 
           <iframe className="bibo-file-preview-frame" title={`预览 ${detail.path}`} sandbox="" srcDoc={framed} />
         ) : (
           <div className="bibo-file-preview-markdown" ref={(element) => { if (element) element.scrollTop = previewScroll.current * Math.max(0, element.scrollHeight - element.clientHeight); }} onScroll={(event) => { const element = event.currentTarget; previewScroll.current = element.scrollTop / Math.max(1, element.scrollHeight - element.clientHeight); }}>
-            <Markdown text={draft.content} resolveResourceHref={workspaceResources.href} />
+            <Markdown document text={draft.content} resolveResourceHref={workspaceResources.href} />
           </div>
         )
       )}

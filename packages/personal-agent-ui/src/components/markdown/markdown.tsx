@@ -23,8 +23,8 @@ const defaultLabels: MarkdownLabels = {
 const hostedUrl = (url: string, key: string) =>
   (key === "src" ? /^https:\/\//i.test(url) : /^(https?:\/\/|mailto:|tel:|#)/i.test(url)) ? url : "";
 
-export function Markdown({ text, labels = defaultLabels, isStreaming = false, role = "assistant", resolveResourceHref }: {
-  text: string; labels?: MarkdownLabels; isStreaming?: boolean; role?: "user" | "assistant"; resolveResourceHref?: (uri: string) => string | null;
+export function Markdown({ text, labels = defaultLabels, isStreaming = false, role = "assistant", resolveResourceHref, document = false }: {
+  text: string; labels?: MarkdownLabels; isStreaming?: boolean; role?: "user" | "assistant"; resolveResourceHref?: (uri: string) => string | null; document?: boolean;
 }) {
   const texts = useMemo(() => ({
     copyCodeLabel: labels.copyCode, copiedCodeLabel: labels.copiedCode,
@@ -37,7 +37,7 @@ export function Markdown({ text, labels = defaultLabels, isStreaming = false, ro
   } satisfies Partial<ChatMessageTexts>), [labels]);
   const renderCodeBlock = useCallback(({ source, language, isStreaming: streaming }: { source: string; language: string; isStreaming: boolean }) =>
     <MarkdownCodeBlock code={source} language={language} labels={labels} texts={texts} isStreaming={streaming} />, [labels, texts]);
-  return <div className="ui-markdown">
+  return <div className={`ui-markdown${document ? " ui-markdown-document" : ""}`}>
     <ChatMessageMarkdown text={text} role={role} texts={texts} isStreaming={isStreaming}
       allowHtml={false} urlTransform={(uri, key) => hostedUrl(uri, key) || (key === "href" ? resolveResourceHref?.(uri) ?? "" : "")} renderCodeBlock={renderCodeBlock} />
   </div>;

@@ -1,0 +1,62 @@
+.ui-rich-markdown-scroll { flex:1; overflow:auto; min-height:0; }
+.ui-rich-markdown-host { min-height:100%; }
+.ui-rich-markdown-editor .ProseMirror { padding:24px 28px 100px; max-width:820px; margin:0 auto; outline:none; line-height:1.85; font-size:15px; min-height:300px; overflow-wrap:anywhere; }
+.ui-rich-markdown-editor .ProseMirror h1 { font-size:1.9em; }
+.ui-rich-markdown-editor .ProseMirror h2 { font-size:1.55em; }
+.ui-rich-markdown-editor .ProseMirror h3 { font-size:1.3em; }
+.ui-rich-markdown-editor .ProseMirror :is(h1,h2,h3,h4,h5,h6) { margin:1.1em 0 .45em; line-height:1.4; font-weight:650; }
+.ui-rich-markdown-editor .ProseMirror > :first-child { margin-top:0; }
+.ui-rich-markdown-editor .ProseMirror p { margin:.65em 0; }
+.ui-rich-markdown-editor .ProseMirror :is(ul,ol) { padding-left:1.6em; margin:.7em 0; }
+.ui-rich-markdown-editor .ProseMirror ul { list-style:disc; }
+.ui-rich-markdown-editor .ProseMirror ol { list-style:decimal; }
+.ui-rich-markdown-editor .ProseMirror li p { margin:.2em 0; }
+.ui-rich-markdown-editor .ProseMirror ul[data-type=taskList] { list-style:none; padding-left:0; }
+.ui-rich-markdown-editor .ProseMirror li[data-type=taskItem] { display:flex; gap:8px; align-items:flex-start; }
+.ui-rich-markdown-editor .ProseMirror li[data-type=taskItem] > div { flex:1; min-width:0; }
+.ui-rich-markdown-editor .ProseMirror li[data-type=taskItem] > label { padding-top:3px; }
+.ui-rich-markdown-editor .ProseMirror li[data-checked=true] > div > p { text-decoration:line-through; color:var(--ui-muted); }
+.ui-rich-markdown-editor .ProseMirror blockquote { border-left:3px solid var(--ui-line); margin:1em 0; padding:0 1em; color:var(--ui-muted); }
+.ui-rich-markdown-editor .ProseMirror a { color:var(--ui-primary); text-decoration:underline; cursor:text; }
+.ui-rich-markdown-editor .ProseMirror img { min-width:40px; min-height:32px; max-width:100%; max-height:520px; object-fit:contain; cursor:pointer; border-radius:6px; }
+.ui-rich-markdown-editor .ProseMirror hr { border:0; border-top:1px solid var(--ui-line); margin:1.5em 0; }
+.ui-rich-markdown-editor .ProseMirror code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:.9em; background:var(--ui-hover); border-radius:4px; padding:.1em .3em; }
+.ui-rich-markdown-editor .ProseMirror pre { white-space:pre-wrap; margin:0; padding:12px; }
+.ui-rich-markdown-editor .ProseMirror pre code { background:transparent; padding:0; display:block; }
+.ui-rich-markdown-editor .ProseMirror .ui-markdown-metadata { border:1px solid var(--ui-line); border-radius:8px; font-size:13px; margin:1em 0; }
+.ui-rich-markdown-editor .ui-markdown-raw-inline { font-family:monospace; font-size:.85em; color:var(--ui-muted); background:var(--ui-hover); }
+.ui-rich-markdown-editor .tableWrapper { overflow:auto; margin:1em 0; }
+.ui-rich-markdown-editor table { border-collapse:collapse; table-layout:fixed; width:100%; }
+.ui-rich-markdown-editor :is(td,th) { min-width:70px; border:1px solid var(--ui-line); padding:6px 10px; position:relative; vertical-align:top; }
+.ui-rich-markdown-editor th { background:var(--ui-hover); font-weight:600; }
+.ui-rich-markdown-editor .selectedCell:after { background:var(--ui-selection); content:""; position:absolute; inset:0; pointer-events:none; }
+.ui-rich-markdown-editor .column-resize-handle { background:var(--ui-primary); position:absolute; top:0; right:-2px; bottom:-2px; width:4px; pointer-events:none; }
+.ui-rich-markdown-editor .resize-cursor { cursor:col-resize; }
+.ui-rich-markdown-editor .ProseMirror-selectednode { outline:2px solid var(--ui-selection); }
+.ui-rich-markdown-editor .tiptap-mathematics-render { cursor:pointer; display:inline-block; padding:2px 4px; }
+.ui-rich-markdown-editor .block-math { display:block; overflow:auto; }
+.ui-rich-code-block { background:var(--ui-hover); border:1px solid var(--ui-line); border-radius:9px; margin:1em 0; overflow:hidden; }
+.ui-rich-code-toolbar { display:flex; align-items:center; justify-content:space-between; padding:4px 10px; gap:10px; border-bottom:1px solid var(--ui-line); }
+.ui-rich-code-toolbar input { min-width:60px; max-width:160px; background:transparent; outline:none; border:0; color:var(--ui-muted); font:12px/1.8 monospace; }
+.ui-rich-code-toolbar button { background:transparent; color:var(--ui-muted); font-size:12px; padding:3px 6px; border-radius:4px; }
+.ui-rich-code-toolbar button:hover { background:var(--ui-selection); }
+.ui-rich-diagram-preview { border-top:1px solid var(--ui-line); background:var(--ui-surface); padding:12px; }
+.ui-rich-diagram-preview[hidden] { display:none; }
+.ui-rich-markdown-editor .hljs-keyword, .ui-rich-markdown-editor .hljs-title { color:var(--ui-syntax-keyword); }
+.ui-rich-markdown-editor .hljs-string { color:var(--ui-syntax-string); }
+.ui-rich-markdown-editor .hljs-number, .ui-rich-markdown-editor .hljs-literal { color:var(--ui-syntax-number); }
+.ui-rich-markdown-editor .hljs-comment { color:var(--ui-muted); }
+.ui-rich-markdown-editor .ui-markdown-editor-toolbar { gap:2px; }
+.ui-rich-markdown-editor .ui-markdown-editor-toolbar select { max-width:90px; border:0; background:transparent; color:inherit; font:inherit; padding:6px 2px; }
+.ui-rich-markdown-editor .ui-markdown-editor-toolbar [aria-pressed=true] { background:var(--ui-selection); }
+.ui-markdown-search { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:8px; border-bottom:1px solid var(--ui-line); }
+.ui-markdown-search input { min-width:60px; width:120px; flex:1; border:1px solid var(--ui-line); background:var(--ui-canvas); color:var(--ui-ink); border-radius:6px; padding:6px; outline:none; }
+.ui-rich-markdown-editor .ProseMirror-search-match { background:var(--ui-selection); outline:1px solid var(--ui-primary); }
+.ui-markdown-insert-form label { display:flex; flex-direction:column; gap:8px; }
+.ui-markdown-insert-form :is(input,textarea) { border:1px solid var(--ui-line); border-radius:8px; background:var(--ui-canvas); padding:10px; color:var(--ui-ink); outline:none; }
+@container (max-width:480px) {
+  .ui-rich-markdown-editor .ui-rich-history { display:none; }
+  .ui-rich-markdown-editor .ProseMirror { padding:20px 16px 80px; }
+  .ui-rich-markdown-editor .ui-markdown-editor-toolbar { padding:4px; }
+  .ui-rich-markdown-editor .ui-markdown-editor-toolbar select { max-width:70px; }
+}

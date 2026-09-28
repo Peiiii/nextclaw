@@ -48,9 +48,10 @@ try {
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     const text = `# Markdown 上线验收 ${width}\n\n这是 **真实保存** 的中文文档。\n\n- 默认预览\n- 编辑与高亮源码\n\n\`\`\`typescript\nconst saved = true;\n\`\`\``;
-    await page.getByRole("group", { name: "文件模式" }).getByRole("button", { name: "源码", exact: true }).click();
-    const editor = page.getByRole("textbox", { name: `编辑 ${path}` });
-    await editor.fill(text);
+    await page.getByRole("button", { name: "文件操作", exact: true }).click();
+    await page.getByRole("menuitem", { name: "源码", exact: true }).click();
+    const editor = page.locator(".cm-content:visible");
+    await editor.click(); await page.keyboard.press("ControlOrMeta+a"); await page.keyboard.insertText(text);
     await page.getByRole("button", { name: "保存", exact: true }).click();
     await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
     const saved = await space<File>("file.get", { path });
@@ -59,7 +60,14 @@ try {
     await page.getByRole("heading", { name: `Markdown 上线验收 ${width}` }).waitFor();
     assert.equal(await page.getByRole("group", { name: "文件模式" }).getByRole("button", { name: "预览", exact: true }).getAttribute("aria-pressed"), "true");
     await page.getByRole("button", { name: "编辑", exact: true }).click();
-    await page.locator(".cm-md-heading").waitFor();
+    await page.locator(".tiptap:visible h1").waitFor();
+    await page.locator(".tiptap:visible").click();
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.keyboard.press("Enter");
+    await page.keyboard.insertText("正文编辑真实保存");
+    await page.keyboard.press("ControlOrMeta+s");
+    await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
+    assert.ok((await space<File>("file.get", { path })).content.includes("正文编辑真实保存"));
     await page.screenshot({ path: `/tmp/bibo-markdown-editor-live-${width}.png` });
     console.log(`Production ${width}px: UI creation, editing, exact persisted Markdown and refreshed preview passed`);
   }

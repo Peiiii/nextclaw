@@ -40,3 +40,16 @@
 ## NPM 包发布记录
 
 不适用：独立托管 Bibo 前端上线。两个私有包的用户可见变化已写 changeset，不触发 NextClaw NPM/runtime/desktop 发布。
+
+
+## 同日第二轮：正文直接编辑与体验优先
+
+用户反馈第一版仍不像成熟的 Markdown 写作体验，要求 AI 自定目标、集中排查并对标 Typora；进一步纠偏“用户体验是第一位的，开发成本比较小”，并要求提供可尽早反馈的预览链接。此轮继承上线授权，独立验收合同见 [BT-01..08](../../work/2026-09-28-bibo-typora/acceptance-contract.md)，设计见 [正文编辑设计](../../designs/2026-09-28-bibo-typora.design.md)。此前 CodeMirror 即时装饰结论仅描述上一版，不代表本轮最终架构。
+
+最终选择 Tiptap 3.31.3 / ProseMirror 作为正文内核，CodeMirror 仅作为精确源码入口；移除 Milkdown 试验依赖和旧 liveDecorations。选择依据为 [24组性能与保真实验](artifacts/2026-09-28-editor-benchmark.md)，不是“现成组件更多、开发更便宜”。两内核分别按需加载，停顿250ms转换Markdown，保存/失焦/离开立即同步，避免每个按键全文转换。新增表格行列、链接/图片改址、公式编辑、代码高亮与 Mermaid 预览；原文节点保护 frontmatter、HTML、脚注和引用定义。保存/版本/草稿 owner 不变。
+
+当前证据：UI与宿主三份 tsc、targeted ESLint、production build、产品 smoke 通过；编辑 smoke 覆盖1440/390/320px、中文IME、跨段删除与撤销、列表缩进退出、对象编辑、精确模式往返、草稿恢复、503/409、保存中继续富文本输入。集成300节CPU4x按键到下一帧p95约12–18ms；单机模拟，不宣称全设备等价。主入口JS gzip由约519KB降至348KB，两个编辑内核不由默认阅读加载。图表React root延迟清理修复StrictMode卸载警告。
+
+用户预览为本机43988端口的独立临时空间，已提供直达测试笔记链接；可自由修改，不影响线上。使用既有UI开发入口，不引入平行预览架构。
+
+Review：单 manager 管理事务与投影，两个编辑视图各持自身历史但共用Markdown草稿；格式和插入UI复用共享控件。自动检查零错误，产品smoke既有近预算告警不扩大处理。无新全局规则；体验优先偏好写入个人知识库原领域，未对该独立仓库提交。第二轮尚待线上验收，不以第一轮生产证据替代。

@@ -12,8 +12,9 @@ import {
   IconButton,
 } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
+import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 
-export function FileActions({ file, tabIndex, label }: { file: BiboFile; tabIndex?: number; label?: string }) {
+export function FileActions({ file, tabIndex, label, onSource }: { file: BiboFile; tabIndex?: number; label?: string; onSource?: () => void }) {
   const { moveFile, deleteFile, saving, fileDetails, fileDrafts } = useBiboSpaceStore();
   const [moving, setMoving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -50,6 +51,7 @@ export function FileActions({ file, tabIndex, label }: { file: BiboFile; tabInde
         trigger={<IconButton ref={trigger} label={actionLabel} tooltip="更多操作" tooltipSide="top" icon={<MoreVertical />} tabIndex={tabIndex} />}
         transferringFocus={moving || deleting}
       >
+        {onSource && <ActionMenuItem onSelect={onSource}>{copy.fileSource}</ActionMenuItem>}
         <ActionMenuItem onSelect={startMove}>移动 / 重命名</ActionMenuItem>
         <ActionMenuItem danger disabled={saving} onSelect={() => { setFailure(""); setDeleting(true); }}>
           删除

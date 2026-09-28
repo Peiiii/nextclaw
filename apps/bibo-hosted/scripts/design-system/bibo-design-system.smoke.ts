@@ -1,3 +1,4 @@
+import { openMarkdownSource } from "../personal-workspace.fixture";
 import assert from "node:assert/strict";
 import type { Page } from "playwright";
 
@@ -169,7 +170,7 @@ export async function checkFileTabs(page: Page): Promise<void> {
     const back = page.locator(".file-mobile-back button");
     if (await back.isVisible()) await back.click();
     await page.getByRole("treeitem", { name: `review-document-${index}.md`, exact: true }).click();
-    await page.getByRole("button", { name: "源码", exact: true }).click();
+    await openMarkdownSource(page);
     await page.getByRole("textbox", { name: `编辑 review-document-${index}.md` }).waitFor();
   }
   await page.waitForFunction(() => {
@@ -186,7 +187,7 @@ export async function checkFileTabs(page: Page): Promise<void> {
   await page.waitForFunction((id) => document.getElementById(id!)?.getAttribute("aria-selected") === "true", firstTabId);
   await page.keyboard.press("End");
   await page.keyboard.press("Enter");
-  await page.getByRole("button", { name: "源码", exact: true }).click();
+  await openMarkdownSource(page);
   await editor.waitFor();
   assert.equal(await editor.textContent(), "未保存的文件草稿");
 }

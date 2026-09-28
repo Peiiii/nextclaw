@@ -11,7 +11,7 @@
 - 品牌配置：Bibo 的名称、标记、文案、配色覆盖留在应用层，通过 props 和主题变量注入。未来改名无需重命名组件包或公共 API。
 - 业务流程：网络请求、导航、确认、保存判定与 store 不进入组件包。组件不得依赖 Bibo、Zustand、Cloudflare 或服务端代码。
 
-`MarkdownEditor` 使用 CodeMirror 6 保留原始 Markdown，提供即时格式／高亮源码模式、格式工具、查找替换与撤销历史。调用方提供 value、onChange、模式、可访问名称和文案；不将保存或草稿备份放进组件。切换预览时以 hidden 保留实例，切换文件才销毁；外部内容同步不重建编辑器。窄容器把标题、列表和行内代码收进公共 ActionMenu，颜色消费共享 syntax token。复杂表格、公式与图表沿用 `Markdown` 预览，不增加富文本序列化路径。
+`MarkdownEditor` 使用 Tiptap / ProseMirror 提供正文直接编辑，CodeMirror 提供精确源码编辑，两者独立按需加载。调用方提供 value、onChange、模式、可访问名称和文案；保存、版本和草稿仍由调用方持有。内核 manager 拥有事务、历史与 Markdown 投影，键入停顿 250ms 后同步，保存、失焦和离开时立即同步。仅切换模式保持原文，正文修改可规范化 Markdown 格式；frontmatter、HTML 和脚注通过原文节点保留。阅读切换用 hidden 保持实例，源码的外部同步不重建 DOM。窄屏撤销重做收入共享 ActionMenu。代码块可编辑并高亮，公式可点击修改，Mermaid 预览复用现有 renderer。`Markdown document` 提供与正文编辑一致的阅读字号和内容宽度。
 
 页面可决定布局，但重复控件不能再写局部平行状态样式。组件从包根入口导入。新增组件要有跨页面使用场景或独立行为合同。
 
