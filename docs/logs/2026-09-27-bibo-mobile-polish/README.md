@@ -100,6 +100,8 @@ BB 三份 tsc、公共 UI tsc、Vite 构建、product smoke（桌面 1440px／�
 
 ### 后续构图纠偏
 
+最终从冻结远程 master `05bec2cde` 发布客户端，Worker `84cb76b1-757b-414b-871c-4799e51a61fa`。系统已配置 127.0.0.1:7890 代理，命令行直连连续超时；显式沿该既有代理发布后成功。线上 `index-lf45KYJQ.js`（SHA256 `3277ee74f7262743a759bffe4e2358348bedfa5132dec322de65dc86b77042d0`）、`index-CApmTTZL.css`（SHA256 `2a022b552e63a162ef694c1acd88cc667fec9fd87772fd553b908708964968a7`）、入口直引资源与 `/help` 均与冻结构建逐字节一致。生产域名加载真实资源，以 API fixture 回放 1440／390 路由与 390／320 认证链路通过；手机画面再次实拍复核。容器 id、镜像、version 24 及更新时间保持一致。主工作区用户想法文档 WIP 保留，主线镜像回流由既有 retry worker 接管。
+
 随后的用户截图指出认证切换条 32px、选中面 24px，与 46px 提交按钮失衡。共享 SegmentedControl 增加显式 `md` 尺寸，底板 44px／选中面 36px；认证入口消费，默认 sm 的筛选条不变。实拍桌面与 320／390px 手机复核，公共 UI 与 BB tsc、定向 ESLint、路由认证回归及 diff-only maintainability 均通过。此前发布多次在 Cloudflare 服务元数据 GET 上超时；随后同一接口独立请求返回 200，继续从冻结主干发布，不将失败尝试记为上线。
 
 用户随后要求将方法与触发分两层沉淀。共享 `ai-development-system` 在 `ad905c1` 更新既有 `iterative-quality-convergence` 与 lifecycle 路由，项目经官方 upgrade 同步且 lock 校验一致；本地 `commands/commands.md` 新增 `/迭代优化`，不把方法复制进宏。完整画面观察、每轮最大差距、两轮无效则返看方案、不满意时继续返工归方法 owner；显式宏／自然表达／连续同类纠偏归入口，普通单点优化不自动升级。
