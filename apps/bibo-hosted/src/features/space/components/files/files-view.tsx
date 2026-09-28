@@ -6,6 +6,7 @@ import {
   Button,
   IconButton,
   ListRow,
+  RowActionTray,
   Input,
   Notice,
 } from "@nextclaw/personal-agent-ui";
@@ -102,12 +103,12 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
             </div>
             <div className="file-tree-search"><Input aria-label="搜索笔记" placeholder="搜索笔记名称" value={noteQuery} onChange={(event) => searchNotes(event.target.value)} /></div>
             {all.map((file) => (
-              <div className={`ui-list-row-group${activeFileId === file.id ? " is-selected" : ""}`} key={file.id}>
+              <div className={`ui-list-row-group ui-row-action-host${activeFileId === file.id ? " is-selected" : ""}`} key={file.id}>
                 <ListRow selected={activeFileId === file.id} onClick={() => void openFile(file.id)}>
                   <strong>{file.path.split("/").at(-1)}</strong>
                   <small>{day(file.updatedAt)}</small>
                 </ListRow>
-                <FileActions file={file} />
+                <RowActionTray><FileActions file={file} /></RowActionTray>
               </div>
             ))}
             {all.length === 0 && !loading && !error && (
