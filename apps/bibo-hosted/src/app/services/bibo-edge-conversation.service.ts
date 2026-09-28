@@ -87,6 +87,14 @@ function showFileStatus(events: readonly NcpEndpointEvent[], displayEvents: read
   }
   if (!callIds.size) return "not-called";
   if (displayEvents.length) return "emitted";
+  const result = events.find((event) => event.type === NcpEventType.MessageToolCallResult && event.payload.final !== false
+    && callIds.has(event.payload.toolCallId));
+  if (result?.type === NcpEventType.MessageToolCallResult && result.payload.content && typeof result.payload.content === "object") {
+    const content = result.payload.content as { ok?: unknown; error?: { code?: unknown } };
+    if (content.ok === false && content.error?.code === "invalid_tool_arguments") return "invalid-tool-arguments";
+    if (content.ok === false && content.error?.code === "tool_execution_failed") return "tool-execution-failed";
+    if (content.ok === true) return "tool-success-no-event";
+  }
   const chunks: string[] = [];
   for (const event of events) {
     if (event.type === NcpEventType.MessageToolCallArgs && callIds.has(event.payload.toolCallId)) { chunks.length = 0; chunks.push(event.payload.args); }
