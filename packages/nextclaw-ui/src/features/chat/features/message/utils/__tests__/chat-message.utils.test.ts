@@ -1,4 +1,6 @@
 import { ToolInvocationStatus, type UiMessage } from "@nextclaw/agent-chat";
+import type { NcpMessage } from "@nextclaw/ncp";
+import { readChatUserQuestionReply } from "@/features/chat/features/message/utils/chat-message.utils";
 import { adapt, toSource, type ChatMessageSource } from "./chat-message-test.utils";
 
 it("maps markdown, reasoning, and tool parts into UI view models", () => {
@@ -114,6 +116,49 @@ it("maps context compaction extensions into stable process parts", () => {
     },
     process: true,
   }]);
+});
+
+it("renders a structured user question at its message position without repeating fallback text", () => {
+  const data = { questions: [{ id: "question-1", title: "Which format?", options: ["PDF", "DOCX"] }] };
+  const adapted = adapt([{
+    id: "assistant-question",
+    role: "assistant",
+    parts: [
+      { type: "text", text: "Which format? (PDF / DOCX)" },
+      { type: "extension", extensionType: "nextclaw.user-question", data },
+    ],
+  }]);
+  expect(adapted[0]?.parts).toEqual([{
+    type: "custom",
+    id: "question-1",
+    customType: "nextclaw.user-question",
+    data,
+  }]);
+});
+
+it("projects a delayed answer as a quoted question plus the actual answer", () => {
+  const message: NcpMessage = {
+    id: "answer-1",
+    sessionId: "session-1",
+    role: "user",
+    status: "final",
+    timestamp: "2026-09-28T00:00:00.000Z",
+    parts: [{ type: "text", text: "[Reply to an earlier question]\nQuestion: Which format?\nAnswer: PDF" }],
+    metadata: {
+      nextclaw_user_question_id: "q-1",
+      nextclaw_user_question_action: "answered",
+      nextclaw_user_question_title: "Which format?",
+      nextclaw_user_question_message_id: "asked-1",
+      nextclaw_user_question_answer: "PDF",
+    },
+  };
+  const reply = readChatUserQuestionReply(message);
+  expect(reply).toMatchObject({ questionId: "q-1", questionMessageId: "asked-1", title: "Which format?", answer: "PDF" });
+  const adapted = adapt([{ id: message.id, role: "user", meta: { userQuestionReply: reply! }, parts: [{ type: "text", text: message.parts[0]!.type === "text" ? message.parts[0]!.text : "" }] }]);
+  expect(adapted[0]?.parts).toEqual([
+    { type: "custom", id: "q-1", customType: "nextclaw.user-question-reply", data: reply },
+    { type: "markdown", text: "PDF" },
+  ]);
 });
 
 it("maps observation event extensions into visible custom parts", () => {

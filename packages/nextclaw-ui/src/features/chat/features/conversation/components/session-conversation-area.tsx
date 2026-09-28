@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import type { NcpRunHandle } from "@nextclaw/ncp";
+import { SessionUserQuestionProvider, SessionUserQuestions } from "./session-user-questions";
 
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { ChatConversationContent } from "@/features/chat/components/conversation/chat-conversation-content";
@@ -419,7 +421,11 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     !controller.isSending;
 
   return (
-    <>
+    <SessionUserQuestionProvider
+      sessionId={sessionKey}
+      disabled={isRuntimeBlocked}
+      onResolved={async (handle: NcpRunHandle) => { await agent.acceptRun(handle); }}
+    >
       <SessionConversationAlerts inputQuery={inputQuery} />
       <ChatConversationContent
         resourceWorkingDir={selectedSession?.workingDir ?? selectedSession?.projectRoot ?? null}
@@ -460,7 +466,12 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
           />
         }
       />
-      {showWelcome ? null : renderInput("default")}
-    </>
+      {showWelcome ? null : (
+        <>
+          <SessionUserQuestions />
+          {renderInput("default")}
+        </>
+      )}
+    </SessionUserQuestionProvider>
   );
 }

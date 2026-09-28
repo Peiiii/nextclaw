@@ -59,6 +59,7 @@ export type UiKernelHost = Pick<
   | "llmProviders"
   | "providerModelCatalog"
   | "sessionManager"
+  | "userQuestions"
   | "sessionRunManager"
   | "observations"
   | "extensions"

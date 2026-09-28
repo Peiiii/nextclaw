@@ -51,6 +51,7 @@ function createProviderProbeApp(configPath: string) {
       isSessionRunning: () => false,
       listSessionTypes: async () => ({ defaultType: "native", options: [] }),
       sessionManager: {} as never,
+      userQuestions: {} as never,
       sessionRunManager: {} as never,
       panelAppManager: {
         listPanelApps: async () => ({
