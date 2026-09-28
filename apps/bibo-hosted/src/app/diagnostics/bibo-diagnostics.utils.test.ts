@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { logDiagnostic, readModelRequest, MAX_MODEL_REQUEST_BYTES, readTrace, runFailure } from "./bibo-diagnostics.utils";
-import { parseLogOptions, projectLog } from "../../../scripts/diagnostics/bibo-logs.controller";
+import { parseLogOptions, projectLog, queryLogs } from "../../../scripts/diagnostics/bibo-logs.controller";
 import { readRunStream, streamEvent } from "@/app/bibo-run-stream.utils";
 
 test("model transport accepts multilingual history above the old cap", async () => {
@@ -48,4 +48,24 @@ test("historical query supports bounded ranges and projects only diagnostics", (
   assert.equal(event.runId, "run-1");
   assert.equal(event.token, undefined);
   assert.equal(projectLog({ timestamp: now, source: { message: 'bibo-runner-error Chat Completions API failed (413): private' } }).errorCode, "MODEL_INPUT_TOO_LARGE");
+});
+
+test("historical query returns correlated Worker and Container events while marking sampled results", async () => {
+  const requests: Array<{ parameters: { datasets: string[]; filters: Array<{ key: string; value: string }> } }> = [];
+  const api = async (_path: string, body?: unknown) => {
+    const query = body as { parameters: { datasets: string[]; filters: Array<{ key: string; value: string }> } };
+    requests.push(query);
+    const container = query.parameters.datasets[0] === "containers";
+    return { statistics: { abr_level: 1 }, events: { events: [{
+      timestamp: container ? 2 : 1,
+      $metadata: { service: container ? "app-1" : "bibo-hosted" },
+      source: { schema: "bibo.diagnostic/v1", event: container ? "run.started" : "run.finished", runId: "run-1", sessionId: "session-1" },
+    }] } };
+  };
+  const result = await queryLogs(api, { since: 0, until: 3, session: "session-1", run: "run-1", json: true }, "app-1");
+  assert.equal(result.samplingLevel, 1);
+  assert.deepEqual(result.records.map((record) => record.event), ["run.finished", "run.started"]);
+  assert.deepEqual(requests.map((request) => request.parameters.filters.map((filter) => filter.key)), [
+    ["$metadata.service", "sessionId", "runId"], ["$metadata.service", "sessionId", "runId"],
+  ]);
 });

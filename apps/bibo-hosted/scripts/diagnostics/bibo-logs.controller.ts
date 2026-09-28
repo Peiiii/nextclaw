@@ -60,9 +60,10 @@ export function projectLog(event: Event): Record<string, unknown> {
 }
 
 type LogApi = (path: string, body?: unknown) => Promise<unknown>;
-async function queryLogs(api: LogApi, options: Options, applicationId: string): Promise<Record<string, unknown>[]> {
+export async function queryLogs(api: LogApi, options: Options, applicationId: string): Promise<{ records: Record<string, unknown>[]; samplingLevel: number }> {
   const { since, until, session, run } = options;
   const records: Record<string, unknown>[] = [];
+  let samplingLevel = 0;
   for (const [dataset, service] of [["cloudflare-workers", "bibo-hosted"], ["containers", applicationId]]) {
     let offset: string | undefined;
     for (let page = 0; ; page++) {
@@ -70,9 +71,13 @@ async function queryLogs(api: LogApi, options: Options, applicationId: string): 
       const result = await api("workers/observability/telemetry/query", {
         queryId: "bibo-cli-diagnostics", view: "events", dry: true, chart: false, limit: 500, ...(offset ? { offset } : {}),
         timeframe: { from: since, to: until },
-        parameters: { datasets: [dataset], ...(dataset === "cloudflare-workers" ? { filters: [{ key: "$metadata.service", type: "string", operation: "eq", value: service }] } : {}) },
+        parameters: { datasets: [dataset], filters: [
+          { key: "$metadata.service", type: "string", operation: "eq", value: service },
+          ...(session ? [{ key: "sessionId", type: "string", operation: "eq", value: session }] : []),
+          ...(run ? [{ key: "runId", type: "string", operation: "eq", value: run }] : []),
+        ] },
       }) as { events?: { events?: Event[] }; statistics?: { abr_level?: number } };
-      if ((result.statistics?.abr_level ?? 0) > 0) throw new Error("Cloudflare sampled this query. Narrow the time range to obtain complete stored events.");
+      samplingLevel = Math.max(samplingLevel, result.statistics?.abr_level ?? 0);
       if (!Array.isArray(result.events?.events)) throw new Error("Cloudflare returned an unsupported log response.");
       const events = result.events.events;
       for (const event of events) {
@@ -89,7 +94,7 @@ async function queryLogs(api: LogApi, options: Options, applicationId: string): 
     }
   }
   records.sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)));
-  return records;
+  return { records, samplingLevel };
 }
 
 async function main(): Promise<void> {
@@ -116,11 +121,11 @@ async function main(): Promise<void> {
   const apps = await api("containers/applications") as { id: string; name: string }[];
   const application = apps.find((app) => app.name === "bibo-hosted-bibousercontainer");
   if (!application) throw new Error("Bibo Container application was not found.");
-  const records = await queryLogs(api, options, application.id);
-  if (options.json) console.log(JSON.stringify({ from: new Date(options.since).toISOString(), to: new Date(options.until).toISOString(), records }, null, 2));
+  const { records, samplingLevel } = await queryLogs(api, options, application.id);
+  if (options.json) console.log(JSON.stringify({ from: new Date(options.since).toISOString(), to: new Date(options.until).toISOString(), samplingLevel, complete: samplingLevel === 0, records }, null, 2));
   else {
     for (const record of records) console.log(JSON.stringify(record));
-    console.log(`${records.length} events. Empty results may mean pre-instrumentation logs, sampling, retention, or the wrong time range.`);
+    console.log(`${records.length} events.${samplingLevel > 0 ? ` Cloudflare sampling level ${samplingLevel}; records may be incomplete.` : ""} Empty results may mean pre-instrumentation logs, sampling, retention, or the wrong time range.`);
   }
 }
 
