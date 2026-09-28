@@ -9,15 +9,17 @@ export function ActionMenu({
   triggerRef,
   trigger,
   transferringFocus = false,
+  onOpenChange,
 }: {
   label: string;
   children: ReactNode;
   triggerRef?: RefObject<HTMLButtonElement>;
   trigger?: ReactElement;
   transferringFocus?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   return (
-    <Menu.Root>
+    <Menu.Root onOpenChange={onOpenChange}>
       <Menu.Trigger asChild>
         {trigger ?? (
           <IconButton ref={triggerRef} label={label} icon={<MoreVertical />} />

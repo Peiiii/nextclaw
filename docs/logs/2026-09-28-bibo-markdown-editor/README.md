@@ -66,3 +66,12 @@ Review：单 manager 管理事务与投影，两个编辑视图各持自身历�
 线上发布资源定向 smoke 在1440/390/320px全部通过，含中文IME、跨段历史、表格、待办对齐/勾选、列表缩进/退出、公式、图表、链接/图片、保真、草稿/失败/冲突及保存中继续输入。正式资源300节CPU4x按键到下一帧p95为13.4ms（本机Chromium）。真实账号在1440/390px通过正常UI创建唯一测试笔记，源码逐字保存，刷新默认预览，正文输入后立即Cmd/Ctrl+S保存并由服务端读取确认；仅清理本轮测试笔记。线上截图 `/tmp/bibo-markdown-editor-live-{1440,390}.png`。
 
 远程master已闭合；`release:reconcile:mainline`返回LOCAL_WORKTREE_RETRYING，现有retry worker自动处理主工作区原有文档WIP，任务无源区遗漏。无需数据库迁移、NPM/runtime/desktop或文档站部署。AUTOMATION_INTERVENTIONS: 0。BT-01..08均有有效通过证据；审美和真实设备全平台体验不冒充已经用户验收。
+
+
+### 第三轮：统一块操作与编辑交互
+
+用户连续截图纠偏表明原局部按钮和块尾光标方案未形成统一体验。本轮改用官方 Tiptap Drag Handle 定位、目标与拖动生命周期，MarkdownBlockManager 统一菜单/事务；删除各 NodeView 的重复整块按钮。列表按项及子孙操作，表格区分整块与行列作用域。编辑专用手柄覆盖 padding/min-size/hover surface，复用行为而不继承通用按钮几何。表格插入通过同一 TableMap 事务选中新单元格，选择边框贴合外缘。
+
+读写共用 markdown-document 样式。slash 命令单活动项、描述与窄屏碰撞；行内公式/公式块分开命名和序列化。空段落 $$ 加空格/回车创建公式块；取消保留原文，aligned 示例和多行预览可直接使用。菜单文案从构造快照改为跟随 props 更新，避免开发预览长期打开时新增名称空白。正文交互测试须等待内核选区同步，不能把浏览器原生选区变化视为编辑器已经完成选择。
+
+当前验证：1440/390/320px 完整编辑回归、三宽度两类公式名称/插入/源码与预览往返，触摸手柄与resize关闭，产品smoke、UI/宿主三份tsc、生产构建通过。300节CPU4x按键到帧p95 21.6ms，主包gzip约349KB，富编辑lazy约319KB。diff maintainability零错误，主测试461行近预算提示已审查，各功能独立函数且后续块操作已拆分，不扩大无关重构。治理/skill加载/ratchet通过。单owner及异步清理主观review通过。待线上部署验收，不沿用第二轮线上证据。

@@ -16,7 +16,7 @@ description: 当设计、修改或评估前端界面与交互、链接/按钮语
 - **交互完整性**：行内更多与内容共用整行反馈，点击互不误触；鼠标、键盘和触控均可达，焦点返回、滚动与窄容器不丢失主任务。
 - **成品审阅分级**：无呈现影响免审；局部低风险改动定向看改动处及相邻关系；信息层级、主要路径、共享界面或影响不明时读取[真实界面审阅](references/real-ui-review.md)，做开放式检查并复验。
 
-对照注明版本、入口和证据，比较架构、导航、空间与反馈；披露验证范围、差距与平台限制。
+每个新交互实现前对照顶级同类产品；复用控件验收组合。新复合交互或无把握时读[范式与取证预算](references/real-ui-review.md)，查具体实例；常规小点不重复搜索。
 
 ## 控件合同
 
@@ -24,7 +24,7 @@ description: 当设计、修改或评估前端界面与交互、链接/按钮语
 - URL、路由、文档和来源使用 `<a>`/`Link`/`NavLink`，状态修改、命令和无稳定 URL 面板使用 `<button>`。站内目标保留真实 href 并由 Router 接管普通左键，避免整页刷新。
 - 禁止交互元素嵌套、clickable span 和伪语义。普通文本链接默认态就有链接线索；按钮式链接只用于明确 CTA/下载/鉴权/卡片操作，底层仍保持链接语义。
 - 链接图标须增加语义（如 Markdown 类型）；否则无图标、无占位。共享导航统一焦点、target/rel 和宿主行为。
-- icon-only 控件同时提供可访问名称、tooltip/popover 和 focus-visible；tooltip 在 floating/fullscreen/portal 中仍可见。disabled 控件需要解释原因时，用可触发 tooltip 的 wrapper。
+- 紧凑操作优先图标配 tooltip，菜单图标加文字；陌生/关键动作保留文字，按空间与任务判断。icon-only 有可访问名称、focus-visible；提示在 portal 可见。disabled 解释用可触发 wrapper。
 - 操作 tooltip 默认上方、不足时避让；纵向栏可侧向。标签滚动条固定细度，hover 不增粗。
 - modal overlay/content 都高于触发面板，content 高于 overlay，不能只有遮罩可见。
 - 标题内边距归共享 Header：`DialogHeader` 或 `WorkbenchSurface title/moreActions`；不借导航槽、不加竖线。验收窄屏长标题、顺序、命中。

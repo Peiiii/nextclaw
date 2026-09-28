@@ -1,0 +1,57 @@
+/* Document typography has one owner for reading and editing. Chat is separate. */
+:is(.ui-markdown.ui-markdown-document > .chat-markdown, .ui-markdown-editor.ui-rich-markdown-editor .ProseMirror) {
+  box-sizing:border-box; width:100%; max-width:820px; margin:0 auto; padding:24px 28px 100px 32px;
+  color:var(--ui-ink); font-size:15px; line-height:1.85; overflow-wrap:anywhere; word-break:normal;
+  & :is(p,h1,h2,h3,h4,h5,h6,ul,ol,blockquote,pre,hr,table) { margin:0; }
+  & > :not(:first-child) { margin-top:12px; }
+  & :is(h1,h2,h3,h4,h5,h6) { font-weight:650; line-height:1.4; letter-spacing:-.01em; }
+  & > :is(h1,h2,h3,h4,h5,h6):not(:first-child) { margin-top:24px; }
+  & > :is(h1,h2,h3,h4,h5,h6) + * { margin-top:8px; }
+  & h1 { font-size:1.9em; } & h2 { font-size:1.55em; } & h3 { font-size:1.3em; }
+  & h4 { font-size:1.15em; } & :is(h5,h6) { font-size:1em; }
+  & :is(ul,ol) { padding-left:24px; list-style-position:outside; }
+  & ul { list-style-type:disc; } & ul ul { list-style-type:circle; }
+  & ol { list-style-type:decimal; } & ol ol { list-style-type:lower-alpha; }
+  & li { margin:0; } & li + li { margin-top:4px; }
+  & li > :is(p,ul,ol) { margin:0; }
+  & li::marker { color:var(--ui-muted); font-weight:600; }
+  & :is(ul[data-type=taskList],ul.contains-task-list) { padding:0; list-style:none; }
+  & :is(li[data-type=taskItem],li.task-list-item) { display:flex; align-items:flex-start; gap:8px; }
+  & li[data-type=taskItem] > div { flex:1; min-width:0; }
+  & li[data-type=taskItem] > label { display:flex; align-items:center; height:27.75px; padding:0; }
+  & input[type=checkbox] { position:static; width:14px; height:14px; margin:6.875px 0; accent-color:var(--ui-primary); flex:none; }
+  & li[data-type=taskItem] > label input { margin:0; }
+  & :is(li[data-checked=true] > div,li.task-list-item:has(input:checked)) { color:var(--ui-muted); text-decoration:line-through; }
+  & blockquote { padding:8px 16px; border-left:3px solid var(--ui-primary); border-radius:0 8px 8px 0; background:var(--ui-quote-surface); color:inherit; }
+  & blockquote > * + * { margin-top:12px; }
+  & a { color:var(--ui-primary); text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; word-break:normal; }
+  & img:not(.ProseMirror-separator) { display:inline-block; max-width:100%; max-height:520px; object-fit:contain; border-radius:6px; vertical-align:middle; }
+  & :is([data-chat-message-image-preview],.ui-rich-image) { display:inline-block; max-width:100%; vertical-align:middle; border-radius:6px; }
+  & [data-chat-message-image-preview] > button { max-width:100%; }
+  & hr { height:24px; border:0; background:linear-gradient(var(--ui-line),var(--ui-line)) center / 100% 1px no-repeat; }
+  & code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:13px; font-weight:400; }
+  & :not(pre) > code { padding:2px 5px; border:1px solid var(--ui-line); border-radius:4px; background:var(--ui-code-surface); color:var(--ui-ink); box-decoration-break:clone; }
+  & :is(.tableWrapper,.chat-table-wrap) { overflow:auto; border:0; border-radius:0; margin-bottom:0; }
+  /* TableView writes an inline minimum; keep the same document minimum in both modes. */
+  & table { border-collapse:collapse; table-layout:fixed; width:100%; min-width:280px !important; font-size:15px; }
+  & :is(td,th) { min-width:70px; border:1px solid var(--ui-line); padding:8px 12px; text-align:left; vertical-align:top; white-space:normal; }
+  & th { background:var(--ui-quote-surface); font-weight:650; }
+  & tr:last-child td { border-bottom:1px solid var(--ui-line); }
+  & :is(th,td) p { margin:0; }
+  & :is(.ui-code-block,.ui-rich-code-block) { border:1px solid var(--ui-line); border-radius:9px; background:var(--ui-code-surface); overflow:hidden; margin-bottom:0; }
+  & :is(.ui-code-block__toolbar,.ui-rich-code-toolbar) { display:flex; align-items:center; justify-content:space-between; min-height:36px; height:36px; padding:2px 12px; border-bottom:1px solid var(--ui-line); }
+  & :is(.ui-code-block__language,.ui-rich-code-toolbar input) { font:12px/1.8 ui-monospace,SFMono-Regular,Consolas,monospace; color:var(--ui-muted); }
+  & pre { padding:12px 16px; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.85; tab-size:2; }
+  & pre code { display:block; padding:0; border:0; background:transparent; white-space:pre-wrap; overflow-wrap:anywhere; }
+  & :is(.ui-mermaid,.ui-rich-diagram-preview) { padding:14px; border:0; background:var(--ui-code-surface); }
+  & .hljs-keyword { color:var(--ui-syntax-keyword); } & .hljs-string { color:var(--ui-syntax-string); }
+  & :is(.hljs-number,.hljs-literal) { color:var(--ui-syntax-number); } & .hljs-comment { color:var(--ui-muted); }
+  & .katex-display { margin:12px 0; padding-block:.25em; overflow:auto; }
+  & [data-type=block-math] .katex-display { margin:0; }
+  & .tiptap-mathematics-render { padding:0; }
+  & > :first-child { margin-top:0; }
+}
+.ui-markdown.ui-markdown-document { max-width:none; margin:0; padding:0; container-type:inline-size; }
+@container (max-width:480px) {
+  :is(.ui-markdown.ui-markdown-document > .chat-markdown, .ui-markdown-editor.ui-rich-markdown-editor .ProseMirror) { padding:20px 16px 80px 32px; }
+}
