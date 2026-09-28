@@ -105,3 +105,32 @@ test("orphaned unfinished journals remain intact while visible unfinished sessio
   assert.deepEqual((await new BiboEdgeSessionStore(storage as unknown as DurableObjectStorage).load("orphan"))?.messages,
     source.sessions[0]?.record?.messages);
 });
+
+test("a two-message legacy reply is recovered only when its user journal matches the visible transcript", async () => {
+  const at = "2026-09-29T00:00:00.000Z";
+  const user = { id: "user", sessionId: "old", role: "user" as const, status: "final" as const,
+    timestamp: at, parts: [{ type: "text" as const, text: "question" }] };
+  const assistant = { ...user, id: "assistant", role: "assistant" as const, status: "error" as const,
+    parts: [{ type: "text" as const, text: "partial" }] };
+  const source: Parameters<BiboEdgeMigrationService["migrate"]>[0] = {
+    schema: 1, sessions: [{ sessionId: "old", record: { sessionId: "old", messages: [user, assistant],
+      metadata: {}, createdAt: at, updatedAt: at } }],
+    spaceState: { schema: 1, projects: [], tasks: [], events: [], inbox: [], deliveryStatuses: {}, files: [], replays: {} },
+    files: [], workspaceTexts: {}, deliveries: null,
+  };
+  const storage = new MemoryStorage();
+  const migration = new BiboEdgeMigrationService(storage as unknown as DurableObjectStorage);
+  await assert.rejects(migration.migrate(source, [{ id: "old", messages: [
+    { role: "user", text: "different" }, { role: "assistant", text: "visible reply", at },
+  ] }]), /differs/);
+  assert.equal(storage.values.has("conversationMode"), false);
+  const result = await migration.migrate(source, [{ id: "old", messages: [
+    { role: "user", text: "question" }, { role: "assistant", text: "visible reply", at },
+  ] }]);
+  assert.equal(result.messages, 3);
+  const messages = (await new BiboEdgeSessionStore(storage as unknown as DurableObjectStorage).load("old"))?.messages;
+  assert.equal(messages?.[1]?.status, "error");
+  assert.equal(messages?.[1]?.parts[0]?.type, "text");
+  assert.equal(messages?.[2]?.parts[0]?.type, "text");
+  assert.deepEqual(messages?.[2]?.parts, [{ type: "text", text: "visible reply" }]);
+});
