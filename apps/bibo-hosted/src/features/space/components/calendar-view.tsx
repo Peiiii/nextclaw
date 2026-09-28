@@ -194,14 +194,13 @@ function CalendarAgenda({ onSelect, onCreate }: { onSelect: () => void; onCreate
                 onSelect();
               }}
             >
-              <span>
-                {time(event.startAt)}
-                <small>{time(event.endAt)}</small>
+              <span className="bibo-agenda-time">
+                <time dateTime={event.startAt}>{time(event.startAt)}</time>
+                {" 至 "}
+                <time dateTime={event.endAt}>{time(event.endAt)}</time>
               </span>
-              <div>
-                <strong>{event.title}</strong>
-                {event.description && <small>{event.description}</small>}
-              </div>
+              <strong>{event.title}</strong>
+              {event.description && <small>{event.description}</small>}
             </ListRow>
           ))}
         </div>

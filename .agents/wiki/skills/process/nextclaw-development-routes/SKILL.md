@@ -35,7 +35,7 @@ description: 当共享 development-* 阶段触达 NextClaw 产品、仓库命令
 
 ## Validation
 
-- 触达控件视觉状态、共享反馈或主题颜色时按[交互质量合同](../../frontend/frontend-interaction-quality/SKILL.md)选择渲染证据；纯逻辑和文案改动不触发。
+- 触达用户可见界面时按[交互质量合同](../../frontend/frontend-interaction-quality/SKILL.md)分级选渲染证据；纯逻辑及不影响呈现的文案免审。
 - 用户已在真实实例复现，或任务触达冷/热启动、重复状态转换、journal/projection/hydrate、accepted run handle 或启动恢复时，读取[真实运行实例验证](../../../../skills/development-validation/references/runtime-instance-validation.md)。
 - 需要隔离全局安装版验证时，按 diff 过构建资格门并读取[本地源码运行验证](../../../../skills/development-validation/references/local-source-runtime.md)；纯前端不得触发未变化的 Runtime/Cargo/CLI 构建。
 - 验证 `packages/extensions/*` 未发布源码时读取[本地 Extension 源码验证](../../../../skills/development-validation/references/local-extension-source.md)。
