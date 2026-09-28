@@ -11,7 +11,7 @@ import { createQuestionMessage, createQuestionResolutionMessage, projectUserQues
 import type { CompactionSummaryProvider } from "@nextclaw/kernel/context-compaction";
 import { BiboSpaceService, type BiboSpaceState } from "@/features/bibo-domain";
 import type { BiboQuestion, BiboShowContent } from "@nextclaw/bibo-client";
-import { eventKeys, type UiShowContentEventPayload } from "@nextclaw/shared";
+import { eventKeys, getKeyId, type UiShowContentEventPayload } from "@nextclaw/shared";
 import { createBiboSpaceTool } from "@/features/bibo-domain/tools/bibo-space.tools";
 import { BiboSpaceStateStore } from "../bibo-space-state.service";
 import { BiboSpaceFileStore } from "../stores/bibo-space-file.store";
@@ -157,7 +157,9 @@ export class BiboEdgeConversationService {
     const events: NcpEndpointEvent[] = [];
     const displayEvents: BiboShowContent[] = [];
     const showBus = { emit: (key: unknown, value: UiShowContentEventPayload) => {
-      if (key !== eventKeys.uiShowContent || value.target.type !== "file" || displayEvents.some((item) => item.id === value.id)) return;
+      const keyId = typeof key === "string" ? key : key && typeof key === "object" && "id" in key && typeof key.id === "string" ? key.id : "";
+      if (keyId !== getKeyId(eventKeys.uiShowContent) ||
+        value.target.type !== "file" || displayEvents.some((item) => item.id === value.id)) return;
       displayEvents.push({ id: value.id, sessionId: input.sessionId,
         ...(value.title ? { title: value.title } : {}), target: value.target });
     } } as Parameters<typeof createShowContentTools>[0];
