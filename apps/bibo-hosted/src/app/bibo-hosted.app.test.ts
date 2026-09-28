@@ -128,6 +128,18 @@ test("edge migration control requires same-origin platform admin and a valid use
   assert.deepEqual(await (await invoke("operator-token", "user-1")).json(), { forwarded: true });
 });
 
+test("model budget operations use the same operator gate", async () => {
+  const env = { BIBO_EDGE_ADMIN_TOKEN: "operator-token", BIBO_MODEL_BUDGET: {
+    getByName: () => ({ fetch: async (url: string) => Response.json({ operation: new URL(url).pathname }) }),
+  } };
+  const invoke = (token: string) => worker.default.fetch(new Request("https://app.bibo.bot/api/admin/edge/model-budget-status", {
+    method: "POST", headers: { origin: "https://app.bibo.bot", authorization: `Bearer ${token}`,
+      "content-type": "application/json" }, body: JSON.stringify({ userId: "user-1" }),
+  }), env);
+  assert.equal((await invoke("user")).status, 403);
+  assert.deepEqual(await (await invoke("operator-token")).json(), { operation: "/admin/status" });
+});
+
 test("edge chat commits a reply without invoking the user container", async (t) => {
   const fixture = personalSpace();
   fixture.values.delete("conversationMode");
@@ -524,6 +536,26 @@ test("model reservation permits the experiment allowance and search keeps a sepa
   assert.equal((await request("search")).status, 200);
   assert.deepEqual(values.get("budget"), { day, total: 250, users: { "user-1": 250 } });
   assert.equal((values.get("search-budget") as { dailyTotal: number }).dailyTotal, 1);
+});
+
+test("operator can inspect and reset one test user's model allowance without erasing global usage", async () => {
+  const day = new Date().toISOString().slice(0, 10);
+  const values = new Map<string, unknown>([["budget", { day, total: 300, users: { "user-1": 250, "user-2": 50 } }]]);
+  const storage = {
+    get: async (key: string) => structuredClone(values.get(key)),
+    put: async (key: string, value: unknown) => { values.set(key, structuredClone(value)); },
+    transaction: async (action: (value: object) => Promise<unknown>) => action(storage),
+  };
+  const budget = new worker.BiboModelBudget({ storage }, { BIBO_EDGE_ADMIN_TOKEN: "operator-token" });
+  const call = (path: string, token?: string) => budget.fetch(new Request(`https://bibo.internal/admin/${path}`, {
+    method: "POST", headers: token ? { "x-bibo-admin-token": token } : {}, body: JSON.stringify({ userId: "user-1" }),
+  }));
+  assert.equal((await call("status")).status, 403);
+  assert.deepEqual(await (await call("status", "operator-token")).json(), {
+    day, total: 300, userCalls: 250, totalLimit: 2000, userLimit: 250,
+  });
+  assert.deepEqual(await (await call("reset-user", "operator-token")).json(), { ok: true, resetCalls: 250 });
+  assert.deepEqual(values.get("budget"), { day, total: 300, users: { "user-1": 0, "user-2": 50 } });
 });
 
 test("available budget forwards valid chat and keeps reservation in the model endpoint", async () => {

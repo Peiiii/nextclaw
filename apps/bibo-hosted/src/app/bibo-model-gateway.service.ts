@@ -17,11 +17,32 @@ export class BiboModelBudget extends DurableObject<Env> {
   override async fetch(request: Request): Promise<Response> {
     if (request.method !== "POST") return modelError("Not found", 404);
     const path = new URL(request.url).pathname;
-    if (path !== "/available" && path !== "/reserve" && path !== "/search") return modelError("Not found", 404);
+    const admin = path === "/admin/status" || path === "/admin/reset-user";
+    if (admin && (!this.env.BIBO_EDGE_ADMIN_TOKEN || request.headers.get("x-bibo-admin-token") !== this.env.BIBO_EDGE_ADMIN_TOKEN)) {
+      return modelError("Forbidden", 403);
+    }
+    if (!admin && path !== "/available" && path !== "/reserve" && path !== "/search") return modelError("Not found", 404);
     const { userId } = await request.json() as { userId?: unknown };
     if (typeof userId !== "string" || !userId) return modelError("Invalid user", 400);
     if (path === "/search") return reserveBiboSearch(this.ctx.storage, userId);
     const day = new Date().toISOString().slice(0, 10);
+    if (path === "/admin/status") {
+      const saved = await this.ctx.storage.get<Budget>("budget");
+      const budget = saved?.day === day ? saved : { day, total: 0, users: {} };
+      return json({ day, total: budget.total, userCalls: budget.users[userId] ?? 0,
+        totalLimit: DAILY_MODEL_LIMIT, userLimit: USER_DAILY_MODEL_LIMIT });
+    }
+    if (path === "/admin/reset-user") {
+      const previous = await this.ctx.storage.transaction(async (storage) => {
+        const saved = await storage.get<Budget>("budget");
+        if (!saved || saved.day !== day) return 0;
+        const count = saved.users[userId] ?? 0;
+        saved.users[userId] = 0;
+        await storage.put("budget", saved);
+        return count;
+      });
+      return json({ ok: true, resetCalls: previous });
+    }
     if (path === "/available") {
       const saved = await this.ctx.storage.get<Budget>("budget");
       const budget = saved?.day === day ? saved : { day, total: 0, users: {} };

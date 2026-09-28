@@ -19,9 +19,17 @@ async function adminEdgeRoute(request: Request, env: Env, path: string): Promise
   }
   const operation = path === "/api/admin/edge/migrate" ? "migrate" : path === "/api/admin/edge/rollback" ? "rollback" :
     path === "/api/admin/edge/status" ? "status" : null;
-  if (!operation) return publicError("Not found", 404);
+  const budgetOperation = path === "/api/admin/edge/model-budget-status" ? "status" :
+    path === "/api/admin/edge/model-budget-reset" ? "reset-user" : null;
+  if (!operation && !budgetOperation) return publicError("Not found", 404);
   const body = await request.json().catch(() => null) as { userId?: unknown } | null;
   if (!body || typeof body.userId !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(body.userId)) return publicError("用户编号不正确。", 400);
+  if (budgetOperation) {
+    if (!env.BIBO_EDGE_ADMIN_TOKEN) return publicError("操作不可用。", 503);
+    return env.BIBO_MODEL_BUDGET.getByName("global").fetch(`https://bibo.internal/admin/${budgetOperation}`, {
+      method: "POST", headers: { "x-bibo-admin-token": env.BIBO_EDGE_ADMIN_TOKEN }, body: JSON.stringify(body),
+    });
+  }
   return getContainer(env.BIBO_USER, `user:${body.userId}`).fetch(`https://bibo.internal/edge/${operation}`, { method: "POST" });
 }
 
