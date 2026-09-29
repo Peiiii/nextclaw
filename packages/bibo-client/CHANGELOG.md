@@ -1,5 +1,11 @@
 # @nextclaw/bibo-client
 
+## 0.0.4-beta.0
+
+### Patch Changes
+
+- 260165f: Keep asynchronous questions in the assistant message at their original position, and expose ordered Bibo message content for the hosted chat.
+
 ## 0.0.3
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/remote",
-  "version": "0.3.70",
+  "version": "0.3.71-beta.0",
   "private": false,
   "description": "Remote access runtime for NextClaw device registration, relay bridging, and service-managed connectivity.",
   "type": "module",

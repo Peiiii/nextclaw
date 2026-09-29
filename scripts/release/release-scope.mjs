@@ -218,7 +218,7 @@ export function readPublishedExactPackageVersion(packageName, version) {
   try {
     const output = execFileSync(
       "npm",
-      ["view", `${packageName}@${version}`, "version", "--json"],
+      ["view", `${packageName}@${version}`, "version", "--json", "--prefer-online"],
       {
         cwd: ROOT_DIR,
         encoding: "utf8",

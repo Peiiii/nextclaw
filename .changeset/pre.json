@@ -72,5 +72,10 @@
     "@nextclaw/marketplace-api-worker": "0.0.25",
     "@nextclaw/provider-gateway-api-worker": "0.0.1"
   },
-  "changesets": []
+  "changesets": [
+    "async-question-message-order",
+    "bibo-task-detail-drawer",
+    "bibo-task-reading",
+    "session-journal-delta-coalescing"
+  ]
 }

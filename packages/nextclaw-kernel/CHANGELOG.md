@@ -1,5 +1,12 @@
 # @nextclaw/kernel
 
+## 0.19.2-beta.0
+
+### Patch Changes
+
+- 260165f: Keep asynchronous questions in the assistant message at their original position, and expose ordered Bibo message content for the hosted chat.
+- 8c3e7d3: Coalesce adjacent session journal stream deltas, and add an explicit offline journal maintenance command with backup, cold replay verification, and startup recovery.
+
 ## 0.19.1
 
 ### Patch Changes
