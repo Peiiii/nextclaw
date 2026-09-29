@@ -265,6 +265,7 @@ export function DocBrowser({
     open,
     openTarget,
     refreshIframe,
+    refreshVersion: iframeReloadVersion,
     tab: currentTab,
   } : undefined;
   const customToolbar = customRenderParams ? customRenderer?.renderToolbar?.(customRenderParams) : null;
@@ -286,7 +287,7 @@ export function DocBrowser({
         urlInput={urlInput}
       />
 
-      {!isMobile ? customToolbar : null}
+      {(!isMobile || currentTab?.kind === 'panel-app' || currentTab?.kind === 'system-object') ? customToolbar : null}
 
       <DocBrowserFrameContent
         currentTab={currentTab}

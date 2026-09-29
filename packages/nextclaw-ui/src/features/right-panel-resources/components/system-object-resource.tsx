@@ -13,12 +13,14 @@ import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { useLocation, useNavigate } from "react-router-dom";
 import { parseSystemObjectReferenceUri } from "@nextclaw/shared";
 import { NativeObjectResource } from "./native-object-resource";
+import { PanelAppDocBrowserToolbar } from "@/features/panel-apps/components/panel-app-toolbar";
 import { ChatTextSelectionAction } from "@nextclaw/agent-chat-ui";
 import { WORKSPACE_TEXT_EXCERPT_MAX_CHARACTERS } from "@/features/chat";
 
 function SystemObjectResource({
   tab,
   openTarget,
+  refreshVersion,
 }: DocBrowserCustomTabRenderParams) {
   const app = useAppPresenter();
   const { pathname } = useLocation();
@@ -52,7 +54,7 @@ function SystemObjectResource({
           )
         }
       >
-        <NativeObjectResource key={uri} {...identity} openTarget={openTarget} />
+        <NativeObjectResource key={uri} {...identity} openTarget={openTarget} refreshVersion={refreshVersion} />
       </ChatTextSelectionAction>
     );
   }
@@ -160,6 +162,17 @@ function SystemObjectDocument({
 export const SYSTEM_OBJECT_RESOURCE_RENDERERS: DocBrowserCustomTabRenderers = {
   "system-object": {
     getTitle: (tab) => tab.title,
+    renderToolbar: ({ refreshIframe, tab }) => {
+      const identity = parseSystemObjectReferenceUri(tab.resourceUri ?? tab.currentUrl);
+      return identity?.objectType === "panel-app" ? (
+        <PanelAppDocBrowserToolbar
+          appId={identity.objectId}
+          appTitle={tab.title}
+          currentUrl={tab.currentUrl}
+          onRefresh={refreshIframe}
+        />
+      ) : null;
+    },
     renderContent: (params) => <SystemObjectResource {...params} />,
   },
 };

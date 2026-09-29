@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Boxes, RefreshCw, RotateCcw } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
+import { Boxes, RotateCcw } from "lucide-react";
 import { usePanelAppHostPresenter } from "@/features/panel-apps/providers/panel-app-host.provider";
 import { usePanelAppRuntime } from "@/features/panel-apps/hooks/use-panel-app-runtime";
 import { usePanelApp } from "@/features/panel-apps/hooks/use-panel-apps";
@@ -8,7 +8,6 @@ import {
   focusPanelAppIframe,
 } from "@/features/panel-apps/utils/panel-app-iframe.utils";
 import { usePanelAppScrollRestoration } from "@/shared/hooks/use-panel-app-scroll-restoration";
-import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { t } from "@/shared/lib/i18n";
 
 type PanelAppUnavailableAction = {
@@ -19,16 +18,17 @@ type PanelAppUnavailableAction = {
 export function PanelAppRuntimeSurface({
   appId,
   restorationScope,
+  refreshVersion = 0,
   unavailableAction,
 }: {
   appId: string;
   restorationScope: "main" | "standalone";
+  refreshVersion?: number;
   unavailableAction?: PanelAppUnavailableAction;
 }) {
   const presenter = usePanelAppHostPresenter();
   const panelApp = usePanelApp(appId);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [refreshVersion, setRefreshVersion] = useState(0);
   const entry = useMemo(
     () => panelApp.data,
     [panelApp.data],
@@ -97,7 +97,7 @@ export function PanelAppRuntimeSurface({
   }
 
   return (
-    <div className="relative h-full min-h-0 bg-background">
+    <div className="h-full min-h-0 bg-background">
       <iframe
         key={`${entry.appId}:${refreshVersion}`}
         ref={iframeRef}
@@ -107,13 +107,6 @@ export function PanelAppRuntimeSurface({
         className="block h-full w-full border-0 bg-background"
         onLoad={restoreScroll}
         onPointerOver={(event) => focusPanelAppIframe(event.currentTarget)}
-      />
-      <IconActionButton
-        icon={<RefreshCw className="h-3.5 w-3.5" />}
-        label={t("panelAppsRefreshCurrent")}
-        onClick={() => setRefreshVersion((version) => version + 1)}
-        size="sm"
-        className="absolute right-3 top-3 z-10 border border-border/70 bg-card shadow-sm"
       />
     </div>
   );

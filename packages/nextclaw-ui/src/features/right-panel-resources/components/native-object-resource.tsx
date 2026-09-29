@@ -65,10 +65,12 @@ export function NativeObjectResource({
   objectType,
   objectId,
   openTarget,
+  refreshVersion,
 }: {
   objectType: string;
   objectId: string;
   openTarget: DocBrowserCustomTabRenderParams["openTarget"];
+  refreshVersion?: number;
 }) {
   let content;
   switch (objectType) {
@@ -111,7 +113,7 @@ export function NativeObjectResource({
     case "panel-app":
       content = (
         <PanelAppHostProvider>
-          <PanelAppRuntimeSurface appId={objectId} restorationScope="main" />
+          <PanelAppRuntimeSurface appId={objectId} restorationScope="main" refreshVersion={refreshVersion} />
         </PanelAppHostProvider>
       );
       break;

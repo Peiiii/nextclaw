@@ -55,6 +55,7 @@ function ResourcePageContent({ page }: { page: PageResource }) {
     tab,
     currentUrl: tab.currentUrl,
     refreshIframe: () => setRevision((value) => value + 1),
+    refreshVersion: revision,
     open: (uri?: string) => {
       const next = uri ? app.pageResourceManager.resolve(uri) : null;
       if (next) app.pageResourceManager.open(next, "main", navigate);

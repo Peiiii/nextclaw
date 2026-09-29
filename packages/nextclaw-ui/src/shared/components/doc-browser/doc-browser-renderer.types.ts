@@ -6,6 +6,7 @@ export type DocBrowserCustomTabRenderParams = {
   open: DocBrowserContextValue['open'];
   openTarget: DocBrowserContextValue['openTarget'];
   refreshIframe: () => void;
+  refreshVersion: number;
   tab: DocBrowserTab;
 };
 

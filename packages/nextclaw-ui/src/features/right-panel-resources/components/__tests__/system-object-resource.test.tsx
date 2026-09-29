@@ -17,8 +17,13 @@ vi.mock("@/features/inbox", () => ({ InboxPage: ({ resourceId }: { resourceId: s
 vi.mock("@/features/apps", () => ({ AppsPanel: ({ serviceResourceId }: { serviceResourceId: string }) => <div>service-app:{serviceResourceId}</div> }));
 vi.mock("@/features/marketplace", () => ({ McpMarketplacePage: ({ resourceId }: { resourceId: string }) => <div>mcp-server:{resourceId}</div> }));
 vi.mock("@/features/panel-apps", () => ({
-  PanelAppRuntimeSurface: ({ appId }: { appId: string }) => <div>panel-app:{appId}</div>,
+  PanelAppRuntimeSurface: ({ appId, refreshVersion }: { appId: string; refreshVersion?: number }) => <div>panel-app:{appId}:{refreshVersion}</div>,
   PanelAppHostProvider: ({ children }: { children: ReactNode }) => children,
+}));
+vi.mock("@/features/panel-apps/components/panel-app-toolbar", () => ({
+  PanelAppDocBrowserToolbar: ({ appId, onRefresh }: { appId: string; onRefresh: () => void }) => (
+    <button onClick={onRefresh}>refresh:{appId}</button>
+  ),
 }));
 
 const actions = vi.hoisted(() => ({ addExcerptToChat: vi.fn(), navigate: vi.fn() }));
@@ -61,13 +66,30 @@ afterEach(cleanup);
 describe("system object reading identity", () => {
   it.each(["agent", "cron-job", "project", "inbox-delivery", "service-app", "mcp-server", "panel-app"])("opens %s with its native renderer and unchanged identity", async (objectType) => {
     render(<NativeObjectResource objectType={objectType} objectId="raw:id" openTarget={vi.fn()} />);
-    expect(await screen.findByText(`${objectType}:raw:id`)).toBeTruthy();
+    expect(await screen.findByText(objectType === "panel-app" ? `${objectType}:raw:id:` : `${objectType}:raw:id`)).toBeTruthy();
     expect(screen.queryByTestId("preview")).toBeNull();
   });
 
   it("keeps project and work item identities separate", async () => {
     render(<NativeObjectResource objectType="project-work" objectId={JSON.stringify(["project", "work"])} openTarget={vi.fn()} />);
     expect(await screen.findByText("project:project/work")).toBeTruthy();
+  });
+
+  it("places refresh in the host toolbar and passes its version to panel app content", async () => {
+    const uri = "nextclaw://objects/panel-app/raw%3Aid";
+    const refreshIframe = vi.fn();
+    const params = (refreshVersion: number) => ({
+      currentUrl: uri,
+      tab: { id: uri, kind: "system-object", title: "Panel App", currentUrl: uri, resourceUri: uri, history: [uri], historyIndex: 0, navVersion: 0 },
+      open: vi.fn(), openTarget: vi.fn(), refreshIframe, refreshVersion,
+    } satisfies DocBrowserCustomTabRenderParams);
+    render(SYSTEM_OBJECT_RESOURCE_RENDERERS["system-object"].renderToolbar!(params(0)));
+    fireEvent.click(screen.getByRole("button", { name: "refresh:raw:id" }));
+    expect(refreshIframe).toHaveBeenCalledTimes(1);
+    const view = render(SYSTEM_OBJECT_RESOURCE_RENDERERS["system-object"].renderContent!(params(0)));
+    expect(await screen.findByText("panel-app:raw:id:0")).toBeTruthy();
+    view.rerender(SYSTEM_OBJECT_RESOURCE_RENDERERS["system-object"].renderContent!(params(1)));
+    expect(await screen.findByText("panel-app:raw:id:1")).toBeTruthy();
   });
 
   it("retains a global file's source context when quoting into a different conversation", () => {
@@ -77,7 +99,7 @@ describe("system object reading identity", () => {
     render(WORKSPACE_FILE_PANEL_RENDERERS["workspace-file"].renderContent!({
       currentUrl: target.url,
       tab: { ...target, id: target.url, currentUrl: target.url, history: [target.url], historyIndex: 0, navVersion: 0 },
-      open: vi.fn(), openTarget: vi.fn(), refreshIframe: vi.fn(),
+      open: vi.fn(), openTarget: vi.fn(), refreshIframe: vi.fn(), refreshVersion: 0,
     }));
     fireEvent.click(screen.getByRole("button", { name: "Add selection" }));
     expect(actions.addExcerptToChat).toHaveBeenLastCalledWith({
@@ -92,6 +114,7 @@ describe("system object reading identity", () => {
       open: vi.fn(),
       openTarget: vi.fn(),
       refreshIframe: vi.fn(),
+      refreshVersion: 0,
     } satisfies DocBrowserCustomTabRenderParams);
     const first = "nextclaw://objects/skill/first";
     const second = "nextclaw://objects/skill/second";
