@@ -1,5 +1,22 @@
 # nextclaw-server
 
+## 0.23.13
+
+### Patch Changes
+
+- b99507f: 原生 Agent 可在执行任务时异步向用户提问并继续处理独立工作。用户可以在会话中逐题回答或跳过；问题与状态会在刷新后保留，回答会送入同一会话。
+- Updated dependencies
+- Updated dependencies [e901514]
+- Updated dependencies [54ddd77]
+- Updated dependencies [6302ba5]
+- Updated dependencies [31b9162]
+- Updated dependencies [b99507f]
+  - @nextclaw/ncp@0.11.3
+  - @nextclaw/kernel@0.19.1
+  - @nextclaw/core@0.18.5
+  - @nextclaw/mcp@0.3.55
+  - @nextclaw/runtime@0.4.54
+
 ## 0.23.12
 
 ### Patch Changes

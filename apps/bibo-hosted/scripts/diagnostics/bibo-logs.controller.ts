@@ -48,7 +48,7 @@ export function projectLog(event: Event): Record<string, unknown> {
   const result: Record<string, unknown> = { timestamp: new Date(event.timestamp).toISOString(), service: event.$metadata?.service,
     requestId: event.$metadata?.requestId, traceId: event.$metadata?.traceId };
   if (structured?.schema === "bibo.diagnostic/v1") {
-    for (const key of ["event", "component", "level", "runId", "sessionId", "stage", "status", "errorCode", "durationMs", "requestBytes", "messageCount", "toolCount", "snapshotBytes", "persisted", "runtimeId", "compactionStatus", "phase", "errorType", "errorLocation"]) {
+    for (const key of ["event", "component", "level", "runId", "sessionId", "stage", "status", "errorCode", "durationMs", "requestBytes", "messageCount", "toolCount", "toolSummary", "snapshotBytes", "persisted", "runtimeId", "compactionStatus", "phase", "errorType", "errorLocation"]) {
       if (["string", "number", "boolean"].includes(typeof structured[key])) result[key] = structured[key];
     }
   } else {

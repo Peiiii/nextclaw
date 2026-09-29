@@ -119,12 +119,13 @@ export class BiboClient {
   };
 
   chat = async (message: string, onEvent: (event: BiboChatEvent) => void, sessionId?: string,
-    question?: { id: string; action: "answer" | "dismiss" }): Promise<void> => {
+    question?: { id: string; action: "answer" | "dismiss" }, clientRequestId?: string): Promise<void> => {
     const response = await this.fetchResponse("/api/chat", {
       method: "POST",
       credentials: "same-origin",
       headers: { "content-type": "application/json", accept: "text/event-stream" },
-      body: JSON.stringify({ message, sessionId, ...(question ? { questionId: question.id, questionAction: question.action } : {}) }),
+      body: JSON.stringify({ message, sessionId, ...(question ? { questionId: question.id, questionAction: question.action } : {}),
+        ...(clientRequestId ? { clientRequestId } : {}) }),
     });
     if (!response.ok) {
       const value: unknown = await response.json().catch(() => null);

@@ -68,4 +68,19 @@ describe("tool parameter disclosure", () => {
     const lookup = new ToolSchemaTool(() => [tool]);
     expect(buildProviderTools([lookup, tool])[1]?.function.parameters).toEqual({ type: "object" });
   });
+
+  it("shows a model schema while leaving execution validation to a portable tool", async () => {
+    const parameters = { type: "object", properties: { value: { type: "string" } }, required: ["value"] };
+    const execute = vi.fn(async () => ({ ok: true }));
+    const tool: NcpTool = { name: "portable", modelParameters: parameters,
+      validateArgs: (args) => typeof args.value === "string" ? [] : ["value must be string"], execute };
+    expect(buildProviderTools([tool])[0]?.function.parameters).toEqual(parameters);
+    const lookup = new ToolSchemaTool(() => [tool]);
+    await expect(lookup.execute({ name: "portable" })).resolves.toMatchObject({ parameters });
+    const invalid = await executeCollectedToolCall({ tool,
+      toolCall: { toolCallId: "call", toolName: "portable", args: "{}" },
+      execute: (selected, args) => selected!.execute(args) });
+    expect(invalid.args).toBeNull();
+    expect(execute).not.toHaveBeenCalled();
+  });
 });

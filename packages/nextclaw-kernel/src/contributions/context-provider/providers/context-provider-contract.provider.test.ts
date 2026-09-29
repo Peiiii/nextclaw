@@ -340,7 +340,7 @@ describe("ContextProviderContribution native prompt contract", () => {
       "Distribution: cli",
       "Channel: ui\nChat ID: web-ui\nSession: session-1\nModel: openai/gpt-5",
       "## Agent Output & Reply Formatting Contract",
-      "After that call, always write a concise, self-contained final response",
+      "## Tool Call Style",
       "focused Mermaid",
       "FIRST tool call MUST be `read_file`",
       "built-in `visualize-output` SKILL.md",

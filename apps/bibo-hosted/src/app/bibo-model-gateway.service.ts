@@ -2,6 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { currentUser, json, publicError } from "./bibo-auth.utils";
 import { reserveBiboSearch } from "@/features/search";
 import { logDiagnostic, readModelRequest, readTrace, runFailure } from "./diagnostics/bibo-diagnostics.utils";
+import { forwardBiboModel } from "./services/bibo-model-transport.service";
 
 const DAILY_MODEL_LIMIT = 2000;
 const USER_DAILY_MODEL_LIMIT = 250;
@@ -16,11 +17,32 @@ export class BiboModelBudget extends DurableObject<Env> {
   override async fetch(request: Request): Promise<Response> {
     if (request.method !== "POST") return modelError("Not found", 404);
     const path = new URL(request.url).pathname;
-    if (path !== "/available" && path !== "/reserve" && path !== "/search") return modelError("Not found", 404);
+    const admin = path === "/admin/status" || path === "/admin/reset-user";
+    if (admin && (!this.env.BIBO_EDGE_ADMIN_TOKEN || request.headers.get("x-bibo-admin-token") !== this.env.BIBO_EDGE_ADMIN_TOKEN)) {
+      return modelError("Forbidden", 403);
+    }
+    if (!admin && path !== "/available" && path !== "/reserve" && path !== "/search") return modelError("Not found", 404);
     const { userId } = await request.json() as { userId?: unknown };
     if (typeof userId !== "string" || !userId) return modelError("Invalid user", 400);
     if (path === "/search") return reserveBiboSearch(this.ctx.storage, userId);
     const day = new Date().toISOString().slice(0, 10);
+    if (path === "/admin/status") {
+      const saved = await this.ctx.storage.get<Budget>("budget");
+      const budget = saved?.day === day ? saved : { day, total: 0, users: {} };
+      return json({ day, total: budget.total, userCalls: budget.users[userId] ?? 0,
+        totalLimit: DAILY_MODEL_LIMIT, userLimit: USER_DAILY_MODEL_LIMIT });
+    }
+    if (path === "/admin/reset-user") {
+      const previous = await this.ctx.storage.transaction(async (storage) => {
+        const saved = await storage.get<Budget>("budget");
+        if (!saved || saved.day !== day) return 0;
+        const count = saved.users[userId] ?? 0;
+        saved.users[userId] = 0;
+        await storage.put("budget", saved);
+        return count;
+      });
+      return json({ ok: true, resetCalls: previous });
+    }
     if (path === "/available") {
       const saved = await this.ctx.storage.get<Budget>("budget");
       const budget = saved?.day === day ? saved : { day, total: 0, users: {} };
@@ -60,29 +82,7 @@ export async function modelRoute(request: Request, env: Env): Promise<Response> 
   catch { return reject("模型请求格式不正确。", 400, "MODEL_INVALID_JSON"); }
   if (!body || typeof body !== "object" || !Array.isArray(body.messages) || body.messages.length === 0) return reject("缺少对话内容。", 400, "MODEL_INVALID_MESSAGES");
   logDiagnostic("model", "model.started", { ...trace, requestBytes: bytes, messageCount: body.messages.length, toolCount: Array.isArray(body.tools) ? body.tools.length : 0 });
-  const budget = env.BIBO_MODEL_BUDGET.getByName("global");
-  const reservation = await budget.fetch("https://bibo.internal/reserve", {
-    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId: user.id }),
-  });
-  if (!reservation.ok) { logDiagnostic("model", "model.rejected", { ...trace, status: reservation.status, errorCode: "MODEL_BUDGET_REJECTED" }, "warn"); return reservation; }
-  const upstream = await fetch("https://api.deepseek.com/chat/completions", {
-    method: "POST",
-    headers: { authorization: `Bearer ${env.BIBO_DEEPSEEK_API_KEY}`, "content-type": "application/json" },
-    body: JSON.stringify({
-      model: "deepseek-flash",
-      messages: body.messages,
-      ...(Array.isArray(body.tools) ? { tools: body.tools, tool_choice: body.tool_choice ?? "auto" } : {}),
-      thinking: { type: "disabled" },
-      stream: body.stream === true,
-      max_tokens: Math.max(1, Math.min(typeof body.max_tokens === "number" ? body.max_tokens : 2048, 2048)),
-    }),
-  });
-  logDiagnostic("model", "model.response", { ...trace, status: upstream.status, durationMs: Date.now() - started,
-    ...(!upstream.ok ? { errorCode: "MODEL_UPSTREAM_REJECTED" } : {}) }, upstream.ok ? "info" : "error");
-  return new Response(upstream.body, {
-    status: upstream.status,
-    headers: { "content-type": upstream.headers.get("content-type") ?? "application/json", "cache-control": "no-store" },
-  });
+  return forwardBiboModel(body, env, user.id, trace, started);
 }
 
 export async function checkChatAvailability(env: Env, userId: string): Promise<Response | null> {

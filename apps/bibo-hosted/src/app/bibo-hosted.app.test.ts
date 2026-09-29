@@ -16,7 +16,7 @@ const bundle = await build({
           ? "export class DurableObject { constructor(ctx, env) { this.ctx = ctx; this.env = env; } }"
           : args.path === "@cloudflare/containers"
             ? "export class Container { constructor(ctx, env) { this.ctx = ctx; this.env = env; } containerFetch = (...args) => this.env.containerFetch(...args); stop = async () => this.env.stop?.(); } export const getContainer = () => ({ fetch: async () => Response.json({ forwarded: true }) });"
-            : "export const currentUser = async () => ({ id: 'user-1' }); export const sessionUser = currentUser; export const cookieToken = () => 'token'; export const authRoute = async () => new Response(); export const json = (value, status = 200, headers = {}) => Response.json(value, { status, headers }); export const publicError = (error, status) => Response.json({ error }, { status });",
+            : "export const currentUser = async () => ({ id: 'user-1' }); export const sessionUser = currentUser; export const isPlatformAdmin = async (token) => token === 'admin'; export const cookieToken = () => 'token'; export const authRoute = async () => new Response(); export const json = (value, status = 200, headers = {}) => Response.json(value, { status, headers }); export const publicError = (error, status) => Response.json({ error }, { status });",
       }));
     },
   }],
@@ -39,6 +39,7 @@ class PersonalSpaceFixture {
   private snapshotFailed = false;
   private writeFailed = false;
   private runFailed = false;
+  edgeExport: unknown = null;
   private readonly storage = {
     get: async (key: string | string[]) => Array.isArray(key) ? new Map(key.filter((item) => this.values.has(item)).map((item) => [item, structuredClone(this.values.get(item))])) : structuredClone(this.values.get(key)),
     put: async (key: string | Record<string, unknown>, value?: unknown) => {
@@ -48,6 +49,7 @@ class PersonalSpaceFixture {
       for (const [name, item] of entries) this.values.set(name as string, structuredClone(item));
     },
     delete: async (keys: string[]) => { for (const key of keys) this.values.delete(key); },
+    list: async (options: { prefix: string }) => new Map([...this.values].filter(([key]) => key.startsWith(options.prefix))),
     transaction: async (run: (transaction: unknown) => Promise<void>) => run(this.storage),
   };
   private readonly localSpace = new BiboSpaceService("/unused", { load: async () => structuredClone(this.state), save: async (state) => { this.state = structuredClone(state); } });
@@ -68,6 +70,8 @@ class PersonalSpaceFixture {
       }
       if (route === "/restore") { this.state = JSON.parse(new TextDecoder().decode(init!.body as ArrayBuffer)); return Response.json({ ok: true }); }
       if (route === "/snapshot") return new Response(JSON.stringify(this.state));
+      if (route === "/edge/export") return this.edgeExport ? Response.json(this.edgeExport) : new Response("missing export", { status: 503 });
+      if (route === "/edge/import") { this.edgeExport = JSON.parse(String(init?.body)); return Response.json({ ok: true }); }
       if (route === "/space") {
         const { action, input } = JSON.parse(init!.body as string);
         if (action === "inbox.create") return Response.json({ result: await this.localSpace.execute(action, input) });
@@ -87,7 +91,7 @@ class PersonalSpaceFixture {
   private owner: InstanceType<typeof worker.BiboUserContainer>;
 
   constructor(initial?: BiboSpaceState, private readonly display = false) {
-    this.values = new Map(initial ? [["spaceState", { chunks: 1 }], ["spaceState:0", JSON.stringify(initial)]] : []);
+    this.values = new Map([["conversationMode", "legacy"], ...(initial ? [["spaceState", { chunks: 1 }], ["spaceState:0", JSON.stringify(initial)]] : [])] as Array<[string, unknown]>);
     this.owner = this.instance();
   }
 
@@ -109,6 +113,120 @@ class PersonalSpaceFixture {
 }
 
 const personalSpace = (initial?: BiboSpaceState, display = false) => new PersonalSpaceFixture(initial, display);
+
+test("edge migration control requires same-origin platform admin and a valid user id", async () => {
+  const env = { BIBO_EDGE_ADMIN_TOKEN: "operator-token" };
+  const invoke = (token: string, userId: unknown, origin = "https://app.bibo.bot") => worker.default.fetch(
+    new Request("https://app.bibo.bot/api/admin/edge/migrate", {
+      method: "POST", headers: { origin, authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ userId }),
+    }), env);
+  assert.equal((await invoke("user", "user-1")).status, 403);
+  assert.equal((await invoke("admin", "user-1", "https://other.example")).status, 403);
+  assert.equal((await invoke("admin", "../user-1")).status, 400);
+  assert.deepEqual(await (await invoke("admin", "user-1")).json(), { forwarded: true });
+  assert.deepEqual(await (await invoke("operator-token", "user-1")).json(), { forwarded: true });
+});
+
+test("model budget operations use the same operator gate", async () => {
+  const env = { BIBO_EDGE_ADMIN_TOKEN: "operator-token", BIBO_MODEL_BUDGET: {
+    getByName: () => ({ fetch: async (url: string) => Response.json({ operation: new URL(url).pathname }) }),
+  } };
+  const invoke = (token: string) => worker.default.fetch(new Request("https://app.bibo.bot/api/admin/edge/model-budget-status", {
+    method: "POST", headers: { origin: "https://app.bibo.bot", authorization: `Bearer ${token}`,
+      "content-type": "application/json" }, body: JSON.stringify({ userId: "user-1" }),
+  }), env);
+  assert.equal((await invoke("user")).status, 403);
+  assert.deepEqual(await (await invoke("operator-token")).json(), { operation: "/admin/status" });
+});
+
+test("edge chat commits a reply without invoking the user container", async (t) => {
+  const fixture = personalSpace();
+  fixture.values.delete("conversationMode");
+  Object.assign(fixture.env, {
+    BIBO_DEEPSEEK_API_KEY: "test-key",
+    BIBO_MODEL_BUDGET: { getByName: () => ({ fetch: async () => Response.json({ ok: true }) }) },
+  });
+  t.mock.method(globalThis, "fetch", async () => new Response(
+    'data: {"id":"edge-1","choices":[{"index":0,"delta":{"content":"边缘回复。"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n',
+    { headers: { "content-type": "text/event-stream" } },
+  ));
+  const created = await fixture.createSession();
+  const { session } = await created.json() as { session: { id: string } };
+  const response = await fixture.ownerFetch(new Request("https://bibo.internal/run", {
+    method: "POST", headers: { accept: "text/event-stream" },
+    body: JSON.stringify({ message: "早上好", token: "test-token", userId: "user-1", sessionId: session.id,
+      clientRequestId: "same-send-1" }),
+  }));
+  const stream = await response.text();
+  assert.equal(response.status, 200);
+  assert.match(stream, /event: committed/);
+  assert.equal(fixture.calls(), 0);
+  assert.equal(fixture.values.get("conversationMode"), "edge");
+  assert.equal(fixture.values.has(`ncpSession:${session.id}`), true);
+  const duplicate = await fixture.ownerFetch(new Request("https://bibo.internal/run", {
+    method: "POST", body: JSON.stringify({ message: "早上好", token: "test-token", userId: "user-1",
+      sessionId: session.id, clientRequestId: "same-send-1" }),
+  }));
+  assert.equal(duplicate.status, 409, "a retried committed request must not generate a second turn");
+  fixture.reopen();
+  const history = await fixture.ownerFetch(new Request(`https://bibo.internal/history?id=${session.id}`));
+  assert.deepEqual((await history.json() as { messages: Array<{ text: string }> }).messages.map((message) => message.text), ["早上好", "边缘回复。"]);
+  const createdFile = await fixture.action("file.create", { path: "hello.md", kind: "note", content: "旧会话可读的新文件" });
+  assert.equal(createdFile.status, 200);
+  const file = await fixture.action("file.get", { path: "hello.md" });
+  assert.equal((await file.json() as { result: { content: string } }).result.content, "旧会话可读的新文件");
+  assert.equal(fixture.calls(), 0);
+  const deleted = await fixture.ownerFetch(new Request("https://bibo.internal/sessions/delete", {
+    method: "POST", body: JSON.stringify({ id: session.id }),
+  }));
+  assert.equal(deleted.status, 200);
+  assert.equal(fixture.values.has(`ncpSession:${session.id}`), false);
+  assert.equal(fixture.calls(), 0);
+});
+
+test("old session migrates with its NCP history, then replies without another container call", async (t) => {
+  const fixture = personalSpace(emptySpace());
+  fixture.values.delete("conversationMode");
+  const created = await (await fixture.createSession()).json() as { session: { id: string } };
+  const sessionId = created.session.id;
+  const at = "2026-09-29T00:00:00.000Z";
+  const messages = [
+    { id: "old-user", sessionId, role: "user" as const, status: "final" as const, timestamp: at, parts: [{ type: "text" as const, text: "旧问题" }] },
+    { id: "old-assistant", sessionId, role: "assistant" as const, status: "final" as const, timestamp: at, parts: [{ type: "text" as const, text: "旧回答" }] },
+  ];
+  const ui = fixture.values.get("sessions") as Array<{ id: string; messages: unknown[] }>;
+  ui[0]!.messages = [{ role: "user", text: "旧问题", at }, { role: "assistant", text: "旧回答", at }];
+  fixture.values.set("sessions", ui);
+  const beforeStatus = await fixture.ownerFetch(new Request("https://bibo.internal/edge/status", { method: "POST" }));
+  assert.deepEqual(await beforeStatus.json(), { mode: "uninitialized", sessionCount: 1, messageCount: 2,
+    hasSnapshot: false, hasLegacyData: true, containerStartCount: 0, edgeRunCount: 0 });
+  fixture.edgeExport = { schema: 1, sessions: [{ sessionId, record: { sessionId, messages, metadata: {}, createdAt: at, updatedAt: at } }],
+    spaceState: emptySpace(), files: [], workspaceTexts: { "IDENTITY.md": "# 旧身份" }, deliveries: null };
+  const migration = await fixture.ownerFetch(new Request("https://bibo.internal/edge/migrate", { method: "POST" }));
+  assert.equal(migration.status, 200);
+  assert.equal(fixture.values.get("conversationMode"), "edge");
+  const callsAfterMigration = fixture.calls();
+  Object.assign(fixture.env, { BIBO_DEEPSEEK_API_KEY: "test-key",
+    BIBO_MODEL_BUDGET: { getByName: () => ({ fetch: async () => Response.json({ ok: true }) }) } });
+  t.mock.method(globalThis, "fetch", async () => new Response(
+    'data: {"id":"edge-old","choices":[{"index":0,"delta":{"content":"新回答"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n',
+    { headers: { "content-type": "text/event-stream" } },
+  ));
+  const reply = await fixture.ownerFetch(new Request("https://bibo.internal/run", { method: "POST",
+    body: JSON.stringify({ sessionId, message: "接着说", token: "test-token", userId: "user-1" }) }));
+  assert.equal(reply.status, 200);
+  assert.equal(fixture.calls(), callsAfterMigration);
+  const afterStatus = await fixture.ownerFetch(new Request("https://bibo.internal/edge/status", { method: "POST" }));
+  assert.equal((await afterStatus.json() as { edgeRunCount: number }).edgeRunCount, 1);
+  const history = (await reply.json() as { messages: Array<{ text: string }> }).messages.map((message) => message.text);
+  assert.deepEqual(history, ["旧问题", "旧回答", "接着说", "新回答"]);
+  const rollback = await fixture.ownerFetch(new Request("https://bibo.internal/edge/rollback", { method: "POST" }));
+  assert.equal(rollback.status, 200);
+  assert.equal(fixture.values.get("conversationMode"), "legacy");
+  assert.equal((fixture.edgeExport as { sessions: Array<{ record: { messages: unknown[] } }> }).sessions[0]?.record.messages.length, 4);
+  assert.equal(typeof fixture.values.get("snapshotKey"), "string");
+});
 
 test("streamed model rejection preserves code, rolls back, and correlates terminal diagnostics", async (t) => {
   const logs: string[] = [];
@@ -418,6 +536,26 @@ test("model reservation permits the experiment allowance and search keeps a sepa
   assert.equal((await request("search")).status, 200);
   assert.deepEqual(values.get("budget"), { day, total: 250, users: { "user-1": 250 } });
   assert.equal((values.get("search-budget") as { dailyTotal: number }).dailyTotal, 1);
+});
+
+test("operator can inspect and reset one test user's model allowance without erasing global usage", async () => {
+  const day = new Date().toISOString().slice(0, 10);
+  const values = new Map<string, unknown>([["budget", { day, total: 300, users: { "user-1": 250, "user-2": 50 } }]]);
+  const storage = {
+    get: async (key: string) => structuredClone(values.get(key)),
+    put: async (key: string, value: unknown) => { values.set(key, structuredClone(value)); },
+    transaction: async (action: (value: object) => Promise<unknown>) => action(storage),
+  };
+  const budget = new worker.BiboModelBudget({ storage }, { BIBO_EDGE_ADMIN_TOKEN: "operator-token" });
+  const call = (path: string, token?: string) => budget.fetch(new Request(`https://bibo.internal/admin/${path}`, {
+    method: "POST", headers: token ? { "x-bibo-admin-token": token } : {}, body: JSON.stringify({ userId: "user-1" }),
+  }));
+  assert.equal((await call("status")).status, 403);
+  assert.deepEqual(await (await call("status", "operator-token")).json(), {
+    day, total: 300, userCalls: 250, totalLimit: 2000, userLimit: 250,
+  });
+  assert.deepEqual(await (await call("reset-user", "operator-token")).json(), { ok: true, resetCalls: 250 });
+  assert.deepEqual(values.get("budget"), { day, total: 300, users: { "user-1": 0, "user-2": 50 } });
 });
 
 test("available budget forwards valid chat and keeps reservation in the model endpoint", async () => {

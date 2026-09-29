@@ -1,32 +1,12 @@
-import { randomUUID } from "node:crypto";
-import { NcpEventType, type NcpMessage, type NcpRunHandle } from "@nextclaw/ncp";
+import { NcpEventType, type NcpRunHandle } from "@nextclaw/ncp";
 import { ingressKeys, type AgentRunSendIngressPayload, type Ingress } from "@nextclaw/shared";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import type { AgentRunClient, AgentRunReplyOptions } from "@kernel/services/agent-run-client.service.js";
-
-export const USER_QUESTION_EXTENSION_TYPE = "nextclaw.user-question";
-const QUESTION_ID_METADATA_KEY = "nextclaw_user_question_id";
-const QUESTION_ACTION_METADATA_KEY = "nextclaw_user_question_action";
-const QUESTION_ANSWER_METADATA_KEY = "nextclaw_user_question_answer";
-const QUESTION_TITLE_METADATA_KEY = "nextclaw_user_question_title";
-const QUESTION_MESSAGE_ID_METADATA_KEY = "nextclaw_user_question_message_id";
-
-export type UserQuestionPrompt = {
-  title: string;
-  options?: string[];
-  recommendedOption?: string;
-  optionDescriptions?: Record<string, string>;
-};
-
-export type UserQuestionView = UserQuestionPrompt & {
-  id: string;
-  messageId: string;
-  askedAt: string;
-  status: "pending" | "answered" | "dismissed";
-  answer?: string;
-  answerMessageId?: string;
-};
+import { createQuestionMessage, createQuestionResolutionMessage, projectUserQuestions } from "@kernel/utils/user-question.utils.js";
+import type { UserQuestionPrompt, UserQuestionView } from "@kernel/utils/user-question.utils.js";
+export { USER_QUESTION_EXTENSION_TYPE } from "@kernel/utils/user-question.utils.js";
+export type { UserQuestionPrompt, UserQuestionView } from "@kernel/utils/user-question.utils.js";
 
 export type UserQuestionResolution = {
   question: UserQuestionView;
@@ -42,79 +22,6 @@ export class UserQuestionError extends Error {
   }
 }
 
-function readQuestionData(value: unknown): Array<{ id: string } & UserQuestionPrompt> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
-  const questions = (value as { questions?: unknown }).questions;
-  if (!Array.isArray(questions)) return [];
-  return questions.flatMap((entry) => {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
-    const { id, title, options, recommendedOption, optionDescriptions } = entry as Record<string, unknown>;
-    if (typeof id !== "string" || !id || typeof title !== "string" || !title) return [];
-    return [{
-      id,
-      title,
-      ...(Array.isArray(options) && options.every((option) => typeof option === "string")
-        ? { options: options as string[] }
-        : {}),
-      ...(typeof recommendedOption === "string" && Array.isArray(options) &&
-        options.every((option) => typeof option === "string") && options.includes(recommendedOption)
-        ? { recommendedOption }
-        : {}),
-      ...(optionDescriptions && typeof optionDescriptions === "object" && !Array.isArray(optionDescriptions) && Array.isArray(options)
-        ? { optionDescriptions: Object.fromEntries(Object.entries(optionDescriptions).filter(([option, description]) =>
-          options.includes(option) && typeof description === "string" && description.trim())) as Record<string, string> }
-        : {}),
-    }];
-  });
-}
-
-function readResolution(message: NcpMessage): { questionId: string; action: "answered" | "dismissed"; answer?: string } | null {
-  if (message.role !== "user") return null;
-  const questionId = message.metadata?.[QUESTION_ID_METADATA_KEY];
-  const action = message.metadata?.[QUESTION_ACTION_METADATA_KEY];
-  if (typeof questionId !== "string" || (action !== "answered" && action !== "dismissed")) return null;
-  const answer = message.metadata?.[QUESTION_ANSWER_METADATA_KEY];
-  const fallback = message.parts.find((part) => part.type === "text");
-  return {
-    questionId,
-    action,
-    ...(action === "answered"
-      ? { answer: typeof answer === "string" ? answer : fallback?.type === "text" ? fallback.text : undefined }
-      : {}),
-  };
-}
-
-function projectQuestions(messages: readonly NcpMessage[]): UserQuestionView[] {
-  const questions = new Map<string, UserQuestionView>();
-  for (const message of messages) {
-    if (message.role !== "assistant") continue;
-    for (const part of message.parts) {
-      if (part.type !== "extension" || part.extensionType !== USER_QUESTION_EXTENSION_TYPE) continue;
-      for (const question of readQuestionData(part.data)) {
-        questions.set(question.id, {
-          ...question,
-          messageId: message.id,
-          askedAt: message.timestamp,
-          status: "pending",
-        });
-      }
-    }
-  }
-  for (const message of messages) {
-    const resolution = readResolution(message);
-    if (!resolution) continue;
-    const question = questions.get(resolution.questionId);
-    if (!question || question.status !== "pending") continue;
-    questions.set(resolution.questionId, {
-      ...question,
-      status: resolution.action,
-      answerMessageId: message.id,
-      ...(resolution.answer ? { answer: resolution.answer } : {}),
-    });
-  }
-  return [...questions.values()];
-}
-
 export class UserQuestionManager {
   private readonly resolutions = new Map<string, { signature: string; promise: Promise<UserQuestionResolution> }>();
 
@@ -126,38 +33,13 @@ export class UserQuestionManager {
 
   ask = async (sessionId: string, prompts: readonly UserQuestionPrompt[]): Promise<{ accepted: true; questionIds: string[] }> => {
     await this.assertNativeSession(sessionId);
-    if (prompts.length < 1 || prompts.length > 3) {
-      throw new UserQuestionError("INVALID_ANSWER", "Provide one to three questions.");
-    }
-    const questions = prompts.map((prompt) => ({
-      id: randomUUID(),
-      title: prompt.title.trim(),
-      ...(prompt.options ? { options: prompt.options.map((option) => option.trim()) } : {}),
-      ...(prompt.recommendedOption ? { recommendedOption: prompt.recommendedOption.trim() } : {}),
-      ...(prompt.optionDescriptions ? { optionDescriptions: Object.fromEntries(Object.entries(prompt.optionDescriptions).map(([option, description]) =>
-        [option.trim(), description.trim()])) } : {}),
-    }));
-    if (questions.some((question) => !question.title || question.options?.some((option) => !option) ||
-      (question.recommendedOption !== undefined && (!question.recommendedOption || !question.options?.includes(question.recommendedOption))) ||
-      (question.optionDescriptions && Object.entries(question.optionDescriptions).some(([option, description]) =>
-        !question.options?.includes(option) || !description)))) {
-      throw new UserQuestionError("INVALID_ANSWER", "Question titles, options, recommendations, and option descriptions must be valid.");
-    }
-    const timestamp = new Date().toISOString();
-    const message: NcpMessage = {
-      id: `assistant-question-${randomUUID()}`,
-      sessionId,
-      role: "assistant",
-      status: "final",
-      timestamp,
-      parts: [
-        { type: "text", text: questions.map((question) => `${question.title}${question.options?.length ? ` (${question.options.join(" / ")})` : ""}`).join("\n") },
-        { type: "extension", extensionType: USER_QUESTION_EXTENSION_TYPE, data: { questions } },
-      ],
-    };
+    let created: ReturnType<typeof createQuestionMessage>;
+    try { created = createQuestionMessage(sessionId, prompts); }
+    catch (error) { throw new UserQuestionError("INVALID_ANSWER", error instanceof Error ? error.message : "Invalid question"); }
+    const { message } = created;
     const event = {
       type: NcpEventType.MessageSent as const,
-      occurredAt: timestamp,
+      occurredAt: message.timestamp,
       payload: { sessionId, message },
     };
     await this.sessions.publishSessionEvent({
@@ -168,7 +50,7 @@ export class UserQuestionManager {
       synchronizeMessageProjection: true,
     });
     await this.runs.getSessionRun(sessionId)?.applyEvents([event]);
-    return { accepted: true, questionIds: questions.map((question) => question.id) };
+    return { accepted: true, questionIds: created.questionIds };
   };
 
   list = async (sessionId: string): Promise<UserQuestionView[]> => {
@@ -183,7 +65,7 @@ export class UserQuestionManager {
     for (const pending of run?.listPendingRequests() ?? []) {
       messages.set(pending.request.message.id, pending.request.message);
     }
-    return projectQuestions([...messages.values()]);
+    return projectUserQuestions([...messages.values()]);
   };
 
   resolve = async (input: { sessionId: string; questionId: string; action: "answer" | "dismiss"; answer?: string }): Promise<UserQuestionResolution> => {
@@ -243,25 +125,7 @@ export class UserQuestionManager {
       }
       return { question, payload: null };
     }
-    const action = input.action === "answer" ? "answered" : "dismissed";
-    const text = action === "answered"
-      ? `[Reply to an earlier question]\nQuestion ID: ${question.id}\nQuestion: ${question.title}\nAnswer: ${answer}`
-      : `[Skipped an earlier question]\nQuestion ID: ${question.id}\nQuestion: ${question.title}`;
-    const message: NcpMessage = {
-      id: `user-question-resolution-${question.id}`,
-      sessionId: input.sessionId,
-      role: "user",
-      status: "final",
-      timestamp: new Date().toISOString(),
-      parts: [{ type: "text", text }],
-      metadata: {
-        [QUESTION_ID_METADATA_KEY]: question.id,
-        [QUESTION_ACTION_METADATA_KEY]: action,
-        [QUESTION_TITLE_METADATA_KEY]: question.title,
-        [QUESTION_MESSAGE_ID_METADATA_KEY]: question.messageId,
-        ...(action === "answered" ? { [QUESTION_ANSWER_METADATA_KEY]: answer } : {}),
-      },
-    };
+    const message = createQuestionResolutionMessage(input.sessionId, question, input.action, answer);
     const payload: AgentRunSendIngressPayload = {
       sessionId: input.sessionId,
       message,

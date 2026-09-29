@@ -1,5 +1,4 @@
 import {
-  estimateInputTokens,
   CONTEXT_COMPACTION_METADATA_KEY,
   ContextCompactionService,
   ContextWindowBudgetService,
@@ -11,20 +10,27 @@ import {
   type ContextCompactionPlan,
   type ContextWindowBudgetEvaluation,
   type ContextWindowSnapshot,
-} from "@nextclaw/core";
+} from "@nextclaw/core/context-compaction";
+import { estimateInputTokens } from "@nextclaw/core/model-input-budget";
 import { type NcpMessage, type NcpTool } from "@nextclaw/ncp";
 import {
   ncpMessageToOpenAiMessageGroups,
   type LocalAssetStore,
 } from "@nextclaw/ncp-agent-runtime";
 import { CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY } from "@nextclaw/shared";
-import type { AgentManager } from "@kernel/managers/agent.manager.js";
-import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
 import {
   buildContextBlockInputMessages,
   estimateToolInputTokens,
 } from "@kernel/utils/agent-model-input-budget.utils.js";
-import { ContextCompactionSummaryGenerationService } from "./context-compaction-summary-generation.service.js";
+import { ContextCompactionSummaryGenerationService, type CompactionSummaryProvider } from "./context-compaction-summary-generation.service.js";
+
+export type CompactionProfileResolver = {
+  resolveAgentProfileForRun(input: {
+    requestMetadata: Record<string, unknown>;
+    storedAgentId?: string;
+  }): { contextTokens: number; reservedContextTokens: number };
+};
+export type { CompactionSummaryProvider } from "./context-compaction-summary-generation.service.js";
 import {
   buildContextCompactionModelProjection,
   buildContextCompactionTimelineNcpMessage,
@@ -193,8 +199,8 @@ export class ContextCompactionPreflightService {
   private readonly summaryGenerationService: ContextCompactionSummaryGenerationService;
 
   constructor(
-    private readonly agentManager: AgentManager,
-    providerManager?: LlmProviderRuntime,
+    private readonly agentManager: CompactionProfileResolver,
+    providerManager?: CompactionSummaryProvider,
     private readonly assetStore: LocalAssetStore | null = null,
   ) {
     this.summaryGenerationService = new ContextCompactionSummaryGenerationService(providerManager);

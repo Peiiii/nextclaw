@@ -12,4 +12,4 @@ declare namespace Cloudflare {
 		BIBO_MODEL_BUDGET: DurableObjectNamespace<import("./src/app/bibo-hosted.app").BiboModelBudget>;
 	}
 }
-interface Env extends Cloudflare.Env { BIBO_DEEPSEEK_API_KEY: string; BIBO_EXA_API_KEY?: string }
+interface Env extends Cloudflare.Env { BIBO_DEEPSEEK_API_KEY: string; BIBO_EXA_API_KEY?: string; BIBO_EDGE_ADMIN_TOKEN?: string }

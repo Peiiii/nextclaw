@@ -1,4 +1,4 @@
-import { estimateInputTokens } from "@nextclaw/core";
+import { estimateInputTokens } from "@nextclaw/core/model-input-budget";
 import { normalizeAssistantText } from "@nextclaw/ncp";
 
 const SUMMARY_SOURCE_MAX_CHARS = 120_000;

@@ -1,8 +1,5 @@
-import {
-  estimateInputTokens,
-  type ContextCompactionCheckpoint,
-} from "@nextclaw/core";
-import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
+import { estimateInputTokens } from "@nextclaw/core/model-input-budget";
+import type { ContextCompactionCheckpoint } from "@nextclaw/core/context-compaction";
 import {
   buildContextCompactionEmergencySummary,
   fitContextCompactionSummaryInput,
@@ -15,6 +12,18 @@ import {
 export type GeneratedCompactionSummary = {
   diagnostics: NonNullable<ContextCompactionCheckpoint["summaryDiagnostics"]>;
   summary: string;
+};
+
+export type CompactionSummaryProvider = {
+  chat(input: {
+    model: string;
+    maxTokens: number;
+    messages: Record<string, unknown>[];
+    requestId: string;
+    sessionId: string;
+    signal?: AbortSignal;
+    thinkingLevel: "off";
+  }): Promise<{ content: string | null; finishReason: string; usage: Record<string, number> }>;
 };
 
 const TRUNCATED_SUMMARY_FINISH_REASONS = new Set([
@@ -65,7 +74,7 @@ function mergeProviderUsage(
 }
 
 export class ContextCompactionSummaryGenerationService {
-  constructor(private readonly providerManager?: LlmProviderRuntime) {}
+  constructor(private readonly providerManager?: CompactionSummaryProvider) {}
 
   generate = async (params: SummaryGenerationRequest): Promise<GeneratedCompactionSummary> => {
     if (!this.providerManager) {
@@ -208,7 +217,7 @@ export class ContextCompactionSummaryGenerationService {
     attempt: number;
     messages: Record<string, unknown>[];
     params: SummaryGenerationRequest;
-  }): Promise<Awaited<ReturnType<LlmProviderRuntime["chat"]>>> => {
+  }): Promise<Awaited<ReturnType<CompactionSummaryProvider["chat"]>>> => {
     try {
       return await this.providerManager!.chat({
         model: input.params.model,

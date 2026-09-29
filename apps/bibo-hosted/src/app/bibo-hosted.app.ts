@@ -4,15 +4,26 @@ import { json, publicError } from "./bibo-auth.utils";
 import { biboFetch } from "./routes/bibo-http.route";
 import { BiboSpaceService, BiboSpaceError, type BiboSpaceState } from "@/features/bibo-domain";
 import { BiboSpaceStateStore } from "./bibo-space-state.service";
+import { BiboEdgeOwnerController } from "./migration/bibo-edge-owner.controller";
+import { BiboEdgeConversationService, type BiboEdgeRunResult } from "./services/bibo-edge-conversation.service";
+import { biboSessionRoute, resetBiboSessions } from "./routes/bibo-session.route";
+import { createBiboEdgeModel } from "./services/bibo-edge-model.service";
+import { createBiboEdgeWebTools } from "./services/bibo-edge-web.service";
+import { executeBiboEdgeSpace } from "./services/bibo-edge-space.service";
+import { deleteBiboLegacySession, executeBiboContainerSpace, restoreBiboContainer, type BiboContainerSpaceBridge } from "./services/bibo-container-space.service";
+import { readCompressedContextCompactionCheckpoint, CONTEXT_COMPACTION_METADATA_KEY } from "@nextclaw/core/context-compaction";
+import { buildBiboEdgeContext } from "./services/bibo-edge-context.service";
 import { BiboRunError, errorDetails, logDiagnostic, readTrace, readRunFailure, runFailure, traceHeaders, type RunTrace } from "./diagnostics/bibo-diagnostics.utils";
-import type { BiboMessage } from "@nextclaw/bibo-client";
 import { parseBiboSpaceRequest } from "./utils/bibo-space-request.utils";
+import { prepareBiboSessionRun, type BiboSession } from "./utils/bibo-session.utils";
+import { prepareBiboRun, type PreparedBiboRun } from "./utils/bibo-run-preparation.utils";
+import { readBiboConversationMode } from "./utils/bibo-conversation-mode.utils";
 export { BiboModelBudget } from "./bibo-model-gateway.service";
 
 const MAX_SNAPSHOT_BYTES = 32 * 1024 * 1024;
-type Message = BiboMessage;
-type Session = { id: string; title: string; createdAt: string; updatedAt: string; messages: Message[] };
-type PreparedRun = { message: string; token: string; session: Session; question?: { id: string; title: string; action: "answer" | "dismiss" } };
+type Message = BiboSession["messages"][number];
+type Session = BiboSession;
+type PreparedRun = PreparedBiboRun;
 type ActiveRun = RunTrace & { id: string; phase: "generating" | "saving"; controller: AbortController; acceptedAt: number;
   finished: Promise<void>; complete: () => void };
 
@@ -31,16 +42,10 @@ export class BiboUserContainer extends Container<Env> {
   private activeRun: ActiveRun | null = null;
 
   override async onStart(): Promise<void> {
-    const snapshotKey = await this.ctx.storage.get<string>("snapshotKey");
-    const archive = await this.env.SNAPSHOTS.get(snapshotKey ?? this.ctx.id.toString());
-    if (snapshotKey && !archive?.body) throw new Error("Bibo committed snapshot is unavailable");
-    if (archive?.body) {
-      const response = await this.containerFetch("http://localhost/restore", { method: "POST", body: archive.body });
-      await response.arrayBuffer();
-      if (!response.ok) throw new Error(`Bibo snapshot restore failed: ${response.status}`);
-    }
-    const state = await this.spaceState.load();
-    if (state) await this.syncContainerSpace(state);
+    const starts = await this.ctx.storage.get<number>("containerStartCount") ?? 0;
+    await this.ctx.storage.put("containerStartCount", starts + 1);
+    await restoreBiboContainer(this.ctx.storage, this.env.SNAPSHOTS, this.ctx.id.toString(),
+      (url, init) => this.containerFetch(url, init), (state) => this.syncContainerSpace(state));
   }
 
   private loadSpaceState = async (): Promise<BiboSpaceState | undefined> => {
@@ -75,10 +80,13 @@ export class BiboUserContainer extends Container<Env> {
       const mutation = request.method === "POST";
       if (mutation && (this.inFlight || route === "/sessions/delete" && this.containerReadDone)) return publicError("Bibo 正在处理另一项操作，请稍后再试。", 429);
       if (mutation) this.inFlight = true;
-      try { return await this.sessionRoute(request, url); }
+      try { return await biboSessionRoute(request, url, this.ctx.storage, this.conversationMode, this.deleteLegacySession); }
       finally { if (mutation) this.inFlight = false; }
     }
     if (route === "/reset" && request.method === "POST") return this.reset();
+    if (route === "/edge/status" && request.method === "POST") return this.edgeOwner().status();
+    if (route === "/edge/migrate" && request.method === "POST") return this.migrateEdge();
+    if (route === "/edge/rollback" && request.method === "POST") return this.rollbackEdge();
     if (route === "/cancel" && request.method === "POST") {
       const body = await request.json().catch(() => null) as { runId?: unknown } | null;
       const active = this.activeRun;
@@ -101,67 +109,57 @@ export class BiboUserContainer extends Container<Env> {
     if (this.inFlight || this.containerReadDone) return publicError("Bibo 正在处理任务，请完成后再清空。", 429);
     this.inFlight = true;
     try {
-      await this.stop();
-      const snapshotKey = await this.ctx.storage.get<string>("snapshotKey");
-      if (snapshotKey) await this.env.SNAPSHOTS.delete(snapshotKey);
-      await this.env.SNAPSHOTS.delete(this.ctx.id.toString());
-      await this.ctx.storage.deleteAll();
-      return json({ ok: true });
+      return await resetBiboSessions(this.ctx.storage, this.env.SNAPSHOTS, this.ctx.id.toString(), () => this.stop());
     } finally { this.inFlight = false; }
   };
 
-  private sessionRoute = async (request: Request, url: URL): Promise<Response> => {
-    const route = url.pathname;
-    if (route === "/sessions/delete" && request.method === "POST") return this.deleteSession(request);
-    const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
-    if (route === "/sessions" && request.method === "GET") {
-      return json({ sessions: sessions.map(({ messages, ...session }) => ({ ...session, messageCount: messages.length })).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) });
-    }
-    if (route === "/sessions/new" && request.method === "POST") {
-      const time = new Date().toISOString();
-      const session: Session = { id: crypto.randomUUID(), title: "新对话", createdAt: time, updatedAt: time, messages: [] };
-      await this.ctx.storage.put("sessions", [session, ...sessions]);
-      return json({ session });
-    }
-    if (route === "/sessions/rename" && request.method === "POST") {
-      const body = await request.json().catch(() => null) as { id?: unknown; title?: unknown } | null;
-      if (!body || typeof body.id !== "string" || typeof body.title !== "string" || !body.title.trim() || body.title.trim().length > 100) return publicError("会话名称不正确。", 400);
-      const session = sessions.find((item) => item.id === body.id);
-      if (!session) return publicError("会话不存在。", 404);
-      session.title = body.title.trim(); session.updatedAt = new Date().toISOString();
-      await this.ctx.storage.put("sessions", sessions);
-      return json({ session });
-    }
-    if (route === "/history") {
-      const session = typeof url.searchParams.get("id") === "string" ? sessions.find((item) => item.id === url.searchParams.get("id")) : sessions[0];
-      if (url.searchParams.has("id") && !session) return publicError("会话不存在或已删除。", 404);
-      return json({ messages: session?.messages ?? [], session: session ? { id: session.id, title: session.title, updatedAt: session.updatedAt } : null });
-    }
-    return publicError("Not found", 404);
+  private edgeOwner = (): BiboEdgeOwnerController => new BiboEdgeOwnerController({
+    storage: this.ctx.storage, snapshots: this.env.SNAPSHOTS, id: this.ctx.id.toString(),
+    containerFetch: (url, init) => this.containerFetch(url, init),
+    syncSpace: (state) => this.syncContainerSpace(state),
+    exportSpace: () => this.structuredSpace.exportState(),
+    commitSnapshot: (metadata) => this.commitSnapshot(metadata),
+  });
+
+  private migrateEdge = async (): Promise<Response> => {
+    if (this.inFlight || this.containerReadDone) return publicError("Bibo 正在处理任务，请稍后迁移。", 429);
+    this.inFlight = true;
+    try {
+      await this.spaceQueue;
+      const result = await this.edgeOwner().migrate();
+      await this.stop().catch((error: unknown) => logDiagnostic("worker", "edge.container-stop-failed", { runId: crypto.randomUUID(), ...errorDetails(error) }, "warn"));
+      return result;
+    } catch (error) {
+      logDiagnostic("worker", "edge.migration-failed", { runId: crypto.randomUUID(), ...errorDetails(error), errorCode: "EDGE_MIGRATION_FAILED" }, "error");
+      return json({ error: "旧会话迁移校验未通过，Bibo 仍使用原有运行方式。", diagnostic: error instanceof Error ? error.message : "Unknown migration failure" }, 503);
+    } finally { this.inFlight = false; }
   };
 
-  private deleteSession = async (request: Request): Promise<Response> => {
-    const body = await request.json().catch(() => null) as { id?: unknown } | null;
-    const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
-    if (!body || !sessions.some((item) => item.id === body.id)) return publicError("会话不存在。", 404);
-    let needsRestore = false;
+  private rollbackEdge = async (): Promise<Response> => {
+    if (this.inFlight || this.containerReadDone) return publicError("Bibo 正在处理任务，请稍后回退。", 429);
+    this.inFlight = true;
+    let committed = false;
     try {
-      await this.syncContainerSpace(await this.structuredSpace.exportState());
-      needsRestore = true;
-      const response = await this.containerFetch("http://localhost/sessions/delete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: body.id }) });
-      await response.arrayBuffer();
-      if (!response.ok) return publicError("会话删除失败，请稍后再试。", 503);
-      const failed = await this.commitSnapshot({ sessions: sessions.filter((item) => item.id !== body.id) });
-      if (failed) return failed;
-      needsRestore = false;
-      return json({ ok: true });
+      await this.spaceQueue;
+      const result = await this.edgeOwner().rollback();
+      committed = true;
+      await this.stop().catch((error: unknown) => logDiagnostic("worker", "edge.rollback-stop-failed", {
+        runId: crypto.randomUUID(), ...errorDetails(error), errorCode: "EDGE_ROLLBACK_STOP_FAILED" }, "warn"));
+      return result;
     } catch (error) {
-      logDiagnostic("worker", "session.delete-failed", { ...readTrace(request.headers), ...errorDetails(error), errorCode: "SESSION_DELETE_FAILED" }, "error");
-      return publicError("会话删除失败，请稍后再试。", 503);
+      logDiagnostic("worker", "edge.rollback-failed", { runId: crypto.randomUUID(), ...errorDetails(error), errorCode: "EDGE_ROLLBACK_FAILED" }, "error");
+      return publicError("会话回退校验未通过，Bibo 仍使用边缘运行方式。", 503);
     } finally {
-      if (needsRestore) await this.stop().catch(() => undefined);
+      if (!committed) await this.stop().catch(() => undefined);
+      this.inFlight = false;
     }
   };
+
+  private conversationMode = (): Promise<"legacy" | "edge"> =>
+    readBiboConversationMode(this.ctx.storage, this.env.SNAPSHOTS, this.ctx.id.toString());
+
+  private deleteLegacySession = (id: string, sessions: Session[], request: Request): Promise<Response> =>
+    deleteBiboLegacySession(this.containerSpaceBridge(), id, sessions, request);
 
   private commitSnapshot = async (metadata: Record<string, unknown> = {}): Promise<Response | null> => {
     const trace = this.activeRun ?? { runId: crypto.randomUUID() };
@@ -189,44 +187,33 @@ export class BiboUserContainer extends Container<Env> {
     return null;
   };
 
-  private persistRun = async (payload: PreparedRun, result: RunResult): Promise<Response> => {
+  private preparePersistedRun = async (payload: PreparedRun, result: RunResult): Promise<{ sessions: Session[]; response: Record<string, unknown> }> => {
     const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
-    const at = new Date().toISOString();
-    const questions = result.questions ?? [];
-    const projected = payload.session.messages.map((message) => message.questions?.length
-      ? { ...message, questions: message.questions.map((question) => questions.find((latest) => latest.id === question.id) ?? question) }
-      : message);
-    const knownIds = new Set(projected.flatMap((message) => message.questions?.map((question) => question.id) ?? []));
-    const newQuestions = questions.filter((question) => !knownIds.has(question.id));
-    const retained = projected.filter((message, index) => index >= projected.length - 98 || message.questions?.some((question) => question.status === "pending"));
-    const userMessage: Message = { role: "user", text: payload.question?.action === "dismiss" ? "跳过" : payload.message, at,
-      ...(payload.question ? { replyToQuestion: { id: payload.question.id, title: payload.question.title,
-        action: payload.question.action === "answer" ? "answered" as const : "dismissed" as const } } : {}) };
-    const assistantMessage: Message = { role: "assistant", text: result.text, at,
-      ...(newQuestions.length ? { questions: newQuestions } : {}) };
-    const updated: Session = { ...payload.session, title: payload.session.messages.length === 0 && payload.session.title === "新对话" ? payload.message.slice(0, 40) : payload.session.title, updatedAt: at,
-      messages: [...retained, userMessage, assistantMessage] };
-    const nextSessions = [updated, ...sessions.filter((item) => item.id !== updated.id)];
-    const failed = await this.commitSnapshot({ sessions: nextSessions });
-    return failed ?? json({ text: result.text, messages: updated.messages, displayEvents: result.displayEvents ?? [], session: { id: updated.id, title: updated.title, updatedAt: updated.updatedAt } });
+    return prepareBiboSessionRun(sessions, payload, result);
   };
 
-  private executeContainerSpace = async (raw: string, write: boolean): Promise<Response> => {
-    let needsRestore = write;
-    try {
-      await this.syncContainerSpace(await this.structuredSpace.exportState());
-      const response = await this.containerFetch("http://localhost/space", {
-        method: "POST", headers: { "content-type": "application/json" }, body: raw,
-      });
-      const result = new Response(await response.text(), { status: response.status, headers: { ...Object.fromEntries(response.headers), "cache-control": "no-store" } });
-      if (!response.ok || !write) return result;
-      const failed = await this.commitSnapshot();
-      if (!failed) needsRestore = false;
-      return failed ?? result;
-    } finally {
-      if (needsRestore) await this.stop().catch(() => undefined);
-    }
+  private persistRun = async (payload: PreparedRun, result: RunResult): Promise<Response> => {
+    const prepared = await this.preparePersistedRun(payload, result);
+    const failed = await this.commitSnapshot({ sessions: prepared.sessions });
+    return failed ?? json(prepared.response);
   };
+
+  private persistEdgeRun = async (payload: PreparedRun, result: BiboEdgeRunResult, edge: BiboEdgeConversationService): Promise<Response> => {
+    const prepared = await this.preparePersistedRun(payload, { text: result.text, sessionId: payload.session.id,
+      displayEvents: result.displayEvents, questions: result.questions });
+    const edgeRunCount = await this.ctx.storage.get<number>("edgeRunCount") ?? 0;
+    await edge.commit(payload.session.id, result, { sessions: prepared.sessions, edgeRunCount: edgeRunCount + 1,
+      ...(payload.clientRequestId ? { [`edgeRunReceipt:${payload.clientRequestId}`]: { sessionId: payload.session.id } } : {}) });
+    return json(prepared.response);
+  };
+
+  private containerSpaceBridge = (): BiboContainerSpaceBridge => ({
+      exportSpace: () => this.structuredSpace.exportState(),
+      syncSpace: (state) => this.syncContainerSpace(state),
+      containerFetch: (url, init) => this.containerFetch(url, init),
+      commitSnapshot: (metadata) => this.commitSnapshot(metadata),
+      stop: () => this.stop(),
+  });
 
   private space = async (request: Request): Promise<Response> => {
     let locked = false;
@@ -236,10 +223,12 @@ export class BiboUserContainer extends Container<Env> {
       const parsed = await parseBiboSpaceRequest(request);
       if (parsed instanceof Response) return parsed;
       const { raw, action, input, readOnly, structured } = parsed;
-      if (readOnly && !structured) while (this.activeRun) await this.activeRun.finished;
+      const mode = await this.conversationMode();
+      if (readOnly && !structured && mode !== "edge") while (this.activeRun) await this.activeRun.finished;
       if (this.inFlight && (!readOnly || !this.activeRun)) return publicError("Bibo 正在处理另一项操作，请稍后再试。", 429);
       if (!readOnly && this.containerReadDone) return publicError("Bibo 正在处理另一项操作，请稍后再试。", 429);
       if (!readOnly) { this.inFlight = true; locked = true; }
+      if (mode === "edge") return await executeBiboEdgeSpace(this.ctx.storage, this.spaceState, action, input);
       if (structured) {
         const started = performance.now();
         const result = await this.structuredSpace.execute(action, input);
@@ -249,7 +238,7 @@ export class BiboUserContainer extends Container<Env> {
         readDone = new Promise<void>((resolve) => { completeRead = resolve; });
         this.containerReadDone = readDone;
       }
-      return await this.executeContainerSpace(raw, /\.(create|update|move|delete|read|resolve)$/.test(action));
+      return await executeBiboContainerSpace(this.containerSpaceBridge(), raw, /\.(create|update|move|delete|read|resolve)$/.test(action));
     } catch (error) {
       if (error instanceof BiboSpaceError) return publicError(error.message, error.status);
       logDiagnostic("worker", "space.failed", { ...readTrace(request.headers), ...errorDetails(error), errorCode: "SPACE_FAILED" }, "error");
@@ -308,32 +297,6 @@ export class BiboUserContainer extends Container<Env> {
     return this.executeRun(request, active);
   };
 
-  private prepareRun = async (request: Request): Promise<PreparedRun | Response> => {
-    const payload = await request.json() as { message?: unknown; token?: unknown; sessionId?: unknown; questionId?: unknown; questionAction?: unknown };
-    if (typeof payload.message !== "string" || !payload.message.trim() || payload.message.length > 4000 || typeof payload.token !== "string") {
-      return publicError("请输入 1 到 4000 字的消息。", 400);
-    }
-    const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
-    const session = typeof payload.sessionId === "string" ? sessions.find((item) => item.id === payload.sessionId) : sessions[0];
-    if (payload.sessionId && !session) return publicError("会话不存在。", 404);
-    let question: PreparedRun["question"];
-    if (payload.questionId !== undefined) {
-      if (typeof payload.questionId !== "string" || !payload.questionId ||
-        (payload.questionAction !== "answer" && payload.questionAction !== "dismiss") || !session) return publicError("问题编号不正确。", 400);
-      const found = session.messages.flatMap((message) => message.questions ?? []).find((item) => item.id === payload.questionId);
-      if (!found || found.status !== "pending") return publicError("这个问题已经处理，请刷新会话。", 409);
-      question = { id: found.id, title: found.title, action: payload.questionAction };
-    }
-    const now = Date.now();
-    const recent = (await this.ctx.storage.get<number[]>("runs") ?? []).filter((at) => now - at < 3_600_000);
-    if (recent.length >= 100) return publicError("本小时对话次数已用完，请稍后再来。", 429);
-    await this.ctx.storage.put("runs", [...recent, now]);
-    const time = new Date().toISOString();
-    return { message: payload.message.trim(), token: payload.token,
-      session: session ?? { id: crypto.randomUUID(), title: "新对话", createdAt: time, updatedAt: time, messages: [] },
-      ...(question ? { question } : {}) };
-  };
-
   private generateRun = async (payload: PreparedRun, active: ActiveRun, onDelta?: (text: string) => void): Promise<RunResult> => {
     const response = await this.containerFetch("http://localhost/run", {
       method: "POST",
@@ -376,10 +339,11 @@ export class BiboUserContainer extends Container<Env> {
   private executeRun = async (request: Request, active: ActiveRun, onDelta?: (text: string) => void, onSaving?: () => void): Promise<Response> => {
     let attemptedRun = false;
     let persisted = false;
+    let usedContainer = false;
     let stage = "prepare";
     const started = Date.now();
     try {
-      const payload = await this.prepareRun(request);
+      const payload = await prepareBiboRun(request, this.ctx.storage);
       if (payload instanceof Response) {
         logDiagnostic("worker", "run.rejected", { ...active, stage, status: payload.status, errorCode: "RUN_INVALID_OR_LIMITED" }, "warn");
         return payload;
@@ -387,6 +351,35 @@ export class BiboUserContainer extends Container<Env> {
       active.sessionId = payload.session.id;
       logDiagnostic("worker", "run.started", active);
       attemptedRun = true;
+      if (await this.conversationMode() === "edge") {
+        if (!payload.userId) throw new BiboRunError("EDGE_INPUT_UNSUPPORTED", 503, "Bibo 暂时无法继续这次会话，请稍后重试。");
+        const model = createBiboEdgeModel(this.env, payload.userId, active, () =>
+          logDiagnostic("worker", "run.model-started", { ...active, durationMs: Date.now() - active.acceptedAt }));
+        const edge = new BiboEdgeConversationService(this.ctx.storage, this.spaceState, model.llmApi, model.summaryProvider);
+        stage = "generate-edge";
+        const timeout = setTimeout(() => active.controller.abort(new BiboRunError("RUN_TIMEOUT", 504, "本次生成超时，本轮未保存，请稍后重试。")), 85_000);
+        let firstDelta = true;
+        let result: BiboEdgeRunResult;
+        try {
+          result = await edge.run({ sessionId: payload.session.id, message: payload.message,
+            ...(payload.question ? { question: { id: payload.question.id, action: payload.question.action, answer: payload.message } } : {}),
+            tools: createBiboEdgeWebTools(this.env, payload.userId, payload.token),
+            buildContext: (metadata) => buildBiboEdgeContext(this.ctx.storage, payload.session.id,
+              Boolean(this.env.BIBO_EXA_API_KEY), Boolean(readCompressedContextCompactionCheckpoint(metadata[CONTEXT_COMPACTION_METADATA_KEY]))),
+            runId: active.id, signal: active.controller.signal,
+            onDelta: (delta) => {
+              if (firstDelta && delta) { firstDelta = false; logDiagnostic("worker", "run.first-delta", { ...active, durationMs: Date.now() - active.acceptedAt }); }
+              onDelta?.(delta);
+            } });
+        } finally { clearTimeout(timeout); }
+        active.phase = "saving";
+        stage = "save-edge";
+        onSaving?.();
+        const saved = await this.persistEdgeRun(payload, result, edge);
+        persisted = saved.ok;
+        return saved;
+      }
+      usedContainer = true;
       stage = "restore-and-sync";
       await this.prepareContainerForRun(active);
       stage = "generate";
@@ -404,7 +397,7 @@ export class BiboUserContainer extends Container<Env> {
       logDiagnostic("worker", "run.failed", { ...active, ...errorDetails(error), stage, status: failure.status, errorCode: failure.code }, "error");
       return json({ error: failure.message, code: failure.code, runId: active.id }, failure.status);
     } finally {
-      await this.finishRun(active, { attemptedRun, persisted, stage, started });
+      await this.finishRun(active, { attemptedRun: attemptedRun && usedContainer, persisted, stage, started });
     }
   };
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { CONTEXT_COMPACTION_METADATA_KEY, type ContextCompactionCheckpoint } from "@nextclaw/core";
 import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
+import type { AppEventEnvelope } from "@nextclaw/shared";
 import { buildContextCompactionTimelineNcpMessage } from "@kernel/features/context-compaction/index.js";
 import { SessionEventIngestionService } from "@kernel/services/session-event-ingestion.service.js";
 
@@ -50,7 +51,7 @@ describe("SessionEventIngestionService context compaction", () => {
   });
 
   it("flushes the durable chain before a session owner deletes its files", async () => {
-    let subscribed: ((event: NcpEndpointEvent) => void) | null = null;
+    let subscribed: ((event: NcpEndpointEvent, envelope: AppEventEnvelope<NcpEndpointEvent>) => void) | null = null;
     let releaseAppend: (() => void) | null = null;
     const appendSessionEvent = vi.fn(() => new Promise<void>((resolve) => {
       releaseAppend = resolve;
@@ -67,9 +68,10 @@ describe("SessionEventIngestionService context compaction", () => {
       updateSessionMetadata: async () => true,
     });
     await service.start();
-    const handler = subscribed as ((event: NcpEndpointEvent) => void) | null;
+    const handler = subscribed as ((event: NcpEndpointEvent, envelope: AppEventEnvelope<NcpEndpointEvent>) => void) | null;
     expect(handler).not.toBeNull();
-    handler?.(createMarkerEvent("compressing"));
+    const event = createMarkerEvent("compressing");
+    handler?.(event, { type: "ncp.event", payload: event });
 
     let flushed = false;
     const flush = service.flushSession(SESSION_ID).then(() => {

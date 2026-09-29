@@ -58,9 +58,24 @@ importers:
 
   apps/bibo-hosted:
     dependencies:
+      '@nextclaw/core':
+        specifier: workspace:*
+        version: link:../../packages/nextclaw-core
       '@nextclaw/harness':
         specifier: workspace:*
         version: link:../../packages/nextclaw-harness
+      '@nextclaw/kernel':
+        specifier: workspace:*
+        version: link:../../packages/nextclaw-kernel
+      '@nextclaw/ncp':
+        specifier: workspace:*
+        version: link:../../packages/ncp-packages/nextclaw-ncp
+      '@nextclaw/ncp-agent-runtime-next':
+        specifier: workspace:*
+        version: link:../../packages/ncp-packages/nextclaw-ncp-agent-runtime-next
+      '@nextclaw/ncp-toolkit':
+        specifier: workspace:*
+        version: link:../../packages/ncp-packages/nextclaw-ncp-toolkit
       '@nextclaw/shared':
         specifier: workspace:*
         version: link:../../packages/nextclaw-shared

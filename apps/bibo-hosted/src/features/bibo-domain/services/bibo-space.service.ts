@@ -18,6 +18,15 @@ export type BiboSpaceState = {
 };
 type State = BiboSpaceState;
 type StateStorage = { load(): Promise<unknown>; save(state: State): Promise<void> };
+export type BiboFileStorage = {
+  read(file: BiboFile): Promise<string>;
+  create(file: BiboFile, content: string | null): Promise<void>;
+  update(file: BiboFile, content: string): Promise<void>;
+  move(file: BiboFile, path: string): Promise<void>;
+  delete(file: BiboFile, removed: readonly BiboFile[]): Promise<void>;
+  rollback(): void;
+};
+export type BiboDeliveryStorage = { read(): Promise<string | null> };
 
 type Actor = { kind: "user" | "agent"; sessionId?: string };
 type ActionResult = { result: unknown; changed: boolean };
@@ -93,7 +102,8 @@ export class BiboSpaceService {
   private readonly deliveriesPath: string;
   private queue: Promise<void> = Promise.resolve();
 
-  constructor(home: string, private readonly stateStorage?: StateStorage) {
+  constructor(home: string, private readonly stateStorage?: StateStorage, private readonly fileStorage?: BiboFileStorage,
+    private readonly deliveryStorage?: BiboDeliveryStorage) {
     this.root = resolve(home, "workspace");
     this.statePath = resolve(home, "bibo", "state.json");
     this.deliveriesPath = resolve(home, "inbox", "deliveries.json");
@@ -170,7 +180,9 @@ export class BiboSpaceService {
   private fileDetail = async (file: BiboFile): Promise<BiboFileDetail> => ({
     ...file,
     uri: createSystemObjectReferenceUri("file", file.id),
-    content: file.kind === "folder" ? null : await readFile(await this.physical(file.path, false), "utf8"),
+    content: file.kind === "folder" ? null : this.fileStorage
+      ? await this.fileStorage.read(file)
+      : await readFile(await this.physical(file.path, false), "utf8"),
   });
 
   private writeContent = async (path: string, content: string): Promise<void> => {
@@ -188,12 +200,14 @@ export class BiboSpaceService {
   };
 
   private inboxItems = async (state: State): Promise<BiboInboxItem[]> => {
-    let source: string;
-    try { source = await readFile(this.deliveriesPath, "utf8"); }
+    let source: string | null;
+    if (this.deliveryStorage) source = await this.deliveryStorage.read();
+    else try { source = await readFile(this.deliveriesPath, "utf8"); }
     catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return state.inbox;
       throw error;
     }
+    if (source === null) return state.inbox;
     const value: unknown = JSON.parse(source);
     if (!value || typeof value !== "object" || !Array.isArray((value as { deliveries?: unknown }).deliveries)) throw new BiboSpaceError("Bibo 暂时无法读取 Agent 送达。", 500);
     const deliveries = ((value as { deliveries: unknown[] }).deliveries).filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item) && typeof (item as Record<string, unknown>).id === "string");
@@ -249,7 +263,10 @@ export class BiboSpaceService {
   };
 
   execute = (action: string, rawInput: unknown = {}, actor: Actor = { kind: "user" }): Promise<unknown> => {
-    const operation = this.queue.then(() => this.executeOne(action, rawInput, actor));
+    const operation = this.queue.then(async () => {
+      try { return await this.executeOne(action, rawInput, actor); }
+      catch (error) { this.fileStorage?.rollback(); throw error; }
+    });
     this.queue = operation.then(() => undefined, () => undefined);
     return operation;
   };
@@ -447,9 +464,12 @@ export class BiboSpaceService {
     if (state.files.some((item) => item.path === path)) throw new BiboSpaceError("该位置已有同名项目。", 409);
     this.checkParent(state, path);
     const time = now(); const file = { id: id(), path, kind, createdAt: time, updatedAt: time, version: 1 } as BiboFile;
-    await this.physical(path, true);
-    if (kind === "folder") await mkdir(this.fullPath(path));
-    else await this.writeContent(path, optional(input.content, "文件内容", 1_000_000));
+    if (this.fileStorage) await this.fileStorage.create(file, kind === "folder" ? null : optional(input.content, "文件内容", 1_000_000));
+    else {
+      await this.physical(path, true);
+      if (kind === "folder") await mkdir(this.fullPath(path));
+      else await this.writeContent(path, optional(input.content, "文件内容", 1_000_000));
+    }
     state.files.push(file);
     return this.fileDetail(file);
   };
@@ -458,8 +478,9 @@ export class BiboSpaceService {
     const file = find(state.files, input); expectedVersion(file, input);
     if (file.kind === "folder") throw new BiboSpaceError("文件夹没有正文。", 400);
     if (typeof input.content !== "string") throw new BiboSpaceError("请提供文件内容。", 400);
-    await this.physical(file.path, false);
-    await this.writeContent(file.path, optional(input.content, "文件内容", 1_000_000));
+    const content = optional(input.content, "文件内容", 1_000_000);
+    if (this.fileStorage) await this.fileStorage.update(file, content);
+    else { await this.physical(file.path, false); await this.writeContent(file.path, content); }
     file.updatedAt = now(); file.version += 1;
     return this.fileDetail(file);
   };
@@ -471,9 +492,12 @@ export class BiboSpaceService {
     if (state.files.some((item) => item.path === path || (file.kind === "folder" && item.path.startsWith(`${path}/`)))) throw new BiboSpaceError("目标位置已有内容。", 409);
     this.checkParent(state, path);
     const previous = file.path;
-    await this.physical(previous, false);
-    await this.physical(path, true);
-    await rename(this.fullPath(previous), this.fullPath(path));
+    if (this.fileStorage) await this.fileStorage.move(file, path);
+    else {
+      await this.physical(previous, false);
+      await this.physical(path, true);
+      await rename(this.fullPath(previous), this.fullPath(path));
+    }
     for (const item of state.files) if (item.id === file.id || item.path.startsWith(`${previous}/`)) { item.path = `${path}${item.path.slice(previous.length)}`; item.version += 1; item.updatedAt = now(); }
     return this.fileDetail(file);
   };
@@ -481,8 +505,11 @@ export class BiboSpaceService {
   private deleteFile = async (state: State, input: Record<string, unknown>): Promise<{ deleted: string[] }> => {
     const file = find(state.files, input); expectedVersion(file, input);
     const removed = state.files.filter((item) => item.path === file.path || item.path.startsWith(`${file.path}/`));
-    await this.physical(file.path, false);
-    await rm(this.fullPath(file.path), { recursive: file.kind === "folder", force: false });
+    if (this.fileStorage) await this.fileStorage.delete(file, removed);
+    else {
+      await this.physical(file.path, false);
+      await rm(this.fullPath(file.path), { recursive: file.kind === "folder", force: false });
+    }
     state.files = state.files.filter((item) => !removed.includes(item));
     return { deleted: removed.map((item) => item.id) };
   };

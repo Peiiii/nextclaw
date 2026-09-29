@@ -1,4 +1,4 @@
-import { estimateImageBudgetTokens } from "@core/features/agent/utils/image-preparation.utils.js";
+import { estimateImageBudgetTokens } from "@core/features/agent/utils/image-budget.utils.js";
 
 const DEFAULT_CONTEXT_TOKENS = 200_000;
 const DEFAULT_RESERVE_TOKENS_FLOOR = 20_000;

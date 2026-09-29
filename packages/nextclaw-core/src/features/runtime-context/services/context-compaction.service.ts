@@ -1,5 +1,13 @@
-import { InputBudgetPruner, estimateInputTokens } from "@core/features/agent/index.js";
+import { InputBudgetPruner, estimateInputTokens } from "@core/features/agent/services/input-budget-pruner.service.js";
 import { stripToModelInputMessage } from "./context-window-budget.service.js";
+import type { ContextCompactionCheckpoint } from "../utils/context-compaction-checkpoint.utils.js";
+
+export { readCompressedContextCompactionCheckpoint } from "../utils/context-compaction-checkpoint.utils.js";
+export type { ContextCompactionCheckpoint, ContextCompactionPhase } from "../utils/context-compaction-checkpoint.utils.js";
+export { ContextWindowBudgetService } from "./context-window-budget.service.js";
+export type { ContextWindowBudgetEvaluation } from "./context-window-budget.service.js";
+export { buildCompressingCompactionCheckpoint, buildContextWindowSnapshot } from "../utils/context-window-snapshot.utils.js";
+export type { ContextWindowSnapshot } from "../utils/context-window-snapshot.utils.js";
 
 type RuntimeMessage = Record<string, unknown>;
 type ContextCompactionSummaryGenerator = (params: {
@@ -11,44 +19,6 @@ type ContextCompactionSummaryGenerator = (params: {
 }) => Promise<string>;
 
 export const CONTEXT_COMPACTION_METADATA_KEY = "last_context_compaction";
-
-export type ContextCompactionPhase = "pre-run" | "mid-run";
-
-export type ContextCompactionCheckpoint = {
-  version: 1;
-  id: string;
-  status: "compressing" | "compressed" | "failed" | "cancelled";
-  phase?: ContextCompactionPhase;
-  summary: string;
-  coveredUntil?: string;
-  continuationMessageId?: string;
-  continuationMessageCoveredPartCount?: number;
-  preservedUserMessageIds?: string[];
-  retainedMessageIds?: string[];
-  retainedMessagePartStarts?: Record<string, number>;
-  truncatedPreservedUserMessage?: {
-    messageId: string;
-    text: string;
-  };
-  coveredMessageCount: number;
-  coveredSessionMessageCount: number;
-  originalEstimatedTokens: number;
-  projectedEstimatedTokens: number;
-  summaryDiagnostics?: {
-    attemptCount: number;
-    degraded: boolean;
-    finishReason: string;
-    installedSummaryTokens: number;
-    providerInputTokens: number;
-    providerMaxOutputTokens: number;
-    providerUsage: Record<string, number>;
-    rawSummaryTokens: number;
-    recovery: "provider-summary" | "deterministic-recent-context";
-    targetSummaryTokens: number;
-  };
-  createdAt: string;
-  updatedAt: string;
-};
 
 export type ContextCompactionResult = {
   messages: RuntimeMessage[];
@@ -381,14 +351,4 @@ export class ContextCompactionService {
     };
   };
 
-}
-
-export function readCompressedContextCompactionCheckpoint(value: unknown): ContextCompactionCheckpoint | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-  const checkpoint = value as Partial<ContextCompactionCheckpoint>;
-  return checkpoint.version === 1 && checkpoint.status === "compressed" && typeof checkpoint.summary === "string"
-    ? (checkpoint as ContextCompactionCheckpoint)
-    : null;
 }

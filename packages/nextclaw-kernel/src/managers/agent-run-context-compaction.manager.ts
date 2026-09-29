@@ -1,12 +1,14 @@
-import type { AgentManager } from "@kernel/managers/agent.manager.js";
-import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
-import type { ContextCompactionPhase } from "@nextclaw/core";
+import type { ContextCompactionPhase } from "@nextclaw/core/context-compaction";
 import type { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
   buildContextCompactionTimelineNcpMessage,
+} from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
+import {
   ContextCompactionPreflightService,
+  type CompactionProfileResolver,
+  type CompactionSummaryProvider,
   type ContextCompactionPreflightResult,
-} from "@kernel/features/context-compaction/index.js";
+} from "@kernel/features/context-compaction/services/context-compaction-preflight.service.js";
 import {
   NcpEventType,
   type NcpEndpointEvent,
@@ -30,8 +32,8 @@ export class AgentRunContextCompactionManager {
   private readonly preflightService: ContextCompactionPreflightService;
 
   constructor(
-    agentManager: AgentManager,
-    providerManager: LlmProviderRuntime,
+    agentManager: CompactionProfileResolver,
+    providerManager: CompactionSummaryProvider,
     assetStore: LocalAssetStore | null = null,
   ) {
     this.preflightService = new ContextCompactionPreflightService(

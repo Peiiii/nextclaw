@@ -1,11 +1,12 @@
 import sharp from "sharp";
+import { calculateImagePatchCount, estimateImageBudgetTokens } from "./image-budget.utils.js";
+
+export { calculateImagePatchCount, estimateImageBudgetTokens } from "./image-budget.utils.js";
 
 const HIGH_DETAIL_MAX_DIMENSION = 2048;
 const HIGH_DETAIL_MAX_BASE64_CHARS = 5 * 1024 * 1024;
 const PROMPT_IMAGE_PATCH_SIZE = 32;
 const HIGH_DETAIL_MAX_PATCHES = 2_500;
-const ORIGINAL_DETAIL_MAX_PATCHES = 10_000;
-const IMAGE_MIN_ESTIMATED_TOKENS = 256;
 const HIGH_DETAIL_JPEG_QUALITIES = [85, 75, 60, 45, 30] as const;
 const HIGH_DETAIL_WEBP_QUALITIES = [85, 75, 60, 45, 30] as const;
 
@@ -64,29 +65,6 @@ export async function prepareImageForModel(
       `${estimateBase64Chars(smallest.bytes.byteLength)} base64 chars exceeds ` +
       `${HIGH_DETAIL_MAX_BASE64_CHARS}, or ${formatPatchCount(smallest)} exceeds ` +
       `${HIGH_DETAIL_MAX_PATCHES} patches. Use detail "original" only when exact source bytes are required.`
-  );
-}
-
-export function estimateImageBudgetTokens(params: {
-  detail?: unknown;
-  height?: unknown;
-  width?: unknown;
-} = {}): number {
-  const detail = params.detail === "original" ? "original" : "high";
-  const maxPatches = detail === "original" ? ORIGINAL_DETAIL_MAX_PATCHES : HIGH_DETAIL_MAX_PATCHES;
-  const patchCount = calculateImagePatchCount(params.width, params.height);
-  return Math.max(IMAGE_MIN_ESTIMATED_TOKENS, patchCount === null ? maxPatches : Math.min(patchCount, maxPatches));
-}
-
-export function calculateImagePatchCount(width: unknown, height: unknown): number | null {
-  const normalizedWidth = readDimension(width);
-  const normalizedHeight = readDimension(height);
-  if (normalizedWidth === null || normalizedHeight === null) {
-    return null;
-  }
-  return (
-    Math.ceil(normalizedWidth / PROMPT_IMAGE_PATCH_SIZE) *
-    Math.ceil(normalizedHeight / PROMPT_IMAGE_PATCH_SIZE)
   );
 }
 

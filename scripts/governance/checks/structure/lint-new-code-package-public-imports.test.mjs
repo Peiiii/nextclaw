@@ -64,6 +64,33 @@ test("allows an explicitly governed dual-mode Desktop host contract", () => {
   assert.deepEqual(findings, []);
 });
 
+test("allows the shared Node and Worker model input budget contract", () => {
+  const findings = collectPackagePublicImportViolations(
+    ["packages/nextclaw-kernel/src/services/model-input.ts"],
+    [
+      { name: "@nextclaw/kernel", rootPath: "packages/nextclaw-kernel" },
+      { name: "@nextclaw/core", rootPath: "packages/nextclaw-core" },
+    ],
+    new Map([["packages/nextclaw-kernel/src/services/model-input.ts",
+      'import { InputBudgetPruner } from "@nextclaw/core/model-input-budget";\n']]),
+  );
+  assert.deepEqual(findings, []);
+});
+
+test("allows the portable context checkpoint contract without opening other core subpaths", () => {
+  const file = "packages/nextclaw-kernel/src/features/context-compaction/utils/context-compaction.utils.ts";
+  const packages = [
+    { name: "@nextclaw/kernel", rootPath: "packages/nextclaw-kernel" },
+    { name: "@nextclaw/core", rootPath: "packages/nextclaw-core" },
+  ];
+  assert.deepEqual(collectPackagePublicImportViolations([file], packages, new Map([
+    [file, 'import { readCompressedContextCompactionCheckpoint } from "@nextclaw/core/context-compaction-checkpoint";\n'],
+  ])), []);
+  assert.equal(collectPackagePublicImportViolations([file], packages, new Map([
+    [file, 'import { hidden } from "@nextclaw/core/other";\n'],
+  ])).length, 1);
+});
+
 test("allows a package-root development alias", () => {
   const findings = collectPackageSourceAliasViolations({
     filePath: "packages/fixture-consumer/vitest.config.ts",

@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "types": ["@cloudflare/workers-types", "node"]
   },
-  "include": ["src/app/bibo-hosted.app.ts", "src/app/bibo-run-stream.utils.ts", "src/features/search/routes/bibo-search.route.test.ts", "worker-configuration.d.ts"]
+  "include": ["src/app/bibo-hosted.app.ts", "src/app/bibo-run-stream.utils.ts", "src/app/services/bibo-edge-context.service.test.ts", "src/app/services/bibo-edge-conversation.service.ts", "src/app/services/bibo-edge-conversation.service.test.ts", "src/app/services/bibo-edge-migration.service.test.ts", "src/app/services/bibo-edge-model.service.ts", "src/app/services/bibo-edge-model.service.test.ts", "src/app/services/bibo-edge-web.service.test.ts", "src/app/stores/bibo-edge-session.store.test.ts", "src/features/search/routes/bibo-search.route.test.ts", "worker-configuration.d.ts"]
 }

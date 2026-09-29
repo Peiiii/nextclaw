@@ -1,4 +1,4 @@
-import { normalizeToolParams } from "@nextclaw/core";
+import { normalizeToolParams } from "@nextclaw/core/tool-base";
 import type { NcpTool } from "@nextclaw/ncp";
 import type { UserQuestionManager, UserQuestionPrompt } from "@kernel/managers/user-question.manager.js";
 
@@ -35,7 +35,7 @@ export class RequestUserInputAsyncTool implements NcpTool {
     required: ["questions"],
   };
 
-  constructor(private readonly questions: UserQuestionManager, private readonly sessionId: string) {}
+  constructor(private readonly questions: Pick<UserQuestionManager, "ask">, private readonly sessionId: string) {}
 
   execute = async (args: unknown): Promise<{ accepted: true; questionIds: string[] }> => {
     const params = normalizeToolParams(args);
@@ -59,5 +59,18 @@ export class RequestUserInputAsyncTool implements NcpTool {
         ...(prompt.optionDescriptions !== undefined ? { optionDescriptions: prompt.optionDescriptions as Record<string, string> } : {}) };
     });
     return await this.questions.ask(this.sessionId, prompts);
+  };
+}
+
+/** Host-neutral form of the same question tool for runtimes without Node schema compilation. */
+export function createPortableRequestUserInputAsyncTool(
+  ask: (prompts: readonly UserQuestionPrompt[]) => Promise<{ accepted: true; questionIds: string[] }>,
+): NcpTool {
+  const native = new RequestUserInputAsyncTool({ ask: async (_sessionId, prompts) => ask(prompts) }, "");
+  return {
+    name: native.name, description: native.description, modelParameters: native.parameters,
+    validateArgs: (value) => value && typeof value === "object" && !Array.isArray(value) &&
+      Array.isArray((value as { questions?: unknown }).questions) ? [] : ["questions must be an array"],
+    execute: native.execute,
   };
 }
