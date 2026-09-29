@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  isRegistryVisibilityError,
+  isRetryablePublishedInstallError,
   readVersionOutput,
   resolvePublishedRuntimeAsset,
 } from "./verify-published-npm-runtime-update.mjs";
@@ -16,19 +16,23 @@ test("reads the final semantic version without treating bootstrap progress as id
     "0.45.3",
   );
 });
-test("recognizes only bounded registry propagation failures as retryable", () => {
+test("recognizes registry propagation and transient network failures as retryable", () => {
   assert.equal(
-    isRegistryVisibilityError(
+    isRetryablePublishedInstallError(
       new Error("npm error code ETARGET\nnpm error notarget No matching version found"),
     ),
     true,
   );
   assert.equal(
-    isRegistryVisibilityError(new Error("npm error code E404\nNot Found")),
+    isRetryablePublishedInstallError(new Error("npm error code E404\nNot Found")),
     true,
   );
   assert.equal(
-    isRegistryVisibilityError(new Error("npm error code EACCES")),
+    isRetryablePublishedInstallError(new Error("npm error code ETIMEDOUT\nnetwork read timed out")),
+    true,
+  );
+  assert.equal(
+    isRetryablePublishedInstallError(new Error("npm error code EACCES")),
     false,
   );
 });
