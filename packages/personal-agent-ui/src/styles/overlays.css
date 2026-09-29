@@ -21,6 +21,9 @@
 .ui-overlay--sheet.ui-overlay--wide { @apply [width:min(760px,_calc(100vw_-_48px))]; }
 .ui-overlay__header { @apply flex flex-none items-start justify-between gap-4 [padding:24px_24px_12px]; }
 .ui-overlay__header > div { @apply min-w-0; }
+.ui-overlay__header-actions { @apply flex items-center gap-1 shrink-0; }
+.ui-control.ui-control--title { field-sizing:content; resize:none; border-color:transparent; padding:0; font-size:26px; font-weight:600; line-height:1.4; letter-spacing:-.025em; }
+.ui-control.ui-control--title:focus { border-color:transparent; }
 .ui-overlay__title { @apply m-0 flex items-center [min-height:var(--ui-icon-button-size)] text-lg leading-7 font-semibold [overflow-wrap:anywhere]; }
 .ui-overlay__description { @apply [margin:8px_0_0] [color:var(--ui-muted)] text-base [line-height:1.6] [overflow-wrap:anywhere]; }
 .ui-overlay__body { @apply min-h-0 overflow-y-auto [overscroll-behavior:contain] [padding:8px_24px_24px]; }

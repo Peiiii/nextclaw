@@ -10,10 +10,11 @@ export function MarkdownEditor(props: MarkdownEditorProps) {
   const [opened, setOpened] = useState({ rich: !props.source, source: props.source });
   if (props.source && !opened.source) setOpened({ ...opened, source: true });
   if (!props.source && !opened.rich) setOpened({ ...opened, rich: true });
+  const modeClass = `ui-markdown-mode${props.layout === "embedded" ? " ui-markdown-mode--embedded" : ""}`;
   return <>
-    {opened.rich && <div className="ui-markdown-mode" hidden={props.source}>
+    {opened.rich && <div className={modeClass} hidden={props.source}>
       <Suspense fallback={<div className="ui-markdown-editor-loading" role="status">{props.labels.rich.loading}</div>}><RichMarkdownEditor {...props} active={props.active !== false && !props.source} /></Suspense>
     </div>}
-    {opened.source && <div className="ui-markdown-mode" hidden={!props.source}><Suspense fallback={<div className="ui-markdown-editor-loading" role="status">{props.labels.rich.loading}</div>}><SourceMarkdownEditor {...props} active={props.active !== false && props.source} /></Suspense></div>}
+    {opened.source && <div className={modeClass} hidden={!props.source}><Suspense fallback={<div className="ui-markdown-editor-loading" role="status">{props.labels.rich.loading}</div>}><SourceMarkdownEditor {...props} active={props.active !== false && props.source} /></Suspense></div>}
   </>;
 }

@@ -14,7 +14,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
 );
 Select.displayName = "Select";
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  ({ className = "", ...props }, ref) => <textarea ref={ref} className={`ui-control ${className}`.trim()} {...props} />,
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement> & { appearance?: "default" | "title" }>(
+  ({ className = "", appearance = "default", ...props }, ref) => <textarea ref={ref} className={`ui-control${appearance === "title" ? " ui-control--title" : ""} ${className}`.trim()} {...props} />,
 );
 Textarea.displayName = "Textarea";

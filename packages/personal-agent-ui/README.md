@@ -13,6 +13,8 @@
 
 `MarkdownEditor` 使用 Tiptap / ProseMirror 提供正文直接编辑，CodeMirror 提供精确源码编辑，两者独立按需加载。调用方提供 value、onChange、模式、可访问名称和文案；保存、版本和草稿仍由调用方持有。内核 manager 拥有事务、历史与 Markdown 投影，键入停顿 250ms 后同步，保存、失焦和离开时立即同步。仅切换模式保持原文，正文修改可规范化 Markdown 格式；frontmatter、HTML 和脚注通过原文节点保留。阅读切换用 hidden 保持实例，源码的外部同步不重建 DOM。窄屏撤销重做收入共享 ActionMenu。代码块可编辑并高亮，公式可点击修改，Mermaid 预览复用现有 renderer。`Markdown document` 提供与正文编辑一致的阅读字号和内容宽度。
 
+`MarkdownEditor layout="embedded"` 用于任务等页面内的说明编辑：正文随内容增长，纵向滚动由外层页面拥有；默认 `document` 继续服务文件工作区。提交动作读取调用方最新草稿，避免使用编辑器同步前的 React 闭包。`Textarea appearance="title"` 提供可换行的文档标题。`Sheet` 的 `actions` 承载顶部操作，`initialFocus="content"` 用于阅读优先的详情。
+
 页面可决定布局，但重复控件不能再写局部平行状态样式。组件从包根入口导入。新增组件要有跨页面使用场景或独立行为合同。
 
 ## Bibo 工作界面规范

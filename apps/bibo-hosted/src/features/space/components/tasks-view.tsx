@@ -15,12 +15,12 @@ import {
   RowActionTray,
   SegmentedControl,
   Select,
-  Sheet,
 } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { datetime } from "@/features/space/utils/date-format.utils";
 import { ChevronRight, MoreVertical, SlidersHorizontal } from "lucide-react";
 import { TaskForm } from "./task-form";
+import { TaskDetail } from "./task-detail";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 
 export function Tasks() {
@@ -74,7 +74,7 @@ export function Tasks() {
   );
   return (
     <div className="bibo-page workspace-page">
-      <TaskForm quick task={null} onDone={() => { if (taskScope === "done" || taskQuery) filterTasks("", project, taskScope === "done" ? "all" : taskScope); }}
+      <TaskForm quick onDone={() => { if (taskScope === "done" || taskQuery) filterTasks("", project, taskScope === "done" ? "all" : taskScope); }}
         onExpand={() => { setCreating(true); selectTask(null); }} />
       <div className="task-toolbar"><TaskToolbar
         mode={mode}
@@ -170,12 +170,9 @@ function TaskEditorOverlays({ creating, selected, saving, onCloseCreate, onClose
   return <>
     <Dialog open={creating} title="新任务" size="wide" closeLabel="返回任务" busy={saving}
       onOpenChange={(open) => { if (!open) onCloseCreate(); }}>
-      {creating && <TaskForm task={null} onDone={onCloseCreate} />}
+      {creating && <TaskForm onDone={onCloseCreate} />}
     </Dialog>
-    <Sheet open={Boolean(selected)} title="任务详情" side="right" size="wide" closeLabel="关闭任务详情"
-      busy={saving} onOpenChange={(open) => { if (!open) onCloseDetail(); }}>
-      {selected && <TaskForm key={selected.id} task={selected} onDone={onCloseDetail} />}
-    </Sheet>
+    {selected && <TaskDetail key={selected.id} task={selected} onClose={onCloseDetail} />}
   </>;
 }
 

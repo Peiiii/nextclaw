@@ -13,6 +13,8 @@ type OverlayProps = {
   children: ReactNode;
   returnFocusRef?: RefObject<HTMLElement>;
   initialFocusRef?: RefObject<HTMLElement>;
+  initialFocus?: "control" | "content";
+  actions?: ReactNode;
   size?: "default" | "wide";
   side?: "left" | "right";
 };
@@ -27,6 +29,8 @@ function Overlay({
   children,
   returnFocusRef,
   initialFocusRef,
+  initialFocus = "control",
+  actions,
   size = "default",
   side = "left",
   variant,
@@ -53,9 +57,9 @@ function Overlay({
               document.activeElement instanceof HTMLElement
                 ? document.activeElement
                 : null;
-            const input = initialFocusRef?.current ?? content.current?.querySelector<HTMLElement>(
+            const input = initialFocusRef?.current ?? (initialFocus === "content" ? null : content.current?.querySelector<HTMLElement>(
               "input:not([disabled]), textarea:not([disabled]), select:not([disabled])"
-            );
+            ));
             if (input) {
               event.preventDefault();
               input.focus();
@@ -89,9 +93,12 @@ function Overlay({
                 </Primitive.Description>
               )}
             </div>
+            <div className="ui-overlay__header-actions">
+            {actions}
             <Primitive.Close asChild>
               <IconButton disabled={busy} label={closeLabel} icon={<X />} tooltip={false} />
             </Primitive.Close>
+            </div>
           </header>
           <div className="ui-overlay__body">{children}</div>
         </Primitive.Content>

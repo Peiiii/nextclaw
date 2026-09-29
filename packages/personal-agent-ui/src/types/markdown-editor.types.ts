@@ -25,6 +25,8 @@ export type MarkdownEditorLabels = {
 };
 
 export type MarkdownEditorProps = {
+  /** Embedded editors grow with their content inside the parent page's scroll area. */
+  layout?: "document" | "embedded";
   value: string; onChange: (value: string) => void; source: boolean; label: string;
   labels: MarkdownEditorLabels; active?: boolean; scrollProgress?: number;
   onScrollProgress?: (progress: number) => void;
