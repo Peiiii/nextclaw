@@ -14,6 +14,8 @@ import { BiboSpaceContribution } from "./bibo-space.contribution";
 import { exportBiboEdgeState, importBiboEdgeState } from "./migration/bibo-edge-export.service";
 import { defaultIdentity, preSearchIdentity, legacyHostedIdentity, hostedIdentity } from "./utils/bibo-identity.utils";
 import { BiboRunError, errorDetails, logDiagnostic, readTrace, runFailure, traceHeaders, type RunTrace } from "./diagnostics/bibo-diagnostics.utils";
+import { projectBiboRunContent } from "./utils/bibo-session.utils";
+import type { BiboMessageContent } from "@nextclaw/bibo-client";
 
 const home = process.env.NEXTCLAW_HOME ?? "/data";
 const runtimeId = randomUUID();
@@ -119,7 +121,7 @@ async function sendSnapshot(response: ServerResponse): Promise<void> {
 }
 
 async function executeHarnessRun(input: { message: string; sessionId: string; questionId?: string; questionAction?: "answer" | "dismiss" },
-  signal: AbortSignal, callbacks: Pick<NextclawTaskInput, "onEvent" | "onAssistantDelta">): Promise<{ text: string; questions: NextclawUserQuestion[]; displayEvents: BiboSpaceContribution["displayEvents"] }> {
+  signal: AbortSignal, callbacks: Pick<NextclawTaskInput, "onEvent" | "onAssistantDelta">): Promise<{ text: string; content: BiboMessageContent[]; questions: NextclawUserQuestion[]; displayEvents: BiboSpaceContribution["displayEvents"] }> {
   const harness = new NextclawHarness({
       homeDir: home,
       allowedToolNames: ["bibo", "show_file", "web_search", "web_fetch", "tool_schema", "request_user_input_async"],
@@ -131,12 +133,16 @@ async function executeHarnessRun(input: { message: string; sessionId: string; qu
   harness.contributions.register(contribution);
   try {
     await harness.start();
-    const result = input.questionId
-      ? await harness.answerUserQuestion({ sessionId: input.sessionId, questionId: input.questionId,
+    const before = await harness.listSessionMessages(input.sessionId);
+    await (input.questionId
+      ? harness.answerUserQuestion({ sessionId: input.sessionId, questionId: input.questionId,
           action: input.questionAction!, ...(input.questionAction === "answer" ? { answer: input.message.trim() } : {}), signal, ...callbacks })
-      : await harness.runTask({ input: input.message.trim(), sessionId: input.sessionId, channel: "ui", signal, ...callbacks });
-    if (!result.text) throw new BiboRunError("QUESTION_ALREADY_RESOLVED", 409, "这个问题已经处理，请刷新会话。");
-    return { text: result.text, questions: await harness.listUserQuestions(input.sessionId), displayEvents: contribution.displayEvents };
+      : harness.runTask({ input: input.message.trim(), sessionId: input.sessionId, channel: "ui", signal, ...callbacks }));
+    const projected = projectBiboRunContent(before, await harness.listSessionMessages(input.sessionId));
+    if (!projected.text && !projected.content.some((part) => part.type === "questions")) {
+      throw new BiboRunError("QUESTION_ALREADY_RESOLVED", 409, "这个问题已经处理，请刷新会话。");
+    }
+    return { ...projected, questions: await harness.listUserQuestions(input.sessionId), displayEvents: contribution.displayEvents };
   } finally { await harness.dispose(); }
 }
 
@@ -170,10 +176,10 @@ async function sendRun(request: IncomingMessage, response: ServerResponse, reque
           if (!response.destroyed && delta) response.write(`event: delta\ndata: ${JSON.stringify({ text: delta })}\n\n`);
         } } : {}),
     };
-    const { text, questions, displayEvents } = await executeHarnessRun({ message: body.message, sessionId,
+    const { text, content, questions, displayEvents } = await executeHarnessRun({ message: body.message, sessionId,
       ...(questionReply ? { questionId: body.questionId as string, questionAction: body.questionAction as "answer" | "dismiss" } : {}) }, controller.signal, callbacks);
     logDiagnostic("container", "run.generated", { ...trace, runtimeId });
-    sendRunResult(response, { text, sessionId }, questions, displayEvents, Boolean(streaming));
+    sendRunResult(response, { text, content, sessionId }, questions, displayEvents, Boolean(streaming));
   } catch (error) {
     const failure = runFailure(controller.signal.aborted ? controller.signal.reason : error, controller.signal.aborted);
     logDiagnostic("container", "run.failed", { ...trace, ...errorDetails(error), errorCode: failure.code }, "error");
@@ -184,13 +190,13 @@ async function sendRun(request: IncomingMessage, response: ServerResponse, reque
   }
 }
 
-function sendRunResult(response: ServerResponse, result: { text: string; sessionId: string }, questions: NextclawUserQuestion[], displayEvents: BiboSpaceContribution["displayEvents"], streaming: boolean): void {
+function sendRunResult(response: ServerResponse, result: { text: string; content: BiboMessageContent[]; sessionId: string }, questions: NextclawUserQuestion[], displayEvents: BiboSpaceContribution["displayEvents"], streaming: boolean): void {
   if (streaming) {
     for (const event of displayEvents) response.write(`event: show-content\ndata: ${JSON.stringify(event)}\n\n`);
-    response.end(`event: result\ndata: ${JSON.stringify({ text: result.text, sessionId: result.sessionId, questions })}\n\n`);
+    response.end(`event: result\ndata: ${JSON.stringify({ text: result.text, content: result.content, sessionId: result.sessionId, questions })}\n\n`);
     return;
   }
-  return sendJson(response, 200, { text: result.text, sessionId: result.sessionId, questions, displayEvents });
+  return sendJson(response, 200, { text: result.text, content: result.content, sessionId: result.sessionId, questions, displayEvents });
 }
 
 async function importSpaceState(request: IncomingMessage, response: ServerResponse): Promise<void> {

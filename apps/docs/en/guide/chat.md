@@ -7,6 +7,8 @@ In the desktop sidebar, switch between Time and Project views at the top left of
 
 A session is not merely chat history. It is the container where a task keeps its goal, messages, tool activity, working directory, file results, and follow-up changes.
 
+The Native agent can ask a question while continuing work that does not depend on the answer. The question entry appears inside the assistant message in generation order with the surrounding text. Open it to choose a suggested answer, enter your own, or skip. A later answer still refers to the original question rather than starting an unrelated topic.
+
 In Time view, Pinned and date groups start expanded. Click a group heading to collapse or expand its sessions with the same transition as message details. The arrow on the right appears only while hovering over the heading. You can also focus the heading and press Enter or Space. Collapsing and expanding work on both desktop and phones.
 
 ## Start a new task when

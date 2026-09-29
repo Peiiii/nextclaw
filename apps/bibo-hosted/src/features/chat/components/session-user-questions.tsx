@@ -4,10 +4,10 @@ import { Button, Tooltip } from "@nextclaw/personal-agent-ui";
 import type { BiboQuestion, BiboQuestionReference } from "@nextclaw/bibo-client";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 
-export function QuestionTags({ questions, onOpen }: { questions: BiboQuestion[]; onOpen: (id: string) => void }) {
+export function QuestionTags({ questions, onOpen, submittingId }: { questions: BiboQuestion[]; onOpen: (id: string) => void; submittingId?: string }) {
   if (!questions.length) return null;
   return <div className="bibo-question-tags">{questions.map((question) => question.status === "pending"
-    ? <button key={question.id} type="button" className="bibo-question-tag" onClick={() => onOpen(question.id)}
+    ? <button key={question.id} type="button" className="bibo-question-tag" disabled={submittingId === question.id} onClick={() => onOpen(question.id)}
         aria-label={`${copy.questionOpen}：${question.title}`}><MessageCircleQuestion size={14} aria-hidden="true" /><span>{question.title}</span></button>
     : <span key={question.id} className="bibo-question-tag is-settled" title={question.title}>
         <MessageCircleQuestion size={14} aria-hidden="true" /><span>{question.title}</span><small>{question.status === "answered" ? copy.questionAnswered : copy.questionSkipped}</small>
@@ -20,16 +20,17 @@ export function QuestionReference({ reference }: { reference: BiboQuestionRefere
   </div>;
 }
 
-export function QuestionPanel({ question, busy, onClose, onAnswer, onDismiss }: {
+export function QuestionPanel({ question, busy, initialCustom = "", onClose, onAnswer, onDismiss }: {
   question: BiboQuestion;
   busy: boolean;
+  initialCustom?: string;
   onClose: () => void;
   onAnswer: (answer: string) => void;
   onDismiss: () => void;
 }) {
-  const [custom, setCustom] = useState("");
+  const [custom, setCustom] = useState(initialCustom);
   const [helpOpen, setHelpOpen] = useState<string | null>(null);
-  useEffect(() => { setCustom(""); setHelpOpen(null); }, [question.id]);
+  useEffect(() => { setCustom(initialCustom); setHelpOpen(null); }, [question.id, initialCustom]);
   useEffect(() => {
     const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { if (helpOpen) setHelpOpen(null); else onClose(); } };
     window.addEventListener("keydown", escape);

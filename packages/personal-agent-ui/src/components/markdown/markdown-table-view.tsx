@@ -1,7 +1,7 @@
 import { createRoot, type Root } from "react-dom/client";
 import { TableView } from "@tiptap/extension-table";
 import type { Node } from "@tiptap/pm/model";
-import { TextSelection, type Command } from "@tiptap/pm/state";
+import { TextSelection, type Command, type Selection } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import { addRowAfter, addRowBefore, addColumnAfter, addColumnBefore, deleteRow, deleteColumn, moveTableRow, moveTableColumn, selectedRect, setCellAttr, CellSelection, TableMap } from "@tiptap/pm/tables";
 import { closeHistory } from "@tiptap/pm/history";
@@ -57,6 +57,7 @@ export function markdownTableView(labels: MarkdownEditorLabels): typeof TableVie
     private readonly scroll: HTMLDivElement;
     private root?: Root;
     private cell?: HTMLTableCellElement;
+    private menuSelection?: { doc: Node; selection: Selection };
     private closed = false;
     constructor(node: Node, minWidth: number, private readonly view: EditorView, attributes: Record<string, unknown> = {}) {
       super(node, minWidth, view, attributes);
@@ -81,6 +82,26 @@ export function markdownTableView(labels: MarkdownEditorLabels): typeof TableVie
       this.view.dispatch(this.view.state.tr.setSelection(TextSelection.near(this.view.state.doc.resolve(position))));
       return true;
     }
+    private menu = (axis: Axis, open: boolean) => {
+      if (this.closed || this.view.isDestroyed) return;
+      if (!open) {
+        const previous = this.menuSelection;
+        this.menuSelection = undefined;
+        delete this.dom.dataset.menuOpen;
+        const { doc, selection } = this.view.state;
+        if (previous && selection instanceof CellSelection) {
+          const restored = doc === previous.doc && !(previous.selection instanceof CellSelection)
+            ? previous.selection : TextSelection.near(selection.$headCell);
+          this.view.dispatch(this.view.state.tr.setSelection(restored));
+        }
+        return;
+      }
+      this.menuSelection = { doc: this.view.state.doc, selection: this.view.state.selection };
+      if (!this.selectCell()) { this.menuSelection = undefined; return; }
+      this.dom.dataset.menuOpen = axis;
+      const position = this.view.state.doc.resolve(this.view.state.selection.$from.before(-1));
+      this.view.dispatch(this.view.state.tr.setSelection(axis === "row" ? CellSelection.rowSelection(position) : CellSelection.colSelection(position)));
+    };
     private command = (axis: Axis, action: TableAction) => {
       if (action === "moveBefore" || action === "moveAfter") {
         const rect = selectedRect(this.view.state), from = axis === "row" ? rect.top : rect.left;
@@ -137,16 +158,7 @@ export function markdownTableView(labels: MarkdownEditorLabels): typeof TableVie
           const cell = axis === "row" ? row?.cells[0] : row?.cells[row.cells.length - 1];
           if (cell) { this.cell = cell; this.command(axis, "after"); }
         }}
-        onMenu={(axis, open) => {
-          if (open && this.selectCell()) {
-            this.dom.dataset.menuOpen = axis;
-            const cell = this.view.state.selection.$from.node(-1).type.spec.tableRole;
-            if (cell === "cell" || cell === "header_cell") {
-              const position = this.view.state.doc.resolve(this.view.state.selection.$from.before(-1));
-              this.view.dispatch(this.view.state.tr.setSelection(axis === "row" ? CellSelection.rowSelection(position) : CellSelection.colSelection(position)));
-            }
-          } else { delete this.dom.dataset.menuOpen; }
-        }} onAction={(axis, action) => this.command(axis, action)} />);
+        onMenu={this.menu} onAction={(axis, action) => this.command(axis, action)} />);
     };
     update = (node: Node) => {
       if (!super.update(node)) return false;

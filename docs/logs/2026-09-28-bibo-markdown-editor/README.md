@@ -100,3 +100,15 @@ Goal 基于本轮 ND-01～07 完成门收尾。基线9bd0f6823，worktree干净�
 生产真实账号1440/390px通过创建/编辑/逐字保存/刷新；真实R2图片上传→保存引用→刷新显示、匿名401和跨站上传403通过，仅删除本轮测试笔记。发布资源inbox2048/1440/1100/390/320通过。私有图片当前不自动回收，以免破坏历史/撤销引用；该限制已写入设计，不存在公开桶或新增常驻实例。用户43988原文档/home保留，真实预览资源POST201/GET200也通过。
 
 远程master已交付；reconcile返回LOCAL_WORKTREE_RETRYING，复用worker36697等待主工作区原有文档WIP，源区没有本任务遗漏。无需数据库迁移、NPM/runtime/desktop或文档站部署，公共renderer变化已留changeset。AUTOMATION_INTERVENTIONS: 0。ND-01～07 passed；实体设备、全部浏览器及Notion全产品像素同一性不在已证明范围。
+
+### 表格行列菜单临时选区修复（2026-09-29）
+
+用户截图指出行列选区遮挡文字、关闭菜单后仍残留。根因：selectedCell 的伪元素使用不透明 selection token；TableView 打开菜单创建 CellSelection，关闭只清理 menuOpen 标记，没有收回临时选区。
+
+沿原 TableView owner 管理菜单选区生命周期：关闭时仅在仍为 CellSelection 时恢复原选区或折叠；文档改变后不使用旧文档位置，新增行列等动作产生的文本焦点不覆盖。背景使用主题 primary 的 14% 半透明混色，保留原文与表格边界。没有新增组件或并行状态 owner。
+
+回归新增行/列菜单 × Esc/外部点击/执行操作，验证实际绘制 alpha 和菜单关闭后无 selectedCell；1440/390/320 完整编辑回归通过，含新增行列焦点、撤销、保存冲突及草稿恢复。一次旧的移动行后单元格点击等待超时，完整复跑通过，记录为自动化波动，不声称从未失败。UI 与 Bibo 三份类型检查、定向 lint、构建通过；diff maintainability 零错误零告警，人工审查选区恢复与动作焦点无遗留 finding。集成最新主干后重建 core/ncp/kernel/harness 解决本地旧声明产物，不修改其它任务源码。
+
+本轮回归补足原测试只验证菜单动作、未检查绘制透明度和关闭生命周期的缺口；既有交互规范已覆盖该要求，不新增重复 skill。此修复只交付 Bibo 网页，无 NPM/runtime/desktop、文档站或数据库迁移。
+
+发布源码5db40f285，冻结远程master f6f36e1663f1f97c84fe7c08aa91bca8232328f1，Worker e8057800-50f6-46fb-a09e-95ddedd00c3b。两主题三宽度定向回归、产品整体smoke通过；线上真实测试账号1440/390px复验行列菜单三种关闭方式、实际alpha、表格操作和创建/编辑/逐字保存/刷新通过，仅清理本次测试笔记。生产inbox五宽度通过。容器前后version27/max20/image sha256:cb289bce98dfb7e74e2c72385c6db282a7876aa18170db40ff6dc5db62a31ca2一致。恢复43988预览，保留原home并确认原文档id存在。未覆盖全部实体触屏与浏览器。

@@ -59,12 +59,16 @@ test("question explanations, recommendations, and reply references survive histo
   const question = { id: "q1", title: "格式？", messageId: "m1", askedAt: "now", status: "answered", answer: "PDF",
     options: ["PDF", "DOCX"], recommendedOption: "PDF", optionDescriptions: { PDF: "便于交付" } };
   const messages = readMessages([
-    { role: "assistant", text: "我继续整理", at: "now", questions: [question] },
+    { role: "assistant", text: "先说。\n\n再说。", at: "now", content: [
+      { type: "text", text: "先说。" }, { type: "questions", ids: ["q1"] }, { type: "text", text: "再说。" },
+    ], questions: [question] },
     { role: "user", text: "PDF", at: "later", replyToQuestion: { id: "q1", title: "格式？", action: "answered" } },
   ]);
   assert.deepEqual(messages[0]?.questions?.[0], question);
+  assert.deepEqual(messages[0]?.content?.map((part) => part.type), ["text", "questions", "text"]);
   assert.deepEqual(messages[1]?.replyToQuestion, { id: "q1", title: "格式？", action: "answered" });
   assert.throws(() => readMessages([{ role: "assistant", text: "x", at: "now", questions: [{ ...question, recommendedOption: "TXT" }] }]), BiboClientError);
+  assert.throws(() => readMessages([{ role: "assistant", text: "x", at: "now", content: [{ type: "questions", ids: [] }] }]), BiboClientError);
 });
 test("display events survive byte boundaries and retain the kernel file target", async () => {
   const value = { id: "tool:show", sessionId: "s1", title: "文档", target: { type: "file", payload: { path: "文档.md", viewer: "auto" } } };

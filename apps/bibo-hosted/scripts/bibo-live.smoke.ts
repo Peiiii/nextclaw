@@ -160,10 +160,11 @@ async function searchProbe(): Promise<{ requestId: string; resultCount: number }
 async function streamedRun(page: Page, message = prompt): Promise<{ deltaCount: number; displayCount: number; totalMs: number }> {
   const started = performance.now();
   await page.evaluate(() => { Reflect.set(window, "biboSmokeStream", null); });
-  const result = page.waitForResponse((response) => response.url() === `${origin}/api/chat`, { timeout: 300_000 });
   await page.getByRole("textbox", { name: /告诉 Bibo/ }).fill(message);
-  await page.getByRole("button", { name: "发送消息", exact: true }).click();
-  const response = await result;
+  const [response] = await Promise.all([
+    page.waitForResponse((result) => result.url() === `${origin}/api/chat`, { timeout: 300_000 }),
+    page.getByRole("button", { name: "发送消息", exact: true }).click(),
+  ]);
   if (response.status() !== 200) {
     const failure = await response.json() as { error?: string };
     assert.fail(`Chat returned ${response.status()}: ${failure.error ?? "No public error"}`);
@@ -294,12 +295,14 @@ try {
   assert.equal(asked.optionDescriptions?.["胶装"], "适合正式交付");
   const panel = page.getByRole("region", { name: "问题" });
   await panel.getByRole("heading", { name: "报告装订方式？" }).waitFor();
+  await page.locator(".ui-message--assistant .ui-message__body .bibo-question-tag").filter({ hasText: "报告装订方式？" }).waitFor();
   await panel.getByRole("button", { name: "关闭问题" }).click();
   await page.getByRole("button", { name: "回答问题：报告装订方式？" }).click();
   await page.evaluate(() => { Reflect.set(window, "biboSmokeStream", null); });
   const replyResponse = page.waitForResponse((response) => response.url() === `${origin}/api/chat`, { timeout: 300_000 });
   if (skipQuestion) await panel.getByRole("button", { name: "跳过" }).click();
   else await panel.getByRole("button", { name: /胶装/ }).first().click();
+  await panel.waitFor({ state: "hidden", timeout: 5_000 });
   assert.equal((await replyResponse).status(), 200, "Question reply request was rejected");
   await page.waitForFunction(() => Reflect.get(window, "biboSmokeStream") !== null, null, { timeout: 300_000 });
   const replyStream = await page.evaluate(() => Reflect.get(window, "biboSmokeStream") as { text?: string; error?: string });
@@ -317,6 +320,7 @@ try {
     ...(!questionOnly ? { saved: true, agentFile: true, automaticPreview: true, desktop: true, mobile: true } : {}) };
 } catch (error) {
   smokeError = error;
+  console.error("Bibo live smoke failed:", error);
   for (const context of browser.contexts()) {
     const page = context.pages()[0];
     if (page) await page.screenshot({ path: "/tmp/bibo-live-display-failure.png", fullPage: true }).catch(() => undefined);

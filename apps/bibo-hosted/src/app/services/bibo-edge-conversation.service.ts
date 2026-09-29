@@ -10,17 +10,19 @@ import { createPortableRequestUserInputAsyncTool } from "@nextclaw/kernel/user-q
 import { createQuestionMessage, createQuestionResolutionMessage, projectUserQuestions } from "@nextclaw/kernel/user-question";
 import type { CompactionSummaryProvider } from "@nextclaw/kernel/context-compaction";
 import { BiboSpaceService, type BiboSpaceState } from "@/features/bibo-domain";
-import type { BiboQuestion, BiboShowContent } from "@nextclaw/bibo-client";
+import type { BiboMessageContent, BiboQuestion, BiboShowContent } from "@nextclaw/bibo-client";
 import { eventKeys, getKeyId, type UiShowContentEventPayload } from "@nextclaw/shared";
 import { createBiboSpaceTool } from "@/features/bibo-domain/tools/bibo-space.tools";
-import { BiboSpaceStateStore } from "../bibo-space-state.service";
+import type { BiboSpaceStateStore } from "../bibo-space-state.service";
 import { BiboSpaceFileStore } from "../stores/bibo-space-file.store";
 import { BiboEdgeSessionStore, type BiboEdgeSession } from "../stores/bibo-edge-session.store";
 import { errorDetails, logDiagnostic, runFailure } from "../diagnostics/bibo-diagnostics.utils";
 import { applyBiboStorageChanges } from "../utils/bibo-storage.utils";
+import { projectBiboRunContent } from "../utils/bibo-session.utils";
 
 export type BiboEdgeRunResult = {
   text: string;
+  content: BiboMessageContent[];
   ncpSession: BiboEdgeSession;
   previousSession: BiboEdgeSession | null;
   spaceState: BiboSpaceState | undefined;
@@ -37,9 +39,8 @@ function finalizeRun(manager: DefaultNcpAgentConversationStateManager,
   spaceChanged: boolean, files: BiboSpaceFileStore, displayEvents: BiboShowContent[],
   tools: readonly NcpTool[], runId: string, sessionId: string): BiboEdgeRunResult {
   const messages = manager.getSnapshot().messages;
-  const assistant = [...messages].reverse().find((message) => message.role === "assistant" && message.status === "final");
-  const text = assistant?.parts.filter((part) => part.type === "text").map((part) => part.text).join("") ?? "";
-  if (!text) throw new Error("Bibo edge run has no complete answer");
+  const { text, content } = projectBiboRunContent(saved?.messages ?? [], messages);
+  if (!text && !content.some((part) => part.type === "questions")) throw new Error("Bibo edge run has no complete answer");
   const metadata = { ...(saved?.metadata ?? {}) };
   for (const event of events) {
     if (event.type !== NcpEventType.RunMetadata || event.payload.metadata.kind !== "session_metadata_patch") continue;
@@ -50,7 +51,7 @@ function finalizeRun(manager: DefaultNcpAgentConversationStateManager,
   if (checkpoint) metadata[CONTEXT_COMPACTION_METADATA_KEY] = checkpoint;
   logDiagnostic("worker", "edge.tool-summary", { runId, sessionId, ...summarizeToolCalls(events, tools),
     displayCount: displayEvents.length, showFileStatus: showFileStatus(events, displayEvents) });
-  return { text, previousSession: saved, ncpSession: { version: 1, messages: [...messages], metadata },
+  return { text, content, previousSession: saved, ncpSession: { version: 1, messages: [...messages], metadata },
     spaceState: spaceChanged ? spaceState : undefined, files, events, displayEvents,
     questions: projectUserQuestions(messages) as BiboQuestion[] };
 }

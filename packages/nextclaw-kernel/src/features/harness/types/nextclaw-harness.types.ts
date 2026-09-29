@@ -266,6 +266,7 @@ export interface INextclawHarness {
   readonly contributions: INextclawContributionRegistry;
   start(): Promise<void>;
   runTask(input: NextclawTaskInput): Promise<NextclawTaskResult>;
+  listSessionMessages(sessionId: string): Promise<NcpMessage[]>;
   listUserQuestions(sessionId: string): Promise<NextclawUserQuestion[]>;
   answerUserQuestion(input: {
     sessionId: string;

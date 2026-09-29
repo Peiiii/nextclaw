@@ -12,7 +12,8 @@ export type BiboQuestion = {
   answer?: string;
 };
 export type BiboQuestionReference = { id: string; title: string; action: "answered" | "dismissed" };
-export type BiboMessage = { role: "user" | "assistant"; text: string; at: string; questions?: BiboQuestion[]; replyToQuestion?: BiboQuestionReference };
+export type BiboMessageContent = { type: "text"; text: string } | { type: "questions"; ids: string[] };
+export type BiboMessage = { role: "user" | "assistant"; text: string; at: string; content?: BiboMessageContent[]; questions?: BiboQuestion[]; replyToQuestion?: BiboQuestionReference };
 export type BiboSession = { id: string; title: string; createdAt: string; updatedAt: string; messageCount?: number };
 
 export type BiboShowContent = {

@@ -20,6 +20,22 @@ const visibleMessage = {
 } satisfies NcpMessage;
 
 describe("chat message timeline visibility", () => {
+  it("places an async question at its tool call between assistant text parts", () => {
+    const source = { ...visibleMessage, parts: [
+      { type: "text" as const, text: "先说明。" },
+      { type: "tool-invocation" as const, toolCallId: "call-1", toolName: "request_user_input_async", state: "result" as const,
+        args: "{}", result: { accepted: true, questionIds: ["q-1"] } },
+      { type: "text" as const, text: "稍后继续。" },
+    ] } satisfies NcpMessage;
+    const question = { ...visibleMessage, id: "assistant-question-1", parts: [
+      { type: "text" as const, text: "城市？ (北京 / 上海)" },
+      { type: "extension" as const, extensionType: "nextclaw.user-question", data: { questions: [{ id: "q-1", title: "城市？", options: ["北京", "上海"] }] } },
+    ] } satisfies NcpMessage;
+    const projected = projectVisibleChatMessages([source, question]);
+    expect(projected).toHaveLength(1);
+    expect(projected[0]?.parts.map((part) => part.type)).toEqual(["text", "extension", "text"]);
+    expect(projected[0]?.parts[1]).toMatchObject({ data: { questions: [{ id: "q-1" }] } });
+  });
   it("places context compaction between surrounding visible messages", () => {
     const afterMessage = {
       ...visibleMessage,
