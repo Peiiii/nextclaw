@@ -14,6 +14,7 @@ If you want the broader public project layer first, start here:
 
 ## Latest
 
+- [2026-09-29 · NextClaw long-session journal: 178.4 MB down to 45.7 MB in a frozen sample](./2026-09-29-session-journal-storage-optimization)
 - [2026-09-11 · NextClaw: pick up where you left off after a restart](./2026-09-11-self-management-restart-continuity)
 - [2026-09-08 · NextClaw × DeepSeek: five-stage optimization cuts cost 62.0%, 10.8% below DeepSeek Harness](./2026-09-08-deepseek-cache-benchmark)
 - [2026-08-24 · Long sessions no longer get stuck on truncated compaction summaries](./2026-08-24-context-compaction-without-dead-ends)

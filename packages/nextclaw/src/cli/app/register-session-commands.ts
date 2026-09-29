@@ -1,5 +1,8 @@
 import type { Command } from "commander";
 import type { NextclawServiceRuntime } from "@nextclaw/service";
+import { getSessionsPath } from "@nextclaw/core";
+import { compactSessionJournal, restoreSessionJournalBackup } from "@nextclaw/kernel";
+import { join } from "node:path";
 
 export function registerSessionCommands(
   program: Command,
@@ -32,4 +35,21 @@ export function registerSessionCommands(
     .requiredOption("--confirm <session-id>", "Confirm the exact session id")
     .option("--json", "Output JSON", false)
     .action((sessionId, options) => commands.delete(sessionId, options));
+
+  sessions
+    .command("compact-journal <session-id>")
+    .description("Inspect or explicitly compact a local session journal while all writers are stopped")
+    .option("--apply", "Replace the journal after verification", false)
+    .option("--restore", "Restore the original journal from its retained backup", false)
+    .option("--writers-stopped", "Acknowledge that every instance using this HOME is stopped", false)
+    .action(async (sessionId: string, options: { apply: boolean; restore: boolean; writersStopped: boolean }) => {
+      const { apply, restore, writersStopped: acknowledgedStopped } = options;
+      if (apply && restore) throw new Error("Choose either --apply or --restore.");
+      const journalDir = join(getSessionsPath(), ".ncp-agent-journal");
+      const writersStopped = acknowledgedStopped ? true as const : undefined;
+      const result = restore
+        ? await restoreSessionJournalBackup({ journalDir, sessionId, writersStopped })
+        : await compactSessionJournal({ journalDir, sessionId, apply, writersStopped });
+      process.stdout.write(`${JSON.stringify(result)}\n`);
+    });
 }

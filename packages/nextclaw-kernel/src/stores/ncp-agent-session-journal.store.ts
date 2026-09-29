@@ -24,6 +24,7 @@ import { NcpAgentSessionMessageProjectionStore } from "./ncp-agent-session-messa
 import { SessionJournalLoaderStore } from "./session-journal-loader.store.js";
 import { NcpAgentSessionSummaryIndexStore } from "./ncp-agent-session-summary-index.store.js";
 import { NcpAgentSessionSummaryReadStore } from "./ncp-agent-session-summary-read.store.js";
+import { assertSessionJournalTailComplete, recoverSessionJournalMaintenance } from "./session-journal-maintenance.store.js";
 import type { SessionMessagePage, SessionMetadataUpdate } from "@kernel/types/session.types.js";
 export class NcpAgentSessionJournalStore {
   private readonly sessions = new Map<string, LoadedNcpAgentJournalSession>();
@@ -76,7 +77,7 @@ export class NcpAgentSessionJournalStore {
     });
     this.unfinishedRunStore = new NcpAgentUnfinishedRunStore(journalDir, this.summaryIndexStore.listRunRecoveryCheckpoints, this.summaryIndexStore.writeRunRecoveryCheckpoint);
   }
-  initialize = async (): Promise<void> => await this.summaryIndexStore.initialize();
+  initialize = async (): Promise<void> => { await recoverSessionJournalMaintenance(this.journalDir); await this.summaryIndexStore.initialize(); };
   close = (): void => this.summaryIndexStore.close();
 
   appendSessionEvent = async (params: {
@@ -372,11 +373,7 @@ export class NcpAgentSessionJournalStore {
         journalOffset,
       });
     }
-    await this.summaryIndexStore.upsertForEvent({
-      sessionId,
-      event,
-      updatedAt
-    });
+    await this.summaryIndexStore.upsertForEvent({ sessionId, event, updatedAt });
     if (isNcpAgentRunLifecycleEvent(event)) await this.summaryIndexStore.recordRunRecoveryEvent({ sessionId, event, journalOffset: journalOffset ?? (await stat(path)).size });
   };
 
@@ -386,6 +383,7 @@ export class NcpAgentSessionJournalStore {
     return loaded;
   };
   private appendJournalEntry = async (path: string, entry: NcpAgentSessionJournalEventEntry): Promise<void> => {
+    await assertSessionJournalTailComplete(path);
     await appendFile(path, `${serializeNcpAgentSessionJournalEntry(entry)}\n`, "utf-8");
   };
   private ensureJournalDir = async (): Promise<void> => {

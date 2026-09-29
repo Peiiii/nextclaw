@@ -24,6 +24,7 @@ export * from "@kernel/features/projects/index.js";
 export * from "@kernel/managers/service-app.manager.js";
 export * from "@kernel/stores/llm-usage.store.js";
 export * from "@kernel/stores/ncp-agent-session-journal.store.js";
+export * from "@kernel/stores/session-journal-maintenance.store.js";
 export * from "@kernel/features/capability-grants/index.js";
 export * from "@kernel/features/desktop-host/index.js";
 export * from "@kernel/features/feature-controls/index.js";

@@ -10,7 +10,7 @@ import type { NcpAgentSessionMessageProjectionStore } from "./ncp-agent-session-
 export class SessionJournalLoaderStore {
   constructor(
     private readonly metadataStore: NcpAgentSessionMetadataStore,
-    private readonly messageProjectionStore: NcpAgentSessionMessageProjectionStore,
+    private readonly messageProjectionStore: Pick<NcpAgentSessionMessageProjectionStore, "readAllSnapshot">,
   ) {}
 
   load = async (sessionId: string, path: string): Promise<LoadedNcpAgentJournalSession | null> => {

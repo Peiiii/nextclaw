@@ -174,8 +174,11 @@ nextclaw <command> --help
 | `nextclaw sessions set-project`          | 把会话绑定到现有项目目录                                                               |
 | `nextclaw sessions clear-project`        | 清除会话的显式项目绑定                                                                 |
 | `nextclaw sessions delete`               | 永久删除会话；需 `--confirm <会话 ID>`                                                 |
+| `nextclaw sessions compact-journal`      | 预览会话 journal 瘦身收益；停止同一 HOME 的所有实例后可用 `--apply --writers-stopped` 切换，或用 `--restore --writers-stopped` 回退 |
 
 所有 `projects work` 命令都必须显式传入 `--project <项目 ID>`，并通过正在运行的本地 NextClaw 服务执行。
+
+整理旧会话日志时，先运行 `nextclaw sessions compact-journal <会话 ID>` 预览字节和行数。应用或恢复备份之前，停止所有使用同一 `NEXTCLAW_HOME` 的其它 CLI、服务和桌面实例；`--writers-stopped` 是操作者对这一前提的确认。应用保留 `<会话>.jsonl.backup`，普通升级不会自动整理。若切换后该会话尚未继续写入，可保持全部实例停止，运行 `nextclaw sessions compact-journal <会话 ID> --restore --writers-stopped` 回退；已有新事件时命令会拒绝覆盖。
 
 ## 自动化与学习循环
 

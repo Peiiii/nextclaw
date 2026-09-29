@@ -174,8 +174,11 @@ For the user workflow, restart-continuation behavior, and complete limits, see [
 | `nextclaw sessions set-project`          | Bind a session to an existing project directory                                                                |
 | `nextclaw sessions clear-project`        | Clear a session's explicit project binding                                                                     |
 | `nextclaw sessions delete`               | Permanently delete a session; requires `--confirm <session-id>`                                                |
+| `nextclaw sessions compact-journal`      | Preview journal savings; after stopping every instance sharing the HOME, use `--apply --writers-stopped` or roll back with `--restore --writers-stopped` |
 
 Every `projects work` command requires `--project <project-id>` and runs through the local NextClaw service.
+
+Run `nextclaw sessions compact-journal <session-id>` to preview the byte and line counts for an old journal. Before applying or restoring, stop every other CLI, service, and desktop instance using the same `NEXTCLAW_HOME`; `--writers-stopped` acknowledges this requirement. Applying retains `<session>.jsonl.backup`, and ordinary upgrades do not compact old files. If the session has not gained new events since the switch, keep all instances stopped and run `nextclaw sessions compact-journal <session-id> --restore --writers-stopped`. The command refuses to overwrite later events.
 
 ## Automation and learning loop
 

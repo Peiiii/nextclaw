@@ -387,7 +387,7 @@ export class NextclawKernel {
     this.contextProviderManager.dispose();
     await this.agentRuntimeManager.dispose();
     this.sessionRunManager.dispose();
-    this.sessionManager.dispose();
+    await this.sessionManager.close();
     await this.mcpManager.dispose();
     await this.serviceAppManager.dispose();
     await this.sessionSearch.dispose();

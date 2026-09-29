@@ -205,7 +205,7 @@ function sleep(ms) {
   });
 }
 
-async function waitForWorkflowRun(dispatchId, startedAtMs) {
+async function waitForWorkflowRun(branch, dispatchId, startedAtMs) {
   for (let attempt = 0; attempt < 24; attempt += 1) {
     const runs = readJsonCommand("gh", [
       "run",
@@ -396,7 +396,7 @@ async function runRuntimeReleaseClosure(branch, nextclawVersion, options) {
     releaseTag,
     releaseTarget
   });
-  const workflowRun = await waitForWorkflowRun(dispatchId, dispatchStartedAtMs);
+  const workflowRun = await waitForWorkflowRun(branch, dispatchId, dispatchStartedAtMs);
   const runtimeRunSummary = watchWorkflowRun(workflowRun.databaseId);
   const runtimeReleaseSummary = verifyRuntimeReleaseAssets(releaseTag, nextclawVersion);
   const publicManifestSummary = await verifyPublicBetaManifests(nextclawVersion);

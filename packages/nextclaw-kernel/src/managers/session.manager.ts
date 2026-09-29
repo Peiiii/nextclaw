@@ -116,6 +116,8 @@ export class SessionManager implements NcpSessionApi {
 
   dispose = (): void => { this.titles?.dispose(); this.sessionEvents.dispose(); };
 
+  close = async (): Promise<void> => { await this.sessionEvents.flush(); this.dispose(); };
+
   publishSessionEvent = async (params: PublishSessionEventParams): Promise<void> =>
     await this.sessionEvents.publish(params);
 
