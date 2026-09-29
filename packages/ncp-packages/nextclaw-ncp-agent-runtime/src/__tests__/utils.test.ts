@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ToolResultContentManager } from "../tool-result/tool-result-content.manager.js";
 import { appendToolRoundToInput, validateToolArgs } from "../runtime/runtime.utils.js";
 
@@ -22,6 +22,20 @@ describe("validateToolArgs", () => {
 
   it("returns no issues when no schema is provided", () => {
     expect(validateToolArgs({ anything: true }, undefined)).toEqual([]);
+  });
+
+  it("validates runtime schemas when dynamic code generation is forbidden", () => {
+    vi.stubGlobal("Function", function () { throw new Error("Dynamic code generation is forbidden"); });
+    try {
+      const schema = { type: "object", required: ["target"], properties: {
+        target: { type: "object", required: ["viewer", "line"], properties: {
+          viewer: { enum: ["source", "rendered"] }, line: { type: "integer", minimum: 1 },
+        }, additionalProperties: false },
+      }, additionalProperties: false };
+      expect(validateToolArgs({ target: { viewer: "source", line: 1 } }, schema)).toEqual([]);
+      expect(validateToolArgs({ target: { viewer: "wrong", line: 0 } }, schema).length).toBeGreaterThan(0);
+      expect(validateToolArgs({ target: { viewer: "source" } }, schema)).toContain("target.line is required");
+    } finally { vi.unstubAllGlobals(); }
   });
 });
 

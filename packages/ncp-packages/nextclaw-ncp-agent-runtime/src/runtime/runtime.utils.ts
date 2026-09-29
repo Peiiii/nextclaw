@@ -1,4 +1,4 @@
-import AjvPkg, { type ErrorObject, type ValidateFunction } from "ajv";
+import { Validator, type OutputUnit } from "@cfworker/json-schema";
 import type {
   NcpInvalidToolArgumentsResult,
   NcpLLMApiInput,
@@ -24,18 +24,9 @@ export type ParsedToolArgs =
       issues: string[];
     };
 
-const AjvCtor = AjvPkg as unknown as new (opts?: object) => AjvLike;
-
-type AjvLike = {
-  compile: (schema: Record<string, unknown>) => ValidateFunction;
-};
-
-const toolSchemaValidator = new AjvCtor({
-  allErrors: true,
-  strict: false,
-  removeAdditional: false,
-});
-const validatorCache = new WeakMap<Record<string, unknown>, ValidateFunction>();
+// Tools may arrive at runtime (for example from MCP). Interpret their schemas
+// without eval/new Function so Node and Workers enforce the same contract.
+const validatorCache = new WeakMap<Record<string, unknown>, Validator>();
 const DISALLOWED_OPENAI_TOOL_SCHEMA_TOP_LEVEL_KEYWORDS = [
   "oneOf",
   "anyOf",
@@ -178,52 +169,48 @@ export function validateToolArgs(
     return [];
   }
   const validate = getOrCreateValidator(schema);
-  const valid = validate(args);
-  if (valid) {
+  const result = validate.validate(args);
+  if (result.valid) {
     return [];
   }
-  return formatSchemaIssues(validate.errors);
+  return formatSchemaIssues(result.errors);
 }
 
-function getOrCreateValidator(schema: Record<string, unknown>): ValidateFunction {
+function getOrCreateValidator(schema: Record<string, unknown>): Validator {
   const cached = validatorCache.get(schema);
   if (cached) {
     return cached;
   }
-  const validate = toolSchemaValidator.compile(schema);
+  const validate = new Validator(schema, "7", false);
   validatorCache.set(schema, validate);
   return validate;
 }
 
-function formatSchemaIssues(errors: ErrorObject[] | null | undefined): string[] {
+function formatSchemaIssues(errors: OutputUnit[]): string[] {
   if (!errors || errors.length === 0) {
     return ["Tool arguments do not match the declared schema."];
   }
 
   return errors.map((error) => {
-    const instancePath = error.instancePath.replace(/^\//, "").replace(/\//g, ".");
-    if (
-      error.keyword === "required" &&
-      "missingProperty" in error.params &&
-      typeof error.params.missingProperty === "string"
-    ) {
+    const instancePath = error.instanceLocation.replace(/^#\/?/, "").replace(/\//g, ".");
+    const missingProperty = error.keyword === "required"
+      ? /^Instance does not have required property "(.*)"\.$/.exec(error.error)?.[1] : undefined;
+    if (missingProperty !== undefined) {
       const missingPath = instancePath
-        ? `${instancePath}.${error.params.missingProperty}`
-        : error.params.missingProperty;
+        ? `${instancePath}.${missingProperty}`
+        : missingProperty;
       return `${missingPath} is required`;
     }
-    if (
-      error.keyword === "additionalProperties" &&
-      "additionalProperty" in error.params &&
-      typeof error.params.additionalProperty === "string"
-    ) {
+    const additionalProperty = error.keyword === "additionalProperties"
+      ? /^Property "(.*)" does not match additional properties schema\.$/.exec(error.error)?.[1] : undefined;
+    if (additionalProperty !== undefined) {
       const extraPath = instancePath
-        ? `${instancePath}.${error.params.additionalProperty}`
-        : error.params.additionalProperty;
+        ? `${instancePath}.${additionalProperty}`
+        : additionalProperty;
       return `${extraPath} is not allowed`;
     }
     const label = instancePath || "parameter";
-    return `${label}: ${error.message ?? "invalid"}`;
+    return `${label}: ${error.error}`;
   });
 }
 

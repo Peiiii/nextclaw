@@ -1,5 +1,14 @@
 # 当前执行状态
 
+## 2026-09-30 用户要求先上线：Bibo 已部署，完整验收继续
+
+- 用户明确要求先部署 Bibo、随后验收优化，禁止发布 NextClaw 新版本，并要求同步本地主干。没有执行 NPM、runtime 或 desktop 发布。
+- 实现提交 `7beb47153`，合并主干为 `fe6491856`；已推送 origin/master。本地 master 已安全快进至同一 SHA，前后未提交文件清单一致；reconcile 返回 LOCAL_MAINLINE_SYNCED。
+- Sandbox 直接引用官方 `docker.io/cloudflare/sandbox:0.12.10`，删除仅 FROM/EXPOSE 的 Dockerfile，避免无意义的 Docker Hub 构建鉴权阻塞。Wrangler 4.138.0 dry-run 通过。官方 Sandbox 应用 a0357e31-1925-4df6-af70-6e9d9028acf0 已创建，最大 20 实例。
+- Bibo Worker 与最新主干 UI 已部署；最终版本 `690cdcb6-f08c-43bf-b264-1efe8321243b`。入口 https://app.bibo.bot 返回 200。部署日志 `/tmp/bibo-unified-production-deploy.log`、`/tmp/bibo-unified-final-assets-deploy.log`。这不代表真实聊天/OS 工具验收已通过。
+- 部署前最新定向会话/执行器测试 21/21，合并后 Kernel tsc/build 和 Harness build 通过。真实冒烟已失败（`/tmp/bibo-unified-live-smoke.log`、repro 日志）；线上 trace 证明搜索完成并保存，后续展示工具触发 Ajv schema 动态编译，Workers 禁止该行为。不能把部署成功当作可用性通过。
+- 修复共享 runtime 的 JSON Schema 校验 owner：采用无动态代码生成的 @cfworker/json-schema，Node/Worker 同一路径，保留嵌套、必填、额外字段和类型校验。不禁用校验、不在 Bibo 复制校验器。共享 runtime 全套 29/29、Bibo 定向 38/38、runtime 和 Bibo 三份 tsc、依赖构建通过，diff-only Review 0 errors/0 warnings；修复尚待重新部署及线上同场景复验。
+
 ## 2026-09-30 完整本地产品统一装配（最新，替代下方 host 待迁移状态）
 
 - NodePlatform 打开原本地配置、模型、MCP、journal、项目和搜索资源；原 NextclawKernel 消费 Harness 创建的 AgentKernel。LocalProduct 是受信产品模块，保留原上下文、工具、App、扩展、技能和观测。完整产品在 prepare 后供宿主接线，start 后接纳消息；原后台搜索不阻塞首屏启动。
