@@ -18,6 +18,7 @@ import type {
   DocBrowserTab,
 } from "@/shared/components/doc-browser/doc-browser-context";
 import { PANEL_APPS_DOC_BROWSER_RENDERERS } from "@/features/panel-apps";
+import { pageResourceFromTab, usePageResourceActions } from "@/features/right-panel-resources";
 import { PANEL_APP_SCROLL_RESTORATION_CONTRACT } from "@nextclaw/shared";
 
 const { navigateMock } = vi.hoisted(() => ({
@@ -27,6 +28,12 @@ const { navigateMock } = vi.hoisted(() => ({
 const panelAppHooks = vi.hoisted(() => ({
   mutate: vi.fn(),
 }));
+
+function DocBrowserWithPageActions() {
+  const actions = usePageResourceActions();
+  return <DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS}
+    getTabMenuGroups={(tab) => actions(pageResourceFromTab(tab), 'global')} />;
+}
 
 vi.mock("react-router-dom", async () => ({
   ...((await vi.importActual("react-router-dom")) as object),
@@ -536,21 +543,12 @@ describe("DocBrowser panel app navigation", () => {
     docBrowserState.activeHistoryIndex = 1;
     docBrowserState.currentTab = panelAppTab;
 
-    render(<DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />);
+    render(<DocBrowserWithPageActions />);
 
     expect(screen.getAllByRole("button", { name: "Back" })).toHaveLength(1);
     expect(screen.queryByRole("button", { name: "Apps" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(docBrowserState.goBack).toHaveBeenCalledTimes(1);
-
-    expect(screen.queryByRole("button", { name: "Pin to left sidebar" })).toBeNull();
-    await user.click(screen.getByRole("button", { name: "More panel app actions" }));
-    await user.click(screen.getByRole("menuitem", { name: "Layout and position" }));
-    await user.click(screen.getByRole("menuitem", { name: "Pin to left sidebar" }));
-    expect(panelAppHooks.mutate).toHaveBeenCalledWith({
-      id: "piano",
-      preferences: { mainSidebar: true },
-    });
   });
 
   it("keeps placement actions when a restored shortcut only has a stable current URL", async () => {
@@ -569,9 +567,9 @@ describe("DocBrowser panel app navigation", () => {
     docBrowserState.activeTabId = panelAppTab.id;
     docBrowserState.currentTab = panelAppTab;
 
-    render(<DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />);
+    render(<DocBrowserWithPageActions />);
 
-    await user.click(screen.getByRole("button", { name: "More panel app actions" }));
+    await user.click(screen.getByRole("button", { name: "More tab actions" }));
     await user.click(screen.getByRole("menuitem", { name: "Layout and position" }));
     await user.click(screen.getByRole("menuitem", { name: "Pin to left sidebar" }));
     expect(panelAppHooks.mutate).toHaveBeenCalledWith({
@@ -623,7 +621,12 @@ describe("DocBrowser scroll restoration", () => {
       source: initialWindow,
     }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh current panel app" }));
+    expect(screen.queryByRole("button", { name: "Refresh current panel app" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "More tab actions" }));
+    const standalone = screen.getByRole("menuitem", { name: "Open in New Tab" });
+    expect(standalone.getAttribute("href")).toBe("/apps/panel/piano/standalone");
+    expect(standalone.getAttribute("target")).toBe("_blank");
+    fireEvent.click(screen.getByRole("menuitem", { name: "Refresh current panel app" }));
 
     const refreshedIframe = container.querySelector('iframe[title="Piano"]') as HTMLIFrameElement;
     const refreshedPostMessage = vi.fn();

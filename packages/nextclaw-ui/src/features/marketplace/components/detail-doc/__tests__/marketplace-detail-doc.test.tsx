@@ -37,6 +37,7 @@ function renderDetail(detailId: string) {
         open: vi.fn(),
         openTarget: vi.fn(),
         refreshIframe: vi.fn(),
+        refreshVersion: 0,
         tab: {
           id: "tab-1",
           kind: MARKETPLACE_DETAIL_TAB_KIND,
@@ -131,6 +132,7 @@ describe("Marketplace detail doc renderer", () => {
           open: vi.fn(),
           openTarget: vi.fn(),
           refreshIframe: vi.fn(),
+          refreshVersion: 0,
           tab: {
             id: "tab-1",
             kind: MARKETPLACE_DETAIL_TAB_KIND,
