@@ -139,14 +139,25 @@ describe("PanelAppMainPage", () => {
     }));
   });
 
-  it("renders the app edge-to-edge without a duplicate host header", async () => {
+  it("refreshes the current app in place without changing its identity or bridge", async () => {
+    const user = userEvent.setup();
+    mocks.entries = [createEntry({ clientDeclared: true })];
     renderPage();
     const iframe = await screen.findByTitle("Rust Todo");
 
     expect(screen.queryByRole("heading", { name: "Rust Todo" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Open in right panel" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Refresh current panel app" })).toBeNull();
-    expect(iframe.parentElement?.children).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: "Refresh current panel app" }));
+    const refreshedIframe = await screen.findByTitle("Rust Todo");
+    expect(refreshedIframe).not.toBe(iframe);
+    expect(refreshedIframe.getAttribute("src")).toBe(iframe.getAttribute("src"));
+    expect(refreshedIframe.getAttribute("sandbox")).toBe(PANEL_APP_IFRAME_SANDBOX);
+    expect(mocks.ensureClientGrant).toHaveBeenCalledTimes(1);
+
+    fireEvent(window, new MessageEvent("message", { data: { type: "ignored" } }));
+    expect(mocks.bridgeMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+      iframe: refreshedIframe,
+    }));
     expect(iframe.className).toContain("h-full");
     expect(iframe.className).toContain("w-full");
   });
