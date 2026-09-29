@@ -8,7 +8,7 @@
 .ui-rich-markdown-editor .ProseMirror .ui-markdown-metadata { border:1px solid var(--ui-line); border-radius:8px; font-size:13px; margin:1em 0; }
 .ui-rich-markdown-editor .ui-markdown-raw-inline { font-family:monospace; font-size:.85em; color:var(--ui-muted); background:var(--ui-hover); }
 .ui-rich-markdown-editor :is(td,th) { position:relative; }
-.ui-rich-markdown-editor .selectedCell:after { background:var(--ui-selection); content:""; position:absolute; inset:0; pointer-events:none; }
+.ui-rich-markdown-editor .selectedCell:after { background:color-mix(in srgb,var(--ui-primary) 14%,transparent); content:""; position:absolute; inset:0; pointer-events:none; }
 .ui-rich-markdown-editor .column-resize-handle { background:var(--ui-primary); position:absolute; top:0; right:-2px; bottom:-2px; width:4px; pointer-events:none; }
 .ui-rich-markdown-editor .resize-cursor { cursor:col-resize; }
 .ui-rich-markdown-editor .ProseMirror-selectednode { outline:2px solid var(--ui-primary); outline-offset:-2px; }

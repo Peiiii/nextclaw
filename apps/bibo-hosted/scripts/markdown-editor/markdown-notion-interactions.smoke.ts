@@ -34,6 +34,7 @@ async function checkRichTable(page: Page, openSource: (page: Page) => Promise<vo
   const mode = (name: string) => page.getByRole("group", { name: "文件模式" }).getByRole("button", { name, exact: true });
   await mode("编辑").click();
   const rich = page.locator(".tiptap:visible");
+  await checkTableMenuSelection(page);
   await resizeAndFormatColumn(page);
   if ((page.viewportSize()?.width ?? 0) > 500) await moveAndMergeCells(page);
   const editing = await rich.locator("tr").first().locator("th,td").evaluateAll(cells => cells.map(cell => cell.getBoundingClientRect().width));
@@ -71,6 +72,34 @@ async function resizeAndFormatColumn(page: Page) {
   await first.hover();
   await page.getByRole("button", { name: "列操作", exact: true }).click();
   await page.getByRole("menuitem", { name: "切换标题列", exact: true }).click();
+}
+
+async function checkTableMenuSelection(page: Page) {
+  const rich = page.locator(".tiptap:visible");
+  for (const name of ["行操作", "列操作"]) {
+    for (const close of ["escape", "outside", "action"]) {
+      await rich.locator("td").first().hover();
+      await page.getByRole("button", { name, exact: true }).click();
+      const cells = rich.locator(".selectedCell");
+      assert.equal(await cells.count(), name === "行操作" ? 2 : 3);
+      const alpha = await cells.first().evaluate(cell => {
+        const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
+        const context = canvas.getContext("2d")!;
+        context.fillStyle = getComputedStyle(cell, "::after").backgroundColor;
+        context.fillRect(0, 0, 1, 1);
+        return context.getImageData(0, 0, 1, 1).data[3] / 255;
+      });
+      assert.ok(alpha > 0 && alpha < .25, `table highlight is translucent: ${alpha}`);
+      if (name === "列操作" && close === "escape") await page.screenshot({ path: `/tmp/bibo-table-highlight-${page.viewportSize()!.width}.png` });
+      if (close === "escape") await page.keyboard.press("Escape");
+      else if (close === "outside") {
+        await page.mouse.click(2, 2);
+      }
+      else await page.getByRole("menuitem", { name: "左对齐", exact: true }).click();
+      await page.getByRole("menu", { name, exact: true }).waitFor({ state: "hidden" });
+      assert.equal(await rich.locator(".selectedCell").count(), 0, `${name} clears temporary selection on ${close}`);
+    }
+  }
 }
 
 async function moveAndMergeCells(page: Page) {
