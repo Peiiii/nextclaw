@@ -59,8 +59,9 @@ async function checkRichTask({ page, prefix, api, created }: PlanningCase) {
   await page.getByRole("textbox", { name: "说明", exact: true }).fill("完整背景和完成标准");
   await page.getByPlaceholder("添加一个步骤").fill("核对结果");
   await page.getByPlaceholder("添加一个步骤").press("Enter");
-  await page.getByRole("button", { name: "项目、日期与更多属性", exact: true }).click();
+  await page.getByRole("button", { name: "编辑任务属性", exact: true }).click();
   await page.getByRole("combobox", { name: "优先级", exact: true }).selectOption("high");
+  await page.keyboard.press("Escape");
   const createRich = written(page, "task.create");
   await page.getByRole("button", { name: "保存任务", exact: true }).click();
   const rich = (await (await createRich).json()).result as BiboTask;
@@ -77,6 +78,7 @@ async function checkRichTask({ page, prefix, api, created }: PlanningCase) {
 async function checkTaskDialog(page: Page, title: string) {
   await page.locator(".bibo-task-row").filter({ hasText: title }).click();
   const editor = page.getByRole("dialog", { name: "任务详情", exact: true });
+  await editor.getByRole("button", { name: "编辑任务", exact: true }).click();
   await editor.getByRole("textbox", { name: "任务名称", exact: true }).fill(`${title}-draft`);
   await page.route("**/api/space", async (route) => {
     const body = route.request().method() === "POST" ? route.request().postDataJSON() : null;
@@ -86,7 +88,8 @@ async function checkTaskDialog(page: Page, title: string) {
   await editor.getByRole("button", { name: "保存任务", exact: true }).click();
   await editor.getByRole("alert").filter({ hasText: "详情保存失败" }).waitFor();
   await page.unroute("**/api/space");
-  await editor.getByRole("button", { name: "删除任务", exact: true }).click();
+  await editor.getByRole("button", { name: "更多任务操作" }).click();
+  await page.getByRole("menuitem", { name: "删除任务", exact: true }).click();
   await page.getByRole("dialog", { name: "删除任务？", exact: true }).waitFor();
   await page.waitForFunction(() => document.activeElement?.closest('[role="dialog"]')?.querySelector("h2")?.textContent === "删除任务？");
   await page.getByRole("dialog", { name: "删除任务？", exact: true }).evaluate(async (element) => {
@@ -101,6 +104,7 @@ async function checkTaskDialog(page: Page, title: string) {
   await page.locator(".bibo-task-row").filter({ hasText: title }).click();
   assert.equal(await editor.getByRole("textbox", { name: "任务名称", exact: true }).inputValue(), `${title}-draft`);
   await editor.getByRole("button", { name: "取消", exact: true }).click();
+  await editor.getByRole("button", { name: "关闭任务详情", exact: true }).click();
 }
 
 async function checkFailedTask({ page, prefix, api, created }: PlanningCase) {

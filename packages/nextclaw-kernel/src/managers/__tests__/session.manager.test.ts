@@ -1,5 +1,6 @@
 import { createTempDir, createConfig, createMessage, createRecord, createFixture, cleanupSessionFixtures } from "@kernel/utils/__tests__/session-manager-fixture.utils.js";
 import { realpathSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
@@ -258,6 +259,20 @@ describe("SessionManager", () => {
     });
   });
 
+});
+
+describe("SessionManager close", () => {
+  it("flushes a pending delta before normal close", async () => {
+    const fixture = await createFixture([createRecord({ sessionId: "closing-session" })]);
+    await fixture.manager.start();
+    fixture.eventBus.emit(eventKeys.ncpEvent, {
+      type: NcpEventType.MessageTextDelta,
+      payload: { sessionId: "closing-session", messageId: "assistant-close", delta: "saved" },
+    });
+    await fixture.manager.close();
+    const journal = await readFile(join(fixture.sessionsDir, ".ncp-agent-journal", "closing-session.jsonl"), "utf8");
+    expect(journal).toContain('"delta":"saved"');
+  });
 });
 
 describe("SessionManager activity previews", () => {

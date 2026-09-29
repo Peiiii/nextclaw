@@ -1,5 +1,20 @@
 # nextclaw
 
+## 0.59.0-beta.0
+
+### Minor Changes
+
+- 8c3e7d3: Coalesce adjacent session journal stream deltas, and add an explicit offline journal maintenance command with backup, cold replay verification, and startup recovery.
+
+### Patch Changes
+
+- Updated dependencies [260165f]
+- Updated dependencies [8c3e7d3]
+  - @nextclaw/kernel@0.19.2-beta.0
+  - @nextclaw/remote@0.3.71-beta.0
+  - @nextclaw/server@0.23.14-beta.0
+  - @nextclaw/service@0.7.8-beta.0
+
 ## 0.58.0
 
 ### Minor Changes

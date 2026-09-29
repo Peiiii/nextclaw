@@ -18,10 +18,12 @@ type PanelAppUnavailableAction = {
 export function PanelAppRuntimeSurface({
   appId,
   restorationScope,
+  refreshVersion = 0,
   unavailableAction,
 }: {
   appId: string;
   restorationScope: "main" | "standalone";
+  refreshVersion?: number;
   unavailableAction?: PanelAppUnavailableAction;
 }) {
   const presenter = usePanelAppHostPresenter();
@@ -97,7 +99,7 @@ export function PanelAppRuntimeSurface({
   return (
     <div className="h-full min-h-0 bg-background">
       <iframe
-        key={entry.appId}
+        key={`${entry.appId}:${refreshVersion}`}
         ref={iframeRef}
         src={entry.contentPath}
         title={entry.title}

@@ -265,6 +265,7 @@ export function DocBrowser({
     open,
     openTarget,
     refreshIframe,
+    refreshVersion: iframeReloadVersion,
     tab: currentTab,
   } : undefined;
   const customToolbar = customRenderParams ? customRenderer?.renderToolbar?.(customRenderParams) : null;
@@ -325,7 +326,12 @@ export function DocBrowser({
         onToggleDock={handleToggleDock}
         onSetActiveTab={setActiveTab}
         onCloseTab={closeTab}
-        getTabMenuGroups={getTabMenuGroups}
+        getTabMenuGroups={(tab) => [
+          ...(getTabMenuGroups?.(tab) ?? []),
+          ...(tab.id === activeTabId && customRenderParams
+            ? customRenderer?.getTabMenuGroups?.(customRenderParams) ?? []
+            : []),
+        ]}
       />
       }>
       {panelContent}

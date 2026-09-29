@@ -40,3 +40,5 @@ description: 开发结束前判断经验是否值得沉淀，区分事实、方�
 - 有独立交付意义的重要批次留痕：按当前项目的迭代记录合同处理，不为形式创建日志。
 
 在当前授权范围内处理可确定更新；无体系修改授权时给出候选，不以复盘扩大产品任务。输出证据、唯一落点、更新/合并/删除/不沉淀决定与验证边界。已有方法充分但一次漏执行，先修调用证据，不追加“务必注意”。
+
+向 Lifecycle 返回显式 `retrospective_decision`：有增量时给出已更新的原 owner、证据与验证；无增量时返回 `no-increment` 及理由，不创建空记录。判断完成后返回 `parent_status=ready-for-completion-check`；发现结果未完成则返回 rework，不能将 `retrospective_state` 置为 `completed`。复盘输出是完成门的输入，不由 Delivery 的发布成功推断。

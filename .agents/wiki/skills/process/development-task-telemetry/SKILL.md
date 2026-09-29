@@ -7,12 +7,12 @@ description: Use when a development task needs visible phase tracing, task-level
 
 ## 定位
 
-作为开发生命周期的可选只读 observer，声明可移植的任务/阶段边界。只观察 lifecycle 已决定的状态，不改变阶段、返工、完成门或模型路由，不自报 Token 数值。
+作为开发生命周期的只读 observer，声明可移植的任务/阶段边界。NextClaw 完整开发和授权发布默认启用；限定单阶段任务按需启用。只观察 lifecycle 已决定的状态，不改变阶段、返工、完成门或模型路由，不自报 Token 数值。
 
 ## 激活
 
 - 根任务加载本 Skill 后，以 `task=start` 激活；子 Agent 只有拿到父任务传入的 task-id 和当前 phase 后才能用 `task=join` 激活。
-- marker 必须附着在原本就要发送的进度或最终消息第一物理行，位于 `[我严格遵守规则]`、`[深思模式]` 等前缀之后；除用户显式要求收尾汇报外，禁止为 marker 新增消息、模型调用或工具调用。
+- marker 必须附着在原本就要发送的进度或最终消息第一物理行，位于 `[我严格遵守规则]`、`[深思模式]` 等前缀之后；禁止为 marker 新增消息、模型调用或工具调用。
 - 只在真实 task / phase 转换时输出；同一阶段的普通进度不重复输出。
 - 加载失败时说明 `telemetry unavailable` 并继续开发，不得阻塞任务。
 - 触达 marker、解析或默认收尾汇报时，必须运行定向测试，并以真实 rollout 和同一 task-id 复验报告；静态规则检查不能替代。
@@ -22,7 +22,7 @@ description: Use when a development task needs visible phase tracing, task-level
 根任务开始：
 
 ```text
-[nextclaw.dev/v1 task=start id=<task-id> name="<task-name>" type=<task-type> phase=<phase>]
+[flow:<flow>][step:<phase>][nextclaw.dev/v1 task=start id=<task-id> name="<task-name>" type=<task-type> phase=<phase>]
 ```
 
 子 Agent 加入：
@@ -34,7 +34,7 @@ description: Use when a development task needs visible phase tracing, task-level
 当前线程切换阶段：
 
 ```text
-[nextclaw.dev/v1 phase=<phase>]
+[step:<phase>]
 ```
 
 子 Agent 离开：
@@ -49,11 +49,13 @@ description: Use when a development task needs visible phase tracing, task-level
 [nextclaw.dev/v1 task=end id=<task-id> status=<status>]
 ```
 
-字段顺序和拼写固定。`task-type` 只允许 `feature`、`bugfix`、`small-change`，原样记录 lifecycle 已冻结的类型，不自行推断或修正；`phase` 只允许 `task-understanding`、`design`、`implementation`、`validation`、`review`、`delivery`、`retrospective`；`status` 只允许 `completed`、`blocked`、`cancelled`、`failed`。
+字段顺序和拼写固定。`flow` 为 Lifecycle 已定的 `standard`、`trivial`、`bugfix`；`task-type` 只允许 `feature`、`bugfix`、`small-change`，不混用；`phase` 只允许 `task-understanding`、`design`、`implementation`、`validation`、`review`、`delivery`、`retrospective`；`status` 只允许 `completed`、`blocked`、`cancelled`、`failed`。进入新阶段时用原有进度回复首行的 `[step:<phase>]`，正常进度不重复；返回旧阶段再次标记。若任务启动时 flow 尚未冻结，先省略 `[flow:<flow>]`，在冻结后首次阶段切换时输出 `[flow:<flow>][step:<phase>]`。设计审查和实现审查都标 `review`，具体 mode 在正文说明。
 
 根任务生成一次 `dt-` 加 8 位小写十六进制 task-id，并在 reopen 时复用。`task-name` 使用能让人直接识别目标的简短名称，建议 8–30 个字符，最多 64 个字符，不含 `"`、`]` 或换行；reopen 时保持原名称和类型。子 Agent 原样复用父任务 ID，禁止自行生成或重新分类。解析器继续兼容缺少 `name` 或 `type` 的历史 `task=start` marker，但新 marker 必须同时提供名称和类型；历史缺失值保持未知，不从自然语言猜测。
 
-每条 assistant 消息首行最多一个 marker。不要在首行示例、引用、用户内容、工具输出或总结中伪造 marker。
+每条 assistant 消息首行最多一个机器 marker 和一组匹配的人类可读 flow/step 标记。新任务的 `step` 必须与机器 marker 阶段一致；后续阶段只需短 `step`，解析器仍兼容历史机器 `phase` marker。不要在首行示例、引用、用户内容、工具输出或总结中伪造 marker。
+
+报告中的 `current_phase` 是根线程最后一次声明的阶段；`retrospective_observation=entered` 只证明消息宣告进入复盘，不能证明复盘质量或最终判断。已完成任务没有复盘阶段标记时显示 `missing`；旧任务缺 flow 时为 `unknown`，不追认其合规。Lifecycle 的完成门仍须核查显式复盘决定与证据。
 
 ## AI 查询与汇报
 

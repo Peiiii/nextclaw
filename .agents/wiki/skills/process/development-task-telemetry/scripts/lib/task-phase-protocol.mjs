@@ -10,6 +10,7 @@ export const PHASES = [
 ];
 export const STATUSES = ["completed", "blocked", "cancelled", "failed"];
 export const TASK_TYPES = ["feature", "bugfix", "small-change"];
+export const FLOWS = ["standard", "trivial", "bugfix"];
 export const USAGE_KEYS = [
   "input_tokens",
   "cached_input_tokens",
@@ -24,6 +25,7 @@ const TASK_NAME_PATTERN = '[^"\\r\\n\\]]{1,64}';
 const PHASE_PATTERN = PHASES.join("|");
 const STATUS_PATTERN = STATUSES.join("|");
 const TASK_TYPE_PATTERN = TASK_TYPES.join("|");
+const FLOW_PATTERN = FLOWS.join("|");
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -41,6 +43,8 @@ const PHASE = new RegExp(
 const LEAVE_OR_END = new RegExp(
   `^\\[${escapeRegExp(PROTOCOL)} task=(leave|end) id=(${TASK_ID_PATTERN}) status=(${STATUS_PATTERN})\\]$`,
 );
+const VISIBLE_STEP = new RegExp(`\\[step:(${PHASE_PATTERN})\\]`);
+const VISIBLE_FLOW = new RegExp(`\\[flow:(${FLOW_PATTERN})\\]`);
 
 export function extractAssistantText(payload) {
   if (payload?.type !== "message" || payload.role !== "assistant") return null;
@@ -60,26 +64,41 @@ export function extractAssistantText(payload) {
 function parseMarkerFromText(text) {
   const firstLine = text.split(/\r?\n/, 1)[0];
   const namespace = `[${PROTOCOL}`;
-  const occurrences = firstLine.split(namespace).length - 1;
-  if (occurrences === 0) return { kind: "none" };
-  if (occurrences > 1) return { kind: "invalid", code: "multiple_markers" };
+  const leadingTags = firstLine.match(/^(?:\[[^\]\r\n]+\]\s*)+/)?.[0] ?? "";
+  if (/^\[(?:nextclaw\.dev\/v1|step:|flow:)/.test(firstLine.slice(leadingTags.length)))
+    return { kind: "invalid", code: "invalid_marker" };
+  const machineCount = leadingTags.split(namespace).length - 1;
+  const stepCount = leadingTags.split("[step:").length - 1;
+  const flowCount = leadingTags.split("[flow:").length - 1;
+  if (machineCount + stepCount + flowCount === 0) return { kind: "none" };
+  if (machineCount > 1 || stepCount > 1 || flowCount > 1)
+    return { kind: "invalid", code: "multiple_markers" };
 
-  const markerStart = firstLine.indexOf(namespace);
-  const prefix = firstLine.slice(0, markerStart);
-  if (!/^(?:\[[^\]\r\n]+\]\s*)*$/.test(prefix)) {
-    return { kind: "invalid", code: "invalid_marker_position" };
+  const step = leadingTags.match(VISIBLE_STEP)?.[1] ?? null;
+  const flow = leadingTags.match(VISIBLE_FLOW)?.[1] ?? null;
+  if ((stepCount && !step) || (flowCount && !flow))
+    return { kind: "invalid", code: "invalid_marker" };
+  const markerStart = leadingTags.indexOf(namespace);
+  if (markerStart >= 0 && (
+    (step && leadingTags.indexOf("[step:") > markerStart) ||
+    (flow && leadingTags.indexOf("[flow:") > markerStart) ||
+    (flow && step && leadingTags.indexOf("[flow:") > leadingTags.indexOf("[step:"))
+  )) return { kind: "invalid", code: "invalid_marker_position" };
+
+  if (markerStart === -1) {
+    if (!step || (flow && leadingTags.indexOf("[flow:") > leadingTags.indexOf("[step:")))
+      return { kind: "invalid", code: "invalid_marker" };
+    return { kind: "marker", action: "phase", phase: step, flow, raw: `[step:${step}]` };
   }
 
   const markerEnd = firstLine.indexOf("]", markerStart);
   if (markerEnd === -1) return { kind: "invalid", code: "invalid_marker" };
   const raw = firstLine.slice(markerStart, markerEnd + 1);
-  const suffix = firstLine.slice(markerEnd + 1);
-  if (suffix.length > 0 && !/^\s/.test(suffix)) {
-    return { kind: "invalid", code: "invalid_marker_position" };
-  }
 
   let match = raw.match(START);
   if (match) {
+    if ((step && step !== match[4]) || (flow && !step))
+      return { kind: "invalid", code: "state_conflict" };
     return {
       kind: "marker",
       action: "start",
@@ -87,12 +106,15 @@ function parseMarkerFromText(text) {
       taskName: match[2] ?? null,
       taskType: match[3] ?? null,
       phase: match[4],
+      flow,
       raw,
     };
   }
 
   match = raw.match(JOIN);
   if (match) {
+    if (flow || (step && step !== match[2]))
+      return { kind: "invalid", code: "state_conflict" };
     return {
       kind: "marker",
       action: "join",
@@ -103,10 +125,15 @@ function parseMarkerFromText(text) {
   }
 
   match = raw.match(PHASE);
-  if (match) return { kind: "marker", action: "phase", phase: match[1], raw };
+  if (match) {
+    if (flow || (step && step !== match[1]))
+      return { kind: "invalid", code: "state_conflict" };
+    return { kind: "marker", action: "phase", phase: match[1], raw };
+  }
 
   match = raw.match(LEAVE_OR_END);
   if (match) {
+    if (flow || step) return { kind: "invalid", code: "state_conflict" };
     return {
       kind: "marker",
       action: match[1],

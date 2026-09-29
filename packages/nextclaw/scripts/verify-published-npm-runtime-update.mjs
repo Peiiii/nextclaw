@@ -75,9 +75,9 @@ export function readVersionOutput(stdout, description) {
   return version;
 }
 
-export function isRegistryVisibilityError(error) {
+export function isRetryablePublishedInstallError(error) {
   const message = error instanceof Error ? error.message : String(error);
-  return /\b(?:ETARGET|E404)\b|No matching version found|Not Found/i.test(message);
+  return /\b(?:ETARGET|E404|ETIMEDOUT|ECONNRESET|EAI_AGAIN)\b|No matching version found|Not Found/i.test(message);
 }
 
 export function resolvePublishedRuntimeAsset(version, platform, arch) {
@@ -199,29 +199,37 @@ async function createPublishedInstallFixture(packageSpec, label) {
     prefix,
     "--no-audit",
     "--no-fund",
-    "--prefer-online",
+    "--prefer-offline",
   ];
   const installOptions = {
     cwd: tempRoot,
-    env: { npm_config_cache: join(tempRoot, "npm-cache") },
-    timeout: 300000,
+    env: {
+      npm_config_cache:
+        process.env.NEXTCLAW_PUBLISHED_INSTALL_CACHE || join(tempRoot, "npm-cache"),
+    },
+    timeout: 600000,
   };
-  for (let attempt = 1; attempt <= REGISTRY_VISIBILITY_ATTEMPTS; attempt += 1) {
-    try {
-      run("npm", installArgs, installOptions);
-      break;
-    } catch (error) {
-      if (
-        attempt === REGISTRY_VISIBILITY_ATTEMPTS ||
-        !isRegistryVisibilityError(error)
-      ) {
-        throw error;
+  try {
+    for (let attempt = 1; attempt <= REGISTRY_VISIBILITY_ATTEMPTS; attempt += 1) {
+      try {
+        run("npm", installArgs, installOptions);
+        break;
+      } catch (error) {
+        if (
+          attempt === REGISTRY_VISIBILITY_ATTEMPTS ||
+          !isRetryablePublishedInstallError(error)
+        ) {
+          throw error;
+        }
+        log(
+          `registry metadata or network unavailable; retrying install (${attempt}/${REGISTRY_VISIBILITY_ATTEMPTS})`,
+        );
+        await sleep(REGISTRY_VISIBILITY_RETRY_MS);
       }
-      log(
-        `registry metadata is not visible yet; retrying install (${attempt}/${REGISTRY_VISIBILITY_ATTEMPTS})`,
-      );
-      await sleep(REGISTRY_VISIBILITY_RETRY_MS);
     }
+  } catch (error) {
+    await removeFixture(tempRoot);
+    throw error;
   }
   return {
     binaryPath: join(prefix, "bin/nextclaw"),

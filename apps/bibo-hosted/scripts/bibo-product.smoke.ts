@@ -4,7 +4,7 @@ import { once } from "node:events";
 import { readFileSync } from "node:fs";
 import { chromium, type Page, type Route } from "playwright";
 import { mockApi, openMarkdownSource } from "./personal-workspace.fixture";
-import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs, checkSessionActionFade } from "./design-system/bibo-design-system.smoke";
+import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs, checkSessionActionFade, checkLongPlanningDetails } from "./design-system/bibo-design-system.smoke";
 import { checkFileRowActions, checkMissingRestoredFile, checkWorkspaceFiles, checkWorkspaceReopening, openWorkspaceFile } from "./design-system/workspace-file.smoke";
 const port = process.env.BIBO_SMOKE_PORT ?? String(30000 + process.pid % 20000);
 const base = `http://127.0.0.1:${port}`;
@@ -225,10 +225,7 @@ async function checkLongTitles(page: Page, width: number): Promise<void> {
       await page.locator(".ui-list-row").first().waitFor({ state: "visible" });
     }
     if (view === "tasks" || view === "calendar") {
-      await page.locator(view === "tasks" ? ".bibo-task-row" : ".bibo-agenda-event:visible").first().click();
-      assert.ok((await page.getByRole("textbox", { name: view === "tasks" ? "任务名称" : "标题", exact: true }).inputValue()).length > 100);
-      await checkContentBounds(page);
-      await page.getByRole("button", { name: view === "tasks" ? "保存任务" : "保存日程", exact: true }).click({ trial: true });
+      await checkLongPlanningDetails(page, view);
     }
     if (view === "files" || view === "notes") {
       if (width <= 760 && await page.locator(".file-mobile-back button").isVisible()) await page.locator(".file-mobile-back button").click();
@@ -434,9 +431,10 @@ try {
       assert.match(taskSummary, /Bibo/, "task list shows its project without opening details");
       assert.match(taskSummary, /进行中/, "task list shows its state without opening details");
       await taskRow.click();
+      await page.getByRole("button", { name: "编辑任务", exact: true }).click();
       await page.getByRole("textbox", { name: "任务名称" }).waitFor();
       const taskSaveBox = await page.getByRole("button", { name: "保存任务", exact: true }).boundingBox();
-      assert.ok(taskSaveBox && taskSaveBox.y + taskSaveBox.height < viewport.height - (viewport.width < 600 ? 61 : 0), "task save stays visible while fields scroll");
+      assert.ok(taskSaveBox && taskSaveBox.y + taskSaveBox.height < viewport.height, "task save stays visible while fields scroll");
       const taskDescriptionBox = await page.getByRole("textbox", { name: "说明", exact: true }).boundingBox();
       assert.ok(taskDescriptionBox && taskDescriptionBox.y < viewport.height * .5, "task description precedes secondary metadata");
       await page.screenshot({ path: `/tmp/bibo-tasks-${viewport.width}.png`, fullPage: true, animations: "disabled" });
@@ -454,6 +452,7 @@ try {
       await page.locator(".bibo-task-row").filter({ hasText: "梳理产品方案" }).click();
       assert.equal(await page.getByRole("textbox", { name: "任务名称" }).inputValue(), "尚未保存的任务草稿", "module navigation preserves task draft");
       await page.getByRole("button", { name: "取消", exact: true }).click();
+      await page.getByRole("button", { name: "关闭任务详情", exact: true }).click();
       if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
       await page.getByRole("navigation", { name: "工作空间" }).getByRole("link", { name: /对话/ }).click();
       await page.getByRole("region", { name: "与 Bibo 对话" }).waitFor();

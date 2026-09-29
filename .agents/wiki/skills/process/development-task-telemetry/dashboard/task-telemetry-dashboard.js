@@ -103,13 +103,6 @@ function formatDate(value) {
   return value ? dateFormatter.format(new Date(value)) : "—";
 }
 
-function formatTokenValue(value) {
-  return {
-    compact: formatCompact(value),
-    exact: `${formatExact(value)} Token`,
-  };
-}
-
 function makeElement(tagName, className, text) {
   const element = document.createElement(tagName);
   if (className) element.className = className;
@@ -129,9 +122,8 @@ function renderOverview(snapshot) {
     inputTokens === 0 ? null : usage.cached_input_tokens / inputTokens;
   const uncachedInput = Math.max(0, inputTokens - usage.cached_input_tokens);
 
-  const observedTokens = formatTokenValue(usage.total_tokens);
-  elements.observedTokens.textContent = observedTokens.compact;
-  elements.observedTokens.title = observedTokens.exact;
+  elements.observedTokens.textContent = formatCompact(usage.total_tokens);
+  elements.observedTokens.title = `${formatExact(usage.total_tokens)} Token`;
   elements.observedTokensDetail.textContent = `输出 ${formatCompact(usage.output_tokens)} · 推理 ${formatCompact(usage.reasoning_output_tokens)}`;
   elements.coverage.textContent = formatPercent(corpus.mechanical_coverage);
   elements.coverageDetail.textContent = `已归因 ${formatCompact(attributed)} Token`;
@@ -206,12 +198,13 @@ function renderTaskTable(tasks) {
     });
     taskCell.append(selectButton);
 
+    const retro = { entered: "已进复盘", missing: "缺复盘", pending: "待复盘", unknown: "未知" }[task.retrospective_observation] ?? "未知";
     const statusCell = document.createElement("td");
     statusCell.append(
       makeElement(
         "span",
         `status-chip status-${task.status}`,
-        statusLabels[task.status] ?? task.status,
+        `${statusLabels[task.status] ?? task.status} · ${retro}`,
       ),
     );
 
@@ -223,7 +216,7 @@ function renderTaskTable(tasks) {
     tokenCell.title = `${formatExact(task.total_usage.total_tokens)} Token`;
     row.append(
       taskCell,
-      makeElement("td", "", taskTypeLabels[task.type] ?? "历史未知"),
+      makeElement("td", "", `${taskTypeLabels[task.type] ?? "历史未知"} · ${task.flow ?? "?"} / ${phaseLabels[task.current_phase] ?? "?"}`),
       statusCell,
       tokenCell,
       makeElement("td", "", formatPercent(task.mechanical_coverage)),

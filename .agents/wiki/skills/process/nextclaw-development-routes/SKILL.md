@@ -10,7 +10,7 @@ description: 当共享 development-* 阶段触达 NextClaw 产品、仓库命令
 ## Lifecycle 与任务理解
 
 - 意图宏命中时按 `commands/commands.md` 的对应条目展开；解释或引用不执行。
-- 需要阶段追踪、Token/耗时、模型对比或本地 dashboard 时，读取[任务遥测方法](../development-task-telemetry/SKILL.md)。
+- 完整开发或授权发布默认读取[任务遥测方法](../development-task-telemetry/SKILL.md)；限定单阶段任务仅在需要阶段追踪、Token/耗时、模型对比或本地 dashboard 时读取。
 - 切入 worktree、迁移草稿或主线并发时，读取[Worktree 合同](../../../../skills/development-lifecycle/references/parallel-worktree-development.md)。
 - 大型交付启动即按[迭代日志治理](../../governance/nextclaw-iteration-log-governance/SKILL.md)建立持续记录，日期前缀优先、兼容版本号。新建恢复入口为 `docs/work/YYYY-MM-DD-<slug>/current-state.md`；已有迭代内笔记沿用，避免双份当前状态。普通跨轮笔记不强制建日志。
 - 用户明确要求扫描、识别或清理死代码时，读取[NextClaw 死代码治理](../../operations/nextclaw-dead-code-governance/SKILL.md)。

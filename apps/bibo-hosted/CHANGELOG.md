@@ -1,5 +1,16 @@
 # @nextclaw/bibo-hosted
 
+## 0.2.1-beta.0
+
+### Patch Changes
+
+- 6e5e750: Open Bibo task details in a right-side drawer with visible task properties and a clearer reading layout.
+- 4841142: 重新设计任务详情的阅读、编辑和子任务布局；任务说明与文件共用 Markdown 富文本编辑器，支持嵌入内容页面。
+- Updated dependencies [260165f]
+- Updated dependencies [8c3e7d3]
+  - @nextclaw/kernel@0.19.2-beta.0
+  - @nextclaw/harness@0.2.28-beta.0
+
 ## 0.2.0
 
 ### Minor Changes

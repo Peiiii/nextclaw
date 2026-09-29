@@ -30,18 +30,27 @@ export type ContextMenuItem = ContextMenuItemBase &
         children?: never;
         download?: string;
         href: string;
+        target?: '_blank';
+        rel?: string;
+        referrerPolicy?: React.HTMLAttributeReferrerPolicy;
         onSelect?: () => void;
       }
     | {
         children?: never;
         download?: never;
         href?: never;
+        target?: never;
+        rel?: never;
+        referrerPolicy?: never;
         onSelect: () => void;
       }
     | {
         children: readonly ContextMenuGroup[];
         download?: never;
         href?: never;
+        target?: never;
+        rel?: never;
+        referrerPolicy?: never;
         onSelect?: never;
       }
   );

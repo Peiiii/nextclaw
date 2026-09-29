@@ -9,6 +9,8 @@ import {
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import { scanNcpAgentSessionCatalogJournals } from "./ncp-agent-session-catalog-migration.store.js";
 import { NcpAgentRunRecoveryIndexStore } from "./ncp-agent-run-recovery-index.store.js";
+import { isSessionJournalDelta } from "@kernel/utils/session-journal-delta-coalescer.utils.js";
+import { rowToSummary, summaryToRow, type SessionCatalogRow } from "@kernel/utils/ncp-agent-session-catalog-row.utils.js";
 import {
   openSqliteDatabase,
   runSqliteTransaction,
@@ -19,19 +21,6 @@ const SQLITE_DATABASE_FILE = ".ncp-agent-session-catalog.sqlite";
 const CATALOG_SCHEMA_VERSION = 2;
 const MIGRATION_STATUS_KEY = "migration_status";
 const MIGRATION_COMPLETE = "complete";
-
-type SessionCatalogRow = {
-  session_id: string;
-  peer_id: string | null;
-  agent_id: string | null;
-  created_at: string;
-  updated_at: string;
-  last_message_at: string | null;
-  message_count: number;
-  status: string;
-  metadata_json: string;
-  deleted_at: string | null;
-};
 
 type SessionCatalogPageOptions = {
   offset: number;
@@ -62,37 +51,8 @@ function readEventMessage(event: NcpAgentSessionJournalReplayEvent): NcpMessage 
   }
   return undefined;
 }
-function summaryToRow(summary: NcpSessionSummary, deletedAt: string | null = null) {
-  const updatedAt = summary.updatedAt || summary.createdAt || new Date().toISOString();
-  return {
-    session_id: summary.sessionId,
-    peer_id: summary.peerId ?? null,
-    agent_id: summary.agentId ?? null,
-    created_at: summary.createdAt ?? updatedAt,
-    updated_at: updatedAt,
-    last_message_at: summary.lastMessageAt ?? null,
-    message_count: Math.max(0, summary.messageCount ?? 0),
-    status: summary.status || "idle",
-    metadata_json: JSON.stringify(summary.metadata ?? {}),
-    deleted_at: deletedAt,
-  };
-}
-
-function rowToSummary(row: SessionCatalogRow): NcpSessionSummary {
-  const metadata = JSON.parse(row.metadata_json) as Record<string, unknown>;
-  return {
-    sessionId: row.session_id,
-    ...(row.peer_id ? { peerId: row.peer_id } : {}),
-    ...(row.agent_id ? { agentId: row.agent_id } : {}),
-    messageCount: row.message_count,
-    ...(row.created_at ? { createdAt: row.created_at } : {}),
-    updatedAt: row.updated_at,
-    ...(row.last_message_at ? { lastMessageAt: row.last_message_at } : {}),
-    status: row.status as NcpSessionSummary["status"],
-    ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
-  };
-}
 export class NcpAgentSessionSummaryIndexStore {
+  private readonly lastSummaryWriteAt = new Map<string, number>();
   private database: SqliteDatabase | null = null;
   private readyPromise: Promise<void> | null = null;
   private readonly runRecovery = new NcpAgentRunRecoveryIndexStore(() => this.db(), () => this.ensureReady());
@@ -161,9 +121,12 @@ export class NcpAgentSessionSummaryIndexStore {
     event: NcpAgentSessionJournalReplayEvent;
     updatedAt: string;
   }): Promise<void> => {
+    const sessionId = normalizeNcpSessionId(params.sessionId);
+    const now = Date.now();
+    if (isSessionJournalDelta(params.event as import("@nextclaw/ncp").NcpEndpointEvent) &&
+      now - (this.lastSummaryWriteAt.get(sessionId) ?? 0) < 1_000) return;
     await this.ensureReady();
-    const { sessionId: rawSessionId, event, updatedAt } = params;
-    const sessionId = normalizeNcpSessionId(rawSessionId);
+    const { event, updatedAt } = params;
     const currentRow = this.db().prepare(
       "SELECT * FROM sessions WHERE session_id = ? LIMIT 1",
     ).get(sessionId) as SessionCatalogRow | undefined;
@@ -205,6 +168,7 @@ export class NcpAgentSessionSummaryIndexStore {
          status = excluded.status
        WHERE sessions.deleted_at IS NULL`,
     ).run(upsertParams);
+    this.lastSummaryWriteAt.set(sessionId, now);
   };
 
   listRunRecoveryCheckpoints = this.runRecovery.list;
@@ -213,6 +177,7 @@ export class NcpAgentSessionSummaryIndexStore {
   remove = async (sessionId: string): Promise<void> => {
     await this.ensureReady();
     const normalizedSessionId = normalizeNcpSessionId(sessionId);
+    this.lastSummaryWriteAt.delete(normalizedSessionId);
     const deletedAt = new Date().toISOString();
     runSqliteTransaction(this.db(), () => {
       const existing = this.db().prepare(
@@ -233,6 +198,7 @@ export class NcpAgentSessionSummaryIndexStore {
   };
 
   close = (): void => {
+    this.lastSummaryWriteAt.clear();
     this.database?.close();
     this.database = null;
     this.readyPromise = null;

@@ -1,7 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import { NcpAgentSessionSummaryIndexStore } from "./ncp-agent-session-summary-index.store.js";
 import { openSqliteDatabase } from "./sqlite-database.store.js";
@@ -118,5 +118,26 @@ describe("NcpAgentSessionSummaryIndexStore", () => {
         metadata: { label: "Catalog metadata", project_root: "/workspace" },
       }),
     ]);
+  });
+
+  it("throttles delta index writes but updates at the next message boundary", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-session-summary-index-"));
+    store = new NcpAgentSessionSummaryIndexStore(tempDir, async () => null);
+    await store.upsert({
+      sessionId, messageCount: 1, createdAt: userMessage.timestamp,
+      updatedAt: userMessage.timestamp, status: "idle",
+    });
+    const now = vi.spyOn(Date, "now").mockReturnValue(10_000);
+    try {
+      const delta = { type: NcpEventType.MessageTextDelta as const,
+        payload: { sessionId, messageId: "assistant-1", delta: "a" } };
+      await store.upsertForEvent({ sessionId, event: delta, updatedAt: "2026-09-01T03:15:01.000Z" });
+      await store.upsertForEvent({ sessionId, event: delta, updatedAt: "2026-09-01T03:15:02.000Z" });
+      expect((await store.get(sessionId))?.updatedAt).toBe("2026-09-01T03:15:01.000Z");
+      await store.upsertForEvent({ sessionId, event: {
+        type: NcpEventType.MessageTextEnd, payload: { sessionId, messageId: "assistant-1" },
+      }, updatedAt: "2026-09-01T03:15:03.000Z" });
+      expect((await store.get(sessionId))?.updatedAt).toBe("2026-09-01T03:15:03.000Z");
+    } finally { now.mockRestore(); }
   });
 });

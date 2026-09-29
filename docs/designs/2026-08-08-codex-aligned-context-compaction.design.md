@@ -56,6 +56,8 @@
 
 append-only NCP journal 是用户消息、assistant segment、工具事件、run 终态和 compaction marker 的唯一顺序事实。读取层可以物化 projection，但不能生成第二套可漂移事实，也不能回写或删除原 journal 历史。
 
+2026-09-29 补充：上述不可改写约束继续适用于在线运行和普通升级。[会话 Journal 增长治理与升级可靠性设计](./2026-09-29-session-journal-growth-reliability.design.md)仅为全部写者停止、原件备份、完整重放等价和原子切换均获证明后的显式离线维护定义窄例外；实施前仍以原 journal 为事实源，不得借此在在线路径改写历史。
+
 ### Run 与 assistant segment
 
 - 一个 run 从命令被接受开始，经历 `accepted → started → terminal`。

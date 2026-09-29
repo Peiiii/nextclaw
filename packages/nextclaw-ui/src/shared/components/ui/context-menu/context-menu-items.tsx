@@ -164,6 +164,7 @@ export function ContextMenuItems({ groups, onClose }: {
           onClose={onClose} className={className}>{content}</ContextSubmenu>;
         const select = () => { item.onSelect?.(); onClose(item.href ? false : item.restoreFocus !== false); };
         return item.href ? <a key={item.key} role="menuitem" className={className} href={item.href} download={item.download}
+          target={item.target} rel={item.rel} referrerPolicy={item.referrerPolicy}
           onPointerEnter={() => setOpenKey(null)} onClick={(event) => { event.stopPropagation(); select(); }}>{content}</a>
           : <button key={item.key} type="button" role="menuitem" disabled={item.disabled} aria-pressed={item.pressed}
             data-menu-key={item.key} className={className} onPointerEnter={() => setOpenKey(null)}
