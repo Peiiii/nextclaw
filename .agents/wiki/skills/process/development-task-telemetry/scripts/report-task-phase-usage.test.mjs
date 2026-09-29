@@ -497,7 +497,7 @@ test("tracks visible steps, flow, current phase, and missing retrospective", asy
     tokenCount("2026-08-14T10:00:04.000Z", 40),
     assistant("2026-08-14T10:00:05.000Z", "[我严格遵守规则][step:validation] validating"),
     tokenCount("2026-08-14T10:00:06.000Z", 60),
-    assistant("2026-08-14T10:00:07.000Z", "[nextclaw.dev/v1 task=end id=dt-visible1 status=completed] done"),
+    assistant("2026-08-14T10:00:07.000Z", "[nextclaw.dev/v1 task=end id=dt-visible1 status=completed]完成"),
     tokenCount("2026-08-14T10:00:08.000Z", 80),
   ];
 

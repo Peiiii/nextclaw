@@ -94,10 +94,6 @@ function parseMarkerFromText(text) {
   const markerEnd = firstLine.indexOf("]", markerStart);
   if (markerEnd === -1) return { kind: "invalid", code: "invalid_marker" };
   const raw = firstLine.slice(markerStart, markerEnd + 1);
-  const suffix = firstLine.slice(markerEnd + 1);
-  if (suffix.length > 0 && !/^\s/.test(suffix)) {
-    return { kind: "invalid", code: "invalid_marker_position" };
-  }
 
   let match = raw.match(START);
   if (match) {
