@@ -140,16 +140,16 @@ jobs:
         with:
           version: "3.4.6"
 
-      - name: Exchange GitHub identity for short-lived Alibaba credentials
+      - name: Exchange GitHub identity for archive upload credentials
         uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6
         with:
           audience: sts.aliyuncs.com
           oidc-provider-arn: ${{ vars.ALIYUN_DOCS_OIDC_PROVIDER_ARN }}
           role-to-assume: ${{ vars.ALIYUN_DOCS_ROLE_ARN }}
-          role-session-expiration: 1800
-          role-session-name: docs-${{ github.run_id }}-${{ github.run_attempt }}
+          role-session-expiration: 3600
+          role-session-name: docs-${{ github.run_id }}-${{ github.run_attempt }}-archive
 
-      - name: Publish the same artifact to private OSS
+      - name: Archive the same artifact in private OSS
         env:
           BUCKET: ${{ vars.ALIYUN_DOCS_BUCKET }}
           REGION: ${{ vars.ALIYUN_DOCS_REGION }}
@@ -160,6 +160,25 @@ jobs:
           export OSS_SESSION_TOKEN="$ALIBABA_CLOUD_SECURITY_TOKEN"
           export OSS_REGION="$REGION"
           ossutil sync docs-dist "oss://$BUCKET/_releases/$RELEASE_COMMIT/$RELEASE_TREE/" --region "$REGION" --mode StsToken --force
+
+      - name: Renew Alibaba credentials for site publication
+        uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6
+        with:
+          audience: sts.aliyuncs.com
+          oidc-provider-arn: ${{ vars.ALIYUN_DOCS_OIDC_PROVIDER_ARN }}
+          role-to-assume: ${{ vars.ALIYUN_DOCS_ROLE_ARN }}
+          role-session-expiration: 3600
+          role-session-name: docs-${{ github.run_id }}-${{ github.run_attempt }}-site
+
+      - name: Publish the same artifact to the domestic site
+        env:
+          BUCKET: ${{ vars.ALIYUN_DOCS_BUCKET }}
+          REGION: ${{ vars.ALIYUN_DOCS_REGION }}
+        run: |
+          export OSS_ACCESS_KEY_ID="$ALIBABA_CLOUD_ACCESS_KEY_ID"
+          export OSS_ACCESS_KEY_SECRET="$ALIBABA_CLOUD_ACCESS_KEY_SECRET"
+          export OSS_SESSION_TOKEN="$ALIBABA_CLOUD_SECURITY_TOKEN"
+          export OSS_REGION="$REGION"
           ossutil sync docs-dist "oss://$BUCKET/" --region "$REGION" --mode StsToken --force
           ossutil set-props "oss://$BUCKET/release-manifest.json" --region "$REGION" --mode StsToken --metadata-directive replace --content-type application/json --cache-control no-store --force
           ossutil api put-bucket-lifecycle \
