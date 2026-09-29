@@ -5,7 +5,7 @@
 - 合同：[`BIBO-EDGE-2026-09-29`](../../work/2026-09-29-bibo-edge-conversation/acceptance-contract.md)
 - 唯一恢复入口：[当前执行状态](../../work/2026-09-29-bibo-edge-conversation/current-state.md)
 - 整体候选设计：[Bibo 响应、存储与运行架构](../../designs/2026-09-28-bibo-personal-space-persistence-and-latency.design.md)
-- 状态：已交付；下面的数字按各自测量范围解释，未采样的长期分布仍需观察。
+- 状态：生产版本已上线；2026-09-29 复核后，按需 OS 执行器未实现，BE-01 与整体 BE-08 验收重开。下面的数字按各自测量范围解释。
 
 ## 原始输入与约束
 
@@ -105,9 +105,13 @@
 - 最终自审按原始诉求逐项回查合同、设计、实现和证据：纯聊天零容器、旧会话假忙、个人空间/文件、NextClaw Node 独立升级、迁移与反向恢复、首字、成本与发布耗时均有对应验证。对本次 4 个文档 diff 做内容/结构 Review 与 `git diff --check`，**无阻断 finding**；近段生产日志 `run.failed`、`edge.agent-error`、`edge.migration-failed`、`request.failed` 均为 **0**。保留三项未外推风险：顺序对照 n=24/组不能保证长期尾部分位、偶发 `save-edge` 历史错误未被证明永久消失、完整账单和 `codex-sub` 真实 provider 路径未由本次证明。它们不改变本次已验收的具体路径，后续可由监控与独立问题跟踪。
 - 文档证据提交 `24c29153c` 与发布主干 `e3c8d35a3` 安全合并形成 `9bbdc8039`，已普通推送到 `origin/master`；`release:check:branch-closure -- --target origin/master --release nextclaw@0.58.0` 通过。首次 `release:reconcile:mainline` 发现主工作区有活跃 tracked WIP，返回 `LOCAL_WORKTREE_RETRYING`，由后台 worker 在不覆盖该内容的前提下重试本地镜像快进。最终合同状态与本节一起提交至远程主干。
 
+### 2026-09-29：交付判断纠偏
+
+用户指出 OS 相关工具无法使用后，重新沿原请求、BE-01、设计、旧新工具注册和线上验证对账。旧容器 Harness 没有用户 shell，边缘路径也没有 OS 任务按需启动执行器的入口；原设计把该能力留作未来扩展，却未处理与 BE-01 Required 要求的冲突。80 条纯聊天零容器和日常文件/搜索冒烟只证明相应分支，不证明 OS 分支。故撤销 BE-01 及依赖它的 BE-08 的通过结论；线上版本仍在运行，已证明的延迟、迁移和现有工具数据保留。流程失效分析与控制回路见[AI 开发体系设计补充](../../designs/2026-09-08-ai-development-system.design.md#13-2026-09-29-补充跨架构交付的证据控制回路)。
+
 ## 迭代完成说明
 
-已完成。边缘架构上线，全部可迁移旧账号切换；旧会话假忙、文件工具、真实回迁、NextClaw 稳定包与 runtime、用户可感知首字和保守成本对照均按合同取得证据。同段 p95 改善 78.5%，跨时段 47.9% 的较弱结果同时保留。远程主线已闭合；主工作区的独立 WIP 由自动 retry owner 保护并等待安全快进。
+历史发布已完成，但整体合同尚未完成：边缘架构上线，全部可迁移旧账号切换；旧会话假忙、文件工具、真实回迁、NextClaw 稳定包与 runtime、用户可感知首字和保守成本对照取得上述证据。按需 OS 执行器仍是 BE-01 缺口。同段 p95 改善 78.5%，跨时段 47.9% 的较弱结果同时保留。远程主线已闭合；主工作区的独立 WIP 由自动 retry owner 保护并等待安全快进。
 
 ## 测试/验证/验收方式
 
