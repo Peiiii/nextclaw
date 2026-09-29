@@ -294,12 +294,14 @@ try {
   assert.equal(asked.optionDescriptions?.["胶装"], "适合正式交付");
   const panel = page.getByRole("region", { name: "问题" });
   await panel.getByRole("heading", { name: "报告装订方式？" }).waitFor();
+  await page.locator(".ui-message--assistant .ui-message__body .bibo-question-tag").filter({ hasText: "报告装订方式？" }).waitFor();
   await panel.getByRole("button", { name: "关闭问题" }).click();
   await page.getByRole("button", { name: "回答问题：报告装订方式？" }).click();
   await page.evaluate(() => { Reflect.set(window, "biboSmokeStream", null); });
   const replyResponse = page.waitForResponse((response) => response.url() === `${origin}/api/chat`, { timeout: 300_000 });
   if (skipQuestion) await panel.getByRole("button", { name: "跳过" }).click();
   else await panel.getByRole("button", { name: /胶装/ }).first().click();
+  await panel.waitFor({ state: "hidden", timeout: 5_000 });
   assert.equal((await replyResponse).status(), 200, "Question reply request was rejected");
   await page.waitForFunction(() => Reflect.get(window, "biboSmokeStream") !== null, null, { timeout: 300_000 });
   const replyStream = await page.evaluate(() => Reflect.get(window, "biboSmokeStream") as { text?: string; error?: string });

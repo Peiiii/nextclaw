@@ -87,6 +87,8 @@ button, input, textarea, select { @apply [font-family:inherit]; }
 .bibo-composer-wrap { @apply [width:min(var(--ui-reading-width),_100%)] flex-none [align-self:center] [padding:0_var(--ui-content-gutter)_max(16px,_env(safe-area-inset-bottom))]; }
 .bibo-status { @apply [color:var(--ui-danger)] text-base [padding:0_4px_8px]; }
 .bibo-question-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.bibo-ordered-content > * + * { margin-top:10px; }
+.bibo-ordered-content .bibo-question-tags { margin-top:0; }
 .bibo-question-tag { display:inline-flex; max-width:min(100%, 320px); min-height:28px; align-items:center; gap:6px; padding:3px 9px; border:1px solid var(--ui-line); border-radius:8px; background:var(--ui-surface); color:var(--ui-muted); font:inherit; font-size:12px; cursor:pointer; }
 .bibo-question-tag:hover, .bibo-question-tag:focus-visible { background:var(--ui-hover); color:var(--ui-ink); }
 .bibo-question-tag span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

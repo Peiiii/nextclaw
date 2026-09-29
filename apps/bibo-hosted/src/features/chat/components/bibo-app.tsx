@@ -1,7 +1,7 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigation } from "react-router";
 import { readWorkspaceRoute, workspaceHref } from "@/app/workspace-router";
-import { Button, Composer, IconButton, Message, Sheet, NavigationItem } from "@nextclaw/personal-agent-ui";
+import { Button, Composer, IconButton, Markdown, Message, Sheet, NavigationItem } from "@nextclaw/personal-agent-ui";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { useBiboChatStore, type BiboDisplayMessage } from "@/features/chat/stores/bibo-chat.store";
 import { BiboSpaceView, BiboWorkspace, FileTabs, useBiboSpaceStore, type BiboView } from "@/features/space";
@@ -18,13 +18,23 @@ const suggestions = [
   { mark: "▤", label: "梳理一个项目", text: "我正在做一个项目，想和你一起理清现状、目标和下一步。请先问我必要的问题。" },
   { mark: "◷", label: "整理今天", text: "今天我有不少事要做。请帮我根据重要性和精力安排一个现实可执行的计划，先问我需要的信息。" },
 ];
-const MessageRow = memo(function MessageRow({ message, onOpenQuestion }: { message: BiboDisplayMessage; onOpenQuestion: (id: string) => void }) {
+const MessageRow = memo(function MessageRow({ message, onOpenQuestion, submittingQuestionId }: { message: BiboDisplayMessage; onOpenQuestion: (id: string) => void; submittingQuestionId?: string }) {
+  const questionById = new Map(message.questions?.map((question) => [question.id, question]));
+  const content = message.content ?? [
+    ...(message.text ? [{ type: "text" as const, text: message.text }] : []),
+    ...(message.questions?.length ? [{ type: "questions" as const, ids: message.questions.map((question) => question.id) }] : []),
+  ];
+  const body = message.role === "assistant" && message.questions?.length
+    ? <div className="bibo-ordered-content">{content.map((part, index) => part.type === "text"
+      ? <Markdown key={index} text={part.text} role="assistant" resolveResourceHref={workspaceResources.href} />
+      : <QuestionTags key={index} questions={part.ids.flatMap((id) => { const question = questionById.get(id); return question ? [question] : []; })}
+          submittingId={submittingQuestionId} onOpen={onOpenQuestion} />)}</div>
+    : undefined;
   return <div className={`bibo-message-row bibo-message-row--${message.role}`}>
     {message.replyToQuestion && <QuestionReference reference={message.replyToQuestion} />}
-    <Message role={message.role} text={message.text} pending={message.pending} mark={<Sparkles size={14} />} waitingLabel={copy.waiting}
+    <Message role={message.role} text={message.text} body={body} pending={message.pending} mark={<Sparkles size={14} />} waitingLabel={copy.waiting}
     label={message.role === "assistant" ? "Bibo" : copy.you} copyLabel={copy.copy}
     copiedLabel={copy.copied} copyFailedLabel={copy.copyFailed} resolveResourceHref={workspaceResources.href} />
-    {message.questions && <QuestionTags questions={message.questions} onOpen={onOpenQuestion} />}
   </div>;
 });
 const navigation: { view: BiboView; label: string; icon: LucideIcon }[] = [
@@ -145,6 +155,8 @@ export function ChatPage() {
   const messages = store.displayMessages();
   const questions = store.messages.flatMap((message) => message.questions ?? []).filter((question) => question.status === "pending");
   const openQuestion = questions.find((question) => question.id === store.openQuestionId);
+  const submittingQuestionId = store.phase !== "idle" ? store.pendingQuestion?.id : undefined;
+  const reopenQuestions = questions.filter((question) => question.id !== submittingQuestionId);
   const hasMessages = messages.length > 0;
   const failedMessages = store.failedMessages[store.activeSessionId ?? "new"] ?? [];
   const status = store.status || store.replyErrors[store.activeSessionId ?? "new"];
@@ -167,7 +179,8 @@ export function ChatPage() {
           <div className="bibo-suggestions">{suggestions.map((suggestion) => <Button key={suggestion.label} onClick={() => { store.setDraft(suggestion.text); inputRef.current?.focus(); }}><span>{suggestion.mark}</span>{suggestion.label}<span>↗</span></Button>)}</div>
         </div>}
         {hasMessages && <div className="bibo-messages" ref={listRef} onScroll={onScroll} role="log" aria-live="polite" aria-relevant="additions text">
-          <div className="bibo-message-content">{messages.map((message) => <MessageRow key={message.id} message={message} onOpenQuestion={store.openQuestion} />)}</div>
+          <div className="bibo-message-content">{messages.map((message) => <MessageRow key={message.id} message={message}
+            onOpenQuestion={store.openQuestion} submittingQuestionId={submittingQuestionId} />)}</div>
         </div>}
         {hasMessages && !store.following && <IconButton className="bibo-jump" label={copy.backToLatest} icon={<ArrowDown size={18} />} feedback="filled" tooltipSide="top" onClick={jumpToLatest} />}
       </section>
@@ -175,11 +188,12 @@ export function ChatPage() {
         {status && <div className="bibo-status" role="status" aria-live="polite">{status}</div>}
         {store.phase === "idle" && failedMessages.length > 0 && <Button tone="text" onClick={() => void store.send(failedMessages[0])}>{copy.retryFailed}{failedMessages.length > 1 ? ` (${failedMessages.length})` : ""}</Button>}
         {openQuestion && <QuestionPanel key={openQuestion.id} question={openQuestion} busy={store.phase !== "idle" || sessionSwitching}
+          initialCustom={store.failedQuestionInput?.id === openQuestion.id ? store.failedQuestionInput.answer : ""}
           onClose={store.closeQuestion}
           onAnswer={(answer) => void store.send(answer, { id: openQuestion.id, title: openQuestion.title, action: "answer" })}
           onDismiss={() => void store.send("跳过", { id: openQuestion.id, title: openQuestion.title, action: "dismiss" })} />}
-        {!openQuestion && questions.length > 0 && <button type="button" className="bibo-question-reopen" onClick={() => store.openQuestion(questions[0].id)}>
-          <MessageCircleQuestion size={15} aria-hidden="true" />{copy.questionPending} {questions.length}</button>}
+        {!openQuestion && reopenQuestions.length > 0 && <button type="button" className="bibo-question-reopen" onClick={() => store.openQuestion(reopenQuestions[0].id)}>
+          <MessageCircleQuestion size={15} aria-hidden="true" />{copy.questionPending} {reopenQuestions.length}</button>}
         <Composer inputRef={inputRef} value={store.draft} onChange={store.setDraft} onSend={() => void store.send()} onStop={() => void store.stop()}
           busy={store.phase !== "idle" || sessionSwitching} canStop={store.phase === "generating" && Boolean(store.runId) && store.runSessionId === store.activeSessionId}
           readOnly={sessionSwitching} busyLabel={copy.busy}

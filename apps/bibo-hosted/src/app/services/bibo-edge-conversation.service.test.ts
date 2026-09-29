@@ -69,7 +69,7 @@ test("failed edge NCP run exposes no file or conversation state", async () => {
   const storage = new MemoryStorage();
   const edge = new BiboEdgeConversationService(storage as unknown as DurableObjectStorage,
     new BiboSpaceStateStore(storage as unknown as DurableObjectStorage),
-    { generate: async function* () { throw new Error("model unavailable"); } },
+    { generate: async function* () { yield await Promise.reject(new Error("model unavailable")); } },
     { chat: async () => { throw new Error("unexpected compaction"); } });
   await assert.rejects(edge.run({ sessionId: "session-1", message: "hello", runId: "run-1", contextBlocks: [] }), { code: "RUN_FAILED", status: 503 });
   assert.equal(storage.values.size, 0);
@@ -79,7 +79,7 @@ test("model quota failure remains a prompt 429 after the NCP runtime emits a run
   const storage = new MemoryStorage();
   const edge = new BiboEdgeConversationService(storage as unknown as DurableObjectStorage,
     new BiboSpaceStateStore(storage as unknown as DurableObjectStorage),
-    { generate: async function* () { throw new Error("BIBO_MODEL_QUOTA_EXHAUSTED"); } },
+    { generate: async function* () { yield await Promise.reject(new Error("BIBO_MODEL_QUOTA_EXHAUSTED")); } },
     { chat: async () => { throw new Error("unexpected compaction"); } });
   await assert.rejects(edge.run({ sessionId: "session-1", message: "hello", runId: "run-1", contextBlocks: [] }),
     { code: "MODEL_RATE_LIMITED", status: 429 });
@@ -95,6 +95,7 @@ test("edge questions use the same NCP extension and resolution metadata across t
       calls += 1;
       if (calls === 1) {
         assert.equal(input.tools?.some((tool) => tool.function.name === "request_user_input_async"), true);
+        yield { id: "before-question", choices: [{ index: 0, delta: { content: "先说明。" }, finish_reason: null }] };
         yield { id: "ask", choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id: "ask-1", function: {
           name: "request_user_input_async", arguments: JSON.stringify({ questions: [{ title: "格式？", options: ["PDF", "DOCX"], recommendedOption: "PDF" }] }),
         } }] }, finish_reason: null }] };
@@ -104,6 +105,8 @@ test("edge questions use the same NCP extension and resolution metadata across t
       }
     } }, { chat: async () => { throw new Error("unexpected compaction"); } });
   const first = await edge.run({ sessionId: "question-session", message: "生成报告", runId: "run-1", contextBlocks: [] });
+  assert.deepEqual(first.content.map((part) => part.type === "text" ? part.text : "question"), ["先说明。", "question", "请选格式。"]);
+  assert.equal(first.text, "先说明。\n\n请选格式。");
   assert.equal(first.questions.length, 1);
   assert.equal(first.questions[0]?.status, "pending");
   await edge.commit("question-session", first, {});

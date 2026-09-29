@@ -1,4 +1,4 @@
-import type { BiboChatEvent, BiboMessage, BiboQuestion, BiboQuestionReference, BiboSession, BiboShowContent, BiboUser } from "../types/bibo-client.types";
+import type { BiboChatEvent, BiboMessage, BiboMessageContent, BiboQuestion, BiboQuestionReference, BiboSession, BiboShowContent, BiboUser } from "../types/bibo-client.types";
 import type { BiboFileDetail } from "../types/bibo-space.types";
 
 const MAX_FRAME_LENGTH = 4_000_000;
@@ -74,6 +74,17 @@ function readQuestionReference(value: unknown): BiboQuestionReference {
   return { id: value.id, title: value.title, action: value.action };
 }
 
+export function readMessageContent(value: unknown): BiboMessageContent[] {
+  if (!Array.isArray(value)) throw new BiboClientError("对话内容格式不正确。");
+  return value.map((part): BiboMessageContent => {
+    if (!isRecord(part)) throw new BiboClientError("对话内容格式不正确。");
+    if (part.type === "text" && typeof part.text === "string" && part.text) return { type: "text", text: part.text };
+    if (part.type === "questions" && Array.isArray(part.ids) && part.ids.length &&
+      part.ids.every((id) => typeof id === "string" && id)) return { type: "questions", ids: part.ids as string[] };
+    throw new BiboClientError("对话内容格式不正确。");
+  });
+}
+
 export function readMessages(value: unknown): BiboMessage[] {
   if (!Array.isArray(value) || !value.every((item) => isRecord(item)
     && (item.role === "user" || item.role === "assistant")
@@ -81,6 +92,7 @@ export function readMessages(value: unknown): BiboMessage[] {
     throw new BiboClientError("对话记录格式不正确。");
   }
   return value.map((item) => ({ role: item.role, text: item.text, at: item.at,
+    ...(item.content === undefined ? {} : { content: readMessageContent(item.content) }),
     ...(item.questions === undefined ? {} : { questions: readQuestions(item.questions) }),
     ...(item.replyToQuestion === undefined ? {} : { replyToQuestion: readQuestionReference(item.replyToQuestion) }) }));
 }

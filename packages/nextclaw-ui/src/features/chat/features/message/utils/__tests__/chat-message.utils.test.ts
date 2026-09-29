@@ -118,6 +118,23 @@ it("maps context compaction extensions into stable process parts", () => {
   }]);
 });
 
+it("keeps assistant prose on both sides of an unanchored question fallback", () => {
+  const data = { questions: [{ id: "question-1", title: "Which format?", options: ["PDF", "DOCX"] }] };
+  const adapted = adapt([{
+    id: "assistant-question-older",
+    role: "assistant",
+    parts: [
+      { type: "text", text: "Before." },
+      { type: "text", text: "Which format? (PDF / DOCX)" },
+      { type: "extension", extensionType: "nextclaw.user-question", data },
+      { type: "text", text: "After." },
+    ],
+  }]);
+  expect(adapted[0]?.parts.map((part) => part.type)).toEqual(["markdown", "custom", "markdown"]);
+  expect(adapted[0]?.parts[0]).toMatchObject({ text: "Before." });
+  expect(adapted[0]?.parts[2]).toMatchObject({ text: "After." });
+});
+
 it("renders a structured user question at its message position without repeating fallback text", () => {
   const data = { questions: [{ id: "question-1", title: "Which format?", options: ["PDF", "DOCX"] }] };
   const adapted = adapt([{

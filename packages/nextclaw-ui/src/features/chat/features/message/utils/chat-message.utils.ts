@@ -122,16 +122,23 @@ export function adaptChatMessage(
       texts: params.texts,
     }))
     .filter((part) => part !== null);
-  const hasQuestionPart = parts.some(
-    (part) => part.type === "custom" && part.customType === "nextclaw.user-question",
-  );
   const reply = message.meta?.userQuestionReply;
   const displayParts: ChatMessageViewModel["parts"] = reply
     ? [
         { type: "custom", id: reply.questionId, customType: "nextclaw.user-question-reply", data: reply },
         ...(reply.answer ? [{ type: "markdown" as const, text: reply.answer }] : []),
       ]
-    : hasQuestionPart ? parts.filter((part) => part.type !== "markdown") : parts;
+    : parts.filter((part, index) => {
+        const next = parts[index + 1];
+        if (part.type !== "markdown" || next?.type !== "custom" || next.customType !== "nextclaw.user-question") return true;
+        const entries = next.data && typeof next.data === "object" && "questions" in next.data ? next.data.questions : null;
+        if (!Array.isArray(entries)) return true;
+        const fallback = entries.map((entry) => {
+          if (!entry || typeof entry.title !== "string") return "";
+          return `${entry.title}${Array.isArray(entry.options) && entry.options.length ? ` (${entry.options.join(" / ")})` : ""}`;
+        }).join("\n");
+        return part.text !== fallback;
+      });
   return {
     id: message.id,
     role: resolveUiRole(message.role),

@@ -199,7 +199,7 @@ export class BiboUserContainer extends Container<Env> {
   };
 
   private persistEdgeRun = async (payload: PreparedRun, result: BiboEdgeRunResult, edge: BiboEdgeConversationService): Promise<Response> => {
-    const prepared = await this.preparePersistedRun(payload, { text: result.text, sessionId: payload.session.id,
+    const prepared = await this.preparePersistedRun(payload, { text: result.text, content: result.content, sessionId: payload.session.id,
       displayEvents: result.displayEvents, questions: result.questions });
     const edgeRunCount = await this.ctx.storage.get<number>("edgeRunCount") ?? 0;
     await edge.commit(payload.session.id, result, { sessions: prepared.sessions, edgeRunCount: edgeRunCount + 1,

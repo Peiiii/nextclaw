@@ -85,6 +85,9 @@ export class NextclawHarness implements INextclawHarness {
     return await run.result();
   };
 
+  listSessionMessages = async (sessionId: string) =>
+    await this.requireKernel().sessionManager.listSessionMessages(sessionId);
+
   listUserQuestions = async (sessionId: string): Promise<NextclawUserQuestion[]> =>
     await this.requireKernel().userQuestions.list(sessionId);
 

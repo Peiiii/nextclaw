@@ -13,10 +13,10 @@ import {
   readObservationEventPartData,
   type ObservationEventPartData,
 } from "@/features/chat/features/message/utils/chat-message-observation-event.utils";
+import { placeUserQuestionsInAssistantBody } from "@/features/chat/features/message/utils/chat-user-question-timeline.utils";
 
 const INHERITED_FROM_SESSION_METADATA_KEY = "inherited_from_session_id";
-export const CONTEXT_COMPACTION_PART_EXTENSION_TYPE =
-  "nextclaw.context-compaction";
+export const CONTEXT_COMPACTION_PART_EXTENSION_TYPE = "nextclaw.context-compaction";
 
 export type ContextCompactionPartData = {
   id: string;
@@ -280,7 +280,7 @@ function projectVisibleChatMessageState(
       status: "pending",
     };
   }
-  return { messages, inlineCompactionMessageIds, observationEvents };
+  return { ...placeUserQuestionsInAssistantBody(messages, observationEvents), inlineCompactionMessageIds };
 }
 
 export function projectVisibleChatMessages(

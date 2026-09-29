@@ -135,12 +135,14 @@ test("runner configures authenticated search and updates only built-in identitie
     export class NextclawHarness {
       constructor(options) { if (!options.allowedToolNames.includes('request_user_input_async')) throw new Error('Question tool is unavailable'); }
       contributions = { register() {} }; async start() {} async dispose() {}
+      messages = []; async listSessionMessages() { return this.messages; }
       async listUserQuestions() { return []; }
       async runTask(input) {
         if (input.input === 'failure') throw new Error('Chat Completions API failed (413): private-upstream-content');
         input.onEvent?.({ type: 'message.sent', payload: { message: { metadata: {
           nextclaw_timeline_kind: 'context_compaction', checkpoint: { status: 'compressed', phase: 'pre-run', summary: 'private-summary' }
         } } } });
+        this.messages = [{ id: 'fixture-assistant', role: 'assistant', status: 'final', parts: [{ type: 'text', text: 'fixture answer' }] }];
         return { text: 'fixture answer', sessionId: 'fixture-session' };
       }
     }`;
