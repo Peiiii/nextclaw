@@ -33,7 +33,7 @@ Manage existing Panel Apps from the app list and reference one from the session 
 
 Use a Panel App's More Actions menu to open it on its own. NextClaw Desktop opens the app in your default browser, while the web app opens it in a new tab. The standalone page only shows the app, but it remains connected to the current NextClaw instance, so existing approvals, Service Actions, and agent calls keep working. A local standalone page stops working when its NextClaw instance stops.
 
-After changing a Panel App's HTML, CSS, or JavaScript, select **Refresh current panel app** in the right panel's app title row to load the updated page without closing it. Panel Apps opened as object resources use the same host control. Refreshing keeps the app's data and existing approvals.
+After changing a Panel App's HTML, CSS, or JavaScript, select **Refresh current panel app** in the right panel's app title row. For an app opened as an object resource, choose **Refresh current panel app** from the tab's More Actions menu. The main resource page also has a refresh icon in its title row. Refreshing keeps the app's data and existing approvals.
 
 ## Service Apps
 

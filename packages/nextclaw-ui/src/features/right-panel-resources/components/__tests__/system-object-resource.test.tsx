@@ -20,11 +20,6 @@ vi.mock("@/features/panel-apps", () => ({
   PanelAppRuntimeSurface: ({ appId, refreshVersion }: { appId: string; refreshVersion?: number }) => <div>panel-app:{appId}:{refreshVersion}</div>,
   PanelAppHostProvider: ({ children }: { children: ReactNode }) => children,
 }));
-vi.mock("@/features/panel-apps/components/panel-app-toolbar", () => ({
-  PanelAppDocBrowserToolbar: ({ appId, onRefresh }: { appId: string; onRefresh: () => void }) => (
-    <button onClick={onRefresh}>refresh:{appId}</button>
-  ),
-}));
 
 const actions = vi.hoisted(() => ({ addExcerptToChat: vi.fn(), navigate: vi.fn() }));
 vi.mock("@/features/chat", async () => ({
@@ -75,7 +70,7 @@ describe("system object reading identity", () => {
     expect(await screen.findByText("project:project/work")).toBeTruthy();
   });
 
-  it("places refresh in the host toolbar and passes its version to panel app content", async () => {
+  it("adds refresh to the host tab menu and passes its version to panel app content", async () => {
     const uri = "nextclaw://objects/panel-app/raw%3Aid";
     const refreshIframe = vi.fn();
     const params = (refreshVersion: number) => ({
@@ -83,13 +78,17 @@ describe("system object reading identity", () => {
       tab: { id: uri, kind: "system-object", title: "Panel App", currentUrl: uri, resourceUri: uri, history: [uri], historyIndex: 0, navVersion: 0 },
       open: vi.fn(), openTarget: vi.fn(), refreshIframe, refreshVersion,
     } satisfies DocBrowserCustomTabRenderParams);
-    render(SYSTEM_OBJECT_RESOURCE_RENDERERS["system-object"].renderToolbar!(params(0)));
-    fireEvent.click(screen.getByRole("button", { name: "refresh:raw:id" }));
+    const renderer = SYSTEM_OBJECT_RESOURCE_RENDERERS["system-object"];
+    expect(renderer.renderToolbar).toBeUndefined();
+    const refreshAction = renderer.getTabMenuGroups!(params(0))[0]?.items[0];
+    expect(refreshAction?.label).toBe("Refresh current panel app");
+    if (refreshAction && "onSelect" in refreshAction) refreshAction.onSelect?.();
     expect(refreshIframe).toHaveBeenCalledTimes(1);
-    const view = render(SYSTEM_OBJECT_RESOURCE_RENDERERS["system-object"].renderContent!(params(0)));
+    const view = render(renderer.renderContent!(params(0)));
     expect(await screen.findByText("panel-app:raw:id:0")).toBeTruthy();
-    view.rerender(SYSTEM_OBJECT_RESOURCE_RENDERERS["system-object"].renderContent!(params(1)));
+    view.rerender(renderer.renderContent!(params(1)));
     expect(await screen.findByText("panel-app:raw:id:1")).toBeTruthy();
+    expect(renderer.getTabMenuGroups!({ ...params(0), tab: { ...params(0).tab, currentUrl: "nextclaw://objects/agent/test", resourceUri: "nextclaw://objects/agent/test" } })).toEqual([]);
   });
 
   it("retains a global file's source context when quoting into a different conversation", () => {

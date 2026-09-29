@@ -287,7 +287,7 @@ export function DocBrowser({
         urlInput={urlInput}
       />
 
-      {(!isMobile || currentTab?.kind === 'panel-app' || currentTab?.kind === 'system-object') ? customToolbar : null}
+      {!isMobile ? customToolbar : null}
 
       <DocBrowserFrameContent
         currentTab={currentTab}
@@ -326,7 +326,12 @@ export function DocBrowser({
         onToggleDock={handleToggleDock}
         onSetActiveTab={setActiveTab}
         onCloseTab={closeTab}
-        getTabMenuGroups={getTabMenuGroups}
+        getTabMenuGroups={(tab) => [
+          ...(getTabMenuGroups?.(tab) ?? []),
+          ...(tab.id === activeTabId && customRenderParams
+            ? customRenderer?.getTabMenuGroups?.(customRenderParams) ?? []
+            : []),
+        ]}
       />
       }>
       {panelContent}

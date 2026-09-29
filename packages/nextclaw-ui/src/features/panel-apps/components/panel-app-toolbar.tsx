@@ -62,20 +62,18 @@ export function PanelAppToolbar({
 }
 
 export function PanelAppDocBrowserToolbar({
-  appId: explicitAppId,
   appTitle,
   currentUrl,
   onRefresh,
   resourceUri,
 }: {
-  appId?: string;
   appTitle: string;
   currentUrl: string;
   onRefresh: () => void;
   resourceUri?: string;
 }) {
   const panelApps = usePanelApps();
-  const appId = explicitAppId ?? readPanelAppIdFromTab({ currentUrl, resourceUri });
+  const appId = readPanelAppIdFromTab({ currentUrl, resourceUri });
   const entry = useMemo(
     () => panelApps.data?.entries.find((candidate) => candidate.appId === appId),
     [appId, panelApps.data?.entries],
