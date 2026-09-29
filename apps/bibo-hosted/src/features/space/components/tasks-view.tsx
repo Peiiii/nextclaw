@@ -20,6 +20,7 @@ import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { datetime } from "@/features/space/utils/date-format.utils";
 import { ChevronRight, MoreVertical, SlidersHorizontal } from "lucide-react";
 import { TaskForm } from "./task-form";
+import { TaskDetail } from "./task-detail";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 
 export function Tasks() {
@@ -73,7 +74,7 @@ export function Tasks() {
   );
   return (
     <div className="bibo-page workspace-page">
-      <TaskForm quick task={null} onDone={() => { if (taskScope === "done" || taskQuery) filterTasks("", project, taskScope === "done" ? "all" : taskScope); }}
+      <TaskForm quick onDone={() => { if (taskScope === "done" || taskQuery) filterTasks("", project, taskScope === "done" ? "all" : taskScope); }}
         onExpand={() => { setCreating(true); selectTask(null); }} />
       <div className="task-toolbar"><TaskToolbar
         mode={mode}
@@ -153,21 +154,26 @@ export function Tasks() {
           )}
         </div>
       </div>
-      <Dialog open={creating || Boolean(selected)} title={creating ? "新任务" : "任务详情"} size="wide"
-        closeLabel="返回任务" busy={saving} onOpenChange={(open) => { if (!open) { setCreating(false); selectTask(null); } }}>
-        {(creating || selected) && (
-            <TaskForm
-              key={selected?.id ?? "new"}
-              task={selected}
-              onDone={() => {
-                setCreating(false);
-                selectTask(null);
-              }}
-            />
-        )}
-      </Dialog>
+      <TaskEditorOverlays creating={creating} selected={selected} saving={saving}
+        onCloseCreate={() => { setCreating(false); selectTask(null); }} onCloseDetail={() => selectTask(null)} />
     </div>
   );
+}
+
+function TaskEditorOverlays({ creating, selected, saving, onCloseCreate, onCloseDetail }: {
+  creating: boolean;
+  selected: BiboTask | null;
+  saving: boolean;
+  onCloseCreate: () => void;
+  onCloseDetail: () => void;
+}) {
+  return <>
+    <Dialog open={creating} title="新任务" size="wide" closeLabel="返回任务" busy={saving}
+      onOpenChange={(open) => { if (!open) onCloseCreate(); }}>
+      {creating && <TaskForm onDone={onCloseCreate} />}
+    </Dialog>
+    {selected && <TaskDetail key={selected.id} task={selected} onClose={onCloseDetail} />}
+  </>;
 }
 
 function TaskToolbar({

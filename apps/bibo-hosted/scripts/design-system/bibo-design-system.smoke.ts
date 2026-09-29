@@ -2,6 +2,15 @@ import { openMarkdownSource } from "../personal-workspace.fixture";
 import assert from "node:assert/strict";
 import type { Locator, Page } from "playwright";
 
+export async function checkLongPlanningDetails(page: Page, view: "tasks" | "calendar") {
+  await page.locator(view === "tasks" ? ".bibo-task-row" : ".bibo-agenda-event:visible").first().click();
+  if (view === "tasks") await page.getByRole("button", { name: "编辑任务", exact: true }).click();
+  assert.ok((await page.getByRole("textbox", { name: view === "tasks" ? "任务名称" : "标题", exact: true }).inputValue()).length > 100);
+  if (view === "tasks") assert.equal(await page.locator(".ui-overlay--sheet-right").isVisible(), true);
+  await checkContentBounds(page);
+  await page.getByRole("button", { name: view === "tasks" ? "保存任务" : "保存日程", exact: true }).click({ trial: true });
+}
+
 export async function checkSessionActionFade(row: Locator): Promise<void> {
   const fade = await row.evaluate((element) => {
     const actions = element.querySelector<HTMLElement>(".session-actions")!;
