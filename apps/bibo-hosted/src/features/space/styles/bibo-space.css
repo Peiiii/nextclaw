@@ -157,6 +157,12 @@
 .workspace-detail-head h2 { @apply m-0 text-lg font-semibold; }
 .task-editor { @apply flex-1 min-h-0 [max-width:none]; }
 .task-editor-fields { @apply flex-1 min-h-0 min-w-0 overflow-auto p-0.5 border-0 m-0; }
+.task-editor-main, .task-editor-properties { @apply flex flex-col gap-4 min-w-0; }
+.task-editor-properties h3 { @apply m-0 text-base font-semibold [color:var(--ui-muted)]; }
+.ui-overlay--sheet-right .task-editor { @apply w-full; }
+.ui-overlay--sheet-right .task-editor-fields { @apply grid [grid-template-columns:minmax(0,_1fr)_220px] gap-6; }
+.ui-overlay--sheet-right .task-editor-properties { @apply [border-left:1px_solid_var(--ui-line)] pl-6; }
+.ui-overlay--sheet-right .ui-overlay__actions { @apply [border-top:1px_solid_var(--ui-line)] pt-4; }
 .task-editor > .bibo-action-row { @apply flex-none mt-3 pt-3 [border-top:1px_solid_var(--ui-line)]; }
 .task-property-pair { @apply grid [grid-template-columns:repeat(2,_minmax(0,_1fr))] gap-3; }
 .bibo-inline-input .ui-control { @apply w-full; }
@@ -178,6 +184,9 @@
 .bibo-filterbar > input.ui-control { @apply [width:min(260px,_100%)] [min-width:120px] [flex:0_1_260px]; }
 .bibo-filterbar > select { @apply shrink-0; }
 @media (max-width: 760px) {
+  .ui-overlay--sheet.ui-overlay--wide.ui-overlay--sheet-right { @apply [width:100vw]; }
+  .ui-overlay--sheet-right .task-editor-fields { @apply [grid-template-columns:minmax(0,_1fr)] gap-6; }
+  .ui-overlay--sheet-right .task-editor-properties { @apply border-l-0 pl-0 [border-top:1px_solid_var(--ui-line)] pt-4; }
   .bibo-task-layout.is-detail-open .bibo-list-pane { @apply hidden; }
   .bibo-task-layout .bibo-list-pane { @apply [max-height:none]; }
 }

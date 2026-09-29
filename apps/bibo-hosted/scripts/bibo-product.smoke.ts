@@ -226,7 +226,7 @@ async function checkLongTitles(page: Page, width: number): Promise<void> {
     }
     if (view === "tasks" || view === "calendar") {
       await page.locator(view === "tasks" ? ".bibo-task-row" : ".bibo-agenda-event:visible").first().click();
-      assert.ok((await page.getByRole("textbox", { name: view === "tasks" ? "任务名称" : "标题", exact: true }).inputValue()).length > 100);
+      assert.ok((await page.getByRole("textbox", { name: view === "tasks" ? "任务名称" : "标题", exact: true }).inputValue()).length > 100 && (view !== "tasks" || await page.locator(".ui-overlay--sheet-right").isVisible()), "long task content opens in the right drawer");
       await checkContentBounds(page);
       await page.getByRole("button", { name: view === "tasks" ? "保存任务" : "保存日程", exact: true }).click({ trial: true });
     }
@@ -436,7 +436,7 @@ try {
       await taskRow.click();
       await page.getByRole("textbox", { name: "任务名称" }).waitFor();
       const taskSaveBox = await page.getByRole("button", { name: "保存任务", exact: true }).boundingBox();
-      assert.ok(taskSaveBox && taskSaveBox.y + taskSaveBox.height < viewport.height - (viewport.width < 600 ? 61 : 0), "task save stays visible while fields scroll");
+      assert.ok(taskSaveBox && taskSaveBox.y + taskSaveBox.height < viewport.height, "task save stays visible while fields scroll");
       const taskDescriptionBox = await page.getByRole("textbox", { name: "说明", exact: true }).boundingBox();
       assert.ok(taskDescriptionBox && taskDescriptionBox.y < viewport.height * .5, "task description precedes secondary metadata");
       await page.screenshot({ path: `/tmp/bibo-tasks-${viewport.width}.png`, fullPage: true, animations: "disabled" });

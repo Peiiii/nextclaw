@@ -15,6 +15,7 @@ import {
   RowActionTray,
   SegmentedControl,
   Select,
+  Sheet,
 } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { datetime } from "@/features/space/utils/date-format.utils";
@@ -153,21 +154,29 @@ export function Tasks() {
           )}
         </div>
       </div>
-      <Dialog open={creating || Boolean(selected)} title={creating ? "新任务" : "任务详情"} size="wide"
-        closeLabel="返回任务" busy={saving} onOpenChange={(open) => { if (!open) { setCreating(false); selectTask(null); } }}>
-        {(creating || selected) && (
-            <TaskForm
-              key={selected?.id ?? "new"}
-              task={selected}
-              onDone={() => {
-                setCreating(false);
-                selectTask(null);
-              }}
-            />
-        )}
-      </Dialog>
+      <TaskEditorOverlays creating={creating} selected={selected} saving={saving}
+        onCloseCreate={() => { setCreating(false); selectTask(null); }} onCloseDetail={() => selectTask(null)} />
     </div>
   );
+}
+
+function TaskEditorOverlays({ creating, selected, saving, onCloseCreate, onCloseDetail }: {
+  creating: boolean;
+  selected: BiboTask | null;
+  saving: boolean;
+  onCloseCreate: () => void;
+  onCloseDetail: () => void;
+}) {
+  return <>
+    <Dialog open={creating} title="新任务" size="wide" closeLabel="返回任务" busy={saving}
+      onOpenChange={(open) => { if (!open) onCloseCreate(); }}>
+      {creating && <TaskForm task={null} onDone={onCloseCreate} />}
+    </Dialog>
+    <Sheet open={Boolean(selected)} title="任务详情" side="right" size="wide" closeLabel="关闭任务详情"
+      busy={saving} onOpenChange={(open) => { if (!open) onCloseDetail(); }}>
+      {selected && <TaskForm key={selected.id} task={selected} onDone={onCloseDetail} />}
+    </Sheet>
+  </>;
 }
 
 function TaskToolbar({

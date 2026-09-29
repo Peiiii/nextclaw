@@ -14,6 +14,7 @@ type OverlayProps = {
   returnFocusRef?: RefObject<HTMLElement>;
   initialFocusRef?: RefObject<HTMLElement>;
   size?: "default" | "wide";
+  side?: "left" | "right";
 };
 
 function Overlay({
@@ -27,6 +28,7 @@ function Overlay({
   returnFocusRef,
   initialFocusRef,
   size = "default",
+  side = "left",
   variant,
 }: OverlayProps & { variant: "dialog" | "sheet" }) {
   const previousFocus = useRef<HTMLElement | null>(null);
@@ -43,7 +45,7 @@ function Overlay({
         <Primitive.Content
           ref={content}
           tabIndex={-1}
-          className={`ui-overlay ui-overlay--${variant}${size === "wide" ? " ui-overlay--wide" : ""}`}
+          className={`ui-overlay ui-overlay--${variant}${size === "wide" ? " ui-overlay--wide" : ""}${variant === "sheet" ? ` ui-overlay--sheet-${side}` : ""}`}
           {...(!description ? { "aria-describedby": undefined } : {})}
           aria-busy={busy}
           onOpenAutoFocus={(event) => {
