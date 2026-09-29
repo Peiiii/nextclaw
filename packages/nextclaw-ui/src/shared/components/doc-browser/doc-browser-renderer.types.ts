@@ -1,11 +1,13 @@
 import type { PointerEvent, ReactNode } from 'react';
 import type { DocBrowserContextValue, DocBrowserTab } from './doc-browser-context';
+import type { ContextMenuGroup } from '@/shared/components/ui/context-menu/context-menu';
 
 export type DocBrowserCustomTabRenderParams = {
   currentUrl: string;
   open: DocBrowserContextValue['open'];
   openTarget: DocBrowserContextValue['openTarget'];
   refreshIframe: () => void;
+  refreshVersion: number;
   tab: DocBrowserTab;
 };
 
@@ -17,6 +19,7 @@ export type DocBrowserIframeMessageParams = {
 };
 
 export type DocBrowserCustomTabRenderer = {
+  getTabMenuGroups?: (params: DocBrowserCustomTabRenderParams) => readonly ContextMenuGroup[];
   getIframeSandbox?: (tab: DocBrowserTab) => string | undefined;
   getTitle?: (tab: DocBrowserTab) => string;
   onIframeMessage?: (params: DocBrowserIframeMessageParams) => void;

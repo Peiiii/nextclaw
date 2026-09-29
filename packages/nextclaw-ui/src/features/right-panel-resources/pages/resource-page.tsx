@@ -14,6 +14,16 @@ import { pageResourceTab } from "@/features/right-panel-resources/managers/page-
 import { pageResourceFromTarget } from "@/features/right-panel-resources/utils/page-resource-identity.utils";
 import type { PageResource } from "@/features/right-panel-resources/types/page-resource.types";
 import { t } from "@/shared/lib/i18n";
+import { parseSystemObjectReferenceUri } from "@nextclaw/shared";
+import { RefreshCw } from "lucide-react";
+import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
+import { usePanelApps } from "@/features/panel-apps/hooks/use-panel-apps";
+
+function PanelAppResourceTitle({ appId, fallback }: { appId: string; fallback: string }) {
+  const panelApps = usePanelApps();
+  const title = panelApps.data?.entries.find((entry) => entry.appId === appId)?.title ?? fallback;
+  return <span className="min-w-0 flex-1 truncate text-sm">{title}</span>;
+}
 
 function ResourcePageContent({ page }: { page: PageResource }) {
   const app = useAppPresenter();
@@ -22,6 +32,10 @@ function ResourcePageContent({ page }: { page: PageResource }) {
   const [revision, setRevision] = useState(0);
   const tab = useMemo(() => pageResourceTab(page), [page]);
   const renderer = PAGE_RESOURCE_RENDERERS[tab.kind];
+  const object = tab.kind === "system-object"
+    ? parseSystemObjectReferenceUri(page.uri)
+    : null;
+  const panelAppId = object?.objectType === "panel-app" ? object.objectId : null;
   const iframeInstanceId = `main:${page.uri}:${revision}`;
   const restore = useDocBrowserScrollRestoration({
     currentTab: tab,
@@ -55,6 +69,7 @@ function ResourcePageContent({ page }: { page: PageResource }) {
     tab,
     currentUrl: tab.currentUrl,
     refreshIframe: () => setRevision((value) => value + 1),
+    refreshVersion: revision,
     open: (uri?: string) => {
       const next = uri ? app.pageResourceManager.resolve(uri) : null;
       if (next) app.pageResourceManager.open(next, "main", navigate);
@@ -73,10 +88,22 @@ function ResourcePageContent({ page }: { page: PageResource }) {
     >
       <header className="flex min-h-10 shrink-0 items-center gap-2 border-b border-border/60 px-3">
         <PageResourceIcon uri={page.uri} icon={page.target.dockIcon} />
-        <span className="min-w-0 flex-1 truncate text-sm">{page.title}</span>
+        {panelAppId ? (
+          <PanelAppResourceTitle appId={panelAppId} fallback={page.title} />
+        ) : (
+          <span className="min-w-0 flex-1 truncate text-sm">{page.title}</span>
+        )}
+        {panelAppId ? (
+          <IconActionButton
+            icon={<RefreshCw className="h-3.5 w-3.5" />}
+            label={t("panelAppsRefreshCurrent")}
+            onClick={params.refreshIframe}
+            size="sm"
+          />
+        ) : null}
         <PageResourceActionsMenu page={page} />
       </header>
-      {renderer?.renderToolbar?.(params)}
+      {!panelAppId ? renderer?.renderToolbar?.(params) : null}
       <DocBrowserFrameContent
         currentTab={tab}
         currentUrl={tab.currentUrl}
