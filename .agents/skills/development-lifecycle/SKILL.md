@@ -9,9 +9,9 @@ description: 通用开发流程的唯一 Meta Skill；理解后选择 standard�
 
 只管理流程、阶段状态与完成判断，不复制阶段方法或动态项目事实。项目定义了意图宏时按其权威登记展开；解释、引用不执行。仅调查、设计、Review 等请求止于指定产物，不自动扩展为实现或发布。
 
-切入 worktree、迁移草稿或主线并发时遵守目标项目的 Git 工作区合同；项目没有专门合同也要保护既有改动并精确迁移本任务草稿。用户同时明确省 Token 和子代理时才读[委派合同](references/token-efficient-delegation.md)。
+worktree/主线并发遵守项目 Git 合同，保护既有改动并迁移本任务草稿。用户明确要求省 Token 且指定子代理时才读[委派合同](references/token-efficient-delegation.md)。
 
-共同入口由 Task Understanding 给出用户结果、范围/授权、成功判定、事实/假设/未知、owner、风险与分类依据。上下文足够时不反问；会改变目标或关键选择的缺口才澄清。
+Task Understanding 给出目标、授权、验收、证据/未知、owner、风险与分类依据；仅澄清影响目标或关键选择的缺口。
 
 ## 分类与风险
 
@@ -23,9 +23,9 @@ description: 通用开发流程的唯一 Meta Skill；理解后选择 standard�
 
 风险独立：L0 普通文档/元信息；L1 局部低风险；L2 行为/交互；L3 跨 owner、持久化、协议或高影响规则；L4 发布、迁移、生产或不可逆操作。按内容而非扩展名或行数判断。trivial 仅 L0-L1；发现跨层影响或设计分叉升级 standard，复用有效证据。bugfix 有设计缺口时使用正式设计与方案 Review，保留修复目标。
 
-`task-type` 仍按主要意图为 feature / bugfix / small-change，flow 独立记录，不机械替换统计字段。observer phase 使用原七个值；方案审查使用 review，AI 验收依次使用 validation/review，不新增 marker 值。
+`task-type`（feature/bugfix/small-change）与 flow 分别记录。observer 沿用七阶段；方案审查为 review，AI 验收为 validation/review。
 
-风险 L3-L4，或用户明确要求大型、多阶段、低监督完整交付/验收标准时读取 Wiki 中的[验收合同方法](../../wiki/skills/process/acceptance-contract-governance/SKILL.md)，登记 active contract 与 stable acceptance IDs；普通任务也有判定，但不普遍创建 ledger。
+风险 L3-L4 或用户要求大型、多阶段、低监督交付/验收时读取[验收合同方法](../../wiki/skills/process/acceptance-contract-governance/SKILL.md)，登记 active contract 与稳定 ID；普通任务不普遍建 ledger。
 
 ## 三条流程
 
@@ -53,13 +53,15 @@ standard 不因 diff 小跳过设计：设计含验收标准、必要测试矩�
 - 可用入口、用户验收、授权内交付：`development-delivery`。
 - 轻量反思与条件沉淀：`development-retrospective`。
 
-跨阶段下级 Skill 不占顶层发现入口：任务跨上下文/会话或需找回未完成工作时读取[执行状态与恢复](../../wiki/skills/process/iteration-work-notes/SKILL.md)；命中质量迭代宏、要求“自己评审并优化到满意”，或连续纠偏暴露同类质量差距时读取[质量迭代收敛](../../wiki/skills/process/iterative-quality-convergence/SKILL.md)，普通局部修改不触发；事实维护、知识分流或资料冲突时读取[项目知识治理](../../wiki/skills/process/project-knowledge-governance/SKILL.md)。每次只加载当前决策需要的一项。
+跨会话或恢复读取[执行状态与恢复](../../wiki/skills/process/iteration-work-notes/SKILL.md)；质量迭代宏、要求反复评审至满意或同类质量纠偏读取[质量迭代收敛](../../wiki/skills/process/iterative-quality-convergence/SKILL.md)；事实维护或资料冲突读取[项目知识治理](../../wiki/skills/process/project-knowledge-governance/SKILL.md)。只加载命中项。
 
 AI 验收结合 Validation 合同证据与 Review 结论，不新增平行 Skill。方案 Review 不要求多代理。用户验收不适用于纯内部产物时说明依据，不强加产品运行环境。
 
 ## 状态与返工
 
-阶段返回 status(completed/skipped/rework/blocked)、结论、产物、证据、open_risks、rework_target、acceptance_updates 与 `parent_status`(in-progress/blocked/ready-for-completion-check)。无 active contract 时 acceptance_updates 为空。阶段、Delivery 和 release 仅关闭子目标，不返回整体 completed。
+完整开发或授权发布确定 flow 时将 `retrospective_state=pending`；限定单阶段任务不扩成完整交付。阶段返回 status(completed/skipped/rework/blocked)、结论、产物、证据、open_risks、rework_target、acceptance_updates 与 `parent_status`；无 active contract 时 updates 为空。阶段、Delivery、release 不返回整体 completed。
+
+Delivery 完成后仅返回 `parent_status=ready-for-retrospective`。Lifecycle 随即路由 Retrospective，取得 `retrospective_decision`（原 owner 更新与证据，或 `no-increment` 及理由）才置 `retrospective_state=completed` 并检查完成；未完结果返工，进度汇报不改变状态。
 
 - 理解或根因不明回 Task Understanding；模型缺口回 Design；编码偏差回 Implementation。
 - 方案 Review 失败回 Design；实现 Review 有 finding 不得交付，修正后重验变化并复审。
@@ -67,15 +69,15 @@ AI 验收结合 Validation 合同证据与 Review 结论，不新增平行 Skill
 - 交付入口不完整留在 Delivery；外部失败由该阶段恢复，产物合同错误才回上游。
 - 复盘发现结果不完整先返工，不将缺口改称后续优化。
 
-合同变化致设计失效时，回 Design 复审；其它证据复用。
+有效合同形成或变化后，受影响设计与旧方案 Review 不再自动有效；若目标、Required 条件、能力边界或关键假设未被现行方案覆盖，先返回 Design 更新并复审，不能凭旧结论继续实现或发布。未变化部分不重跑。
 
-跨会话、交接或上下文压缩前保存 flow、阶段/mode、目标、授权、验收项、证据指针、open Required IDs 与 scope decisions；恢复先对账，不从版本或最新总结猜完成。
+跨会话、交接或上下文压缩前保存 flow、阶段/mode、`retrospective_state`、目标、授权、验收项、证据指针、open Required IDs 与 scope decisions；恢复先对账，不从版本或最新总结猜完成。
 
 ## 完成门
 
-整体仅由本 Meta Skill 判定：最小完整结果成立；授权内无可关闭的必要缺口；适用验证有效、Review findings 清零；Delivery 已完成适用交接与用户验收合同；Retrospective 已判断是否沉淀；未验证和主观项已披露。包含复盘新增文件在内，本任务改动须全部归入交付范围；已切 worktree 时源区不得遗留本任务改动，未获提交授权时明确草稿位置与未提交状态。
+整体仅由本 Meta Skill 判定：最小完整结果成立；授权内无可关闭的必要缺口；适用验证有效、Review findings 清零；Delivery 已完成适用交接与用户验收合同；`retrospective_state=completed` 且有明确 `retrospective_decision`；未验证和主观项已披露。没有新增沉淀也要完成判断，但不为此创建空日志。包含复盘新增文件在内，本任务改动须全部归入交付范围；已切 worktree 时源区不得遗留本任务改动，未获提交授权时明确草稿位置与未提交状态。
 
-完成判断分别核对实现、AI 验证和用户交付，不以测试通过或工作区路径代替 Delivery 的证据。适用用户验收时，须有包含本次改动的可用入口、完整使用链路、AI 按该链路先行验证及交接结果；缺项返回 Delivery，设计自行缩减原结果则返回 Design，不能据此宣布完成。纯内部或用户明确限定的产物交付按其范围核对。
+完成判断分别核对实现、AI 验证和交付。用户验收适用时须有含本次改动的入口、完整使用链路、AI 先验与交接；缺项回 Delivery，擅自缩减目标回 Design。纯内部/限定产物按其范围核对。
 
 区分已交付待用户验收、用户验收通过和任务关闭。约定必须用户确认时保持待验收；否则可结束开发交付。未回复不算通过，验收不新增已有授权之外的审批门。待验收可先做内部复盘，用户反馈更新同一记录。
 

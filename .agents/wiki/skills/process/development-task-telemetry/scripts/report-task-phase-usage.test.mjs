@@ -483,3 +483,83 @@ test("keeps legacy missing types unknown and warns on reopen conflicts", async (
     );
   });
 });
+
+test("tracks visible steps, flow, current phase, and missing retrospective", async () => {
+  const records = [
+    session("thread-visible", "2026-08-14T10:00:00.000Z"),
+    turn("2026-08-14T10:00:00.010Z"),
+    assistant(
+      "2026-08-14T10:00:01.000Z",
+      '[我严格遵守规则][深思模式][step:task-understanding][nextclaw.dev/v1 task=start id=dt-visible1 name="短阶段标记" type=bugfix phase=task-understanding] start',
+    ),
+    tokenCount("2026-08-14T10:00:02.000Z", 20),
+    assistant("2026-08-14T10:00:03.000Z", "[我严格遵守规则][flow:bugfix][step:implementation] fixing"),
+    tokenCount("2026-08-14T10:00:04.000Z", 40),
+    assistant("2026-08-14T10:00:05.000Z", "[我严格遵守规则][step:validation] validating"),
+    tokenCount("2026-08-14T10:00:06.000Z", 60),
+    assistant("2026-08-14T10:00:07.000Z", "[nextclaw.dev/v1 task=end id=dt-visible1 status=completed] done"),
+    tokenCount("2026-08-14T10:00:08.000Z", 80),
+  ];
+
+  await withRollouts({ "visible.jsonl": records }, async (paths) => {
+    const task = taskById(await analyzeRollouts(paths), "dt-visible1");
+    assert.equal(task.flow, "bugfix");
+    assert.equal(task.current_phase, "validation");
+    assert.equal(task.retrospective_observation, "missing");
+    assert.equal(task.total_usage.total_tokens, 80);
+    assert.equal(phaseByName(task, "implementation").span_count, 1);
+  });
+
+  records.splice(-2, 0,
+    assistant("2026-08-14T10:00:06.100Z", "[我严格遵守规则][step:retrospective] reviewing"),
+    tokenCount("2026-08-14T10:00:06.200Z", 70),
+  );
+  await withRollouts({ "visible-retro.jsonl": records }, async (paths) => {
+    const task = taskById(await analyzeRollouts(paths), "dt-visible1");
+    assert.equal(task.current_phase, "retrospective");
+    assert.equal(task.retrospective_observation, "entered");
+  });
+});
+
+test("rejects visible and machine phase disagreement", async () => {
+  const records = [
+    session("thread-mismatch", "2026-08-14T11:00:00.000Z"),
+    turn("2026-08-14T11:00:00.010Z"),
+    assistant(
+      "2026-08-14T11:00:01.000Z",
+      '[flow:bugfix][step:design][nextclaw.dev/v1 task=start id=dt-mismatch name="阶段不一致" type=bugfix phase=implementation] start',
+    ),
+    tokenCount("2026-08-14T11:00:02.000Z", 10),
+  ];
+  await withRollouts({ "mismatch.jsonl": records }, async (paths) => {
+    const report = await analyzeRollouts(paths);
+    assert.equal(report.tasks.length, 0);
+    assert.equal(report.warnings[0].code, "state_conflict");
+  });
+});
+
+test("ignores step examples in ordinary first-line prose", async () => {
+  const records = [
+    session("thread-examples", "2026-08-14T12:00:00.000Z"),
+    turn("2026-08-14T12:00:00.010Z"),
+    assistant(
+      "2026-08-14T12:00:01.000Z",
+      '[flow:standard][step:implementation][nextclaw.dev/v1 task=start id=dt-examples name="文字示例" type=feature phase=implementation] start',
+    ),
+    tokenCount("2026-08-14T12:00:02.000Z", 10),
+    assistant(
+      "2026-08-14T12:00:03.000Z",
+      "[我严格遵守规则]例如 `[step:validation]` 与 `[step:review]` 只在进入阶段时输出。",
+    ),
+    tokenCount("2026-08-14T12:00:04.000Z", 20),
+    assistant("2026-08-14T12:00:05.000Z", "[step:validation] begin"),
+    tokenCount("2026-08-14T12:00:06.000Z", 30),
+  ];
+  await withRollouts({ "examples.jsonl": records }, async (paths) => {
+    const task = taskById(await analyzeRollouts(paths), "dt-examples");
+    assert.equal(task.current_phase, "validation");
+    assert.equal(task.warning_counts.multiple_markers, undefined);
+    assert.equal(task.warning_counts.invalid_marker_position, undefined);
+    assert.equal(task.total_usage.total_tokens, 30);
+  });
+});

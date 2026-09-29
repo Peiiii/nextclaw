@@ -59,6 +59,6 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 
 ## 输出
 
-报告范围、证据、授权与执行结果、缺口、恢复入口及残余 WIP；验收交付一次给齐入口、步骤和预期。有 active contract 时报告 stable ID 更新并返回 parent；不得把部分完成表述成全部完成。
+报告范围、证据、授权与执行结果、缺口、恢复入口及残余 WIP；验收交付一次给齐入口、步骤和预期。有 active contract 时报告 stable ID 更新并返回 parent；不得把部分完成表述成全部完成。完整开发或授权发布的 Delivery 完成时，返回 `parent_status=ready-for-retrospective` 与交付证据，由 Lifecycle 路由复盘后再做整体完成判断；仅授权发布而直接进入 Delivery 的任务也要完成这一交接。外部发布成功、长时间等待结束或用户催促均不跳过；纯调查、设计或 Review 的限定单阶段产物不因此扩大范围。
 
 本阶段不修改产品实现、不关闭 Review findings，也不把内部工程记录直接拼成用户 release notes。
