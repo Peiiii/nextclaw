@@ -5,12 +5,13 @@ import { chromium, type Page } from "playwright";
 import { mockApi } from "../personal-workspace.fixture";
 
 const port = process.env.BIBO_SMOKE_PORT ?? String(30000 + process.pid % 20000);
-const base = `http://127.0.0.1:${port}`;
-const server = spawn(process.execPath, [new URL("../../node_modules/vite/bin/vite.js", import.meta.url).pathname,
+const base = process.env.BIBO_SMOKE_BASE ?? `http://127.0.0.1:${port}`;
+const server = process.env.BIBO_SMOKE_BASE ? null : spawn(process.execPath, [new URL("../../node_modules/vite/bin/vite.js", import.meta.url).pathname,
   "preview", "--host", "127.0.0.1", "--port", port, "--strictPort"],
 { cwd: new URL("../..", import.meta.url).pathname, stdio: "ignore" });
 
 async function ready(): Promise<void> {
+  if (!server) return;
   for (let attempt = 0; attempt < 60; attempt += 1) {
     if (server.exitCode !== null) throw new Error("Question preview exited before readiness");
     try { if ((await fetch(base)).ok) return; } catch { /* Preview is starting. */ }
@@ -79,7 +80,7 @@ try {
     }
   } finally { await browser.close(); }
 } finally {
-  if (server.exitCode === null && server.signalCode === null) {
+  if (server && server.exitCode === null && server.signalCode === null) {
     const exited = once(server, "exit");
     server.kill("SIGTERM");
     await exited;
