@@ -8,7 +8,7 @@ Panel HTML 与 asset 响应均为 `Cache-Control: no-store`，重建相同 URL �
 
 ## 用户链路与方案
 
-通过对象资源打开 Panel App 时，复用现有宿主 `PanelAppToolbar`，把刷新图标放在标题／地址行右侧。窄屏 Panel App 也显示这行。
+通过对象资源打开 Panel App 时，右侧工作台复用现有宿主 `PanelAppToolbar`。主资源页把刷新图标并入已有标题行，并显示应用标题，不再增加第二行。窄屏工作台中的 Panel App 仍显示宿主刷新入口。
 
 刷新只增加宿主资源视图的版本，由 `PanelAppRuntimeSurface` 使用该版本重建 iframe；`appId`、URL、sandbox、运行时权限状态和持久数据不变。主内容区原有独立路由与独立页面保持应用画布，不在应用内部叠按钮。
 
