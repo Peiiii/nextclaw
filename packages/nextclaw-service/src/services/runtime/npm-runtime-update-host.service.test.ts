@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { NextclawKernel } from "@nextclaw/kernel";
-import { eventKeys } from "@nextclaw/shared";
+import { EventBus, eventKeys } from "@nextclaw/shared";
 import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
 import {
   NpmRuntimeUpdateHost,
@@ -196,7 +195,7 @@ describe("NpmRuntimeUpdateHost", () => {
   });
   afterEach(() => vi.unstubAllEnvs());
   it("uses distribution metadata when creating the runtime update source", () => {
-    const eventBus = new NextclawKernel().eventBus;
+    const eventBus = new EventBus();
     new NpmRuntimeUpdateHost({
       eventBus,
       applyRestartMode: "manual-process-restart",
@@ -212,7 +211,7 @@ describe("NpmRuntimeUpdateHost", () => {
 
   it("keeps stable launcher and running runtime versions as separate facts", () => {
     new NpmRuntimeUpdateHost({
-      eventBus: new NextclawKernel().eventBus,
+      eventBus: new EventBus(),
       applyRestartMode: "manual-process-restart",
       requestRestart: vi.fn(),
       uiConfig: { port: 55667 }
@@ -226,7 +225,7 @@ describe("NpmRuntimeUpdateHost", () => {
 
   it("returns completed check and download snapshots without requiring realtime events", async () => {
     const host = new NpmRuntimeUpdateHost({
-      eventBus: new NextclawKernel().eventBus,
+      eventBus: new EventBus(),
       applyRestartMode: "manual-process-restart",
       requestRestart: vi.fn(),
       uiConfig: { port: 55667 }
@@ -246,7 +245,7 @@ describe("NpmRuntimeUpdateHost", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-17T12:00:00.000Z"));
     const host = new NpmRuntimeUpdateHost({
-      eventBus: new NextclawKernel().eventBus,
+      eventBus: new EventBus(),
       applyRestartMode: "manual-process-restart",
       requestRestart: vi.fn(),
       uiConfig: { port: 55667 },
@@ -285,7 +284,7 @@ describe("NpmRuntimeUpdateHost", () => {
     });
     mocks.manager.checkForUpdate.mockImplementationOnce(async () => await firstCheckResult);
     const host = new NpmRuntimeUpdateHost({
-      eventBus: new NextclawKernel().eventBus,
+      eventBus: new EventBus(),
       applyRestartMode: "manual-process-restart",
       requestRestart: vi.fn(),
       uiConfig: { port: 55667 }
@@ -314,7 +313,7 @@ describe("NpmRuntimeUpdateHost", () => {
 
   it("keeps a foreground serve process alive after applying a downloaded runtime update", async () => {
     const requestRestart = vi.fn();
-    const eventBus = new NextclawKernel().eventBus;
+    const eventBus = new EventBus();
     const host = new NpmRuntimeUpdateHost({
       eventBus,
       applyRestartMode: "manual-process-restart",
@@ -333,7 +332,7 @@ describe("NpmRuntimeUpdateHost", () => {
 
   it("restarts the managed local service after applying a downloaded runtime update", async () => {
     const requestRestart = vi.fn();
-    const eventBus = new NextclawKernel().eventBus;
+    const eventBus = new EventBus();
     const host = new NpmRuntimeUpdateHost({
       eventBus,
       applyRestartMode: "managed-service-restart",
@@ -355,7 +354,7 @@ describe("NpmRuntimeUpdateHost", () => {
   it("exits a supervised process so the host can relaunch the new runtime", async () => {
     const requestRestart = vi.fn();
     const host = new NpmRuntimeUpdateHost({
-      eventBus: new NextclawKernel().eventBus,
+      eventBus: new EventBus(),
       applyRestartMode: "supervised-process-restart",
       requestRestart,
       uiConfig: { port: 55667 }
@@ -378,7 +377,7 @@ describe("NpmRuntimeUpdateHost", () => {
 
   it("publishes runtime update snapshots through the app event bus", async () => {
     const statuses: string[] = [];
-    const eventBus = new NextclawKernel().eventBus;
+    const eventBus = new EventBus();
     const unsubscribe = eventBus.on(eventKeys.runtimeUpdateSnapshot, (snapshot) => {
       statuses.push(snapshot.status);
     });
@@ -403,7 +402,7 @@ describe("NpmRuntimeUpdateHost", () => {
     mocks.manager.checkForUpdate.mockRejectedValueOnce(new TypeError("fetch failed", { cause }));
     const logger = { error: vi.fn() };
     const host = new NpmRuntimeUpdateHost({
-      eventBus: new NextclawKernel().eventBus,
+      eventBus: new EventBus(),
       logger,
       applyRestartMode: "manual-process-restart",
       requestRestart: vi.fn(),

@@ -3,18 +3,14 @@ import {
   buildReloadPlan,
   ConfigSchema,
   diffConfigPaths,
-  getConfigPath,
-  loadConfig,
   normalizeInlineSecretRefs,
   redactConfigObject,
-  resolveConfigSecrets,
-  saveConfig,
   type Config,
   type DiagnosticRuntime,
   type ExtensionRegistry,
 } from "@nextclaw/core";
 import { createHash, randomUUID } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import type { ConfigPersistence } from "@kernel/types/config-persistence.types.js";
 import { classifyDiagnosticError } from "@nextclaw/shared";
 import type { ChannelManager } from "./channel.manager.js";
 import type { LlmProviderManager } from "./llm-provider.manager.js";
@@ -31,7 +27,7 @@ export type ConfigManagerRuntimeHooks = {
 };
 
 export type ConfigManagerOptions = {
-  configPath?: string;
+  storage: ConfigPersistence;
   channels: ChannelManager;
   diagnostics?: Pick<DiagnosticRuntime, "record">;
   providerManager: LlmProviderManager;
@@ -69,9 +65,10 @@ export class ConfigManager {
   private reloadTimer: ReturnType<typeof setTimeout> | null = null;
   private reloadRunning = false;
   private reloadPending = false;
+  private mutationChain: Promise<void> = Promise.resolve();
 
   constructor(private readonly options: ConfigManagerOptions) {
-    this.configPath = options.configPath ?? getConfigPath();
+    this.configPath = options.storage.location;
     this.currentConfig = this.loadConfig();
     this.options.providerManager.load(this.currentConfig);
     this.options.providerModelCatalogManager?.load(this.currentConfig);
@@ -86,7 +83,7 @@ export class ConfigManager {
   }
 
   loadConfig = (): Config =>
-    resolveConfigSecrets(loadConfig(this.configPath), { configPath: this.configPath });
+    this.options.storage.load();
 
   getDefaultModel = (): string =>
     this.loadConfig().agents.defaults.model;
@@ -241,13 +238,19 @@ export class ConfigManager {
   getConfigSchema = (params: { version?: string } = {}): Record<string, unknown> => buildConfigSchema({ version: params.version });
 
   applyRawConfig = async (params: RawConfigMutationParams): Promise<ConfigMutationResult> =>
-    this.mutateRawConfig(params, (_snapshot, parsed) => parsed);
+    this.enqueueMutation(() => this.mutateRawConfig(params, (_snapshot, parsed) => parsed));
 
   patchRawConfig = async (params: RawConfigMutationParams): Promise<ConfigMutationResult> =>
-    this.mutateRawConfig(params, (snapshot, patch) => mergeDeep(snapshot.config as Record<string, unknown>, patch));
+    this.enqueueMutation(() => this.mutateRawConfig(params, (snapshot, patch) => mergeDeep(snapshot.config as Record<string, unknown>, patch)));
 
   applyConfig = async (nextConfig: Config, note?: string): Promise<ConfigMutationResult> =>
-    this.applyConfigChange({ nextConfig, note });
+    this.enqueueMutation(() => this.applyConfigChange({ nextConfig, note }));
+
+  private enqueueMutation = <T>(operation: () => Promise<T>): Promise<T> => {
+    const result = this.mutationChain.then(operation);
+    this.mutationChain = result.then(() => undefined, () => undefined);
+    return result;
+  };
 
   scheduleReload = (reason: string): void => {
     if (this.reloadTimer) {
@@ -344,12 +347,15 @@ export class ConfigManager {
   private readConfigSnapshot = (params: { version?: string } = {}): ConfigSnapshot => {
     let raw = "";
     let parsed: Record<string, unknown> = {};
-    if (existsSync(this.configPath)) {
-      raw = readFileSync(this.configPath, "utf-8");
+    const stored = this.options.storage.readRaw();
+    if (stored !== null) {
+      raw = stored;
       try {
         parsed = JSON.parse(raw) as Record<string, unknown>;
       } catch {
-        parsed = {};
+        return {
+          raw: null, hash: null, config: ConfigSchema.parse({}), redacted: {}, valid: false,
+        };
       }
     }
 
@@ -441,7 +447,7 @@ export class ConfigManager {
       });
     }
 
-    saveConfig(nextConfig, this.configPath);
+    await this.options.storage.save(nextConfig);
     await this.applyReloadPlan(nextConfig);
     return this.createConfigMutationResult({
       changedPaths,

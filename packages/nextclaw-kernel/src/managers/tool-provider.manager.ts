@@ -1,5 +1,5 @@
 import type { NcpTool } from "@nextclaw/ncp";
-import { TOOL_SCHEMA_NAME, ToolSchemaTool } from "@kernel/tools/tool-schema.tools.js";
+import { composeAgentToolCatalog } from "@kernel/tools/tool-schema.tools.js";
 import type {
   Config,
   DiagnosticRuntime,
@@ -48,28 +48,13 @@ export class ToolProviderManager {
   };
 
   buildTools = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {
-    const tools: NcpTool[] = [];
-    const seen = new Set<string>();
-    if (this.isAllowed(TOOL_SCHEMA_NAME)) {
-      tools.push(this.wrapTool(new ToolSchemaTool(() => tools), request));
-      seen.add(TOOL_SCHEMA_NAME);
-    }
+    const groups: (readonly NcpTool[])[] = [];
     for (const provider of [...this.providers]) {
-      for (const tool of await provider.provide(request)) {
-        if (!this.isAllowed(tool.name)) continue;
-        if (seen.has(tool.name)) {
-          if (this.allowedToolNames !== null) throw new Error(`Restricted tool catalog has a duplicate name: ${tool.name}`);
-          continue;
-        }
-        seen.add(tool.name);
-        tools.push(this.wrapTool(tool, request));
-      }
+      groups.push(await provider.provide(request));
     }
-    return tools;
+    return composeAgentToolCatalog(groups, { allowedNames: this.allowedToolNames, portableValidation: true,
+      wrapTool: (tool) => this.wrapTool(tool, request) });
   };
-
-  private readonly isAllowed = (name: string): boolean =>
-    this.allowedToolNames === null || this.allowedToolNames.has(name);
 
   dispose = (): void => {
     this.providers.clear();

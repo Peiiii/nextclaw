@@ -1,4 +1,4 @@
-import { estimateInputTokens } from "@nextclaw/core";
+import { estimateInputTokens } from "@nextclaw/core/model-input-budget";
 import type { ContextWindowSnapshot } from "@nextclaw/core";
 import type { NcpMessage, NcpTool } from "@nextclaw/ncp";
 import type { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
@@ -38,9 +38,9 @@ export class AgentContextWindowManager {
   private readonly preflightService: ContextCompactionPreflightService;
 
   constructor(
-    private readonly agentManager: AgentManager,
-    private readonly contextProviderManager: ContextProviderManager,
-    private readonly toolProviderManager: ToolProviderManager,
+    private readonly agentManager: Pick<AgentManager, "resolveAgentProfileForRun" | "resolveAgentProfileForContextWindow" | "listAgents">,
+    private readonly contextProviderManager: Pick<ContextProviderManager, "buildContext">,
+    private readonly toolProviderManager: Pick<ToolProviderManager, "buildTools">,
     assetStore: LocalAssetStore | null = null,
   ) {
     this.preflightService = new ContextCompactionPreflightService(

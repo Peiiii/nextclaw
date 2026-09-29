@@ -47,6 +47,7 @@
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
+    "@nextclaw/harness": "workspace:*",
     "@nextclaw/channel-extension-dingtalk": "workspace:*",
     "@nextclaw/channel-extension-discord": "workspace:*",
     "@nextclaw/channel-extension-email": "workspace:*",

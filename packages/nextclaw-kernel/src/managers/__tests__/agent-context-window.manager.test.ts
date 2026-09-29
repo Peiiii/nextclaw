@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NcpMessage, NcpTool } from "@nextclaw/ncp";
-import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
+import { createLocalProductFixture } from "@kernel/utils/tests/local-product-fixture.utils.js";
 import { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
 
 const originalNextclawHome = process.env.NEXTCLAW_HOME;
@@ -258,11 +258,11 @@ describe("AgentContextWindowManager", () => {
         }],
       },
     }), configPath);
-    const kernel = new NextclawKernel({ configPath, homeDir: homeDirectory });
+    const { kernel, harness } = await createLocalProductFixture({ configPath, homeDir: homeDirectory });
     const disposeExtensions = vi.spyOn(kernel.extensions, "dispose");
 
     try {
-      await kernel.start();
+      await harness.start();
       await expect(kernel.agentContextWindowManager.assertCanSave({
         agentId: "researcher",
         contextTokens: 3_000,
@@ -307,7 +307,7 @@ describe("AgentContextWindowManager", () => {
       expect(switchedAgentPreview?.fixedInputTokens).toBeGreaterThan(0);
       expect(switchedAgentPreview?.fixedInputTokens).toBeLessThan(28_000);
     } finally {
-      await kernel.dispose();
+      await harness.dispose();
       expect(disposeExtensions).toHaveBeenCalledOnce();
       rmSync(homeDirectory, { recursive: true, force: true });
     }

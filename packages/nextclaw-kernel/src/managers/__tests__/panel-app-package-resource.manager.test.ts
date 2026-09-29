@@ -1,3 +1,4 @@
+import { LocalConfigStore } from "@kernel/stores/local-config.store.js";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -56,7 +57,7 @@ function createManager(
   }), configPath);
   return new PanelAppManager({
     configManager: new ConfigManager({
-      configPath,
+      storage: new LocalConfigStore(configPath),
       channels: { load: vi.fn(), reload: vi.fn() } as never,
       providerManager: { load: vi.fn() } as never,
     }),

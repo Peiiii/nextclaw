@@ -7,6 +7,8 @@ import {
   sanitizeAssistantReplyTags,
 } from "@nextclaw/ncp";
 import { AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY } from "./agent-run-metadata.utils.js";
+import { extractTextFromNcpMessage, isTextLikePart } from "./message-text.utils.js";
+export { extractTextFromNcpMessage } from "./message-text.utils.js";
 
 export function normalizeString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -118,21 +120,6 @@ function serializeLegacyContent(parts: NcpMessagePart[]): unknown {
     return "";
   }
   return structuredClone(parts);
-}
-
-export function extractTextFromNcpMessage(message: NcpMessage | undefined): string {
-  if (!message) {
-    return "";
-  }
-  const normalizedMessage = message.role === "assistant" ? sanitizeAssistantReplyTags(message) : message;
-  return normalizedMessage.parts
-    .filter(isTextLikePart)
-    .map((part) => part.text)
-    .join("");
-}
-
-function isTextLikePart(part: NcpMessagePart): part is Extract<NcpMessagePart, { type: "text" | "rich-text" }> {
-  return part.type === "text" || part.type === "rich-text";
 }
 
 function guessImageMime(pathOrUrl: string | null): string | null {

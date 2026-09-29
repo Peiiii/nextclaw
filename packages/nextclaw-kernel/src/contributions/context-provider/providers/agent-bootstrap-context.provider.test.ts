@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -92,7 +92,9 @@ describe("AgentBootstrapContextProvider", () => {
     writeFileSync(join(workspace, "IDENTITY.md"), "Fill this in during your first conversation.");
     writeFileSync(join(workspace, "USER.md"), "Learn about the person you are helping.");
 
-    const blocks = await new AgentBootstrapContextProvider(createContext(workspace))
+    const blocks = await new AgentBootstrapContextProvider(createContext(workspace), {
+      readText: (root, name) => existsSync(join(root, name)) ? readFileSync(join(root, name), "utf-8") : "",
+    })
       .provide(createRequest(workspace));
     const context = blocks.join("\n\n");
 

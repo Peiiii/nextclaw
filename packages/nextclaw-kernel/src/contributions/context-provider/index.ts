@@ -1,5 +1,7 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import { Contribution } from "@nextclaw/shared";
+import { SessionProjectContextResolver } from "@nextclaw/core";
+import { createLocalContextResources } from "@kernel/app/local-agent-resources.factory.js";
 import { AgentBootstrapContextProvider } from "./providers/agent-bootstrap-context.provider.js";
 import { CurrentSessionContextProvider } from "./providers/current-session-context.provider.js";
 import { ConversationExcerptContextProvider } from "./providers/conversation-excerpt-context.provider.js";
@@ -37,16 +39,17 @@ export class ContextProviderContribution extends Contribution {
   }
 
   protected setup = (): void => {
-    const context = new ContextProviderRunContextService(this.kernel);
+    const context = new ContextProviderRunContextService(this.kernel, new SessionProjectContextResolver());
+    const { contextFiles: files, runtimeInfo: runtime } = createLocalContextResources({ configPath: this.kernel.configManager.configPath });
 
     const safety = createSafetyContextProvider();
     const executionPolicy = new ExecutionPolicyContextProvider(context);
     const providers = this.profile === "embedded" ? [
       safety,
-      new AgentBootstrapContextProvider(context),
-      new WorkspaceMemoryContextProvider(context),
+      new AgentBootstrapContextProvider(context, files),
+      new WorkspaceMemoryContextProvider(context, files),
       executionPolicy,
-      new CurrentSessionContextProvider(context),
+      new CurrentSessionContextProvider(context, runtime),
     ] : [
       createToolCallStyleContextProvider(),
       createChatComposerTokensContextProvider(),
@@ -64,13 +67,13 @@ export class ContextProviderContribution extends Contribution {
       new ProjectContextProvider(context),
       new ConversationExcerptContextProvider(),
       new WorkspaceReferenceContextProvider(context, this.kernel.projectManager),
-      new AgentBootstrapContextProvider(context),
-      new WorkspaceMemoryContextProvider(context),
+      new AgentBootstrapContextProvider(context, files),
+      new WorkspaceMemoryContextProvider(context, files),
       new SkillsContextProvider(context),
       executionPolicy,
       new SystemObjectReferenceContextProvider(this.kernel.assetStore),
       new UiResourceReferenceContextProvider(),
-      new CurrentSessionContextProvider(context),
+      new CurrentSessionContextProvider(context, runtime),
     ];
     for (const provider of providers) {
       this.effect(() => this.kernel.contextProviderManager.register(provider));

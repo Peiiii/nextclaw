@@ -53,6 +53,7 @@ function createGateway(params: {
     },
     uiStartup: {},
     kernel: appKernel,
+    harness: { start: kernel.start },
     sessions: {
       publishSessionChange: vi.fn(),
     },

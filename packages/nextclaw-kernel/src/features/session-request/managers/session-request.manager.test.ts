@@ -1,3 +1,4 @@
+import { resolveSessionProjectContext } from "@nextclaw/core";
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,23 +14,8 @@ const tempDirs: string[] = [];
 async function createFixture(options: { dispatch?: () => Promise<{ finalResponseMessageId: string; finalResponseText: string }> } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "nextclaw-session-request-manager-"));
   tempDirs.push(dir);
-  const configManager = {
-    loadConfig: () => ({
-      agents: {
-        defaults: {
-          workspace: "",
-          model: "",
-          engine: "native",
-          engineConfig: {},
-          thinkingDefault: "off",
-          models: {},
-          contextTokens: 200000,
-        },
-        list: [],
-      },
-    }) as never,
-  };
   const sessionManager = new SessionManager({
+    resolveProjectContext: resolveSessionProjectContext,
     agentContextWindowManager: {
       forgetSession: () => undefined,
       previewSession: async () => null,
@@ -42,7 +28,6 @@ async function createFixture(options: { dispatch?: () => Promise<{ finalResponse
         reservedContextTokens: 0,
       }),
     } as never,
-    configManager: configManager as never,
     eventBus: new EventBus(),
     journalStore: new NcpAgentSessionJournalStore(join(dir, "journal")),
     projectManager: new ProjectManager({

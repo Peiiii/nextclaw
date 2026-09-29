@@ -1,7 +1,6 @@
 export {
   NextclawHarness,
 } from "./managers/nextclaw-harness.manager.js";
-export { runNextclawTask } from "./utils/nextclaw-task.utils.js";
 export { Contribution } from "./managers/nextclaw-contribution.manager.js";
 export { NextclawHarnessError } from "./types/nextclaw-harness.types.js";
 export {
@@ -61,6 +60,7 @@ export type {
   NextclawContributionDescriptor,
   NextclawHarnessErrorCode,
   NextclawHarnessOptions,
+  NextclawHarnessResources,
   NextclawRunStatus,
   NextclawSessionCreateInput,
   NextclawSessionRunInput,

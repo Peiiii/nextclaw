@@ -1,10 +1,11 @@
-import { getProviderName, type Config } from "@core/features/config/index.js";
+import { getProviderName } from "@core/features/config/utils/config-provider-match.utils.js";
+import type { Config } from "@core/features/config/configs/config-schema.config.js";
 import {
   parseThinkingLevel,
   resolveEffectiveThinkingLevel,
   type ThinkingLevel
-} from "@core/shared/lib/core-utils/index.js";
-import { resolveModelThinkingFromModelConfig } from "@core/shared/lib/core-utils/index.js";
+} from "@core/shared/lib/core-utils/utils/thinking.js";
+import { resolveModelThinkingFromModelConfig } from "@core/shared/lib/core-utils/utils/model-config.utils.js";
 
 type ModelStrategyMap = Record<string, { params: Record<string, unknown> }>;
 

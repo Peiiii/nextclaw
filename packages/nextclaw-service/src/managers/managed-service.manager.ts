@@ -40,7 +40,7 @@ export class ManagedServiceManager {
   startGateway = async (options: { uiOverrides?: Partial<Config["ui"]>; uiStaticDir?: string | null } = {}): Promise<void> => {
     this.ensureRuntimeLoggingInstalled();
     this.installProcessExitLogging();
-    const gateway = new ServiceGatewayManager({
+    const gateway = await ServiceGatewayManager.create({
       requestRestart: this.deps.requestRestart,
       initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,
       startService: this.startService,

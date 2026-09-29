@@ -72,25 +72,24 @@ export type NextclawUserQuestionReply = {
   text: string | null;
 };
 
+export type NextclawHarnessResources = {
+  agents: Pick<import("@kernel/managers/agent.manager.js").AgentManager,
+    "getDefaultAgentId" | "getAgent" | "listAgents" | "createAgent">;
+  sessionManager: Pick<import("@kernel/managers/session.manager.js").SessionManager,
+    "getSession" | "createSession" | "listSessionMessages" | "deleteSession" | "flushSession">;
+  sessionRunManager: Pick<import("@kernel/managers/session-run.manager.js").SessionRunManager, "deleteSessionRun">;
+  configManager: Pick<import("@kernel/managers/config.manager.js").ConfigManager, "config">;
+  userQuestions: Pick<import("@kernel/managers/user-question.manager.js").UserQuestionManager,
+    "list" | "resolveAndWaitForReply">;
+  eventBus: EventBus;
+  ingress: Ingress;
+  capabilities: IKernel;
+};
+
 export type NextclawHarnessOptions = {
-  homeDir?: string;
-  configPath?: string;
-  builtInAppsDirectory?: string;
-  portableServiceRunnerPath?: string;
-  productVersion?: string;
-  /** Static tool catalog for an embedded app; omitted keeps the full NextClaw catalog. */
-  allowedToolNames?: readonly string[];
-  /** Preserve safety, identity and memory while omitting host-specific context. */
-  contextProfile?: "default" | "embedded";
-  sessionSearchEnabled?: boolean;
-  sessionTitleEnabled?: boolean;
-  productActivitySink?: {
-    record: (signal: {
-      kind: "intent_accepted" | "run_succeeded";
-      occurredAt: string;
-      source: "direct" | "channel";
-    }) => Promise<void> | void;
-  };
+  platform: import("@kernel/types/agent-platform.types.js").AgentPlatform;
+  modules?: readonly import("@kernel/types/agent-platform.types.js").AgentKernelModule[];
+  allowSlashCommands?: boolean;
 };
 
 export type NextclawAgentDefinition = {
@@ -130,92 +129,8 @@ export type NextclawContributionDescriptor = {
   version?: string;
 };
 
-export interface IToolRegistry {
-  register(tool: NcpTool): Disposer;
-}
-
-export type ContextBlock = string;
-
-export type ContextProviderRequest = {
-  sessionId?: string;
-  peerId?: string;
-  message: NcpMessage;
-  agentRuntimeId?: string;
-  agentId?: string;
-  projectRoot?: string;
-  channel?: string;
-  correlationId?: string;
-  metadata?: Record<string, unknown>;
-  model?: string;
-  maxTokens?: number;
-  thinkingEffort?: string | null;
-};
-
-export type ContextProvider = {
-  provide: (
-    request: ContextProviderRequest,
-  ) => Promise<readonly ContextBlock[]> | readonly ContextBlock[];
-};
-
-export interface IContextRegistry {
-  register(provider: ContextProvider): Disposer;
-}
-
-export type ModelChatInput = {
-  messages: Array<Record<string, unknown>>;
-  tools?: Array<Record<string, unknown>>;
-  model?: string | null;
-  maxTokens?: number;
-  thinkingLevel?: ThinkingLevel | null;
-  signal?: AbortSignal;
-};
-
-export interface IModelRegistry {
-  registerProvider(plugin: ProviderCatalogPlugin): Disposer;
-  listProviders(): readonly ProviderSpec[];
-  chat(input: ModelChatInput): Promise<LLMResponse>;
-  chatStream(input: ModelChatInput): AsyncIterable<LLMStreamEvent>;
-}
-
-export type AgentRuntimeSessionTypeCatalog = {
-  defaultType: string;
-  options: AgentRuntimeSessionTypeOption[];
-};
-
-export interface IRuntimeRegistry {
-  registerProvider(provider: AgentRuntimeProviderRegistration): Disposer;
-  registerEntry(entry: AgentRuntimeEntry): Disposer;
-  listSessionTypes(
-    params?: AgentRuntimeSessionTypeDescribeParams,
-  ): Promise<AgentRuntimeSessionTypeCatalog>;
-}
-
-export type McpToolCallInput = {
-  serverName: string;
-  toolName: string;
-  args: Record<string, unknown>;
-  signal?: AbortSignal;
-};
-
-export interface IMcpRegistry {
-  registerServer(
-    name: string,
-    definition: McpServerDefinition,
-  ): Promise<Disposer>;
-  listServers(): readonly McpServerRecord[];
-  listTools(filter?: McpCatalogFilter): readonly McpToolCatalogEntry[];
-  callTool(input: McpToolCallInput): Promise<unknown>;
-}
-
-export interface IKernel {
-  readonly eventBus: EventBus;
-  readonly ingress: Ingress;
-  readonly tools: IToolRegistry;
-  readonly context: IContextRegistry;
-  readonly models: IModelRegistry;
-  readonly runtimes: IRuntimeRegistry;
-  readonly mcp: IMcpRegistry;
-}
+export type { IToolRegistry, ContextBlock, ContextProviderRequest, ContextProvider, IContextRegistry, ModelChatInput, IModelRegistry, AgentRuntimeSessionTypeCatalog, IRuntimeRegistry, McpToolCallInput, IMcpRegistry, IKernel } from "@kernel/types/kernel-capability.types.js";
+import type { IKernel } from "@kernel/types/kernel-capability.types.js";
 
 export interface INextclawContributionRegistry {
   register(contribution: Contribution): Disposer;
@@ -264,6 +179,7 @@ export interface INextclawHarness {
   readonly agents: INextclawAgentRegistry;
   readonly sessions: INextclawSessionRegistry;
   readonly contributions: INextclawContributionRegistry;
+  prepare(): Promise<void>;
   start(): Promise<void>;
   runTask(input: NextclawTaskInput): Promise<NextclawTaskResult>;
   listSessionMessages(sessionId: string): Promise<NcpMessage[]>;

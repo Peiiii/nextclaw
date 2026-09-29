@@ -1,4 +1,3 @@
-import { getContainer } from "@cloudflare/containers";
 import { authRoute, cookieToken, currentUser, isPlatformAdmin, sessionUser, json, publicError } from "@/app/bibo-auth.utils";
 import { biboSearchRoute } from "@/features/search";
 import { biboAssetsRoute } from "@/features/assets";
@@ -8,7 +7,7 @@ import { errorDetails, logDiagnostic, readTrace, runFailure, traceHeaders, type 
 async function createSession(env: Env, userId: string): Promise<Response> {
   const unavailable = await checkChatAvailability(env, userId);
   if (unavailable) return unavailable;
-  return await getContainer(env.BIBO_USER, `user:${userId}`).fetch("https://bibo.internal/sessions/new", { method: "POST" });
+  return await env.BIBO_USER.getByName(`user:${userId}`).fetch("https://bibo.internal/sessions/new", { method: "POST" });
 }
 
 async function adminEdgeRoute(request: Request, env: Env, path: string): Promise<Response> {
@@ -17,20 +16,15 @@ async function adminEdgeRoute(request: Request, env: Env, path: string): Promise
   if (!(token && env.BIBO_EDGE_ADMIN_TOKEN && token === env.BIBO_EDGE_ADMIN_TOKEN) && !await isPlatformAdmin(token)) {
     return publicError("无权执行此操作。", 403);
   }
-  const operation = path === "/api/admin/edge/migrate" ? "migrate" : path === "/api/admin/edge/rollback" ? "rollback" :
-    path === "/api/admin/edge/status" ? "status" : null;
   const budgetOperation = path === "/api/admin/edge/model-budget-status" ? "status" :
     path === "/api/admin/edge/model-budget-reset" ? "reset-user" : null;
-  if (!operation && !budgetOperation) return publicError("Not found", 404);
+  if (!budgetOperation) return publicError("Not found", 404);
   const body = await request.json().catch(() => null) as { userId?: unknown } | null;
   if (!body || typeof body.userId !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(body.userId)) return publicError("用户编号不正确。", 400);
-  if (budgetOperation) {
-    if (!env.BIBO_EDGE_ADMIN_TOKEN) return publicError("操作不可用。", 503);
-    return env.BIBO_MODEL_BUDGET.getByName("global").fetch(`https://bibo.internal/admin/${budgetOperation}`, {
-      method: "POST", headers: { "x-bibo-admin-token": env.BIBO_EDGE_ADMIN_TOKEN }, body: JSON.stringify(body),
-    });
-  }
-  return getContainer(env.BIBO_USER, `user:${body.userId}`).fetch(`https://bibo.internal/edge/${operation}`, { method: "POST" });
+  if (!env.BIBO_EDGE_ADMIN_TOKEN) return publicError("操作不可用。", 503);
+  return env.BIBO_MODEL_BUDGET.getByName("global").fetch(`https://bibo.internal/admin/${budgetOperation}`, {
+    method: "POST", headers: { "x-bibo-admin-token": env.BIBO_EDGE_ADMIN_TOKEN }, body: JSON.stringify(body),
+  });
 }
 
 function withAuthTiming(response: Response, authMs: number): Response {
@@ -47,13 +41,13 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
   const authMs = performance.now() - authStarted;
   if (!user || !token) return publicError("请先登录。", 401);
   if (path === "/api/assets" || path.startsWith("/api/assets/")) return biboAssetsRoute(request, env.SNAPSHOTS, user.id);
-  const container = getContainer(env.BIBO_USER, `user:${user.id}`);
+  const container = env.BIBO_USER.getByName(`user:${user.id}`);
+  if (path === "/api/workspace/file" && request.method === "GET") {
+    return container.fetch(`https://bibo.internal/workspace/file${url.search}`);
+  }
   if (path === "/api/sessions" && request.method === "GET") return await container.fetch("https://bibo.internal/sessions");
   if (path === "/api/sessions" && request.method === "POST") return await createSession(env, user.id);
-  if (path === "/api/sessions/rename" && request.method === "POST") return await container.fetch("https://bibo.internal/sessions/rename", {
-    method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
-  });
-  if (path === "/api/sessions/delete" && request.method === "POST") return await container.fetch("https://bibo.internal/sessions/delete", {
+  if (["/api/sessions/rename", "/api/sessions/delete"].includes(path) && request.method === "POST") return await container.fetch(`https://bibo.internal${path.slice(4)}`, {
     method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
   });
   if (path === "/api/history" && request.method === "GET") return await container.fetch(`https://bibo.internal/history${url.search}`);

@@ -15,8 +15,7 @@ import type {
   AgentRunEditMessageRequest,
   AgentRunRequest,
 } from "@kernel/types/agent-run.types.js";
-import type { SessionManager } from "./session.manager.js";
-import type { SessionRunManager } from "./session-run.manager.js";
+import type { AgentRunSessionHost, AgentRunSessionRunHost } from "@kernel/types/agent-run-host.types.js";
 
 const CONTINUATION_PROMPT =
   "Continue from where you stopped. Preserve completed work and avoid repeating it.";
@@ -58,8 +57,8 @@ export class AgentRunSessionCommandManager {
   private readonly pendingCommands = new Map<string, PendingSessionCommand>();
 
   constructor(
-    private readonly sessionManager: SessionManager,
-    private readonly sessionRunManager: SessionRunManager,
+    private readonly sessionManager: AgentRunSessionHost,
+    private readonly sessionRunManager: AgentRunSessionRunHost,
     private readonly send: (request: AgentRunRequest) => Promise<AgentRunAccepted>,
   ) {}
 

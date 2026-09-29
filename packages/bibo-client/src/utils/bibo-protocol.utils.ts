@@ -28,17 +28,32 @@ export function readShowContent(value: unknown): BiboShowContent {
       ...(value.target.payload.viewer === undefined ? {} : { viewer: value.target.payload.viewer as "auto" | "source" | "rendered" }) } } };
 }
 
+function readFilePreview(value: unknown): BiboFileDetail["preview"] {
+  if (value === undefined) return undefined;
+  if (!isRecord(value) || typeof value.totalBytes !== "number" || !Number.isSafeInteger(value.totalBytes)
+    || typeof value.readBytes !== "number" || !Number.isSafeInteger(value.readBytes)
+    || value.readBytes < 0 || value.totalBytes < value.readBytes
+    || typeof value.binary !== "boolean" || typeof value.truncated !== "boolean"
+    || value.truncated !== (value.readBytes < value.totalBytes)) {
+    throw new BiboClientError("文件预览信息不正确。");
+  }
+  return { totalBytes: value.totalBytes, readBytes: value.readBytes, truncated: value.truncated, binary: value.binary };
+}
+
 export function readFileDetail(value: unknown): BiboFileDetail {
+  const preview = isRecord(value) ? readFilePreview(value.preview) : undefined;
   if (!isRecord(value) || typeof value.id !== "string" || !value.id || typeof value.path !== "string" || !value.path
     || !["folder", "note", "document", "artifact"].includes(String(value.kind))
     || typeof value.createdAt !== "string" || typeof value.updatedAt !== "string"
-    || !Number.isSafeInteger(value.version) || Number(value.version) < 1
+    || !(typeof value.version === "string" ? value.version.trim().length > 0
+      : Number.isSafeInteger(value.version) && Number(value.version) >= 1)
     || typeof value.uri !== "string" || !value.uri
-    || (value.kind === "folder" ? value.content !== null : typeof value.content !== "string")) {
+    || (value.kind === "folder" || preview?.binary ? value.content !== null : typeof value.content !== "string")) {
     throw new BiboClientError("文件详情格式不正确。");
   }
   return { id: value.id, path: value.path, kind: value.kind as BiboFileDetail["kind"],
-    createdAt: value.createdAt, updatedAt: value.updatedAt, version: Number(value.version), uri: value.uri, content: value.content as string | null };
+    createdAt: value.createdAt, updatedAt: value.updatedAt, version: value.version as number | string,
+    uri: value.uri, content: value.content as string | null, ...(preview ? { preview } : {}) };
 }
 
 export function readUser(value: unknown): BiboUser {

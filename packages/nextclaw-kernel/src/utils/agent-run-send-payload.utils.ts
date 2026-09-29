@@ -1,10 +1,13 @@
 import type { InboundAttachment } from "@nextclaw/core";
 import type { NcpMessagePart } from "@nextclaw/ncp";
 import type { AgentRunSendIngressPayload } from "@nextclaw/shared";
-import { readFile } from "node:fs/promises";
-import { basename } from "node:path";
 
 export type AssetApi = {
+  putPath?: (input: {
+    path: string;
+    fileName?: string;
+    mimeType?: string | null;
+  }) => Promise<{ uri: string }>;
   putBytes: (input: {
     fileName: string;
     mimeType?: string | null;
@@ -37,15 +40,15 @@ function resolveAttachmentName(attachment: InboundAttachment): string {
   }
   const explicitPath = normalizeOptionalString(attachment.path);
   if (explicitPath) {
-    return basename(explicitPath);
+    return explicitPath.split(/[\\/]/).filter(Boolean).at(-1) ?? "asset.bin";
   }
   const explicitUrl = normalizeOptionalString(attachment.url);
   if (explicitUrl) {
     try {
       const parsed = new URL(explicitUrl);
-      return basename(parsed.pathname) || "asset.bin";
+      return parsed.pathname.split("/").filter(Boolean).at(-1) ?? "asset.bin";
     } catch {
-      return basename(explicitUrl) || "asset.bin";
+      return explicitUrl.split("/").filter(Boolean).at(-1) ?? "asset.bin";
     }
   }
   return "asset.bin";
@@ -105,16 +108,15 @@ async function createFilePartFromLocalPath(
   localPath: string,
   assetApi?: AssetApi,
 ): Promise<NcpMessagePart> {
-  if (!assetApi) {
+  if (!assetApi?.putPath) {
     throw new Error("NCP asset api is unavailable for local attachments.");
   }
 
   const fileName = resolveAttachmentName(attachment);
-  const bytes = await readFile(localPath);
-  const stored = await assetApi.putBytes({
+  const stored = await assetApi.putPath({
+    path: localPath,
     fileName,
     mimeType: attachment.mimeType ?? null,
-    bytes,
   });
   return {
     type: "file",

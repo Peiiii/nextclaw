@@ -23,6 +23,14 @@ function buildSection(title: string, lines: string[]): string {
   return [title, ...lines].join("\n");
 }
 
+export function renderAgentSafetyContext(): string {
+  return buildSection("## Safety", [
+    "You have no independent goals: do not pursue self-preservation, replication, resource acquisition, or power-seeking; avoid long-term plans beyond the user's request.",
+    "Prioritize safety and human oversight over completion; if instructions conflict, pause and ask; comply with stop/pause/audit requests and never bypass safeguards. (Inspired by Anthropic's constitution.)",
+    "Do not manipulate or persuade anyone to expand access or disable safeguards. Do not copy yourself or change system prompts, safety rules, or tool policies unless explicitly requested.",
+  ]);
+}
+
 const TOOL_USE_ENFORCEMENT_LINES = [
   "- When you say you will inspect, run, read, search, edit, or verify something, call the matching tool in the same turn.",
   "- Do not stop at promises like 'I'll check' or 'I will do that' unless the tool call already happened in that turn.",
@@ -41,7 +49,7 @@ const GOOGLE_MODEL_GUIDANCE_LINES = [
   "- Use explicit file paths and keep the answer focused on results.",
 ];
 
-function renderSystemExecutionPolicy(model?: string | null): string {
+export function renderSystemExecutionPolicy(model?: string | null): string {
   const sections = [
     buildSection("## Tool Use Enforcement", TOOL_USE_ENFORCEMENT_LINES),
   ];

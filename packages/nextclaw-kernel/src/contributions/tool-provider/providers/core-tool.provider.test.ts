@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema } from "@nextclaw/core";
 import type { NcpTool } from "@nextclaw/ncp";
 
@@ -80,6 +80,25 @@ describe("CoreToolProvider", () => {
     await expect(viewImageTool.execute({ path: outsideImagePath })).rejects.toThrow(
       "Access denied: image path outside allowed directory.",
     );
+  });
+
+  it("reads files directly and sends only exec through a host command runner", async () => {
+    const workspace = makeTempDir();
+    writeFileSync(join(workspace, "input.txt"), "direct read");
+    const runner = vi.fn(async () => ({ stdout: "isolated", stderr: "" }));
+    const provider = new CoreToolProvider(
+      createRunContextService({ restrictToWorkspace: true, workspace }),
+      () => undefined,
+      runner,
+    );
+    const tools = await provider.provide(createRequest());
+    expect(await readExecutableTool(tools, "read_file").execute({ path: join(workspace, "input.txt") }))
+      .toContain("direct read");
+    expect(runner).not.toHaveBeenCalled();
+    expect(await readExecutableTool(tools, "exec").execute({ command: "printf ready" }))
+      .toEqual(expect.objectContaining({ ok: true, stdout: "isolated" }));
+    expect(runner).toHaveBeenCalledTimes(1);
+    expect(runner.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ cwd: workspace }));
   });
 });
 

@@ -1,19 +1,26 @@
-import type { SessionManager } from "@kernel/managers/session.manager.js";
-import type { SessionRunManager } from "@kernel/managers/session-run.manager.js";
+import type { AgentRunSessionHost, AgentRunSessionRunHost } from "@kernel/types/agent-run-host.types.js";
+import type { NcpMessage } from "@nextclaw/ncp";
 import type {
   AgentRunAccepted,
   AgentRunRequest,
 } from "@kernel/types/agent-run.types.js";
 
+function messageContent(message: NcpMessage): string {
+  return JSON.stringify({ role: message.role, parts: message.parts }, (_key, value: unknown) =>
+    value && typeof value === "object" && !Array.isArray(value)
+      ? Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)))
+      : value);
+}
+
 export class AgentRunRequestIdempotencyService {
   private readonly inFlight = new Map<
     string,
-    { messageId: string; accepted: Promise<AgentRunAccepted> }
+    { message: NcpMessage; accepted: Promise<AgentRunAccepted> }
   >();
 
   constructor(
-    private readonly sessionManager: SessionManager,
-    private readonly sessionRunManager: SessionRunManager,
+    private readonly sessionManager: AgentRunSessionHost,
+    private readonly sessionRunManager: AgentRunSessionRunHost,
   ) {}
 
   accept = async (
@@ -30,19 +37,20 @@ export class AgentRunRequestIdempotencyService {
     const existing = this.inFlight.get(inFlightKey);
     if (existing) {
       this.assertSameMessage(
-        existing.messageId,
-        request.message.id,
+        existing.message,
+        request.message,
         idempotencyKey,
       );
       return await existing.accepted;
     }
+    const message = structuredClone(request.message);
     const accepted = this.acceptIdempotently(
-      request,
+      { ...request, message },
       idempotencyKey,
       acceptOnce,
     );
     this.inFlight.set(inFlightKey, {
-      messageId: request.message.id,
+      message,
       accepted,
     });
     try {
@@ -74,8 +82,8 @@ export class AgentRunRequestIdempotencyService {
         );
       if (materializedInRun) {
         this.assertSameMessage(
-          materializedInRun.id,
-          request.message.id,
+          materializedInRun,
+          request.message,
           idempotencyKey,
         );
         return {
@@ -91,8 +99,8 @@ export class AgentRunRequestIdempotencyService {
         .find((item) => item.request.idempotencyKey === idempotencyKey);
       if (pending) {
         this.assertSameMessage(
-          pending.request.message.id,
-          request.message.id,
+          pending.request.message,
+          request.message,
           idempotencyKey,
         );
         return {
@@ -111,8 +119,8 @@ export class AgentRunRequestIdempotencyService {
       );
       if (materialized) {
         this.assertSameMessage(
-          materialized.id,
-          request.message.id,
+          materialized,
+          request.message,
           idempotencyKey,
         );
         return {
@@ -138,11 +146,11 @@ export class AgentRunRequestIdempotencyService {
   };
 
   private assertSameMessage = (
-    existingMessageId: string,
-    requestedMessageId: string,
+    existingMessage: NcpMessage,
+    requestedMessage: NcpMessage,
     idempotencyKey: string,
   ): void => {
-    if (existingMessageId !== requestedMessageId) {
+    if (existingMessage.id !== requestedMessage.id || messageContent(existingMessage) !== messageContent(requestedMessage)) {
       throw new Error(
         `Agent run idempotency key was reused with a different message: ${idempotencyKey}`,
       );

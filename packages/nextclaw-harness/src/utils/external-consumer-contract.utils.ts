@@ -5,6 +5,7 @@ import {
   eventKeys,
   type AgentRuntimeProviderRegistration,
 } from "@nextclaw/harness";
+import { NodePlatform } from "@nextclaw/kernel";
 
 const fixtureIngressKey = createTypedKey<{ value: string }>(
   "fixture.ingress.handle",
@@ -79,7 +80,7 @@ class PlatformContribution extends Contribution {
 }
 
 export async function compileExternalConsumerContract(): Promise<void> {
-  const harness = new NextclawHarness();
+  const harness = new NextclawHarness({ platform: new NodePlatform() });
   harness.contributions.register(new PlatformContribution());
   await harness.start();
   try {

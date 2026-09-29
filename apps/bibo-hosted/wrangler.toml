@@ -24,6 +24,10 @@ class_name = "BiboUserContainer"
 name = "BIBO_MODEL_BUDGET"
 class_name = "BiboModelBudget"
 
+[[durable_objects.bindings]]
+name = "BIBO_SANDBOX"
+class_name = "Sandbox"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["BiboUserContainer"]
@@ -32,10 +36,13 @@ new_sqlite_classes = ["BiboUserContainer"]
 tag = "v2"
 new_sqlite_classes = ["BiboModelBudget"]
 
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["Sandbox"]
+
 [[containers]]
-class_name = "BiboUserContainer"
-image = "./Dockerfile"
-image_build_context = "../.."
+class_name = "Sandbox"
+image = "docker.io/cloudflare/sandbox:0.12.10"
 max_instances = 20
 instance_type = "basic"
 

@@ -31,7 +31,10 @@ export class ToolSchemaTool implements NcpTool {
   constructor(private readonly readTools: () => readonly NcpTool[], portableValidation = false) {
     if (portableValidation) {
       this.modelParameters = this.parameters;
-      this.validateArgs = (value) => typeof value.name === "string" && value.name.trim() ? [] : ["name is required"];
+      this.validateArgs = (value) => [
+        ...(typeof value.name === "string" && value.name.length >= 1 ? [] : ["name must be a nonempty string"]),
+        ...Object.keys(value).filter((key) => key !== "name").map((key) => `${key} is not allowed`),
+      ];
     }
   }
 
@@ -42,4 +45,37 @@ export class ToolSchemaTool implements NcpTool {
     if (!tool) throw new Error(`Tool is not in the current allowed catalog: ${name}`);
     return structuredClone({ name: tool.name, description: tool.description, parameters: tool.modelParameters ?? tool.parameters });
   };
+}
+
+/** Build one run-scoped catalog from host-provided tools, with the same duplicate and schema rules on every host. */
+export function composeAgentToolCatalog(
+  groups: readonly (readonly NcpTool[])[],
+  options: {
+    allowedNames?: ReadonlySet<string> | null;
+    includeSchemaTool?: boolean;
+    portableValidation?: boolean;
+    wrapTool?: (tool: NcpTool) => NcpTool;
+  } = {},
+): NcpTool[] {
+  const tools: NcpTool[] = [];
+  const seen = new Set<string>();
+  const allowed = options.allowedNames ?? null;
+  const isAllowed = (name: string) => allowed === null || allowed.has(name);
+  if (options.includeSchemaTool !== false && isAllowed(TOOL_SCHEMA_NAME)) {
+    const lookup = new ToolSchemaTool(() => tools, options.portableValidation);
+    tools.push(options.wrapTool?.(lookup) ?? lookup);
+    seen.add(TOOL_SCHEMA_NAME);
+  }
+  for (const group of groups) {
+    for (const tool of group) {
+      if (!isAllowed(tool.name)) continue;
+      if (seen.has(tool.name)) {
+        if (allowed !== null) throw new Error(`Restricted tool catalog has a duplicate name: ${tool.name}`);
+        continue;
+      }
+      seen.add(tool.name);
+      tools.push(options.wrapTool?.(tool) ?? tool);
+    }
+  }
+  return tools;
 }

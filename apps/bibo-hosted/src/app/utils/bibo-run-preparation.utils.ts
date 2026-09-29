@@ -1,5 +1,7 @@
 import { publicError } from "../bibo-auth.utils";
 import type { BiboSession } from "./bibo-session.utils";
+import { projectBiboConversation } from "./bibo-session.utils";
+import { CloudflareSessionStore } from "../stores/cloudflare-session.store";
 
 export type PreparedBiboRun = { message: string; token: string; userId?: string; clientRequestId?: string; session: BiboSession;
   question?: { id: string; title: string; action: "answer" | "dismiss" } };
@@ -18,7 +20,14 @@ export async function prepareBiboRun(request: Request, storage: DurableObjectSto
     return publicError("这条消息已经保存，请刷新会话。", 409);
   }
   const sessions = await storage.get<BiboSession[]>("sessions") ?? [];
-  const session = typeof payload.sessionId === "string" ? sessions.find((item) => item.id === payload.sessionId) : sessions[0];
+  let session = typeof payload.sessionId === "string" ? sessions.find((item) => item.id === payload.sessionId) : sessions[0];
+  const sessionId = typeof payload.sessionId === "string" ? payload.sessionId : session?.id;
+  if (sessionId) {
+    const canonical = await new CloudflareSessionStore(storage).getSession(sessionId);
+    if (canonical) session = { id: sessionId, title: String(canonical.metadata?.label ?? session?.title ?? "新对话"),
+      createdAt: canonical.createdAt ?? canonical.updatedAt, updatedAt: canonical.updatedAt,
+      messages: projectBiboConversation(canonical.messages) };
+  }
   if (payload.sessionId && !session) return publicError("会话不存在。", 404);
   let question: PreparedBiboRun["question"];
   if (payload.questionId !== undefined) {
@@ -29,9 +38,13 @@ export async function prepareBiboRun(request: Request, storage: DurableObjectSto
     question = { id: found.id, title: found.title, action: payload.questionAction };
   }
   const now = Date.now();
-  const recent = (await storage.get<number[]>("runs") ?? []).filter((at) => now - at < 3_600_000);
-  if (recent.length >= 100) return publicError("本小时对话次数已用完，请稍后再来。", 429);
-  await storage.put("runs", [...recent, now]);
+  const admitted = await storage.transaction(async (transaction) => {
+    const recent = (await transaction.get<number[]>("runs") ?? []).filter((at) => now - at < 3_600_000);
+    if (recent.length >= 100) return false;
+    await transaction.put("runs", [...recent, now]);
+    return true;
+  });
+  if (!admitted) return publicError("本小时对话次数已用完，请稍后再来。", 429);
   const time = new Date().toISOString();
   return { message: payload.message.trim(), token: payload.token,
     ...(typeof payload.clientRequestId === "string" ? { clientRequestId: payload.clientRequestId } : {}),

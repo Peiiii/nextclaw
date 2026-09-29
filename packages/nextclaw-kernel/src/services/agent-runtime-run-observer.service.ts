@@ -1,8 +1,5 @@
-import type {
-  AgentRuntime,
-  AgentRuntimeManager,
-  AgentRuntimeRunOptions,
-} from "@kernel/managers/agent-runtime.manager.js";
+import type { AgentRuntime, AgentRuntimeRunOptions } from "@kernel/managers/agent-runtime.manager.js";
+import type { AgentRunRuntimeHost } from "@kernel/types/agent-run-host.types.js";
 import type { SessionRun } from "@kernel/managers/session-run.manager.js";
 import type { AgentRunSpec } from "@kernel/types/agent-run.types.js";
 import {
@@ -25,7 +22,7 @@ import {
 import { catchError, filter, from, lastValueFrom, tap } from "rxjs";
 
 export type AgentRuntimeRunObserverOptions = {
-  agentRuntimeManager: AgentRuntimeManager;
+  agentRuntimeManager: AgentRunRuntimeHost;
   diagnostics?: Pick<DiagnosticRuntime, "record">;
   eventBus: EventBus;
 };

@@ -1,3 +1,4 @@
+import { resolveSessionProjectContext } from "@nextclaw/core";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -101,6 +102,7 @@ export async function createFixture(
     await journalStore.importSessionSnapshot(record);
   }
   const manager = new SessionManager({
+    resolveProjectContext: resolveSessionProjectContext,
     providerManager,
     agentContextWindowManager: {
       forgetSession: () => undefined,
@@ -111,7 +113,6 @@ export async function createFixture(
         workspace: (config as { agents: { defaults: { workspace: string } } }).agents.defaults.workspace,
       }),
     } as never,
-    configManager: { loadConfig: () => config } as never,
     eventBus,
     journalStore,
     projectManager: new ProjectManager({

@@ -307,10 +307,10 @@
   .bibo-files-layout, .bibo-files-layout:has(.bibo-note-list) { @apply [grid-template-columns:220px_minmax(0,_1fr)]; }
   .bibo-files-layout.is-tree-collapsed { @apply [grid-template-columns:minmax(0,_1fr)]; }
 }
-.file-conflict { @apply flex-none [padding:12px_16px] [border-bottom:1px_solid_var(--ui-line)] [background:var(--ui-canvas)] [color:var(--ui-ink)] text-base; }
+.file-conflict, .file-preview-notice { @apply flex-none [padding:12px_16px] [border-bottom:1px_solid_var(--ui-line)] [background:var(--ui-canvas)] [color:var(--ui-ink)] text-base; }
 .file-conflict > div { @apply flex flex-wrap gap-2 mt-2; }
 .bibo-save-state { @apply [color:var(--ui-muted)] text-base; }
-.bibo-file-preview-markdown, .bibo-file-preview-frame { @apply flex-1 min-h-0 overflow-auto w-full m-0 p-6 border-0 [color:var(--ui-ink)] text-base leading-7; }
+.bibo-file-preview-markdown, .bibo-file-preview-frame, .bibo-file-preview-text { @apply flex-1 min-h-0 overflow-auto w-full m-0 p-6 border-0 [color:var(--ui-ink)] text-base leading-7; }
 .bibo-file-editor-surface { @apply flex flex-1 min-h-0 min-w-0; }
 .bibo-file-editor-surface[hidden] { display: none; }
 .bibo-file-preview-markdown { padding:0; }

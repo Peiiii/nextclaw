@@ -1,13 +1,9 @@
 import type {
-  AgentRuntimeManager,
-} from "@kernel/managers/agent-runtime.manager.js";
-import type {
   SessionRun,
   SessionRunPendingRequest,
-  SessionRunManager,
   SessionRunQueuedRequest,
 } from "@kernel/managers/session-run.manager.js";
-import type { SessionManager } from "@kernel/managers/session.manager.js";
+import type { AgentRunRuntimeHost, AgentRunSessionHost, AgentRunSessionRunHost } from "@kernel/types/agent-run-host.types.js";
 import type {
   SessionPendingInput,
   SessionQueuedInput,
@@ -18,9 +14,9 @@ import type { AgentRunSession } from "@kernel/types/session.types.js";
 /** Resolves public pending-input actions while SessionRun remains the state owner. */
 export class AgentRunInputDeliveryService {
   constructor(
-    private readonly agentRuntimeManager: AgentRuntimeManager,
-    private readonly sessionManager: SessionManager,
-    private readonly sessionRunManager: SessionRunManager,
+    private readonly agentRuntimeManager: AgentRunRuntimeHost,
+    private readonly sessionManager: AgentRunSessionHost,
+    private readonly sessionRunManager: AgentRunSessionRunHost,
     private readonly publishQueueUpdated: (sessionId: string) => void,
   ) {}
 

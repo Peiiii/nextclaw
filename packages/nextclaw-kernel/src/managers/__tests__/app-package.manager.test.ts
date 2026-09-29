@@ -1,3 +1,5 @@
+import { createLocalProductFixture } from "@kernel/utils/tests/local-product-fixture.utils.js";
+const applications: Array<{ dispose(): Promise<void> }> = [];
 import { createHash } from "node:crypto";
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
@@ -6,7 +8,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { AppArtifactValidationService, AppBundleService, AppHomeService, AppInstallationService } from "@nextclaw/app-runtime";
-import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
+import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import { AppPackageOperationManager } from "@kernel/managers/app-package-operation.manager.js";
 const tempDirectories: string[] = [];
 const builtInAppsDirectory = resolve(import.meta.dirname, "../../../../nextclaw/resources/apps");
@@ -16,7 +18,7 @@ function createTempDirectory(): string {
   tempDirectories.push(directory);
   return directory;
 }
-function createKernel(appsDirectory = builtInAppsDirectory, homeDirectory = createTempDirectory()): NextclawKernel {
+async function createKernel(appsDirectory = builtInAppsDirectory, homeDirectory = createTempDirectory()): Promise<NextclawKernel> {
   const workspaceDirectory = join(homeDirectory, "workspace");
   const configPath = join(homeDirectory, "config.json");
   saveConfig(
@@ -29,12 +31,14 @@ function createKernel(appsDirectory = builtInAppsDirectory, homeDirectory = crea
     }),
     configPath,
   );
-  return new NextclawKernel({
+  const application = await createLocalProductFixture({
     builtInAppsDirectory: appsDirectory,
     configPath,
     homeDir: homeDirectory,
     productVersion: "0.32.0",
   });
+  applications.push(application.harness);
+  return application.kernel;
 }
 async function assertFavoritesServiceActions(kernel: NextclawKernel): Promise<void> {
   const session = await kernel.panelAppManager.createPanelAppBridgeSession({
@@ -100,7 +104,8 @@ async function assertCalendarServiceActions(kernel: NextclawKernel): Promise<voi
     },
   });
 }
-afterEach(() => {
+afterEach(async () => {
+  for (const application of applications.splice(0).reverse()) await application.dispose();
   while (tempDirectories.length > 0) {
     const directory = tempDirectories.pop();
     if (directory) {
@@ -111,7 +116,7 @@ afterEach(() => {
 describe("AppPackageManager runtime projection", () => {
   it("keeps package reads pure until startup reconciles built-in packages", async () => {
     const homeDirectory = createTempDirectory();
-    const kernel = createKernel(builtInAppsDirectory, homeDirectory);
+    const kernel = await createKernel(builtInAppsDirectory, homeDirectory);
     const appsPath = join(homeDirectory, "apps");
     const packagePath = join(appsPath, "packages", "nextclaw.personal-organizer");
     try {
@@ -208,7 +213,7 @@ describe("AppPackageManager runtime projection", () => {
 
   it("runs uninstall asynchronously and keeps a built-in app suppressed after restart", async () => {
     const homeDirectory = createTempDirectory();
-    const kernel = createKernel(builtInAppsDirectory, homeDirectory);
+    const kernel = await createKernel(builtInAppsDirectory, homeDirectory);
 
     try {
       await kernel.appPackageManager.start();
@@ -237,7 +242,7 @@ describe("AppPackageManager runtime projection", () => {
       await kernel.serviceAppManager.dispose();
     }
 
-    const restartedKernel = createKernel(builtInAppsDirectory, homeDirectory);
+    const restartedKernel = await createKernel(builtInAppsDirectory, homeDirectory);
     try {
       await restartedKernel.appPackageManager.start();
       const packages = await restartedKernel.appPackageManager.listPackages();
@@ -254,7 +259,7 @@ describe("AppPackageManager activation lifecycle", () => {
     const homeDirectory = createTempDirectory();
     const documentsDirectory = join(homeDirectory, "documents");
     mkdirSync(documentsDirectory, { recursive: true });
-    const kernel = createKernel(builtInAppsDirectory, homeDirectory);
+    const kernel = await createKernel(builtInAppsDirectory, homeDirectory);
     try {
       await kernel.appPackageManager.start();
       await expect(kernel.appPackageManager.assertDocumentAccess("nextclaw.portable-runtime-lab", "documents-write", "read")).rejects.toMatchObject({ code: "DOCUMENT_SCOPE_NOT_GRANTED" });
@@ -270,7 +275,7 @@ describe("AppPackageManager activation lifecycle", () => {
       await kernel.serviceAppManager.dispose();
     }
 
-    const restarted = createKernel(builtInAppsDirectory, homeDirectory);
+    const restarted = await createKernel(builtInAppsDirectory, homeDirectory);
     try {
       await restarted.appPackageManager.start();
       await expect(restarted.appPackageManager.inspectDocumentAccess("nextclaw.portable-runtime-lab")).resolves.toMatchObject({
@@ -296,7 +301,7 @@ describe("AppPackageManager activation lifecycle", () => {
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
     manifest.engines = { nextclaw: ">=99.0.0" };
     writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-    const kernel = createKernel(incompatibleAppsDirectory);
+    const kernel = await createKernel(incompatibleAppsDirectory);
 
     try {
       await kernel.appPackageManager.start();
@@ -308,7 +313,7 @@ describe("AppPackageManager activation lifecycle", () => {
   });
 
   it("activates runtime components after enable and deactivates them before disable", async () => {
-    const kernel = createKernel();
+    const kernel = await createKernel();
     const lifecycle: string[] = [];
     try {
       await kernel.appPackageManager.start();
@@ -335,7 +340,7 @@ describe("AppPackageManager activation lifecycle", () => {
   });
 
   it("restores disabled state when runtime activation and cleanup both fail", async () => {
-    const kernel = createKernel();
+    const kernel = await createKernel();
     try {
       await kernel.appPackageManager.start();
       kernel.appPackageManager.installRuntimeHooks({
@@ -360,7 +365,7 @@ describe("AppPackageManager activation lifecycle", () => {
   });
 
   it("blocks activation when installed package content has been modified", async () => {
-    const kernel = createKernel();
+    const kernel = await createKernel();
     try {
       await kernel.appPackageManager.start();
       const app = await kernel.appPackageManager.getPackage("nextclaw.personal-organizer");
@@ -378,7 +383,7 @@ describe("AppPackageManager activation lifecycle", () => {
 
   it("keeps the active version unchanged when a rollback candidate probe fails", async () => {
     const homeDirectory = createTempDirectory();
-    const kernel = createKernel(builtInAppsDirectory, homeDirectory);
+    const kernel = await createKernel(builtInAppsDirectory, homeDirectory);
     const candidateDirectory = createTempDirectory();
     const packageDirectory = join(candidateDirectory, "personal-organizer-next");
     cpSync(join(builtInAppsDirectory, "nextclaw-personal-organizer"), packageDirectory, {
@@ -422,7 +427,7 @@ describe("AppPackageManager activation lifecycle", () => {
 describe("AppPackageManager packed artifact lifecycle", () => {
   it("runs a packed napp through failed update recovery and preserved-data uninstall", async () => {
     const fixture = await PackedOrganizerRegistryFixture.create(createTempDirectory());
-    const kernel = createKernel(fixture.emptyBuiltInsDirectory);
+    const kernel = await createKernel(fixture.emptyBuiltInsDirectory);
 
     try {
       const installed = await kernel.appPackageManager.install("nextclaw.personal-organizer", fixture.registryUrl);
@@ -486,7 +491,7 @@ describe("AppPackageManager packed artifact lifecycle", () => {
 
   it("keeps the enabled version active when an update requires an unavailable capability", async () => {
     const fixture = await PackedOrganizerRegistryFixture.create(createTempDirectory());
-    const kernel = createKernel(fixture.emptyBuiltInsDirectory);
+    const kernel = await createKernel(fixture.emptyBuiltInsDirectory);
     try {
       const installed = await kernel.appPackageManager.install("nextclaw.personal-organizer", fixture.registryUrl);
       await kernel.appPackageManager.enable(installed.id);
@@ -511,7 +516,7 @@ describe("AppPackageManager packed artifact lifecycle", () => {
 describe("AppPackageManager package projection lifecycle", () => {
   it("keeps workspace panels available when an enabled package fails integrity checks", async () => {
     const homeDirectory = createTempDirectory();
-    const kernel = createKernel(builtInAppsDirectory, homeDirectory);
+    const kernel = await createKernel(builtInAppsDirectory, homeDirectory);
     try {
       await kernel.appPackageManager.start();
       const appPackage = await kernel.appPackageManager.enable("nextclaw.personal-organizer");
@@ -536,7 +541,7 @@ describe("AppPackageManager package projection lifecycle", () => {
   });
 
   it("projects the official package into panel and service runtimes with stable data", async () => {
-    const kernel = createKernel();
+    const kernel = await createKernel();
 
     try {
       await kernel.appPackageManager.start();

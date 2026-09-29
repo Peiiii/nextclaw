@@ -4,6 +4,7 @@ import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
 import type { AppEventEnvelope } from "@nextclaw/shared";
 import { buildContextCompactionTimelineNcpMessage } from "@kernel/features/context-compaction/index.js";
 import { SessionEventIngestionService } from "@kernel/services/session-event-ingestion.service.js";
+import { replayNcpAgentSessionEvents } from "@kernel/utils/ncp-agent-session-replay.utils.js";
 
 const SESSION_ID = "session-context-compaction-ingestion";
 
@@ -38,15 +39,123 @@ function createMarkerEvent(status: ContextCompactionCheckpoint["status"]): NcpEn
 }
 
 describe("SessionEventIngestionService context compaction", () => {
-  it("refuses restart flush after a failed durable write even when later writes succeed", async () => {
+  it("refuses later writes and restart flush after a failed durable write", async () => {
     const appendSessionEvent = vi.fn().mockRejectedValueOnce(new Error("disk full")).mockResolvedValue(undefined);
     const service = new SessionEventIngestionService({
       appendSessionEvent, getSessionRecord: async () => null, listUnfinishedRuns: async () => [],
       onError: vi.fn(), subscribe: () => () => undefined, updateSessionMetadata: async () => true,
     });
     await expect(service.ingestEvent(createMarkerEvent("compressing"))).rejects.toThrow("disk full");
-    await service.ingestEvent(createMarkerEvent("failed"));
+    await expect(service.ingestEvent(createMarkerEvent("failed"))).rejects.toThrow("refusing further writes");
+    expect(appendSessionEvent).toHaveBeenCalledTimes(1);
+    await expect(service.flushSession(SESSION_ID)).rejects.toThrow("refusing further writes");
+    await expect(service.flushSession("unaffected-session")).resolves.toBeUndefined();
     await expect(service.flush()).rejects.toThrow("session journal write failed");
+    service.dispose();
+  });
+
+  it("coalesces only adjacent matching deltas and flushes before every boundary", async () => {
+    const events: NcpEndpointEvent[] = [];
+    const service = new SessionEventIngestionService({
+      appendSessionEvent: async ({ event }) => { events.push(event as NcpEndpointEvent); },
+      getSessionRecord: async () => null, listUnfinishedRuns: async () => [],
+      onError: vi.fn(), subscribe: () => () => undefined, updateSessionMetadata: async () => true,
+    });
+    const delta = (value: string, messageId = "assistant-1"): NcpEndpointEvent => ({
+      occurredAt: "2026-09-29T00:00:00.000Z",
+      type: NcpEventType.MessageReasoningDelta,
+      payload: { sessionId: SESSION_ID, messageId, delta: value },
+    });
+    await service.ingestEvent(delta("思"));
+    await service.ingestEvent(delta("考"));
+    await service.ingestEvent(delta("B", "assistant-2"));
+    await service.ingestEvent(createMarkerEvent("compressing"));
+    await service.flushSession(SESSION_ID);
+    expect(events.map((event) => event.type)).toEqual([
+      NcpEventType.MessageReasoningDelta,
+      NcpEventType.MessageReasoningDelta,
+      NcpEventType.MessageSent,
+    ]);
+    expect(events[0]?.payload).toMatchObject({ messageId: "assistant-1", delta: "思考" });
+    expect(events[1]?.payload).toMatchObject({ messageId: "assistant-2", delta: "B" });
+    service.dispose();
+  });
+
+  it("preserves replayed reasoning and tool arguments after online coalescing", async () => {
+    const persisted: NcpEndpointEvent[] = [];
+    const service = new SessionEventIngestionService({
+      appendSessionEvent: async ({ event }) => { persisted.push(event as NcpEndpointEvent); },
+      getSessionRecord: async () => null, listUnfinishedRuns: async () => [],
+      onError: vi.fn(), subscribe: () => () => undefined, updateSessionMetadata: async () => true,
+    });
+    const payload = { sessionId: SESSION_ID, messageId: "assistant-1" };
+    const raw: NcpEndpointEvent[] = [
+      { type: NcpEventType.MessageReasoningStart, payload },
+      { type: NcpEventType.MessageReasoningDelta, payload: { ...payload, delta: "先" } },
+      { type: NcpEventType.MessageReasoningDelta, payload: { ...payload, delta: "想" } },
+      { type: NcpEventType.MessageReasoningEnd, payload },
+      { type: NcpEventType.MessageToolCallStart, payload: { ...payload, toolCallId: "tool-1", toolName: "exec" } },
+      { type: NcpEventType.MessageToolCallArgsDelta, payload: { ...payload, toolCallId: "tool-1", delta: "{\"x\":" } },
+      { type: NcpEventType.MessageToolCallArgsDelta, payload: { ...payload, toolCallId: "tool-1", delta: "1}" } },
+      { type: NcpEventType.MessageToolCallEnd, payload: { sessionId: SESSION_ID, toolCallId: "tool-1" } },
+    ];
+    const timed = raw.map((event, index) => ({ ...event, occurredAt: `2026-09-29T00:00:0${index}.000Z` }));
+    for (const event of timed) await service.ingestEvent(event);
+    await service.flushSession(SESSION_ID);
+    expect(persisted).toHaveLength(raw.length - 2);
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-09-29T00:00:10.000Z"));
+      expect(await replayNcpAgentSessionEvents(persisted))
+        .toEqual(await replayNcpAgentSessionEvents(timed));
+    } finally { vi.useRealTimers(); }
+    service.dispose();
+  });
+
+  it("flushes a pending delta after the 100 ms age limit", async () => {
+    vi.useFakeTimers();
+    try {
+      const appendSessionEvent = vi.fn(async () => undefined);
+      const service = new SessionEventIngestionService({
+        appendSessionEvent, getSessionRecord: async () => null, listUnfinishedRuns: async () => [],
+        onError: vi.fn(), subscribe: () => () => undefined, updateSessionMetadata: async () => true,
+      });
+      await service.ingestEvent({
+        type: NcpEventType.MessageTextDelta,
+        payload: { sessionId: SESSION_ID, messageId: "assistant-1", delta: "a" },
+      });
+      expect(appendSessionEvent).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(100);
+      await service.flushSession(SESSION_ID);
+      expect(appendSessionEvent).toHaveBeenCalledTimes(1);
+      service.dispose();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps pending chunks isolated when two sessions interleave", async () => {
+    const recorded: Array<{ sessionId: string; delta: string }> = [];
+    const service = new SessionEventIngestionService({
+      appendSessionEvent: async ({ sessionId, event }) => {
+        if (event.type === NcpEventType.MessageTextDelta) recorded.push({ sessionId, delta: event.payload.delta });
+      },
+      getSessionRecord: async () => null, listUnfinishedRuns: async () => [],
+      onError: vi.fn(), subscribe: () => () => undefined, updateSessionMetadata: async () => true,
+    });
+    const delta = (sessionId: string, value: string): NcpEndpointEvent => ({
+      type: NcpEventType.MessageTextDelta,
+      payload: { sessionId, messageId: "assistant-1", delta: value },
+    });
+    await service.ingestEvent(delta("session-a", "a"));
+    await service.ingestEvent(delta("session-b", "x"));
+    await service.ingestEvent(delta("session-a", "b"));
+    await service.ingestEvent(delta("session-b", "y"));
+    await service.flush();
+    expect(recorded).toEqual([
+      { sessionId: "session-a", delta: "ab" },
+      { sessionId: "session-b", delta: "xy" },
+    ]);
     service.dispose();
   });
 

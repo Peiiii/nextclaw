@@ -2,19 +2,19 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
-    alias: {
-      "@core/": new URL("../nextclaw-core/src/", import.meta.url).pathname,
-      "@core": new URL("../nextclaw-core/src", import.meta.url).pathname,
-      "@kernel/": new URL("../nextclaw-kernel/src/", import.meta.url).pathname,
-      "@kernel": new URL("../nextclaw-kernel/src", import.meta.url).pathname,
-      "@nextclaw-server/": new URL("../nextclaw-server/src/", import.meta.url).pathname,
-      "@nextclaw/core": new URL("../nextclaw-core/src/index.ts", import.meta.url).pathname,
-      "@nextclaw/kernel": new URL("../nextclaw-kernel/src/index.ts", import.meta.url).pathname,
-      "@nextclaw/server": new URL("../nextclaw-server/src/index.ts", import.meta.url).pathname,
-      "@nextclaw-service/": new URL("./src/", import.meta.url).pathname,
-      "@nextclaw-service": new URL("./src/index.ts", import.meta.url).pathname,
-      "@stdio-runtime-client": new URL("../nextclaw-ncp-runtime-stdio-client/src", import.meta.url).pathname,
-      "@nextclaw/shared": new URL("../nextclaw-shared/src/index.ts", import.meta.url).pathname
-    }
+    alias: [
+      { find: "@core/", replacement: new URL("../nextclaw-core/src/", import.meta.url).pathname },
+      { find: "@core", replacement: new URL("../nextclaw-core/src", import.meta.url).pathname },
+      { find: "@kernel/", replacement: new URL("../nextclaw-kernel/src/", import.meta.url).pathname },
+      { find: "@kernel", replacement: new URL("../nextclaw-kernel/src", import.meta.url).pathname },
+      { find: "@nextclaw-server/", replacement: new URL("../nextclaw-server/src/", import.meta.url).pathname },
+      { find: /^@nextclaw\/core$/, replacement: new URL("../nextclaw-core/src/index.ts", import.meta.url).pathname },
+      { find: /^@nextclaw\/kernel$/, replacement: new URL("../nextclaw-kernel/src/index.ts", import.meta.url).pathname },
+      { find: /^@nextclaw\/server$/, replacement: new URL("../nextclaw-server/src/index.ts", import.meta.url).pathname },
+      { find: "@nextclaw-service/", replacement: new URL("./src/", import.meta.url).pathname },
+      { find: "@nextclaw-service", replacement: new URL("./src/index.ts", import.meta.url).pathname },
+      { find: "@stdio-runtime-client", replacement: new URL("../nextclaw-ncp-runtime-stdio-client/src", import.meta.url).pathname },
+      { find: /^@nextclaw\/shared$/, replacement: new URL("../nextclaw-shared/src/index.ts", import.meta.url).pathname },
+    ]
   }
 });

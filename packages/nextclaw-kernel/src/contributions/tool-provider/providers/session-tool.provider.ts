@@ -2,13 +2,10 @@ import type { ToolProviderRunContextService } from "@kernel/contributions/tool-p
 import type { SessionRequestManager } from "@kernel/features/session-request/index.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { AgentRunRequest, ToolProvider } from "@kernel/types/agent-run.types.js";
-import { SessionsHistoryTool, SessionsListTool } from "@kernel/tools/session-history.tools.js";
 import { SessionRequestTool } from "@kernel/tools/session-request.tools.js";
 import { SessionSearchTool } from "@kernel/tools/session-search.tools.js";
 import { SessionSpawnTool } from "@kernel/tools/session-spawn.tools.js";
 import { SessionsUpdateTool } from "@kernel/tools/session-update.tools.js";
-import { RequestUserInputAsyncTool } from "@kernel/tools/user-question.tools.js";
-import type { UserQuestionManager } from "@kernel/managers/user-question.manager.js";
 import { readParentSessionId, type SessionSearchService } from "@nextclaw/core";
 import type { NcpTool } from "@nextclaw/ncp";
 import { createAgentToolRunTriggerInput } from "@kernel/utils/agent-run-trigger.utils.js";
@@ -19,7 +16,6 @@ export class SessionToolProvider implements ToolProvider {
     private readonly sessionManager: SessionManager,
     private readonly sessionRequests: SessionRequestManager,
     private readonly sessionSearch: SessionSearchService,
-    private readonly userQuestions?: UserQuestionManager,
   ) {}
 
   provide = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {
@@ -39,13 +35,8 @@ export class SessionToolProvider implements ToolProvider {
     });
     const tools: NcpTool[] = [
       sessionsRequestTool,
-      new SessionsListTool(this.sessionManager),
-      new SessionsHistoryTool(this.sessionManager),
       new SessionsUpdateTool(this.sessionManager),
     ];
-    if (this.userQuestions && session?.agentRuntimeId === "native" && (!request.channel || request.channel === "ui")) {
-      tools.push(new RequestUserInputAsyncTool(this.userQuestions, sessionId));
-    }
     if (!isChildSession) {
       const sessionsSpawnTool = new SessionSpawnTool(
         this.sessionManager,

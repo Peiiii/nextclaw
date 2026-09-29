@@ -1,3 +1,11 @@
+import {
+  BUILTIN_MAIN_AGENT_ID,
+  normalizeAgentProfileId,
+  projectConfiguredAgentProfile,
+  resolveConfiguredAgentProfiles,
+  type EffectiveAgentProfile,
+} from "./agent-profile-resolution.utils.js";
+export { BUILTIN_MAIN_AGENT_ID, normalizeAgentProfileId, type EffectiveAgentProfile } from "./agent-profile-resolution.utils.js";
 import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import {
@@ -6,120 +14,44 @@ import {
   resolveAgentAvatarHomePath
 } from "./agent-avatar.utils.js";
 import {
-  applyAgentProfileModelUpdate,
-  applyAgentProfileRuntimeUpdate,
-  buildAgentAdvancedPatch,
-  buildAgentModelPatch,
-  buildAgentRuntimePatch,
-  hasAgentProfileAdvancedInput,
   normalizeOptionalString,
-  toRecord,
-  type AgentProfileAdvancedInput
 } from "./agent-profile-runtime-fields.utils.js";
+import {
+  applyAgentProfileSettingsUpdate,
+  insertConfiguredAgentProfile,
+  removeConfiguredAgentProfile,
+  applyAgentProfileTextUpdate,
+  assertCreatableAgentId,
+  ensureAgentProfileUpdateInput,
+  formatAgentDisplayName,
+  type CreateAgentProfileInput,
+  type UpdateAgentProfileInput,
+} from "./agent-profile-mutation.utils.js";
+export { assertCreatableAgentId, formatAgentDisplayName, type CreateAgentProfileInput, type UpdateAgentProfileInput } from "./agent-profile-mutation.utils.js";
 import { loadConfig, saveConfig } from "./config-loader.utils.js";
 import type { Config } from "@core/features/config/configs/config-schema.config.js";
 import { expandHome, getWorkspacePath } from "@core/shared/lib/core-utils/index.js";
 
-export const BUILTIN_MAIN_AGENT_ID = "main";
+
 const AGENT_HOME_DIRECTORY_SEGMENT = "agents";
 export { resolveAgentAvatarHomePath } from "./agent-avatar.utils.js";
 
 type AgentProfile = Config["agents"]["list"][number];
 
-export type EffectiveAgentProfile = AgentProfile & {
-  id: string;
-  workspace: string;
-  displayName?: string;
-  description?: string;
-  avatar?: string;
-  runtime?: string;
-  runtimeConfig?: Record<string, unknown>;
-  builtIn?: boolean;
-};
 
-export type CreateAgentProfileInput = {
-  id: string;
-  displayName?: string;
-  description?: string;
-  avatar?: string;
-  home?: string;
-  model?: string;
-  runtime?: string;
-  runtimeConfig?: Record<string, unknown> | null;
-  engine?: string;
-  engineConfig?: Record<string, unknown> | null;
-} & AgentProfileAdvancedInput;
 
 type CreateAgentProfileOptions = { configPath?: string; initializeHomeDirectory?: (homeDirectory: string) => void };
 
-export type UpdateAgentProfileInput = {
-  id: string;
-  displayName?: string;
-  description?: string;
-  avatar?: string;
-  model?: string;
-  runtime?: string;
-  runtimeConfig?: Record<string, unknown> | null;
-  engine?: string;
-  engineConfig?: Record<string, unknown> | null;
-} & AgentProfileAdvancedInput;
-
 type UpdateAgentProfileOptions = { configPath?: string };
 
-export function normalizeAgentProfileId(value: unknown): string {
-  if (typeof value !== "string") {
-    return "";
-  }
-  return value.trim().toLowerCase();
-}
+
 
 export function isBuiltinAgentId(agentId: string): boolean {
   return normalizeAgentProfileId(agentId) === BUILTIN_MAIN_AGENT_ID;
 }
 
-export function assertCreatableAgentId(agentId: string): string {
-  const normalized = normalizeAgentProfileId(agentId);
-  if (!normalized) {
-    throw new Error("agent id is required");
-  }
-  if (normalized === BUILTIN_MAIN_AGENT_ID) {
-    throw new Error(`agent id '${BUILTIN_MAIN_AGENT_ID}' is reserved`);
-  }
-  if (!/^[a-z0-9][a-z0-9_-]*$/.test(normalized)) {
-    throw new Error("agent id must match /^[a-z0-9][a-z0-9_-]*$/");
-  }
-  return normalized;
-}
-
 export function resolveEffectiveAgentProfiles(config: Config): EffectiveAgentProfile[] {
-  const configured = Array.isArray(config.agents.list) ? config.agents.list : [];
-  const mainOverride = configured.find((entry) => normalizeAgentProfileId(entry.id) === BUILTIN_MAIN_AGENT_ID);
-  const extraAgents = configured.filter((entry) => normalizeAgentProfileId(entry.id) !== BUILTIN_MAIN_AGENT_ID);
-  return [
-    {
-      id: BUILTIN_MAIN_AGENT_ID,
-      default: true,
-      workspace: mainOverride?.workspace?.trim() || config.agents.defaults.workspace,
-      displayName: normalizeOptionalString(mainOverride?.displayName) ?? "Main",
-      ...(normalizeOptionalString(mainOverride?.description)
-        ? { description: normalizeOptionalString(mainOverride?.description) ?? undefined }
-        : {}),
-      ...(normalizeOptionalString(mainOverride?.avatar) ? { avatar: normalizeOptionalString(mainOverride?.avatar) ?? undefined } : {}),
-      model: mainOverride?.model,
-      engine: normalizeOptionalString(mainOverride?.engine) ?? normalizeOptionalString(config.agents.defaults.engine) ?? undefined,
-      engineConfig: toRecord(mainOverride?.engineConfig) ?? toRecord(config.agents.defaults.engineConfig),
-      runtime: normalizeOptionalString(mainOverride?.engine) ?? normalizeOptionalString(config.agents.defaults.engine) ?? undefined,
-      runtimeConfig: toRecord(mainOverride?.engineConfig) ?? toRecord(config.agents.defaults.engineConfig),
-      thinkingDefault: mainOverride?.thinkingDefault,
-      models: mainOverride?.models,
-      contextTokens: mainOverride?.contextTokens,
-      reservedContextTokens: mainOverride?.reservedContextTokens,
-      builtIn: true
-    },
-    ...extraAgents
-      .map((entry) => toEffectiveAgentProfile(entry, config))
-      .filter((entry): entry is EffectiveAgentProfile => Boolean(entry))
-  ];
+  return resolveConfiguredAgentProfiles(config, resolveImplicitAgentHomePath);
 }
 
 export function findEffectiveAgentProfile(config: Config, agentId: string): EffectiveAgentProfile | null {
@@ -173,7 +105,6 @@ export function createAgentProfile(
   options.initializeHomeDirectory?.(homeDirectory);
 
   const displayName = normalizeOptionalString(input.displayName) ?? formatAgentDisplayName(agentId);
-  const description = normalizeOptionalString(input.description) ?? undefined;
   const avatar = materializeAgentAvatar({
     avatar: input.avatar,
     homeDirectory,
@@ -181,25 +112,7 @@ export function createAgentProfile(
     displayName
   });
 
-  const profile: AgentProfile = {
-    id: agentId,
-    default: false,
-    workspace: storedHome,
-    displayName,
-    ...(description ? { description } : {}),
-    avatar,
-    ...buildAgentModelPatch(input.model),
-    ...buildAgentRuntimePatch(input),
-    ...buildAgentAdvancedPatch(input)
-  };
-
-  config.agents.list = [...config.agents.list, profile];
-  const next = config.agents.list
-    .map((entry) => normalizeAgentProfileId(entry.id))
-    .filter(Boolean);
-  if (new Set(next).size !== next.length) {
-    throw new Error(`agent '${agentId}' already exists`);
-  }
+  const profile = insertConfiguredAgentProfile(config, input, { home: storedHome, avatar });
   saveConfig(config, options.configPath);
   return toEffectiveAgentProfile(profile, config) as EffectiveAgentProfile;
 }
@@ -213,30 +126,14 @@ export function updateAgentProfile(
   applyAgentProfileTextUpdate(profile, "displayName", input.displayName);
   applyAgentProfileTextUpdate(profile, "description", input.description);
   applyAgentProfileAvatarUpdate(profile, input.avatar, existingEffective, agentId);
-  applyAgentProfileModelUpdate(profile, input.model);
-  applyAgentProfileRuntimeUpdate(profile, input);
-  if (input.contextTokens === null) {
-    delete profile.contextTokens;
-  }
-  Object.assign(profile, buildAgentAdvancedPatch(input));
+  applyAgentProfileSettingsUpdate(profile, input);
   persistUpdatedAgentProfile(config, profileIndex, profile, options.configPath);
   return findEffectiveAgentProfile(config, agentId) as EffectiveAgentProfile;
 }
 
 export function removeAgentProfile(agentId: string, options: { configPath?: string } = {}): boolean {
-  const normalized = normalizeAgentProfileId(agentId);
-  if (!normalized) {
-    throw new Error("agent id is required");
-  }
-  if (normalized === BUILTIN_MAIN_AGENT_ID) {
-    throw new Error(`agent id '${BUILTIN_MAIN_AGENT_ID}' is reserved`);
-  }
   const config = loadConfig(options.configPath);
-  const before = config.agents.list.length;
-  config.agents.list = config.agents.list.filter((entry) => normalizeAgentProfileId(entry.id) !== normalized);
-  if (config.agents.list.length === before) {
-    return false;
-  }
+  if (!removeConfiguredAgentProfile(config, agentId)) return false;
   saveConfig(config, options.configPath);
   return true;
 }
@@ -254,29 +151,8 @@ export function resolveImplicitAgentHomePath(config: Config, agentId: string): s
   return legacyPath;
 }
 
-export function formatAgentDisplayName(agentId: string): string {
-  return agentId
-    .split(/[-_]+/g)
-    .filter(Boolean)
-    .map((segment) => segment.slice(0, 1).toUpperCase() + segment.slice(1))
-    .join(" ");
-}
-
 function toEffectiveAgentProfile(entry: AgentProfile, config: Config): EffectiveAgentProfile | null {
-  const id = normalizeAgentProfileId(entry.id);
-  if (!id) {
-    return null;
-  }
-  return {
-    ...entry,
-    id,
-    workspace: normalizeOptionalString(entry.workspace) ?? resolveImplicitAgentHomePath(config, id),
-    ...(normalizeOptionalString(entry.displayName) ? { displayName: normalizeOptionalString(entry.displayName) ?? undefined } : {}),
-    ...(normalizeOptionalString(entry.description) ? { description: normalizeOptionalString(entry.description) ?? undefined } : {}),
-    ...(normalizeOptionalString(entry.avatar) ? { avatar: normalizeOptionalString(entry.avatar) ?? undefined } : {}),
-    ...(normalizeOptionalString(entry.engine) ? { runtime: normalizeOptionalString(entry.engine) ?? undefined } : {}),
-    ...(toRecord(entry.engineConfig) ? { runtimeConfig: toRecord(entry.engineConfig) } : {})
-  };
+  return projectConfiguredAgentProfile(entry, config, resolveImplicitAgentHomePath);
 }
 
 function buildLegacyAgentHomePath(config: Config, agentId: string): string {
@@ -332,35 +208,6 @@ function resolveAgentProfileUpdateContext(agentIdInput: string, configPath?: str
     ? { ...config.agents.list[profileIndex] }
     : { id: agentId, default: agentId === BUILTIN_MAIN_AGENT_ID };
   return { agentId, config, existingEffective, profileIndex, profile };
-}
-
-function ensureAgentProfileUpdateInput(input: UpdateAgentProfileInput): void {
-  if (
-    input.displayName !== undefined ||
-    input.description !== undefined ||
-    input.avatar !== undefined ||
-    input.model !== undefined ||
-    input.runtime !== undefined ||
-    input.runtimeConfig !== undefined ||
-    input.engine !== undefined ||
-    input.engineConfig !== undefined ||
-    hasAgentProfileAdvancedInput(input)
-  ) {
-    return;
-  }
-  throw new Error("at least one field must be provided");
-}
-
-function applyAgentProfileTextUpdate(profile: AgentProfile, key: "displayName" | "description", value?: string): void {
-  if (value === undefined) {
-    return;
-  }
-  const normalized = normalizeOptionalString(value);
-  if (normalized) {
-    profile[key] = normalized;
-    return;
-  }
-  delete profile[key];
 }
 
 function applyAgentProfileAvatarUpdate(

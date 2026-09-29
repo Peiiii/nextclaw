@@ -1,5 +1,5 @@
 import type { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
-import type { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
+import type { SessionPersistence } from "@kernel/types/session.types.js";
 import { createNcpAgentSessionSummary } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import type { SessionWorkingDirResolver } from "@kernel/services/session-working-dir-resolver.service.js";
 import type { SessionSearchService } from "@nextclaw/core";
@@ -8,11 +8,11 @@ import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { eventKeys, type EventBus } from "@nextclaw/shared";
 
 export type SessionSummaryProjectionServiceOptions = {
-  agentContextWindowManager: AgentContextWindowManager;
+  agentContextWindowManager: Pick<AgentContextWindowManager, "previewSession">;
   eventBus: EventBus;
   getSessionRecord: (sessionId: string) => Promise<AgentSessionRecord | null>;
-  journalStore: NcpAgentSessionJournalStore;
-  sessionSearch: SessionSearchService;
+  journalStore: Pick<SessionPersistence, "updateSessionMessageProjectionContextWindow">;
+  sessionSearch: Pick<SessionSearchService, "handleSessionUpdated">;
   workingDirResolver: SessionWorkingDirResolver;
 };
 

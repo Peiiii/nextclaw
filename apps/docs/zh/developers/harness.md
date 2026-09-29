@@ -4,10 +4,17 @@
 
 ## 生命周期
 
+需要完整本地产品能力时，从同一个包的 Node 根入口使用 `runNextclawTask(input, options)`；它包含原工具、技能、上下文和扩展加载。服务集成可用 `createNextclawApplication(options)` 获得 `{ harness, kernel }`：工厂完成 `prepare()` 后即可连接原管理入口，再调用 `harness.start()` 接纳消息，关闭时调用 `harness.dispose()`。服务可按自身启动顺序调用 `kernel.extensions.load(...)`。
+
+`prepare()` 仅打开资源和装配产品模块，不启动 Agent 请求。普通 SDK 使用者只需调用 `start()`，它会自动 prepare。Node 专属工厂不进入 workerd 导出；两种环境都由 Harness 创建同一个 AgentKernel。
+
+下面展示按平台自行组合工具的基础用法：
+
 ```ts
 import { NextclawHarness } from '@nextclaw/harness';
+import { NodePlatform } from '@nextclaw/kernel';
 
-const harness = new NextclawHarness();
+const harness = new NextclawHarness({ platform: new NodePlatform() });
 await harness.start();
 try {
   const result = await harness.runTask({ input: '检查工作区状态' });
@@ -42,9 +49,9 @@ const result = await run.result();
 
 ## Options 与任务输入
 
-`NextclawHarnessOptions` 用于传递 kernel 的 `homeDir`、`configPath`、`builtInAppsDirectory`、`productVersion` 和 activity sink。
+`NextclawHarnessOptions.platform` 接受资源平台。`NodePlatform` 的选项包括 `homeDir`、`configPath`、`sessionTitleEnabled`、`sessionSearchEnabled` 和 `productActivitySink`。Node 平台目前由 `@nextclaw/kernel` 根入口提供；不从 Worker 入口导入本地平台。
 
-嵌入式应用可用 `allowedToolNames` 限定模型可见及可调用的工具名，包括宿主注册的工具；未设置时保留完整工具目录。`contextProfile: 'embedded'` 保留安全、Agent 身份与记忆、执行规则和当前会话，省略 NextClaw 宿主说明。宿主若自行维护会话标题和搜索索引，可设置 `sessionTitleEnabled: false`、`sessionSearchEnabled: false`。默认值保留完整 NextClaw 行为。设置工具允许列表后，斜杠命令不会绕过该限制。
+平台 `start()` 返回 `AgentKernelResources`，由 Harness 创建共享引擎。资源包含持久存储、模型和运行环境事实，不包含已组装的 manager graph。SDK 默认不启动完整本地应用的后台服务；文件、命令行和业务工具通过 Contribution 明确注册。可设置 Harness 的 `allowSlashCommands: false` 禁止斜杠命令。
 
 `NextclawTaskInput` 包含：
 
@@ -78,14 +85,20 @@ type NextclawTaskResult = {
 ## 一次性任务
 
 ```ts
-import { runNextclawTask } from '@nextclaw/harness';
+import { NextclawHarness } from '@nextclaw/harness';
+import { NodePlatform } from '@nextclaw/kernel';
 
-const result = await runNextclawTask({
-  input: '生成检查摘要',
-  onAssistantDelta: (delta) => process.stderr.write(delta),
-});
+const harness = new NextclawHarness({ platform: new NodePlatform() });
+try {
+  await harness.start();
+  const result = await harness.runTask({
+    input: '给我一份检查清单',
+    onAssistantDelta: (delta) => process.stderr.write(delta),
+  });
+  console.log(result.text);
+} finally { await harness.dispose(); }
 ```
 
-one-shot helper 在 Harness 启动后会在任务成功、运行失败或取消时执行 `dispose()`。输入校验会在创建 Harness 前完成。需要连续运行多次任务时，请显式创建 Harness，并在每次任务结束后保留或传入明确的 `sessionId`。
+使用 `try/finally` 释放一次性任务实例。连续任务应复用 Harness，并为需要连续上下文的任务传入同一个 `sessionId`。关闭实例不删除磁盘会话，新的 NodePlatform 可恢复同一份数据。
 
 需要接入工具、上下文、模型、Runtime 或 MCP Server 时，继续阅读[平台扩展能力](./platform-capabilities)。

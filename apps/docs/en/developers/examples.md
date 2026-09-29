@@ -5,10 +5,15 @@ These examples use only the current experimental public contract.
 ## Node.js one-shot task
 
 ```ts
-import { runNextclawTask } from '@nextclaw/harness';
+import { NextclawHarness } from '@nextclaw/harness';
+import { NodePlatform } from '@nextclaw/kernel';
 
-const result = await runNextclawTask({ input: 'Inspect the repository and summarize risks' });
-console.log(result.text);
+const harness = new NextclawHarness({ platform: new NodePlatform() });
+try {
+  await harness.start();
+  const result = await harness.runTask({ input: 'Give me a repository review checklist' });
+  console.log(result.text);
+} finally { await harness.dispose(); }
 ```
 
 ## Long-lived Harness
@@ -17,8 +22,9 @@ A single Harness can run multiple tasks. Omitting `sessionId` creates a new `exe
 
 ```ts
 import { NextclawHarness } from '@nextclaw/harness';
+import { NodePlatform } from '@nextclaw/kernel';
 
-const harness = new NextclawHarness();
+const harness = new NextclawHarness({ platform: new NodePlatform() });
 await harness.start();
 try {
   const first = await harness.runTask({ input: 'Build a project summary', sessionId: 'project-review' });

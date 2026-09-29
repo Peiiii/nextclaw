@@ -2,7 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { currentUser, json, publicError } from "./bibo-auth.utils";
 import { reserveBiboSearch } from "@/features/search";
 import { logDiagnostic, readModelRequest, readTrace, runFailure } from "./diagnostics/bibo-diagnostics.utils";
-import { forwardBiboModel } from "./services/bibo-model-transport.service";
+import { forwardBiboModel } from "./services/model/bibo-model-transport.service";
 
 const DAILY_MODEL_LIMIT = 2000;
 const USER_DAILY_MODEL_LIMIT = 250;

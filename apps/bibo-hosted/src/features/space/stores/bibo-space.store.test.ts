@@ -224,7 +224,26 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
   });
   await checkMissingFileWarning(t, useBiboSpaceStore, requests, responses);
   await checkWriteFeedback(t, responses, overview);
+  await checkPreviewProtection(t, useBiboSpaceStore, requests);
 });
+
+async function checkPreviewProtection(t: TestContext, useBiboSpaceStore: typeof BiboSpaceStoreHook,
+  requests: readonly unknown[]): Promise<void> {
+  await t.test("partial file previews cannot be edited or saved over the original", async () => {
+    const current = useBiboSpaceStore.getState();
+    const file = { id: "large", path: "large.txt", kind: "artifact" as const, content: "prefix", version: "v1",
+      uri: "nextclaw://objects/file/large", createdAt: "now", updatedAt: "now",
+      preview: { totalBytes: 100 * 1024 * 1024, readBytes: 6, truncated: true, binary: false } };
+    useBiboSpaceStore.setState({ fileDetails: { large: file },
+      fileDrafts: { large: { content: "prefix", version: "v1", dirty: false, saving: false } } });
+    current.editFile("large", "overwrite");
+    assert.equal(useBiboSpaceStore.getState().fileDrafts.large?.content, "prefix");
+    useBiboSpaceStore.setState({ fileDrafts: { large: { content: "prefix", version: "v1", dirty: true, saving: false } } });
+    const before = requests.length;
+    await current.saveFile("large");
+    assert.equal(requests.length, before);
+  });
+}
 
 async function checkMissingFileWarning(t: TestContext, useBiboSpaceStore: typeof BiboSpaceStoreHook,
   requests: Array<{ action: string; input: Record<string, unknown> }>, responses: Array<(response: Response) => void>): Promise<void> {

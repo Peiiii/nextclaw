@@ -1,9 +1,8 @@
 import {
-  getWorkspacePath,
   parseThinkingLevel,
-  resolveSessionWorkspacePath,
   resolveThinkingLevel,
   type Config,
+  type SessionProjectContextResolver,
 } from "@nextclaw/core";
 import type { ResolvedAgentProfile } from "@kernel/managers/agent.manager.js";
 import {
@@ -34,6 +33,7 @@ export type NextclawNcpRunContextResolveParams = {
   sessionId: string;
   requestMetadata?: Record<string, unknown>;
   sessionMetadata?: Record<string, unknown>;
+  projectContextResolver: Pick<SessionProjectContextResolver, "resolve">;
 };
 
 export type NextclawNcpResolvedRunContext = {
@@ -87,6 +87,7 @@ export function buildNextclawNcpRunContext(
     requestMetadata: inputRequestMetadata,
     sessionId,
     sessionMetadata: inputSessionMetadata,
+    projectContextResolver,
   } = params;
   const requestMetadata = mergeRunMetadata({
     sessionMetadata: inputSessionMetadata,
@@ -95,6 +96,7 @@ export function buildNextclawNcpRunContext(
   const profile = buildResolvedAgentProfile({
     config,
     profile: agentProfile,
+    workspace: projectContextResolver.resolve({ workspace: agentProfile.workspace }).hostWorkspace,
   });
   const { metadata: modelMetadata, model: effectiveModel } =
     resolveEffectiveModel({
@@ -102,10 +104,10 @@ export function buildNextclawNcpRunContext(
       requestMetadata,
       fallbackModel: profile.model,
     });
-  const effectiveWorkspace = resolveSessionWorkspacePath({
+  const effectiveWorkspace = projectContextResolver.resolve({
     sessionMetadata: modelMetadata,
     workspace: profile.workspace,
-  });
+  }).effectiveWorkspace;
   const channelContext = resolveSessionChannelContext({
     sessionMetadata: modelMetadata,
     requestMetadata,
@@ -150,6 +152,7 @@ export function buildNextclawNcpRunContext(
 function buildResolvedAgentProfile(params: {
   config: Config;
   profile: ResolvedAgentProfile;
+  workspace: string;
 }): NextclawNcpResolvedAgentProfile {
   const {
     config,
@@ -165,7 +168,7 @@ function buildResolvedAgentProfile(params: {
   return {
     agentId: profile.id,
     displayName: profile.displayName ?? profile.id,
-    workspace: getWorkspacePath(profile.workspace),
+    workspace: params.workspace,
     model: profile.model,
     contextTokens: profile.contextTokens,
     reservedContextTokens: profile.reservedContextTokens,

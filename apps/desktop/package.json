@@ -33,6 +33,7 @@
     "validation:serve-local-update": "node scripts/run-local-update-server.mjs"
   },
   "dependencies": {
+    "@nextclaw/harness": "workspace:*",
     "@nextclaw/channel-extension-dingtalk": "workspace:*",
     "@nextclaw/channel-extension-discord": "workspace:*",
     "@nextclaw/channel-extension-email": "workspace:*",

@@ -2,6 +2,7 @@ export type RunTrace = { runId: string; sessionId?: string };
 type DiagnosticFields = RunTrace & {
   stage?: string; status?: number; errorCode?: string; durationMs?: number;
   requestBytes?: number; messageCount?: number; toolCount?: number; toolSummary?: string;
+  toolName?: string; outcome?: "success" | "error";
   snapshotBytes?: number; persisted?: boolean; runtimeId?: string;
   compactionStatus?: string; phase?: string;
   errorType?: string; errorLocation?: string;
@@ -25,6 +26,7 @@ export function logDiagnostic(component: "worker" | "container" | "model", event
     runId: fields.runId, sessionId: fields.sessionId, stage: fields.stage, status: fields.status,
     errorCode: fields.errorCode, durationMs: fields.durationMs, requestBytes: fields.requestBytes,
     messageCount: fields.messageCount, toolCount: fields.toolCount, toolSummary: fields.toolSummary,
+    toolName: fields.toolName, outcome: fields.outcome,
     snapshotBytes: fields.snapshotBytes,
     persisted: fields.persisted, runtimeId: fields.runtimeId, compactionStatus: fields.compactionStatus, phase: fields.phase,
     errorType: fields.errorType, errorLocation: fields.errorLocation,
@@ -50,22 +52,24 @@ export class BiboRunError extends Error {
 export function runFailure(error: unknown, aborted = false): BiboRunError {
   if (error instanceof BiboRunError) return error;
   const message = error instanceof Error ? error.message : String(error);
-  if (aborted || (error instanceof Error && error.name === "AbortError")) return new BiboRunError("RUN_CANCELLED", 409, "本次生成已停止或超时，本轮未保存。");
+  if (aborted || (error instanceof Error && error.name === "AbortError")) return new BiboRunError("RUN_CANCELLED", 409, "本次回复已停止，已完成的操作仍保留。");
   if (message.includes("BIBO_MODEL_QUOTA_EXHAUSTED")) return new BiboRunError("MODEL_RATE_LIMITED", 429, "今日试用额度已用完，请明天再试。");
-  if (/\b413\b|模型输入过长/.test(message)) return new BiboRunError("MODEL_INPUT_TOO_LARGE", 413, "本次模型请求超过传输上限，本轮未保存。重复发送相同内容无法解决，请联系维护者。");
+  if (message.includes("BIBO_MODEL_NOT_CONFIGURED")) return new BiboRunError("MODEL_NOT_CONFIGURED", 400, "当前会话选择的模型尚未配置，请联系维护者调整模型配置。");
+  if (/\b413\b|模型输入过长/.test(message)) return new BiboRunError("MODEL_INPUT_TOO_LARGE", 413, "本次模型请求超过传输上限，已完成的操作仍保留。重复发送相同内容无法解决，请联系维护者。");
   if (/\b429\b|今日试用额度/.test(message)) return new BiboRunError("MODEL_RATE_LIMITED", 429, "模型服务达到用量或频率限制，请稍后再试。");
-  if (/context compaction/i.test(message)) return new BiboRunError("CONTEXT_COMPACTION_FAILED", 502, "上下文整理未能完成，本轮未保存，请稍后重试。");
-  if (/Chat Completions API failed/.test(message)) return new BiboRunError("MODEL_REQUEST_FAILED", 502, "模型服务未能完成请求，本轮未保存，请稍后重试。");
+  if (/context compaction/i.test(message)) return new BiboRunError("CONTEXT_COMPACTION_FAILED", 502, "上下文整理未能完成，已完成的操作仍保留。请稍后继续。");
+  if (/Chat Completions API failed/.test(message)) return new BiboRunError("MODEL_REQUEST_FAILED", 502, "模型服务未能完成回复，已完成的操作仍保留。请稍后继续。");
   return new BiboRunError("RUN_FAILED", 503, "Bibo 暂时无法完成这次任务，请稍后重试。");
 }
 
 export function readRunFailure(value: unknown): BiboRunError {
   const body = value as { code?: unknown; status?: unknown } | null;
   const failures: Record<string, BiboRunError> = {
+    MODEL_NOT_CONFIGURED: runFailure(new Error("BIBO_MODEL_NOT_CONFIGURED")),
     MODEL_INPUT_TOO_LARGE: runFailure(new Error("413")), MODEL_RATE_LIMITED: runFailure(new Error("429")),
     CONTEXT_COMPACTION_FAILED: runFailure(new Error("Context compaction")),
     MODEL_REQUEST_FAILED: runFailure(new Error("Chat Completions API failed")), RUN_CANCELLED: runFailure(null, true),
-    RUN_TIMEOUT: new BiboRunError("RUN_TIMEOUT", 504, "本次生成超时，本轮未保存，请稍后重试。"),
+    RUN_TIMEOUT: new BiboRunError("RUN_TIMEOUT", 504, "本次回复超时，已完成的操作仍保留。请查看结果后继续。"),
   };
   return typeof body?.code === "string" && failures[body.code] ? failures[body.code] : runFailure(null);
 }

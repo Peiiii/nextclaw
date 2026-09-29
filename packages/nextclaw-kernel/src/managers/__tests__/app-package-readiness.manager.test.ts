@@ -1,9 +1,11 @@
+import { createLocalProductFixture } from "@kernel/utils/tests/local-product-fixture.utils.js";
+const applications: Array<{ dispose(): Promise<void> }> = [];
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
-import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
+import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 
 const temporaryDirectories: string[] = [];
 const builtInAppsDirectory = resolve(import.meta.dirname, "../../../../nextclaw/resources/apps");
@@ -14,21 +16,24 @@ function createTemporaryDirectory(): string {
   return directory;
 }
 
-function createKernel(appsDirectory: string): NextclawKernel {
+async function createKernel(appsDirectory: string): Promise<NextclawKernel> {
   const homeDirectory = createTemporaryDirectory();
   const configPath = join(homeDirectory, "config.json");
   saveConfig(ConfigSchema.parse({
     agents: { defaults: { workspace: join(homeDirectory, "workspace") } },
   }), configPath);
-  return new NextclawKernel({
+  const application = await createLocalProductFixture({
     builtInAppsDirectory: appsDirectory,
     configPath,
     homeDir: homeDirectory,
     productVersion: "0.32.0",
   });
+  applications.push(application.harness);
+  return application.kernel;
 }
 
-afterEach(() => {
+afterEach(async () => {
+  for (const application of applications.splice(0).reverse()) await application.dispose();
   while (temporaryDirectories.length > 0) {
     const directory = temporaryDirectories.pop();
     if (directory) rmSync(directory, { force: true, recursive: true });
@@ -64,7 +69,7 @@ describe("AppPackageManager external dependency readiness", () => {
       }],
     };
     writeFileSync(serviceManifestPath, `${JSON.stringify(serviceManifest, null, 2)}\n`);
-    const kernel = createKernel(appsDirectory);
+    const kernel = await createKernel(appsDirectory);
 
     try {
       await kernel.appPackageManager.start();
@@ -102,7 +107,7 @@ describe("AppPackageManager external dependency readiness", () => {
       }],
     };
     writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-    const kernel = createKernel(appsDirectory);
+    const kernel = await createKernel(appsDirectory);
     const appId = String(manifest.id);
 
     try {

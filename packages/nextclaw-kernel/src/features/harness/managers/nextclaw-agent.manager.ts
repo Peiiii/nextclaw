@@ -1,11 +1,11 @@
 import type { EffectiveAgentProfile } from "@nextclaw/core";
-import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import {
   NextclawHarnessError,
   type INextclawAgent,
   type INextclawAgentRegistry,
   type INextclawAgentSessions,
   type NextclawAgentDefinition,
+  type NextclawHarnessResources,
 } from "@kernel/features/harness/types/nextclaw-harness.types.js";
 
 function toAgentDefinition(
@@ -36,7 +36,7 @@ class NextclawAgent implements INextclawAgent {
 
 export class NextclawAgentRegistry implements INextclawAgentRegistry {
   constructor(
-    private readonly requireKernel: () => NextclawKernel,
+    private readonly requireKernel: () => NextclawHarnessResources,
     private readonly getAgentSessions: (
       agentId: string,
     ) => INextclawAgentSessions,

@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { ensureDir, todayDate } from "../../../../shared/lib/core-utils/utils/helpers.utils.js";
+import { renderMemoryContext } from "./utils/memory-context.utils.js";
 
 const readTextIfExists = (path: string): string => (existsSync(path) ? readFileSync(path, "utf-8") : "");
 
@@ -64,11 +65,7 @@ export class MemoryStore {
   };
 
   getMemoryContext = (): string => {
-    return [
-      ["Workspace Memory", this.readWorkspaceMemory()],
-      ["Long-term Memory", this.readLongTerm()],
-      ["Today's Notes", this.readToday()],
-    ].flatMap(([title, content]) => (content ? [`## ${title}\n${content}`] : []))
-      .join("\n\n");
+    return renderMemoryContext({ workspaceMemory: this.readWorkspaceMemory(),
+      longTerm: this.readLongTerm(), today: this.readToday() });
   };
 }

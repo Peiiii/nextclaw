@@ -1,4 +1,5 @@
-import type { NcpMessage } from "@nextclaw/ncp";
+import { isHiddenNcpMessage, type NcpMessage } from "@nextclaw/ncp";
+import { projectUserQuestions } from "@nextclaw/kernel";
 import type { BiboMessage, BiboMessageContent } from "@nextclaw/bibo-client";
 import type { RunResult } from "../bibo-run-stream.utils";
 
@@ -46,28 +47,46 @@ export function projectBiboRunContent(before: readonly NcpMessage[], after: read
     .map((part) => part.text).join("\n\n") };
 }
 
+export function projectBiboConversation(messages: readonly NcpMessage[]): BiboMessage[] {
+  const visible = messages.filter((message) => !isHiddenNcpMessage(message) && message.status === "final");
+  const questions = projectUserQuestions(visible);
+  const result: BiboMessage[] = [];
+  let assistant: NcpMessage[] = [];
+  const flushAssistant = () => {
+    if (!assistant.length) return;
+    const { text, content } = projectBiboRunContent([], assistant);
+    const ids = new Set(content.flatMap((part) => part.type === "questions" ? part.ids : []));
+    if (text || ids.size) result.push({ role: "assistant", text, content,
+      at: assistant.at(-1)!.timestamp, ...(ids.size ? { questions: questions.filter((question) => ids.has(question.id)) } : {}) });
+    assistant = [];
+  };
+  for (const message of visible) {
+    if (message.role === "assistant") { assistant.push(message); continue; }
+    if (message.role !== "user") continue;
+    flushAssistant();
+    const metadata = message.metadata ?? {};
+    const action = metadata.nextclaw_user_question_action;
+    const questionId = metadata.nextclaw_user_question_id;
+    const reply: BiboMessage["replyToQuestion"] = typeof questionId === "string" && (action === "answered" || action === "dismissed")
+      ? { id: questionId, title: String(metadata.nextclaw_user_question_title ?? ""), action } : undefined;
+    const text = reply ? reply.action === "dismissed" ? "跳过" : String(metadata.nextclaw_user_question_answer ?? "")
+      : message.parts.flatMap((part) => part.type === "text" || part.type === "rich-text" ? [part.text] : []).join("\n");
+    result.push({ role: "user", text, at: message.timestamp, ...(reply ? { replyToQuestion: reply } : {}) });
+  }
+  flushAssistant();
+  return result;
+}
+
 export function prepareBiboSessionRun(sessions: BiboSession[], payload: { message: string; session: BiboSession;
-  question?: { id: string; title: string; action: "answer" | "dismiss" } }, result: RunResult): {
+  question?: { id: string; title: string; action: "answer" | "dismiss" } }, result: RunResult, history: readonly NcpMessage[]): {
   sessions: BiboSession[]; response: Record<string, unknown>;
 } {
   const at = new Date().toISOString();
-  const questions = result.questions ?? [];
-  const projected = payload.session.messages.map((message) => message.questions?.length
-    ? { ...message, questions: message.questions.map((question) => questions.find((latest) => latest.id === question.id) ?? question) }
-    : message);
-  const knownIds = new Set(projected.flatMap((message) => message.questions?.map((question) => question.id) ?? []));
-  const newQuestions = questions.filter((question) => !knownIds.has(question.id));
-  const retained = projected.filter((message, index) => index >= projected.length - 98 || message.questions?.some((question) => question.status === "pending"));
-  const userMessage: BiboMessage = { role: "user", text: payload.question?.action === "dismiss" ? "跳过" : payload.message, at,
-    ...(payload.question ? { replyToQuestion: { id: payload.question.id, title: payload.question.title,
-      action: payload.question.action === "answer" ? "answered" as const : "dismissed" as const } } : {}) };
-  const assistantMessage: BiboMessage = { role: "assistant", text: result.text, at,
-    ...(result.content ? { content: result.content } : {}),
-    ...(newQuestions.length ? { questions: newQuestions } : {}) };
+  const messages = projectBiboConversation(history);
   const updated: BiboSession = { ...payload.session,
     title: payload.session.messages.length === 0 && payload.session.title === "新对话" ? payload.message.slice(0, 40) : payload.session.title,
-    updatedAt: at, messages: [...retained, userMessage, assistantMessage] };
+    updatedAt: at, messages: [] };
   return { sessions: [updated, ...sessions.filter((item) => item.id !== updated.id)],
-    response: { text: result.text, messages: updated.messages, displayEvents: result.displayEvents ?? [],
+    response: { text: result.text, messages, displayEvents: result.displayEvents ?? [],
       session: { id: updated.id, title: updated.title, updatedAt: updated.updatedAt } } };
 }

@@ -1,14 +1,16 @@
-import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
+import type { AgentManager } from "@kernel/managers/agent.manager.js";
+import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
+import type { ToolProviderManager } from "@kernel/managers/tool-provider.manager.js";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 import { buildAgentRunRequestMetadata } from "@kernel/utils/agent-run-request-metadata.utils.js";
 import {
   buildNextclawNcpRunContext,
   type NextclawNcpResolvedRunContext,
-} from "@kernel/features/native-runtime/index.js";
+} from "@kernel/features/native-runtime/utils/nextclaw-ncp-run-context.utils.js";
 import {
   buildToolCatalogEntries,
-  readSessionProjectRoot,
-  SessionProjectContextResolver,
+  type SessionProjectContextResolver,
   type SessionProjectContext,
   type ToolCatalogEntry,
 } from "@nextclaw/core";
@@ -21,14 +23,22 @@ export type ContextProviderRunContextSnapshot = {
   toolCatalog: ToolCatalogEntry[];
 };
 
+type ContextProviderOwners = {
+  agents: Pick<AgentManager, "resolveAgentProfileForRun">;
+  configManager: Pick<ConfigManager, "loadConfig">;
+  sessionManager: Pick<SessionManager, "getAgentRunSession">;
+  toolProviderManager: Pick<ToolProviderManager, "buildTools">;
+};
+
 export class ContextProviderRunContextService {
   private readonly snapshots = new WeakMap<
     AgentRunRequest,
     Promise<ContextProviderRunContextSnapshot>
   >();
-  private readonly projectContextResolver = new SessionProjectContextResolver();
-
-  constructor(private readonly kernel: NextclawKernel) {}
+  constructor(
+    private readonly kernel: ContextProviderOwners,
+    private readonly projectContextResolver: Pick<SessionProjectContextResolver, "resolve">,
+  ) {}
 
   resolve = (
     request: AgentRunRequest,
@@ -64,15 +74,11 @@ export class ContextProviderRunContextService {
       sessionId,
       requestMetadata,
       sessionMetadata: session?.metadata ?? requestMetadata,
+      projectContextResolver: this.projectContextResolver,
     });
     const tools = await this.kernel.toolProviderManager.buildTools(request);
-    const sessionProjectRoot = readSessionProjectRoot(
-      runContext.sessionMetadata,
-    );
     const projectContext = this.projectContextResolver.resolve({
-      sessionMetadata: sessionProjectRoot
-        ? { project_root: sessionProjectRoot }
-        : null,
+      sessionMetadata: runContext.sessionMetadata,
       workspace: runContext.profile.workspace,
       defaultWorkspace: runContext.effectiveWorkspace,
     });

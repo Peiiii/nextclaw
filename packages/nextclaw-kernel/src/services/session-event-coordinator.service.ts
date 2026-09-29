@@ -2,7 +2,7 @@ import type { NcpEndpointEvent } from "@nextclaw/ncp";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import type { EventBus } from "@nextclaw/shared";
 import { eventKeys } from "@nextclaw/shared";
-import type { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
+import type { SessionPersistence } from "@kernel/types/session.types.js";
 import type { NcpAgentSessionJournalReplayEvent } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import type { UnfinishedNcpAgentRun } from "@kernel/utils/ncp-agent-unfinished-run.utils.js";
 import { PERSISTED_SESSION_EVENT_SOURCE, SessionEventIngestionService } from "./session-event-ingestion.service.js";
@@ -14,7 +14,7 @@ type SessionEventCoordinatorServiceOptions = {
   }) => Promise<void>;
   eventBus: EventBus;
   getSessionRecord: (sessionId: string) => Promise<AgentSessionRecord | null>;
-  journalStore: NcpAgentSessionJournalStore;
+  journalStore: Pick<SessionPersistence, "synchronizeSessionMessageProjection">;
   listUnfinishedRuns: () => Promise<UnfinishedNcpAgentRun[]>;
   updateSessionMetadata: (
     sessionId: string,

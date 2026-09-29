@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import type { NcpMessagePart, OpenAIContentPart } from "@nextclaw/ncp";
 import type { LocalAssetStore } from "../assets/stores/local-asset.store.js";
 
@@ -45,7 +44,6 @@ type ResolvedFilePart = {
   url: string | null;
   contentBase64: string | null;
   sizeBytes?: number;
-  contentPath: string | null;
 };
 
 function resolveFilePart(
@@ -64,7 +62,6 @@ function resolveFilePart(
     url: readOptionalString(part.url),
     contentBase64: readOptionalString(part.contentBase64),
     sizeBytes: stored?.sizeBytes ?? (typeof part.sizeBytes === "number" ? part.sizeBytes : undefined),
-    contentPath: assetUri ? assetStore?.resolveContentPath(assetUri) ?? null : null,
   };
 }
 
@@ -130,11 +127,12 @@ function resolveImageContentPart(
     };
   }
 
-  if (resolved.contentPath) {
+  const storedBytes = resolved.assetUri ? assetStore?.readAssetBytesSync(resolved.assetUri) : null;
+  if (storedBytes) {
     return {
       type: "image_url",
       image_url: {
-        url: buildImageDataUrl(resolved.mimeType, readFileSync(resolved.contentPath)),
+        url: buildImageDataUrl(resolved.mimeType, storedBytes),
       },
     };
   }

@@ -2,6 +2,8 @@ export * from "./configs/brand.config.js";
 export * from "./configs/opencode-zen.config.js";
 export * from "./utils/config-actions.utils.js";
 export * from "./utils/agent-profiles.utils.js";
+export { resolveConfiguredAgentProfiles, type AgentHomeResolver } from "./utils/agent-profile-resolution.utils.js";
+export { insertConfiguredAgentProfile, removeConfiguredAgentProfile, applyAgentProfileTextUpdate, applyAgentProfileSettingsUpdate, ensureAgentProfileUpdateInput } from "./utils/agent-profile-mutation.utils.js";
 export * from "./utils/config-loader.utils.js";
 export * from "./configs/panels.config.js";
 export * from "./configs/service-apps.config.js";

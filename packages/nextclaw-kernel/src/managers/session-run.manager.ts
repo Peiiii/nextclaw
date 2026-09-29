@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import {
   NCP_RUN_TRIGGER_METADATA_KEY,
   NcpEventType,
@@ -7,7 +6,7 @@ import {
   type NcpMessage,
 } from "@nextclaw/ncp";
 import { DefaultNcpAgentConversationStateManager, insertMessageByTimeline } from "@nextclaw/ncp-toolkit";
-import type { SessionManager } from "@kernel/managers/session.manager.js";
+import type { AgentRunSessionHost } from "@kernel/types/agent-run-host.types.js";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 import type { AgentRunSession } from "@kernel/types/session.types.js";
 import type {
@@ -243,8 +242,8 @@ export class SessionRun {
   ): SessionRunQueuedRequest => {
     const wasBusy = this.isBusy();
     const queuedRequest: SessionRunQueuedRequest = {
-      id: `queued-input-${randomUUID()}`,
-      runId: `agent-run-${randomUUID()}`,
+      id: `queued-input-${crypto.randomUUID()}`,
+      runId: `agent-run-${crypto.randomUUID()}`,
       enqueuedAt: new Date().toISOString(),
       request: structuredClone(request),
       session: structuredClone(session),
@@ -395,7 +394,7 @@ export class SessionRunManager {
   private readonly pendingCreations = new Map<string, Promise<SessionRun>>();
 
   constructor(
-    private readonly sessionManager: SessionManager,
+    private readonly sessionManager: Pick<AgentRunSessionHost, "listSessionMessages">,
     private readonly productActivitySink?: ProductActivitySink,
   ) {}
 

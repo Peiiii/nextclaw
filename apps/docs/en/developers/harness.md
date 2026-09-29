@@ -4,10 +4,17 @@
 
 ## Lifecycle
 
+For the full local product, use `runNextclawTask(input, options)` from the same package's Node root. It includes the original tools, skills, context and extension loading. Service integrations can use `createNextclawApplication(options)` to obtain `{ harness, kernel }`: the factory prepares resources and management owners, the host wires its services, then `harness.start()` enables requests. Release the entire graph with `harness.dispose()`. Services manage `kernel.extensions.load(...)` in their own startup sequence.
+
+`prepare()` opens resources and attaches product modules without admitting Agent requests. Regular SDK callers only need `start()`, which prepares automatically. Node factories are excluded from the workerd export; both environments use the same Harness-owned AgentKernel.
+
+The following example composes a base Harness with a resource platform:
+
 ```ts
 import { NextclawHarness } from '@nextclaw/harness';
+import { NodePlatform } from '@nextclaw/kernel';
 
-const harness = new NextclawHarness();
+const harness = new NextclawHarness({ platform: new NodePlatform() });
 await harness.start();
 try {
   const result = await harness.runTask({ input: 'Inspect the workspace' });
@@ -42,9 +49,9 @@ const result = await run.result();
 
 ## Options and task input
 
-`NextclawHarnessOptions` passes kernel options such as `homeDir`, `configPath`, `builtInAppsDirectory`, `productVersion`, and an activity sink.
+`NextclawHarnessOptions.platform` accepts a resource platform. `NodePlatform` supports `homeDir`, `configPath`, `sessionTitleEnabled`, `sessionSearchEnabled`, and `productActivitySink`. It is currently exported from the `@nextclaw/kernel` root; do not import the local platform from a Worker entry.
 
-Embedded apps can use `allowedToolNames` to limit the tools visible and callable by the model, including tools registered by the host. Omitting it keeps the full catalog. `contextProfile: 'embedded'` retains safety, agent identity and memory, execution policy, and current session context while omitting NextClaw host guidance. A host that manages its own session titles and search index can set `sessionTitleEnabled: false` and `sessionSearchEnabled: false`. The defaults retain full NextClaw behavior. Slash commands cannot bypass a configured tool allowlist.
+Platform `start()` returns `AgentKernelResources`, and the Harness creates the shared engine. Resources include persistence, model access, and runtime facts, not an assembled manager graph. The SDK does not implicitly start the full local application services. Register file, command, and business tools through Contributions. Set Harness `allowSlashCommands: false` to disable slash commands.
 
 `NextclawTaskInput` includes:
 
@@ -78,14 +85,20 @@ The public error codes are `invalid_input`, `cancelled`, `lifecycle`, and `runti
 ## One-shot task
 
 ```ts
-import { runNextclawTask } from '@nextclaw/harness';
+import { NextclawHarness } from '@nextclaw/harness';
+import { NodePlatform } from '@nextclaw/kernel';
 
-const result = await runNextclawTask({
-  input: 'Create a verification summary',
-  onAssistantDelta: (delta) => process.stderr.write(delta),
-});
+const harness = new NextclawHarness({ platform: new NodePlatform() });
+try {
+  await harness.start();
+  const result = await harness.runTask({
+    input: 'Give me a verification checklist',
+    onAssistantDelta: (delta) => process.stderr.write(delta),
+  });
+  console.log(result.text);
+} finally { await harness.dispose(); }
 ```
 
-After the Harness has started, the one-shot helper calls `dispose()` when the task succeeds, fails at runtime, or is cancelled. Input validation happens before a Harness is created. For multiple tasks in one process, create a Harness explicitly and retain or pass an explicit `sessionId` for each task that should continue context.
+Use `try/finally` to release a one-shot instance. Reuse the Harness for consecutive tasks, passing the same `sessionId` when they should share context. Disposal does not delete persisted sessions; a new NodePlatform can resume the same data.
 
 To add tools, context, models, runtimes, or MCP servers, continue with [Platform capabilities](./platform-capabilities).

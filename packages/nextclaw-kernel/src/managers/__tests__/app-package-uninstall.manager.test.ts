@@ -1,3 +1,5 @@
+import { createLocalProductFixture } from "@kernel/utils/tests/local-product-fixture.utils.js";
+const applications: Array<{ dispose(): Promise<void> }> = [];
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -8,7 +10,7 @@ import {
   type AppInstallationService,
   type AppRegistryService,
 } from "@nextclaw/app-runtime";
-import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
+import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 
 const tempDirectories: string[] = [];
 const builtInAppsDirectory = resolve(
@@ -16,10 +18,10 @@ const builtInAppsDirectory = resolve(
   "../../../../nextclaw/resources/apps",
 );
 
-function createKernel(
+async function createKernel(
   appsDirectory = builtInAppsDirectory,
   homeDirectory = createTempDirectory(),
-): NextclawKernel {
+): Promise<NextclawKernel> {
   const configPath = join(homeDirectory, "config.json");
   saveConfig(
     ConfigSchema.parse({
@@ -27,12 +29,14 @@ function createKernel(
     }),
     configPath,
   );
-  return new NextclawKernel({
+  const application = await createLocalProductFixture({
     builtInAppsDirectory: appsDirectory,
     configPath,
     homeDir: homeDirectory,
     productVersion: "0.32.0",
   });
+  applications.push(application.harness);
+  return application.kernel;
 }
 
 function createTempDirectory(): string {
@@ -43,7 +47,8 @@ function createTempDirectory(): string {
   return homeDirectory;
 }
 
-afterEach(() => {
+afterEach(async () => {
+  for (const application of applications.splice(0).reverse()) await application.dispose();
   vi.restoreAllMocks();
   for (const directory of tempDirectories.splice(0)) {
     rmSync(directory, { force: true, recursive: true });
@@ -54,7 +59,7 @@ describe("AppPackageManager uninstall recovery", () => {
   it("serializes package reads with an in-flight uninstall transaction", async () => {
     const appDirectory = join(createTempDirectory(), "source-app");
     await new AppScaffoldService().scaffold(appDirectory);
-    const kernel = createKernel(createTempDirectory());
+    const kernel = await createKernel(createTempDirectory());
     try {
       await kernel.appPackageManager.start();
       const installed = await kernel.appPackageManager.install(appDirectory);
@@ -96,7 +101,7 @@ describe("AppPackageManager uninstall recovery", () => {
   }, 15_000);
 
   it("restores panel state, grants, bridge sessions, and service runtime after filesystem uninstall fails", async () => {
-    const kernel = createKernel();
+    const kernel = await createKernel();
     try {
       const fixture = await prepareOrganizerUninstallFixture(kernel);
       vi.spyOn(
@@ -138,7 +143,7 @@ describe("AppPackageManager uninstall recovery", () => {
   });
 
   it("restores runtime resources when Panel package cleanup fails", async () => {
-    const kernel = createKernel();
+    const kernel = await createKernel();
     try {
       const fixture = await prepareOrganizerUninstallFixture(kernel);
       vi.spyOn(
@@ -174,7 +179,7 @@ describe("AppPackageManager uninstall recovery", () => {
   });
 
   it("restores Panel state and grants when Service grant cleanup fails", async () => {
-    const kernel = createKernel();
+    const kernel = await createKernel();
     try {
       const fixture = await prepareOrganizerUninstallFixture(kernel);
       const externalGrant = await kernel.capabilityGrants.grant({
@@ -241,7 +246,7 @@ describe("AppPackageManager uninstall recovery", () => {
   });
 
   it("preserves the uninstall and rollback failures in one AggregateError", async () => {
-    const kernel = createKernel();
+    const kernel = await createKernel();
     try {
       await kernel.appPackageManager.start();
       vi.spyOn(

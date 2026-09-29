@@ -30,15 +30,6 @@ const allowedDualModeHostContractImports = new Set([
   "@nextclaw/kernel::@nextclaw/core/tool-base",
   "@nextclaw/bibo-hosted::@nextclaw/core/openai-sse",
   "@nextclaw/bibo-hosted::@nextclaw/core/context-compaction",
-  "@nextclaw/bibo-hosted::@nextclaw/kernel/model-input",
-  "@nextclaw/bibo-hosted::@nextclaw/kernel/conversation-projection",
-  "@nextclaw/bibo-hosted::@nextclaw/kernel/context-compaction",
-  "@nextclaw/bibo-hosted::@nextclaw/kernel/context-compaction-runtime",
-  "@nextclaw/bibo-hosted::@nextclaw/kernel/show-content",
-  "@nextclaw/bibo-hosted::@nextclaw/kernel/user-question",
-  "@nextclaw/bibo-hosted::@nextclaw/kernel/user-question-tool",
-  "@nextclaw/bibo-hosted::@nextclaw/kernel/tool-schema",
-  "@nextclaw/bibo-hosted::@nextclaw/kernel/onboarding-context",
 ]);
 
 const normalizePath = (value) => value.split(path.sep).join("/");

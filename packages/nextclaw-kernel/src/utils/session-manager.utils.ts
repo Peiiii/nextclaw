@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { parseThinkingLevel } from "@nextclaw/core";
 import type { NcpEndpointEvent } from "@nextclaw/ncp";
 import { NcpEventType } from "@nextclaw/ncp";
@@ -161,7 +160,7 @@ export function normalizeSessionId(sessionId: string): string {
 }
 
 export function buildSessionId(): string {
-  return `ncp-${Date.now().toString(36)}-${randomUUID().replace(/-/g, "").slice(0, 8)}`;
+  return `ncp-${Date.now().toString(36)}-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
 }
 
 export function isSessionSummaryRefreshEvent(

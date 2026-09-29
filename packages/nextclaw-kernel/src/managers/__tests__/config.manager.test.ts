@@ -1,8 +1,9 @@
+import { LocalConfigStore } from "@kernel/stores/local-config.store.js";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Config, ExtensionRegistry } from "@nextclaw/core";
+import { ConfigSchema, type Config, type ExtensionRegistry } from "@nextclaw/core";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 
 const tempDirs: string[] = [];
@@ -23,13 +24,81 @@ afterEach(() => {
 });
 
 describe("ConfigManager", () => {
+  it("does not replace malformed stored JSON with a default config", async () => {
+    const save = vi.fn();
+    const manager = new ConfigManager({
+      storage: { location: "memory:invalid", load: () => ConfigSchema.parse({}), readRaw: () => "{broken", save },
+      channels: { load: vi.fn(), reload: vi.fn() } as never,
+      providerManager: { load: vi.fn() } as never,
+    });
+    await expect(manager.patchRawConfig({ baseHash: "invalid", raw: "{}" }))
+      .resolves.toMatchObject({ ok: false, error: expect.stringContaining("hash unavailable") });
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("checks competing patch hashes after the preceding asynchronous commit", async () => {
+    let config = ConfigSchema.parse({});
+    let commit!: () => void;
+    let entered!: () => void;
+    const saving = new Promise<void>((resolve) => { entered = resolve; });
+    const barrier = new Promise<void>((resolve) => { commit = resolve; });
+    const save = vi.fn(async (next: Config) => {
+      entered();
+      await barrier;
+      config = structuredClone(next);
+    });
+    const manager = new ConfigManager({
+      storage: { location: "memory:concurrent", load: () => config, readRaw: () => JSON.stringify(config), save },
+      channels: { load: vi.fn(), reload: vi.fn() } as never,
+      providerManager: { load: vi.fn() } as never,
+    });
+    vi.spyOn(manager, "applyReloadPlan").mockResolvedValue(undefined);
+    const baseHash = manager.getConfigSnapshot().hash as string;
+    const first = manager.patchRawConfig({ baseHash, raw: JSON.stringify({ agents: { defaults: { model: "test/first" } } }) });
+    await saving;
+    const second = manager.patchRawConfig({ baseHash, raw: JSON.stringify({ agents: { defaults: { model: "test/second" } } }) });
+    expect(save).toHaveBeenCalledTimes(1);
+    commit();
+    await expect(first).resolves.toMatchObject({ ok: true });
+    await expect(second).resolves.toMatchObject({ ok: false, error: expect.stringContaining("config changed") });
+    expect(config.agents.defaults.model).toBe("test/first");
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits for platform persistence and does not apply a failed save", async () => {
+    const original = ConfigSchema.parse({});
+    let rejectSave!: (error: Error) => void;
+    const saved = new Promise<void>((_resolve, reject) => { rejectSave = reject; });
+    const manager = new ConfigManager({
+      storage: {
+        location: "memory:test",
+        load: () => original,
+        readRaw: () => JSON.stringify(original),
+        save: () => saved,
+      },
+      channels: { load: vi.fn(), reload: vi.fn() } as never,
+      providerManager: { load: vi.fn() } as never,
+    });
+    const apply = vi.spyOn(manager, "applyReloadPlan");
+    const next = structuredClone(original);
+    next.agents.defaults.model = "test/new-model";
+    const mutation = manager.applyConfig(next);
+    const failure = expect(mutation).rejects.toThrow("storage unavailable");
+    await Promise.resolve();
+    expect(apply).not.toHaveBeenCalled();
+    rejectSave(new Error("storage unavailable"));
+    await failure;
+    expect(apply).not.toHaveBeenCalled();
+    expect(manager.config.agents.defaults.model).toBe(original.agents.defaults.model);
+  });
+
   it("merges runtime hooks installed by kernel and host", async () => {
     const channels = {
       load: vi.fn(),
       reload: vi.fn(async () => undefined),
     };
     const manager = new ConfigManager({
-      configPath: join(createTempDir(), "config.json"),
+      storage: new LocalConfigStore(join(createTempDir(), "config.json")),
       channels: channels as never,
       providerManager: {
         load: vi.fn(),
@@ -73,7 +142,7 @@ describe("ConfigManager", () => {
       reload: vi.fn(async () => undefined),
     };
     const manager = new ConfigManager({
-      configPath: join(createTempDir(), "config.json"),
+      storage: new LocalConfigStore(join(createTempDir(), "config.json")),
       channels: channels as never,
       providerManager: { load: vi.fn() } as never,
     });
@@ -111,7 +180,7 @@ describe("ConfigManager", () => {
       }),
     };
     const manager = new ConfigManager({
-      configPath: join(createTempDir(), "config.json"),
+      storage: new LocalConfigStore(join(createTempDir(), "config.json")),
       channels: channels as never,
       providerManager: {
         load: vi.fn(),

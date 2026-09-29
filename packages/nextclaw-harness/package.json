@@ -24,10 +24,15 @@
   },
   "exports": {
     ".": {
-      "development": "./src/index.ts",
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
+      "workerd": {
+        "development": "./src/index.ts",
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "development": "./src/app/node/index.ts",
+      "types": "./dist/app/node/index.d.ts",
+      "import": "./dist/app/node/index.js",
+      "default": "./dist/app/node/index.js"
     }
   },
   "files": [
@@ -35,7 +40,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
+    "build": "tsdown src/index.ts src/app/node/index.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
     "prepack": "pnpm run build",
     "lint": "eslint src --max-warnings=0",
     "tsc": "pnpm run build && tsc -p tsconfig.json",

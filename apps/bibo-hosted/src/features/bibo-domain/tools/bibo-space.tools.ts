@@ -40,7 +40,8 @@ function params(value: unknown): Record<string, unknown> {
   return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
 }
 
-export function createBiboSpaceTool(space: BiboSpaceService, sessionId: string, portableValidation = false): NcpTool {
+export function createBiboSpaceTool(space: Pick<BiboSpaceService, "listActions" | "execute">,
+  sessionId: string, portableValidation = false): NcpTool {
   return {
     name: "bibo",
     description: "Read and update the user's Bibo personal space: tasks, calendar, notes, files, and attention inbox. Use help to discover operations by domain or keyword; known actions can be called directly. Save generated documents, HTML/SVG or Markdown diagrams with file.create kind=artifact. To open a saved file for the user, call show_file with the returned path; use viewer=rendered for an HTML preview or viewer=source for source. The workspace opens after the reply is saved. File details return a stable uri: cite it as [title](uri) in your answer so the user can reopen the artifact. Never invent a uri or claim a code block is a saved artifact. This is a first-party capability and needs no installation. Never edit Bibo's structured JSON by hand.",
@@ -56,7 +57,7 @@ export function createBiboSpaceTool(space: BiboSpaceService, sessionId: string, 
       if (value.operation !== "call" || typeof value.action !== "string") return { ok: false, error: "Use operation=help or operation=call with an action." };
       try {
         const result = await space.execute(value.action, value.input ?? {}, { kind: "agent", sessionId });
-        return { ok: true, action: value.action, result, persistence: "Saved with the completed Bibo reply." };
+        return { ok: true, action: value.action, result, persistence: "The operation completed; changes are already saved." };
       } catch (error) {
         return { ok: false, action: value.action, error: error instanceof BiboSpaceError ? error.message : "Bibo operation failed; do not claim success." };
       }

@@ -1,5 +1,6 @@
 import { APP_NAME, getConfigPath, getDataDir, loadConfig } from "@nextclaw/core";
-import { AgentManager, NextclawKernel } from "@nextclaw/kernel";
+import { AgentManager, LocalAgentProfileStore } from "@nextclaw/kernel";
+import { createNextclawApplication } from "@nextclaw/harness";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
 import { AgentCommands, runCliAgentCommand } from "@nextclaw-service/controllers/commands/agent-command.controller.js";
 import { ChannelCommands } from "@nextclaw-service/controllers/commands/channel-command.controller.js";
@@ -69,7 +70,7 @@ export class ServiceCommandManager {
 
   constructor(private readonly deps: ServiceCommandManagerDeps) {
     const distribution = NextclawDistributionService.get();
-    const createKernel = () => new NextclawKernel({
+    const createKernel = () => createNextclawApplication({
       homeDir: getDataDir(),
       configPath: getConfigPath(),
       portableServiceRunnerPath: distribution.portableServiceRunnerPath,
@@ -102,10 +103,10 @@ export class ServiceCommandManager {
         requestRestart: (params) => this.deps.restart.requestRestart(params),
       }),
       agents: new AgentCommands(
-        new AgentManager(undefined, {
-          initializeAgentHomeDirectory: (homeDirectory) =>
+        new AgentManager(new LocalAgentProfileStore({
+          initializeHomeDirectory: (homeDirectory) =>
             this.deps.workspace.createWorkspaceTemplates(homeDirectory),
-        }),
+        })),
         {
           load: () => loadConfig(),
           set: config.set,

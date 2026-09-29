@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { ConfigSchema, ExecTool, saveConfig } from "@nextclaw/core";
-import { NextclawKernel } from "@nextclaw/kernel";
+import { createNextclawApplication } from "@nextclaw/harness";
 import { EventBus, ingressKeys } from "@nextclaw/shared";
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import { ncpMessageToOpenAiMessages } from "@nextclaw/ncp-agent-runtime";
@@ -85,9 +85,9 @@ if (!successor) {
     agents: { defaults: { workspace: join(home, "workspace"), model: "fixture-model" } },
   }), configPath);
 }
-const kernel = new NextclawKernel({ homeDir: home, configPath });
+const { kernel, harness } = await createNextclawApplication({ homeDir: home, configPath });
 if (!successor) await kernel.accessManager.setupPasswordAdmin({ username: "acceptance", password: "acceptance-password" });
-await kernel.start();
+await harness.start();
 const started = new Set<string>();
 const finished = new Set<string>();
 async function prepareRestartCommand(sessionId: string): Promise<{ exec: ExecTool; command: string }> {
@@ -243,7 +243,7 @@ if (!successor) {
     await waitUntil(() => finished.has("session-initiator"));
     await kernel.sessionManager.flushSessionEvents();
     await record({ phase: "acceptance-complete" });
-    await kernel.dispose();
+    await harness.dispose();
   }
   // Remain a live managed target until the parent test has collected the evidence.
   setInterval(() => undefined, 1_000);

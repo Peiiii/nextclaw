@@ -1,4 +1,4 @@
-import type { NextclawKernel } from "@nextclaw/kernel";
+import type { createNextclawApplication } from "@nextclaw/harness";
 
 export type SessionCommandOptions = {
   json?: boolean;
@@ -9,7 +9,7 @@ export type SessionDeleteCommandOptions = SessionCommandOptions & {
 };
 
 export class SessionCommands {
-  constructor(private readonly createKernel: () => NextclawKernel) {}
+  constructor(private readonly createKernel: typeof createNextclawApplication) {}
 
   rename = async (
     sessionId: string,
@@ -41,7 +41,7 @@ export class SessionCommands {
     if (options.confirm !== sessionId) {
       throw new Error(`--confirm must exactly match the session id: ${sessionId}`);
     }
-    const kernel = this.createKernel();
+    const { kernel, harness } = await this.createKernel();
     try {
       const session = await kernel.sessionManager.getSession(sessionId);
       if (!session) {
@@ -54,7 +54,7 @@ export class SessionCommands {
         ? JSON.stringify(result, null, 2)
         : `Deleted session ${sessionId}`);
     } finally {
-      await kernel.dispose();
+      await harness.dispose();
     }
   };
 
@@ -63,7 +63,7 @@ export class SessionCommands {
     patch: { label?: string; projectRoot?: string | null },
     options: SessionCommandOptions,
   ): Promise<void> => {
-    const kernel = this.createKernel();
+    const { kernel, harness } = await this.createKernel();
     try {
       const session = await kernel.sessionManager.patchSessionSettings(sessionId, patch);
       if (!session) {
@@ -73,7 +73,7 @@ export class SessionCommands {
         ? JSON.stringify(session, null, 2)
         : `Updated session ${session.sessionId}`);
     } finally {
-      await kernel.dispose();
+      await harness.dispose();
     }
   };
 }

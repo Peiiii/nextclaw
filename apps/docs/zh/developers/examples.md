@@ -5,10 +5,15 @@
 ## Node.js 一次性任务
 
 ```ts
-import { runNextclawTask } from '@nextclaw/harness';
+import { NextclawHarness } from '@nextclaw/harness';
+import { NodePlatform } from '@nextclaw/kernel';
 
-const result = await runNextclawTask({ input: '检查仓库并输出风险摘要' });
-console.log(result.text);
+const harness = new NextclawHarness({ platform: new NodePlatform() });
+try {
+  await harness.start();
+  const result = await harness.runTask({ input: '给我一份仓库检查清单' });
+  console.log(result.text);
+} finally { await harness.dispose(); }
 ```
 
 ## 长生命周期 Harness
@@ -17,8 +22,9 @@ console.log(result.text);
 
 ```ts
 import { NextclawHarness } from '@nextclaw/harness';
+import { NodePlatform } from '@nextclaw/kernel';
 
-const harness = new NextclawHarness();
+const harness = new NextclawHarness({ platform: new NodePlatform() });
 await harness.start();
 try {
   const first = await harness.runTask({ input: '建立项目摘要', sessionId: 'project-review' });

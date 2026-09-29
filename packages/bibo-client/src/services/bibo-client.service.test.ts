@@ -121,6 +121,18 @@ test("readFile provides validated ID and path reads", async () => {
   await assert.rejects(invalid.readFile({ id: "f1" }), BiboClientError);
 });
 
+test("file parsing preserves opaque R2 versions and bounded or binary previews", async () => {
+  const detail = { id: "large", path: "large.txt", kind: "artifact", content: "prefix",
+    version: "f0987-opaque", uri: "nextclaw://objects/file/large", createdAt: "now", updatedAt: "now",
+    preview: { totalBytes: 100 * 1024 * 1024, readBytes: 6, truncated: true, binary: false } };
+  const read = async (result: unknown) => new BiboClient({ fetch: (async () => json({ result })) as typeof fetch }).readFile({ id: "large" });
+  assert.deepEqual(await read(detail), detail);
+  const binary = { ...detail, content: null, preview: { ...detail.preview, binary: true } };
+  assert.deepEqual(await read(binary), binary);
+  await assert.rejects(read({ ...detail, preview: { ...detail.preview, readBytes: -1 } }), BiboClientError);
+  await assert.rejects(read({ ...detail, version: "" }), BiboClientError);
+});
+
 test("JSON replies deliver validated display events before committed", async () => {
   const display = { id: "show", sessionId: "s1", target: { type: "file", payload: { path: "a.md", viewer: "source" } } };
   const client = new BiboClient({ fetch: (async () => json({ text: "done", messages: [], displayEvents: [display] })) as typeof fetch });

@@ -1,3 +1,4 @@
+import { resolveSessionProjectContext } from "@nextclaw/core";
 import { describe, expect, it, vi } from "vitest";
 import { EventBus } from "@nextclaw/shared";
 import { SessionManager } from "@kernel/managers/session.manager.js";
@@ -33,6 +34,7 @@ describe("SessionManager message pages", () => {
     const updateSessionMessageProjectionContextWindow = vi.fn();
     const previewSession = vi.fn(async () => contextWindow);
     const manager = new SessionManager({
+    resolveProjectContext: resolveSessionProjectContext,
       agentContextWindowManager: {
         forgetSession: () => undefined,
         previewSession,
@@ -40,7 +42,6 @@ describe("SessionManager message pages", () => {
       agentManager: {
         resolveAgentProfile: () => ({ workspace: "/tmp/nextclaw-session-message-page-test" }),
       } as never,
-      configManager: {} as never,
       eventBus: new EventBus(),
       journalStore: {
         getSession,
@@ -80,6 +81,7 @@ describe("SessionManager message pages", () => {
     const previewSession = vi.fn();
     const updateSessionMessageProjectionContextWindow = vi.fn();
     const manager = new SessionManager({
+    resolveProjectContext: resolveSessionProjectContext,
       agentContextWindowManager: {
         forgetSession: () => undefined,
         previewSession,
@@ -87,7 +89,6 @@ describe("SessionManager message pages", () => {
       agentManager: {
         resolveAgentProfile: () => ({ workspace: "/tmp/nextclaw-session-summary-test" }),
       } as never,
-      configManager: {} as never,
       eventBus: new EventBus(),
       journalStore: {
         getSession,

@@ -24,8 +24,8 @@ import { NcpAgentSessionMessageProjectionStore } from "./ncp-agent-session-messa
 import { SessionJournalLoaderStore } from "./session-journal-loader.store.js";
 import { NcpAgentSessionSummaryIndexStore } from "./ncp-agent-session-summary-index.store.js";
 import { NcpAgentSessionSummaryReadStore } from "./ncp-agent-session-summary-read.store.js";
-import type { SessionMessagePage, SessionMetadataUpdate } from "@kernel/types/session.types.js";
-export class NcpAgentSessionJournalStore {
+import type { SessionMessagePage, SessionMetadataUpdate, SessionPersistence } from "@kernel/types/session.types.js";
+export class NcpAgentSessionJournalStore implements SessionPersistence {
   private readonly sessions = new Map<string, LoadedNcpAgentJournalSession>();
   private readonly nextSeqBySession = new Map<string, number>();
   private readonly writeChains = new Map<string, Promise<void>>();

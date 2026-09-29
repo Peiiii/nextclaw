@@ -11,9 +11,12 @@ const chunkKey = (index: number) => `spaceState:${index}`;
 export class BiboSpaceStateStore {
   readonly files: BiboSpaceFileStore;
 
-  constructor(private readonly storage: DurableObjectStorage) {
-    this.files = new BiboSpaceFileStore(storage);
+  constructor(private readonly storage: DurableObjectStorage, private readonly objects?: R2Bucket,
+    private readonly namespace?: string) {
+    this.files = this.createFileStore();
   }
+
+  createFileStore = (): BiboSpaceFileStore => new BiboSpaceFileStore(this.storage, this.objects, this.namespace);
 
   load = async (): Promise<BiboSpaceState | undefined> => {
     const header = await this.storage.get<{ chunks: number }>("spaceState");
@@ -36,15 +39,20 @@ export class BiboSpaceStateStore {
     const chunks = Math.ceil(source.length / CHUNK_CHARACTERS);
     const entries: Record<string, unknown> = { ...metadata, spaceState: { chunks } };
     for (let index = 0; index < chunks; index += 1) entries[chunkKey(index)] = source.slice(index * CHUNK_CHARACTERS, (index + 1) * CHUNK_CHARACTERS);
-    const files = [...filesToCommit.pending()];
-    await this.storage.transaction(async (transaction) => {
-      const previous = await transaction.get<{ chunks: number }>("spaceState");
-      const contents = Object.fromEntries(files.filter(([, content]) => content !== null));
-      const deleted = files.filter(([, content]) => content === null).map(([key]) => key);
-      const obsoleteChunks = previous && previous.chunks > chunks
-        ? Array.from({ length: previous.chunks - chunks }, (_, index) => chunkKey(index + chunks)) : [];
-      await applyBiboStorageChanges(transaction, { ...entries, ...contents }, [...obsoleteChunks, ...deleted, ...deletedKeys]);
-    });
-    filesToCommit.rollback();
+    const files = [...await filesToCommit.prepare()];
+    try {
+      await this.storage.transaction(async (transaction) => {
+        const previous = await transaction.get<{ chunks: number }>("spaceState");
+        const contents = Object.fromEntries(files.filter(([, content]) => content !== null));
+        const deleted = files.filter(([, content]) => content === null).map(([key]) => key);
+        const obsoleteChunks = previous && previous.chunks > chunks
+          ? Array.from({ length: previous.chunks - chunks }, (_, index) => chunkKey(index + chunks)) : [];
+        await applyBiboStorageChanges(transaction, { ...entries, ...contents }, [...obsoleteChunks, ...deleted, ...deletedKeys]);
+      });
+      filesToCommit.rollback();
+    } catch (error) {
+      await filesToCommit.discardUploads();
+      throw error;
+    }
   };
 }

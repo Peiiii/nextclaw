@@ -21,13 +21,15 @@ try {
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await mockApi(page);
-      const detail = { id: "display-file", path: "report.html", kind: "artifact", content: "<h1>自动打开的文件</h1>", uri: "nextclaw://objects/file/display-file", version: 1, createdAt: "now", updatedAt: "now" };
+      const detail = { id: "display-file", path: "report.html", kind: "artifact", content: "<h1>自动打开的文件</h1>", uri: "nextclaw://objects/file/display-file", version: "opaque-r2-etag", createdAt: "now", updatedAt: "now" };
       let reads = 0;
+      let largePreview = false;
       await page.route("**/api/space", async (route) => {
         const body = route.request().postDataJSON();
         if (body.action === "file.get" && (body.input.path === detail.path || body.input.id === detail.id)) {
           if (body.input.path) reads++;
-          return route.fulfill({ json: { result: detail } });
+          return route.fulfill({ json: { result: largePreview ? { ...detail,
+            preview: { totalBytes: 100 * 1024 * 1024, readBytes: 32, truncated: true, binary: false } } : detail } });
         }
         await route.fallback();
       });
@@ -65,7 +67,7 @@ try {
       else assert.equal(await workspace.count(), 0, "later replies respect a closed mobile workspace");
       viewer = "source"; show = true;
       await send();
-      assert.equal(await workspace.getByRole("textbox", { name: "编辑 report.html" }).inputValue(), detail.content);
+      assert.equal(await workspace.getByRole("textbox", { name: "编辑 report.html" }).textContent(), detail.content);
       await page.getByRole("button", { name: "关闭工作区" }).click();
       fail = true;
       await send();
@@ -79,6 +81,14 @@ try {
       await page.screenshot({ path: `/tmp/bibo-display-${viewport.width}.png`, fullPage: true });
       await page.reload({ waitUntil: "networkidle" });
       await workspace.frameLocator("iframe").getByRole("heading", { name: "自动打开的文件" }).waitFor();
+      largePreview = true;
+      await page.reload({ waitUntil: "networkidle" });
+      await workspace.getByText(/当前仅显示部分内容/).waitFor();
+      assert.equal(await workspace.locator(".bibo-file-editor-surface").count(), 0);
+      assert.equal(await workspace.getByRole("button", { name: "编辑", exact: true }).count(), 0);
+      assert.equal(await workspace.getByRole("link", { name: "下载原文件" }).getAttribute("href"), "/api/workspace/file?path=report.html");
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await page.screenshot({ path: `/tmp/bibo-file-preview-${viewport.width}.png`, fullPage: true });
       assert.deepEqual(errors, [], "browser has no runtime errors");
       await context.close();
     }

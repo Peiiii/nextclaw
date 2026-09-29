@@ -1,3 +1,4 @@
+import { LocalConfigStore } from "@nextclaw/kernel";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -41,7 +42,7 @@ function createTestPanelAppManager(workspacePath: string): PanelAppManager {
       join(mkdtempSync(join(tmpdir(), "nextclaw-panel-app-grants-test-")), "grants.json"),
     ),
     configManager: new ConfigManager({
-      configPath,
+      storage: new LocalConfigStore(configPath),
       channels: { load: async () => undefined, reload: async () => undefined } as never,
       providerManager: { load: async () => undefined } as never,
     }),

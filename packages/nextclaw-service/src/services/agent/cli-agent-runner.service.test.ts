@@ -53,7 +53,8 @@ describe("runCliAgentCommand", () => {
       logo: "NextClaw",
       opts: { message: "hello" },
       config: {},
-      kernel
+      kernel,
+      harness: { start: kernel.start, dispose: kernel.dispose }
     } as never);
 
     expect(errorSpy).toHaveBeenCalledWith("Error: 401 Incorrect API key provided.");
@@ -76,7 +77,8 @@ describe("runCliAgentCommand", () => {
       logo: "NextClaw",
       opts: { message: "hello" },
       config: {},
-      kernel
+      kernel,
+      harness: { start: kernel.start, dispose: kernel.dispose }
     } as never);
 
     expect(mocks.printAgentResponseMock).toHaveBeenCalledWith("hi");
@@ -116,7 +118,8 @@ describe("runCliAgentCommand", () => {
       logo: "NextClaw",
       opts: {},
       config: {},
-      kernel
+      kernel,
+      harness: { start: kernel.start, dispose: kernel.dispose }
     } as never);
 
     await vi.waitFor(() => {

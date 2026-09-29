@@ -1,25 +1,26 @@
 import { createBrowserRouter, matchRoutes } from "react-router";
-import { BiboApp, ChatPage, SpacePage, NotFoundPage } from "@/features/chat";
 import type { BiboView } from "@/features/space";
 
 const views: BiboView[] = ["overview", "chat", "inbox", "calendar", "tasks", "notes", "files"];
 const routes = [
-  { index: true, handle: { view: "overview" as BiboView }, Component: SpacePage },
+  { index: true, handle: { view: "overview" as BiboView } },
   ...views.filter((view) => view !== "overview").map((view) => ({
     path: view === "chat" ? "chat/:sessionId?" : ["files", "tasks", "calendar", "inbox"].includes(view) ? `${view}/:resourceId?` : view,
     handle: { view },
-    Component: view === "chat" ? ChatPage : SpacePage,
   })),
-  { path: "files/path/:filePath", handle: { view: "files" as BiboView }, Component: SpacePage },
-  { path: "*", handle: { view: "overview" as BiboView, notFound: true }, Component: NotFoundPage },
+  { path: "files/path/:filePath", handle: { view: "files" as BiboView } },
+  { path: "*", handle: { view: "overview" as BiboView, notFound: true } },
 ];
 let router: ReturnType<typeof createBrowserRouter>;
 
-export function initializeWorkspaceRouter() {
+export function initializeWorkspaceRouter({ BiboApp, ChatPage, SpacePage, NotFoundPage }:
+  Pick<typeof import("@/features/chat"), "BiboApp" | "ChatPage" | "SpacePage" | "NotFoundPage">) {
   router = createBrowserRouter([{
     path: "/",
     Component: BiboApp,
-    children: routes,
+    children: routes.map((route) => ({ ...route,
+      Component: "notFound" in route.handle ? NotFoundPage : route.handle.view === "chat" ? ChatPage : SpacePage,
+    })),
   }]);
   return router;
 }

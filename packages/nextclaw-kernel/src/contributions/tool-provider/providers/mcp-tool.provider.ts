@@ -6,7 +6,7 @@ import type { NcpTool } from "@nextclaw/ncp";
 export class McpToolProvider implements ToolProvider {
   constructor(
     private readonly runContextService: ToolProviderRunContextService,
-    private readonly mcpManager: McpManager,
+    private readonly mcpManager: Pick<McpManager, "listToolsForRun">,
   ) {}
 
   provide = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {

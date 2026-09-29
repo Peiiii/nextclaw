@@ -14,6 +14,7 @@ export type {
   SkillsLoaderOptions,
 } from "./services/skills-loader.service.js";
 export { MemoryStore } from "./features/memory/memory.store.js";
+export { renderMemoryContext } from "./features/memory/utils/memory-context.utils.js";
 export { resolveNextclawSelfManageGuidePaths } from "./features/self-manage/guide-path.js";
 export { SILENT_REPLY_TOKEN } from "./types/tokens.js";
 export * from "./services/silent-reply-policy.js";

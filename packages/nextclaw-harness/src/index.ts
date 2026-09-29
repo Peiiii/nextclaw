@@ -7,9 +7,11 @@ export {
   createTypedKey,
   eventKeys,
   ingressKeys,
-  runNextclawTask,
 } from "@nextclaw/kernel";
 export type {
+  AgentPlatform,
+  AgentKernelModule,
+  AgentKernelResources,
   AppEventEmitOptions,
   AppEventEnvelope,
   AppEventHandler,
@@ -61,6 +63,7 @@ export type {
   NextclawContributionDescriptor,
   NextclawHarnessErrorCode,
   NextclawHarnessOptions,
+  NextclawHarnessResources,
   NextclawRunStatus,
   NextclawSessionCreateInput,
   NextclawSessionRunInput,

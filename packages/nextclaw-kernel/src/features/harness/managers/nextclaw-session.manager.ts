@@ -1,8 +1,7 @@
-import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import {
   startPromptOverNcpExecution,
   type DirectPromptDispatchExecution,
-} from "@kernel/features/ncp-dispatch/index.js";
+} from "@kernel/features/ncp-dispatch/utils/nextclaw-ncp-dispatch.utils.js";
 import { NextclawRun } from "@kernel/features/harness/managers/nextclaw-run.manager.js";
 import {
   NextclawHarnessError,
@@ -12,6 +11,7 @@ import {
   type INextclawSessionRegistry,
   type NextclawSessionCreateInput,
   type NextclawSessionRunInput,
+  type NextclawHarnessResources,
 } from "@kernel/features/harness/types/nextclaw-harness.types.js";
 import { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
 
@@ -22,6 +22,7 @@ export class NextclawSession implements INextclawSession {
     private readonly startExecution: (
       input: NextclawSessionRunInput,
     ) => Promise<DirectPromptDispatchExecution>,
+    private readonly waitForPersistence: () => Promise<void>,
     private readonly onRunCreated?: (run: NextclawRun) => void,
     private readonly onRunSettled?: (run: NextclawRun) => void,
   ) {}
@@ -39,6 +40,7 @@ export class NextclawSession implements INextclawSession {
     try {
       const run = new NextclawRun(
         await this.startExecution(input),
+        this.waitForPersistence,
         this.onRunSettled,
         input.signal,
       );
@@ -66,7 +68,7 @@ export class NextclawSession implements INextclawSession {
 
 export class NextclawSessionRegistry implements INextclawSessionRegistry {
   constructor(
-    private readonly requireKernel: () => NextclawKernel,
+    private readonly requireKernel: () => NextclawHarnessResources,
     private readonly onRunCreated?: (run: NextclawRun) => void,
     private readonly onRunSettled?: (run: NextclawRun) => void,
     private readonly allowSlashCommands = true,
@@ -148,8 +150,9 @@ export class NextclawSessionRegistry implements INextclawSessionRegistry {
   private createHandle = (
     agentId: string,
     sessionId: string,
-  ): INextclawSession =>
-    new NextclawSession(
+  ): INextclawSession => {
+    const sessionManager = this.requireKernel().sessionManager;
+    return new NextclawSession(
       agentId,
       sessionId,
       async (input) => {
@@ -173,9 +176,11 @@ export class NextclawSessionRegistry implements INextclawSessionRegistry {
           sessionKey: sessionId,
         });
       },
+      async () => await sessionManager.flushSession(sessionId),
       this.onRunCreated,
       this.onRunSettled,
     );
+  };
 
   private normalizeSessionId = (sessionId: string): string => {
     const normalized = sessionId.trim();

@@ -1,3 +1,4 @@
+import { LocalConfigStore } from "@kernel/stores/local-config.store.js";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -21,7 +22,7 @@ function createConfigManager(workspacePath: string, model?: string): ConfigManag
   const configPath = join(createTempDir(), "config.json");
   saveConfig(ConfigSchema.parse({ agents: { defaults: { workspace: workspacePath, ...(model ? { model } : {}) } } }), configPath);
   return new ConfigManager({
-    configPath,
+    storage: new LocalConfigStore(configPath),
     channels: { load: vi.fn(), reload: vi.fn() } as never,
     providerManager: { load: vi.fn() } as never,
   });

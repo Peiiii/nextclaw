@@ -1,3 +1,4 @@
+import { LocalConfigStore } from "@nextclaw/kernel";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -29,7 +30,7 @@ describe("GatewayControllerImpl", () => {
     configPath = join(configDir, "config.json");
     writeConfig(createBaseConfig());
     configManager = new ConfigManager({
-      configPath,
+      storage: new LocalConfigStore(configPath),
       channels: {
         enabledChannels: [],
         load: () => undefined,

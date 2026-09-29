@@ -78,8 +78,8 @@ function subtasks(value: unknown): BiboTask["subtasks"] {
   return value.map((item: unknown) => { const part = record(item); return { id: typeof part.id === "string" ? part.id : id(), title: required(part.title, "子任务", 160), done: part.done === true }; });
 }
 
-function expectedVersion(item: { version: number }, input: Record<string, unknown>): void {
-  if (typeof input.version !== "number" || !Number.isInteger(input.version)) throw new BiboSpaceError("请提供对象版本。", 400);
+function expectedVersion(item: { version: number | string }, input: Record<string, unknown>): void {
+  if (typeof input.version !== "number" && typeof input.version !== "string") throw new BiboSpaceError("请提供对象版本。", 400);
   if (item.version !== input.version) throw new BiboSpaceError("内容已有更新，请重新加载后再保存。", 409);
 }
 
@@ -481,7 +481,7 @@ export class BiboSpaceService {
     const content = optional(input.content, "文件内容", 1_000_000);
     if (this.fileStorage) await this.fileStorage.update(file, content);
     else { await this.physical(file.path, false); await this.writeContent(file.path, content); }
-    file.updatedAt = now(); file.version += 1;
+    file.updatedAt = now(); file.version = Number(file.version) + 1;
     return this.fileDetail(file);
   };
 
@@ -498,7 +498,7 @@ export class BiboSpaceService {
       await this.physical(path, true);
       await rename(this.fullPath(previous), this.fullPath(path));
     }
-    for (const item of state.files) if (item.id === file.id || item.path.startsWith(`${previous}/`)) { item.path = `${path}${item.path.slice(previous.length)}`; item.version += 1; item.updatedAt = now(); }
+    for (const item of state.files) if (item.id === file.id || item.path.startsWith(`${previous}/`)) { item.path = `${path}${item.path.slice(previous.length)}`; item.version = Number(item.version) + 1; item.updatedAt = now(); }
     return this.fileDetail(file);
   };
 

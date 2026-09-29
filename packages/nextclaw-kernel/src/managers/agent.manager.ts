@@ -1,20 +1,13 @@
 import {
   BUILTIN_MAIN_AGENT_ID,
   ContextWindowBudgetService,
-  createAgentProfile,
-  findEffectiveAgentProfile,
-  loadConfig,
   normalizeAgentProfileId,
-  removeAgentProfile,
-  resolveDefaultAgentProfileId,
-  resolveEffectiveAgentProfiles,
-  updateAgentProfile,
+  resolveConfiguredAgentProfiles,
   type Config,
   type CreateAgentProfileInput,
   type EffectiveAgentProfile,
   type UpdateAgentProfileInput,
 } from "@nextclaw/core";
-import type { ConfigManager } from "@kernel/managers/config.manager.js";
 
 export type ResolvedAgentProfile = EffectiveAgentProfile & {
   contextTokens: number;
@@ -22,25 +15,27 @@ export type ResolvedAgentProfile = EffectiveAgentProfile & {
   reservedContextTokens: number;
 };
 
-export type AgentManagerOptions = {
-  configPath?: string;
-  initializeAgentHomeDirectory?: (homeDirectory: string) => void;
-};
+export interface AgentProfilePersistence {
+  loadConfig(): Config;
+  resolveHome(config: Config, agentId: string): string;
+  create(input: CreateAgentProfileInput): EffectiveAgentProfile | Promise<EffectiveAgentProfile>;
+  update(input: UpdateAgentProfileInput): EffectiveAgentProfile | Promise<EffectiveAgentProfile>;
+  remove(agentId: string): boolean | Promise<boolean>;
+}
 
 export class AgentManager {
   constructor(
-    private readonly configManager?: Pick<ConfigManager, "applyLiveConfigReload" | "loadConfig">,
-    private readonly options: AgentManagerOptions = {},
+    private readonly persistence: AgentProfilePersistence,
   ) {}
 
   listAgents = (): EffectiveAgentProfile[] =>
-    resolveEffectiveAgentProfiles(this.loadConfig());
+    this.resolveProfiles(this.loadConfig());
 
   getAgent = (agentId: string): EffectiveAgentProfile | null =>
-    findEffectiveAgentProfile(this.loadConfig(), agentId);
+    this.findProfile(this.loadConfig(), agentId);
 
   getDefaultAgentId = (): string =>
-    resolveDefaultAgentProfileId(this.loadConfig());
+    this.defaultProfileId(this.loadConfig());
 
   resolveAgentProfile = (agentId?: string | null): ResolvedAgentProfile =>
     this.resolveAgentProfileFromConfig(this.loadConfig(), agentId);
@@ -68,48 +63,38 @@ export class AgentManager {
     );
 
   createAgent = async (input: CreateAgentProfileInput): Promise<EffectiveAgentProfile> => {
-    const agent = createAgentProfile(input, {
-      configPath: this.options.configPath,
-      initializeHomeDirectory: this.options.initializeAgentHomeDirectory,
-    });
-    await this.reloadLiveConfig();
-    return agent;
+    return await this.persistence.create(input);
   };
 
   updateAgent = async (input: UpdateAgentProfileInput): Promise<EffectiveAgentProfile> => {
-    const agent = updateAgentProfile(input, {
-      configPath: this.options.configPath,
-    });
-    await this.reloadLiveConfig();
-    return agent;
+    return await this.persistence.update(input);
   };
 
   removeAgent = async (agentId: string): Promise<boolean> => {
-    const removed = removeAgentProfile(agentId, {
-      configPath: this.options.configPath,
-    });
-    if (removed) {
-      await this.reloadLiveConfig();
-    }
-    return removed;
+    return await this.persistence.remove(agentId);
   };
 
   private loadConfig = (): Config =>
-    this.configManager?.loadConfig() ?? loadConfig(this.options.configPath);
+    this.persistence.loadConfig();
 
-  private reloadLiveConfig = async (): Promise<void> => {
-    await this.configManager?.applyLiveConfigReload();
-  };
+  private resolveProfiles = (config: Config): EffectiveAgentProfile[] =>
+    resolveConfiguredAgentProfiles(config, this.persistence.resolveHome);
+
+  private findProfile = (config: Config, agentId: string): EffectiveAgentProfile | null =>
+    this.resolveProfiles(config).find((profile) => profile.id === normalizeAgentProfileId(agentId)) ?? null;
+
+  private defaultProfileId = (config: Config): string =>
+    this.resolveProfiles(config).find((profile) => profile.default)?.id ?? BUILTIN_MAIN_AGENT_ID;
 
   private resolveAgentProfileFromConfig = (
     config: Config,
     agentId?: string | null,
     contextTokensOverride?: number,
   ): ResolvedAgentProfile => {
-    const candidateAgentId = normalizeAgentProfileId(agentId) || resolveDefaultAgentProfileId(config);
+    const candidateAgentId = normalizeAgentProfileId(agentId) || this.defaultProfileId(config);
     const profile =
-      findEffectiveAgentProfile(config, candidateAgentId) ??
-      findEffectiveAgentProfile(config, resolveDefaultAgentProfileId(config));
+      this.findProfile(config, candidateAgentId) ??
+      this.findProfile(config, this.defaultProfileId(config));
     if (!profile) {
       throw new Error(`default agent profile not found: ${BUILTIN_MAIN_AGENT_ID}`);
     }

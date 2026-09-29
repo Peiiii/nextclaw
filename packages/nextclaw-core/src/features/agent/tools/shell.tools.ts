@@ -5,18 +5,18 @@ import { Tool, normalizeToolParams, type ToolExecutionContext } from "./base.too
 import { createExternalCommandEnv } from "@core/shared/lib/core-utils/index.js";
 
 const execAsync = promisify(exec);
-type ExecRunnerOptions = {
+export type ExecRunnerOptions = {
   cwd: string;
   timeout: number;
   maxBuffer: number;
   env: NodeJS.ProcessEnv;
   windowsHide?: boolean;
 };
-type ExecRunnerResult = {
+export type ExecRunnerResult = {
   stdout: string;
   stderr: string;
 };
-type ExecRunner = (command: string, options: ExecRunnerOptions) => Promise<ExecRunnerResult>;
+export type ExecRunner = (command: string, options: ExecRunnerOptions) => Promise<ExecRunnerResult>;
 
 const MAX_EXEC_STREAM_CHARS = 10_000;
 

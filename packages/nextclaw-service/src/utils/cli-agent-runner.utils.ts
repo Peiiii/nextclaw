@@ -9,6 +9,7 @@ import {
   type NextclawKernel,
 } from "@nextclaw/kernel";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import type { INextclawHarness } from "@nextclaw/harness";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import type { AgentCommandOptions } from "@nextclaw-service/types/cli.types.js";
@@ -94,6 +95,7 @@ export async function runCliAgentCommand(params: {
   opts: AgentCommandOptions;
   config: Config;
   kernel: NextclawKernel;
+  harness: Pick<INextclawHarness, "start" | "dispose">;
 }): Promise<void> {
   const {
     config,
@@ -101,10 +103,9 @@ export async function runCliAgentCommand(params: {
     logo,
     opts,
   } = params;
-  await kernel.extensions.load({ config });
-  await kernel.start();
-
   try {
+    await kernel.extensions.load({ config });
+    await params.harness.start();
     const agentRunClient = new AgentRunClient({
       eventBus: kernel.eventBus,
       ingress: kernel.ingress,
@@ -136,6 +137,6 @@ export async function runCliAgentCommand(params: {
       metadata: sharedMetadata,
     });
   } finally {
-    await kernel.dispose();
+    await params.harness.dispose();
   }
 }

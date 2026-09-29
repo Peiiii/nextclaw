@@ -1,15 +1,14 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { ToolProvider } from "@kernel/types/agent-run.types.js";
 import { Contribution } from "@nextclaw/shared";
+import { SessionProjectContextResolver } from "@nextclaw/core";
 import { AssetToolProvider } from "./providers/asset-tool.provider.js";
 import { CoreToolProvider } from "./providers/core-tool.provider.js";
-import { McpToolProvider } from "./providers/mcp-tool.provider.js";
 import { MessagingToolProvider } from "./providers/messaging-tool.provider.js";
 import { ProjectToolProvider } from "./providers/project-tool.provider.js";
 import { SessionToolProvider } from "./providers/session-tool.provider.js";
 import { ShowContentToolProvider } from "./providers/show-content-tool.provider.js";
 import { InboxDeliveryToolProvider } from "./providers/inbox-delivery-tool.provider.js";
-import { StructuredResultToolProvider } from "./providers/structured-result-tool.provider.js";
 import { ObservationToolProvider } from "./providers/observation-tool.provider.js";
 import { DesktopToolProvider } from "./providers/desktop-tool.provider.js";
 import { ServiceActionToolProvider } from "./providers/service-action-tool.provider.js";
@@ -38,9 +37,9 @@ export class ToolProviderContribution extends Contribution {
       this.kernel.sessionManager,
       this.kernel.agents,
       this.kernel.configManager,
+      new SessionProjectContextResolver(),
     );
     return [
-      new StructuredResultToolProvider(),
       new ResourceToolProvider(this.kernel.systemObjectReferenceManager),
       new ShowContentToolProvider(this.kernel.eventBus, this.kernel.panelAppManager),
       new InboxDeliveryToolProvider(this.kernel.inboxDeliveryManager),
@@ -49,7 +48,7 @@ export class ToolProviderContribution extends Contribution {
         runContextService,
         this.kernel.extensions.getDesktopHost(),
       ),
-      new CoreToolProvider(runContextService, this.kernel.getGatewayController),
+      new CoreToolProvider(runContextService, this.kernel.getGatewayController, this.kernel.execRunner),
       new MessagingToolProvider(
         runContextService,
         this.kernel.channels,
@@ -66,7 +65,6 @@ export class ToolProviderContribution extends Contribution {
         this.kernel.sessionManager,
         this.kernel.sessionRequests,
         this.kernel.sessionSearch,
-        this.kernel.userQuestions,
       ),
       new AssetToolProvider(this.kernel.assetStore),
       new ServiceActionToolProvider(
@@ -79,7 +77,6 @@ export class ToolProviderContribution extends Contribution {
       ),
       new ServiceAppAiCapabilityToolProvider(this.kernel.serviceAppManager),
       new AppPackageDependencyToolProvider(this.kernel.appPackageManager),
-      new McpToolProvider(runContextService, this.kernel.mcpManager),
     ];
   };
 }

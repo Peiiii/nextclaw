@@ -1,10 +1,12 @@
+import { createLocalProductFixture } from "@kernel/utils/tests/local-product-fixture.utils.js";
+const applications: Array<{ dispose(): Promise<void> }> = [];
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { AppBundleService } from "@nextclaw/app-runtime";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
-import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
+import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 
 const temporaryDirectories: string[] = [];
 const repositoryRoot = resolve(import.meta.dirname, "../../../../..");
@@ -24,7 +26,7 @@ function temporaryDirectory(): string {
   return directory;
 }
 
-function createKernel(): NextclawKernel {
+async function createKernel(): Promise<NextclawKernel> {
   const homeDirectory = temporaryDirectory();
   const configPath = join(homeDirectory, "config.json");
   const builtInAppsDirectory = join(homeDirectory, "empty-built-ins");
@@ -32,13 +34,15 @@ function createKernel(): NextclawKernel {
   saveConfig(ConfigSchema.parse({
     agents: { defaults: { workspace: join(homeDirectory, "workspace") } },
   }), configPath);
-  return new NextclawKernel({
+  const application = await createLocalProductFixture({
     builtInAppsDirectory,
     configPath,
     homeDir: homeDirectory,
     portableServiceRunnerPath: runnerPath,
     productVersion: "0.45.3",
   });
+  applications.push(application.harness);
+  return application.kernel;
 }
 
 async function packServicePackage(params: {
@@ -80,7 +84,8 @@ async function packServicePackage(params: {
   return artifactPath;
 }
 
-afterEach(() => {
+afterEach(async () => {
+  for (const application of applications.splice(0).reverse()) await application.dispose();
   while (temporaryDirectories.length > 0) {
     const directory = temporaryDirectories.pop();
     if (directory) rmSync(directory, { force: true, recursive: true });
@@ -108,7 +113,7 @@ describe("AppPackageManager Provider bindings", () => {
         },
       },
     });
-    const kernel = createKernel();
+    const kernel = await createKernel();
     const caller = { surface: "panel-app", appId: "provider-binding-test" } as const;
     const actionId = "nextclaw-portable-runtime-lab-composition.compose_contact";
 

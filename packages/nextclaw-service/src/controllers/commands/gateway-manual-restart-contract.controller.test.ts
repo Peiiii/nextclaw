@@ -1,3 +1,4 @@
+import { LocalConfigStore } from "@nextclaw/kernel";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -34,7 +35,7 @@ describe("gateway manual restart contract", () => {
       reload: async () => undefined,
     } as never;
     const configManager = new ConfigManager({
-      configPath,
+      storage: new LocalConfigStore(configPath),
       channels,
       providerManager: new LlmProviderManager(),
     });

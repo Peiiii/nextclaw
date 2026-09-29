@@ -1,4 +1,4 @@
-import { resolveSessionProjectContext } from "@nextclaw/core";
+import type { SessionProjectContext } from "@nextclaw/core";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import { readOptionalString } from "@kernel/utils/session-manager.utils.js";
@@ -14,7 +14,13 @@ function stripProjectRootMetadata(
 }
 
 export class SessionWorkingDirResolver {
-  constructor(private readonly agentManager: AgentManager) {}
+  constructor(
+    private readonly agentManager: Pick<AgentManager, "resolveAgentProfile">,
+    private readonly projectContext: (params: {
+      sessionMetadata?: Record<string, unknown>;
+      workspace?: string;
+    }) => Pick<SessionProjectContext, "effectiveWorkspace" | "projectRoot">,
+  ) {}
 
   withWorkingDir = (summary: NcpSessionSummary): NcpSessionSummary => {
     const context = this.resolveContext({
@@ -42,7 +48,7 @@ export class SessionWorkingDirResolver {
     metadata?: Record<string, unknown>;
   }) => {
     const profile = this.agentManager.resolveAgentProfile(readOptionalString(params.agentId));
-    return resolveSessionProjectContext({
+    return this.projectContext({
       sessionMetadata: params.metadata,
       workspace: profile.workspace,
     });

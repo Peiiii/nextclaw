@@ -11,8 +11,7 @@ import {
   type EventBus,
   type Ingress,
 } from "@nextclaw/shared";
-import { randomUUID } from "node:crypto";
-import { extractTextFromNcpMessage } from "@kernel/utils/ncp-message-bridge.utils.js";
+import { extractTextFromNcpMessage } from "@kernel/utils/message-text.utils.js";
 
 export type AgentRunReplyOptions = {
   abortSignal?: AbortSignal;
@@ -326,7 +325,7 @@ export class AgentRunClient {
   ) {}
 
   send = async (input: AgentRunSendIngressPayload): Promise<NcpRunHandle> => {
-    return await this.sendWithCorrelation(input, randomUUID());
+    return await this.sendWithCorrelation(input, crypto.randomUUID());
   };
 
   sendAndWaitForReply = async (
@@ -340,7 +339,7 @@ export class AgentRunClient {
     input: AgentRunSendIngressPayload,
     options: AgentRunReplyOptions = {},
   ): Promise<AgentRunExecution> => {
-    const correlationId = randomUUID();
+    const correlationId = crypto.randomUUID();
     const observer = this.prepareObserver(correlationId, options);
     let handle: NcpRunHandle;
     try {

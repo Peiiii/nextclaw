@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] },
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "jsx": "react-jsx",
+    "types": ["node"]
+  },
+  "include": ["src/app/bibo-run-stream.utils.test.ts", "src/app/migration/bibo-edge-export.service.test.ts", "scripts/**/*.ts"]
+}

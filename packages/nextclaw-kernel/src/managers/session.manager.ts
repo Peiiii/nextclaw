@@ -13,7 +13,7 @@ import type {
 } from "@nextclaw/ncp";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { DEFAULT_AGENT_RUNTIME_ENTRY_ID } from "@kernel/configs/agent-runtime.config.js";
-import type { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
+import type { SessionPersistence } from "@kernel/types/session.types.js";
 import type {
   AgentRunSession,
   CreateAgentRunSessionParams,
@@ -51,7 +51,6 @@ import { createSessionContextInheritance } from "@kernel/utils/session-context-i
 import type { EventBus } from "@nextclaw/shared";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
-import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type { ProjectManager } from "@kernel/features/projects/index.js";
 import { buildSessionTokenUsageSummary } from "@kernel/managers/session-token-usage.manager.js";
 import { SessionEventCoordinatorService, type PublishSessionEventParams } from "@kernel/services/session-event-coordinator.service.js";
@@ -65,13 +64,13 @@ type CreateNcpSessionInput = CreateSessionInput & {
 
 export type SessionManagerOptions = {
   providerManager?: LlmProviderRuntime;
-  agentContextWindowManager: AgentContextWindowManager;
-  agentManager: AgentManager;
-  configManager: ConfigManager;
+  agentContextWindowManager: Pick<AgentContextWindowManager, "previewSession" | "forgetSession">;
+  agentManager: Pick<AgentManager, "resolveAgentProfile">;
+  resolveProjectContext: ConstructorParameters<typeof SessionWorkingDirResolver>[1];
   eventBus: EventBus;
-  journalStore: NcpAgentSessionJournalStore;
-  projectManager: ProjectManager;
-  sessionSearch: SessionSearchService;
+  journalStore: SessionPersistence;
+  projectManager: Pick<ProjectManager, "normalizeSessionProjectContext">;
+  sessionSearch: Pick<SessionSearchService, "handleSessionUpdated">;
   beforeDeleteSession?: (sessionId: string) => Promise<void>;
 };
 
@@ -94,6 +93,7 @@ export class SessionManager implements NcpSessionApi {
     });
     this.workingDirResolver = new SessionWorkingDirResolver(
       options.agentManager,
+      options.resolveProjectContext,
     );
     this.summaryProjection = new SessionSummaryProjectionService({
       agentContextWindowManager: options.agentContextWindowManager,
@@ -120,6 +120,7 @@ export class SessionManager implements NcpSessionApi {
     await this.sessionEvents.publish(params);
 
   flushSessionEvents = async (): Promise<void> => await this.sessionEvents.flush();
+  flushSession = async (sessionId: string): Promise<void> => await this.sessionEvents.flushSession(sessionId);
 
   createSession = async (
     params: CreateNcpSessionInput,

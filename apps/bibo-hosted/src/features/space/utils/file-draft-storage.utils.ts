@@ -7,7 +7,9 @@ export function readFileDrafts(accountId: string): Record<string, FileDraft> {
     const saved: unknown = JSON.parse(sessionStorage.getItem(key(accountId)) ?? "{}");
     if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
     return Object.fromEntries(Object.entries(saved).flatMap(([id, value]) => {
-      if (!value || typeof value.content !== "string" || !Number.isSafeInteger(value.version) || value.version < 1) return [];
+      if (!value || typeof value.content !== "string" ||
+        !(typeof value.version === "string" && value.version.length > 0 ||
+          typeof value.version === "number" && Number.isSafeInteger(value.version) && value.version >= 1)) return [];
       return [[id, { content: value.content, version: value.version, dirty: true, saving: false }]];
     }));
   } catch { return {}; }

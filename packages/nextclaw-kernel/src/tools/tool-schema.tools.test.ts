@@ -4,9 +4,26 @@ import { executeCollectedToolCall } from "@nextclaw/ncp-agent-runtime";
 import { MemoryGetTool, MemorySearchTool } from "@nextclaw/core";
 import { buildProviderTools } from "@kernel/utils/agent-model-input-budget.utils.js";
 import { ProjectsCreateTool } from "./project.tools.js";
-import { ToolSchemaTool, selectToolModelParameters } from "./tool-schema.tools.js";
+import { ToolSchemaTool, composeAgentToolCatalog, selectToolModelParameters } from "./tool-schema.tools.js";
 
 describe("tool parameter disclosure", () => {
+  it("uses the same allowed catalog and portable lookup semantics across hosts", async () => {
+    const first = { name: "read_file", parameters: { type: "object", properties: { path: { type: "string" } } }, execute: vi.fn() };
+    const duplicate = { ...first, execute: vi.fn() };
+    const node = composeAgentToolCatalog([[first], [duplicate]]);
+    const worker = composeAgentToolCatalog([[first], [duplicate]], { portableValidation: true });
+    expect(node.map((tool) => tool.name)).toEqual(["tool_schema", "read_file"]);
+    expect(worker.map((tool) => tool.name)).toEqual(node.map((tool) => tool.name));
+    expect(worker[0]?.validateArgs?.({ name: "read_file" })).toEqual([]);
+    expect(worker[0]?.validateArgs?.({ name: "read_file", unrelated: true })).not.toEqual([]);
+    expect(worker[0]?.validateArgs?.({ name: "" })).not.toEqual([]);
+    expect(worker[0]?.validateArgs?.({ name: 1 })).not.toEqual([]);
+    await expect(worker[0]?.execute({ name: "read_file" })).resolves.toMatchObject({ parameters: first.parameters });
+    expect(duplicate.execute).not.toHaveBeenCalled();
+    expect(composeAgentToolCatalog([[first]], { includeSchemaTool: false }).map((tool) => tool.name)).toEqual(["read_file"]);
+    expect(() => composeAgentToolCatalog([[first], [duplicate]], { allowedNames: new Set(["read_file"]) }))
+      .toThrow("duplicate name");
+  });
   it("keeps declaration bytes stable after lookup and preserves execution validation", async () => {
     const createProject = vi.fn(async () => ({ name: "demo" }));
     const project = new ProjectsCreateTool({ createProject } as never);

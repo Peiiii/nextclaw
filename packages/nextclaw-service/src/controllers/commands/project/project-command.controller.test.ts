@@ -12,13 +12,13 @@ describe("ProjectCommands", () => {
     }));
     const dispose = vi.fn(async () => undefined);
     const commands = new ProjectCommands(
-      () =>
+      async () =>
         ({
-          projectManager: {
+          kernel: { projectManager: {
             initialize: vi.fn(async () => undefined),
             removeProject,
-          },
-          dispose,
+          } },
+          harness: { dispose },
         }) as never,
     );
 
@@ -41,13 +41,13 @@ describe("ProjectCommands", () => {
     const dispose = vi.fn(async () => undefined);
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const commands = new ProjectCommands(
-      () =>
+      async () =>
         ({
-          projectManager: {
+          kernel: { projectManager: {
             initialize: vi.fn(async () => undefined),
             addExistingProject,
-          },
-          dispose,
+          } },
+          harness: { dispose },
         }) as never,
     );
 
@@ -67,13 +67,13 @@ describe("ProjectCommands", () => {
 
   it("rejects registering the default workspace explicitly", async () => {
     const commands = new ProjectCommands(
-      () =>
+      async () =>
         ({
-          projectManager: {
+          kernel: { projectManager: {
             initialize: vi.fn(async () => undefined),
             addExistingProject: vi.fn(async () => null),
-          },
-          dispose: vi.fn(async () => undefined),
+          } },
+          harness: { dispose: vi.fn(async () => undefined) },
         }) as never,
     );
 

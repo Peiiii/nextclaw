@@ -5,10 +5,12 @@ import type {
   ContextBlock,
   ContextProvider,
 } from "@kernel/types/agent-run.types.js";
-import { MemoryStore } from "@nextclaw/core";
+import { renderMemoryContext } from "@nextclaw/core";
+import type { BootstrapContextInput } from "@kernel/contributions/context-provider/utils/bootstrap-context.utils.js";
 
 export class WorkspaceMemoryContextProvider implements ContextProvider {
-  constructor(private readonly context: ContextProviderRunContextService) {}
+  constructor(private readonly context: ContextProviderRunContextService,
+    private readonly files: Pick<BootstrapContextInput, "readText">) {}
 
   provide = async (
     request: AgentRunRequest,
@@ -20,9 +22,12 @@ export class WorkspaceMemoryContextProvider implements ContextProvider {
       return [];
     }
 
-    const memory = new MemoryStore(
-      projectContext.hostWorkspace,
-    ).getMemoryContext();
+    const root = projectContext.hostWorkspace;
+    const [workspaceMemory, longTerm, today] = await Promise.all([
+      this.files.readText(root, "MEMORY.md"), this.files.readText(root, "memory/MEMORY.md"),
+      this.files.readText(root, `memory/${new Date().toISOString().slice(0, 10)}.md`),
+    ]);
+    const memory = renderMemoryContext({ workspaceMemory, longTerm, today });
     if (!memory) {
       return [];
     }

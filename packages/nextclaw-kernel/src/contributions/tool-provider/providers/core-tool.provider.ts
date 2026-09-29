@@ -4,6 +4,7 @@ import {
   EditFileTool,
   ExecTool,
   type GatewayController,
+  type ExecRunner,
   GatewayTool,
   ListDirTool,
   MemoryGetTool,
@@ -20,6 +21,7 @@ export class CoreToolProvider implements ToolProvider {
   constructor(
     private readonly runContextService: ToolProviderRunContextService,
     private readonly getGatewayController: () => GatewayController | undefined,
+    private readonly execRunner?: ExecRunner,
   ) {}
 
   provide = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {
@@ -38,7 +40,7 @@ export class CoreToolProvider implements ToolProvider {
       restrictToWorkspace,
       timeout: execTimeoutSeconds,
       workingDir: workspace,
-    });
+    }, this.execRunner);
     execTool.setContext({ channel, chatId, sessionKey: sessionId });
     const gatewayTool = new GatewayTool(this.getGatewayController());
     return [

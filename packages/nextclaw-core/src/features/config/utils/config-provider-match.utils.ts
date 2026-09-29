@@ -1,4 +1,4 @@
-import { findProviderByName, listProviderSpecs } from "@core/features/llm-providers/index.js";
+import { findProviderByName, listProviderSpecs } from "@core/features/llm-providers/providers/provider-registry.provider.js";
 import type { Config, ProviderConfig } from "@core/features/config/configs/config-schema.config.js";
 
 function buildProviderAliasList(name: string, modelPrefix?: string | null): string[] {

@@ -23,7 +23,7 @@ describe("SessionCommands", () => {
 
   it("deletes a confirmed session through the kernel owner", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const commands = new SessionCommands(() => kernel as never);
+    const commands = new SessionCommands(async () => ({ kernel, harness: { dispose } }) as never);
 
     await commands.delete("session-1", { confirm: "session-1", json: true });
 
@@ -37,7 +37,7 @@ describe("SessionCommands", () => {
   });
 
   it("rejects a mismatched confirmation before opening the kernel", async () => {
-    const createKernel = vi.fn(() => kernel as never);
+    const createKernel = vi.fn(async () => ({ kernel, harness: { dispose } }) as never);
     const commands = new SessionCommands(createKernel);
 
     await expect(

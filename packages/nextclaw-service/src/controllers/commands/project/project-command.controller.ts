@@ -56,7 +56,7 @@ export type ProjectWorkUpdateCommandOptions = ProjectWorkCommandOptions & {
 
 export class ProjectCommands {
   constructor(
-    private readonly createKernel: () => NextclawKernel,
+    private readonly createKernel: typeof createNextclawApplication,
     private readonly createApiClient: () => UiBridgeApiClient = () => {
       const apiBase = resolveLocalUiApiBase();
       if (!apiBase)
@@ -454,12 +454,13 @@ export class ProjectCommands {
   private withKernel = async <T>(
     action: (kernel: NextclawKernel) => Promise<T>,
   ): Promise<T> => {
-    const kernel = this.createKernel();
+    const { kernel, harness } = await this.createKernel();
     try {
       await kernel.projectManager.initialize();
       return await action(kernel);
     } finally {
-      await kernel.dispose();
+      await harness.dispose();
     }
   };
 }
+import type { createNextclawApplication } from "@nextclaw/harness";

@@ -58,10 +58,14 @@ export type BiboFile = {
   kind: "folder" | "note" | "document" | "artifact";
   createdAt: string;
   updatedAt: string;
-  version: number;
+  version: number | string;
 };
 
-export type BiboFileDetail = BiboFile & { content: string | null; uri: string };
+export type BiboFileDetail = BiboFile & {
+  content: string | null;
+  uri: string;
+  preview?: { totalBytes: number; readBytes: number; truncated: boolean; binary: boolean };
+};
 
 export type BiboOverview = {
   inbox: BiboInboxItem[];

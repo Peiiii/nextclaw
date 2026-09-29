@@ -1,5 +1,17 @@
 # Bibo hosted companion
 
+If a conversation reports that its selected model is not configured, ask the maintainer to check the conversation and server model settings. Bibo does not silently substitute another model, and this configuration error does not consume the trial allowance.
+
+Different conversations can generate replies independently; waiting for a model does not occupy the entire account. In the same conversation, wait for the current reply or stop it before sending again. You can read and update your personal space during generation. Successful task, calendar and file operations are saved immediately. A later reply failure or cancellation does not undo completed operations.
+
+## On-demand commands and background processes
+
+Chat and file operations do not require a Linux environment. Commands, software installation and Git use an isolated environment on demand. Named environments can be reused across conversations or explicitly released. Concurrent execution remains subject to hosting-platform capacity.
+
+The OS, `/workspace`, installed software and Git repositories are temporary and may be reclaimed after approximately five idle minutes. Files in an explicitly mounted personal-space directory persist without an extra save or synchronization step. Each environment mounts one directory; use a common parent or separate environments for multiple directories.
+
+Background processes require an explicit retention period of 1 minute to 24 hours, with environment charges during that period and reclamation afterward. Renew a lease before expiry to extend it without starting another process. Ask Bibo to inspect processes, read logs, stop a process or release its environment. Stopping a process does not shorten the environment lease; release the environment to end retention early. Platform failures can interrupt processes and erase temporary files. Starting an HTTP server does not expose its port publicly.
+
 The mobile welcome screen places the companion, greeting, and email form in one continuous column. Continue and the trial note fit common small screens. The header contracts on the code or password step to leave room for input. The registration/login switch uses a height consistent with the fields, with clear selection feedback on desktop and mobile.
 
 NextClaw manages context budgeting and automatic compaction for long conversations. Bibo no longer blocks normal conversations with the former 128 KiB request cap. Failures distinguish oversized model requests, rate limits, compaction failures, and timeouts; an unsaved turn is never reported as saved. Share the conversation link and approximate failure time with the maintainer, who can investigate server-side historical logs without requiring a live browser session.
@@ -100,7 +112,7 @@ Failed file or note list reads show an error and retry action instead of an empt
 
 Failed overview, inbox, task, and calendar reads also show an error and retry action instead of empty data. Calendar keeps month navigation available, so you can retry or switch months if one month cannot load.
 
-Each account's conversations and personal space are stored separately. Ordinary chat and personal file operations do not wait for a dedicated runtime to start. You can clear your Bibo conversation and workspace from the web app. Inbox does not imply a connection to an external email account. External email and calendar accounts, background schedules, and proactive notifications are not yet available. Structured workspace data has a 32 MiB limit, and each text file has a 1 MiB limit; exceeding either reports a save failure.
+Each account's conversations and personal space are stored separately. Ordinary chat and personal file operations do not wait for a dedicated runtime to start. You can clear your Bibo conversation and workspace from the web app. Inbox does not imply a connection to an external email account. External email and calendar accounts, background schedules, and proactive notifications are not yet available. Structured workspace data has a 32 MiB limit; exceeding it reports a save failure. The file page supports full editing of text up to 1 MiB. Larger files show a read-only preview of the first 64 KiB, and binary files are not edited as text. Use **Download original file** to retrieve the complete content; preview limits do not limit original file storage or downloads.
 
 Bibo supports Exa web search. Ask “Search for the latest official Cloudflare AI Search documentation and include source links.” No search key is needed. Bibo answers from relevant excerpts and links its sources; open those links to check important facts. Search queries are sent to Exa; the complete conversation is not sent to the search service.
 

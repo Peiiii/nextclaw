@@ -28,8 +28,20 @@ class MemoryStorage {
   };
 }
 
-function createSpace(storage: MemoryStorage) {
-  const store = new BiboSpaceStateStore(storage as unknown as DurableObjectStorage);
+class MemoryObjects {
+  values = new Map<string, string>();
+  failPut = false;
+  get = async (key: string) => this.values.has(key) ? { text: async () => this.values.get(key)! } : null;
+  put = async (key: string, content: string) => {
+    if (this.failPut) throw new Error("object write failed");
+    this.values.set(key, content);
+  };
+  delete = async (key: string) => { this.values.delete(key); };
+}
+
+function createSpace(storage: MemoryStorage, objects?: MemoryObjects) {
+  const store = new BiboSpaceStateStore(storage as unknown as DurableObjectStorage,
+    objects as unknown as R2Bucket | undefined, objects ? "test-user" : undefined);
   const space = new BiboSpaceService("/data", { load: store.load, save: (state) => store.save(state) }, store.files);
   return { space, store };
 }
@@ -69,6 +81,36 @@ test("DO file content keeps the Node byte limit for multibyte text", async () =>
   const content = "中".repeat(349_526);
   await assert.rejects(space.execute("file.create", { path: "large.md", kind: "artifact", content }), /1 MiB/);
   assert.equal(storage.values.size, 0);
+});
+
+test("object-backed file bodies exceed the old DO value limit and remain readable after reopening", async () => {
+  const storage = new MemoryStorage();
+  const objects = new MemoryObjects();
+  const content = "中".repeat(349_526);
+  const { space } = createSpace(storage, objects);
+  const created = await space.execute("file.create", { path: "large.md", kind: "artifact", content }) as BiboFileDetail;
+  const pointer = storage.values.get(`spaceFile:${created.id}`) as { kind: string; key: string; bytes: number };
+  assert.equal(pointer.kind, "r2");
+  assert.equal(pointer.bytes, new TextEncoder().encode(content).byteLength);
+  assert.equal(objects.values.get(pointer.key), content);
+  assert.equal((await createSpace(storage, objects).space.execute("file.get", { id: created.id }) as BiboFileDetail).content, content);
+});
+
+test("object upload or DO transaction failure never publishes a file pointer", async () => {
+  const storage = new MemoryStorage();
+  const objects = new MemoryObjects();
+  objects.failPut = true;
+  await assert.rejects(createSpace(storage, objects).space.execute("file.create", {
+    path: "failed-upload.md", kind: "artifact", content: "draft",
+  }), /object write failed/);
+  assert.equal(storage.values.size, 0);
+  objects.failPut = false;
+  storage.failFilePut = true;
+  await assert.rejects(createSpace(storage, objects).space.execute("file.create", {
+    path: "failed-commit.md", kind: "artifact", content: "draft",
+  }), /file write failed/);
+  assert.equal(storage.values.size, 0);
+  assert.equal(objects.values.size, 0);
 });
 
 test("run-scoped file changes stay private until session and space commit together", async () => {

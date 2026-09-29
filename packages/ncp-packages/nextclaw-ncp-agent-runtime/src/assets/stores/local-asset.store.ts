@@ -296,6 +296,11 @@ export class LocalAssetStore {
     }
   };
 
+  readAssetBytesSync = (uri: string): Buffer | null => {
+    const path = this.resolveContentPath(uri);
+    return path ? readFileSync(path) : null;
+  };
+
   resolveContentPath = (uri: string): string | null => {
     const record = this.getByUri(uri);
     return record ? this.resolveContentPathOrThrow(record) : null;

@@ -332,11 +332,11 @@ class BiboSpaceOwner {
     if (active && !this.get().fileDetails[active]) void this.openFile(active);
   };
 
-  editFile = (id: string, content: string): void => this.set((state) => ({ fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id]!, content, dirty: true } } }));
+  editFile = (id: string, content: string): void => this.set((state) => state.fileDetails[id]?.preview ? {} : ({ fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id]!, content, dirty: true } } }));
 
   saveFile = async (id: string): Promise<void> => {
     const draft = this.get().fileDrafts[id];
-    if (!draft || !draft.dirty || draft.saving) return;
+    if (!draft || !draft.dirty || draft.saving || this.get().fileDetails[id]?.preview) return;
     this.set((state) => ({ fileDrafts: { ...state.fileDrafts, [id]: { ...draft, saving: true, error: undefined } } }));
     try {
       const detail = await client.space<BiboFileDetail>("file.update", { id, version: draft.version, content: draft.content });
@@ -355,6 +355,7 @@ class BiboSpaceOwner {
     try {
       const latest = await client.space<BiboFileDetail>("file.get", { id });
       if (this.get().instanceId !== this.instanceId || !this.get().fileDrafts[id]) return;
+      if (choice === "overwrite" && latest.preview) throw new Error(biboCopy.filePreviewReadOnly);
       this.set((state) => ({ fileDetails: { ...state.fileDetails, [id]: latest }, files: state.files.map((file) => file.id === id ? latest : file), notes: state.notes.map((note) => note.id === id ? latest : note), fileDrafts: { ...state.fileDrafts, [id]: { content: choice === "reload" ? latest.content ?? "" : state.fileDrafts[id]!.content, version: latest.version, dirty: choice === "overwrite", saving: false } } }));
       if (choice === "overwrite") await this.saveFile(id);
     } catch (error) { this.set((state) => state.fileDrafts[id] ? { fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id]!, error: message(error) } } } : {}); }
@@ -368,22 +369,44 @@ class BiboSpaceOwner {
   };
 
   moveFile = async (file: BiboFile, path: string): Promise<boolean> => {
+    const before = this.get();
+    const opened = Object.values(before.fileDetails).filter((cached) =>
+      cached.path === file.path || cached.path.startsWith(`${file.path}/`));
     const detail = await this.act<BiboFileDetail>("file.move", { id: file.id, version: file.version, path }, this.get().view === "notes" ? "notes" : "files");
     if (!detail) return false;
-    const descendants = Object.values(this.get().fileDetails).filter((cached) => cached.id !== file.id && cached.path.startsWith(`${file.path}/`));
-    const refreshed = await Promise.allSettled(descendants.map((cached) => client.space<BiboFileDetail>("file.get", { id: cached.id })));
+    const remap = (id: string): string => id === file.id ? detail.id
+      : id.startsWith(`${file.id}/`) ? `${detail.id}${id.slice(file.id.length)}` : id;
+    const refreshed = await Promise.allSettled(opened.filter((cached) => cached.id !== file.id)
+      .map((cached) => client.space<BiboFileDetail>("file.get", { id: remap(cached.id) })));
+    const current = new Map<string, BiboFileDetail>([[detail.id, detail]]);
+    for (const result of refreshed) if (result.status === "fulfilled") current.set(result.value.id, result.value);
     this.set((state) => {
-      const fileDetails = { ...state.fileDetails };
-      const fileDrafts = { ...state.fileDrafts };
-      fileDetails[file.id] = detail;
-      for (const result of refreshed) if (result.status === "fulfilled") fileDetails[result.value.id] = result.value;
-      for (const cached of [file, ...descendants]) {
-        const draft = fileDrafts[cached.id];
-        const updated = fileDetails[cached.id];
-        if (draft && updated) fileDrafts[cached.id] = draft.dirty ? { ...draft, version: draft.version + 1 } : { ...draft, content: updated.content ?? "", version: updated.version };
+      const fileDetails: typeof state.fileDetails = {};
+      const fileDrafts: typeof state.fileDrafts = {};
+      for (const [id, cached] of Object.entries(state.fileDetails)) {
+        const nextId = remap(id);
+        fileDetails[nextId] = current.get(nextId) ?? cached;
       }
-      return { fileDetails, fileDrafts, ...(refreshed.some((result) => result.status === "rejected") ? { error: "目录已移动，部分已打开文件未能刷新，请重新打开。" } : {}) };
+      fileDetails[detail.id] = detail;
+      for (const [id, draft] of Object.entries(state.fileDrafts)) {
+        const nextId = remap(id);
+        const updated = current.get(nextId);
+        fileDrafts[nextId] = updated
+          ? draft.dirty ? { ...draft, version: updated.version }
+            : { ...draft, content: updated.content ?? "", version: updated.version }
+          : draft;
+      }
+      return {
+        fileDetails, fileDrafts,
+        tabs: state.tabs.map(remap),
+        activeFileId: state.activeFileId ? remap(state.activeFileId) : null,
+        workspaceFileId: state.workspaceFileId ? remap(state.workspaceFileId) : null,
+        expandedFolders: Object.fromEntries(Object.entries(state.expandedFolders).map(([id, value]) => [remap(id), value])),
+        ...(refreshed.some((result) => result.status === "rejected")
+          ? { error: "目录已移动，部分已打开文件未能刷新，请重新打开。" } : {}),
+      };
     });
+    this.saveLayout();
     return true;
   };
 

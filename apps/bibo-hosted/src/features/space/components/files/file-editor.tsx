@@ -31,6 +31,7 @@ export function FileEditor({ id, compact = false, defaultPreview = true, tabId, 
   const detail = fileDetails[id];
   const draft = fileDrafts[id];
   if (!detail || !draft) return <LoadingState label="正在打开文件" />;
+  const restricted = Boolean(detail.preview);
   const html = /\.(html?|svg)$/i.test(detail.path);
   const markdown = /\.(md|markdown|mdown)$/i.test(detail.path);
   const changeMode = (mode: string) => {
@@ -51,7 +52,7 @@ export function FileEditor({ id, compact = false, defaultPreview = true, tabId, 
         <h2 className="visually-hidden">{detail.path.split("/").at(-1)}</h2>
         <FileBreadcrumbs path={detail.path} onOpenFile={(id) => void (compact ? openWorkspace(id) : openFile(id))} />
         <div className="file-editor-tools">
-          <SegmentedControl
+          {!restricted && <SegmentedControl
             label="文件模式"
             value={preview ? "preview" : source && markdown ? "source" : "edit"}
             options={[
@@ -60,15 +61,17 @@ export function FileEditor({ id, compact = false, defaultPreview = true, tabId, 
               ...(source && markdown ? [{ value: "source", label: copy.fileSource }] : []),
             ]}
             onChange={changeMode}
-          />
-          {(draft.dirty || draft.saving) && <Button tone="primary" disabled={draft.saving} onClick={() => void saveFile(id)}>{draft.saving ? copy.fileSaving : copy.fileSave}</Button>}
-          {markdown && (preview || !source) && <FileDocumentTools manager={documentManager} view={documentView ?? documentManager.initial} />}
-          <FileActions key={id} file={detail} label="文件操作" onSource={markdown ? () => changeMode("source") : undefined} />
+          />}
+          {!restricted && (draft.dirty || draft.saving) && <Button tone="primary" disabled={draft.saving} onClick={() => void saveFile(id)}>{draft.saving ? copy.fileSaving : copy.fileSave}</Button>}
+          {!restricted && markdown && (preview || !source) && <FileDocumentTools manager={documentManager} view={documentView ?? documentManager.initial} />}
+          <a className="underline" href={`/api/workspace/file?path=${encodeURIComponent(detail.path)}`} download>{copy.fileDownload}</a>
+          <FileActions key={id} file={detail} label="文件操作" onSource={!restricted && markdown ? () => changeMode("source") : undefined} />
         </div>
       </div>
       {draftStorageError && <Notice tone="error">{draftStorageError}</Notice>}
       {draft.error && <Notice tone="error">{draft.error}</Notice>}
-      {draft.conflict && (
+      {detail.preview && <p className="file-preview-notice" role="status">{detail.preview.binary ? copy.fileBinaryPreview : copy.filePreviewReadOnly}（{copy.fileByteCount.replace("{count}", detail.preview.totalBytes.toLocaleString())}）</p>}
+      {!restricted && draft.conflict && (
         <div className="file-conflict" role="alert">
           <span>文件已在别处更新。你的修改仍保留在这里。</span>
           <div>
@@ -77,7 +80,8 @@ export function FileEditor({ id, compact = false, defaultPreview = true, tabId, 
           </div>
         </div>
       )}
-      {preview && (
+      {restricted && !detail.preview?.binary && <pre className="bibo-file-preview-text">{detail.content}</pre>}
+      {!restricted && preview && (
         html ? (
           <iframe className="bibo-file-preview-frame" title={`预览 ${detail.path}`} sandbox="" srcDoc={framed} />
         ) : (
@@ -86,7 +90,7 @@ export function FileEditor({ id, compact = false, defaultPreview = true, tabId, 
           </div>
         )
       )}
-      {(editorOpened || !preview) && <div className="bibo-file-editor-surface" hidden={preview}>
+      {!restricted && (editorOpened || !preview) && <div className="bibo-file-editor-surface" hidden={preview}>
         <MarkdownEditor value={draft.content} onChange={(value) => editFile(id, value)} source={source || !markdown} active={!preview} label={`${copy.fileEdit} ${detail.path}`} labels={copy.markdownEditor} uploadImage={uploadImage} scrollProgress={previewScroll.current} onScrollProgress={(progress) => { if (!preview) previewScroll.current = progress; }} />
       </div>}
       <div className="bibo-file-editor-status" role="status" aria-live="polite" title={draft.dirty ? copy.fileUnsaved : `已保存 · v${draft.version}`}>

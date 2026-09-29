@@ -1,11 +1,11 @@
 import { APP_NAME, getConfigPath, getDataDir, loadConfig, resolveWorkspacePath } from "@nextclaw/core";
 import {
-  NextclawKernel,
+  createNextclawApplication,
   runNextclawTask,
-  type NextclawHarnessOptions,
+  type NextclawApplicationOptions,
   type NextclawTaskInput,
   type NextclawTaskResult,
-} from "@nextclaw/kernel";
+} from "@nextclaw/harness";
 import { existsSync, mkdirSync } from "node:fs";
 import { ManagedServiceManager } from "@nextclaw-service/managers/managed-service.manager.js";
 import { ServiceCommandManager, runCliAgentCommand, type NextclawServiceCommands } from "@nextclaw-service/managers/service-command.manager.js";
@@ -94,7 +94,7 @@ export class NextclawServiceRuntime {
       releaseChannel: distribution.releaseChannel,
       loadConfig: () => loadConfig(configPath),
     });
-    const options: NextclawHarnessOptions = {
+    const options: NextclawApplicationOptions = {
       builtInAppsDirectory: distribution.builtInAppsDirectory,
       configPath,
       homeDir: getDataDir(),
@@ -177,7 +177,7 @@ export class NextclawServiceRuntime {
       releaseChannel: distribution.releaseChannel,
       loadConfig: () => loadConfig(configPath),
     });
-    const kernel = new NextclawKernel({
+    const { kernel, harness } = await createNextclawApplication({
       homeDir: getDataDir(),
       configPath,
       portableServiceRunnerPath: distribution.portableServiceRunnerPath,
@@ -192,6 +192,7 @@ export class NextclawServiceRuntime {
       opts,
       config,
       kernel,
+      harness,
     });
   };
 

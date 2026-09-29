@@ -9,7 +9,7 @@ export type UiStartupHandle = {
 
 type NextclawAppKernel = Pick<
   NextclawKernel,
-  "extensions" | "plannedRestartRecovery" | "start"
+  "extensions" | "plannedRestartRecovery"
 >;
 
 export class NextclawApp {
@@ -37,7 +37,7 @@ export class NextclawApp {
     this.gateway.bootstrapStatus.markNcpAgentRunning();
     await measureStartupAsync(
       "service.deferred_startup.bootstrap_kernel",
-      async () => await this.kernel.start(),
+      this.gateway.harness.start,
     );
     this.gateway.bootstrapStatus.markNcpAgentReady();
     this.kernelReady = true;

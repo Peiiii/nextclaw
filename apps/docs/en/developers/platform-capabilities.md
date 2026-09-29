@@ -9,6 +9,7 @@ import {
   createTypedKey,
   eventKeys,
 } from '@nextclaw/harness';
+import { NodePlatform } from '@nextclaw/kernel';
 
 const customerLookupIngress = createTypedKey<{ id: string }>(
   'acme.customer.lookup',
@@ -48,7 +49,7 @@ class BusinessContribution extends Contribution {
   };
 }
 
-const harness = new NextclawHarness();
+const harness = new NextclawHarness({ platform: new NodePlatform() });
 harness.contributions.register(new BusinessContribution());
 await harness.start();
 ```

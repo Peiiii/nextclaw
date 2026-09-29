@@ -1,3 +1,4 @@
+import { LocalConfigStore } from "@kernel/stores/local-config.store.js";
 import { AppDataManager } from "@kernel/managers/app-data.manager.js";
 import type { AppPackageManager } from "@kernel/managers/app-package.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
@@ -13,8 +14,6 @@ import { VerificationRecordService as VerificationRecordServiceImpl } from "@ker
 import { PortableRuntimeAcceptanceIdentityService } from "@kernel/services/portable-runtime-acceptance-identity.service.js";
 import { PortableRuntimeAcceptanceManager } from "@kernel/services/portable-runtime-acceptance-manager.service.js";
 import type { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
-import { SessionManager } from "@kernel/managers/session.manager.js";
-import { ObservationManager } from "@kernel/features/observation/index.js";
 import {
   ProjectManager,
   ProjectMaterialService,
@@ -27,7 +26,6 @@ import {
   type DiagnosticRuntime,
   type MessageBus,
   SessionSearchService,
-  LocalExecutionClaimService,
 } from "@nextclaw/core";
 import type { CapabilityGrantManager } from "@kernel/features/capability-grants/index.js";
 import { AgentRunRuntimeContribution } from "@kernel/contributions/agent-run-runtime/index.js";
@@ -39,19 +37,6 @@ import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { resolve } from "node:path";
 import { PlannedRestartRecoveryManager } from "@kernel/managers/planned-restart-recovery.manager.js";
-import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
-
-export function createKernelAgentRunRequests(kernel: Pick<NextclawKernel,
-  "agentRuntimeManager" | "agents" | "configManager" | "agentContextWindowManager" |
-  "eventBus" | "ingress" | "sessionManager" | "sessionRunManager" | "diagnostics"
->, sessionsDir: string): AgentRunRequestManager {
-  return new AgentRunRequestManager(
-    kernel.agentRuntimeManager, kernel.agents, kernel.configManager,
-    kernel.agentContextWindowManager, kernel.eventBus, kernel.ingress,
-    kernel.sessionManager, kernel.sessionRunManager, kernel.diagnostics,
-    new LocalExecutionClaimService(resolve(sessionsDir, ".execution-claims", "session-runs")),
-  );
-}
 
 export function createKernelPlannedRestartRecovery(
   kernel: Pick<NextclawKernel, "sessionRunManager" | "sessionManager" | "agentRunRequestManager">,
@@ -106,7 +91,7 @@ export function createKernelOperationalManagers(params: {
     }),
     channels,
     configManager: new ConfigManager({
-      configPath,
+      storage: new LocalConfigStore(configPath),
       channels,
       diagnostics,
       providerManager,
@@ -233,32 +218,28 @@ export function createPortableRuntimeAcceptanceServices(params: {
   };
 }
 
-export function createKernelSessionManagers(params: {
-  kernel: Pick<NextclawKernel, "llmProviders" | "agentContextWindowManager" | "agents" | "configManager" | "eventBus" | "ingress">;
-  observationStorePath: string;
+export function createKernelSessionResources(params: {
+  kernel: Pick<NextclawKernel, "configManager" | "eventBus">;
   legacyProjectStorePath: string;
   projectDatabasePath: string;
   sessionsDir: string;
-  sessionTitleEnabled?: boolean;
+  homeDir?: string;
 }): {
   journalStore: NcpAgentSessionJournalStore;
-  observations: ObservationManager;
   projectManager: ProjectManager;
   projectMaterials: ProjectMaterialService;
   projectWorkManager: ProjectWorkManager;
-  sessionManager: SessionManager;
   sessionSearch: SessionSearchService;
 } {
   const {
     kernel,
-    observationStorePath,
     legacyProjectStorePath,
     projectDatabasePath,
     sessionsDir,
   } = params;
-  const { agentContextWindowManager, agents: agentManager, configManager, eventBus, ingress } = kernel;
+  const { configManager, eventBus } = kernel;
   const sessionSearch = new SessionSearchService({
-    databasePath: resolve(getDataDir(), "session-search.db"),
+    databasePath: resolve(params.homeDir ?? getDataDir(), "session-search.db"),
     sessionsDir,
   });
   const journalStore = new NcpAgentSessionJournalStore(
@@ -282,43 +263,14 @@ export function createKernelSessionManagers(params: {
     projectManager,
   });
   projectWorkOwner.current = projectWorkManager;
-  const observationOwner: { current: ObservationManager | null } = {
-    current: null,
-  };
-  const sessionManager = new SessionManager({
-    providerManager: params.sessionTitleEnabled === false ? undefined : kernel.llmProviders,
-    agentContextWindowManager,
-    agentManager,
-    configManager,
-    eventBus,
-    journalStore,
-    projectManager,
-    sessionSearch,
-    beforeDeleteSession: async (sessionId) => {
-      if (!observationOwner.current) {
-        throw new Error("Observation manager is not initialized.");
-      }
-      await observationOwner.current.removeSession(sessionId);
-    },
-  });
-  const observations = new ObservationManager({
-    storePath: observationStorePath,
-    sessionManager,
-    agentManager,
-    ingress,
-    eventBus,
-  });
   const projectMaterials = new ProjectMaterialService({
     projectManager,
   });
-  observationOwner.current = observations;
   return {
     journalStore,
-    observations,
     projectManager,
     projectMaterials,
     projectWorkManager,
-    sessionManager,
     sessionSearch,
   };
 }

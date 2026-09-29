@@ -1,3 +1,4 @@
+import { LocalConfigStore } from "@kernel/stores/local-config.store.js";
 import {
   cpSync,
   existsSync,
@@ -47,7 +48,7 @@ function createConfigManager(workspacePath: string, model?: string): ConfigManag
     configPath,
   );
   return new ConfigManager({
-    configPath,
+    storage: new LocalConfigStore(configPath),
     channels: {
       load: vi.fn(),
       reload: vi.fn(),

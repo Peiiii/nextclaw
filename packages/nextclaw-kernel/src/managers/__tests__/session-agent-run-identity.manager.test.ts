@@ -1,3 +1,4 @@
+import { resolveSessionProjectContext } from "@nextclaw/core";
 import { describe, expect, it, vi } from "vitest";
 import { EventBus } from "@nextclaw/shared";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
@@ -21,11 +22,11 @@ function createFixture() {
   const getCanonicalSession = vi.fn();
   const getSessionSummary = vi.fn(async () => structuredClone(SUMMARY));
   const manager = new SessionManager({
+    resolveProjectContext: resolveSessionProjectContext,
     agentContextWindowManager: {} as never,
     agentManager: {
       resolveAgentProfile: () => ({ workspace: "/tmp/nextclaw-workspace" }),
     } as never,
-    configManager: {} as never,
     eventBus: new EventBus(),
     journalStore: {
       getSession: getCanonicalSession,

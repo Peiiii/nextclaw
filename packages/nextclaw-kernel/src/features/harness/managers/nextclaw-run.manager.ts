@@ -22,6 +22,7 @@ export class NextclawRun implements INextclawRun {
 
   constructor(
     private readonly execution: DirectPromptDispatchExecution,
+    private readonly waitForPersistence: () => Promise<void>,
     private readonly onSettled?: (run: NextclawRun) => void,
     signal?: AbortSignal,
   ) {
@@ -47,7 +48,8 @@ export class NextclawRun implements INextclawRun {
     this.sessionId = execution.sessionId;
     this.currentStatus = "running";
     this.resultPromise = execution.execution.result
-      .then((result) => {
+      .then(async (result) => {
+        await this.flushPersistence();
         this.currentStatus = "completed";
         return {
           schemaVersion: "nextclaw.task/v1" as const,
@@ -59,11 +61,15 @@ export class NextclawRun implements INextclawRun {
           text: result.text,
           completedMessage: result.completedMessage,
         };
+      }, async (error: unknown) => {
+        await this.flushPersistence(error);
+        throw error;
       })
       .catch((error: unknown) => {
-        const cancelled =
-          this.cancellationRequested ||
-          (error instanceof DOMException && error.name === "AbortError");
+        const cancelled = error instanceof NextclawHarnessError
+          ? error.code === "cancelled"
+          : this.cancellationRequested ||
+            (error instanceof DOMException && error.name === "AbortError");
         this.currentStatus = cancelled ? "cancelled" : "failed";
         if (error instanceof NextclawHarnessError) {
           throw error;
@@ -88,6 +94,20 @@ export class NextclawRun implements INextclawRun {
   get status(): NextclawRunStatus {
     return this.currentStatus;
   }
+
+  private flushPersistence = async (executionError?: unknown): Promise<void> => {
+    try {
+      await this.waitForPersistence();
+    } catch (storageError) {
+      throw new NextclawHarnessError(
+        "runtime_failure",
+        storageError instanceof Error ? storageError.message : String(storageError),
+        executionError === undefined ? storageError : new AggregateError(
+          [executionError, storageError], "Execution and persistence both failed.",
+        ),
+      );
+    }
+  };
 
   events = (): AsyncIterable<NcpEndpointEvent> =>
     this.execution.kind === "agent"

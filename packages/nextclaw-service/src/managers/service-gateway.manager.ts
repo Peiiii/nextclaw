@@ -1,7 +1,7 @@
 import * as NextclawCore from "@nextclaw/core";
 import {
   AgentRunClient,
-  NextclawKernel,
+  type NextclawKernel,
   resolveAutomaticUpdateCheckIntervalMs,
   runGatewayInboundLoop,
   type AutomationManager,
@@ -9,6 +9,7 @@ import {
   type LlmProviderManager,
   type SessionManager,
 } from "@nextclaw/kernel";
+import { createNextclawApplication, type NextclawHarness } from "@nextclaw/harness";
 import type { EventBus, Ingress } from "@nextclaw/shared";
 import {
   startUiServer,
@@ -86,7 +87,7 @@ export type GatewayRuntimeDeps = {
 
 export class ServiceGatewayManager {
   readonly kernel: NextclawKernel;
-  readonly desktopHost = new MacosDesktopHostService();
+  readonly harness: NextclawHarness;
   readonly appEventBus: EventBus;
   readonly messageBus: MessageBus;
   readonly sessionManager: SessionManager;
@@ -99,7 +100,6 @@ export class ServiceGatewayManager {
   readonly productVersion: string;
   readonly providerManager: LlmProviderManager;
   readonly gatewayController: GatewayControllerImpl;
-  readonly productActivityReporter: ProductActivityReporter;
 
   readonly configManager: ConfigManager;
   readonly uiConfig: Config["ui"];
@@ -114,32 +114,44 @@ export class ServiceGatewayManager {
   readonly fileWatchers = new ServiceFileWatcherRegistry();
   private deferredChannelStarter: () => Promise<void>;
 
-  constructor(
-    private readonly deps: GatewayRuntimeDeps,
-    private readonly options: GatewayRuntimeOptions,
-  ) {
+  static create = async (deps: GatewayRuntimeDeps, options: GatewayRuntimeOptions): Promise<ServiceGatewayManager> => {
+    const distribution = NextclawDistributionService.get();
+    const desktopHost = new MacosDesktopHostService();
     const configPath = getConfigPath();
     const homeDir = getDataDir();
-    this.productActivityReporter = new ProductActivityReporter({
+    const productActivityReporter = new ProductActivityReporter({
       homeDir,
-      productVersion: this.distribution.version,
-      environment: this.distribution.productEnvironment,
-      releaseChannel: this.distribution.releaseChannel,
+      productVersion: distribution.version,
+      environment: distribution.productEnvironment,
+      releaseChannel: distribution.releaseChannel,
       loadConfig: () => NextclawCore.loadConfig(configPath),
     });
-    this.kernel = measureStartupSync(
+    const application = await measureStartupAsync(
       "service.gateway.kernel",
-      () => new NextclawKernel({
+      () => createNextclawApplication({
         homeDir,
         configPath,
-        builtInAppsDirectory: this.distribution.builtInAppsDirectory,
-        portableServiceRunnerPath: this.distribution.portableServiceRunnerPath,
-        productVersion: this.distribution.version,
-        runtimeVersion: this.distribution.version,
-        productActivitySink: this.productActivityReporter,
-        desktopHost: this.desktopHost,
+        builtInAppsDirectory: distribution.builtInAppsDirectory,
+        portableServiceRunnerPath: distribution.portableServiceRunnerPath,
+        productVersion: distribution.version,
+        runtimeVersion: distribution.version,
+        productActivitySink: productActivityReporter,
+        desktopHost,
       }),
     );
+    try { return new ServiceGatewayManager(deps, options, application, desktopHost, productActivityReporter); }
+    catch (error) { await application.harness.dispose(); throw error; }
+  };
+
+  private constructor(
+    private readonly deps: GatewayRuntimeDeps,
+    private readonly options: GatewayRuntimeOptions,
+    application: Awaited<ReturnType<typeof createNextclawApplication>>,
+    readonly desktopHost: MacosDesktopHostService,
+    readonly productActivityReporter: ProductActivityReporter,
+  ) {
+    this.kernel = application.kernel;
+    this.harness = application.harness;
     this.configManager = this.kernel.configManager;
     const config = this.configManager.config;
     this.uiConfig = resolveUiConfig(config, options.uiOverrides);
@@ -332,6 +344,7 @@ export class ServiceGatewayManager {
     this.runtimeUpdate?.dispose();
     await this.fileWatchers.clear();
     await this.kernel.extensions.stop();
+    await this.harness.dispose();
     await this.desktopHost.dispose();
     await this.remoteManager.stop();
   };

@@ -1,45 +1,61 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { after, beforeEach } from "node:test";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { build } from "esbuild";
-import { BiboSpaceService, type BiboSpaceState } from "@/features/bibo-domain";
+import { type BiboSpaceState } from "@/features/bibo-domain";
 import { BiboSpaceStateStore } from "./bibo-space-state.service";
+import { CloudflareSessionStore } from "./stores/cloudflare-session.store";
 
 const bundle = await build({
   entryPoints: [new URL("./bibo-hosted.app.ts", import.meta.url).pathname],
-  bundle: true, platform: "node", format: "esm", write: false,
+  bundle: true, platform: "node", format: "esm", write: false, conditions: ["workerd"],
+  tsconfig: new URL("../../tsconfig.json", import.meta.url).pathname,
   plugins: [{
     name: "cloudflare-boundary",
     setup: (plugin) => {
-      plugin.onResolve({ filter: /^(@cloudflare\/containers|cloudflare:workers|(?:\.{1,2}\/|@\/app\/)bibo-auth\.utils)$/ }, (args) => ({ path: args.path, namespace: "mock" }));
+      plugin.onResolve({ filter: /^(@cloudflare\/sandbox|cloudflare:workers|(?:\.{1,2}\/|@\/app\/)bibo-auth\.utils)$/ }, (args) => ({ path: args.path, namespace: "mock" }));
       plugin.onLoad({ filter: /.*/, namespace: "mock" }, (args) => ({
         contents: args.path === "cloudflare:workers"
           ? "export class DurableObject { constructor(ctx, env) { this.ctx = ctx; this.env = env; } }"
-          : args.path === "@cloudflare/containers"
-            ? "export class Container { constructor(ctx, env) { this.ctx = ctx; this.env = env; } containerFetch = (...args) => this.env.containerFetch(...args); stop = async () => this.env.stop?.(); } export const getContainer = () => ({ fetch: async () => Response.json({ forwarded: true }) });"
+          : args.path === "@cloudflare/sandbox"
+            ? "export class Sandbox {} export class ContainerProxy {} export const getSandbox = (binding) => { binding.onAcquire(); return { exec: async () => ({ exitCode: 0, stdout: '', stderr: '' }), destroy: async () => {} }; };"
             : "export const currentUser = async () => ({ id: 'user-1' }); export const sessionUser = currentUser; export const isPlatformAdmin = async (token) => token === 'admin'; export const cookieToken = () => 'token'; export const authRoute = async () => new Response(); export const json = (value, status = 200, headers = {}) => Response.json(value, { status, headers }); export const publicError = (error, status) => Response.json({ error }, { status });",
       }));
     },
   }],
 });
 
-const worker = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0]!.text).toString("base64")}`) as {
-  BiboUserContainer: new (ctx: object, env: object) => { fetch(request: Request): Promise<Response>; onStart(): Promise<void> };
+const bundleDirectory = await mkdtemp(join(tmpdir(), "bibo-worker-contract-"));
+after(() => rm(bundleDirectory, { recursive: true, force: true }));
+const bundlePath = join(bundleDirectory, "worker.mjs");
+await writeFile(bundlePath, bundle.outputFiles[0]!.text);
+const worker = await import(pathToFileURL(bundlePath).href) as {
+  BiboUserContainer: new (ctx: object, env: object) => { fetch(request: Request): Promise<Response> };
   BiboModelBudget: new (ctx: object, env: object) => { fetch(request: Request): Promise<Response> };
   default: { fetch(request: Request, env: object): Promise<Response> };
 };
 
 const emptySpace = (): BiboSpaceState => ({ schema: 1, tasks: [], projects: [], events: [], files: [], inbox: [], deliveryStatuses: {}, replays: {} });
 
+const modelText = (content = "已保存") => new Response(`data: ${JSON.stringify({ id: "reply", choices: [{ index: 0, delta: { content }, finish_reason: "stop" }] })}\n\ndata: [DONE]\n\n`, { headers: { "content-type": "text/event-stream" } });
+const modelTool = (name: string, input: unknown) => new Response(`data: ${JSON.stringify({ id: "call", choices: [{ index: 0, delta: { tool_calls: [{ index: 0, id: crypto.randomUUID(), function: { name, arguments: JSON.stringify(input) } }] }, finish_reason: "tool_calls" }] })}\n\ndata: [DONE]\n\n`, { headers: { "content-type": "text/event-stream" } });
+
+beforeEach((t) => {
+  if ("mock" in t) t.mock.method(globalThis, "fetch", async () => modelText());
+});
+
 class PersonalSpaceFixture {
   readonly values: Map<string, unknown>;
   readonly archives = new Map<string, ArrayBuffer>();
-  private state = emptySpace();
-  private containerCalls = 0;
-  private stopCount = 0;
-  private snapshotFailed = false;
+  readonly objectMetadata = new Map<string, { etag: string; uploaded: Date;
+    httpMetadata?: { contentType?: string }; customMetadata?: Record<string, string> }>();
+  private objectRevision = 0;
+  private sandboxCalls = 0;
   private writeFailed = false;
-  private runFailed = false;
-  edgeExport: unknown = null;
+  private transactions: Promise<void> = Promise.resolve();
   private readonly storage = {
     get: async (key: string | string[]) => Array.isArray(key) ? new Map(key.filter((item) => this.values.has(item)).map((item) => [item, structuredClone(this.values.get(item))])) : structuredClone(this.values.get(key)),
     put: async (key: string | Record<string, unknown>, value?: unknown) => {
@@ -48,73 +64,108 @@ class PersonalSpaceFixture {
       for (const [, item] of entries) if (Buffer.byteLength(JSON.stringify(item)) > 2 * 1024 * 1024) throw new Error("KV value exceeds 2 MiB");
       for (const [name, item] of entries) this.values.set(name as string, structuredClone(item));
     },
-    delete: async (keys: string[]) => { for (const key of keys) this.values.delete(key); },
+    delete: async (keys: string | string[]) => { for (const key of typeof keys === "string" ? [keys] : keys) this.values.delete(key); },
     list: async (options: { prefix: string }) => new Map([...this.values].filter(([key]) => key.startsWith(options.prefix))),
-    transaction: async (run: (transaction: unknown) => Promise<void>) => run(this.storage),
-  };
-  private readonly localSpace = new BiboSpaceService("/unused", { load: async () => structuredClone(this.state), save: async (state) => { this.state = structuredClone(state); } });
-  readonly env = {
-    SNAPSHOTS: {
-      get: async (key: string) => this.archives.has(key) ? { body: this.archives.get(key) } : null,
-      head: async (key: string) => this.archives.has(key) ? {} : null,
-      put: async (key: string, body: ArrayBuffer) => { if (this.snapshotFailed) throw new Error("snapshot unavailable"); this.archives.set(key, body); },
-      delete: async (key: string) => { this.archives.delete(key); },
+    transaction: (run: (transaction: unknown) => Promise<unknown>): Promise<unknown> => {
+      const result = this.transactions.then(() => run(this.storage));
+      this.transactions = result.then(() => undefined, () => undefined);
+      return result;
     },
-    stop: () => { this.stopCount += 1; },
-    containerFetch: async (url: string, init?: RequestInit) => {
-      this.containerCalls += 1;
-      const route = new URL(url).pathname;
-      if (route === "/space/state") {
-        if (init?.method === "POST") { this.state = BiboSpaceService.parseState(JSON.parse(init.body as string).state); return Response.json({ ok: true }); }
-        return Response.json({ state: this.state });
-      }
-      if (route === "/restore") { this.state = JSON.parse(new TextDecoder().decode(init!.body as ArrayBuffer)); return Response.json({ ok: true }); }
-      if (route === "/snapshot") return new Response(JSON.stringify(this.state));
-      if (route === "/edge/export") return this.edgeExport ? Response.json(this.edgeExport) : new Response("missing export", { status: 503 });
-      if (route === "/edge/import") { this.edgeExport = JSON.parse(String(init?.body)); return Response.json({ ok: true }); }
-      if (route === "/space") {
-        const { action, input } = JSON.parse(init!.body as string);
-        if (action === "inbox.create") return Response.json({ result: await this.localSpace.execute(action, input) });
-        return Response.json({ result: { ok: true } });
-      }
-      if (route === "/run") {
-        const task = await this.localSpace.execute("task.create", { title: "Agent task" });
-        const sessionId = JSON.parse(init!.body as string).sessionId;
-        return this.runFailed ? new Response("run failed", { status: 500 }) : Response.json({ text: "已保存", sessionId, task,
-          ...(this.display ? { displayEvents: [{ id: "show-1", sessionId, target: { type: "file", payload: { path: "a.md" } } }] } : {}) });
-      }
-      if (route === "/sessions/delete") return Response.json({ ok: true });
-      throw new Error(`Unexpected container route ${route}`);
+  };
+  readonly env = {
+    BIBO_SANDBOX: { onAcquire: () => { this.sandboxCalls += 1; } },
+    BIBO_DEEPSEEK_API_KEY: "test-key",
+    BIBO_MODEL_BUDGET: { getByName: () => ({ fetch: async () => Response.json({ ok: true }) }) },
+    SNAPSHOTS: {
+      get: async (key: string, options?: { range?: { offset: number; length?: number } }) => this.archives.has(key) ? {
+        key, size: this.archives.get(key)!.byteLength, ...this.objectMetadata.get(key),
+        body: key.includes("/workspace/") ? new Blob([this.archives.get(key)!.slice(options?.range?.offset ?? 0,
+          options?.range?.length === undefined ? undefined :
+            (options.range.offset + options.range.length))]).stream() : this.archives.get(key),
+        text: async () => new TextDecoder().decode(this.archives.get(key)),
+      } : null,
+      head: async (key: string) => this.archives.has(key)
+        ? { key, size: this.archives.get(key)!.byteLength, ...this.objectMetadata.get(key) } : null,
+      put: async (key: string, body: ArrayBuffer | Uint8Array | string,
+        options?: { onlyIf?: { etagMatches: string }; httpMetadata?: { contentType?: string };
+          customMetadata?: Record<string, string> }) => {
+        if (options?.onlyIf && this.objectMetadata.get(key)?.etag !== options.onlyIf.etagMatches) return null;
+        const bytes = typeof body === "string" ? new TextEncoder().encode(body) :
+          body instanceof Uint8Array ? body : new Uint8Array(body);
+        this.archives.set(key, bytes.slice().buffer);
+        const metadata = { etag: String(++this.objectRevision), uploaded: new Date(),
+          httpMetadata: options?.httpMetadata, customMetadata: options?.customMetadata };
+        this.objectMetadata.set(key, metadata);
+        return { key, size: bytes.byteLength, ...metadata };
+      },
+      list: async ({ prefix, delimiter, cursor, limit = 1_000 }: {
+        prefix: string; delimiter?: string; cursor?: string; limit?: number;
+      }) => {
+        const keys = [...this.archives.keys()].filter((key) => key.startsWith(prefix)).sort();
+        const candidates = new Map<string, "file" | "directory">();
+        for (const key of keys) {
+          const rest = key.slice(prefix.length);
+          const slash = delimiter ? rest.indexOf(delimiter) : -1;
+          if (slash >= 0) candidates.set(prefix + rest.slice(0, slash + 1), "directory");
+          else candidates.set(key, "file");
+        }
+        const filtered = [...candidates.keys()].sort().filter((key) => !cursor || key > cursor);
+        const selected = filtered.slice(0, limit);
+        return { objects: selected.filter((key) => candidates.get(key) === "file").map((key) =>
+          ({ key, size: this.archives.get(key)!.byteLength, ...this.objectMetadata.get(key) })),
+          delimitedPrefixes: selected.filter((key) => candidates.get(key) === "directory"),
+          truncated: filtered.length > selected.length, cursor: selected.at(-1) ?? "" };
+      },
+      delete: async (key: string | string[]) => {
+        for (const item of typeof key === "string" ? [key] : key) {
+          this.archives.delete(item);
+          this.objectMetadata.delete(item);
+        }
+      },
     },
   };
   private readonly ctx = { storage: this.storage, id: { toString: () => "account-space" }, waitUntil: (_promise: Promise<unknown>) => {} };
   private owner: InstanceType<typeof worker.BiboUserContainer>;
 
-  constructor(initial?: BiboSpaceState, private readonly display = false) {
-    this.values = new Map([["conversationMode", "legacy"], ...(initial ? [["spaceState", { chunks: 1 }], ["spaceState:0", JSON.stringify(initial)]] : [])] as Array<[string, unknown]>);
+  constructor(initial?: BiboSpaceState) {
+    this.values = new Map((initial ? [["spaceState", { chunks: 1 }], ["spaceState:0", JSON.stringify(initial)]] : []) as Array<[string, unknown]>);
     this.owner = this.instance();
   }
 
   private instance = () => new worker.BiboUserContainer(this.ctx, this.env);
+  importSession = (record: Parameters<CloudflareSessionStore["importSessionSnapshot"]>[0]) => new CloudflareSessionStore(this.storage as unknown as DurableObjectStorage).importSessionSnapshot(record);
   stored = () => new BiboSpaceStateStore(this.storage as unknown as DurableObjectStorage).load();
   action = (action: string, input: Record<string, unknown> = {}) => this.owner.fetch(new Request("https://bibo.internal/space", { method: "POST", body: JSON.stringify({ action, input }) }));
   createSession = () => this.owner.fetch(new Request("https://bibo.internal/sessions/new", { method: "POST" }));
-  run = (stream = false) => this.owner.fetch(new Request("https://bibo.internal/run", { method: "POST", ...(stream ? { headers: { accept: "text/event-stream" } } : {}), body: JSON.stringify({ message: "create task", token: "token" }) }));
+  run = (stream = false) => this.owner.fetch(new Request("https://bibo.internal/run", { method: "POST", ...(stream ? { headers: { accept: "text/event-stream" } } : {}), body: JSON.stringify({ message: "create task", token: "token", userId: "user-1" }) }));
   ownerFetch = (request: Request) => this.owner.fetch(request);
   cancel = (runId: string) => this.owner.fetch(new Request("https://bibo.internal/cancel", { method: "POST", body: JSON.stringify({ runId }) }));
-  restart = async () => { this.owner = this.instance(); await this.owner.onStart(); };
+  restart = async () => { this.owner = this.instance(); };
   reopen = () => { this.owner = this.instance(); };
-  local = () => this.state;
-  calls = () => this.containerCalls;
-  stopped = () => this.stopCount;
-  failSnapshot = () => { this.snapshotFailed = true; };
+  calls = () => this.sandboxCalls;
   failWrite = () => { this.writeFailed = true; };
-  failRun = () => { this.runFailed = true; };
 }
 
-const personalSpace = (initial?: BiboSpaceState, display = false) => new PersonalSpaceFixture(initial, display);
+const personalSpace = (initial?: BiboSpaceState) => new PersonalSpaceFixture(initial);
 
-test("edge migration control requires same-origin platform admin and a valid user id", async () => {
+test("workspace downloads use the authenticated account and preserve original bytes without Sandbox", async () => {
+  const space = personalSpace();
+  const content = "原文件\n\u0000binary";
+  const created = await space.action("file.create", { path: "原文件.txt", kind: "document", content });
+  assert.equal(created.status, 200);
+  const env = { BIBO_USER: { getByName: (name: string) => {
+    assert.equal(name, "user:user-1");
+    return { fetch: (url: string) => space.ownerFetch(new Request(url)) };
+  } } };
+  const response = await worker.default.fetch(new Request(`https://app.bibo.bot/api/workspace/file?path=${encodeURIComponent("原文件.txt")}`), env);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "application/octet-stream");
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()), new TextEncoder().encode(content));
+  assert.equal((await worker.default.fetch(new Request("https://app.bibo.bot/api/workspace/file?path=/etc/passwd"), env)).status, 400);
+  assert.equal(space.calls(), 0);
+});
+
+test("removed conversation mode switching has no administrative endpoint", async () => {
   const env = { BIBO_EDGE_ADMIN_TOKEN: "operator-token" };
   const invoke = (token: string, userId: unknown, origin = "https://app.bibo.bot") => worker.default.fetch(
     new Request("https://app.bibo.bot/api/admin/edge/migrate", {
@@ -123,9 +174,9 @@ test("edge migration control requires same-origin platform admin and a valid use
     }), env);
   assert.equal((await invoke("user", "user-1")).status, 403);
   assert.equal((await invoke("admin", "user-1", "https://other.example")).status, 403);
-  assert.equal((await invoke("admin", "../user-1")).status, 400);
-  assert.deepEqual(await (await invoke("admin", "user-1")).json(), { forwarded: true });
-  assert.deepEqual(await (await invoke("operator-token", "user-1")).json(), { forwarded: true });
+  assert.equal((await invoke("admin", "../user-1")).status, 404);
+  assert.equal((await invoke("admin", "user-1")).status, 404);
+  assert.equal((await invoke("operator-token", "user-1")).status, 404);
 });
 
 test("model budget operations use the same operator gate", async () => {
@@ -162,7 +213,7 @@ test("edge chat commits a reply without invoking the user container", async (t) 
   assert.equal(response.status, 200);
   assert.match(stream, /event: committed/);
   assert.equal(fixture.calls(), 0);
-  assert.equal(fixture.values.get("conversationMode"), "edge");
+  assert.equal(fixture.values.has("conversationMode"), false, "one conversation path needs no mode switch");
   assert.equal(fixture.values.has(`ncpSession:${session.id}`), true);
   const duplicate = await fixture.ownerFetch(new Request("https://bibo.internal/run", {
     method: "POST", body: JSON.stringify({ message: "早上好", token: "test-token", userId: "user-1",
@@ -175,6 +226,7 @@ test("edge chat commits a reply without invoking the user container", async (t) 
   const createdFile = await fixture.action("file.create", { path: "hello.md", kind: "note", content: "旧会话可读的新文件" });
   assert.equal(createdFile.status, 200);
   const file = await fixture.action("file.get", { path: "hello.md" });
+  assert.equal(file.status, 200, await file.clone().text());
   assert.equal((await file.json() as { result: { content: string } }).result.content, "旧会话可读的新文件");
   assert.equal(fixture.calls(), 0);
   const deleted = await fixture.ownerFetch(new Request("https://bibo.internal/sessions/delete", {
@@ -182,50 +234,31 @@ test("edge chat commits a reply without invoking the user container", async (t) 
   }));
   assert.equal(deleted.status, 200);
   assert.equal(fixture.values.has(`ncpSession:${session.id}`), false);
+  assert.equal(fixture.values.has(`sessionHead:${session.id}`), false);
+  assert.equal([...fixture.values.keys()].some((key) => key.startsWith(`sessionTail:${session.id}:`)), false);
   assert.equal(fixture.calls(), 0);
 });
 
-test("old session migrates with its NCP history, then replies without another container call", async (t) => {
-  const fixture = personalSpace(emptySpace());
-  fixture.values.delete("conversationMode");
-  const created = await (await fixture.createSession()).json() as { session: { id: string } };
-  const sessionId = created.session.id;
-  const at = "2026-09-29T00:00:00.000Z";
-  const messages = [
-    { id: "old-user", sessionId, role: "user" as const, status: "final" as const, timestamp: at, parts: [{ type: "text" as const, text: "旧问题" }] },
-    { id: "old-assistant", sessionId, role: "assistant" as const, status: "final" as const, timestamp: at, parts: [{ type: "text" as const, text: "旧回答" }] },
-  ];
-  const ui = fixture.values.get("sessions") as Array<{ id: string; messages: unknown[] }>;
-  ui[0]!.messages = [{ role: "user", text: "旧问题", at }, { role: "assistant", text: "旧回答", at }];
-  fixture.values.set("sessions", ui);
-  const beforeStatus = await fixture.ownerFetch(new Request("https://bibo.internal/edge/status", { method: "POST" }));
-  assert.deepEqual(await beforeStatus.json(), { mode: "uninitialized", sessionCount: 1, messageCount: 2,
-    hasSnapshot: false, hasLegacyData: true, containerStartCount: 0, edgeRunCount: 0 });
-  fixture.edgeExport = { schema: 1, sessions: [{ sessionId, record: { sessionId, messages, metadata: {}, createdAt: at, updatedAt: at } }],
-    spaceState: emptySpace(), files: [], workspaceTexts: { "IDENTITY.md": "# 旧身份" }, deliveries: null };
-  const migration = await fixture.ownerFetch(new Request("https://bibo.internal/edge/migrate", { method: "POST" }));
-  assert.equal(migration.status, 200);
-  assert.equal(fixture.values.get("conversationMode"), "edge");
-  const callsAfterMigration = fixture.calls();
-  Object.assign(fixture.env, { BIBO_DEEPSEEK_API_KEY: "test-key",
-    BIBO_MODEL_BUDGET: { getByName: () => ({ fetch: async () => Response.json({ ok: true }) }) } });
-  t.mock.method(globalThis, "fetch", async () => new Response(
-    'data: {"id":"edge-old","choices":[{"index":0,"delta":{"content":"新回答"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n',
-    { headers: { "content-type": "text/event-stream" } },
-  ));
-  const reply = await fixture.ownerFetch(new Request("https://bibo.internal/run", { method: "POST",
-    body: JSON.stringify({ sessionId, message: "接着说", token: "test-token", userId: "user-1" }) }));
-  assert.equal(reply.status, 200);
-  assert.equal(fixture.calls(), callsAfterMigration);
-  const afterStatus = await fixture.ownerFetch(new Request("https://bibo.internal/edge/status", { method: "POST" }));
-  assert.equal((await afterStatus.json() as { edgeRunCount: number }).edgeRunCount, 1);
-  const history = (await reply.json() as { messages: Array<{ text: string }> }).messages.map((message) => message.text);
-  assert.deepEqual(history, ["旧问题", "旧回答", "接着说", "新回答"]);
-  const rollback = await fixture.ownerFetch(new Request("https://bibo.internal/edge/rollback", { method: "POST" }));
-  assert.equal(rollback.status, 200);
-  assert.equal(fixture.values.get("conversationMode"), "legacy");
-  assert.equal((fixture.edgeExport as { sessions: Array<{ record: { messages: unknown[] } }> }).sessions[0]?.record.messages.length, 4);
-  assert.equal(typeof fixture.values.get("snapshotKey"), "string");
+test("imported canonical history continues through Harness without a container", async (t) => {
+  const space = personalSpace();
+  const { session } = await (await space.createSession()).json() as { session: { id: string } };
+  const at = "2026-09-29T00:00:00Z";
+  await space.importSession({ sessionId: session.id, updatedAt: at, messages: [
+    { id: "old-user", sessionId: session.id, role: "user", status: "final", timestamp: at, parts: [{ type: "text", text: "旧问题" }] },
+    { id: "old-assistant", sessionId: session.id, role: "assistant", status: "final", timestamp: at, parts: [{ type: "text", text: "旧回答" }] },
+  ] });
+  t.mock.method(globalThis, "fetch", async (_url: unknown, init?: RequestInit) => {
+    assert.match(String(init?.body), /旧问题/);
+    assert.match(String(init?.body), /旧回答/);
+    return modelText("新回答");
+  });
+  const response = await space.ownerFetch(new Request("https://bibo.internal/run", { method: "POST",
+    body: JSON.stringify({ sessionId: session.id, message: "接着说", token: "token", userId: "user-1" }) }));
+  assert.equal(response.status, 200, await response.clone().text());
+  space.reopen();
+  const history = await (await space.ownerFetch(new Request("https://bibo.internal/history?id=" + session.id))).json() as { messages: Array<{ text: string }> };
+  assert.deepEqual(history.messages.map((m) => m.text), ["旧问题", "旧回答", "接着说", "新回答"]);
+  assert.equal(space.calls(), 0);
 });
 
 test("streamed model rejection preserves code, rolls back, and correlates terminal diagnostics", async (t) => {
@@ -233,21 +266,14 @@ test("streamed model rejection preserves code, rolls back, and correlates termin
   t.mock.method(console, "info", (line: string) => logs.push(line));
   t.mock.method(console, "error", (line: string) => logs.push(line));
   const fixture = personalSpace(emptySpace());
-  const original = fixture.env.containerFetch;
-  fixture.env.containerFetch = async (url: string, init?: RequestInit) => {
-    if (new URL(url).pathname !== "/run") return original(url, init);
-    const headers = new Headers(init?.headers);
-    assert.ok(headers.get("x-bibo-run-id"));
-    assert.ok(headers.get("x-bibo-session-id"));
-    return new Response('event: error\ndata: {"code":"MODEL_INPUT_TOO_LARGE","status":413,"error":"private-upstream-message"}\n\n', { headers: { "content-type": "text/event-stream" } });
-  };
+  t.mock.method(globalThis, "fetch", async () => new Response("private-upstream-message", { status: 413 }));
   const response = await fixture.run(true);
   const text = await response.text();
   assert.equal(response.status, 200);
   assert.match(text, /MODEL_INPUT_TOO_LARGE/);
   assert.ok(!text.includes("private-upstream-message"));
   assert.equal(fixture.archives.size, 0);
-  assert.equal(fixture.stopped(), 1);
+  assert.equal(fixture.calls(), 0);
   const records = logs.map((line) => JSON.parse(line));
   assert.equal(new Set(records.map((record) => record.runId)).size, 1);
   assert.ok(records.some((record) => record.event === "run.failed" && record.status === 413 && record.sessionId));
@@ -275,78 +301,84 @@ test("model gateway forwards context above 128 KiB and records only sizes", asyn
   assert.ok(logs.some((line) => JSON.parse(line).requestBytes > 128 * 1024));
 });
 
-test("Worker releases display events only after snapshot commit", async () => {
-  const saved = personalSpace(undefined, true);
+test("Worker releases display events only after durable commit", async (t) => {
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async () => ++calls % 2 === 1
+    ? modelTool("show_file", { path: "/data/workspace/a.md", viewer: "source" }) : modelText());
+  const saved = personalSpace();
+  await saved.action("file.create", { path: "a.md", kind: "note", content: "saved file" });
   const stream = await (await saved.run(true)).text();
-  assert.ok(stream.indexOf("event: saving") < stream.indexOf("event: show-content"));
-  assert.ok(stream.indexOf("event: show-content") < stream.indexOf("event: committed"));
-  assert.ok(saved.archives.size > 0);
-  const failed = personalSpace(undefined, true);
-  failed.failSnapshot();
+  assert.ok(stream.indexOf("event: saving") >= 0, stream);
+  assert.ok(stream.indexOf("event: saving") < stream.indexOf("event: show-content"), stream);
+  assert.ok(stream.indexOf("event: show-content") < stream.indexOf("event: committed"), stream);
+  const failed = personalSpace();
+  await failed.action("file.create", { path: "a.md", kind: "note", content: "saved file" });
+  calls = 0;
+  t.mock.method(globalThis, "fetch", async () => {
+    if (++calls === 1) return modelTool("show_file", { path: "/data/workspace/a.md", viewer: "source" });
+    failed.failWrite();
+    return modelText();
+  });
   const rejected = await (await failed.run(true)).text();
-  assert.ok(rejected.includes("event: error"));
+  assert.ok(rejected.includes("event: error"), rejected);
   assert.equal(rejected.includes("event: show-content"), false);
   assert.equal(rejected.includes("event: committed"), false);
 });
 
-test("questions and quoted answers commit with the Agent snapshot and survive a new DO instance", async () => {
+test("questions and quoted answers persist through Harness and a new DO instance", async (t) => {
   const space = personalSpace();
-  const original = space.env.containerFetch;
-  const prompt = { id: "q-1", messageId: "assistant-question-1", askedAt: "2026-09-29T00:00:00Z", title: "报告格式？",
-    options: ["PDF", "DOCX"], recommendedOption: "PDF", optionDescriptions: { PDF: "适合直接交付" }, status: "pending" };
-  space.env.containerFetch = async (url, init) => {
-    if (new URL(url).pathname !== "/run") return original(url, init);
-    const body = JSON.parse(String(init?.body)) as { sessionId: string; questionId?: string; questionAction?: string; message: string };
-    if (body.questionId) {
-      assert.equal(body.questionId, prompt.id);
-      assert.equal(body.questionAction, "answer");
-      assert.equal(body.message, "DOCX");
-      return Response.json({ text: "已按 DOCX 准备", sessionId: body.sessionId,
-        questions: [{ ...prompt, status: "answered", answer: "DOCX" }] });
-    }
-    return Response.json({ text: "我会先整理内容", sessionId: body.sessionId, questions: [prompt] });
-  };
-  const first = await (await space.run()).json() as { session: { id: string }; messages: Array<{ questions?: unknown[] }> };
-  assert.equal(first.messages.at(-1)?.questions?.length, 1);
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async () => ++calls === 1
+    ? modelTool("request_user_input_async", { questions: [{ title: "报告格式？", options: ["PDF", "DOCX"], recommendedOption: "PDF" }] })
+    : modelText(calls === 2 ? "请选格式。" : "已按 DOCX 准备"));
+  const first = await (await space.run()).json() as { session: { id: string }; messages: Array<{ questions?: Array<{ id: string }> }> };
+  const questions = first.messages.flatMap((message) => message.questions ?? []);
+  assert.equal(questions.length, 1);
+  const id = questions[0]!.id;
   const answer = () => new Request("https://bibo.internal/run", { method: "POST", body: JSON.stringify({
-    sessionId: first.session.id, message: "DOCX", token: "token", questionId: "q-1", questionAction: "answer",
+    sessionId: first.session.id, message: "DOCX", token: "token", userId: "user-1", questionId: id, questionAction: "answer",
   }) });
   const second = await (await space.ownerFetch(answer())).json() as { messages: Array<{ questions?: Array<{ status: string }>; replyToQuestion?: { id: string; title: string; action: string }; text: string }> };
   assert.equal(second.messages.find((message) => message.questions?.length)?.questions?.[0]?.status, "answered");
-  assert.deepEqual(second.messages.at(-2)?.replyToQuestion, { id: "q-1", title: "报告格式？", action: "answered" });
+  assert.deepEqual(second.messages.at(-2)?.replyToQuestion, { id, title: "报告格式？", action: "answered" });
   assert.equal(second.messages.at(-1)?.text, "已按 DOCX 准备");
   assert.equal((await space.ownerFetch(answer())).status, 409);
   space.reopen();
-  const history = await (await space.ownerFetch(new Request(`https://bibo.internal/history?id=${first.session.id}`))).json() as { messages: typeof second.messages };
+  const history = await (await space.ownerFetch(new Request("https://bibo.internal/history?id=" + first.session.id))).json() as { messages: typeof second.messages };
   assert.deepEqual(history.messages, second.messages);
 });
 
-test("cancelled runs discard their file display requests", async () => {
-  const space = personalSpace(undefined, true);
-  const originalFetch = space.env.containerFetch;
-  let release!: () => void;
-  const pending = new Promise<void>((resolve) => { release = resolve; });
-  space.env.containerFetch = async (url, init) => {
-    if (new URL(url).pathname === "/run") await pending;
-    return originalFetch(url, init);
-  };
+test("cancelled runs release the run gate and never publish a committed reply", async (t) => {
+  const space = personalSpace();
+  let entered!: () => void;
+  const generating = new Promise<void>((resolve) => { entered = resolve; });
+  t.mock.method(globalThis, "fetch", async (_url: unknown, init?: RequestInit) => {
+    entered();
+    await new Promise<void>((_resolve, reject) => {
+      const abort = () => reject(init?.signal?.reason ?? new Error("aborted"));
+      if (init?.signal?.aborted) abort();
+      else init?.signal?.addEventListener("abort", abort, { once: true });
+    });
+    return modelText();
+  });
   const response = await space.run(true);
   const reader = response.body!.getReader();
   const accepted = new TextDecoder().decode((await reader.read()).value);
   const runId = JSON.parse(accepted.match(/^data: (.+)$/m)![1]!).runId;
-  try {
-    assert.equal((await space.cancel(runId)).status, 200);
-  } finally { release(); }
+  await generating;
+  assert.equal((await space.cancel(runId)).status, 200);
   let output = "";
   while (true) {
     const chunk = await reader.read();
     if (chunk.done) break;
     output += new TextDecoder().decode(chunk.value);
   }
-  assert.ok(output.includes("event: error"));
+  assert.ok(output.includes("event: error"), output);
   assert.equal(output.includes("event: show-content"), false);
   assert.equal(output.includes("event: committed"), false);
-  assert.equal(space.archives.size, 0);
+  t.mock.method(globalThis, "fetch", async () => modelText("恢复后回复"));
+  assert.equal((await space.run()).status, 200);
+  assert.equal(space.calls(), 0);
 });
 
 test("structured saves persist without container or snapshots, retain conflicts and idempotence", async () => {
@@ -362,96 +394,89 @@ test("structured saves persist without container or snapshots, retain conflicts 
   assert.equal(space.calls(), 0);
   assert.equal(space.archives.size, 0);
   assert.equal((await space.action("task.update", { id: task.id, version: 0, status: "done" })).status, 409);
-  assert.equal(space.stopped(), 0, "a validation failure does not stop an unrelated container");
+  assert.equal(space.calls(), 0, "validation must not acquire a container");
   space.failWrite();
   assert.equal((await space.action("task.create", { title: "Must not be saved" })).status, 503);
   assert.equal((await space.stored())!.tasks.length, 1);
 });
 
-test("a slow personal-space read does not reject chat, while writes remain exclusive", async () => {
+test("UI reads and writes remain available while the model is generating", async (t) => {
   const space = personalSpace();
-  const originalFetch = space.env.containerFetch;
-  const order: string[] = [];
-  let readStarted!: () => void;
-  let releaseRead!: () => void;
-  const reading = new Promise<void>((resolve) => { readStarted = resolve; });
-  const readGate = new Promise<void>((resolve) => { releaseRead = resolve; });
-  space.env.containerFetch = async (url, init) => {
-    const route = new URL(url).pathname;
-    if (route === "/space") {
-      const action = JSON.parse(init!.body as string).action;
-      order.push(action);
-      if (action === "overview.get") { readStarted(); await readGate; }
-    }
-    if (route === "/run") order.push("run");
-    return originalFetch(url, init);
-  };
-  const overview = space.action("overview.get");
-  await reading;
-  assert.equal((await space.createSession()).status, 200, "opening a conversation does not depend on space reads");
-  const queuedRead = space.action("file.list");
-  const chat = space.run();
-  releaseRead();
-  assert.equal((await overview).status, 200);
-  assert.equal((await chat).status, 200, "chat waits for the current read instead of rejecting it");
-  assert.equal((await queuedRead).status, 200);
-  assert.deepEqual(order.slice(0, 3), ["overview.get", "run", "file.list"], "queued reads cannot get ahead of chat");
-
-  let runStarted!: () => void;
-  let releaseRun!: () => void;
-  const generating = new Promise<void>((resolve) => { runStarted = resolve; });
-  const runGate = new Promise<void>((resolve) => { releaseRun = resolve; });
-  space.env.containerFetch = async (url, init) => {
-    if (new URL(url).pathname === "/run") { runStarted(); await runGate; }
-    return originalFetch(url, init);
-  };
+  let entered!: () => void;
+  let release!: () => void;
+  const generating = new Promise<void>((resolve) => { entered = resolve; });
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  t.mock.method(globalThis, "fetch", async () => { entered(); await gate; return modelText(); });
   const run = space.run();
   await generating;
-  assert.equal((await space.action("task.list")).status, 200, "structured reads do not take the chat lock");
-  assert.equal((await space.action("task.create", { title: "Too early" })).status, 429, "writes still wait for chat");
-  const containerRead = space.action("file.list");
-  releaseRun();
+  try {
+    assert.equal((await space.action("task.list")).status, 200);
+    assert.equal((await space.action("file.list")).status, 200);
+    assert.equal((await space.action("overview.get")).status, 200);
+    assert.equal((await space.action("task.create", { title: "During generation" })).status, 200);
+  } finally { release(); }
   assert.equal((await run).status, 200);
-  assert.equal((await containerRead).status, 200, "container reads resume after chat finishes");
   assert.equal((await space.action("task.create", { title: "After chat" })).status, 200);
-  assert.deepEqual((await space.stored())!.tasks.map((task) => task.title), ["Agent task", "Agent task", "After chat"]);
-
-  space.env.containerFetch = async (url, init) => {
-    if (new URL(url).pathname === "/space") throw new Error("read interrupted");
-    return originalFetch(url, init);
-  };
-  assert.equal((await space.action("file.list")).status, 503);
-  assert.equal((await space.run()).status, 200, "a failed read must release the runner gate");
+  assert.deepEqual((await space.stored())!.tasks.map((task) => task.title), ["During generation", "After chat"]);
+  assert.equal(space.calls(), 0);
 });
 
-test("snapshot hydration and restarts preserve newer DO tasks and staged inbox writes", async () => {
+test("a slow conversation does not block another conversation or lose either history", async (t) => {
   const space = personalSpace();
-  const old = emptySpace();
-  old.tasks.push({ id: "existing", title: "Old task", version: 1 } as BiboSpaceState["tasks"][number]);
+  const first = await (await space.createSession()).json() as { session: { id: string } };
+  const second = await (await space.createSession()).json() as { session: { id: string } };
+  let entered!: () => void;
+  let release!: () => void;
+  const generating = new Promise<void>((resolve) => { entered = resolve; });
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  t.mock.method(globalThis, "fetch", async (_url: unknown, init?: RequestInit) => {
+    if (String(init?.body).includes("slow-message")) { entered(); await gate; return modelText("slow reply"); }
+    return modelText("fast reply");
+  });
+  const send = (id: string, message: string) => space.ownerFetch(new Request("https://bibo.internal/run", {
+    method: "POST", body: JSON.stringify({ sessionId: id, message, token: "token", userId: "user-1" }),
+  }));
+  const slow = send(first.session.id, "slow-message");
+  await generating;
+  try {
+    const fast = await send(second.session.id, "fast-message");
+    assert.equal(fast.status, 200, await fast.clone().text());
+    assert.equal((await fast.json() as { text: string }).text, "fast reply");
+    assert.equal((await send(first.session.id, "duplicate")).status, 429, "only the genuinely running session is occupied");
+    assert.equal((await space.createSession()).status, 200, "new conversations do not tear down running Harness state");
+  } finally { release(); }
+  assert.equal((await slow).status, 200);
+  space.reopen();
+  for (const [id, answer] of [[first.session.id, "slow reply"], [second.session.id, "fast reply"]]) {
+    const history = await (await space.ownerFetch(new Request("https://bibo.internal/history?id=" + id))).json() as { messages: Array<{ text: string }> };
+    assert.equal(history.messages.at(-1)?.text, answer);
+  }
+  assert.equal(space.calls(), 0);
+});
+
+test("DO restarts preserve tasks and inbox without reading stale container snapshots", async () => {
+  const space = personalSpace(emptySpace());
   space.values.set("snapshotKey", "old-snapshot");
-  space.archives.set("old-snapshot", new TextEncoder().encode(JSON.stringify(old)).buffer as ArrayBuffer);
+  space.archives.set("old-snapshot", new TextEncoder().encode(JSON.stringify(emptySpace())).buffer as ArrayBuffer);
+  assert.equal((await space.action("task.create", { title: "After snapshot" })).status, 200);
   await space.restart();
-  const created = await space.action("task.create", { title: "After snapshot" });
-  assert.equal(created.status, 200);
-  assert.equal((await space.stored())!.tasks.length, 2);
-  await space.restart();
-  assert.equal(space.local().tasks.length, 2, "old snapshot cannot roll back a fast saved task");
+  assert.equal((await space.stored())!.tasks.length, 1);
   assert.equal((await space.action("inbox.create", { title: "Notice", body: "Body" })).status, 200);
-  assert.equal((await space.stored())!.inbox.length, 1);
-  assert.equal((await space.stored())!.tasks.length, 2);
   await space.restart();
-  assert.equal(space.local().inbox.length, 1);
-  space.failSnapshot();
+  assert.equal((await space.stored())!.inbox.length, 1);
+  assert.equal((await space.stored())!.tasks.length, 1);
+  space.failWrite();
   assert.equal((await space.action("inbox.create", { title: "Not committed", body: "Body" })).status, 503);
   assert.equal((await space.stored())!.inbox.length, 1);
-  assert.equal(space.stopped(), 1);
+  assert.equal(space.calls(), 0);
 });
 
-test("a missing committed snapshot cannot hydrate an empty authoritative space", async () => {
+test("missing canonical state chunks fail closed instead of showing an empty space", async () => {
   const space = personalSpace();
-  space.values.set("snapshotKey", "unavailable");
-  await assert.rejects(space.restart(), /committed snapshot is unavailable/);
-  assert.equal(await space.stored(), undefined);
+  space.values.set("spaceState", { chunks: 1 });
+  await space.restart();
+  assert.equal((await space.action("task.list")).status, 500);
+  await assert.rejects(space.stored(), /个人空间数据不完整/);
 });
 
 test("structured state beyond one KV value survives save, reopen and shrinking", async () => {
@@ -471,15 +496,33 @@ test("structured state beyond one KV value survives save, reopen and shrinking",
   assert.equal((await space.stored())!.tasks[0]!.id, tasks[0]!.id);
 });
 
-test("chat commits the same structured state and failed chat keeps previous durable writes", async () => {
+test("Harness tools and UI share structured state and model failure preserves prior writes", async (t) => {
   const space = personalSpace();
   await space.action("task.create", { title: "UI task" });
-  assert.equal((await space.run()).status, 200);
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async () => ++calls === 1
+    ? modelTool("bibo", { operation: "call", action: "task.create", input: { title: "Agent task" } }) : modelText());
+  const result = await space.run();
+  assert.equal(result.status, 200, await result.clone().text());
   assert.deepEqual((await space.stored())!.tasks.map((task) => task.title), ["UI task", "Agent task"]);
-  space.failRun();
-  assert.equal((await space.run()).status, 502);
+  t.mock.method(globalThis, "fetch", async () => new Response("private failure", { status: 413 }));
+  assert.equal((await space.run()).status, 413);
   assert.equal((await space.stored())!.tasks.length, 2);
-  assert.equal(space.stopped(), 1);
+  assert.equal(space.calls(), 0);
+});
+
+test("successful Agent mutations survive a later model failure and remain visible to UI", async (t) => {
+  const space = personalSpace();
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async () => ++calls === 1
+    ? modelTool("bibo", { operation: "call", action: "task.create", input: { title: "Durable before reply" } })
+    : new Response("model input rejected", { status: 413 }));
+  const response = await space.run();
+  assert.equal(response.status, 413);
+  space.reopen();
+  assert.equal((await space.action("task.list")).status, 200);
+  assert.deepEqual((await space.stored())!.tasks.map((task) => task.title), ["Durable before reply"]);
+  assert.equal(space.calls(), 0);
 });
 
 test("exhausted model budget rejects chat before forwarding without changing the budget", async () => {
@@ -491,7 +534,7 @@ test("exhausted model budget rejects chat before forwarding without changing the
     transaction: async (action: (value: object) => Promise<unknown>) => action(storage),
   };
   const budget = new worker.BiboModelBudget({ storage }, {});
-  const env = { BIBO_MODEL_BUDGET: { getByName: () => ({ fetch: (url: string, init: RequestInit) => budget.fetch(new Request(url, init)) }) }, BIBO_USER: {} };
+  const env = { BIBO_MODEL_BUDGET: { getByName: () => ({ fetch: (url: string, init: RequestInit) => budget.fetch(new Request(url, init)) }) }, BIBO_USER: { getByName: () => ({ fetch: async () => { throw new Error("exhausted budget must not forward"); } }) } };
   const check = await worker.default.fetch(new Request("https://app.bibo.bot/api/chat/availability"), env);
   assert.equal(check.status, 429);
   const creation = await worker.default.fetch(new Request("https://app.bibo.bot/api/sessions", {
@@ -566,7 +609,10 @@ test("available budget forwards valid chat and keeps reservation in the model en
     transaction: async (action: (value: object) => Promise<unknown>) => action(storage),
   };
   const budget = new worker.BiboModelBudget({ storage }, {});
-  const env = { BIBO_MODEL_BUDGET: { getByName: () => ({ fetch: (url: string, init: RequestInit) => budget.fetch(new Request(url, init)) }) }, BIBO_USER: {} };
+  const env = { BIBO_MODEL_BUDGET: { getByName: () => ({ fetch: (url: string, init: RequestInit) => budget.fetch(new Request(url, init)) }) }, BIBO_USER: { getByName: () => ({ fetch: async (_url: string, init: RequestInit) => {
+    assert.equal(JSON.parse(String(init.body)).userId, "user-1");
+    return Response.json({ forwarded: true });
+  } }) } };
   const check = await worker.default.fetch(new Request("https://app.bibo.bot/api/chat/availability"), env);
   assert.equal(check.status, 200);
   const response = await worker.default.fetch(new Request("https://app.bibo.bot/api/chat", {

@@ -4,10 +4,10 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
-import { NextclawKernel } from "@nextclaw/kernel";
+import { createNextclawApplication } from "@nextclaw/harness";
 import { createUiRouter } from "@nextclaw/server";
 
-function createKernel(homeDirectory) {
+async function createKernel(homeDirectory) {
   const workspaceDirectory = join(homeDirectory, "workspace");
   const configPath = join(homeDirectory, "config.json");
   const packageRoot = resolve(import.meta.dirname, "../../../../packages/nextclaw");
@@ -26,7 +26,7 @@ function createKernel(homeDirectory) {
   );
   return {
     configPath,
-    kernel: new NextclawKernel({
+    ...await createNextclawApplication({
       builtInAppsDirectory: join(packageRoot, "resources/apps"),
       configPath,
       homeDir: homeDirectory,
@@ -81,9 +81,11 @@ mkdirSync(pathWithoutNode);
 process.env.PATH = pathWithoutNode;
 
 let kernel;
+let harness;
 try {
-  const runtime = createKernel(homeDirectory);
+  const runtime = await createKernel(homeDirectory);
   kernel = runtime.kernel;
+  harness = runtime.harness;
   await kernel.appPackageManager.start();
   await kernel.appPackageManager.enable("nextclaw.personal-organizer");
 
@@ -148,7 +150,7 @@ try {
 
   console.log("desktop Electron service app host smoke passed");
 } finally {
-  await kernel?.serviceAppManager.dispose();
+  await harness?.dispose();
   if (originalPath === undefined) {
     delete process.env.PATH;
   } else {

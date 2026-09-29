@@ -1,4 +1,5 @@
 export * from "@kernel/app/nextclaw-kernel.js";
+export * from "@kernel/features/node-platform/index.js";
 export * from "@kernel/managers/agent.manager.js";
 export * from "@kernel/managers/app-package.manager.js";
 export * from "@kernel/managers/app-data.manager.js";
@@ -9,10 +10,25 @@ export * from "@kernel/managers/provider-model-catalog.manager.js";
 export * from "@kernel/managers/automation.manager.js";
 export * from "@kernel/managers/channel.manager.js";
 export * from "@kernel/managers/config.manager.js";
+export { LocalConfigStore } from "@kernel/stores/local-config.store.js";
+export { LocalAgentProfileStore } from "@kernel/stores/local-agent-profile.store.js";
+export type { AgentPlatform, AgentKernelResources, AgentKernelModule } from "@kernel/types/agent-platform.types.js";
+export * from "@kernel/stores/workspace.store.js";
+export { LocalWorkspaceStore } from "@kernel/stores/local-workspace.store.js";
+export { createWorkspaceByteTools } from "@kernel/tools/workspace-byte.tools.js";
+export type { AgentProfilePersistence } from "@kernel/managers/agent.manager.js";
+export type { ConfigPersistence } from "@kernel/types/config-persistence.types.js";
 export * from "@kernel/managers/extension.manager.js";
 export * from "@kernel/managers/inbox-delivery.manager.js";
 export * from "@kernel/managers/system-object-reference.manager.js";
 export * from "@kernel/managers/session.manager.js";
+export type { SessionPersistence, SessionMessagePage } from "@kernel/types/session.types.js";
+export { SessionMessageCursorError } from "@kernel/types/session.types.js";
+export { SessionEventReplayer } from "@kernel/utils/ncp-agent-session-replay.utils.js";
+export { createNcpAgentSessionSummary } from "@kernel/utils/ncp-agent-session-journal.utils.js";
+export type { NcpAgentSessionJournalReplayEvent } from "@kernel/utils/ncp-agent-session-journal.utils.js";
+export { applyNcpAgentRunLifecycleEvent } from "@kernel/utils/ncp-agent-unfinished-run.utils.js";
+export type { UnfinishedNcpAgentRun } from "@kernel/utils/ncp-agent-unfinished-run.utils.js";
 export * from "@kernel/managers/user-question.manager.js";
 export * from "@kernel/managers/session-context-compaction.manager.js";
 export * from "@kernel/managers/llm-usage.manager.js";
@@ -155,3 +171,11 @@ export type {
   SessionQueuedInput,
   SessionSteerQueuedInputResult,
 } from "@kernel/types/agent-run.types.js";
+export { renderAgentSafetyContext, renderSystemExecutionPolicy } from "./contributions/context-provider/providers/execution-policy-context.provider.js";
+export { truncateContextText } from "./contributions/context-provider/utils/context-text.utils.js";
+export { renderAgentBootstrapContext, type BootstrapContextInput } from "./contributions/context-provider/utils/bootstrap-context.utils.js";
+export { createShowContentTools } from "./tools/show-content.tools.js";
+export { composeAgentToolCatalog } from "./tools/tool-schema.tools.js";
+export { createQuestionMessage, createQuestionResolutionMessage, projectUserQuestions } from "./utils/user-question.utils.js";
+export type { CompactionSummaryProvider } from "./features/context-compaction/services/context-compaction-preflight.service.js";
+export { appendCurrentTimeContextTail, serializeModelInputTail } from "./services/agent-run-model-input-builder.service.js";

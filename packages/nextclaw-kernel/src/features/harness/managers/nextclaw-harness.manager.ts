@@ -1,11 +1,10 @@
-import { randomUUID } from "node:crypto";
-import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import { NextclawAgentRegistry } from "@kernel/features/harness/managers/nextclaw-agent.manager.js";
 import { NextclawContributionRegistry } from "@kernel/features/harness/managers/nextclaw-contribution.manager.js";
-import { NextclawKernelFacade } from "@kernel/features/harness/managers/nextclaw-kernel-capability.manager.js";
 import type { NextclawRun } from "@kernel/features/harness/managers/nextclaw-run.manager.js";
 import { NextclawSessionRegistry } from "@kernel/features/harness/managers/nextclaw-session.manager.js";
 import { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
+import { AgentKernel } from "@kernel/managers/agent-kernel.manager.js";
+import type { AgentKernelModule } from "@kernel/types/agent-platform.types.js";
 import {
   NextclawHarnessError,
   type INextclawAgent,
@@ -15,6 +14,7 @@ import {
   type INextclawSession,
   type INextclawSessionRegistry,
   type NextclawHarnessOptions,
+  type NextclawHarnessResources,
   type NextclawTaskInput,
   type NextclawTaskResult,
   type NextclawUserQuestion,
@@ -31,16 +31,19 @@ export class NextclawHarness implements INextclawHarness {
   private readonly contributionRegistry = new NextclawContributionRegistry();
   private readonly ownedRuns = new Set<NextclawRun>();
   private state: HarnessState = "idle";
-  private kernel: NextclawKernel | undefined;
+  private kernel: NextclawHarnessResources | undefined;
   private startPromise: Promise<void> | undefined;
+  private ownedKernel: AgentKernel | undefined;
+  private preparePromise: Promise<void> | undefined;
+  private readonly attachedModules: AgentKernelModule[] = [];
 
-  constructor(private readonly options: NextclawHarnessOptions = {}) {
+  constructor(private readonly options: NextclawHarnessOptions) {
     this.contributions = this.contributionRegistry;
     const sessions = new NextclawSessionRegistry(
       this.requireKernel,
       this.onRunCreated,
       this.onRunSettled,
-      this.options.allowedToolNames === undefined,
+      this.options.allowSlashCommands !== false,
     );
     this.sessions = sessions;
     this.agents = new NextclawAgentRegistry(
@@ -66,6 +69,16 @@ export class NextclawHarness implements INextclawHarness {
     } finally {
       this.startPromise = undefined;
     }
+  };
+
+  /** Opens the graph for host wiring without accepting Agent requests. */
+  prepare = async (): Promise<void> => {
+    if (this.state === "disposed") throw new NextclawHarnessError("lifecycle", "Harness has been disposed.");
+    if (this.preparePromise) return this.preparePromise;
+    if (this.ownedKernel) return;
+    this.preparePromise = this.prepareInternal();
+    try { await this.preparePromise; }
+    finally { this.preparePromise = undefined; }
   };
 
   runTask = async (input: NextclawTaskInput): Promise<NextclawTaskResult> => {
@@ -101,13 +114,28 @@ export class NextclawHarness implements INextclawHarness {
     onAssistantDelta?: NextclawTaskInput["onAssistantDelta"];
   }): Promise<NextclawUserQuestionReply> => {
     const kernel = this.requireKernel();
-    const resolution = await kernel.userQuestions.resolveAndWaitForReply(input,
+    let failure: unknown;
+    let failed = false;
+    let resolution: Awaited<ReturnType<typeof kernel.userQuestions.resolveAndWaitForReply>>;
+    try {
+      resolution = await kernel.userQuestions.resolveAndWaitForReply(input,
       new AgentRunClient({ eventBus: kernel.eventBus, ingress: kernel.ingress }), {
         abortSignal: input.signal,
         onEvent: input.onEvent,
         onAssistantDelta: input.onAssistantDelta,
       });
-    return { question: resolution.question, text: resolution.text };
+    } catch (error) {
+      failed = true;
+      failure = error;
+    }
+    try {
+      await kernel.sessionManager.flushSession(input.sessionId);
+    } catch (error) {
+      throw new NextclawHarnessError("runtime_failure", "Question reply could not be persisted.",
+        failed ? new AggregateError([failure, error], "Reply and persistence failed.") : error);
+    }
+    if (failed) throw failure;
+    return { question: resolution!.question, text: resolution!.text };
   };
 
   dispose = async (): Promise<void> => {
@@ -121,14 +149,15 @@ export class NextclawHarness implements INextclawHarness {
         // startInternal already rolled back its Kernel.
       }
     }
+    if (this.preparePromise) await this.preparePromise.catch(() => undefined);
+    this.ownedKernel?.agentRunRequestManager.admissions.suspend();
     this.state = "disposed";
-    const kernel = this.kernel;
     this.kernel = undefined;
     const errors: unknown[] = [];
     for (const dispose of [
       this.disposeRuns,
       this.contributionRegistry.dispose,
-      async () => await kernel?.dispose(),
+      this.disposeKernel,
     ]) {
       try {
         await dispose();
@@ -147,7 +176,7 @@ export class NextclawHarness implements INextclawHarness {
     }
   };
 
-  private readonly requireKernel = (): NextclawKernel => {
+  private readonly requireKernel = (): NextclawHarnessResources => {
     if (this.state !== "started" || !this.kernel) {
       throw new NextclawHarnessError(
         "lifecycle",
@@ -158,19 +187,21 @@ export class NextclawHarness implements INextclawHarness {
   };
 
   private startInternal = async (): Promise<void> => {
-    let kernel: NextclawKernel | undefined;
     try {
-      kernel = new NextclawKernel(this.options);
-      if (this.options.allowedToolNames) kernel.toolProviderManager.restrictToTools(this.options.allowedToolNames);
-      await kernel.extensions.load({ config: kernel.configManager.config });
-      await kernel.start();
-      await this.contributionRegistry.start(new NextclawKernelFacade(kernel));
+      await this.prepare();
+      const kernel = this.ownedKernel!;
+      await kernel.start(async () => {
+        for (const module of this.attachedModules) await module.start();
+        await this.contributionRegistry.start(kernel.capabilities);
+      });
       this.kernel = kernel;
+      for (const module of this.attachedModules) await module.ready?.();
       this.state = "started";
     } catch (error) {
       this.kernel = undefined;
+      await this.contributionRegistry.stop().catch(() => undefined);
       try {
-        await kernel?.dispose();
+        await this.disposeKernel();
       } catch {
         // Preserve the startup failure while returning to an idle state.
       }
@@ -183,11 +214,42 @@ export class NextclawHarness implements INextclawHarness {
     }
   };
 
+  private prepareInternal = async (): Promise<void> => {
+    try {
+      const resources = await this.options.platform.start();
+      const kernel = this.ownedKernel = new AgentKernel(resources);
+      for (const module of this.options.modules ?? []) {
+        this.attachedModules.push(module);
+        module.attach(kernel);
+      }
+    } catch (error) {
+      await this.disposeKernel().catch(() => undefined);
+      throw error;
+    }
+  };
+
+  private disposeKernel = async (): Promise<void> => {
+    const kernel = this.ownedKernel;
+    this.ownedKernel = undefined;
+    kernel?.agentRunRequestManager.admissions.suspend();
+    const errors: unknown[] = [];
+    const modules = this.attachedModules.splice(0).reverse();
+    for (const dispose of [
+      ...modules.map((module) => async () => { await module.stop?.(); }),
+      async () => { await kernel?.dispose(); },
+      ...modules.map((module) => () => module.dispose()),
+      this.options.platform.dispose,
+    ]) {
+      try { await dispose(); } catch (error) { errors.push(error); }
+    }
+    if (errors.length) throw new AggregateError(errors, "Kernel resource cleanup failed.");
+  };
+
   private resolveTaskSession = async (
     agent: INextclawAgent,
     input: NextclawTaskInput,
   ): Promise<INextclawSession> => {
-    const sessionId = input.sessionId?.trim() || `exec:${randomUUID()}`;
+    const sessionId = input.sessionId?.trim() || `exec:${crypto.randomUUID()}`;
     const existing = await this.requireKernel().sessionManager.getSession(sessionId);
     if (existing) {
       if (existing.agentId && existing.agentId !== agent.id) {

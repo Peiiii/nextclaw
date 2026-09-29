@@ -1,7 +1,13 @@
-import { normalizeToolParams } from "@nextclaw/core";
+import { normalizeToolParams } from "@nextclaw/core/tool-base";
 import { createSessionResourceUri } from "@nextclaw/shared";
 import type { NcpMessage, NcpSessionSummary, NcpTool } from "@nextclaw/ncp";
-import type { SessionManager } from "@kernel/managers/session.manager.js";
+
+/** Read contract shared by local journal and hosted conversation stores. */
+export type SessionHistoryReader = {
+  getSession(sessionId: string): Promise<NcpSessionSummary | null>;
+  listSessions(): Promise<NcpSessionSummary[]>;
+  listSessionMessages(sessionId: string): Promise<NcpMessage[]>;
+};
 
 const DEFAULT_LIMIT = 20;
 const MAX_MESSAGE_LIMIT = 20;
@@ -39,9 +45,9 @@ function sanitizeMessage(message: NcpMessage) {
 
 function capHistory(items: unknown[]): unknown[] {
   const text = JSON.stringify(items);
-  if (Buffer.byteLength(text, "utf8") <= HISTORY_MAX_BYTES) return items;
+  if (new TextEncoder().encode(text).byteLength <= HISTORY_MAX_BYTES) return items;
   const last = items.at(-1);
-  return last && Buffer.byteLength(JSON.stringify([last]), "utf8") <= HISTORY_MAX_BYTES
+  return last && new TextEncoder().encode(JSON.stringify([last])).byteLength <= HISTORY_MAX_BYTES
     ? [last]
     : [{ role: "assistant", content: "[sessions_history omitted: message too large]" }];
 }
@@ -62,7 +68,7 @@ export class SessionsListTool implements NcpTool {
     },
   };
 
-  constructor(private readonly sessions: SessionManager) {}
+  constructor(private readonly sessions: SessionHistoryReader) {}
 
   execute = async (args: unknown): Promise<string> => {
     const params = normalizeToolParams(args);
@@ -112,7 +118,7 @@ export class SessionsHistoryTool implements NcpTool {
     required: ["sessionKey"],
   };
 
-  constructor(private readonly sessions: SessionManager) {}
+  constructor(private readonly sessions: SessionHistoryReader) {}
 
   execute = async (args: unknown): Promise<string> => {
     const params = normalizeToolParams(args);
@@ -138,4 +144,27 @@ export class SessionsHistoryTool implements NcpTool {
       summary.sessionId.endsWith(`:${sessionKey}`) || sessionLabel(summary) === sessionKey
     ) ?? null;
   };
+}
+
+/** Reuse the same tool implementations in hosts that disallow runtime schema compilation. */
+export function createPortableSessionHistoryTools(sessions: SessionHistoryReader): readonly NcpTool[] {
+  const list = new SessionsListTool(sessions);
+  const history = new SessionsHistoryTool(sessions);
+  const portable = (tool: SessionsListTool | SessionsHistoryTool, required: boolean): NcpTool => ({
+    name: tool.name,
+    description: tool.description,
+    modelParameters: tool.parameters,
+    validateArgs: (args) => {
+      const issues: string[] = [];
+      if (required && (typeof args.sessionKey !== "string" || !args.sessionKey.trim())) issues.push("sessionKey is required");
+      else if (args.sessionKey !== undefined && typeof args.sessionKey !== "string") issues.push("sessionKey must be a string");
+      if (args.limit !== undefined && (!Number.isInteger(args.limit) || (args.limit as number) < 1)) issues.push("limit must be a positive integer");
+      if (tool === list && args.messageLimit !== undefined && (!Number.isInteger(args.messageLimit) || (args.messageLimit as number) < 0))
+        issues.push("messageLimit must be a non-negative integer");
+      if (tool === history && args.includeTools !== undefined && typeof args.includeTools !== "boolean") issues.push("includeTools must be a boolean");
+      return issues;
+    },
+    execute: tool.execute,
+  });
+  return [portable(list, false), portable(history, true)];
 }

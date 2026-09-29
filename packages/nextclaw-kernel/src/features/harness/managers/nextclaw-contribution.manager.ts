@@ -138,6 +138,12 @@ export class NextclawContributionRegistry
       return;
     }
     this.disposed = true;
+    try { await this.stop(); }
+    finally { this.registrations.clear(); }
+  };
+
+  stop = async (): Promise<void> => {
+    this.started = false;
     const errors: unknown[] = [];
     for (const contribution of [...this.registrations.values()].reverse()) {
       try {
@@ -146,7 +152,6 @@ export class NextclawContributionRegistry
         errors.push(error);
       }
     }
-    this.registrations.clear();
     if (errors.length === 1) {
       throw errors[0];
     }

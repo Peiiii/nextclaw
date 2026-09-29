@@ -1,15 +1,17 @@
+import { resolveSessionProjectContext } from "@nextclaw/core";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { EventBus } from "@nextclaw/shared";
-import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
+import { createLocalProductFixture } from "@kernel/utils/tests/local-product-fixture.utils.js";
 import { ToolProviderRunContextService } from "@kernel/contributions/tool-provider/services/tool-provider-run-context.service.js";
 import { SessionManager } from "@kernel/managers/session.manager.js";
 import { ProjectManager } from "@kernel/features/projects/index.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { SessionToolProvider } from "@kernel/contributions/tool-provider/providers/session-tool.provider.js";
+import { SessionConversationToolProvider } from "@kernel/contributions/tool-provider/providers/session-conversation-tool.provider.js";
 
 const tempDirs: string[] = [];
 
@@ -41,6 +43,7 @@ async function createPersistedFixture() {
     join(homeDir, ".ncp-agent-journal"),
   );
   const sessionManager = new SessionManager({
+    resolveProjectContext: resolveSessionProjectContext,
     agentContextWindowManager: {
       forgetSession: () => undefined,
       previewSession: async () => null,
@@ -48,7 +51,6 @@ async function createPersistedFixture() {
     agentManager: {
       resolveAgentProfile: () => ({ workspace }),
     } as never,
-    configManager: { loadConfig: () => ({}) } as never,
     eventBus: new EventBus(),
     journalStore,
     projectManager: new ProjectManager({
@@ -83,6 +85,7 @@ async function createPersistedFixture() {
       }),
     } as never,
     { loadConfig: () => config } as never,
+    { resolve: resolveSessionProjectContext },
   );
   return new SessionToolProvider(
     runContextService,
@@ -123,30 +126,28 @@ describe("SessionToolProvider child delegation policy", () => {
     tempDirs.push(homeDir);
     const configPath = join(homeDir, "config.json");
     saveConfig(ConfigSchema.parse({ agents: { defaults: { workspace: join(homeDir, "workspace") } } }), configPath);
-    const kernel = new NextclawKernel({ homeDir, configPath, contextProfile: "embedded" });
+    const { kernel, harness } = await createLocalProductFixture({ homeDir, configPath, contextProfile: "embedded" });
     kernel.toolProviderManager.restrictToTools(["bibo", "show_file", "web_search", "web_fetch", "tool_schema", "request_user_input_async"]);
     try {
-      await kernel.start();
+      await harness.start();
       await kernel.sessionManager.createSession({ sessionId: "hosted-ui", sourceSessionMetadata: {}, task: "Ask a question" });
       const tools = await kernel.toolProviderManager.buildTools({ ...createRequest("hosted-ui"), channel: "ui" } as never);
       expect(tools.map(({ name }) => name)).toContain("request_user_input_async");
     } finally {
-      await kernel.dispose();
+      await harness.dispose();
     }
   });
 
   it("exposes asynchronous questions only for the native runtime", async () => {
-    const providerFor = (agentRuntimeId: string) => new SessionToolProvider(
-      { resolve: async () => ({
-        session: { agentRuntimeId, metadata: {} },
-        toolRunContext: { handoffDepth: 0, metadata: {}, sessionId: "current-session" },
-      }) } as never,
-      {} as never,
-      {} as never,
-      { isReady: () => false } as never,
+    const providerFor = (agentRuntimeId: string) => new SessionConversationToolProvider(
+      { getAgentRunSession: async () => ({ agentRuntimeId }) } as never,
       {} as never,
     );
     const request = createRequest("current-session") as never;
+    expect((await providerFor("native").provide(request)).map(({ name }) => name))
+      .toEqual(expect.arrayContaining(["sessions_list", "sessions_history"]));
+    expect((await providerFor("codex").provide(request)).map(({ name }) => name))
+      .toEqual(expect.arrayContaining(["sessions_list", "sessions_history"]));
     expect((await providerFor("native").provide(request)).map(({ name }) => name)).toContain("request_user_input_async");
     expect((await providerFor("native").provide({ ...request, channel: "ui" })).map(({ name }) => name))
       .toContain("request_user_input_async");
@@ -179,8 +180,6 @@ describe("SessionToolProvider child delegation policy", () => {
     expect(childTools.map((tool) => tool.name)).not.toContain("sessions_spawn");
     expect(childTools.map((tool) => tool.name)).toEqual([
       "sessions_request",
-      "sessions_list",
-      "sessions_history",
       "sessions_update",
       "session_search",
     ]);
@@ -221,6 +220,7 @@ describe("SessionToolProvider child delegation policy", () => {
         }),
       } as never,
       { loadConfig: () => config } as never,
+      { resolve: resolveSessionProjectContext },
     );
     const provider = new SessionToolProvider(
       runContextService,

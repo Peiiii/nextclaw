@@ -20,7 +20,7 @@ test("Node and portable Bibo tools share the same behavior and schema", async ()
   for (const tool of [node, portable]) {
     assert.deepEqual(await tool.execute({ operation: "help" }), { ok: true, actions: space.listActions() });
     assert.deepEqual(await tool.execute({ operation: "call", action: "task.list", input: {} }), {
-      ok: true, action: "task.list", result: { items: [] }, persistence: "Saved with the completed Bibo reply.",
+      ok: true, action: "task.list", result: { items: [] }, persistence: "The operation completed; changes are already saved.",
     });
   }
   assert.deepEqual(calls, [

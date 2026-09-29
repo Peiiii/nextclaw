@@ -10,6 +10,7 @@ import {
   type Ingress,
   type IngressEnvelope,
   type IngressContext,
+  DIAGNOSTIC_CORRELATION_METADATA_KEY,
 } from "@nextclaw/shared";
 import {
   type NcpEndpointEvent,
@@ -19,25 +20,21 @@ import {
 } from "@nextclaw/ncp";
 import type {
   DiagnosticRuntime,
-  LocalExecutionClaimHandle,
-  LocalExecutionClaimService,
 } from "@nextclaw/core";
-import { DIAGNOSTIC_CORRELATION_METADATA_KEY } from "@nextclaw/core";
-import type { AgentManager } from "@kernel/managers/agent.manager.js";
-import type { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
-import type { ConfigManager } from "@kernel/managers/config.manager.js";
-import type { AgentRuntimeManager } from "./agent-runtime.manager.js";
+import type {
+  AgentRunAgentHost, AgentRunConfigHost, AgentRunRuntimeHost,
+  AgentRunSessionHost, AgentRunSessionRunHost, AgentRunSurfaceHost,
+  SessionExecutionClaim, SessionExecutionClaims,
+} from "@kernel/types/agent-run-host.types.js";
 import { AgentRunSessionCommandManager } from "./agent-run-session-command.manager.js";
 import type {
   SessionRun,
   SessionRunActiveRequest,
-  SessionRunManager,
 } from "./session-run.manager.js";
 import { AgentRunInputDeliveryService } from "@kernel/services/agent-run-input-delivery.service.js";
 import { AgentRunAdmissionService } from "@kernel/services/agent-run-admission.service.js";
 import { AgentRunRequestIdempotencyService } from "@kernel/services/agent-run-request-idempotency.service.js";
 import { AgentRuntimeRunObserverService } from "@kernel/services/agent-runtime-run-observer.service.js";
-import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type {
   AgentRunAbortRequest,
   AgentRunAccepted,
@@ -74,16 +71,16 @@ export class AgentRunRequestManager {
   readonly admissions = new AgentRunAdmissionService();
 
   constructor(
-    private readonly agentRuntimeManager: AgentRuntimeManager,
-    private readonly agentManager: AgentManager,
-    private readonly configManager: ConfigManager,
-    private readonly agentContextWindowManager: AgentContextWindowManager,
+    private readonly agentRuntimeManager: AgentRunRuntimeHost,
+    private readonly agentManager: AgentRunAgentHost,
+    private readonly configManager: AgentRunConfigHost,
+    private readonly agentContextWindowManager: AgentRunSurfaceHost,
     private readonly eventBus: EventBus,
     private readonly ingress: Ingress,
-    private readonly sessionManager: SessionManager,
-    private readonly sessionRunManager: SessionRunManager,
+    private readonly sessionManager: AgentRunSessionHost,
+    private readonly sessionRunManager: AgentRunSessionRunHost,
     private readonly diagnostics?: Pick<DiagnosticRuntime, "record">,
-    private readonly executionClaims?: LocalExecutionClaimService,
+    private readonly executionClaims?: SessionExecutionClaims,
   ) {
     this.pendingInputs = new AgentRunInputDeliveryService(
       agentRuntimeManager,
@@ -435,9 +432,9 @@ export class AgentRunRequestManager {
     requestRunStartedAt: string;
     sessionRun: SessionRun;
     spec: AgentRunSpec;
-  }): Promise<LocalExecutionClaimHandle<void> | undefined> => {
+  }): Promise<SessionExecutionClaim | undefined> => {
     const { requestRunStartedAt, sessionRun, spec } = params;
-    const acquired = this.executionClaims?.tryAcquire<void>(
+    const acquired = this.executionClaims?.tryAcquire(
       `session:${sessionRun.sessionId}`,
     );
     if (!acquired || acquired.acquired) {
@@ -460,7 +457,7 @@ export class AgentRunRequestManager {
     params: Omit<
       Parameters<AgentRuntimeRunObserverService["start"]>[0],
       "onSettled"
-    > & { executionClaim?: LocalExecutionClaimHandle<void> },
+    > & { executionClaim?: SessionExecutionClaim },
   ): void => {
     const { executionClaim, ...runtimeParams } = params;
     this.runtimeRuns.start({

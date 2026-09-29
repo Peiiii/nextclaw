@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { NcpMessage, NcpSessionSummary } from "@nextclaw/ncp";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
-import { SessionsHistoryTool, SessionsListTool } from "./session-history.tools.js";
+import { createPortableSessionHistoryTools, SessionsHistoryTool, SessionsListTool } from "./session-history.tools.js";
 import { SessionSearchTool } from "./session-search.tools.js";
 import { parseSessionResourceUri } from "@nextclaw/shared";
 
@@ -37,6 +37,16 @@ function createSessionsFixture(params: {
 }
 
 describe("session history tools", () => {
+  it("uses the same session results in Node and portable hosts", async () => {
+    const sessions = createSessionsFixture({ summaries: [{ sessionId: "one", messageCount: 0,
+      updatedAt: "2026-09-29T00:00:00.000Z" }] });
+    const portable = createPortableSessionHistoryTools(sessions);
+    expect(portable.map((tool) => tool.name)).toEqual(["sessions_list", "sessions_history"]);
+    expect(portable[0]?.parameters).toBeUndefined();
+    expect(portable[0]?.modelParameters).toEqual(new SessionsListTool(sessions).parameters);
+    expect(portable[1]?.validateArgs?.({})).toContain("sessionKey is required");
+    expect(await portable[0]?.execute({})).toEqual(await new SessionsListTool(sessions).execute({}));
+  });
   it('returns consumable resource identities for search results', async () => {
     const sessionId = 'agent:main:会话/one %2F';
     const tool = new SessionSearchTool({ search: async () => ({ query: 'one', totalHits: 1,

@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "types": ["@cloudflare/workers-types", "node"]
   },
-  "include": ["src/app/bibo-hosted.app.ts", "src/app/bibo-run-stream.utils.ts", "src/app/services/bibo-edge-context.service.test.ts", "src/app/services/bibo-edge-conversation.service.ts", "src/app/services/bibo-edge-conversation.service.test.ts", "src/app/services/bibo-edge-migration.service.test.ts", "src/app/services/bibo-edge-model.service.ts", "src/app/services/bibo-edge-model.service.test.ts", "src/app/services/bibo-edge-web.service.test.ts", "src/app/stores/bibo-edge-session.store.test.ts", "src/features/search/routes/bibo-search.route.test.ts", "worker-configuration.d.ts"]
+  "include": ["src/app/bibo-hosted.app.ts", "src/app/bibo-hosted.app.test.ts", "src/app/bibo-run-stream.utils.ts", "src/app/utils/bibo-context-files.utils.test.ts", "src/app/services/bibo-conversation.service.test.ts", "src/app/services/bibo-execution.service.test.ts", "src/app/migration/bibo-edge-migration.service.test.ts", "src/app/services/model/bibo-model.service.test.ts", "src/app/services/bibo-edge-web.service.test.ts", "src/app/stores/bibo-edge-session.store.test.ts", "src/app/stores/cloudflare-session.store.test.ts", "src/app/stores/bibo-workspace.store.test.ts", "src/features/search/routes/bibo-search.route.test.ts", "worker-configuration.d.ts"]
 }
