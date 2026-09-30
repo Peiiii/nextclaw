@@ -12,6 +12,24 @@
 
 ## 现状架构与归属
 
+```mermaid
+flowchart LR
+  UI[React 页面] --> State[Zustand 状态与领域 manager]
+  State --> Client[BiboClient HTTP / SSE]
+  Client --> Worker[Worker 账号鉴权]
+  Worker --> DO[按账号隔离的 Durable Object]
+  DO --> Files[工作空间文件服务]
+  Files --> R2[R2 文件内容与路径]
+  DO --> Domain[任务 / 日程 / 项目 / 收件箱]
+  Domain --> KV[DO 结构化存储]
+  DO --> Harness[对话服务 / Harness / 后台运行]
+  Harness --> Adapter[会话与 journal 持久化 adapter]
+  Harness --> OS[OS 工具 / Sandbox]
+  OS --> R2
+```
+
+目录修复发生在 State 和 Files 两端：服务端提供目录直接子项，前端维护每个目录的投影。R2 仍保存文件事实；没有增加第二套文件内容存储。
+
 - React 页面消费 Zustand。BiboSpaceOwner 拥有目录、笔记、打开文件与草稿状态，BiboChatOwner 拥有对话状态；BiboClient 拥有 HTTP/SSE。
 - Worker 验证共享平台账号，按已验证用户 ID 路由到账号 Durable Object。
 - Durable Object 的 BiboSpaceActionService 编排领域操作；任务/项目/日程/收件箱由 BiboSpaceService 和 DO 结构化存储持久化。
