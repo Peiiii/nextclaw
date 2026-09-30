@@ -74,8 +74,14 @@
   },
   "changesets": [
     "async-question-message-order",
+    "auto-release-batch-20260930055215886",
+    "bibo-dots-interface",
+    "bibo-navigation-icons",
     "bibo-task-detail-drawer",
     "bibo-task-reading",
-    "session-journal-delta-coalescing"
+    "context-files-batch-reads",
+    "nc-185-panel-refresh",
+    "session-journal-delta-coalescing",
+    "user-message-line-breaks"
   ]
 }
