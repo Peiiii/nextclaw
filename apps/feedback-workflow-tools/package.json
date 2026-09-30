@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/feedback-workflow-tools",
-  "version": "0.0.17-beta.0",
+  "version": "0.0.17-beta.1",
   "private": true,
   "type": "module",
   "imports": {
