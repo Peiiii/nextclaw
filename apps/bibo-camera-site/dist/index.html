@@ -6,12 +6,14 @@
     <meta name="theme-color" content="#f5f1df" />
     <meta
       name="description"
-      content="Bibo，你的云端个人 AI 搭档。按一下快门，看见有它参与的日常。"
+      content="Bibo，你的个人 AI 搭档。懂你的全局，主动接着做，从经验里改进。来认识一个认真、也有点好玩的新搭档。"
     />
     <title>Bibo · 日常，多一个我。</title>
     <link rel="icon" type="image/svg+xml" sizes="any" href="favicon.svg" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="playground.css" />
     <script defer src="bibo-site.controller.js"></script>
+    <script defer src="playground.controller.js"></script>
   </head>
   <body>
     <header>
@@ -26,12 +28,42 @@
       </nav>
     </header>
     <main>
+      <section class="playground" id="playground" data-mood="hello" aria-label="和 Bibo 相遇">
+        <div class="hello-copy">
+          <p class="hello-kicker"><span></span> A LITTLE FRIEND. A LITTLE MAGIC.</p>
+          <h1>日常，<br>多一个<span class="hello-me">我<svg viewBox="0 0 180 16" aria-hidden="true"><path d="M3 11Q80 -2 176 8M18 14Q102 4 162 12"/></svg></span>。</h1>
+          <p class="hello-description">你的个人 AI 搭档。<br>懂你的全局，主动接着做，越做越懂你。</p>
+          <a class="hello-entry" href="https://app.bibo.bot/">认识你的新搭档 <span aria-hidden="true">↗</span></a>
+          <p class="hello-footnote">一起想 · 持续跟进 · 从经验里改进</p>
+        </div>
+        <div class="little-world" id="little-world">
+          <div class="world-orbit orbit-one" aria-hidden="true"></div><div class="world-orbit orbit-two" aria-hidden="true"></div>
+          <span class="world-doodle doodle-plus" aria-hidden="true">✳</span><span class="world-doodle doodle-spark" aria-hidden="true">✧</span>
+          <span class="world-note">a friend, with a little spark.</span>
+          <div class="hello-bubble" id="hello-bubble" role="status">嗨，你来啦。<span>我已经开始好奇你了。</span></div>
+          <div class="friend-shadow" aria-hidden="true"></div>
+          <div class="friend-wrap" id="friend-wrap">
+            <button class="little-friend" id="little-friend" aria-label="和 Bibo 打个招呼">
+              <span class="friend-ear ear-left"></span><span class="friend-ear ear-right"></span>
+              <span class="friend-body"><span class="friend-highlight"></span><span class="friend-eyes"><i><b></b></i><i><b></b></i></span><span class="friend-cheek cheek-left"></span><span class="friend-cheek cheek-right"></span><span class="friend-mouth"></span></span>
+              <span class="friend-arm arm-left"></span><span class="friend-arm arm-right"></span><span class="friend-foot foot-left"></span><span class="friend-foot foot-right"></span>
+            </button>
+            <span class="held-prop" id="held-prop" aria-hidden="true"></span>
+          </div>
+          <button class="world-toy toy-star" data-mood="party" aria-label="送 Bibo 一颗星星" title="送你一颗星星"><svg viewBox="0 0 90 90" aria-hidden="true"><path d="m45 5 11 25 28 3-21 19 6 29-24-15-24 15 6-29L6 33l28-3Z"/><path class="toy-detail" d="m33 43 1 5m22-5-1 5m-17 6q7 7 14 0"/></svg><span>for you!</span></button>
+          <button class="world-toy toy-moon" data-mood="dream" aria-label="让 Bibo 放松一下" title="也要好好休息"><svg viewBox="0 0 90 90" aria-hidden="true"><path d="M64 10C19 3 3 56 37 76c17 10 38 5 46-13C51 72 33 42 64 10Z"/><path class="toy-detail" d="m37 46 1 4m14 4 1 4m-18 2q5 6 10 2"/></svg><span>慢一点也好</span></button>
+          <button class="world-toy toy-flower" data-mood="bloom" aria-label="给 Bibo 一朵灵感小花" title="给想法浇点水"><svg viewBox="0 0 90 90" aria-hidden="true"><path d="M45 25C27-5 5 19 25 38-8 38-4 69 27 62c-3 31 28 34 33 4 26 16 43-12 17-28 21-23-6-43-22-17Z"/><circle cx="46" cy="45" r="14"/><path class="toy-detail" d="m41 43 0 3m10-3 0 3m-9 5q5 4 8 0"/></svg><span>一点小灵感</span></button>
+          <button class="world-toy toy-fountain" id="fountain" aria-label="让 Bibo 拿起喷花筒" title="这是什么？"><svg viewBox="0 0 90 110" aria-hidden="true"><path d="m20 96 26-72 29 69Z"/><path class="cone-stripe" d="m29 73 38 12m-31-32 22 8m-14-43-3-9m17 9 6-7m-29 7-8-3"/><path class="cone-star" d="m48 67 3 6 7 1-5 4 1 7-6-4-5 3 1-6-5-5 7-1Z"/></svg><span>别碰？</span></button>
+          <span class="world-ground" aria-hidden="true">✦ SMALL THINGS, HAPPY DAYS ✦</span>
+        </div>
+        <div class="discovery-note"><span aria-hidden="true">↖</span> 好像，有些小东西藏着惊喜。</div>
+      </section>
+      <div class="story-divider"><span>有点好玩，也很靠谱。</span><a href="#camera">看看我怎样陪你过一天 <span aria-hidden="true">↓</span></a></div>
       <div class="intro">
         <div>
           <p class="eyebrow">SOMEONE IN YOUR CORNER.</p>
-          <h1><span id="headline-start">想到一起。</span><span id="headline-end">安排妥当。</span></h1>
+          <h2 class="story-headline"><span id="headline-start">想到一起。</span><span id="headline-end">安排妥当。</span></h2>
         </div>
-        <p class="intro-note">懂你的全局，自己接着做。<br />也会回头想，怎样做得更好。</p>
       </div>
       <section
         class="camera"
