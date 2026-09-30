@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { chromium, type Locator, type Page } from "playwright";
+import { chromium, type Locator, type Page, type Route } from "playwright";
 import type { BiboMessage } from "@nextclaw/bibo-client";
 import { mockApi, openMarkdownSource } from "../personal-workspace.fixture";
 
@@ -55,9 +55,10 @@ try {
     assert.deepEqual(dialogs, [], "refreshing a dirty note never opens a browser confirmation");
     await page.getByRole("button", { name: "保存", exact: true }).click();
     await page.getByText("已保存", { exact: true }).waitFor();
-    if (width > 600) await handles(page);
+    await handles(page);
     await page.screenshot({ path: `/tmp/bibo-document-chat-${width}.png`, animations: "disabled" });
     await page.goto(`${base}/chat/session-a`, { waitUntil: "networkidle" });
+    await openingHeader(page, width);
     await page.getByRole("button", { name: "打开右侧工作区" }).click();
     if (width > 600) await split(page);
     else assert.equal(await page.getByRole("separator").count(), 0, "mobile workspace is a single surface");
@@ -160,6 +161,62 @@ async function handles(page: Page) {
     assert.ok(geometry.gap < 2, `${selector}: handle is centered on the first line (${geometry.gap}px)`);
     if (geometry.markerEdge !== undefined) assert.ok(geometry.handleRight <= geometry.markerEdge, `${selector}: handle stays outside list markers`);
   }
+  // Change the checkbox without a pointer move: the plugin retargets the wrapper.
+  const task = page.locator('.tiptap:visible li[data-type=taskItem] p');
+  await task.hover();
+  await page.locator('.tiptap:visible li[data-type=taskItem] input').evaluate((input: HTMLInputElement) => input.click());
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await page.locator(".ui-markdown-block-handle:visible").waitFor();
+  await page.locator('.ui-markdown-block-handle button[aria-label="块操作"]').evaluate((button: HTMLButtonElement) => button.click());
+  await page.getByRole("menu", { name: "块操作", exact: true }).waitFor();
+  assert.equal(await page.locator(".ui-markdown-block-kind").innerText(), "待办列表");
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  const list = page.locator('.tiptap:visible ul[data-type=taskList].ProseMirror-selectednode');
+  const geometry = await list.evaluate(element => ({
+    edge: element.getBoundingClientRect().left,
+    right: document.querySelector('.ui-markdown-block-handle button[aria-label="块操作"]')!.getBoundingClientRect().right,
+  }));
+  await page.screenshot({ path: `/tmp/bibo-task-list-handle-${page.viewportSize()!.width}.png` });
+  assert.ok(geometry.right <= geometry.edge, `whole task list: handle stays outside checkbox (${JSON.stringify(geometry)})`);
+  await page.keyboard.press("Escape");
+}
+
+async function openingHeader(page: Page, width: number) {
+  await page.route("**/api/history*", route => route.fulfill({ json: { messages: [{ role: "assistant", text: "[笔记](nextclaw://objects/file/file-a)", at: new Date().toISOString() }] } }));
+  await page.reload({ waitUntil: "networkidle" });
+  const workspace = page.getByRole("complementary", { name: "右侧工作区" });
+  const header = page.locator(".bibo-workspace-head");
+  for (const failed of [false, true]) {
+    const gate = pause(), requested = pause();
+    const hold = async (route: Route) => {
+      const input = route.request().postDataJSON();
+      if (input.action !== "file.get" || input.input.id !== "file-a") return route.fallback();
+      requested.release(); await gate.wait;
+      if (failed) return route.fulfill({ status: 503, json: { error: "笔记读取失败，请重试" } });
+      await route.fallback();
+    };
+    await page.route("**/api/space", hold);
+    try {
+      await page.locator('.ui-markdown a[href="/files/file-a"]').click();
+      await requested.wait;
+      await workspace.getByRole("status", { name: "正在打开资源" }).waitFor();
+      await page.screenshot({ path: `/tmp/bibo-document-opening-${width}.png` });
+      assert.equal(await header.getByRole("tablist").count(), 0, "opening with historical tabs never renders the file tab bar");
+      assert.equal(await header.getByRole("button", { name: /^文档 / }).count(), 0, "pending resource does not show the previous document title");
+      gate.release();
+      if (failed) await workspace.getByText("笔记读取失败，请重试", { exact: true }).waitFor();
+      else await header.getByRole("button", { name: "文档 想法.md", exact: true }).waitFor();
+      assert.equal(await header.getByRole("tablist").count(), 0);
+      await page.getByRole("button", { name: "关闭工作区" }).click();
+    } finally { gate.release(); await page.unroute("**/api/space", hold); }
+  }
+  await page.locator('.ui-markdown a[href="/files/file-a"]').click();
+  await header.getByRole("button", { name: "文档 想法.md", exact: true }).waitFor();
+  await page.reload({ waitUntil: "networkidle" });
+  await header.getByRole("button", { name: "文档 想法.md", exact: true }).waitFor();
+  assert.equal(await header.getByRole("tablist").count(), 0);
+  await page.getByRole("button", { name: "关闭工作区" }).click();
+  await page.unroute("**/api/history*");
 }
 async function split(page: Page) {
   const divider = page.getByRole("separator", { name: /调整分栏宽度/ });

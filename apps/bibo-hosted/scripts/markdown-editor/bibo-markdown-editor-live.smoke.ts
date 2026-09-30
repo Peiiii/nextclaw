@@ -3,7 +3,7 @@ import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { chromium, type Page } from "playwright";
+import { chromium, type Page, type Route } from "playwright";
 import { openMarkdownSource } from "../personal-workspace.fixture";
 
 const origin = "https://app.bibo.bot";
@@ -39,6 +39,42 @@ async function space<T>(action: string, input: Record<string, unknown>): Promise
   }, { action, input });
 }
 let createdId: string | undefined;
+let createdSessionId: string | undefined;
+async function checkLiveResourceOpening() {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${origin}/chat`, { waitUntil: "networkidle" });
+  await page.getByRole("textbox", { name: /告诉 Bibo/ }).fill(`请只回复「收到」，不要调用工具。\n\n[验证笔记](nextclaw://objects/file/${createdId})`);
+  const response = page.waitForResponse(response => new URL(response.url()).pathname === "/api/chat");
+  await page.getByRole("button", { name: "发送消息", exact: true }).click();
+  await (await response).finished();
+  createdSessionId = new URL(page.url()).pathname.split("/").at(-1);
+  assert.ok(createdSessionId && createdSessionId !== "chat");
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.reload({ waitUntil: "networkidle" });
+    const workspace = page.getByRole("complementary", { name: "右侧工作区" });
+    if (await workspace.isVisible()) await page.getByRole("button", { name: "关闭工作区" }).click();
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const hold = async (route: Route) => {
+      const input = route.request().postDataJSON();
+      if (input.action === "file.get" && input.input.id === createdId) await gate;
+      await route.continue();
+    };
+    await page.route("**/api/space", hold);
+    try {
+      await page.getByRole("link", { name: "验证笔记", exact: true }).click();
+      await workspace.getByRole("status", { name: "正在打开资源" }).waitFor();
+      assert.equal(await workspace.getByRole("tablist").count(), 0);
+      release();
+      await workspace.getByRole("button", { name: `文档 ${path}`, exact: true }).waitFor();
+      await workspace.locator(".tiptap:visible").getByText("正文编辑真实保存", { exact: true }).waitFor();
+      await page.screenshot({ path: `/tmp/bibo-document-opening-live-${width}.png` });
+      await page.getByRole("button", { name: "关闭工作区" }).click();
+    } finally { release(); await page.unroute("**/api/space", hold); }
+  }
+  console.log("Production resource opening: real conversation link, delayed reads, single-document header and saved content passed at 1440/390px");
+}
 async function checkLiveImage(page: Page) {
   await page.getByRole("button", { name: "更多格式", exact: true }).click();
   await page.getByRole("menuitem", { name: "图片", exact: true }).click();
@@ -108,7 +144,14 @@ try {
     await page.screenshot({ path: `/tmp/bibo-markdown-editor-live-${width}.png` });
     console.log(`Production ${width}px: UI creation, editing, exact persisted Markdown and refreshed preview passed`);
   }
+  await checkLiveResourceOpening();
 } finally {
+  if (createdSessionId) {
+    await page.evaluate(async id => {
+      const response = await fetch("/api/sessions/delete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
+      if (!response.ok) throw new Error(`Test conversation cleanup: ${response.status}`);
+    }, createdSessionId);
+  }
   if (createdId) {
     const file = await space<File>("file.get", { id: createdId });
     await space("file.delete", { id: file.id, version: file.version });

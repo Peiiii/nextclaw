@@ -53,6 +53,7 @@ export const biboCopy = {
   fileTabs: "打开的文件",
   fileWorkspaceTabs: "工作区文件",
   fileOpening: "正在打开…",
+  fileSelect: "选择文档",
   fileOpenFailed: "打开失败",
   fileCloseWorkspace: "关闭工作区",
   fileSaved: "已保存",

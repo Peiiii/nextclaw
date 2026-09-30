@@ -1,5 +1,17 @@
 # Bibo 文档与聊天体验优化
 
+## 2026-09-30 文档加载与待办手柄纠偏
+
+用户补充两处异常：会话点击笔记链接时闪出历史文档 tabs；整组待办列表的六点 handle 与 checkbox 重叠。本次独立修复位于 `codex/bibo-document-header-flash`，以远程 `0adf12606` 为起点；原工作区的个人规划草稿不属于本任务。
+
+根因与修正：FileTabs 以“当前元数据是否存在”选择标题或 tab 栏，导致加载中错误呈现已有 tabs；现改为由 notes/workspace 场景固定单文档布局，并在资源解析中显示打开反馈。MarkdownBlockManager 原先用首个文字行同时决定 x/y；列表项路径已避开标记，但整个 taskList 经插件的文档变更重定位后会取到 checkbox 右侧正文的 x。现保留首行 y，使用实际目标容器的 x。没有新增 tab 状态、编辑器或恢复 owner。
+
+修前浏览器基线：历史 tabs 下的延迟资源打开产生一个 tablist；整组 taskList 的 handle 右缘 520px、容器左缘 506px，重叠 14px。修后 1440/390px 文档 smoke 已证明延迟加载、失败、关闭重开、刷新、单项与整组待办、标题/段落/嵌套列表定位，保存与脏草稿恢复保留。全块用例在真实编辑器中以 DOM checkbox click 组装“指针不移动、文档变更”的插件边界；未把它称为用户鼠标录制。
+
+类型、构建、定向 lint、diff-only maintainability 和提交治理检查通过（维护性 0 errors / 0 warnings）。完整 Markdown 回归首轮桌面通过，390px 折叠块插入用例出现一次输入时序失败；复跑 1440/390/320px 全部通过，保留首轮失败事实，不将重跑当作修复该相邻问题。线上提交、冻结 SHA、部署和受保护账号复验结果在完成后追加。
+
+交付范围只有 Bibo UI 及承载静态产物的 Worker，使用 `deploy:worker --containers-rollout=none` 既有入口；不改数据库、服务端合同或容器镜像。NPM 包本轮不发布，两个私有 workspace 包的 changeset 保留待统一版本批次。使用方式：刷新 app.bibo.bot 后从会话点击笔记，等待中没有历史 tabs；待办 handle 位于 checkbox 外侧。
+
 ## 迭代完成说明
 
 状态：验证收尾中；提交与线上部署待完成。有效设计与验收账本见 [文档与聊天设计](../../designs/2026-09-30-bibo-document-chat.design.md)。本批所有实现位于 `codex/bibo-document-chat-polish`，主工作区原有 thought/design 草稿保持不变。
