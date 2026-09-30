@@ -4,6 +4,8 @@
 
 ## 边界
 
+`Markdown` 的解析、公式和代码高亮仅在实际阅读内容时按需加载；加载期间保留安全的纯文本，应用壳与无需 Markdown 的概览不等待这些依赖。服务端渲染应使用支持 Suspense 的流式入口并等待内容就绪。
+
 - 公共组件：`Button`、`Input` / `Select` / `Textarea` / `Field`、`SegmentedControl`、`ListRow`、`EmptyState`、`Notice`、`Message` / `Markdown`、`Composer`、`Dialog` / `Sheet`、`ActionMenu` / `ActionMenuItem` / `ActionMenuLink`、`IconButton`。
 - 文件页使用 `Tab` / `TabList`；外观选择使用 `ActionMenuRadioGroup`；操作提示使用 `Tooltip`。文件激活、关闭、草稿和保存仍由应用持有。
 - 工作空间与会话入口复用 `NavigationItem`，保留调用方的真实链接；共享行高、内边距、选中与 hover 配方。图标栏的模块、侧栏切换与账号菜单统一使用 `layout="icon"`：鼠标 36px、触控 44px 点击区，18px 图标和 1.7 线宽；菜单触发属性与 ref 透传到真实按钮，应用不覆盖尺寸。

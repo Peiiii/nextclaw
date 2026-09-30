@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.12.4-beta.0
+
+### Patch Changes
+
+- 32a38da: 用户消息中的普通换行现在会正确显示，发送后和重新打开会话时均生效；代码块、公式和引用仍保留原有格式。
+
 ## 0.12.3
 
 ### Patch Changes

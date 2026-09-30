@@ -1,7 +1,7 @@
 import type { BiboFile, BiboFileDetail, BiboOverview } from "@nextclaw/bibo-client";
 import { createSystemObjectReferenceUri } from "@nextclaw/shared";
 import { BiboSpaceError, type BiboSpaceService } from "@/features/bibo-domain";
-import type { BiboWorkspaceStore } from "../stores/bibo-workspace.store";
+import type { BiboWorkspaceStore } from "@/app/stores/bibo-workspace.store";
 import type { WorkspaceEntry } from "@nextclaw/kernel";
 
 const ROOT = "/data/workspace";
@@ -80,29 +80,24 @@ export class BiboWorkspaceFileService {
     if (String(value) !== entry.version) throw new BiboSpaceError("内容已有更新，请重新加载后再保存。", 409);
   };
 
-  private *ancestors(path: string): Generator<string> {
+  private ancestors = (path: string): string[] => {
     const parts = path.split("/");
-    for (let count = 1; count < parts.length; count++) yield parts.slice(0, count).join("/");
-  }
+    return parts.slice(1).map((_, index) => parts.slice(0, index + 1).join("/"));
+  };
 
   /** R2 listing is authoritative, including files written from a mounted OS. */
   private collect = async (root = ROOT): Promise<BiboFile[]> => {
-    const pending = [root];
-    const files: BiboFile[] = [];
-    while (pending.length) {
-      const directory = pending.pop()!;
-      let cursor = "";
-      do {
-        const page = await this.workspace.list(directory, cursor, 100);
-        if (!page) break;
-        for (const entry of page.entries) {
-          files.push(this.file(entry));
-          if (entry.kind === "directory") pending.push(entry.path);
-        }
-        cursor = page.nextCursor ?? "";
-      } while (cursor);
-    }
-    return files;
+    const files = new Map<string, BiboFile>();
+    let cursor = "";
+    do {
+      const page = await this.workspace.listDescendants(cursor);
+      for (const entry of page.entries) {
+        if (!entry.path.startsWith(`${root}/`)) continue;
+        if (entry.version !== "implicit" || !files.has(entry.path)) files.set(entry.path, this.file(entry));
+      }
+      cursor = page.nextCursor ?? "";
+    } while (cursor);
+    return [...files.values()];
   };
 
   private list = async (input: Record<string, unknown>): Promise<unknown> => {

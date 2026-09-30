@@ -43,6 +43,8 @@ export const biboCopy = {
   fileDirectoryRetry: "重试读取目录",
   fileTabs: "打开的文件",
   fileWorkspaceTabs: "工作区文件",
+  fileOpening: "正在打开…",
+  fileOpenFailed: "打开失败",
   fileCloseWorkspace: "关闭工作区",
   fileSaved: "已保存",
   fileUnsaved: "未保存",

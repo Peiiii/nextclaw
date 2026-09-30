@@ -1,5 +1,20 @@
 # @nextclaw/kernel
 
+## 0.19.2-beta.1
+
+### Patch Changes
+
+- 7c00b06: 支持宿主批量读取 Agent 引导文件，保持文件顺序与上下文预算，减少远程存储串行等待。本地宿主继续使用原有读取方式。
+- Updated dependencies
+  - @nextclaw/core@0.18.6-beta.0
+  - @nextclaw/ncp-agent-runtime@0.4.28-beta.0
+  - @nextclaw/mcp@0.3.56-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.56-beta.0
+  - @nextclaw/runtime@0.4.55-beta.0
+  - @nextclaw/ncp-agent-runtime-next@0.1.30-beta.0
+  - @nextclaw/ncp-toolkit@0.6.28
+  - @nextclaw/ncp-mcp@0.2.56-beta.0
+
 ## 0.19.2-beta.0
 
 ### Patch Changes

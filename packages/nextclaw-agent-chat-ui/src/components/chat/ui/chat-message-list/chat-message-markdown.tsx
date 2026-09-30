@@ -11,6 +11,7 @@ import {
 import type { Components, Options } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { remarkChatCallout } from "./utils/chat-markdown-callout.utils";
 import remarkFrontmatter from "remark-frontmatter";
 import { remarkFrontmatterDisplay } from "./utils/chat-frontmatter.utils";
@@ -418,6 +419,7 @@ export function ChatMessageMarkdown({
     : [remarkGfm, remarkMath, createRemarkLatexDelimitersPlugin(markdown)];
   if (isStreaming) remarkPlugins.push(createRemarkStreamingMathPlugin(markdown));
   if (!inline) remarkPlugins.unshift(remarkFrontmatter, remarkFrontmatterDisplay, remarkChatCallout);
+  if (isUser) remarkPlugins.push(remarkBreaks);
   const WrapperTag = inline ? "span" : "div";
 
   return (
