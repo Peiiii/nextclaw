@@ -33,6 +33,9 @@ function args(raw: unknown): Record<string, unknown> {
 export class BiboExecutionService {
   private readonly sandboxes = new Map<string, SandboxHandle>();
   private readonly mountedSandboxes = new Set<string>();
+  private acquisitionCount = 0;
+
+  get sandboxAcquisitions(): number { return this.acquisitionCount; }
 
   constructor(
     private readonly namespace: DurableObjectNamespace<Sandbox>,
@@ -56,6 +59,7 @@ export class BiboExecutionService {
     const cached = this.sandboxes.get(environment.sandboxId);
     if (cached) return cached;
     const acquire = this.acquire ?? (await import("@cloudflare/sandbox")).getSandbox;
+    this.acquisitionCount += 1;
     const sandbox = acquire(this.namespace, environment.sandboxId, { sleepAfter: "5m" });
     this.sandboxes.set(environment.sandboxId, sandbox);
     return sandbox;

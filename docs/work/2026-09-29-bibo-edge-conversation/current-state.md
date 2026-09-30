@@ -1,5 +1,21 @@
 # 当前执行状态
 
+## 2026-09-30 核心恢复与请求资源计数
+
+- 最终范围 revision 6 已消除合同尾部继续要求全部本地模块/后台托管/设备的冲突，不降低原延迟、可靠保存和文件规模门槛。
+- 当前生产 `e7abc0909` 新补证据：真实 write_file→edit_file→read_file 的文件精确正文正确；web_fetch 关联日志为 1 次、29 ms；同请求 ID 重试被拒绝且历史条数不增加；旧版本写入 409 且新内容保留；两个会话并行完成；取消后再发送提交成功。日志 `/tmp/bibo-core-recovery-20260930.log`。该脚本尚未全通过：代理断开 reader 后上游没有断线通知，原长回复继续约 15.43 秒并提交，过早清理得到 429。不能把该客户端行为报告成已取消或假忙；需从提交历史恢复并复验终态。
+- 实现新增现有资源 owner 的本轮 Sandbox 获取计数和 `run.resources` 标量日志；不改 Agent 路由、不触碰 NextClaw 核心，也不声称 handle 获取次数是计费启动次数。纯聊/非 OS 的零获取和 OS 的正获取须用上线后日志关联。
+- 定向执行器/app/诊断 41/41；抽出原资源清理与诊断后 app 回归 23/23；Bibo 三份 tsc 通过。diff-only maintainability 0 errors、1 warning：原 executeRun 仍超过语句预算，但 43→41，没有扩大原债务。主观复核该 helper 有真实资源终态职责、单一调用点且保持原异常语义，无新增平行状态/流程，当前源码范围 Review 通过。日志 `/tmp/bibo-resource-counter-{tests,app-tests,types,review}.log`；新代码治理检查通过。
+- 隔离同源码 Cloudflare 主链路通过，`passed:true`：聊天/文件阶段 Sandbox 获取 0、文件展示与精确回读、挂载改写、跨轮读取、连续上下文、命令取消后终端写入不存在。首字/总时长：聊天 4134/4216、文件 1835/6092、OS 2275/16008、续聊 2128/2246 ms。OS 首字可能是模型的执行前说明，不能当 OS 完成时间。日志 `/tmp/bibo-resource-counter-preflight-result.log`。
+- 下一步：从冻结主干发布该诊断增量，补生产资源计数、断线终态复验、自然休眠及大文件真实 R2 验证，然后更新成本与最终性能证据。目标保持 active。
+
+## 2026-09-30 用户确认核心交付，当前优先级
+
+- 用户明确要求“先把必须成立的解决了”，并选择“采用核心交付范围，扩展能力按需求评估”。验收合同 revision 6 和 Harness 设计 §11 已同步；旧全文等价要求不再自动阻塞 Bibo 本次交付，NextClaw 本地原功能和真实数据保护仍生效。目标继续 active，不能把 scope 修订当作已完成。
+- 本次必须闭合：统一 Harness/连续上下文，文件与网页/提问，按需 OS，保存/隔离/取消与失败恢复，真实延迟和 300/900/1800 条成本，免镜像发布、线上验证与本地/远程主干对齐。已有证据复用，剩余验证以 Active ledger 为准。
+- 不继续抢占核心路径：新增云端技能/MCP/多模型/复杂子任务、多 OS 并行、后台服务托管、完整项目/应用管理和设备配对。尚未开始技能实现；本轮只检查了现有 SkillsContextProvider 的 Node 文件依赖，没有新增技能加载器或另一套 Agent。
+- 当前源码 worktree 为 codex/bibo-reply-latency，起点 ea7364a53；本轮源码改动仅为现有执行器资源计数/诊断，见上节。原主工作区未提交内容仍不属于本任务。
+
 ## 2026-09-30 基本功能已上线并复验，完整交付仍未关闭
 
 - 生产源码 `e7abc0909a4f687a64b11df50d676aec86c19883`，Worker `b035aa4c-508b-4e9e-8e91-24da109ca5e4`；远程 master、本地主干和任务分支已对齐。`release:reconcile:mainline` 返回 LOCAL_MAINLINE_SYNCED，主工作区既有 WIP 清单前后一致。没有发布 NextClaw NPM、runtime 或 desktop 版本。

@@ -55,9 +55,11 @@ test("chat does not acquire an OS; commands lazily acquire and reuse one sandbox
   const exec = execution.tools().find((tool) => tool.name === "exec")!;
 
   assert.equal(acquired, 0);
+  assert.equal(execution.sandboxAcquisitions, 0);
   const first = await exec.execute({ command: "printf ready" });
   await exec.execute({ command: "pwd" });
   assert.equal(acquired, 1);
+  assert.equal(execution.sandboxAcquisitions, 1);
   assert.deepEqual(commands, ["printf ready", "pwd"]);
   assert.equal(JSON.parse(first as string).workspaceIsTemporary, true);
   await execution.dispose();

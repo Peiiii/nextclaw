@@ -240,9 +240,7 @@ export class BiboUserContainer extends DurableObject<Env> {
           } });
       } finally {
         clearTimeout(timeout);
-        try { await runExecution.dispose(); }
-        catch (error) { logDiagnostic("worker", "run.execution-cleanup-failed",
-          { ...active, ...errorDetails(error), errorCode: "EXECUTION_CLEANUP_FAILED" }, "error"); }
+        await this.finishExecution(runExecution, active);
       }
       active.phase = "saving";
       stage = "save";
@@ -263,6 +261,13 @@ export class BiboUserContainer extends DurableObject<Env> {
       }
       this.finishRun(active, { persisted, stage, started });
     }
+  };
+
+  private finishExecution = async (execution: BiboExecutionService, active: ActiveRun): Promise<void> => {
+    try { await execution.dispose(); }
+    catch (error) { logDiagnostic("worker", "run.execution-cleanup-failed",
+      { ...active, ...errorDetails(error), errorCode: "EXECUTION_CLEANUP_FAILED" }, "error"); }
+    logDiagnostic("worker", "run.resources", { ...active, sandboxAcquisitions: execution.sandboxAcquisitions });
   };
 
   private finishRun = (active: ActiveRun, result: { persisted: boolean; stage: string; started: number }): void => {
