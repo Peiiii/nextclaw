@@ -44,11 +44,20 @@ async function checkLiveResourceOpening() {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${origin}/chat`, { waitUntil: "networkidle" });
   await page.getByRole("textbox", { name: /告诉 Bibo/ }).fill(`请只回复「收到」，不要调用工具。\n\n[验证笔记](nextclaw://objects/file/${createdId})`);
-  const response = page.waitForResponse(response => new URL(response.url()).pathname === "/api/chat");
-  await page.getByRole("button", { name: "发送消息", exact: true }).click();
+  const [response] = await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === "/api/chat"),
+    page.getByRole("button", { name: "发送消息", exact: true }).click(),
+  ]);
   await page.waitForURL(/\/chat\/[^/]+$/);
   createdSessionId = new URL(page.url()).pathname.split("/").at(-1);
-  await (await response).finished();
+  assert.equal(response.status(), 200, "Production chat accepted the test message");
+  await page.waitForFunction(async sessionId => {
+    const response = await fetch(`/api/runs?sessionId=${encodeURIComponent(sessionId!)}`);
+    if (!response.ok) throw new Error(`Test run state: ${response.status}`);
+    const state = await response.json();
+    if (state.run?.phase === "failed") throw new Error(`Test run failed: ${state.run.error?.code}`);
+    return state.run?.sessionId === sessionId && state.run.phase === "completed";
+  }, createdSessionId, { timeout: 60_000, polling: 1000 });
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.reload({ waitUntil: "networkidle" });

@@ -8,9 +8,17 @@
 
 修前浏览器基线：历史 tabs 下的延迟资源打开产生一个 tablist；整组 taskList 的 handle 右缘 520px、容器左缘 506px，重叠 14px。修后 1440/390px 文档 smoke 已证明延迟加载、失败、关闭重开、刷新、单项与整组待办、标题/段落/嵌套列表定位，保存与脏草稿恢复保留。全块用例在真实编辑器中以 DOM checkbox click 组装“指针不移动、文档变更”的插件边界；未把它称为用户鼠标录制。
 
-类型、构建、定向 lint、diff-only maintainability 和提交治理检查通过（维护性 0 errors / 0 warnings）。完整 Markdown 回归首轮桌面通过，390px 折叠块插入用例出现一次输入时序失败；复跑 1440/390/320px 全部通过，保留首轮失败事实，不将重跑当作修复该相邻问题。线上提交、冻结 SHA、部署和受保护账号复验结果在完成后追加。
+类型、构建、定向 lint、diff-only maintainability 和提交治理检查通过（维护性 0 errors / 0 warnings）。完整 Markdown 回归首轮桌面通过，390px 折叠块插入用例出现一次输入时序失败；复跑 1440/390/320px 全部通过，保留首轮失败事实，不将重跑当作修复该相邻问题。
 
 交付范围只有 Bibo UI 及承载静态产物的 Worker，使用 `deploy:worker --containers-rollout=none` 既有入口；不改数据库、服务端合同或容器镜像。NPM 包本轮不发布，两个私有 workspace 包的 changeset 保留待统一版本批次。使用方式：刷新 app.bibo.bot 后从会话点击笔记，等待中没有历史 tabs；待办 handle 位于 checkbox 外侧。
+
+2026-10-01 线上交付完成：修复提交 `08c488fa1`，普通 merge 保留远程验收脚本修正后，以干净远程 master 的 `d1d2853c1524d3f70bfd19200ffbdcdf88309159` 冻结部署。Cloudflare Worker version `d52b47d8-9be3-484f-b2a7-927688584fd0`，入口 `https://app.bibo.bot`。线上五个网页/编辑器 JS/CSS 与冻结构建的 SHA-256 一致；部署前后三个容器的 ID、名称、镜像及版本一致。
+
+受保护测试账号在 1440/390px 通过真实 UI 新建、重命名、源码精确保存、正文修改、脏草稿刷新恢复及再次保存；桌面真实图片上传、保存、刷新显示与访问检查通过。真实会话发送笔记链接、模型回答完成后重新加载历史，暂停真实 file.get 请求证明等待中没有 tablist，恢复后显示正确文档与已保存正文。两宽度的真实 checkbox 事务触发整组手柄，几何断言未越过列表外缘，再次保存成功。临时笔记和会话均按本次唯一身份清理。
+
+线上验收曾等待 Playwright 的 SSE `Response.finished()` 不返回；只读 `/api/runs` 和会话历史已证明服务端 completed、两条消息且无 active run。脚本改为有时限地读取服务端完成状态，恢复后完整验收退出 0；没有把连接关闭作为任务完成事实。中断脚本的那组唯一测试数据也已精确清理。修正后脚本 tsc 和 diff-only maintainability 再次通过；不改产品运行码，不重复部署。
+
+主干已普通推送，主线 reconcile 已运行；源工作区的个人 thought/design 草稿仍保持原状，自动 retry owner 等待安全快进，不覆盖活跃 WIP。复盘将加载布局、整块手柄边界及服务端完成状态分别沉淀到原组件/manager、既有浏览器回归和本设计记录；没有足以新增全局规则或 Skill 的增量。AI 验收覆盖上述状态与数据行为，视觉偏好仍由用户体验确认。
 
 ## 迭代完成说明
 
