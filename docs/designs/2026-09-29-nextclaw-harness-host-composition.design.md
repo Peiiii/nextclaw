@@ -343,6 +343,10 @@ interface ExecutionEnvironment {
 
 挂载授权修正：SDK 0.12.10 的重复路径错误会删除 activeMounts 记录及 egress 授权；不能把“already in use”视为幂等成功。单个限时聊天调用内缓存成功挂载，避免 mount_directory→exec 再次挂载；下轮重建调用句柄遇到此错误时只卸载活 FUSE 并重新调用官方 mountBucket 恢复授权。真实验收须覆盖下一轮直接命令读回，模型输出、退出码 0 均不能证明 R2 写入成功。
 
+2026-09-30 跨轮挂载性能修正（design-review: passed；plan: not-required，单 owner 可逆批次）：官方 Sandbox 子类在同一个 DO 生命周期内记住官方成功挂载的参数，重复相同挂载先用官方 exec 检查实际 FUSE mountpoint，存在则复用，缺失才重新调用官方 mountBucket。不在账号存储中保存“已挂载”真值，不访问 SDK 私有 activeMounts，不实现 FUSE/R2 协议。onStop/destroy 清空缓存并增加代际，旧代际未完成的 mount 不得回填缓存；DO 重建自然失去缓存，沿原卸载活 FUSE 的恢复分支重新授权。不同参数和挂载失败清除该路径缓存，不默认为成功。仅固定产品挂载路径 `/mnt/bibo-data/1` 使用快速检查，其它 SDK 挂载保持上游行为。
+
+候选对照：每轮官方重挂载当前 HTTP 实测 2531～2697 ms、RPC 4280～4368 ms；永久存储挂载标志会在容器回收/DO 重建后误判，拒绝；直接操作 SDK 私有授权表破坏上游边界，拒绝。采用生命周期内的可验证缓存，复用全部官方挂载/停止实现。生产已经默认 HTTP，不将 transport 实验当作产品优化。验证门：同参数跨轮实际挂载字节回读且不重复 mountBucket；手动卸载后恢复、停止/销毁后缓存失效、挂载失败和旧代际结束不得复用；隔离真实 Cloudflare 主链路、命令取消、自然回收保持正确。实际冷热性能仍按 BE-13，不以缓存源码代替数字。
+
 ## 8. 请求完整时序
 
 ```mermaid
