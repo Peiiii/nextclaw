@@ -34,7 +34,7 @@ type File = { id: string; path: string; version: number; content: string };
 async function space<T>(action: string, input: Record<string, unknown>): Promise<T> {
   return page.evaluate(async ({ action, input }) => {
     const response = await fetch("/api/space", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action, input }) });
-    if (!response.ok) throw new Error(`${action}: ${response.status}`);
+    if (!response.ok) throw new Error(`${action}: ${response.status} ${await response.text()}`);
     return (await response.json()).result;
   }, { action, input });
 }
@@ -46,9 +46,10 @@ async function checkLiveResourceOpening() {
   await page.getByRole("textbox", { name: /告诉 Bibo/ }).fill(`请只回复「收到」，不要调用工具。\n\n[验证笔记](nextclaw://objects/file/${createdId})`);
   const response = page.waitForResponse(response => new URL(response.url()).pathname === "/api/chat");
   await page.getByRole("button", { name: "发送消息", exact: true }).click();
-  await (await response).finished();
+  await page.waitForURL(/\/chat\/[^/]+$/);
   createdSessionId = new URL(page.url()).pathname.split("/").at(-1);
   assert.ok(createdSessionId && createdSessionId !== "chat");
+  await (await response).finished();
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.reload({ waitUntil: "networkidle" });
@@ -68,12 +69,27 @@ async function checkLiveResourceOpening() {
       assert.equal(await workspace.getByRole("tablist").count(), 0);
       release();
       await workspace.getByRole("button", { name: `文档 ${path}`, exact: true }).waitFor();
-      await workspace.locator(".tiptap:visible").getByText("正文编辑真实保存", { exact: true }).waitFor();
+      await workspace.locator(".tiptap:visible").getByText(/正文编辑真实保存/).waitFor();
+      await checkLiveTaskHandle();
       await page.screenshot({ path: `/tmp/bibo-document-opening-live-${width}.png` });
       await page.getByRole("button", { name: "关闭工作区" }).click();
     } finally { release(); await page.unroute("**/api/space", hold); }
   }
   console.log("Production resource opening: real conversation link, delayed reads, single-document header and saved content passed at 1440/390px");
+}
+async function checkLiveTaskHandle() {
+  const rich = page.locator(".tiptap:visible");
+  await rich.locator('li[data-type=taskItem] p').first().hover();
+  await rich.locator('li[data-type=taskItem] input').first().evaluate((input: HTMLInputElement) => input.click());
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await page.locator(".ui-markdown-block-handle:visible").waitFor();
+  const geometry = await rich.locator('ul[data-type=taskList]').evaluate(element => ({
+    edge: element.getBoundingClientRect().left,
+    right: document.querySelector('.ui-markdown-block-handle button[aria-label="块操作"]')!.getBoundingClientRect().right,
+  }));
+  assert.ok(geometry.right <= geometry.edge, "production whole-list handle stays outside checkboxes");
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
 }
 async function checkLiveImage(page: Page) {
   await page.getByRole("button", { name: "更多格式", exact: true }).click();
@@ -102,15 +118,17 @@ try {
   await page.locator(".tiptap:visible h1").waitFor();
   const createdPath = (await page.getByRole("button", { name: /^文档 / }).getAttribute("aria-label"))!.slice("文档 ".length);
   createdId = (await space<File>("file.get", { path: createdPath })).id;
+  console.log("Production test note:", createdId, path);
   await page.getByRole("button", { name: /^文档 / }).click();
   await page.getByRole("menuitem", { name: "移动 / 重命名", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "移动 / 重命名", exact: true });
   await dialog.getByRole("textbox", { name: "文件新路径" }).fill(path);
   await dialog.getByRole("button", { name: "确认移动", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
+  createdId = (await space<File>("file.get", { path })).id;
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    const text = `# Markdown 上线验收 ${width}\n\n这是 **真实保存** 的中文文档。\n\n- 默认预览\n- 编辑与高亮源码\n\n\`\`\`typescript\nconst saved = true;\n\`\`\``;
+    const text = `# Markdown 上线验收 ${width}\n\n这是 **真实保存** 的中文文档。\n\n- 默认预览\n- 编辑与高亮源码\n\n- [ ] 创建笔记\n- [x] 保存笔记\n\n\`\`\`typescript\nconst saved = true;\n\`\`\``;
     await openMarkdownSource(page);
     const editor = page.locator(".cm-content:visible");
     await editor.click(); await page.keyboard.press("ControlOrMeta+a"); await page.keyboard.insertText(text);
@@ -133,10 +151,10 @@ try {
     await page.keyboard.press("Enter");
     await page.keyboard.insertText("正文编辑真实保存");
     await page.reload({ waitUntil: "networkidle" });
-    await page.locator(".tiptap:visible").getByText("正文编辑真实保存", { exact: true }).waitFor();
+    await page.locator(".tiptap:visible").getByText(/正文编辑真实保存/).waitFor();
     assert.deepEqual(dialogs, [], "dirty document refresh has no browser confirmation");
     assert.ok(!(await space<File>("file.get", { id: createdId })).content.includes("正文编辑真实保存"), "refresh restores the local draft before server save");
-    await page.locator(".tiptap:visible").getByText("正文编辑真实保存", { exact: true }).click();
+    await page.locator(".tiptap:visible").getByText(/正文编辑真实保存/).click();
     await page.keyboard.press("ControlOrMeta+s");
     await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
     assert.ok((await space<File>("file.get", { path })).content.includes("正文编辑真实保存"));
@@ -145,17 +163,25 @@ try {
     console.log(`Production ${width}px: UI creation, editing, exact persisted Markdown and refreshed preview passed`);
   }
   await checkLiveResourceOpening();
+} catch (error) {
+  await page.screenshot({ path: "/tmp/bibo-production-failure.png" }).catch(() => undefined);
+  throw error;
 } finally {
   if (createdSessionId) {
     await page.evaluate(async id => {
       const response = await fetch("/api/sessions/delete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
       if (!response.ok) throw new Error(`Test conversation cleanup: ${response.status}`);
-    }, createdSessionId);
+    }, createdSessionId).catch(error => { console.error("Test conversation cleanup failed:", error); process.exitCode = 1; });
   }
   if (createdId) {
-    const file = await space<File>("file.get", { id: createdId });
-    await space("file.delete", { id: file.id, version: file.version });
-    console.log("Removed only this run's test note");
+    try {
+      const file = await space<File>("file.get", { id: createdId });
+      await space("file.delete", { id: file.id, version: file.version });
+      console.log("Removed only this run's test note");
+    } catch (error) {
+      console.error("Test note cleanup failed:", createdId, error);
+      process.exitCode = 1;
+    }
   }
   await browser.close();
 }
