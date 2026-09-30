@@ -32,6 +32,8 @@ import { ContextProviderRunContextService } from "./services/context-provider-ru
 export { ReplyFormatContextProvider } from "./providers/reply-format-context.provider.js";
 export { SystemObjectReferenceContextProvider } from "./providers/system-object-reference-context.provider.js";
 export { UiResourceReferenceContextProvider } from "./providers/ui-resource-reference-context.provider.js";
+export type { BootstrapContextInput } from "./utils/bootstrap-context.utils.js";
+export type { ContextRuntimeInfo } from "./providers/current-session-context.provider.js";
 
 export class ContextProviderContribution extends Contribution {
   constructor(private readonly kernel: NextclawKernel, private readonly profile: "default" | "embedded" = "default") {

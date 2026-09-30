@@ -6,6 +6,7 @@ import { CONTEXT_COMPACTION_METADATA_KEY } from "@nextclaw/core";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 import type { ContextProviderRunContextService } from "@kernel/contributions/context-provider/services/context-provider-run-context.service.js";
 import { AgentBootstrapContextProvider } from "./agent-bootstrap-context.provider.js";
+import { renderAgentBootstrapContext } from "@kernel/contributions/context-provider/utils/bootstrap-context.utils.js";
 
 const tempWorkspaces: string[] = [];
 
@@ -83,6 +84,31 @@ afterEach(() => {
 });
 
 describe("AgentBootstrapContextProvider", () => {
+  it("batch I/O preserves file order and budgets, and does not fetch later batches", async () => {
+    const names = ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md", "unneeded.md"];
+    const values = new Map(names.map((name) => [name, `${name} content`.repeat(4)]));
+    const input = { config: { files: names, minimalFiles: ["AGENTS.md"], perFileChars: 30, totalChars: 45 },
+      agentRoot: "/workspace", workspaceRoot: "/workspace", compacted: false,
+      readText: (_root: string, name: string) => values.get(name)! };
+    const serial = await renderAgentBootstrapContext(input);
+    const batches: string[][] = [];
+    const batched = await renderAgentBootstrapContext({ ...input, readTexts: async (_root, files, maxChars) => {
+      expect(maxChars).toBe(30);
+      batches.push([...files]);
+      return new Map(files.map((name) => [name, values.get(name)!]));
+    } });
+    expect(batched).toBe(serial);
+    expect(batches).toEqual([names.slice(0, 4)]);
+  });
+
+  it("a missing requested batch result fails rather than silently losing context", async () => {
+    await expect(renderAgentBootstrapContext({
+      config: { files: ["AGENTS.md"], minimalFiles: [], perFileChars: 4000, totalChars: 12000 },
+      agentRoot: "/workspace", workspaceRoot: "/workspace", compacted: false,
+      readText: () => "rules", readTexts: async () => new Map(),
+    })).rejects.toThrow("Context batch omitted requested file");
+  });
+
   it("omits onboarding bootstrap files for compacted sessions", async () => {
     const workspace = createWorkspace();
     mkdirSync(workspace, { recursive: true });
