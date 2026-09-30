@@ -4,7 +4,8 @@ import { calendarMonthRange } from "@/features/space/utils/calendar.utils";
 import { readBiboTheme, readWorkspaceLayout, revealedFileLayout, writeBiboTheme, writeWorkspaceLayout, type BiboTheme } from "@/features/space/utils/workspace-layout.utils";
 import { readCalendarEvents, readNextSpacePage, readSpaceLists, savedTaskView, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
 import { navigateWorkspace } from "@/app/workspace-router";
-import { closedFileState, fileDeletionState, openedFileState, restoredFileTargets, savedFileState } from "@/features/space/utils/file-state.utils";
+import { closedFileState, fileDeletionState, openedFileState, restoredFileTargets } from "@/features/space/utils/file-state.utils";
+import { FileEditingManager } from "@/features/space/managers/file-editing.manager";
 import { InboxReaderManager } from "@/features/space/managers/inbox-reader.manager";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 import { readFileDrafts, writeFileDrafts } from "@/features/space/utils/file-draft-storage.utils";
@@ -40,6 +41,7 @@ class BiboSpaceOwner {
   expandedFolders: Record<string, boolean> = {};
   fileBrowserVisible = true;
   workspaceOpen = false;
+  workspaceRatio = 0.55;
   workspaceResolving = false;
   workspaceFileId: string | null = null;
   loading = false;
@@ -79,6 +81,7 @@ class BiboSpaceOwner {
   inboxReading: Record<string, boolean> = {};
   tabs: string[] = [];
   activeFileId: string | null = null;
+  createdFileId: string | null = null;
   fileDetails: Record<string, BiboFileDetail> = {};
   fileDrafts: Record<string, FileDraft> = {};
   draftStorageError = "";
@@ -86,7 +89,11 @@ class BiboSpaceOwner {
   eventDrafts: Record<string, EventDraft> = {};
 
   readonly inboxReader: InboxReaderManager;
-  constructor(private readonly store: StoreApi<BiboSpaceOwner>) { this.inboxReader = new InboxReaderManager(store, client); }
+  readonly fileEditing: FileEditingManager;
+  constructor(private readonly store: StoreApi<BiboSpaceOwner>) {
+    this.inboxReader = new InboxReaderManager(store, client);
+    this.fileEditing = new FileEditingManager(store, client, this.pendingCreates, this.set);
+  }
   private get = (): BiboSpaceOwner => this.store.getState();
   private set = (update: Partial<BiboSpaceOwner> | ((state: BiboSpaceOwner) => Partial<BiboSpaceOwner>)): void => {
     if (this.get()?.instanceId !== this.instanceId) return;
@@ -124,6 +131,11 @@ class BiboSpaceOwner {
   setTheme = (theme: BiboTheme): void => { this.set({ theme }); writeBiboTheme(theme); };
   toggleTree = (): void => { this.set((state) => ({ treeCollapsed: !state.treeCollapsed })); this.saveLayout(); };
   resizeTree = (width: number): void => { this.set({ treeWidth: Math.min(360, Math.max(180, width)) }); this.saveLayout(); };
+  resizeWorkspace = (ratio: number): void => {
+    if (!Number.isFinite(ratio)) return;
+    this.set({ workspaceRatio: Math.min(0.7, Math.max(0.3, ratio)) });
+    this.saveLayout();
+  };
   toggleFolder = (id: string): void => { this.set((state) => ({ expandedFolders: { ...state.expandedFolders, [id]: !state.expandedFolders[id] } })); this.saveLayout(); };
   showFileBrowser = (): void => this.set({ fileBrowserVisible: true });
   searchFiles = async (query: string, more = false): Promise<void> => {
@@ -333,39 +345,16 @@ class BiboSpaceOwner {
 
   editFile = (id: string, content: string): void => this.set((state) => !state.fileDrafts[id] || state.fileDetails[id]?.preview || state.fileDrafts[id].content === content ? {} : ({ fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id], content, dirty: content !== state.fileDetails[id]?.content } } }));
 
-  saveFile = async (id: string): Promise<void> => {
-    const draft = this.get().fileDrafts[id];
-    if (!draft || !draft.dirty || draft.saving || this.get().fileDetails[id]?.preview) return;
-    this.set((state) => ({ fileDrafts: { ...state.fileDrafts, [id]: { ...draft, saving: true, error: undefined } } }));
-    try {
-      const detail = await client.space<BiboFileDetail>("file.update", { id, version: draft.version, content: draft.content });
-      this.set((state) => savedFileState(state, detail, draft.content));
-      await this.load(this.get().view === "notes" ? "notes" : "files");
-    } catch (error) {
-      const conflict = error instanceof BiboClientError && error.status === 409;
-      this.set((state) => state.fileDrafts[id] ? { fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id]!, saving: false, conflict: conflict || state.fileDrafts[id]!.conflict, error: conflict ? undefined : message(error) } } } : {});
-    }
-  };
-
-  resolveFileConflict = async (id: string, choice: "reload" | "overwrite"): Promise<void> => {
-    const draft = this.get().fileDrafts[id];
-    if (!draft || draft.saving) return;
-    this.set((state) => ({ fileDrafts: { ...state.fileDrafts, [id]: { ...draft, saving: true, error: undefined } } }));
-    try {
-      const latest = await client.space<BiboFileDetail>("file.get", { id });
-      if (this.get().instanceId !== this.instanceId || !this.get().fileDrafts[id]) return;
-      if (choice === "overwrite" && latest.preview) throw new Error(biboCopy.filePreviewReadOnly);
-      this.set((state) => ({ fileDetails: { ...state.fileDetails, [id]: latest }, files: state.files.map((file) => file.id === id ? latest : file), notes: state.notes.map((note) => note.id === id ? latest : note), fileDrafts: { ...state.fileDrafts, [id]: { content: choice === "reload" ? latest.content ?? "" : state.fileDrafts[id]!.content, version: latest.version, dirty: choice === "overwrite", saving: false } } }));
-      if (choice === "overwrite") await this.saveFile(id);
-    } catch (error) { this.set((state) => state.fileDrafts[id] ? { fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id]!, error: message(error) } } } : {}); }
-    finally { this.set((state) => state.fileDrafts[id] ? { fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id]!, saving: false } } } : {}); }
-  };
+  saveFile = (id: string): Promise<void> => this.fileEditing.save(id);
+  resolveFileConflict = (id: string, choice: "reload" | "overwrite"): Promise<void> => this.fileEditing.resolveConflict(id, choice);
 
   createFile = async (path: string, kind: BiboFile["kind"]): Promise<boolean> => {
     const detail = await this.act<BiboFileDetail>("file.create", { path, kind, content: "" }, this.get().view === "notes" ? "notes" : "files");
     if (detail && kind !== "folder") await this.openFile(detail.id);
     return detail !== null;
   };
+
+  createNote = (): Promise<boolean> => this.fileEditing.createNote();
 
   moveFile = async (file: BiboFile, path: string): Promise<boolean> => {
     const before = this.get();

@@ -5,13 +5,12 @@ import { checkBlockInteractions } from "./markdown-block-interactions.smoke";
 import { checkNotionInteractions } from "./markdown-notion-interactions.smoke";
 import { checkImageUploads } from "./markdown-image-interactions.smoke";
 import { checkDocumentStructure } from "./markdown-structure-interactions.smoke";
-import { mockApi } from "../personal-workspace.fixture";
+import { mockApi, openMarkdownBody, openMarkdownSource } from "../personal-workspace.fixture";
 
 const port = String(30000 + process.pid % 20000);
 const base = process.env.BIBO_SMOKE_BASE ?? `http://127.0.0.1:${port}`;
 const server = process.env.BIBO_SMOKE_BASE ? null : spawn(process.execPath, [new URL("../../node_modules/vite/bin/vite.js", import.meta.url).pathname, "--host", "127.0.0.1", "--port", port, "--strictPort"], { cwd: new URL("../..", import.meta.url).pathname, stdio: "ignore" });
 const documentText = "# 写作体验\n\n这是 **重要内容**，也有 *斜体*。\n\n## 下一步\n\n- 第一项\n- 第二项\n\n```typescript\nconst greeting = \"你好\";\nconsole.log(greeting);\n```\n\n保留公式 $E=mc^2$ 与 [链接](https://example.com)。";
-const mode = (page: Page, name: string) => page.getByRole("group", { name: "文件模式" }).getByRole("button", { name, exact: true });
 const editorFor = (page: Page) => page.locator(".cm-content[role=textbox]:visible");
 const richFor = (page: Page) => page.locator(".tiptap:visible");
 async function replaceSource(page: Page, text: string) {
@@ -20,8 +19,7 @@ async function replaceSource(page: Page, text: string) {
   await page.keyboard.insertText(text);
 }
 async function openSource(page: Page) {
-  if (await mode(page, "源码").count()) await mode(page, "源码").click();
-  else { await page.getByRole("button", { name: "文件操作", exact: true }).click(); await page.getByRole("menuitem", { name: "源码", exact: true }).click(); }
+  await openMarkdownSource(page);
 }
 async function contentOf(page: Page) {
   await editorFor(page).locator(".cm-line").first().waitFor({ state: "attached" });
@@ -37,7 +35,7 @@ async function checkEditor(page: Page, width: number) {
   await page.route("https://example.com/*.png", (route) => route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60"><rect width="120" height="60" fill="green"/></svg>' }));
   await page.goto(`${base}/files/file-a`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "一个想法" }).waitFor();
-  assert.equal(await mode(page, "预览").getAttribute("aria-pressed"), "true");
+  assert.equal(await page.getByRole("group", { name: "文件模式" }).count(), 0);
   assert.equal(await page.locator(".cm-editor").count(), 0, "reader does not mount an editor until needed");
   await checkContextualWriting(page);
   await checkNotionInteractions(page, openSource, replaceSource);
@@ -58,24 +56,8 @@ async function checkEditor(page: Page, width: number) {
 async function checkContextualWriting(page: Page) {
   await openSource(page);
   await replaceSource(page, "# 对齐标题\n\n普通段落 **强调** 与 `code`。\n\n## 第二节\n\n- 第一项\n- 第二项\n\n> 引用\n\n| 名称 | 状态 |\n| --- | --- |\n| 内容 | 正常 |\n\n```typescript\nconst value = 1;\n```\n\n公式 $E=mc^2$ 与 [可编辑链接](https://example.com)\n\n![图片](https://example.com/image.png)\n\n$$\na^2+b^2=c^2\n$$\n\n结束");
-  const geometry = async (selector: string) => page.locator(selector).evaluate(root => {
-    const origin = root.getBoundingClientRect();
-    return Array.from(root.querySelectorAll("h1,h2,blockquote,table,pre,img[src],.katex-display")).map(element => {
-      const box = element.getBoundingClientRect(); const style = getComputedStyle(element);
-      return { tag: element.tagName, x: box.x, y: box.y - origin.y, width: box.width, height: box.height, font: style.fontSize, line: style.lineHeight, color: style.color };
-    });
-  });
-  await mode(page, "预览").click();
-  await page.locator(".ui-markdown-document img").waitFor();
-  const reading = await geometry(".ui-markdown-document > .chat-markdown");
-  await mode(page, "编辑").click();
-  await richFor(page).waitFor();
-  const editing = await geometry(".tiptap");
-  assert.equal(reading.length, editing.length);
-  for (let index = 0; index < reading.length; index++) {
-    for (const key of ["x", "y", "width", "height"] as const) assert.ok(Math.abs(reading[index][key] - editing[index][key]) < 2, `${reading[index].tag} ${key} matches between read and edit: ${reading[index][key]} / ${editing[index][key]}`);
-    if (reading[index].tag !== "IMG") for (const key of ["font", "line", "color"] as const) assert.equal(reading[index][key], editing[index][key]);
-  }
+  await openMarkdownBody(page);
+  await richFor(page).locator("img[src]").waitFor();
   await checkInlineInspectors(page);
   await checkTableAndCommands(page);
   await checkBlockInteractions(page, openSource, replaceSource);
@@ -86,7 +68,7 @@ async function checkContextualWriting(page: Page) {
 async function checkMathShortcut(page: Page) {
   for (const key of ["Space", "Enter"]) {
     await openSource(page); await replaceSource(page, "公式示例\n\n继续写作");
-    await mode(page, "编辑").click();
+    await openMarkdownBody(page);
     await richFor(page).getByText("继续写作", { exact: true }).click();
     await page.waitForFunction(() => { const el = document.querySelector(".tiptap") as HTMLElement & { editor: { state: { selection: { $from: { parent: { textContent: string } } } } } }; return el.editor.state.selection.$from.parent.textContent === "继续写作"; });
     await richFor(page).press("ControlOrMeta+End");
@@ -103,8 +85,8 @@ async function checkMathShortcut(page: Page) {
     await math.locator("textarea").press("ControlOrMeta+Enter");
     await richFor(page).locator("[data-type=block-math] .mtable").waitFor();
     assert.equal(await richFor(page).locator(":scope > p").allTextContents().then(items => items.includes("$$")), false);
-    await mode(page, "预览").click();
-    await page.locator(".ui-markdown-document .katex-display .mtable").waitFor();
+    await openMarkdownBody(page);
+    await page.locator(".tiptap .katex-display .mtable").waitFor();
     await openSource(page);
     const source = await contentOf(page);
     assert.ok(source.includes("$$\n\\begin{aligned}"));
@@ -115,7 +97,7 @@ async function checkMathShortcut(page: Page) {
 async function checkMathCommandTypes(page: Page) {
   for (const [name, selector] of [["行内公式", "p [data-type=inline-math]"], ["公式块", ":scope > [data-type=block-math]"]]) {
     await openSource(page); await replaceSource(page, "公式类型");
-    await mode(page, "编辑").click();
+    await openMarkdownBody(page);
     await richFor(page).getByText("公式类型", { exact: true }).click();
     await page.waitForFunction(() => { const el = document.querySelector(".tiptap") as HTMLElement & { editor: { state: { selection: { $from: { parent: { textContent: string } } } } } }; return el.editor.state.selection.$from.parent.textContent === "公式类型"; });
     await richFor(page).press("ControlOrMeta+End"); await richFor(page).press("Enter");
@@ -128,8 +110,8 @@ async function checkMathCommandTypes(page: Page) {
     await dialog.locator("textarea").fill("x^2");
     await dialog.locator("textarea").press("ControlOrMeta+Enter");
     await richFor(page).locator(selector).waitFor();
-    await mode(page, "预览").click();
-    assert.equal(await page.locator(".ui-markdown-document .katex-display").count(), name === "公式块" ? 1 : 0);
+    await openMarkdownBody(page);
+    assert.equal(await page.locator(".tiptap .katex-display").count(), name === "公式块" ? 1 : 0);
     await openSource(page);
     assert.ok((await contentOf(page)).includes(name === "公式块" ? "$$\nx^2\n$$" : "$x^2$"));
   }
@@ -188,7 +170,7 @@ async function checkTableAndCommands(page: Page) {
 async function checkWriting(page: Page) {
   await openSource(page);
   await replaceSource(page, documentText);
-  await mode(page, "编辑").click();
+  await openMarkdownBody(page);
   await richFor(page).locator("h1").waitFor();
   assert.equal(await richFor(page).locator("strong").innerText(), "重要内容");
   await richFor(page).locator(".katex").first().waitFor();
@@ -196,7 +178,7 @@ async function checkWriting(page: Page) {
   await openSource(page);
   await page.locator(".cm-syntax-keyword").first().waitFor();
   assert.equal(await contentOf(page), documentText);
-  await mode(page, "编辑").click();
+  await openMarkdownBody(page);
   await richFor(page).click();
   await richFor(page).press("ControlOrMeta+End");
   await richFor(page).press("Enter");
@@ -205,9 +187,9 @@ async function checkWriting(page: Page) {
   await ime.send("Input.insertText", { text: "中文输入不会丢失" });
   await ime.detach();
   assert.equal(await richFor(page).evaluate((element, original) => element === original, identity), true, "IME keeps the content DOM");
-  await mode(page, "预览").click();
+  await openMarkdownBody(page);
   await page.getByRole("heading", { name: "写作体验" }).waitFor();
-  await mode(page, "编辑").click();
+  await openMarkdownBody(page);
   assert.equal(await richFor(page).evaluate((element, original) => element === original, identity), true);
   await richFor(page).press("ControlOrMeta+z");
   assert.ok(!(await richFor(page).innerText()).includes("中文输入不会丢失"));
@@ -247,14 +229,14 @@ async function checkRichObjects(page: Page) {
   const original = await contentOf(page);
   const extra = "---\ntitle: 保留元数据\n---\n\n" + original + "\n\n| 名称 | 状态 |\n| --- | --- |\n| 功能 | 待办 |\n\n- [ ] 检查待办对齐\n\n脚注[^note]。\n\n[^note]: 原始脚注\n\n<!-- 保留注释 -->\n\n[unused]: https://example.com/reference\n\n```mermaid\nflowchart LR\n A[输入] --> B[保存]\n```\n\n最后一段";
   await replaceSource(page, extra);
-  await mode(page, "编辑").click();
+  await openMarkdownBody(page);
   const rich = richFor(page);
   await rich.locator("table").waitFor();
   await rich.locator(".ui-rich-diagram-preview svg").waitFor();
   await checkTaskItem(page);
   await openSource(page);
   assert.equal(await contentOf(page), extra, "mode changes never rewrite the original source");
-  await mode(page, "编辑").click();
+  await openMarkdownBody(page);
   await rich.locator("td").first().dblclick();
   await page.keyboard.insertText("完成");
   await formatAction(page, "在下方插入行");
@@ -321,7 +303,7 @@ async function checkRichLinks(page: Page) {
 async function checkListEditing(page: Page) {
   await openSource(page);
   await replaceSource(page, "- 连续列表");
-  await mode(page, "编辑").click();
+  await openMarkdownBody(page);
   await richFor(page).locator("li p").click();
   await richFor(page).locator("li p").evaluate((paragraph) => {
     const range = document.createRange(); range.selectNodeContents(paragraph); range.collapse(false);
@@ -394,7 +376,7 @@ async function checkTypingDuringSave(page: Page) {
     return route.fallback();
   });
   await replaceSource(page, "# 提交的版本");
-  await mode(page, "编辑").click();
+  await openMarkdownBody(page);
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await page.getByRole("button", { name: "保存中…", exact: true }).waitFor();
   await richFor(page).click();
@@ -411,7 +393,7 @@ async function checkTypingDuringSave(page: Page) {
 
 async function checkLayout(page: Page, width: number) {
   await replaceSource(page, documentText);
-  await mode(page, "编辑").click();
+  await openMarkdownBody(page);
   await richFor(page).press("ControlOrMeta+End");
   await page.screenshot({ path: `/tmp/bibo-markdown-editor-${width}.png` });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, "no page overflow");
@@ -423,10 +405,10 @@ async function checkLayout(page: Page, width: number) {
 
 async function checkScrollContinuity(page: Page) {
   await replaceSource(page, Array.from({ length: 300 }, (_, index) => `## 第 ${index + 1} 节\n\n长文阅读与编辑的位置保持。这里包含 **格式文字**、中文输入与常规段落。`).join("\n\n"));
-  await mode(page, "预览").click();
-  await page.locator(".bibo-file-preview-markdown").evaluate((element) => { element.scrollTop = (element.scrollHeight - element.clientHeight) / 2; });
-  await page.waitForFunction(() => document.querySelector(".bibo-file-preview-markdown")!.scrollTop > 100);
-  await mode(page, "编辑").click();
+  await openMarkdownBody(page);
+  await page.locator(".ui-rich-markdown-scroll").evaluate((element) => { element.scrollTop = (element.scrollHeight - element.clientHeight) / 2; });
+  await page.waitForFunction(() => document.querySelector(".ui-rich-markdown-scroll")!.scrollTop > 100);
+  await openMarkdownBody(page);
   await page.waitForFunction(() => (document.querySelector(".ui-rich-markdown-scroll")?.scrollTop ?? 0) > 100);
   if (page.viewportSize()!.width === 1440) {
     const cdp = await page.context().newCDPSession(page);
@@ -444,8 +426,8 @@ async function checkScrollContinuity(page: Page) {
     assert.ok(times[Math.floor(times.length * .95)] < 100, "typing does not stall the long document");
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 }); await cdp.detach();
   }
-  await mode(page, "预览").click();
-  await page.waitForFunction(() => document.querySelector(".bibo-file-preview-markdown")!.scrollTop > 100);
+  await openMarkdownBody(page);
+  await page.waitForFunction(() => document.querySelector(".ui-rich-markdown-scroll")!.scrollTop > 100);
   await openSource(page);
 }
 
@@ -459,7 +441,15 @@ try {
     for (const width of [1440, 390, 320]) {
       const page = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 500, hasTouch: width < 500 });
       try { await checkEditor(page, width); }
-      catch (error) { await page.screenshot({ path: "/tmp/bibo-markdown-editor-failure.png" }); console.error(await page.locator("body").innerText()); throw error; }
+      catch (error) {
+        await page.screenshot({ path: "/tmp/bibo-markdown-editor-failure.png" });
+        console.error(await page.evaluate(() => [".bibo-main", ".bibo-topbar", ".bibo-file-workbench", ".tiptap", ".ui-markdown-block-handle"].map(selector => {
+          const node = document.querySelector<HTMLElement>(selector);
+          const box = node?.getBoundingClientRect();
+          return { selector, x: box?.x, y: box?.y, width: box?.width, scrollLeft: node?.scrollLeft, visibility: node && getComputedStyle(node).visibility };
+        })));
+        console.error(await page.locator("body").innerText()); throw error;
+      }
       finally { await page.close(); }
     }
   } finally { await browser.close(); }

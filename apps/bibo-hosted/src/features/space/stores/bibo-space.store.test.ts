@@ -3,6 +3,7 @@ import test, { type TestContext, type Mock } from "node:test";
 import type { BiboInboxItem } from "@nextclaw/bibo-client";
 import type { useBiboSpaceStore as BiboSpaceStoreHook } from "./bibo-space.store";
 
+
 test("space lifecycle isolates accounts, preserves failed drafts and safely resumes file tabs", async (t) => {
   const originalWindow = globalThis.window;
   globalThis.window = { location: { search: "" } } as unknown as Window & typeof globalThis;
@@ -228,6 +229,7 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
   await checkPreviewProtection(t, useBiboSpaceStore, requests);
   await checkNoteRestoration(t, useBiboSpaceStore, responses);
   await checkInboxRead(t, useBiboSpaceStore, fetchMock);
+  await checkNewNote(useBiboSpaceStore, fetchMock);
 });
 
 async function checkNoteRestoration(t: TestContext, useBiboSpaceStore: typeof BiboSpaceStoreHook,
@@ -419,4 +421,46 @@ async function checkInboxRead(t: TestContext, useBiboSpaceStore: typeof BiboSpac
     assert.equal(useBiboSpaceStore.getState().inboxSelection, null);
     assert.deepEqual(useBiboSpaceStore.getState().inboxReading, {});
   });
+}
+
+async function checkNewNote(useBiboSpaceStore: typeof BiboSpaceStoreHook, fetchMock: Mock<typeof fetch>): Promise<void> {
+  await test("new note opens immediately, retries authoritative name conflicts and ignores duplicate clicks", async () => {
+  useBiboSpaceStore.getState().bindAccount(null, true);
+  useBiboSpaceStore.setState({ view: "notes" });
+  const created: string[] = [];
+  let release!: () => void;
+  const wait = new Promise<void>(resolve => { release = resolve; });
+  fetchMock.mock.mockImplementation( async (_url: unknown, init: RequestInit) => {
+    const { action, input } = JSON.parse(init.body as string);
+    if (action !== "file.create") return Response.json({ result: { items: [], nextCursor: null } });
+    created.push(input.path);
+    if (created.length === 1) { await wait; return Response.json({ error: "name conflict" }, { status: 409 }); }
+    return Response.json({ result: { id: "new-note", ...input, version: 1, createdAt: "now", updatedAt: "now" } });
+  });
+  const creating = useBiboSpaceStore.getState().createNote();
+  assert.equal(await useBiboSpaceStore.getState().createNote(), false);
+  release();
+  assert.equal(await creating, true);
+  assert.deepEqual(created, ["无标题笔记.md", "无标题笔记 2.md"]);
+  assert.equal(useBiboSpaceStore.getState().activeFileId, "new-note");
+  assert.equal(useBiboSpaceStore.getState().fileBrowserVisible, false);
+  assert.equal(useBiboSpaceStore.getState().fileDrafts["new-note"]?.content, "# 无标题笔记 2\n\n");
+  assert.equal(useBiboSpaceStore.getState().saving, false);
+  const retries: string[] = [];
+  let unavailable = true;
+  fetchMock.mock.mockImplementation(async (_url: unknown, init: RequestInit) => {
+    const { action, input } = JSON.parse(init.body as string);
+    if (action !== "file.create") return Response.json({ result: { items: [], nextCursor: null } });
+    retries.push(input.requestId);
+    return unavailable ? Response.json({ error: "暂时无法创建" }, { status: 503 })
+      : Response.json({ result: { id: "recovered-note", ...input, version: 1, createdAt: "now", updatedAt: "now" } });
+  });
+  assert.equal(await useBiboSpaceStore.getState().createNote(), false);
+  assert.equal(useBiboSpaceStore.getState().actionError, "暂时无法创建");
+  assert.equal(useBiboSpaceStore.getState().saving, false);
+  unavailable = false;
+  assert.equal(await useBiboSpaceStore.getState().createNote(), true);
+  assert.equal(retries[0], retries[1], "retry keeps the idempotency key after an uncertain failure");
+  assert.equal(useBiboSpaceStore.getState().activeFileId, "recovered-note");
+});
 }

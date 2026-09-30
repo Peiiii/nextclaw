@@ -26,4 +26,6 @@ await client.chat("你好", (event) => {
 
 测试时可向构造函数传入 `{ fetch: fakeFetch }`。运行 `pnpm -C packages/bibo-client tsc` 与 `pnpm -C packages/bibo-client test`。
 
+`delta.value.blockId` 是可选的非空文本块 ID，来自内核实际文本块边界。同一 ID 的连续 delta 追加到同一块，新 ID 开始下一块；旧响应没有 ID 时作为单块展示。已提交消息的 `content` 按原顺序保留文本块和问题引用，刷新不重新按段落猜测边界。
+
 `show-content` 使用 `BiboUiEvent` / `BiboShowContent` 类型，保留内核的文件展示目标：`value.target.payload` 包含 `path` 与可选的 `viewer`（`auto`、`source`、`rendered`），`value.sessionId` 标识来源会话。SDK 统一校验 SSE 和 JSON 响应；服务端保存成功后才发送展示事件。调用方等待 `chat()` 成功结束、确认会话仍然活跃，再通过 `readFile({ path })` 读取并交给已有查看器。事件不会包含文件正文，也不允许读取未登记文件或任意服务器路径。

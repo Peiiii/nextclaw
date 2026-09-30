@@ -1,11 +1,11 @@
+import { openMarkdownBody } from "../personal-workspace.fixture";
 import assert from "node:assert/strict";
 import type { Page } from "playwright";
 
 export async function checkDocumentStructure(page: Page, openSource: (page: Page) => Promise<void>, replaceSource: (page: Page, value: string) => Promise<void>) {
-  const mode = (name: string) => page.getByRole("group", { name: "文件模式" }).getByRole("button", { name, exact: true });
   await openSource(page);
   await replaceSource(page, "<details open><summary><strong>More context</strong></summary><p>Hidden content</p></details>\n\n> [!TIP]\n> Useful advice\n\nText <u>underlined</u> and <mark>highlighted</mark>.\n\nEnd");
-  await mode("编辑").click();
+  await openMarkdownBody(page);
   const rich = page.locator(".tiptap:visible");
   await rich.locator("[data-type=details] summary strong").waitFor();
   assert.equal(await rich.locator("u").innerText(), "underlined");
@@ -22,9 +22,9 @@ export async function checkDocumentStructure(page: Page, openSource: (page: Page
   assert.match(source, /<u>underlined<\/u>/);
   assert.match(source, /<mark>highlighted<\/mark>/);
   assert.match(source, /> \[!TIP\]/);
-  await mode("预览").click();
+  await openMarkdownBody(page);
   await checkStructureReading(page);
-  await mode("编辑").click();
+  await openMarkdownBody(page);
   await rich.getByText("Hidden content", { exact: true }).waitFor();
   await checkToggleInsertion(page);
   console.log("Document structure: official toggle, GFM callout, emphasis and source/read/edit preservation passed");
@@ -32,13 +32,16 @@ export async function checkDocumentStructure(page: Page, openSource: (page: Page
 }
 
 async function checkStructureReading(page: Page) {
-  const reader = page.locator(".ui-markdown-document");
-  await reader.locator("[data-document-details] strong").waitFor();
+  const reader = page.locator(".tiptap");
+  await reader.locator("[data-type=details] summary strong").waitFor();
   await reader.getByText("Hidden content", { exact: true }).waitFor();
   assert.equal(await reader.locator("blockquote[data-callout=tip]").innerText(), "Useful advice");
   assert.equal(await reader.locator("mark").innerText(), "highlighted");
-  await reader.getByRole("button", { name: "More context", exact: true }).click();
+  const toggle = reader.getByRole("button", { name: "展开或收起内容", exact: true });
+  await toggle.click();
   await reader.getByText("Hidden content", { exact: true }).waitFor({ state: "hidden" });
+  await toggle.click();
+  await reader.getByText("Hidden content", { exact: true }).waitFor();
 }
 
 async function checkToggleVisibility(page: Page) {
@@ -92,24 +95,23 @@ async function waitForTextSelection(page: Page, text: string) {
 }
 
 async function checkDocumentNavigation(page: Page, openSource: (page: Page) => Promise<void>, replaceSource: (page: Page, value: string) => Promise<void>) {
-  const mode = (name: string) => page.getByRole("group", { name: "文件模式" }).getByRole("button", { name, exact: true });
   await openSource(page);
   await replaceSource(page, Array.from({ length: 30 }, (_, index) => `## Section ${index}\n\nParagraph ${index}.\n\nMore context.`).join("\n\n"));
-  await mode("预览").click();
+  await openMarkdownBody(page);
   await page.getByRole("button", { name: "目录与排版", exact: true }).click();
   const panel = page.getByRole("dialog", { name: "目录与排版", exact: true });
   assert.equal(await panel.getByRole("navigation").getByRole("button").count(), 30);
   await panel.getByRole("button", { name: "Section 20", exact: true }).click();
-  const section = page.locator(".ui-markdown-document").getByRole("heading", { name: "Section 20", exact: true });
+  const section = page.locator(".tiptap").getByRole("heading", { name: "Section 20", exact: true });
   const headingBox = await section.boundingBox();
-  const viewport = await page.locator(".bibo-file-preview-markdown").boundingBox();
+  const viewport = await page.locator(".ui-rich-markdown-scroll").boundingBox();
   assert.ok(headingBox && viewport && Math.abs(headingBox.y - viewport.y) < 2, "outline scrolls the reading surface to the exact heading");
   await page.getByRole("button", { name: "目录与排版", exact: true }).click();
   await panel.getByRole("group", { name: "页面宽度" }).getByRole("button", { name: "全宽", exact: true }).click();
   await panel.getByRole("group", { name: "文字大小" }).getByRole("button", { name: "小号", exact: true }).click();
   await page.keyboard.press("Escape");
-  assert.equal(await page.locator(".ui-markdown-document > .chat-markdown").evaluate(el => getComputedStyle(el).fontSize), "13px");
-  await mode("编辑").click();
+  assert.equal(await page.locator(".tiptap").evaluate(el => getComputedStyle(el).fontSize), "13px");
+  await openMarkdownBody(page);
   assert.equal(await page.locator(".tiptap:visible").evaluate(el => getComputedStyle(el).fontSize), "13px");
   await page.getByRole("button", { name: "目录与排版", exact: true }).click();
   await panel.getByRole("group", { name: "页面宽度" }).getByRole("button", { name: "标准", exact: true }).click();

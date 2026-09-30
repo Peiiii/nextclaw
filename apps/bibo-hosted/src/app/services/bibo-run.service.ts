@@ -1,4 +1,4 @@
-import type { BiboRunSnapshot, BiboRunState } from "@nextclaw/bibo-client";
+import { appendBiboTextBlock, type BiboRunSnapshot, type BiboRunState } from "@nextclaw/bibo-client";
 import { streamEvent } from "../bibo-run-stream.utils";
 import { json, publicError } from "../bibo-auth.utils";
 import { BiboRunError, logDiagnostic, runFailure } from "../diagnostics/bibo-diagnostics.utils";
@@ -79,21 +79,22 @@ export class BiboRunService {
       for (const subscriber of run.subscribers) subscriber.close();
       run.subscribers.clear();
       run.result = undefined;
-      run.state = { ...run.state, partial: "" };
+      run.state = { ...run.state, partial: "", partialBlocks: [] };
     }
   };
   private finish = async (run: Run, phase: "completed" | "failed"): Promise<void> => {
     run.state = { ...run.state, phase, updatedAt: Date.now(), activity: undefined };
-    await this.storage.put(key(run.state.sessionId), { ...run.state, partial: "" });
+    await this.storage.put(key(run.state.sessionId), { ...run.state, partial: "", partialBlocks: [] });
   };
   private publish = (run: Run, event: string, value: unknown): void => {
     for (const subscriber of run.subscribers) subscriber.send(event, value);
   };
-  delta = (runId: string, text: string): void => {
+  delta = (runId: string, text: string, blockId?: string): void => {
     const run = this.find(runId);
     if (!run?.active) return;
-    run.state = { ...run.state, partial: run.state.partial + text, updatedAt: Date.now() };
-    this.publish(run, "delta", { text });
+    const partialBlocks = appendBiboTextBlock(run.state.partialBlocks ?? [], text, blockId);
+    run.state = { ...run.state, partial: partialBlocks.map(block => block.text).join("\n\n"), partialBlocks, updatedAt: Date.now() };
+    this.publish(run, "delta", { text, ...(blockId ? { blockId } : {}) });
   };
   activity = (runId: string, activity?: string): void => {
     const run = this.find(runId);
@@ -106,7 +107,7 @@ export class BiboRunService {
     if (!run?.active) return;
     run.active.phase = "saving";
     run.state = { ...run.state, phase: "saving", activity: undefined, updatedAt: Date.now() };
-    await this.storage.put(key(run.state.sessionId), { ...run.state, partial: "" });
+    await this.storage.put(key(run.state.sessionId), { ...run.state, partial: "", partialBlocks: [] });
     this.publish(run, "saving", {});
   };
   cancel = (runId: string): Response => {

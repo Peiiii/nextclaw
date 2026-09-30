@@ -1,4 +1,4 @@
-import type { BiboChatEvent, BiboMessage, BiboMessageContent, BiboQuestion, BiboQuestionReference, BiboRunSnapshot, BiboRunState, BiboSession, BiboShowContent, BiboUser } from "../types/bibo-client.types";
+import type { BiboChatEvent, BiboMessage, BiboMessageContent, BiboQuestion, BiboQuestionReference, BiboRunSnapshot, BiboRunState, BiboSession, BiboShowContent, BiboTextBlock, BiboUser } from "../types/bibo-client.types";
 import type { BiboFileDetail } from "../types/bibo-space.types";
 
 const MAX_FRAME_LENGTH = 4_000_000;
@@ -14,17 +14,28 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+export function appendBiboTextBlock(blocks: BiboTextBlock[], text: string, blockId = "answer"): BiboTextBlock[] {
+  if (!text) return blocks;
+  const last = blocks.at(-1);
+  return last?.id === blockId
+    ? [...blocks.slice(0, -1), { id: blockId, text: last.text + text }]
+    : [...blocks, { id: blockId, text }];
+}
+
 export function readRunSnapshot(value: unknown): BiboRunSnapshot {
   if (!isRecord(value) || typeof value.runId !== "string" || !value.runId || typeof value.sessionId !== "string" || !value.sessionId ||
     typeof value.message !== "string" || !["generating", "saving", "completed", "failed"].includes(String(value.phase)) ||
     typeof value.startedAt !== "number" || !Number.isFinite(value.startedAt) || typeof value.updatedAt !== "number" || !Number.isFinite(value.updatedAt) ||
     typeof value.partial !== "string" || (value.activity !== undefined && typeof value.activity !== "string") ||
+    (value.partialBlocks !== undefined && (!Array.isArray(value.partialBlocks) || !value.partialBlocks.every(block =>
+      isRecord(block) && typeof block.id === "string" && block.id.trim() && typeof block.text === "string"))) ||
     (value.clientRequestId !== undefined && typeof value.clientRequestId !== "string") ||
     (value.error !== undefined && (!isRecord(value.error) || typeof value.error.code !== "string" || typeof value.error.message !== "string"))) {
     throw new BiboClientError("任务状态格式不正确。");
   }
   return { runId: value.runId, sessionId: value.sessionId, message: value.message,
     phase: value.phase as BiboRunSnapshot["phase"], startedAt: value.startedAt, updatedAt: value.updatedAt, partial: value.partial,
+    ...(value.partialBlocks === undefined ? {} : { partialBlocks: value.partialBlocks as BiboTextBlock[] }),
     ...(value.activity === undefined ? {} : { activity: value.activity as string }),
     ...(value.clientRequestId === undefined ? {} : { clientRequestId: value.clientRequestId as string }),
     ...(value.error === undefined ? {} : { error: value.error as BiboRunSnapshot["error"] }) };
@@ -170,7 +181,8 @@ function readFrame(frame: string): BiboChatEvent | null {
     return { name, value: { runId: value.runId } };
   }
   if (name === "delta" && isRecord(value) && typeof value.text === "string") {
-    return { name, value: { text: value.text } };
+    if (value.blockId !== undefined && (typeof value.blockId !== "string" || !value.blockId.trim())) throw new BiboClientError("回答片段格式不正确。");
+    return { name, value: { text: value.text, ...(typeof value.blockId === "string" ? { blockId: value.blockId } : {}) } };
   }
   if (name === "saving" && isRecord(value)) return { name, value: {} };
   if (name === "committed") return readCommitted(value);

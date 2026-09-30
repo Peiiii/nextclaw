@@ -73,6 +73,10 @@ export function ActionMenuLink({
   );
 }
 
+export function ActionMenuSeparator() {
+  return <Menu.Separator className="ui-action-menu__separator" />;
+}
+
 export function ActionMenuRadioGroup<T extends string>({
   label, value, options, onValueChange,
 }: {

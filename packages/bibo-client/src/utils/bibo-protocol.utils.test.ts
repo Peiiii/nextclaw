@@ -6,10 +6,13 @@ const encoder = new TextEncoder();
 const committed = 'event: committed\ndata: {"text":"你好","messages":[{"role":"assistant","text":"你好","at":"now"}]}\n\n';
 
 test("run snapshots cross SSE and JSON with stable request identity and validate malformed state", async () => {
-  const run = { runId: "r", sessionId: "s", clientRequestId: "request-1", message: "输入", phase: "generating", startedAt: 1, updatedAt: 2, partial: "已输出", activity: "exec" };
+  const run = { runId: "r", sessionId: "s", clientRequestId: "request-1", message: "输入", phase: "generating", startedAt: 1, updatedAt: 2, partial: "已输出", partialBlocks: [{ id: "first", text: "已输出" }], activity: "exec" };
   assert.deepEqual(readRunState({ run, activeRuns: [run] }).run, run);
   assert.throws(() => readRunState({ run: { ...run, phase: "bogus" }, activeRuns: [] }), /任务状态/);
   assert.throws(() => readRunState({ run: { ...run, updatedAt: NaN }, activeRuns: [] }), /任务状态/);
+  for (const partialBlocks of [null, [{ id: "", text: "x" }], [{ id: "first", text: 1 }]]) {
+    assert.throws(() => readRunState({ run: { ...run, partialBlocks }, activeRuns: [] }), /任务状态/);
+  }
   const events: string[] = [];
   await readBiboStream(new Response(`event: snapshot\ndata: ${JSON.stringify(run)}\n\nevent: heartbeat\ndata: {}\n\n${committed}`), (event) => events.push(event.name));
   assert.deepEqual(events, ["snapshot", "committed"]);
@@ -43,6 +46,15 @@ test("an uncommitted stream rejects even after visible delta", async () => {
     if (event.name === "delta") events.push(event.value.text);
   }), BiboClientError);
   assert.deepEqual(events, ["临时内容"]);
+});
+
+test("incremental stream preserves validated text block IDs", async () => {
+  const parts = [{ text: "先检查", blockId: "first" }, { text: "完成", blockId: "second" }, { text: "旧协议" }];
+  const events: unknown[] = [];
+  const response = new Response(parts.map(value => `event: delta\ndata: ${JSON.stringify(value)}\n\n`).join("") + 'event: committed\ndata: {"text":"完成","messages":[]}\n\n');
+  await readBiboStream(response, event => { if (event.name === "delta") events.push(event.value); });
+  assert.deepEqual(events, parts);
+  await assert.rejects(readBiboStream(new Response('event: delta\ndata: {"text":"x","blockId":42}\n\n'), () => undefined), BiboClientError);
 });
 
 test("server error frames reject with their message", async () => {
