@@ -77,6 +77,8 @@ export class MarkdownEditorManager {
       onFocus: () => this.notify(),
       onBlur: () => { this.flush(); this.slash.close(); this.notify(); },
     });
+    // Apply structural plugins before recording the source-preserving baseline.
+    this.editor.view.dispatch(this.editor.state.tr.setMeta("preventUpdate", true).setMeta("addToHistory", false));
     this.blocks.bind(this.editor);
     this.baseline = { text: this.projected, doc: this.editor.state.doc };
     this.notify();
@@ -169,11 +171,11 @@ export class MarkdownEditorManager {
     const json = editor.markdown!.parse(props.value) as JSONContent;
     const doc = editor.schema.nodeFromJSON(json);
     this.projected = props.value;
-    this.baseline = { text: props.value, doc };
     if (!doc.eq(editor.state.doc)) {
       this.contentRevision++;
       editor.view.dispatch(editor.state.tr.replaceWith(0, editor.state.doc.content.size, doc.content).setMeta("preventUpdate", true).setMeta("addToHistory", false));
     }
+    this.baseline = { text: props.value, doc: editor.state.doc };
   }
 
   private notify = () => {

@@ -15,9 +15,11 @@ export function writeBiboTheme(theme: BiboTheme): void {
 
 export function revealedFileLayout(state: {
   files: BiboFile[]; fileDetails: Record<string, BiboFile>; expandedFolders: Record<string, boolean>;
+  view?: string;
 }, id: string) {
   const file = state.files.find((item) => item.id === id) ?? state.fileDetails[id];
   if (!file) return {};
+  if (state.view === "notes" && file.kind !== "note") return { fileBrowserVisible: true };
   const expandedFolders = { ...state.expandedFolders };
   for (const folder of state.files) if (folder.kind === "folder" && file.path.startsWith(`${folder.path}/`)) expandedFolders[folder.id] = true;
   return { expandedFolders, fileBrowserVisible: false, fileQuery: "", fileMatches: [], fileSearchLoading: false };
