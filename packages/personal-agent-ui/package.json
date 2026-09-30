@@ -53,6 +53,7 @@
     "prosemirror-search": "1"
   },
   "devDependencies": {
+    "@types/node": "^24.13.3",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
     "typescript": "^5.9.3",

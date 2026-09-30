@@ -1,5 +1,7 @@
 # 当前执行状态
 
+- 当前追加任务：概览首屏慢；Markdown 重依赖按需加载实现及定向检查已通过，进入 Bibo 生产发布与同条件性能复验。此前视觉父目标暂停状态保持。
+
 - goal：bibo-dots-ui-20260930；telemetry：dt-b1b0d075。
 - flow：standard；本批次阶段：complete；retrospective_state：completed（修复与回归落入原 owner/测试；未新增规则）。视觉优化父目标仍按此前暂停状态保留。
 - 唯一写入根：/Users/peiwang/Projects/nextbot-bibo-dots-ui；分支：codex/bibo-dots-ui；基线：080aec982c76e7a380774db8e52dc37a7c4f0e9d。

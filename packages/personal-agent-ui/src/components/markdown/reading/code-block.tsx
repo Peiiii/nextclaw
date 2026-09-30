@@ -11,10 +11,10 @@ import sql from "highlight.js/lib/languages/sql";
 import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
-import { Button } from "../button";
-import { CopyButton } from "../copy-button";
+import { Button } from "../../button";
+import { CopyButton } from "../../copy-button";
 import { ChatMermaidDiagram } from "@nextclaw/agent-chat-ui";
-import type { MarkdownLabels } from "./markdown";
+import type { MarkdownLabels } from "../markdown";
 
 const languages = {
   bash: { grammar: bash, aliases: ["sh", "zsh"] },
