@@ -96,7 +96,8 @@ try {
         });
       };
       await choose(title);
-      assert.equal(await list.locator('[role="img"][aria-label="未读"]').count(), 2);
+      await page.waitForFunction(() => document.querySelectorAll('.bibo-list-pane [aria-label="未读"]').length === 1);
+      assert.equal(await list.locator('[role="img"][aria-label="未读"]').count(), 1);
       assert.equal(await list.locator("time").first().textContent(), "3分钟前");
       if (width === 1440) {
         await page.clock.fastForward(60_000);
@@ -117,12 +118,11 @@ try {
       await page.screenshot({ path: `/tmp/bibo-inbox-layout-${width}.png`, fullPage: true });
       const reader = page.locator(".inbox-reader");
       await reader.evaluate((node) => node.scrollTo(0, node.scrollHeight));
-      const read = page.getByRole("button", { name: "标记已读", exact: true });
-      const rect = await read.boundingBox();
+      const resolve = page.getByRole("button", { name: "已处理", exact: true });
+      const rect = await resolve.boundingBox();
       const minimumActionHeight = await page.evaluate(() => matchMedia("(pointer: coarse)").matches ? 44 : 32);
       assert.ok(rect && rect.y >= 0 && rect.y + rect.height <= 200 && rect.height >= minimumActionHeight, "actions remain accessible while reading");
-      await read.click();
-      await read.waitFor({ state: "hidden" });
+      await page.waitForFunction(() => document.querySelectorAll('.bibo-list-pane [aria-label="未读"]').length === 1);
       assert.equal(await list.locator('[role="img"][aria-label="未读"]').count(), 1, "reading removes the unread marker");
       await choose("另一条很长");
       assert.equal(await reader.evaluate((node) => node.scrollTop), 0, "a new message starts at its top");
@@ -136,12 +136,13 @@ try {
       await page.getByRole("heading", { name: title, exact: true }).waitFor({ state: "hidden" });
       const scope = page.getByRole("group", { name: "收件箱范围" });
       await scope.getByRole("button", { name: "未读", exact: true }).click();
-      assert.equal(await list.locator(".ui-list-row").count(), 1);
+      await list.getByRole("heading", { name: "现在很安静" }).waitFor();
+      assert.equal(await list.locator(".ui-list-row").count(), 0);
       await scope.getByRole("button", { name: "全部", exact: true }).click();
       await list.getByRole("button", { name: new RegExp(title) }).waitFor();
       assert.equal(await list.locator(".ui-list-row").count(), 3);
       assert.equal(await list.locator('[role="img"][aria-label="已处理"]').count(), 2, "resolved items show check marks");
-      assert.equal(await list.locator('[role="img"][aria-label="未读"]').count(), 1);
+      assert.equal(await list.locator('[role="img"][aria-label="未读"]').count(), 0);
       const empty = list.getByRole("button", { name: /仅有标题的消息/ });
       assert.equal(await empty.locator("small").count(), 0, "a title-only body has no preview placeholder");
       const insets = await list.locator(".ui-list-row").evaluateAll((rows) => rows.map((row) => {
@@ -163,6 +164,10 @@ try {
       }));
       assert.ok(insets.every(({ inset, title, marker, markerInHeading, date, titleLines, metaLines, separateLines }) => inset === 12 && title === 0 && Math.abs(marker) < 1 && markerInHeading && Math.abs(date) < 1 && titleLines <= 1.05 && metaLines <= 1.05 && separateLines), JSON.stringify(insets));
       assert.deepEqual(errors, []);
+      await page.reload({ waitUntil: "networkidle" });
+      await page.getByRole("group", { name: "收件箱范围" }).getByRole("button", { name: "全部", exact: true }).click();
+      await list.getByRole("button", { name: new RegExp(title) }).waitFor();
+      assert.equal(await list.locator('[role="img"][aria-label="未读"]').count(), 0, "automatic read state survives refresh");
       await page.close();
       console.log(`Bibo inbox layout passed: ${width}px`);
     }

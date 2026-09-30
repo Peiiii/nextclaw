@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { Button, ConfirmDialog, LoadingState, Markdown, MarkdownEditor, Notice, SegmentedControl } from "@nextclaw/personal-agent-ui";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Check, Eye, SquarePen } from "lucide-react";
+import { Button, ConfirmDialog, IconButton, LoadingState, Markdown, MarkdownEditor, Notice, SegmentedControl } from "@nextclaw/personal-agent-ui";
 import { FileActions } from "./file-actions";
 import { FileDocumentTools } from "./file-document-tools";
 import { FileDocumentManager, type FileDocumentView } from "@/features/space/managers/file-document.manager";
@@ -7,7 +9,10 @@ import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
 import { FileBreadcrumbs } from "./file-breadcrumbs";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
-export function FileEditor({ id, compact = false, defaultPreview = true, tabId, preview: selectedPreview, onPreviewChange }: { id: string; compact?: boolean; defaultPreview?: boolean; tabId?: string; preview?: boolean; onPreviewChange?: (preview: boolean) => void }) {
+export const FileEditorHeader = createContext<HTMLElement | null>(null);
+
+export function FileEditor({ id, compact = false, notesOnly = false, defaultPreview = true, tabId, preview: selectedPreview, onPreviewChange }: { id: string; compact?: boolean; notesOnly?: boolean; defaultPreview?: boolean; tabId?: string; preview?: boolean; onPreviewChange?: (preview: boolean) => void }) {
+  const headerContainer = useContext(FileEditorHeader);
   const { fileDetails, fileDrafts, draftStorageError, editFile, saveFile, resolveFileConflict, openWorkspace, openFile, uploadImage } = useBiboSpaceStore();
   const [localPreview, setLocalPreview] = useState(defaultPreview);
   const [source, setSource] = useState(selectedPreview === false);
@@ -18,6 +23,7 @@ export function FileEditor({ id, compact = false, defaultPreview = true, tabId, 
   const [recovery, setRecovery] = useState<"reload" | "overwrite" | null>(null);
   const [failure, setFailure] = useState("");
   const [documentView, setDocumentView] = useState<FileDocumentView | null>(null);
+  const [toolbarContainer, setToolbarContainer] = useState<HTMLDivElement | null>(null);
   const [documentManager] = useState(() => new FileDocumentManager(setDocumentView));
   useEffect(() => () => documentManager.destroy(), [documentManager]);
   const recover = async () => {
@@ -40,34 +46,29 @@ export function FileEditor({ id, compact = false, defaultPreview = true, tabId, 
     setPreview(mode === "preview");
   };
   const framed = `<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:"><style>body{margin:18px;font:14px/1.7 sans-serif;color:#29312a}</style>${draft.content}`;
+  const tools = <div className="file-editor-tools">
+    <div ref={setToolbarContainer} />
+    {!restricted && (notesOnly ? <IconButton label={preview ? copy.fileEdit : copy.filePreview} icon={preview ? <SquarePen /> : <Eye />} onClick={() => changeMode(preview ? "edit" : "preview")} /> : <SegmentedControl
+      label="文件模式" value={preview ? "preview" : source && markdown ? "source" : "edit"}
+      options={[{ value: "preview", label: copy.filePreview }, { value: "edit", label: copy.fileEdit }, ...(source && markdown ? [{ value: "source", label: copy.fileSource }] : [])]}
+      onChange={changeMode} />)}
+    {!restricted && (draft.dirty || draft.saving) && (notesOnly ? <IconButton label={draft.saving ? copy.fileSaving : copy.fileSave} icon={<Check />} disabled={draft.saving} onClick={() => void saveFile(id)} /> : <Button tone="primary" disabled={draft.saving} onClick={() => void saveFile(id)}>{draft.saving ? copy.fileSaving : copy.fileSave}</Button>)}
+    {!restricted && markdown && (preview || !source) && <FileDocumentTools manager={documentManager} view={documentView ?? documentManager.initial} />}
+    <FileActions key={id} file={detail} label="文件操作" onSource={!restricted && markdown ? () => changeMode("source") : undefined} />
+  </div>;
   return (
-    <div ref={element => { if (element) documentManager.bind(element); }} className={`bibo-file-editor${compact ? " is-compact" : ""}`} role={tabId ? "tabpanel" : undefined} id={tabId ? `${tabId}-panel` : undefined} aria-labelledby={tabId} onKeyDown={(event) => {
+    <div ref={element => { if (element) documentManager.bind(element); }} className={`bibo-file-editor${compact ? " is-compact" : ""}${notesOnly ? " is-note-editor" : ""}`} role={tabId ? "tabpanel" : undefined} id={tabId ? `${tabId}-panel` : undefined} aria-labelledby={tabId} onKeyDown={(event) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
         const latest = useBiboSpaceStore.getState().fileDrafts[id];
         if (latest?.dirty && !latest.saving) void saveFile(id);
       }
     }}>
-      <div className="bibo-file-editor-head">
-        <h2 className="visually-hidden">{detail.path.split("/").at(-1)}</h2>
-        <FileBreadcrumbs path={detail.path} onOpenFile={(id) => void (compact ? openWorkspace(id) : openFile(id))} />
-        <div className="file-editor-tools">
-          {!restricted && <SegmentedControl
-            label="文件模式"
-            value={preview ? "preview" : source && markdown ? "source" : "edit"}
-            options={[
-              { value: "preview", label: copy.filePreview },
-              { value: "edit", label: copy.fileEdit },
-              ...(source && markdown ? [{ value: "source", label: copy.fileSource }] : []),
-            ]}
-            onChange={changeMode}
-          />}
-          {!restricted && (draft.dirty || draft.saving) && <Button tone="primary" disabled={draft.saving} onClick={() => void saveFile(id)}>{draft.saving ? copy.fileSaving : copy.fileSave}</Button>}
-          {!restricted && markdown && (preview || !source) && <FileDocumentTools manager={documentManager} view={documentView ?? documentManager.initial} />}
-          <a className="underline" href={`/api/workspace/file?path=${encodeURIComponent(detail.path)}`} download>{copy.fileDownload}</a>
-          <FileActions key={id} file={detail} label="文件操作" onSource={!restricted && markdown ? () => changeMode("source") : undefined} />
-        </div>
-      </div>
+      <h2 className="visually-hidden">{detail.path.split("/").at(-1)}</h2>
+      {notesOnly ? headerContainer && createPortal(tools, headerContainer) : <div className="bibo-file-editor-head">
+        <div className="file-editor-location"><FileBreadcrumbs path={detail.path} onOpenFile={(id) => void (compact ? openWorkspace(id) : openFile(id))} /></div>
+        {tools}
+      </div>}
       {draftStorageError && <Notice tone="error">{draftStorageError}</Notice>}
       {draft.error && <Notice tone="error">{draft.error}</Notice>}
       {detail.preview && <p className="file-preview-notice" role="status">{detail.preview.binary ? copy.fileBinaryPreview : copy.filePreviewReadOnly}（{copy.fileByteCount.replace("{count}", detail.preview.totalBytes.toLocaleString())}）</p>}
@@ -91,7 +92,7 @@ export function FileEditor({ id, compact = false, defaultPreview = true, tabId, 
         )
       )}
       {!restricted && (editorOpened || !preview) && <div className="bibo-file-editor-surface" hidden={preview}>
-        <MarkdownEditor value={draft.content} onChange={(value) => editFile(id, value)} source={source || !markdown} active={!preview} label={`${copy.fileEdit} ${detail.path}`} labels={copy.markdownEditor} uploadImage={uploadImage} scrollProgress={previewScroll.current} onScrollProgress={(progress) => { if (!preview) previewScroll.current = progress; }} />
+        <MarkdownEditor toolbarContainer={toolbarContainer} value={draft.content} onChange={(value) => editFile(id, value)} source={source || !markdown} active={!preview} label={`${copy.fileEdit} ${detail.path}`} labels={copy.markdownEditor} uploadImage={uploadImage} scrollProgress={previewScroll.current} onScrollProgress={(progress) => { if (!preview) previewScroll.current = progress; }} />
       </div>}
       <div className="bibo-file-editor-status" role="status" aria-live="polite" title={draft.dirty ? copy.fileUnsaved : `已保存 · v${draft.version}`}>
         <span>{draft.saving ? copy.fileSaving : draft.conflict ? copy.fileConflict : draft.error ? copy.fileSaveFailed : draft.dirty ? copy.fileUnsaved : copy.fileSaved}</span>

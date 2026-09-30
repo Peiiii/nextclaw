@@ -68,7 +68,7 @@ class WorkspaceResourceManager {
       if (object[1] === "chat") navigateConversation(id);
       else if (object[1] === "tasks") { navigateWorkspace("tasks"); state.selectTask(id); }
       else if (object[1] === "calendar") { navigateWorkspace("calendar"); state.selectEvent(id); }
-      else if (object[1] === "inbox") { navigateWorkspace("inbox"); state.selectInbox(id); }
+      else if (object[1] === "inbox") { navigateWorkspace("inbox"); state.inboxReader.select(id); }
     } catch (error) {
       if (current() && (!fileRequest || view !== "chat" || useBiboSpaceStore.getState().workspaceOpen)) useBiboSpaceStore.setState({ ...(view === "chat" ? { workspaceOpen: true } : {}), error: error instanceof Error ? error.message : "暂时无法打开资源。" });
     } finally {

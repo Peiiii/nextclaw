@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { MarkdownEditorManager } from "../../managers/markdown-editor.manager";
 import { MarkdownEditorToolbar } from "./markdown-editor-toolbar";
@@ -31,6 +32,7 @@ export function RichMarkdownEditor(props: MarkdownEditorProps) {
   const [replacement, setReplacement] = useState("");
   const text = props.labels.rich;
   const didMount = (failure?: string) => { if (failure) setError(failure); else setReady(true); };
+  const toolbar = <MarkdownEditorToolbar labels={props.labels} selection={selection} manager={ready ? manager.current : undefined} compact={props.layout !== "embedded"} onSearch={() => setSearching((value) => !value)} />;
   useEffect(() => {
     let cancelled = false;
     const editor = new MarkdownEditorManager(current.current, (state) => { if (!cancelled) setSelection(state); }, () => setSearching(true), setInspector, setSlash, setBlock, failure => { if (!cancelled) didMount(failure); });
@@ -46,7 +48,7 @@ export function RichMarkdownEditor(props: MarkdownEditorProps) {
     return () => cancelAnimationFrame(frame);
   }, [props.active, ready]);
   return <div className="ui-markdown-editor ui-rich-markdown-editor">
-    <MarkdownEditorToolbar labels={props.labels} selection={selection} manager={ready ? manager.current : undefined} onSearch={() => setSearching((value) => !value)} />
+    {props.toolbarContainer ? props.active && createPortal(toolbar, props.toolbarContainer) : toolbar}
     {selection.uploading && <div className="ui-markdown-upload-status" role="status">{text.uploadingImage}</div>}
     {selection.uploadError && <div className="ui-markdown-upload-status" role="alert"><span>{selection.uploadError}</span><IconButton label={text.close} icon={<X />} onClick={() => manager.current?.clearUploadError()} /></div>}
     {searching && <div className="ui-markdown-search" role="search" onKeyDown={(event) => { if (event.key === "Escape") { setSearching(false); manager.current?.focus(); } }}>

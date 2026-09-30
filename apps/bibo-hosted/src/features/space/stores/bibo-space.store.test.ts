@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import test, { type TestContext } from "node:test";
+import test, { type TestContext, type Mock } from "node:test";
+import type { BiboInboxItem } from "@nextclaw/bibo-client";
 import type { useBiboSpaceStore as BiboSpaceStoreHook } from "./bibo-space.store";
 
 test("space lifecycle isolates accounts, preserves failed drafts and safely resumes file tabs", async (t) => {
@@ -8,7 +9,7 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
   t.after(() => { globalThis.window = originalWindow; });
   const responses: Array<(response: Response) => void> = [];
   const requests: Array<{ action: string; input: Record<string, unknown> }> = [];
-  t.mock.method(globalThis, "fetch", (_url: unknown, init: RequestInit) => {
+  const fetchMock = t.mock.method(globalThis, "fetch", (_url: unknown, init: RequestInit) => {
     requests.push(JSON.parse(init.body as string));
     return new Promise<Response>((resolve) => responses.push(resolve));
   });
@@ -225,6 +226,7 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
   await checkMissingFileWarning(t, useBiboSpaceStore, requests, responses);
   await checkWriteFeedback(t, responses, overview);
   await checkPreviewProtection(t, useBiboSpaceStore, requests);
+  await checkInboxRead(t, useBiboSpaceStore, fetchMock);
 });
 
 async function checkPreviewProtection(t: TestContext, useBiboSpaceStore: typeof BiboSpaceStoreHook,
@@ -318,5 +320,69 @@ async function checkWriteFeedback(t: TestContext, responses: Array<(response: Re
     assert.equal(useBiboSpaceStore.getState().actionError, "");
     assert.equal(useBiboSpaceStore.getState().error, "操作已保存，视图暂未刷新。请重试读取。");
     assert.equal(useBiboSpaceStore.getState().readStatus.tasks, "error");
+  });
+}
+
+
+async function checkInboxRead(t: TestContext, useBiboSpaceStore: typeof BiboSpaceStoreHook, fetchMock: Mock<typeof fetch>): Promise<void> {
+  const item = (id: string): BiboInboxItem => ({ id, title: id, body: "body", kind: "agent", source: { kind: "bibo" }, createdAt: "now", updatedAt: "now", readAt: null, resolvedAt: null, version: 1 });
+  const items = [item("one"), item("two"), item("retry"), item("filtered"), item("previous-account")];
+  const writes: Array<{ id: string; resolve: (response: Response) => void }> = [];
+  fetchMock.mock.mockImplementation((_url: unknown, init?: RequestInit) => {
+    const { action, input } = JSON.parse(init!.body as string);
+    if (action === "inbox.read") return new Promise<Response>(resolve => writes.push({ id: input.id, resolve }));
+    const result = action === "overview.get" ? { inbox: items, tasks: [], events: [], notes: [], projects: [], counts: { unread: items.filter(entry => !entry.readAt).length, activeTasks: 0 } }
+      : action === "inbox.get" ? items.find(entry => entry.id === input.id) : { items, nextCursor: null };
+    return Promise.resolve(Response.json({ result }));
+  });
+  useBiboSpaceStore.getState().bindAccount("inbox-reader");
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const owner = useBiboSpaceStore.getState();
+  useBiboSpaceStore.setState({ inbox: items.map(entry => ({ ...entry })), inboxScope: "pending" });
+  const acknowledge = (id: string) => {
+    const saved = items.find(entry => entry.id === id)!;
+    saved.readAt = "2026-09-30T00:00:00Z"; saved.version++;
+    writes.findLast(write => write.id === id)!.resolve(Response.json({ result: saved }));
+  };
+  await t.test("rapid selection marks each visible message once and retains the newest reader", async () => {
+    owner.inboxReader.select("one"); owner.inboxReader.select("one"); owner.inboxReader.select("two");
+    assert.deepEqual(writes.map(write => write.id), ["one", "two"]);
+    assert.equal(useBiboSpaceStore.getState().inbox[0]?.readAt, null, "read state only changes after persistence acknowledges");
+    acknowledge("two"); acknowledge("one");
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(useBiboSpaceStore.getState().selectedInboxId, "two");
+    assert.equal(useBiboSpaceStore.getState().inboxSelection?.readAt, items[1]!.readAt);
+    assert.equal(useBiboSpaceStore.getState().overview?.counts.unread, 3);
+    owner.inboxReader.select("one");
+    assert.equal(writes.length, 2, "reopening a read message does not write again");
+  });
+  await t.test("write failure retains unread state and permits explicit retry", async () => {
+    owner.inboxReader.select("retry");
+    writes.at(-1)!.resolve(Response.json({ error: "read failed" }, { status: 503 }));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(useBiboSpaceStore.getState().inboxReadError?.message, "read failed");
+    assert.equal(useBiboSpaceStore.getState().inbox.find(entry => entry.id === "retry")?.readAt, null);
+    const retry = owner.inboxReader.read(useBiboSpaceStore.getState().inboxSelection!);
+    acknowledge("retry"); await retry;
+    assert.equal(useBiboSpaceStore.getState().inboxReadError, null);
+    assert.equal(useBiboSpaceStore.getState().inboxReading.retry, undefined);
+  });
+  await t.test("an unread filter removes the saved row while retaining its reader", async () => {
+    useBiboSpaceStore.setState({ inboxScope: "unread" });
+    owner.inboxReader.select("filtered");
+    acknowledge("filtered");
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(useBiboSpaceStore.getState().inbox.some(entry => entry.id === "filtered"), false);
+    assert.equal(useBiboSpaceStore.getState().inboxSelection?.id, "filtered");
+    assert.ok(useBiboSpaceStore.getState().inboxSelection?.readAt);
+  });
+  await t.test("a stale account response cannot update the active reader", async () => {
+    owner.inboxReader.select("previous-account");
+    useBiboSpaceStore.getState().bindAccount("next-reader");
+    acknowledge("previous-account");
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(useBiboSpaceStore.getState().selectedInboxId, null);
+    assert.equal(useBiboSpaceStore.getState().inboxSelection, null);
+    assert.deepEqual(useBiboSpaceStore.getState().inboxReading, {});
   });
 }

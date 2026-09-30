@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { useLayoutEffect, useRef } from "react";
 import { Button, EmptyState, IconButton, LoadingState, Notice } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore, type BiboView } from "@/features/space/stores/bibo-space.store";
 import { CalendarView } from "./calendar-view";
@@ -10,16 +11,24 @@ import { FileEditor } from "./files/file-editor";
 import { FileTabs } from "./files/file-tabs";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 
-export function BiboWorkspace() {
-  const { workspaceOpen, workspaceResolving, workspaceFileId, workspacePreview, setWorkspacePreview, closeWorkspace, fileDetails, openWorkspace, error, fileOpenError } = useBiboSpaceStore();
-  if (!workspaceOpen) return null;
+export function BiboWorkspace({ onClose }: { onClose: () => void }) {
+  const { workspaceOpen, workspaceResolving, workspaceFileId, workspacePreview, setWorkspacePreview, fileDetails, openWorkspace, error, fileOpenError } = useBiboSpaceStore();
+  const panelRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    if (!workspaceOpen && panel.contains(document.activeElement)) {
+      panel.parentElement?.querySelector<HTMLButtonElement>(`[aria-label="${biboCopy.workspace}"]`)?.focus();
+    }
+    panel.inert = !workspaceOpen;
+  }, [workspaceOpen]);
   const current = workspaceFileId ? fileDetails[workspaceFileId] : null;
   const openError = fileOpenError?.id === workspaceFileId ? fileOpenError.message : "";
   return (
-    <aside className="bibo-workspace" aria-label="右侧工作区">
+    <aside ref={panelRef} className="bibo-workspace" aria-label="右侧工作区" aria-hidden={!workspaceOpen}>
       <div className="bibo-workspace-head" data-ui-surface="frame">
         <FileTabs workspace />
-        <IconButton label={biboCopy.fileCloseWorkspace} icon={<X />} onClick={closeWorkspace} />
+        <IconButton label={biboCopy.fileCloseWorkspace} icon={<X />} onClick={onClose} />
       </div>
       <div className="bibo-workspace-content">
         {(error || openError) && <Notice tone="error">{openError || error}</Notice>}

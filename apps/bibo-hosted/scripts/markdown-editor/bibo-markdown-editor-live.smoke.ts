@@ -50,6 +50,7 @@ async function checkLiveImage(page: Page) {
   await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
   assert.ok((await space<File>("file.get", { path })).content.includes(src));
   await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "预览", exact: true }).click();
   await page.locator(`.ui-markdown-document img[src='${src}']`).waitFor();
   await page.waitForFunction(source => { const image = document.querySelector(`img[src='${source}']`) as HTMLImageElement; return image?.complete && image.naturalWidth === 1; }, src);
   const anonymous = await browser.newContext();
@@ -79,7 +80,8 @@ try {
     assert.equal(saved.content, text, "real server persisted exactly the Markdown text");
     await page.reload({ waitUntil: "networkidle" });
     await page.getByRole("heading", { name: `Markdown 上线验收 ${width}` }).waitFor();
-    assert.equal(await page.getByRole("group", { name: "文件模式" }).getByRole("button", { name: "预览", exact: true }).getAttribute("aria-pressed"), "true");
+    await page.getByRole("button", { name: "预览", exact: true }).click();
+    await page.locator(".ui-markdown-document:visible").getByRole("heading", { name: `Markdown 上线验收 ${width}` }).waitFor();
     await page.getByRole("button", { name: "编辑", exact: true }).click();
     await page.locator(".tiptap:visible h1").waitFor();
     await page.locator(".tiptap:visible").click();

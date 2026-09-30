@@ -33,7 +33,7 @@ export async function checkSessionActionFade(row: Locator): Promise<void> {
 export async function checkContentBounds(page: Page): Promise<void> {
   const overflow = await page.locator(".bibo-topbar-leading, .bibo-topbar-actions, .workspace-toolbar, .bibo-summary-card, .ui-list-row, .bibo-detail-pane, .bibo-workspace, .ui-overlay, [role=menu], .file-editor-tools").evaluateAll((elements) => elements.flatMap((element) => {
     const box = element.getBoundingClientRect();
-    if (!box.width || !box.height) return [];
+    if (!box.width || !box.height || element.closest('[aria-hidden="true"]')) return [];
     return box.left < -1 || box.right > innerWidth + 1 || element.scrollWidth > element.clientWidth + 1
       ? [{ className: element.className, left: box.left, right: box.right, width: element.clientWidth, scrollWidth: element.scrollWidth }] : [];
   }));
@@ -44,6 +44,7 @@ export async function checkThemes(page: Page, width: number, base: string): Prom
   await page.goto(`${base}/chat/session-a`, { waitUntil: "networkidle" });
   if (width > 760) await checkShellFrame(page, width);
   const composer = page.getByRole("textbox", { name: /告诉 Bibo/ });
+  await checkAssistantReading(page);
   await composer.fill("主题切换期间保留草稿");
   const message = await page.locator(".ui-message--assistant").first().elementHandle();
   assert.equal(await page.locator("html").getAttribute("data-bibo-theme"), "classic");
@@ -60,23 +61,36 @@ export async function checkThemes(page: Page, width: number, base: string): Prom
   assert.ok(await message!.evaluate((element) => element.isConnected), "switching themes preserves message nodes");
   assert.equal(await page.locator("html").getAttribute("data-bibo-theme"), "neutral");
   await composer.fill("");
-  await page.reload({ waitUntil: "networkidle" });
-  assert.equal(await page.locator("html").getAttribute("data-bibo-theme"), "neutral", "theme survives refresh");
-  if (width > 760) await checkShellFrame(page, width);
-  if (width < 760) await page.getByRole("button", { name: "打开菜单" }).click();
-  await page.getByRole("button", { name: "账号与帮助" }).click();
-  assert.equal(await page.getByRole("menuitemradio", { name: "简约", exact: true }).getAttribute("aria-checked"), "true");
-  await page.getByRole("menuitemradio", { name: "Bibo 经典" }).click();
-  if (width < 760) {
-    await page.getByRole("dialog").evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-    await page.keyboard.press("Escape");
-    await page.getByRole("dialog").waitFor({ state: "hidden" });
-  }
-  assert.equal(await page.locator("html").getAttribute("data-bibo-theme"), "classic");
+  await checkThemePersistence(page, width);
 }
 
 async function checkShellFrame(page: Page, width: number): Promise<void> {
+  const motion = await page.evaluate<{ opening: number[]; closing: number[]; reversed: number[]; closed: number; inert: boolean }>(`(async () => {
+    const toggle = document.querySelector('[aria-label="打开右侧工作区"]');
+    const panel = document.querySelector('.bibo-workspace');
+    const measure = () => panel.getBoundingClientRect().width;
+    const sample = async (duration) => {
+      const values = [];
+      const started = performance.now();
+      do { await new Promise(requestAnimationFrame); values.push(measure()); } while (performance.now() - started < duration);
+      return values;
+    };
+    toggle.click();
+    const opening = await sample(320);
+    toggle.click();
+    const closing = await sample(40);
+    toggle.click();
+    const reversed = await sample(320);
+    toggle.click();
+    await sample(320);
+    return { opening, closing, reversed, closed:measure(), inert:panel.inert };
+  })()`);
+  assert.ok(motion.opening.some(value => value > 1 && value < motion.opening.at(-1)! - 1), "workspace expands through intermediate widths");
+  assert.ok(motion.closing.at(-1)! < motion.opening.at(-1)!, "workspace animates closed");
+  assert.ok(motion.reversed.at(-1)! > motion.closing.at(-1)!, "rapid reversal smoothly reopens the workspace");
+  assert.ok(motion.closed < 1 && motion.inert, "closed workspace releases its space and focus targets");
   await page.getByRole("button", { name: "打开右侧工作区" }).click();
+  await page.waitForFunction(() => document.querySelector(".bibo-main")!.getAnimations().length === 0);
   await checkRailCenter(page, ".bibo-sidebar-panel");
   const frame = await page.evaluate(() => {
     const nodes = [".bibo-shell", ".bibo-navigation-rail", ".bibo-topbar", ".bibo-workspace-head"].map((selector) => document.querySelector<HTMLElement>(selector)!);
@@ -92,18 +106,30 @@ async function checkShellFrame(page: Page, width: number): Promise<void> {
     const content = document.querySelector<HTMLElement>(".bibo-workspace-content")!;
     return { colors,
       aligned: top.top === head.top && top.bottom === head.bottom && content.getBoundingClientRect().top === top.bottom,
-      radius: parseFloat(getComputedStyle(content).borderTopLeftRadius),
+      radius: parseFloat(getComputedStyle(nodes[3]!).borderTopLeftRadius),
       margin: innerWidth - document.querySelector(".bibo-workspace")!.getBoundingClientRect().right };
   });
-  assert.equal(new Set(frame.colors).size, 1, "left, top and workspace header form one continuous frame");
+  assert.equal(frame.colors[0], frame.colors[1], "rail retains the outer frame color");
+  assert.equal(frame.colors[2], frame.colors[3], "headers share the inner canvas color");
+  assert.notEqual(frame.colors[0], frame.colors[2], "inner canvas separates from the light outer frame");
   assert.equal(frame.aligned, true, "workspace title shares the global header row");
   assert.ok(frame.radius >= 16 && frame.radius <= 20 && frame.margin === 8);
   await page.screenshot({ path: `/tmp/bibo-frame-${width}.png` });
+  await page.locator(".bibo-primary-nav").getByRole("link", { name: "笔记", exact: true }).click();
+  await page.locator(".bibo-note-list").waitFor();
+  await page.locator(".bibo-primary-nav").getByRole("link", { name: "对话", exact: true }).click();
+  await page.locator(".bibo-chat-layout").waitFor();
+  assert.ok(await page.locator(".bibo-main").evaluate(element => element.getAnimations().length === 0 && element.querySelector(".bibo-workspace")!.getBoundingClientRect().width > 300), "returning to chat restores the open workspace without an entrance animation");
   await page.getByRole("button", { name: "关闭工作区" }).click();
+  assert.ok(await page.locator(".bibo-main").evaluate(element => element.getAnimations().length > 0), "the first toggle after returning still animates");
+  await page.waitForFunction(() => document.querySelector(".bibo-workspace")!.getBoundingClientRect().width < 1);
+  assert.ok(await page.locator(".bibo-workspace").evaluate(node => (node as HTMLElement).inert), "closed workspace cannot receive keyboard focus");
   await page.getByRole("button", { name: "收起侧边栏" }).click();
+  await page.waitForFunction(() => document.querySelector(".bibo-sidebar")!.getAnimations().length === 0);
   await checkRailCenter(page, ".bibo-chat-layout");
-  assert.ok(await page.locator(".bibo-chat-layout").evaluate((node) => parseFloat(getComputedStyle(node).borderTopLeftRadius) >= 16), "collapsed navigation retains the inner rounded surface");
+  assert.ok(await page.locator(".bibo-topbar").evaluate((node) => parseFloat(getComputedStyle(node).borderTopLeftRadius) >= 16), "collapsed navigation retains the inner rounded surface");
   await page.getByRole("button", { name: "展开侧边栏" }).click();
+  await page.waitForFunction(() => document.querySelector(".bibo-sidebar")!.getAnimations().length === 0);
 }
 
 async function checkRailCenter(page: Page, contentSelector: string): Promise<void> {
@@ -116,6 +142,10 @@ async function checkRailCenter(page: Page, contentSelector: string): Promise<voi
   }, contentSelector);
   assert.equal(spacing.left, spacing.right, "rail navigation has equal visible margins beside its content surface");
   assert.equal(spacing.accountCenter, spacing.itemCenter, "account and navigation icons share a centerline");
+  assert.ok(await page.locator(".bibo-navigation-rail .account-menu-trigger").evaluate(element => {
+    const button = element.getBoundingClientRect(), icon = element.querySelector("svg")!.getBoundingClientRect();
+    return Math.abs(button.x + button.width / 2 - icon.x - icon.width / 2) < .5 && Math.abs(button.y + button.height / 2 - icon.y - icon.height / 2) < .5;
+  }), "account glyph stays centered inside the shared icon button");
 }
 
 export async function checkControlFeedback(page: Page, width: number, base: string): Promise<void> {
@@ -127,7 +157,7 @@ export async function checkControlFeedback(page: Page, width: number, base: stri
   assert.equal(await page.getByRole("tooltip").count(), 0, "content rows do not repeat their title in tooltips");
   assert.equal(await row.evaluate((element) => getComputedStyle(element).borderRadius), "8px");
   await row.click();
-  const action = page.getByRole("button", { name: "标记已读", exact: true });
+  const action = page.getByRole("button", { name: "已处理", exact: true });
   const coarse = await page.evaluate(() => matchMedia("(pointer: coarse)").matches);
   assert.equal(await action.evaluate((element) => element.getBoundingClientRect().height), coarse ? 44 : 32);
   await action.hover();
@@ -156,13 +186,22 @@ async function checkIconFeedback(page: Page, base: string): Promise<void> {
     surface: getComputedStyle(element.closest(".bibo-shell")!).backgroundColor,
   }));
   assert.notEqual(frameFeedback.hover, frameFeedback.surface, "shared icon hover contrasts with the frame background");
-  const sidebarAction = page.locator(".bibo-session-head .ui-icon-button");
+  const sidebarAction = page.getByRole("button", { name: "新建会话", exact: true });
   await sidebarAction.hover();
   const sidebarFeedback = await sidebarAction.evaluate((element) => ({
     hover: getComputedStyle(element, "::before").backgroundColor,
     surface: getComputedStyle(element.closest(".bibo-sidebar-panel")!).backgroundColor,
   }));
   assert.notEqual(sidebarFeedback.hover, sidebarFeedback.surface, "shared icon hover contrasts with the sidebar background");
+  const account = page.getByRole("button", { name: "账号与帮助", exact: true });
+  await account.hover();
+  assert.ok(await account.evaluate(element => getComputedStyle(element, "::before").backgroundColor !== getComputedStyle(element.closest(".bibo-navigation-rail")!).backgroundColor), "account icon hover contrasts with the rail");
+  await account.click();
+  await page.getByRole("menuitemradio", { name: "Bibo 经典" }).waitFor();
+  await page.mouse.click(500, 300);
+  await page.getByRole("menu").waitFor({ state: "hidden" });
+  assert.equal(await account.evaluate(element => element === document.activeElement), false, "pointer dismissal does not restore trigger focus");
+  assert.equal(await page.getByRole("tooltip").count(), 0, "pointer dismissal leaves no tooltip");
 }
 
 async function checkNavigationFeedback(page: Page, width: number): Promise<void> {
@@ -189,7 +228,7 @@ async function checkNavigationFeedback(page: Page, width: number): Promise<void>
     });
     assert.equal(feedback.background, "rgba(0, 0, 0, 0)", "selection does not fill the whole navigation slot");
     assert.ok(feedback.width <= 56 && feedback.width > 30);
-    assert.equal(feedback.radius, "10px");
+    assert.equal(feedback.radius, "12px");
   }
 }
 
@@ -218,4 +257,73 @@ export async function checkFileTabs(page: Page): Promise<void> {
   await openMarkdownSource(page);
   await editor.waitFor();
   assert.equal(await editor.textContent(), "未保存的文件草稿");
+}
+
+async function checkAssistantReading(page: Page): Promise<void> {
+  assert.ok(await page.locator(".ui-message--assistant").first().evaluate(element => {
+    const body = element.querySelector(".ui-message__body")!, actions = element.querySelector(".ui-message__actions")!;
+    const probe = document.createElement("span");
+    probe.style.background = "var(--ui-assistant-message)"; element.append(probe);
+    const background = getComputedStyle(probe).backgroundColor; probe.remove();
+    return getComputedStyle(body).backgroundColor === background && background !== "rgba(0, 0, 0, 0)" && Math.abs(body.getBoundingClientRect().left - actions.getBoundingClientRect().left) < 1;
+  }), "assistant reading card stays neutral and copy actions align left");
+}
+
+export async function checkOverviewCanvas(page: Page, width: number): Promise<void> {
+      if (width > 760) {
+        await page.getByRole("button", { name: "收起侧边栏" }).click();
+        await page.waitForFunction(() => document.querySelector(".bibo-sidebar")!.getAnimations().length === 0);
+        assert.ok(await page.locator(".bibo-space-scroll").evaluate(element => {
+          const style = getComputedStyle(element), box = element.getBoundingClientRect();
+          return box.top === 8 && parseFloat(style.borderTopLeftRadius) >= 16 && parseFloat(style.borderTopRightRadius) >= 16 && !element.contains(document.elementFromPoint(box.left + 1, box.top + 1)) && !element.contains(document.elementFromPoint(box.right - 1, box.top + 1));
+        }), "overview without a header clips both upper corners when navigation collapses");
+        await page.getByRole("button", { name: "展开侧边栏" }).click();
+        await page.waitForFunction(() => document.querySelector(".bibo-sidebar")!.getAnimations().length === 0);
+      }
+}
+
+async function checkThemePersistence(page: Page, width: number): Promise<void> {
+  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await page.locator("html").getAttribute("data-bibo-theme"), "neutral", "theme survives refresh");
+  if (width > 760) await checkShellFrame(page, width);
+  if (width < 760) await page.getByRole("button", { name: "打开菜单" }).click();
+  await page.getByRole("button", { name: "账号与帮助" }).click();
+  assert.equal(await page.getByRole("menuitemradio", { name: "简约", exact: true }).getAttribute("aria-checked"), "true");
+  await page.getByRole("menuitemradio", { name: "Bibo 经典" }).click();
+  if (width < 760) {
+    await page.getByRole("dialog").evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    await page.keyboard.press("Escape");
+    await page.getByRole("dialog").waitFor({ state: "hidden" });
+  }
+  assert.equal(await page.locator("html").getAttribute("data-bibo-theme"), "classic");
+}
+
+export async function checkMobileDrawerTooltip(page: Page, width: number, touch: boolean, base: string): Promise<void> {
+  await page.goto(`${base}/chat`, { waitUntil: "networkidle" });
+  const trigger = page.getByRole("button", { name: "打开菜单", exact: true });
+  if (touch) await trigger.tap(); else await trigger.click();
+  const drawer = page.getByRole("dialog", { name: "个人空间" });
+  await drawer.waitFor();
+  const nav = await drawer.locator(".bibo-primary-nav").evaluate((element) => {
+    const first = element.querySelector("a")!;
+    const navBox = element.getBoundingClientRect();
+    const itemBox = first.getBoundingClientRect();
+    return { justify: getComputedStyle(element).justifyItems, left: itemBox.left - navBox.left, right: navBox.right - itemBox.right };
+  });
+  assert.equal(nav.justify, "normal", "mobile drawer navigation remains left aligned");
+  assert.ok(Math.abs(nav.left - nav.right) <= 1, "mobile navigation fills the drawer instead of centering its labels");
+  await page.waitForTimeout(400);
+  assert.equal(await page.getByRole("tooltip").count(), 0, "opening a mobile drawer must not display a tooltip");
+  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("role")), "dialog");
+  await page.screenshot({ path: `/tmp/bibo-mobile-drawer-${width}${touch ? "" : "-hybrid"}.png` });
+  await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("aria-label")), "关闭导航");
+  await page.getByRole("button", { name: "新建会话" }).focus();
+  await page.waitForTimeout(400);
+  assert.equal(await page.getByRole("tooltip").count(), 0, "a focused drawer action must not show a floating tooltip");
+  await page.keyboard.press("Escape");
+  await drawer.waitFor({ state: "hidden" });
+  await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "打开菜单", undefined, { timeout: 1500 });
+  await page.waitForTimeout(400);
+  assert.equal(await page.getByRole("tooltip").count(), 0, "restoring focus must not display a tooltip");
 }

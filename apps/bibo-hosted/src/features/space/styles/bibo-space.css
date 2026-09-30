@@ -295,8 +295,9 @@
 .bibo-files-layout.is-tree-collapsed { @apply [grid-template-columns:minmax(0,_1fr)]; }
 .bibo-files-layout.is-tree-collapsed .bibo-file-tree { @apply hidden; }
 .file-tree-toggle { @apply flex items-center flex-none px-2; }
-.bibo-files-layout:has(.bibo-note-list) { @apply [grid-template-columns:280px_minmax(0,_1fr)]; }
-.bibo-file-tree, .bibo-note-list { @apply min-w-0 [border-right:1px_solid_var(--bibo-hairline)] overflow-hidden; }
+.bibo-files-layout:has(.bibo-note-list) { grid-template-columns:minmax(0,1fr); }
+.is-notes-page .bibo-files-layout.is-browser-visible > .bibo-file-workbench, .is-notes-page .bibo-files-layout.is-content-visible > .bibo-note-list { display:none; }
+.bibo-file-tree { @apply min-w-0 [border-right:1px_solid_var(--bibo-hairline)] overflow-hidden; }
 .bibo-file-tree { @apply relative flex flex-col; }
 .file-tree-resizer { @apply absolute right-0 top-0 bottom-0 [width:7px] cursor-col-resize [touch-action:none]; }
 .file-tree-resizer:hover, .file-tree-resizer:focus-visible { @apply [background:var(--ui-selection)]; }
@@ -319,14 +320,29 @@
 .bibo-tree-empty-folder { @apply [margin:4px_0_9px] [color:var(--ui-muted)] text-base; }
 .bibo-tree-search-error { @apply [padding:4px_12px] [color:var(--ui-danger)] text-base; }
 .bibo-tree-search-error p { @apply [margin:0_0_5px]; }
-.bibo-note-list { @apply overflow-y-auto; }
-.bibo-note-list .ui-list-row { @apply block [min-height:65px]; }
+.bibo-note-list { min-width:0; overflow-y:auto; padding:32px 48px; border:0; }
+.bibo-notes-heading { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:32px; }
+.bibo-notes-heading h1 { margin:0; font-size:28px; font-weight:600; letter-spacing:-.025em; }
+.bibo-notes-actions { display:flex; align-items:center; gap:12px; --ui-button-radius:999px; }
+.bibo-notes-search { display:flex; align-items:center; gap:8px; width:240px; padding:0 12px; border:1px solid var(--ui-control-border); border-radius:999px; }
+.bibo-notes-search svg { width:16px; height:16px; color:var(--ui-muted); flex:none; }
+.bibo-notes-search .ui-control { border:0; background:transparent; padding-inline:0; }
+.bibo-notes-columns { display:flex; justify-content:space-between; padding:0 16px 12px; color:var(--ui-muted); border-bottom:1px solid var(--ui-line); }
+.bibo-note-list .ui-list-row-group { margin:4px 0; }
+.bibo-note-list .ui-list-row { display:flex; align-items:center; gap:12px; min-height:52px; }
+.bibo-note-list .ui-list-row > svg { width:30px; height:30px; padding:6px; border:1px solid var(--ui-line); border-radius:8px; color:var(--ui-primary); flex:none; }
+.bibo-note-list .ui-list-row strong { display:block; flex:1; min-width:0; font-weight:400; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bibo-note-list .ui-list-row small { margin:0; white-space:nowrap; color:var(--ui-muted); }
 .bibo-file-tree > .ui-button, .bibo-note-list > .ui-button { @apply flex-none w-full [border-top:1px_solid_var(--bibo-hairline)] [border-radius:0]; }
 .bibo-file-workbench { @apply min-w-0 min-h-0 flex flex-col; }
 .file-mobile-back { @apply hidden; }
-.bibo-file-tabs { @apply flex flex-1 min-w-0 overflow-x-auto [scrollbar-width:thin]; }
+.file-mobile-back.is-notes-back { display:block; flex:none; }
+.bibo-file-tabs { @apply flex flex-1 min-w-0 overflow-x-auto [scrollbar-width:thin]; --ui-tab-radius:10px; }
 .bibo-file-editor { @apply flex-1 min-w-0 min-h-0 flex flex-col; }
-.bibo-file-editor-head { @apply flex flex-none h-11 items-center justify-between gap-1 [padding:0_8px] [box-shadow:inset_0_-1px_var(--ui-line)]; }
+.bibo-file-editor.is-note-editor { --document-top-padding:80px; }
+.bibo-file-editor.is-compact { --document-top-padding:28px; --document-left-padding:32px; --document-right-padding:24px; }
+.bibo-file-editor-head { @apply flex flex-none items-center justify-between gap-2 [padding:6px_12px]; --ui-button-radius:999px; --ui-icon-radius:50%; }
+.file-editor-location { flex:1; min-width:0; overflow:hidden; }
 .file-breadcrumb { @apply flex flex-1 min-w-0 items-center overflow-x-auto overflow-y-hidden whitespace-nowrap [scrollbar-width:thin] [color:var(--ui-muted)] text-base; }
 .file-breadcrumb > svg { @apply w-3.5 h-3.5 flex-none; }
 .file-breadcrumb > .ui-button { @apply flex-none px-1; }
@@ -338,7 +354,7 @@
 .file-directory-entry > span:not(.bibo-file-kind-icon) { @apply flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left; }
 .file-directory-entry > svg { @apply w-4 h-4 flex-none; }
 @media (min-width: 761px) and (max-width: 900px) {
-  .bibo-files-layout, .bibo-files-layout:has(.bibo-note-list) { @apply [grid-template-columns:220px_minmax(0,_1fr)]; }
+  .bibo-files-layout:not(:has(.bibo-note-list)) { @apply [grid-template-columns:220px_minmax(0,_1fr)]; }
   .bibo-files-layout.is-tree-collapsed { @apply [grid-template-columns:minmax(0,_1fr)]; }
 }
 .file-conflict, .file-preview-notice { @apply flex-none [padding:12px_16px] [border-bottom:1px_solid_var(--ui-line)] [background:var(--ui-canvas)] [color:var(--ui-ink)] text-base; }
@@ -348,7 +364,7 @@
 .bibo-file-editor-surface { @apply flex flex-1 min-h-0 min-w-0; }
 .bibo-file-editor-surface[hidden] { display: none; }
 .bibo-file-preview-markdown { padding:0; }
-.bibo-file-editor-status { @apply flex flex-none flex-wrap justify-between gap-2 px-4 py-1 [border-top:1px_solid_var(--ui-line)] [color:var(--ui-muted)] text-base; }
+.bibo-file-editor-status { @apply flex flex-none flex-wrap justify-end gap-2 px-4 py-1 [color:var(--ui-muted)] text-base; }
 .bibo-document-tools { width:260px; max-width:calc(100vw - 48px); }
 .bibo-document-outline-title { padding:4px 8px 8px; color:var(--ui-muted); font-size:12px; }
 .bibo-document-outline { max-height:min(25vh,200px); overflow:auto; }
@@ -387,12 +403,7 @@
   .calendar-mobile-agenda .bibo-day-agenda { @apply [height:auto] p-4 overflow-visible; }
   .calendar-mobile-agenda .bibo-agenda-heading { @apply pb-2.5; }
   .calendar-mobile-agenda .bibo-agenda-heading h2 { @apply [font-family:inherit] text-base font-semibold [line-height:1.4]; }
-  .bibo-mobile-nav { @apply fixed [z-index:4] bottom-0 left-0 right-0 [height:calc(56px_+_env(safe-area-inset-bottom))] flex items-stretch justify-around [padding-bottom:env(safe-area-inset-bottom)] [border-top:1px_solid_var(--bibo-hairline)] [background:var(--ui-surface)]; }
-  .bibo-mobile-nav a, .bibo-mobile-nav button { @apply relative isolate flex-1 flex flex-col items-center justify-center gap-0.5 border-0 bg-transparent bg-none [color:var(--ui-muted)] no-underline text-base cursor-pointer; }
-  .bibo-mobile-nav :is(a, button)::before { @apply content-[""] absolute -z-10 [top:6px] [width:calc(100%_-_12px)] [max-width:56px] [height:44px] [border-radius:10px]; }
-  .bibo-mobile-nav svg { @apply [width:18px] [height:18px] [stroke-width:1.7]; }
-  .bibo-mobile-nav .is-active { @apply [color:var(--ui-ink)]; }
-  .bibo-mobile-nav .is-active::before { @apply [background:var(--ui-selection)]; }
+  .bibo-mobile-nav { @apply fixed [z-index:4] bottom-0 left-0 right-0 [height:calc(56px_+_env(safe-area-inset-bottom))] grid [grid-template-columns:repeat(5,_minmax(0,_1fr))] [padding-bottom:env(safe-area-inset-bottom)] [border-top:1px_solid_var(--bibo-hairline)] [background:var(--ui-surface)]; }
   .bibo-page { @apply [padding:24px_16px_42px]; }
   .bibo-page-title { @apply items-start; }
   .bibo-page-title h1 { @apply text-2xl; }
@@ -444,8 +455,6 @@
   .bibo-form-pair { @apply [grid-template-columns:1fr] gap-0; }
 }
 
-.bibo-mobile-nav :is(a, button):hover::before, .bibo-mobile-nav :is(a, button):active::before { @apply [background:var(--ui-hover)]; }
-.bibo-mobile-nav .is-active:hover::before, .bibo-mobile-nav .is-active:active::before { @apply [background:var(--ui-selection-hover)]; }
 .bibo-check-row:hover { @apply [background:var(--ui-hover)]; }
 .bibo-check-row button:hover { @apply [color:var(--ui-danger)]; }
 @media (pointer: coarse) { .bibo-tree-main { @apply [min-height:44px]; } }
@@ -455,4 +464,13 @@
   .ui-overlay--sheet:has(.bibo-sidebar.is-drawer) .ui-overlay__title { @apply absolute [width:1px] [height:1px] overflow-hidden [clip-path:inset(50%)] whitespace-nowrap; }
   .ui-overlay--sheet:has(.bibo-sidebar.is-drawer) .ui-overlay__header .ui-icon-button { @apply absolute top-3.5 right-4; }
   .ui-overlay--sheet:has(.bibo-sidebar.is-drawer) .ui-overlay__body { @apply [padding:12px_16px_14px]; }
+}
+@media (max-width:760px) {
+  .is-notes-page .bibo-note-list { flex:1; max-height:none; padding:24px 16px; border:0; }
+  .bibo-notes-heading { flex-direction:column; align-items:stretch; gap:16px; margin-bottom:32px; }
+  .bibo-notes-heading h1 { font-size:24px; }
+  .bibo-notes-search { flex:1; min-width:0; width:auto; }
+  .bibo-notes-actions { gap:8px; }
+  .bibo-notes-columns { font-size:12px; }
+  .bibo-note-list .ui-list-row small { font-size:12px; max-width:80px; overflow:hidden; text-overflow:ellipsis; }
 }

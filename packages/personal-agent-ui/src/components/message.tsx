@@ -18,12 +18,13 @@ type MessageProps = {
 };
 
 export function Message({ role, text, body, pending = false, label, mark, copyLabel, copiedLabel, copyFailedLabel, waitingLabel, markdownLabels, resolveResourceHref }: MessageProps) {
-  return <article className={`ui-message ui-message--${role}${pending ? " ui-message--pending" : ""}`}>
+  const waiting = role === "assistant" && pending && !text && body === undefined;
+  return <article className={`ui-message ui-message--${role}${pending ? " ui-message--pending" : ""}${waiting ? " ui-message--waiting" : ""}`}>
     <div className="ui-message__meta">{role === "assistant" && mark && <span className="ui-message__mark" aria-hidden="true">{mark}</span>}{label}</div>
     <div className="ui-message__body">
       {body !== undefined ? body : text
         ? <Markdown text={text} labels={markdownLabels} role={role} isStreaming={pending && role === "assistant"} resolveResourceHref={resolveResourceHref} />
-        : role === "assistant" && pending ? <span className="ui-message__waiting">{waitingLabel}</span> : null}
+        : waiting ? <span className="ui-message__waiting" role="status"><span className="ui-message__waiting-label">{waitingLabel}</span><span aria-hidden="true" className="ui-message__typing"><i /><i /><i /></span></span> : null}
     </div>
     {role === "assistant" && !pending && text && copyLabel && copiedLabel && copyFailedLabel && <div className="ui-message__actions">
       <CopyButton text={text} label={copyLabel} copiedLabel={copiedLabel} failedLabel={copyFailedLabel} />

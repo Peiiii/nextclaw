@@ -4,19 +4,37 @@ import {
   EmptyState,
   LoadingState,
   Button,
-  IconButton,
   ListRow,
   RowActionTray,
   Input,
   Notice,
+  NavigationItem,
 } from "@nextclaw/personal-agent-ui";
-import { Plus } from "lucide-react";
+import { FileText, Library, Plus, Search, SquarePen } from "lucide-react";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { day } from "@/features/space/utils/date-format.utils";
+import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { FileTree } from "./file-tree";
 import { FileWorkbench } from "./file-workbench";
 import { FileActions } from "./file-actions";
 import { CreateFileDialog } from "./create-file-dialog";
+
+export function NoteNavigation({ onNavigate }: { onNavigate: () => void }) {
+  const { notes, files, activeFileId, fileBrowserVisible, openFile, showFileBrowser } = useBiboSpaceStore();
+  const [creating, setCreating] = useState(false);
+  const parent = files.some(file => file.kind === "folder" && file.path === "笔记") ? "笔记" : "";
+  return <nav className="bibo-session-nav" aria-label={copy.notes}>
+    <NavigationItem label={copy.newNote} tooltip={false}><button className="bibo-new-chat" onClick={() => setCreating(true)}><SquarePen aria-hidden="true" /><span>{copy.newNote}</span></button></NavigationItem>
+    <NavigationItem label={copy.allNotes} selected={fileBrowserVisible} tooltip={false}>
+      <button className="bibo-session-item" onClick={() => { showFileBrowser(); onNavigate(); }}><Library />{copy.allNotes}</button>
+    </NavigationItem>
+    <div className="bibo-session-head bibo-note-nav-heading">{copy.recent}</div>
+    {notes.map(file => <NavigationItem key={file.id} label={file.path} selected={!fileBrowserVisible && activeFileId === file.id} truncatedLabel>
+      <button className="bibo-session-item" onClick={() => { void openFile(file.id); onNavigate(); }}><FileText /><span className="bibo-session-title">{file.path.split("/").at(-1)?.replace(/\.(md|markdown|mdown)$/i, "")}</span></button>
+    </NavigationItem>)}
+    {creating && <CreateFileDialog parent={parent} initialKind="note" notesOnly onClose={() => setCreating(false)} />}
+  </nav>;
+}
 export function Files({ notesOnly }: { notesOnly: boolean }) {
   const {
     files,
@@ -32,7 +50,6 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
     treeCollapsed,
     toggleTree,
     showFileBrowser,
-    activeFileId,
     openFile,
     fileBrowserVisible,
     treeWidth,
@@ -55,7 +72,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
   };
   const all = notesOnly ? notes : files;
   return (
-    <div className="bibo-page workspace-page bibo-files-page">
+    <div className={`bibo-page workspace-page bibo-files-page${notesOnly ? " is-notes-page" : ""}`}>
       {creating && <CreateFileDialog parent={parent} initialKind={kind} notesOnly={notesOnly} onClose={() => setCreating(false)} />}
       {fileOpenError && (!workspaceOpen || fileOpenError.id !== workspaceFileId) && <Notice tone="error">{fileOpenError.message}</Notice>}
       <div
@@ -82,12 +99,12 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
           />
         )}
         {notesOnly && (
-          <aside className="bibo-note-list">
-            <div className="bibo-pane-label">
-              <span>全部笔记 · {all.length}</span>
-              <IconButton
-                label="新笔记"
-                icon={<Plus />}
+          <aside className="bibo-note-list" aria-label={copy.allNotes}>
+            <div className="bibo-notes-heading">
+              <h1>{copy.allNotes}</h1>
+              <div className="bibo-notes-actions">
+              <div className="bibo-notes-search"><Search aria-hidden="true" /><Input aria-label={copy.searchNotes} placeholder={copy.search} value={noteQuery} onChange={(event) => searchNotes(event.target.value)} /></div>
+              <Button tone="primary"
                 onClick={() => {
                   setParent(
                     files.some(
@@ -97,15 +114,17 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
                       : ""
                   );
                   setKind("note");
-                      setCreating(true);
+                  setCreating(true);
                 }}
-              />
+              ><Plus />{copy.newNote}</Button>
+              </div>
             </div>
-            <div className="file-tree-search"><Input aria-label="搜索笔记" placeholder="搜索笔记名称" value={noteQuery} onChange={(event) => searchNotes(event.target.value)} /></div>
+            <div className="bibo-notes-columns"><span>{copy.fileName}</span><span>{copy.lastEdited}</span></div>
             {all.map((file) => (
-              <div className={`ui-list-row-group ui-row-action-host${activeFileId === file.id ? " is-selected" : ""}`} key={file.id}>
-                <ListRow selected={activeFileId === file.id} onClick={() => void openFile(file.id)}>
-                  <strong>{file.path.split("/").at(-1)}</strong>
+              <div className="ui-list-row-group ui-row-action-host" key={file.id}>
+                <ListRow onClick={() => void openFile(file.id)}>
+                  <FileText aria-hidden="true" />
+                  <strong>{file.path.split("/").at(-1)?.replace(/\.(md|markdown|mdown)$/i, "")}</strong>
                   <small>{day(file.updatedAt)}</small>
                 </ListRow>
                 <RowActionTray><FileActions file={file} /></RowActionTray>

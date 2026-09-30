@@ -19,7 +19,8 @@ export async function checkNotionInteractions(page: Page, openSource: (page: Pag
   await page.keyboard.press("Enter");
   await page.keyboard.type("Edited ");
   assert.equal(await rich.locator(":scope > p").first().innerText(), "Edited Alpha words");
-  await page.locator(".ui-markdown-editor-toolbar").getByRole("button", { name: "插入内容", exact: true }).click();
+  await page.getByRole("button", { name: "更多格式", exact: true }).click();
+  await page.getByRole("menuitem", { name: "插入内容", exact: true }).click();
   await page.getByRole("listbox", { name: "插入内容", exact: true }).getByRole("option", { name: "标题 2", exact: true }).click();
   await page.keyboard.type("Inserted heading");
   assert.equal(await rich.locator("h2").innerText(), "Inserted heading");

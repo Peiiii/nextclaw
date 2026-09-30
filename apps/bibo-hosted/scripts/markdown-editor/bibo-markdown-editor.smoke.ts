@@ -264,7 +264,7 @@ async function checkRichObjects(page: Page) {
   await rich.locator(".tiptap-mathematics-render").first().click();
   await page.getByRole("dialog").locator("textarea").fill("a^2+b^2=c^2");
   await page.getByRole("dialog").getByRole("button", { name: "确认", exact: true }).click();
-  await page.getByRole("button", { name: /查找与替换/ }).filter({ visible: true }).click();
+  await formatAction(page, "查找与替换（⌘/Ctrl+F）");
   await page.getByRole("search").getByRole("textbox", { name: "查找", exact: true }).fill("重要内容");
   await page.getByRole("search").getByRole("textbox", { name: "替换", exact: true }).fill("关键内容");
   await page.getByRole("button", { name: "全部替换", exact: true }).click();
