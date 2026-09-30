@@ -24,8 +24,9 @@ export class WorkspaceMemoryContextProvider implements ContextProvider {
 
     const root = projectContext.hostWorkspace;
     const [workspaceMemory, longTerm, today] = await Promise.all([
-      this.files.readText(root, "MEMORY.md"), this.files.readText(root, "memory/MEMORY.md"),
-      this.files.readText(root, `memory/${new Date().toISOString().slice(0, 10)}.md`),
+      this.files.readText(root, "MEMORY.md", memoryConfig.maxChars || undefined),
+      this.files.readText(root, "memory/MEMORY.md", memoryConfig.maxChars || undefined),
+      this.files.readText(root, `memory/${new Date().toISOString().slice(0, 10)}.md`, memoryConfig.maxChars || undefined),
     ]);
     const memory = renderMemoryContext({ workspaceMemory, longTerm, today });
     if (!memory) {

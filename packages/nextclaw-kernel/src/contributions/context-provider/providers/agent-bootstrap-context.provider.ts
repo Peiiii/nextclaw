@@ -5,7 +5,7 @@ import { CONTEXT_COMPACTION_METADATA_KEY, readCompressedContextCompactionCheckpo
 
 export class AgentBootstrapContextProvider implements ContextProvider {
   constructor(private readonly context: ContextProviderRunContextService,
-    private readonly files: Pick<BootstrapContextInput, "readText">) {}
+    private readonly files: Pick<BootstrapContextInput, "readText" | "readTexts">) {}
 
   provide = async (request: AgentRunRequest): Promise<readonly ContextBlock[]> => {
     const { contextConfig, projectContext, runContext } = await this.context.resolve(request);
@@ -18,6 +18,7 @@ export class AgentBootstrapContextProvider implements ContextProvider {
         runContext.sessionMetadata?.[CONTEXT_COMPACTION_METADATA_KEY],
       )),
       readText: this.files.readText,
+      readTexts: this.files.readTexts,
     })];
   };
 }

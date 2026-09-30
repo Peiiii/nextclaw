@@ -8,7 +8,8 @@ export type BootstrapContextInput = {
   workspaceRoot: string;
   sessionKey?: string;
   compacted: boolean;
-  readText(root: string, filename: string): string | Promise<string>;
+  readText(root: string, filename: string, maxChars?: number): string | Promise<string>;
+  readTexts?(root: string, filenames: readonly string[], maxChars?: number): Promise<ReadonlyMap<string, string>>;
 };
 
 function selectFiles(input: BootstrapContextInput): readonly string[] {
@@ -20,20 +21,29 @@ function selectFiles(input: BootstrapContextInput): readonly string[] {
     : input.config.files;
 }
 
-async function loadFiles(input: BootstrapContextInput, root: string, budget: { remaining: number }): Promise<string> {
+async function loadFiles(input: BootstrapContextInput, root: string, initialBudget: number): Promise<{ content: string; remaining: number }> {
+  let remaining = initialBudget;
   const parts: string[] = [];
-  for (const filename of selectFiles(input)) {
-    const raw = (await input.readText(root, filename)).trim();
+  const filenames = selectFiles(input);
+  let batch: ReadonlyMap<string, string> | undefined;
+  for (let index = 0; index < filenames.length; index++) {
+    const filename = filenames[index]!;
+    const readLimit = input.config.perFileChars > 0 ? input.config.perFileChars : remaining;
+    if (input.readTexts && index % 4 === 0) {
+      batch = await input.readTexts(root, filenames.slice(index, index + 4), Number.isFinite(readLimit) ? readLimit : undefined);
+    }
+    if (batch && !batch.has(filename)) throw new Error(`Context batch omitted requested file: ${filename}`);
+    const raw = (batch ? batch.get(filename)! : await input.readText(root, filename)).trim();
     if (!raw || input.compacted && shouldSkipCompactedSessionBootstrapFile(filename, raw)) continue;
     const perFileLimit = input.config.perFileChars > 0 ? input.config.perFileChars : raw.length;
-    const allowed = Math.min(perFileLimit, budget.remaining);
+    const allowed = Math.min(perFileLimit, remaining);
     if (allowed <= 0) break;
     const content = truncateContextText(raw, allowed);
     parts.push(`## ${filename}\n\n${content}`);
-    budget.remaining -= content.length;
-    if (budget.remaining <= 0) break;
+    remaining -= content.length;
+    if (remaining <= 0) break;
   }
-  return parts.join("\n\n");
+  return { content: parts.join("\n\n"), remaining };
 }
 
 function section(input: {
@@ -50,13 +60,13 @@ function section(input: {
 
 /** Shared bootstrap policy; the environment owns only reading the named text. */
 export async function renderAgentBootstrapContext(input: BootstrapContextInput): Promise<string> {
-  const budget = { remaining: input.config.totalChars > 0 ? input.config.totalChars : Number.POSITIVE_INFINITY };
+  const budget = input.config.totalChars > 0 ? input.config.totalChars : Number.POSITIVE_INFINITY;
   const agent = await loadFiles(input, input.agentRoot, budget);
   const distinctWorkspace = input.workspaceRoot !== input.agentRoot;
-  const workspace = distinctWorkspace ? await loadFiles(input, input.workspaceRoot, budget) : "";
+  const workspace = distinctWorkspace ? (await loadFiles(input, input.workspaceRoot, agent.remaining)).content : "";
   const sections = [section({
-    content: agent, emptyLabel: "No agent bootstrap files were found.",
-    includeSoulRule: /##\s+SOUL\.md\b/i.test(`${agent}\n${workspace}`),
+    content: agent.content, emptyLabel: "No agent bootstrap files were found.",
+    includeSoulRule: /##\s+SOUL\.md\b/i.test(`${agent.content}\n${workspace}`),
     loadedLabel: "Agent bootstrap files loaded:", rootLine: `Agent bootstrap root: ${input.agentRoot}`,
     title: "# Agent Bootstrap Context",
   })];
