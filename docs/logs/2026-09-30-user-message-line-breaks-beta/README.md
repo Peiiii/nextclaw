@@ -2,7 +2,7 @@
 
 ## 迭代完成说明
 
-- 状态：修复已验证并合入远端主干，beta NPM 包已写入并核验 27/27，发行 Git 状态、真实安装和 Runtime 流程继续处理中。用户授权合入主干并触发 beta 发布。
+- 状态：用户要求的「合入主干并触发 beta 发布」已完成。修复与发行元数据已合入远端主干，beta NPM 包已核验 27/27，真实安装通过；Runtime workflow 已触发。Runtime 资产和公开更新通道仍在流水线处理中，此记录不宣称其已经完成。
 - 根因：编辑器将换行保留为 `\n`，发送 envelope、文本 part 和消息 view model 保留正文内部换行；共享 Markdown 渲染没有将用户消息中的软换行转为可见断行。
 - 修复：在共享 `ChatMessageMarkdown` 的现有插件链中，仅对用户消息启用 `remark-breaks`。没有改写发送内容或持久化格式，历史消息重载时同样生效。
 - 本任务全部 7 个草稿路径从主工作区迁入 `codex/user-message-line-breaks`；逐项核对后只撤回源区对应增量，保留其它任务的 Bibo 和文档 WIP。
@@ -20,8 +20,12 @@
 - 从冻结远程主干执行现有 `pnpm release:beta`；默认公共包 beta 批次，包含 `nextclaw` 时闭合 beta Runtime 更新通道。桌面安装包和正式版发布不属于本次范围。
 - 发布身份、workflow 和终态在下方追加；尚未发布的内容不预填成功。
 - 修复提交为 `32a38da67d711ee7659f40380d3a473b035ec190`，已推送 `origin/master`。主工作区保留活跃文档 WIP，reconcile 返回 `LOCAL_WORKTREE_RETRYING` 并复用已有自动 worker。
+- 发行元数据提交为 `e698cf8ebac4e336b91965330510c85b23442f3c`，27 个发布标签均指向该提交。普通 merge 保留期间其它任务的新主干提交，集成提交 `46e134d9dd0a2f56759ee46740661dcc816ee4a0` 已普通推送到 `origin/master` 与发布分支；再次 reconcile 返回 `LOCAL_WORKTREE_RETRYING`。
+- 临时独立 prefix 从公开 registry 安装 `nextclaw@beta`，版本与包入口验证通过：`0.59.0-beta.1`。未覆盖用户全局安装或重启用户实例。
+- Runtime workflow：[36677196850](https://github.com/Peiiii/nextclaw/actions/runs/36677196850)，冻结源码为 `46e134d9dd0a2f56759ee46740661dcc816ee4a0`，预期 release tag 为 `nextclaw@0.59.0-beta.1`。此处记录已触发，暂不宣称资产或公共 manifest 已发布。
 - 首轮发布写入成功，但 registry 可见性核验耗尽默认重试：`@nextclaw/remote`、`@nextclaw/ui`、`nextclaw` 暂时缺失。对照普通和带新查询的公开 metadata，三个包先后变得可见；扩大现有核验入口的等待参数后，同一 checkpoint 达到 27/27。没有重复 publish、增加版本或改写发布校验脚本。
 - 此次恢复暂计 `AUTOMATION_INTERVENTIONS: 1`，介入点为首轮核验失败后的同批次恢复；根因为 registry 可见性传播晚于默认等待窗口。没有证据需要新增全局规则；后续可在原发布 owner 评估等待窗口，不能将本次单例写成缓存故障。
+- 复盘决定：本次 registry 传播延迟属于已核实的单次恢复事实，现有校验参数与 Runtime 下游入口已足够完成恢复。留在本迭代记录，不增加规则、脚本或平行发布 owner。源码修复的验证、Review 与路径治理证据保持有效。
 
 ## 用户/产品视角的验收步骤
 
@@ -40,5 +44,5 @@
 
 - 需要 beta 发布：这是用户可见的消息展示 bugfix，且用户已明确授权。
 - 明确触达 `@nextclaw/agent-chat-ui`，产品包 `nextclaw` 及依赖闭包由默认发布入口判定。
-- checkpoint：`e34ea5f53d41aaad`；当前 `nextclaw@0.59.0-beta.1`，`@nextclaw/agent-chat-ui@0.12.4-beta.0`。公开 metadata 和同一 checkpoint 的 27/27 精确版本核验通过，真实安装与 Runtime 状态待补。
+- checkpoint：`e34ea5f53d41aaad`；当前 `nextclaw@0.59.0-beta.1`，`@nextclaw/agent-chat-ui@0.12.4-beta.0`。公开 metadata 和同一 checkpoint 的 27/27 精确版本核验通过，真实安装通过，Runtime 终态待补。
 - 本批 registry 已发布包：`@nextclaw/agent-chat-ui@0.12.4-beta.0`、`@nextclaw/feishu-core@0.3.14-beta.0`、`@nextclaw/ncp-agent-runtime@0.4.28-beta.0`、`@nextclaw/ncp-agent-runtime-next@0.1.30-beta.0`、`@nextclaw/nextclaw-ncp-runtime-adapter-hermes-http@0.3.31-beta.0`、`@nextclaw/core@0.18.6-beta.0`、`@nextclaw/channel-extension-dingtalk@0.2.55-beta.0`、`@nextclaw/channel-extension-discord@0.2.55-beta.0`、`@nextclaw/channel-extension-email@0.2.55-beta.0`、`@nextclaw/channel-extension-slack@0.2.55-beta.0`、`@nextclaw/channel-extension-telegram@0.2.55-beta.0`、`@nextclaw/channel-extension-wecom@0.2.55-beta.0`、`@nextclaw/channel-extension-whatsapp@0.2.55-beta.0`、`@nextclaw/mcp@0.3.56-beta.0`、`@nextclaw/ncp-mcp@0.2.56-beta.0`、`@nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.56-beta.0`、`@nextclaw/nextclaw-narp-runtime-opencode@0.2.56-beta.0`、`@nextclaw/runtime@0.4.55-beta.0`、`@nextclaw/kernel@0.19.2-beta.1`、`@nextclaw/harness@0.2.28-beta.1`、`@nextclaw/server@0.23.14-beta.1`、`@nextclaw/client-sdk@0.12.14-beta.1`、`@nextclaw/companion@0.2.71-beta.1`、`@nextclaw/remote@0.3.71-beta.1`、`@nextclaw/service@0.7.8-beta.1`、`@nextclaw/ui@0.27.5-beta.1`、`nextclaw@0.59.0-beta.1`。
