@@ -8,6 +8,7 @@
 
 - 公共组件：`Button`、`Input` / `Select` / `Textarea` / `Field`、`SegmentedControl`、`ListRow`、`EmptyState`、`Notice`、`Message` / `Markdown`、`Composer`、`Dialog` / `Sheet`、`ActionMenu` / `ActionMenuItem` / `ActionMenuLink`、`IconButton`。
 - 文件页使用 `Tab` / `TabList`；外观选择使用 `ActionMenuRadioGroup`；操作提示使用 `Tooltip`。文件激活、关闭、草稿和保存仍由应用持有。
+- `ActivityIcon` 用 18px SVG 轮廓与轻动效表达空闲、思考、执行、保存、停止和恢复连接；减少动态效果时保持静态轮廓。业务状态、可访问文案与链接由调用方提供；只读图标使用 `ui-activity-indicator` 与 `Tooltip`，可导航图标复用 `NavigationItem`。放入既有品牌或标题行，不为状态增加独立文字行。
 - 工作空间与会话入口复用 `NavigationItem`，保留调用方的真实链接；共享行高、内边距、选中与 hover 配方。图标栏的模块、侧栏切换与账号菜单统一使用 `layout="icon"`：鼠标 36px、触控 44px 点击区，18px 图标和 1.7 线宽；菜单触发属性与 ref 透传到真实按钮，应用不覆盖尺寸。
 - 公共样式：`src/styles/theme.css` 中的 `--ui-*` token 和 `.ui-*` class，统一默认、hover、focus、selected、disabled 与错误状态。
 - 品牌配置：Bibo 的名称、标记、文案、配色覆盖留在应用层，通过 props 和主题变量注入。未来改名无需重命名组件包或公共 API。

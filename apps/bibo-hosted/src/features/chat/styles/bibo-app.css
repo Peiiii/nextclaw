@@ -39,7 +39,7 @@ button, input, textarea, select { @apply [font-family:inherit]; }
 .bibo-sidebar-panel { @apply flex flex-col flex-none min-h-0 [width:var(--ui-sidebar-width)] [padding:0_8px_10px] [background:var(--ui-sidebar)] [border-right:1px_solid_var(--ui-line)] [border-radius:14px_0_0_14px]; }
 .is-sidebar-collapsed .bibo-sidebar { @apply [width:calc(var(--ui-navigation-rail-width)_+_8px)]; }
 .is-sidebar-collapsed .bibo-sidebar-panel { @apply hidden; }
-.sidebar-header { @apply flex items-center flex-none [height:var(--ui-toolbar-height)] [padding:0_8px]; }
+.sidebar-header { @apply flex items-center justify-between flex-none [height:var(--ui-toolbar-height)] [padding:0_8px]; }
 .bibo-brand { @apply inline-flex items-center [padding:4px_0] [color:var(--ui-ink)] no-underline text-lg font-semibold [letter-spacing:-.5px] [border-radius:var(--ui-radius-sm)]; }
 .bibo-brand-dot { @apply [color:var(--bibo-accent)]; }
 .bibo-sidebar-spacer { @apply flex-1; }
@@ -68,9 +68,8 @@ button, input, textarea, select { @apply [font-family:inherit]; }
 .bibo-topbar { @apply flex flex-none [height:var(--ui-toolbar-height)] items-center justify-between [padding:0_var(--ui-content-gutter)] text-base [border-bottom:1px_solid_var(--ui-line)]; }
 .bibo-topbar-leading { @apply flex flex-1 min-w-0 items-center gap-2 mr-3; }
 .bibo-topbar-leading > .ui-icon-button { @apply flex-none; }
-.bibo-topbar-context { min-width:0; }
-.bibo-run-status { color:var(--ui-muted); font-size:12px; line-height:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.bibo-sidebar-panel > .bibo-run-status { padding:0 var(--ui-content-gutter) 12px; }
+.bibo-topbar-context { display:flex; align-items:center; gap:var(--ui-space-2); min-width:0; }
+.bibo-run-status { display:flex; align-items:center; flex:none; }
 .bibo-topbar.is-file-header { @apply px-2 gap-1; }
 .bibo-topbar.is-file-header .bibo-topbar-leading { @apply flex-none m-0; }
 .bibo-topbar-actions { @apply flex flex-none items-center gap-1; }
