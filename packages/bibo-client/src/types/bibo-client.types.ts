@@ -25,8 +25,17 @@ export type BiboShowContent = {
 export type BiboUiEvent = { name: "show-content"; value: BiboShowContent };
 export type BiboFileReadInput = { id: string; path?: never } | { path: string; id?: never };
 
+export type BiboRunSnapshot = {
+  runId: string; sessionId: string; message: string;
+  phase: "generating" | "saving" | "completed" | "failed";
+  startedAt: number; updatedAt: number; partial: string; activity?: string; clientRequestId?: string;
+  error?: { code: string; message: string };
+};
+export type BiboRunState = { run: BiboRunSnapshot | null; activeRuns: BiboRunSnapshot[] };
+
 export type BiboChatEvent =
   | BiboUiEvent
+  | { name: "snapshot"; value: BiboRunSnapshot }
   | { name: "accepted"; value: { runId: string } }
   | { name: "delta"; value: { text: string } }
   | { name: "saving"; value: Record<string, never> }

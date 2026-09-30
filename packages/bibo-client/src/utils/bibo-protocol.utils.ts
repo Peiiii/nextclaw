@@ -1,4 +1,4 @@
-import type { BiboChatEvent, BiboMessage, BiboMessageContent, BiboQuestion, BiboQuestionReference, BiboSession, BiboShowContent, BiboUser } from "../types/bibo-client.types";
+import type { BiboChatEvent, BiboMessage, BiboMessageContent, BiboQuestion, BiboQuestionReference, BiboRunSnapshot, BiboRunState, BiboSession, BiboShowContent, BiboUser } from "../types/bibo-client.types";
 import type { BiboFileDetail } from "../types/bibo-space.types";
 
 const MAX_FRAME_LENGTH = 4_000_000;
@@ -12,6 +12,26 @@ export class BiboClientError extends Error {
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+export function readRunSnapshot(value: unknown): BiboRunSnapshot {
+  if (!isRecord(value) || typeof value.runId !== "string" || !value.runId || typeof value.sessionId !== "string" || !value.sessionId ||
+    typeof value.message !== "string" || !["generating", "saving", "completed", "failed"].includes(String(value.phase)) ||
+    typeof value.startedAt !== "number" || !Number.isFinite(value.startedAt) || typeof value.updatedAt !== "number" || !Number.isFinite(value.updatedAt) ||
+    typeof value.partial !== "string" || (value.activity !== undefined && typeof value.activity !== "string") ||
+    (value.clientRequestId !== undefined && typeof value.clientRequestId !== "string") ||
+    (value.error !== undefined && (!isRecord(value.error) || typeof value.error.code !== "string" || typeof value.error.message !== "string"))) {
+    throw new BiboClientError("任务状态格式不正确。");
+  }
+  return { runId: value.runId, sessionId: value.sessionId, message: value.message,
+    phase: value.phase as BiboRunSnapshot["phase"], startedAt: value.startedAt, updatedAt: value.updatedAt, partial: value.partial,
+    ...(value.activity === undefined ? {} : { activity: value.activity as string }),
+    ...(value.clientRequestId === undefined ? {} : { clientRequestId: value.clientRequestId as string }),
+    ...(value.error === undefined ? {} : { error: value.error as BiboRunSnapshot["error"] }) };
+}
+export function readRunState(value: unknown): BiboRunState {
+  if (!isRecord(value) || !Array.isArray(value.activeRuns)) throw new BiboClientError("任务状态格式不正确。");
+  return { run: value.run === null ? null : readRunSnapshot(value.run), activeRuns: value.activeRuns.map(readRunSnapshot) };
 }
 
 export function readShowContent(value: unknown): BiboShowContent {
@@ -136,10 +156,11 @@ function readFrame(frame: string): BiboChatEvent | null {
     if (line.startsWith("data:")) data.push(line.slice(5).trimStart());
   }
   if (!name || !data.length) return null;
-  if (!["accepted", "delta", "saving", "committed", "error", "show-content"].includes(name)) return null;
+  if (!["accepted", "snapshot", "delta", "saving", "committed", "error", "show-content"].includes(name)) return null;
   let value: unknown;
   try { value = JSON.parse(data.join("\n")) as unknown; }
   catch { throw new BiboClientError("回答数据格式不正确。"); }
+  if (name === "snapshot") return { name, value: readRunSnapshot(value) };
   if (name === "show-content") return { name, value: readShowContent(value) };
   if (name === "error") {
     throw new BiboClientError(isRecord(value) && typeof value.error === "string"
@@ -164,7 +185,10 @@ export async function readBiboStream(response: Response, onEvent: (event: BiboCh
   let committed = false;
   try {
     while (true) {
-      const { done, value } = await reader.read();
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      const { done, value } = await Promise.race([reader.read(), new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new BiboClientError("连接暂时中断，正在恢复任务状态。")), 45_000);
+      })]).finally(() => clearTimeout(timeout));
       buffer += decoder.decode(value, { stream: !done });
       let boundary: RegExpExecArray | null;
       while ((boundary = /\r?\n\r?\n/.exec(buffer))) {

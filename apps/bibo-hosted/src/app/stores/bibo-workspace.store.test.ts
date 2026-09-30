@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { BiboWorkspaceStore } from "./bibo-workspace.store.js";
-import { BiboWorkspaceFileService } from "../services/bibo-workspace-file.service.js";
-import { createBiboContextFiles } from "../utils/bibo-context-files.utils.js";
+import { BiboWorkspaceFileService } from "@/app/services/bibo-workspace-file.service.js";
+import { createBiboContextFiles } from "@/app/utils/bibo-context-files.utils.js";
 import type { BiboFileDetail } from "@nextclaw/bibo-client";
 
 test("100 MiB file details read a bounded prefix and use the fetched object's version", async () => {
@@ -125,9 +125,59 @@ function fixture() {
     },
     async delete(keys: string | string[]) { for (const key of typeof keys === "string" ? [keys] : keys) files.delete(key); },
   } as unknown as R2Bucket;
-  return { files, store: new BiboWorkspaceStore(bucket, "user-1"), save,
+  return { files, store: new BiboWorkspaceStore(bucket, "user-1"), save, bucket,
     beforeFirstMultipartPart: (callback: () => void) => { beforeFirstMultipartPart = callback; } };
 }
+
+test("overview recent notes scan one metadata page across 108 directories without body or stat reads", async () => {
+  const { store, save, files, bucket } = fixture();
+  for (let index = 0; index < 107; index++) save(`user-1/workspace/folder-${index}/file.bin`, new Uint8Array([1]));
+  for (let index = 0; index < 28; index++) save(`user-1/workspace/root-${index}.bin`, new Uint8Array([1]));
+  save("user-1/workspace/空目录/", new Uint8Array(), undefined, { label: "retained" });
+  for (let index = 0; index < 7; index++) {
+    const key = `user-1/workspace/笔记-${index}.md`;
+    save(key, new Uint8Array([1]));
+    files.get(key)!.uploaded = new Date(Date.UTC(2026, 8, 30, index));
+  }
+  save("user-2/workspace/private.md", new Uint8Array([1]));
+  let lists = 0;
+  const list = bucket.list;
+  bucket.list = async (options) => { lists++; assert.equal(options?.delimiter, undefined); return list(options); };
+  bucket.head = async () => { throw new Error("No per-directory stat allowed"); };
+  bucket.get = async () => { throw new Error("No file body reads allowed"); };
+  const service = new BiboWorkspaceFileService(store);
+  const overview = await service.executeSpace({ execute: async () => ({ counts: { unread: 0 } }) } as never,
+    "overview.get", {}) as { notes: BiboFileDetail[] };
+  assert.deepEqual(overview.notes.map(file => file.path), ["笔记-6.md", "笔记-5.md", "笔记-4.md"]);
+  assert.equal(lists, 1);
+  const folders = await service.execute("file.list", { kind: "folder", limit: 100 }) as { items: BiboFileDetail[]; nextCursor: string };
+  assert.equal(folders.items.length, 100);
+  assert.equal(folders.nextCursor, "100");
+  assert.ok(folders.items.every(file => !file.path.includes("private")));
+});
+
+test("flat listing follows short metadata pages and retains directory markers and declared file kinds", async () => {
+  const { store, save, bucket } = fixture();
+  save("user-1/workspace/notes/", new Uint8Array(), undefined, { biboCreatedAt: "2026-09-01T00:00:00.000Z" });
+  save("user-1/workspace/notes/a.md", new Uint8Array([1]));
+  save("user-1/workspace/notes/deep/b.md", new Uint8Array([1]));
+  save("user-1/workspace/notes/z.md", new Uint8Array([1]), undefined, { biboKind: "artifact" });
+  const list = bucket.list;
+  let pages = 0;
+  bucket.list = async (options) => { pages++; return list({ ...options, limit: 1 }); };
+  const service = new BiboWorkspaceFileService(store);
+  const notes = await service.execute("file.list", { kind: "note" }) as { items: BiboFileDetail[] };
+  assert.deepEqual(notes.items.map(file => file.path), ["notes/a.md", "notes/deep/b.md"]);
+  assert.equal(pages, 4);
+  const folders = await service.execute("file.list", { kind: "folder" }) as { items: BiboFileDetail[] };
+  assert.deepEqual(folders.items.map(file => file.path), ["notes", "notes/deep"]);
+  assert.equal(folders.items[0]?.version, (await store.stat("notes"))?.version);
+  assert.equal(folders.items[0]?.createdAt, "2026-09-01T00:00:00.000Z");
+  save("user-1/workspace/notes-other/keep.md", new Uint8Array([1]));
+  const removed = await service.execute("file.delete", { id: "notes", version: folders.items[0]!.version }) as { deleted: string[] };
+  assert.deepEqual(removed.deleted.sort(), ["notes", "notes/a.md", "notes/deep", "notes/deep/b.md", "notes/z.md"]);
+  assert.ok(await store.stat("notes-other/keep.md"));
+});
 
 test("R2 keys are directly mountable, with byte ranges and version checks", async () => {
   const { files, store } = fixture();

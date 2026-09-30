@@ -50,7 +50,8 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
   if (["/api/sessions/rename", "/api/sessions/delete"].includes(path) && request.method === "POST") return await container.fetch(`https://bibo.internal${path.slice(4)}`, {
     method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
   });
-  if (path === "/api/history" && request.method === "GET") return await container.fetch(`https://bibo.internal/history${url.search}`);
+  if ((path === "/api/history" || path === "/api/runs" || /^\/api\/runs\/[a-zA-Z0-9_-]{1,100}\/events$/.test(path)) && request.method === "GET")
+    return await container.fetch(`https://bibo.internal${path.slice(4)}${url.search}`);
   if (path === "/api/chat/availability" && request.method === "GET") return await checkChatAvailability(env, user.id) ?? json({ ok: true });
   if (path === "/api/space" && request.method === "POST") {
     const response = await container.fetch("https://bibo.internal/space", {

@@ -1,5 +1,15 @@
 # @nextclaw/ui
 
+## 0.27.5-beta.1
+
+### Patch Changes
+
+- 40087f5: 右侧面板中的 Panel App 现在统一从宿主标签的更多操作中手动刷新，不再占用附加标题行。更新后的页面资源无需关闭应用即可生效，并保留应用数据和授权。
+- Updated dependencies [32a38da]
+  - @nextclaw/agent-chat-ui@0.12.4-beta.0
+  - @nextclaw/ncp-toolkit@0.6.28
+  - @nextclaw/client-sdk@0.12.14-beta.1
+
 ## 0.27.5-beta.0
 
 ### Patch Changes
