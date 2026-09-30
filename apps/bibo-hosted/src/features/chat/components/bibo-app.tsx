@@ -1,7 +1,7 @@
-import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { Link, Outlet, useLocation, useNavigation } from "react-router";
 import { readWorkspaceRoute, workspaceHref } from "@/app/workspace-router";
-import { Button, Composer, IconButton, Markdown, Message, Sheet, NavigationItem } from "@nextclaw/personal-agent-ui";
+import { Button, Composer, IconButton, Message, Sheet, NavigationItem } from "@nextclaw/personal-agent-ui";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { useBiboChatStore, type BiboDisplayMessage } from "@/features/chat/stores/bibo-chat.store";
 import { BiboSpaceView, BiboWorkspace, FileTabs, FileEditorHeader, NoteNavigation, useBiboSpaceStore, type BiboView } from "@/features/space";
@@ -13,29 +13,33 @@ import { AccountMenu } from "./account-menu";
 import { AuthPanel } from "./auth-panel";
 import { workspaceResources } from "@/features/space";
 import { QuestionPanel, QuestionReference, QuestionTags } from "./session-user-questions";
+import { WorkspaceDivider } from "./workspace-divider";
+import { messageTime } from "@/features/chat/utils/chat-message.utils";
 
 const suggestions = [
   { icon: MessageCircle, label: "先认识我", text: "我想让你成为我的个人搭档。先问我三个关键问题，了解我最近最在意的目标，然后帮我选一件今天能推进的事。" },
   { icon: Folder, label: "梳理一个项目", text: "我正在做一个项目，想和你一起理清现状、目标和下一步。请先问我必要的问题。" },
   { icon: CalendarDays, label: "整理今天", text: "今天我有不少事要做。请帮我根据重要性和精力安排一个现实可执行的计划，先问我需要的信息。" },
 ];
-const MessageRow = memo(function MessageRow({ message, onOpenQuestion, submittingQuestionId }: { message: BiboDisplayMessage; onOpenQuestion: (id: string) => void; submittingQuestionId?: string }) {
+const MessageRow = memo(function MessageRow({ message, time, onOpenQuestion, submittingQuestionId }: { message: BiboDisplayMessage; time: string | null; onOpenQuestion: (id: string) => void; submittingQuestionId?: string }) {
   const questionById = new Map(message.questions?.map((question) => [question.id, question]));
   const content = message.content ?? [
     ...(message.text ? [{ type: "text" as const, text: message.text }] : []),
     ...(message.questions?.length ? [{ type: "questions" as const, ids: message.questions.map((question) => question.id) }] : []),
   ];
-  const body = message.role === "assistant" && message.questions?.length
-    ? <div className="bibo-ordered-content">{content.map((part, index) => part.type === "text"
-      ? <Markdown key={index} text={part.text} role="assistant" resolveResourceHref={workspaceResources.href} />
-      : <QuestionTags key={index} questions={part.ids.flatMap((id) => { const question = questionById.get(id); return question ? [question] : []; })}
-          submittingId={submittingQuestionId} onOpen={onOpenQuestion} />)}</div>
-    : undefined;
+  let textIndex = 0;
+  const textCount = content.filter(part => part.type === "text").length;
+  const cards = message.role === "assistant" ? (content.length ? content : [{ type: "text" as const, text: "" }]).map(part => {
+    if (part.type === "questions") return <QuestionTags key={`questions-${part.ids.join(":")}`} questions={part.ids.flatMap(id => { const question = questionById.get(id); return question ? [question] : []; })}
+      submittingId={submittingQuestionId} onOpen={onOpenQuestion} />;
+    const index = textIndex++;
+    return <Message key={`text-${index}`} role="assistant" text={part.text} pending={message.pending} mark={<Sparkles size={14} />} waitingLabel={copy.waiting}
+      label="Bibo" copyLabel={index === textCount - 1 ? copy.copy : undefined} copyText={message.text} copiedLabel={copy.copied} copyFailedLabel={copy.copyFailed} resolveResourceHref={workspaceResources.href} />;
+  }) : null;
   return <div className={`bibo-message-row bibo-message-row--${message.role}`}>
+    {time && <time className="bibo-message-time" dateTime={message.at}>{time}</time>}
     {message.replyToQuestion && <QuestionReference reference={message.replyToQuestion} />}
-    <Message role={message.role} text={message.text} body={body} pending={message.pending} mark={<Sparkles size={14} />} waitingLabel={copy.waiting}
-    label={message.role === "assistant" ? "Bibo" : copy.you} copyLabel={copy.copy}
-    copiedLabel={copy.copied} copyFailedLabel={copy.copyFailed} resolveResourceHref={workspaceResources.href} />
+    {cards ? <div className="bibo-ordered-content">{cards}</div> : <Message role="user" text={message.text} pending={message.pending} label={copy.you} resolveResourceHref={workspaceResources.href} />}
   </div>;
 });
 const navigation: { view: BiboView; label: string; icon: LucideIcon }[] = [
@@ -69,7 +73,7 @@ export function BiboApp() {
     if (main) {
       main.dataset.workspaceMotion = "true";
       // Establish the current geometry before this explicit opening/closing action.
-      getComputedStyle(main).gridTemplateColumns;
+      void getComputedStyle(main).gridTemplateColumns;
     }
     if (open) space.showWorkspace(); else space.closeWorkspace();
   };
@@ -108,17 +112,6 @@ export function BiboApp() {
   }, [location.pathname, store.authChecked, store.user?.id]);
   useEffect(() => { useBiboSpaceStore.getState().bindAccount(store.user?.id ?? null); }, [store.user?.id]);
   useEffect(() => {
-    const guardDrafts = (event: BeforeUnloadEvent) => {
-      const state = useBiboSpaceStore.getState();
-      const chat = useBiboChatStore.getState();
-      if (chat.phase !== "idle" || Object.values(chat.drafts).some((draft) => draft.trim()) || Object.values(state.fileDrafts).some((draft) => draft.dirty) || Object.keys(state.taskDrafts).length || Object.keys(state.eventDrafts).length) {
-        event.preventDefault(); event.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", guardDrafts);
-    return () => window.removeEventListener("beforeunload", guardDrafts);
-  }, []);
-  useEffect(() => {
     document.addEventListener("click", workspaceResources.intercept);
     return () => document.removeEventListener("click", workspaceResources.intercept);
   }, []);
@@ -147,13 +140,14 @@ export function BiboApp() {
   </>;
   return <div ref={shellRef} className={`bibo-shell${space.view === "chat" ? " is-chat" : ""}${space.view === "overview" ? " is-overview" : ""}${space.view === "notes" && space.fileBrowserVisible ? " is-notes-collection" : ""}${space.sidebarCollapsed ? " is-sidebar-collapsed" : ""}${space.workspaceOpen && space.view === "chat" ? " has-workspace" : ""}`}>
     {mobile ? <Sheet open={store.menuOpen && !authOpen} onOpenChange={store.setMenuOpen} title="个人空间" closeLabel="关闭导航" returnFocusRef={menuButtonRef}><aside className="bibo-sidebar is-drawer" aria-label="导航">{sidebarContent}</aside></Sheet> : <aside ref={sidebarRef} className="bibo-sidebar" aria-label="导航"><div className="bibo-navigation-rail" data-ui-surface="frame"><IconButton label={space.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} icon={space.sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />} aria-expanded={!space.sidebarCollapsed} onClick={space.toggleSidebar} />{workspaceNavigation}<div className="bibo-sidebar-spacer" /><AccountMenu compact /></div><div ref={sidebarPanelRef} className="bibo-sidebar-panel" data-ui-surface="sidebar">{sidebarContent}</div></aside>}
-    <main ref={mainRef} className="bibo-main" data-workspace-motion={workspaceMotionKey.current === location.key}>
+    <main ref={mainRef} className="bibo-main" style={{ "--workspace-ratio": `${space.workspaceRatio * 100}%` } as CSSProperties} data-workspace-motion={workspaceMotionKey.current === location.key}>
       <header className={`bibo-topbar${fileHeader ? " is-file-header" : ""}${fileHeader && space.view === "notes" ? " is-note-header" : ""}`} data-ui-surface="frame"><div className="bibo-topbar-leading">
         <IconButton ref={menuButtonRef} className="bibo-menu-button" label="打开菜单" icon={<Menu />} tooltip={false} aria-expanded={store.menuOpen} onClick={() => store.setMenuOpen(!store.menuOpen)} />
         <h1 className={fileHeader ? "visually-hidden" : "workspace-title"} title={workspaceTitle}>{workspaceTitle}</h1>
-      </div>{fileHeader && <FileTabs />}{fileHeader && space.view === "notes" && <div className="bibo-file-header-tools" ref={setFileHeaderContainer} />}{space.view === "chat" && <div className="bibo-topbar-actions"><IconButton label={copy.newConversation} icon={<Plus />} onClick={() => void store.createSession()} /><IconButton label={copy.workspace} icon={<PanelRight />} aria-pressed={space.workspaceOpen} onClick={() => toggleWorkspace(!space.workspaceOpen)} /></div>}</header>
+      </div>{fileHeader && <FileTabs />}{fileHeader && <div className="bibo-file-header-tools" ref={setFileHeaderContainer} />}{space.view === "chat" && <div className="bibo-topbar-actions"><IconButton label={copy.newConversation} icon={<Plus />} onClick={() => void store.createSession()} /><IconButton label={copy.workspace} icon={<PanelRight />} aria-pressed={space.workspaceOpen} onClick={() => toggleWorkspace(!space.workspaceOpen)} /></div>}</header>
       <FileEditorHeader.Provider value={fileHeaderContainer}><Outlet /></FileEditorHeader.Provider>
       {route.view === "chat" && <BiboWorkspace onClose={() => toggleWorkspace(false)} />}
+      {route.view === "chat" && space.workspaceOpen && !mobile && <WorkspaceDivider container={mainRef} />}
     </main>
     <nav ref={mobileNavRef} className="bibo-mobile-nav" aria-label="手机快捷导航">{mobileNavigation.map((item) => <NavigationItem key={item.view} label={item.label} layout="stack" selected={space.view === item.view} tooltip={false}><Link to={workspaceHref(item.view, store.activeSessionId)} className={space.view === item.view ? "is-active" : ""} onClick={closeMenu}><item.icon aria-hidden="true" /><span>{item.label}</span></Link></NavigationItem>)}<NavigationItem label={copy.more} layout="stack" selected={["calendar", "notes", "files"].includes(space.view)} tooltip={false}><button onClick={() => store.setMenuOpen(true)}><Menu aria-hidden="true" /><span>{copy.more}</span></button></NavigationItem></nav>
     {authOpen && <AuthPanel />}
@@ -196,7 +190,7 @@ export function ChatPage() {
           <div className="bibo-suggestions">{suggestions.map((suggestion) => <Button key={suggestion.label} onClick={() => { store.setDraft(suggestion.text); inputRef.current?.focus(); }}><suggestion.icon aria-hidden="true" />{suggestion.label}</Button>)}</div>
         </div>}
         {hasMessages && <div className="bibo-messages" ref={listRef} onScroll={onScroll} role="log" aria-live="polite" aria-relevant="additions text">
-          <div className="bibo-message-content">{messages.map((message) => <MessageRow key={message.id} message={message}
+          <div className="bibo-message-content">{messages.map((message, index) => <MessageRow key={message.id} message={message} time={messageTime(message.at, messages[index - 1]?.at)}
             onOpenQuestion={store.openQuestion} submittingQuestionId={submittingQuestionId} />)}</div>
         </div>}
         {hasMessages && !store.following && <IconButton className="bibo-jump" label={copy.backToLatest} icon={<ArrowDown size={18} />} feedback="filled" tooltipSide="top" onClick={jumpToLatest} />}

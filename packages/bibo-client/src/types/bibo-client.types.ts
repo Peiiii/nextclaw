@@ -28,7 +28,7 @@ export type BiboFileReadInput = { id: string; path?: never } | { path: string; i
 export type BiboChatEvent =
   | BiboUiEvent
   | { name: "accepted"; value: { runId: string } }
-  | { name: "delta"; value: { text: string } }
+  | { name: "delta"; value: { text: string; blockId?: string } }
   | { name: "saving"; value: Record<string, never> }
   | { name: "committed"; value: { messages: BiboMessage[]; text: string; session: BiboSession | null } };
 

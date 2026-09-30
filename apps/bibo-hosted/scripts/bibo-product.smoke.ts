@@ -323,10 +323,10 @@ try {
       await openMarkdownSource(page);
       await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
       assert.equal(await page.getByRole("textbox", { name: "编辑 想法.md" }).textContent(), "# 更新过的想法");
-      await page.getByRole("button", { name: "预览", exact: true }).click();
+      await page.getByRole("button", { name: "文件操作", exact: true }).click();
+      await page.getByRole("menuitem", { name: "正文", exact: true }).click();
       await page.getByRole("heading", { name: "更新过的想法" }).waitFor();
-      assert.equal(await page.getByRole("group", { name: "文件模式" }).getByRole("button", { name: "预览" }).getAttribute("aria-pressed"), "true");
-      await page.getByRole("button", { name: "编辑", exact: true }).click();
+      assert.equal(await page.getByRole("group", { name: "文件模式" }).count(), 0);
       if (viewport.width < 600) await page.locator(".file-mobile-back button").click();
       await page.getByRole("button", { name: "收起目录树", exact: true }).click();
       await page.locator(".bibo-file-tab > button").first().click();

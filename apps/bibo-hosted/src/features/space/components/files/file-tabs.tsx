@@ -1,10 +1,11 @@
-import { ArrowLeft, PanelLeftOpen, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, FileText, List, PanelLeftOpen, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Button, Dialog, IconButton, Tab, TabList } from "@nextclaw/personal-agent-ui";
+import { ActionMenuItem, Button, Dialog, IconButton, Tab, TabList } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { FileKindIcon } from "./file-kind-icon";
 import { FileDirectoryButton } from "./file-breadcrumbs";
+import { FileActions } from "./file-actions";
 
 export function FileTabs({ workspace = false }: { workspace?: boolean }) {
   const { files, notes, tabs, activeFileId, workspaceFileId, fileDetails, fileDrafts, openFile, openWorkspace, closeFile, saveFile, showFileBrowser, treeCollapsed, toggleTree, view } = useBiboSpaceStore();
@@ -40,10 +41,16 @@ export function FileTabs({ workspace = false }: { workspace?: boolean }) {
     }
     closeFile(closing); setClosing(null);
   };
+  const current = selected ? fileDetails[selected] ?? files.find(file => file.id === selected) ?? notes.find(file => file.id === selected) : null;
+  const documentTitle = workspace || view === "notes";
+  const requestClose = (id: string) => { if (fileDrafts[id]?.dirty) { setFailure(""); setClosing(id); } else closeFile(id); };
   return <>
     {!workspace && treeCollapsed && view === "files" && <div className="file-tree-toggle"><IconButton label="展开目录树" icon={<PanelLeftOpen />} onClick={expandTree} /></div>}
-    {!workspace && <div className={`file-mobile-back${view === "notes" ? " is-notes-back" : ""}`}><IconButton label={view === "notes" ? copy.backToNotes : copy.fileDirectory} icon={<ArrowLeft />} onClick={() => { if (treeCollapsed && view === "files") toggleTree(); showFileBrowser(); }} /></div>}
-    <TabList className="bibo-file-tabs" ref={tabbar} aria-label={workspace ? copy.fileWorkspaceTabs : copy.fileTabs}>
+    {!workspace && view !== "notes" && <div className="file-mobile-back"><IconButton label={copy.fileDirectory} icon={<ArrowLeft />} onClick={() => { if (treeCollapsed) toggleTree(); showFileBrowser(); }} /></div>}
+    {documentTitle && current ? <div className="bibo-document-tabs"><FileActions file={current} label={`文档 ${current.path}`} menuTrigger={<Button className="ui-document-title" tone="quiet" aria-label={`文档 ${current.path}`}><FileText aria-hidden="true" /><span>{current.path.split("/").at(-1)?.replace(/\.(md|markdown|mdown)$/i, "")}{selected && fileDrafts[selected]?.dirty ? " •" : ""}</span><ChevronDown aria-hidden="true" /></Button>}
+      leading={!workspace ? <ActionMenuItem onSelect={showFileBrowser}><List size={18} />{copy.backToNotes}</ActionMenuItem> : undefined}
+      trailing={selected ? <ActionMenuItem disabled={fileDrafts[selected]?.saving} onSelect={() => requestClose(selected)}><X size={18} />{copy.closeDocument}</ActionMenuItem> : undefined} />
+    </div> : <TabList className="bibo-file-tabs" ref={tabbar} aria-label={workspace ? copy.fileWorkspaceTabs : copy.fileTabs}>
       {visibleTabs.map((id) => {
         const file = fileDetails[id] ?? files.find((item) => item.id === id);
         return <div key={id} role="presentation" className={`bibo-file-tab ui-tab-item${selected === id ? " is-active" : ""}`}>
@@ -54,8 +61,8 @@ export function FileTabs({ workspace = false }: { workspace?: boolean }) {
             onClick={() => { if (fileDrafts[id]?.dirty) { setFailure(""); setClosing(id); } else closeFile(id); }} />
         </div>;
       })}
-    </TabList>
-    {(workspace || view !== "notes") && <FileDirectoryButton onOpenFile={(id) => void open(id)} />}
+    </TabList>}
+    {!current && (workspace || view !== "notes") && <FileDirectoryButton onOpenFile={(id) => void open(id)} />}
     <Dialog open={closing !== null} onOpenChange={(value) => { if (!value) setClosing(null); }} title="保存文件修改？" description={closing ? fileDetails[closing]?.path : undefined}
       closeLabel="取消关闭" busy={closing ? fileDrafts[closing]?.saving : false} initialFocusRef={cancel}>
       <p className="ui-overlay__hint">这份文件有未保存的修改。</p>

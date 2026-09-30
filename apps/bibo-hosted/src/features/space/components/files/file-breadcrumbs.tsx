@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, FolderOpen } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, FolderOpen } from "lucide-react";
 import { Button, EmptyState, IconButton, LoadingState, Notice, Popover } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
@@ -37,7 +37,7 @@ function DirectorySegment({ label, path, current, iconOnly, onOpenFile }: { labe
       if (store.readStatus.files !== "ready") void store.load("files");
     }
   }} trigger={iconOnly ? <IconButton label={label} icon={<FolderOpen />} /> : <Button tone="text" aria-current={current ? "page" : undefined}>
-    {!path && !current && <FolderOpen aria-hidden="true" />}{label}
+    {!path && !current && <FolderOpen aria-hidden="true" />}{label}{current && <ChevronDown aria-hidden="true" />}
   </Button>}>
     <DirectoryBrowser path={browsePath} onNavigate={setBrowsePath} onOpenFile={(id) => { onOpenFile(id); setOpen(false); }} />
   </Popover>;

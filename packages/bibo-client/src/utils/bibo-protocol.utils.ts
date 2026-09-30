@@ -149,7 +149,8 @@ function readFrame(frame: string): BiboChatEvent | null {
     return { name, value: { runId: value.runId } };
   }
   if (name === "delta" && isRecord(value) && typeof value.text === "string") {
-    return { name, value: { text: value.text } };
+    if (value.blockId !== undefined && (typeof value.blockId !== "string" || !value.blockId.trim())) throw new BiboClientError("回答片段格式不正确。");
+    return { name, value: { text: value.text, ...(typeof value.blockId === "string" ? { blockId: value.blockId } : {}) } };
   }
   if (name === "saving" && isRecord(value)) return { name, value: {} };
   if (name === "committed") return readCommitted(value);

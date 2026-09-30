@@ -1,8 +1,15 @@
 import type { Locator, Page } from "playwright";
 
 export async function openMarkdownSource(page: Page, scope: Page | Locator = page): Promise<void> {
+  if (await scope.locator(".cm-content:visible").count()) return;
   await scope.getByRole("button", { name: "文件操作", exact: true }).click();
   await page.getByRole("menuitem", { name: "源码", exact: true }).click();
+}
+
+export async function openMarkdownBody(page: Page, scope: Page | Locator = page): Promise<void> {
+  if (await scope.locator(".tiptap:visible").count()) return;
+  await scope.getByRole("button", { name: "文件操作", exact: true }).click();
+  await page.getByRole("menuitem", { name: "正文", exact: true }).click();
 }
 
 const instant = "2026-09-25T09:00:00.000Z";

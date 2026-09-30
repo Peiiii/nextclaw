@@ -198,7 +198,8 @@ async function checkIconFeedback(page: Page, base: string): Promise<void> {
   assert.ok(await account.evaluate(element => getComputedStyle(element, "::before").backgroundColor !== getComputedStyle(element.closest(".bibo-navigation-rail")!).backgroundColor), "account icon hover contrasts with the rail");
   await account.click();
   await page.getByRole("menuitemradio", { name: "Bibo 经典" }).waitFor();
-  await page.mouse.click(500, 300);
+  const topbar = (await page.locator(".bibo-topbar").boundingBox())!;
+  await page.mouse.click(topbar.x + topbar.width / 2, topbar.y + topbar.height / 2);
   await page.getByRole("menu").waitFor({ state: "hidden" });
   assert.equal(await account.evaluate(element => element === document.activeElement), false, "pointer dismissal does not restore trigger focus");
   assert.equal(await page.getByRole("tooltip").count(), 0, "pointer dismissal leaves no tooltip");
@@ -260,13 +261,14 @@ export async function checkFileTabs(page: Page): Promise<void> {
 }
 
 async function checkAssistantReading(page: Page): Promise<void> {
-  assert.ok(await page.locator(".ui-message--assistant").first().evaluate(element => {
+  const reading = await page.locator(".ui-message--assistant:has(.ui-message__actions)").last().evaluate(element => {
     const body = element.querySelector(".ui-message__body")!, actions = element.querySelector(".ui-message__actions")!;
     const probe = document.createElement("span");
     probe.style.background = "var(--ui-assistant-message)"; element.append(probe);
     const background = getComputedStyle(probe).backgroundColor; probe.remove();
-    return getComputedStyle(body).backgroundColor === background && background !== "rgba(0, 0, 0, 0)" && Math.abs(body.getBoundingClientRect().left - actions.getBoundingClientRect().left) < 1;
-  }), "assistant reading card stays neutral and copy actions align left");
+    return { card: getComputedStyle(body).backgroundColor, background, gap: Math.abs(body.getBoundingClientRect().left - actions.getBoundingClientRect().left), theme: document.documentElement.dataset.biboTheme };
+  });
+  assert.ok(reading.card === reading.background && reading.background !== "rgba(0, 0, 0, 0)" && reading.gap < 1, `assistant reading card stays neutral and copy actions align left: ${JSON.stringify(reading)}`);
 }
 
 export async function checkOverviewCanvas(page: Page, width: number): Promise<void> {

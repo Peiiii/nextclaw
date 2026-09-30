@@ -67,11 +67,15 @@ function event(response: ServerResponse, name: string, value: unknown): void {
   response.write(`event: ${name}\ndata: ${JSON.stringify(value)}\n\n`);
 }
 
-export function biboUiDevController(): Plugin {
-  let messages = initialMessages();
-  const sessions = [{ id: "preview-session", title: "一起打磨个人空间", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), messageCount: messages.length }];
-  const histories = new Map<string, Message[]>([["preview-session", messages]]);
-  const spaceReady = (async () => {
+async function downloadFile(request: IncomingMessage, response: ServerResponse, space: BiboSpaceService): Promise<void> {
+  const path = new URL(request.url!, "http://localhost").searchParams.get("path");
+  const detail = await space.execute("file.get", { path }) as { path: string; content: string | null };
+  if (detail.content === null) return json(response, { error: "请选择文件。" }, 400);
+  response.writeHead(200, { "content-type": "application/octet-stream", "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(detail.path.split("/").at(-1)!)}`, "cache-control": "no-store" });
+  response.end(detail.content);
+}
+
+async function createPreviewSpace() {
     const home = process.env.BIBO_UI_HOME || await mkdtemp(join(tmpdir(), "personal-agent-preview-"));
     await mkdir(join(home, "workspace"), { recursive: true });
     const space = new BiboSpaceService(home);
@@ -89,7 +93,24 @@ export function biboUiDevController(): Plugin {
     }
     await space.execute("inbox.create", { title: "这一轮方案，等你看一眼", body: "这是本地预览的示例内容。任务、日程和文件操作使用真实的文件领域服务。", kind: "decision", source: { kind: "bibo" } });
     return { home, space };
-  })();
+}
+
+async function resetPreviewHome(home: string): Promise<void> {
+  await rm(join(home, "bibo"), { recursive: true, force: true });
+  await rm(join(home, "workspace"), { recursive: true, force: true });
+  await mkdir(join(home, "workspace"));
+}
+
+export function biboUiDevController(): Plugin {
+  const live = process.env.BIBO_UI_LIVE === "1";
+  let messages = live ? [] : initialMessages();
+  const sessions = (live ? [] : [{ id: "preview-session", title: "一起打磨个人空间", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), messageCount: messages.length }]);
+  const histories = new Map<string, Message[]>([["preview-session", messages]]);
+  const spaceReady = createPreviewSpace();
+  const localAgent = live ? spaceReady.then(async ({ home, space }) => {
+    const { BiboLocalAgentController } = await import("./local-preview/bibo-local-agent.controller");
+    return new BiboLocalAgentController(home, space);
+  }) : null;
   const runs = new Map<string, () => void>();
   const user = { id: "local-ui-preview", email: "preview@bibo.local" };
 
@@ -102,9 +123,11 @@ export function biboUiDevController(): Plugin {
 
   const runId = randomUUID();
   let stopped = false;
+  const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const stop = () => {
     stopped = true;
+    controller.abort();
     clearTimeout(timer);
     runs.delete(runId);
     if (!response.writableEnded) {
@@ -120,7 +143,18 @@ export function biboUiDevController(): Plugin {
     "x-accel-buffering": "no",
   });
   event(response, "accepted", { runId });
-  response.on("close", () => { stopped = true; clearTimeout(timer); runs.delete(runId); });
+  response.on("close", () => { stopped = true; controller.abort(); clearTimeout(timer); runs.delete(runId); });
+
+  if (localAgent) {
+    await (await localAgent).stream({ sessionId: session.id, message: input.trim(), signal: controller.signal,
+      question: chatInput.question as { id: string; action: "answer" | "dismiss" } | undefined }, response, result => {
+      messages = result.messages;
+      histories.set(session.id, messages); session.messageCount = messages.length; session.updatedAt = new Date().toISOString();
+      return session;
+    });
+    runs.delete(runId);
+    return;
+  }
 
   const chunks = showcase.match(/[\s\S]{1,42}/g) ?? [];
   let index = 0;
@@ -159,6 +193,7 @@ export function biboUiDevController(): Plugin {
     const index = sessions.findIndex((session) => session.id === input.id);
     if (index < 0) return json(response, { error: "会话不存在" }, 404);
     if (pathname.endsWith("rename")) { sessions[index]!.title = String(input.title); return json(response, { session: sessions[index] }); }
+    if (localAgent) await (await localAgent).remove(sessions[index]!.id);
     histories.delete(sessions[index]!.id); sessions.splice(index, 1);
     return json(response, { ok: true });
   }
@@ -173,15 +208,17 @@ export function biboUiDevController(): Plugin {
         const { biboAssetsRoute } = await server.ssrLoadModule("/src/features/assets/index.ts");
         return serveBiboPreviewAsset(request, response, (await spaceReady).home, biboAssetsRoute);
       };
-      server.httpServer?.once("close", () => { if (!process.env.BIBO_UI_HOME) void spaceReady.then(({ home }) => rm(home, { recursive: true, force: true })); });
+      server.httpServer?.once("close", () => { void localAgent?.then(agent => agent.dispose()); if (!process.env.BIBO_UI_HOME) void spaceReady.then(({ home }) => rm(home, { recursive: true, force: true })); });
       server.middlewares.use(async (request, response, next) => {
         const pathname = request.url?.split("?", 1)[0];
         if (!pathname?.startsWith("/api/")) return next();
 
         try {
+          if (live && (request.headers.origin && request.headers.origin !== `http://${request.headers.host}` || request.headers["sec-fetch-site"] === "cross-site")) return json(response, { error: "请从本地预览页面操作。" }, 403);
           if (pathname === "/api/auth/me") return json(response, { user });
           if (pathname === "/api/assets" || pathname.startsWith("/api/assets/")) return assets(request, response);
           if (pathname === "/api/chat/availability") return json(response, { ok: true });
+          if (pathname === "/api/workspace/file" && request.method === "GET") return downloadFile(request, response, (await spaceReady).space);
           if (pathname === "/api/history") {
             const selectedId = new URL(request.url!, "http://localhost").searchParams.get("id");
             return json(response, { messages: histories.get(selectedId ?? sessions[0]?.id ?? "") ?? [] });
@@ -194,9 +231,7 @@ export function biboUiDevController(): Plugin {
           if (pathname === "/api/reset") {
             messages = []; sessions.length = 0; histories.clear();
             const { home } = await spaceReady;
-            await rm(join(home, "bibo"), { recursive: true, force: true });
-            await rm(join(home, "workspace"), { recursive: true, force: true });
-            await mkdir(join(home, "workspace"));
+            await resetPreviewHome(home);
             return json(response, { ok: true });
           }
           if (pathname === "/api/auth/logout") return json(response, { ok: true });

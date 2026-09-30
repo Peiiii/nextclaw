@@ -42,6 +42,7 @@ export class MarkdownEditorManager {
     this.editor = new Editor({
       element: root, extensions: markdownEditorExtensions(this.props.labels, this.openInspector),
       content: this.props.value, contentType: "markdown",
+      autofocus: this.props.autoFocus ? "start" : false,
       editorProps: {
         attributes: { role: "textbox", "aria-label": this.props.label, "aria-multiline": "true", spellcheck: "true", "data-placeholder": this.props.labels.rich.commandHint },
         handleKeyDown: (_view, event) => {

@@ -221,7 +221,7 @@ export class BiboUserContainer extends DurableObject<Env> {
             if (!disconnected) controller.enqueue(encoder.encode(streamEvent(event, value)));
           };
           send("accepted", { runId: active.id });
-          const operation = this.executeRun(request, active, (delta) => send("delta", { text: delta }), () => send("saving", {}))
+          const operation = this.executeRun(request, active, (delta, blockId) => send("delta", { text: delta, ...(blockId ? { blockId } : {}) }), () => send("saving", {}))
             .then(async (response) => {
               const value = await response.json() as { error?: string; code?: string; text?: string; messages?: Message[]; displayEvents?: RunResult["displayEvents"] };
               if (!response.ok) return send("error", { error: value.error ?? "Bibo 暂时无法完成这次任务。", code: value.code, runId: active.id });
@@ -246,7 +246,7 @@ export class BiboUserContainer extends DurableObject<Env> {
     return this.executeRun(request, active);
   };
 
-  private executeRun = async (request: Request, active: ActiveRun, onDelta?: (text: string) => void, onSaving?: () => void): Promise<Response> => {
+  private executeRun = async (request: Request, active: ActiveRun, onDelta?: (text: string, blockId?: string) => void, onSaving?: () => void): Promise<Response> => {
     let persisted = false;
     let stage = "prepare";
     const started = Date.now();
@@ -279,9 +279,9 @@ export class BiboUserContainer extends DurableObject<Env> {
           tools: createBiboEdgeWebTools(this.env, payload.userId, payload.token),
           createTools: () => runExecution.tools(),
           runId: active.id, signal: active.controller.signal,
-          onDelta: (delta) => {
+          onDelta: (delta, blockId) => {
             if (firstDelta && delta) { firstDelta = false; logDiagnostic("worker", "run.first-delta", { ...active, durationMs: Date.now() - active.acceptedAt }); }
-            onDelta?.(delta);
+            onDelta?.(delta, blockId);
           } });
       } finally {
         clearTimeout(timeout);

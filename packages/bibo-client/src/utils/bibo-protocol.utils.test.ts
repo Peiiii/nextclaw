@@ -35,6 +35,15 @@ test("an uncommitted stream rejects even after visible delta", async () => {
   assert.deepEqual(events, ["临时内容"]);
 });
 
+test("incremental stream preserves validated text block IDs", async () => {
+  const parts = [{ text: "先检查", blockId: "first" }, { text: "完成", blockId: "second" }, { text: "旧协议" }];
+  const events: unknown[] = [];
+  const response = new Response(parts.map(value => `event: delta\ndata: ${JSON.stringify(value)}\n\n`).join("") + 'event: committed\ndata: {"text":"完成","messages":[]}\n\n');
+  await readBiboStream(response, event => { if (event.name === "delta") events.push(event.value); });
+  assert.deepEqual(events, parts);
+  await assert.rejects(readBiboStream(new Response('event: delta\ndata: {"text":"x","blockId":42}\n\n'), () => undefined), BiboClientError);
+});
+
 test("server error frames reject with their message", async () => {
   const response = new Response(new ReadableStream<Uint8Array>({
     start: (controller) => {

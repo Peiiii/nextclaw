@@ -125,7 +125,7 @@ export class BiboConversationService {
     tools?: readonly NcpTool[];
     createTools?: () => readonly NcpTool[];
     signal?: AbortSignal;
-    onDelta?: (delta: string) => void;
+    onDelta?: (delta: string, blockId?: string) => void;
   }): Promise<BiboEdgeRunResult> => {
     await this.harness.start();
     const record = await this.platform.sessions.getSession(input.sessionId);
@@ -167,10 +167,14 @@ export class BiboConversationService {
     }) });
     if (this.scopes.has(input.sessionId)) throw new Error("This session already has an active request scope.");
     this.scopes.set(input.sessionId, { tools, blocks: contextBlocks });
+    let textBlock = 0;
     const callbacks = {
       signal: input.signal,
-      onAssistantDelta: input.onDelta,
-      onEvent: (event: NcpEndpointEvent) => { events.push(event); },
+      onEvent: (event: NcpEndpointEvent) => {
+        events.push(event);
+        if (event.type === NcpEventType.MessageTextStart) textBlock += 1;
+        if (event.type === NcpEventType.MessageTextDelta) input.onDelta?.(event.payload.delta, `${event.payload.messageId}:${textBlock}`);
+      },
     };
     try {
       if (input.question) {

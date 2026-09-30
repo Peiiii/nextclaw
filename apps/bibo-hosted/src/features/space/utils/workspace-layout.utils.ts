@@ -34,6 +34,7 @@ type WorkspaceLayout = {
   activeFileId: string | null;
   workspaceOpen: boolean;
   workspaceFileId: string | null;
+  workspaceRatio: number;
 };
 
 export function readWorkspaceLayout(accountId: string): Partial<WorkspaceLayout> {
@@ -51,14 +52,15 @@ export function readWorkspaceLayout(accountId: string): Partial<WorkspaceLayout>
       activeFileId: tabs.includes(layout.activeFileId) ? layout.activeFileId : null,
       workspaceOpen: layout.workspaceOpen === true,
       workspaceFileId: typeof layout.workspaceFileId === "string" ? layout.workspaceFileId : null,
+      workspaceRatio: typeof layout.workspaceRatio === "number" && Number.isFinite(layout.workspaceRatio) ? Math.min(0.7, Math.max(0.3, layout.workspaceRatio)) : 0.55,
     };
   } catch { return {}; }
 }
 
 export function writeWorkspaceLayout(layout: WorkspaceLayout & { accountId: string | null }): void {
-  const { accountId, sidebarCollapsed, treeCollapsed, treeWidth, expandedFolders, tabs, activeFileId, workspaceOpen, workspaceFileId } = layout;
+  const { accountId, sidebarCollapsed, treeCollapsed, treeWidth, expandedFolders, tabs, activeFileId, workspaceOpen, workspaceFileId, workspaceRatio } = layout;
   if (!accountId) return;
   try {
-    localStorage.setItem(`space-layout:${accountId}`, JSON.stringify({ sidebarCollapsed, treeCollapsed, treeWidth, expandedFolders, tabs, activeFileId, workspaceOpen, workspaceFileId }));
+    localStorage.setItem(`space-layout:${accountId}`, JSON.stringify({ sidebarCollapsed, treeCollapsed, treeWidth, expandedFolders, tabs, activeFileId, workspaceOpen, workspaceFileId, workspaceRatio }));
   } catch { /* Preferences are optional; user content never goes into this storage. */ }
 }
