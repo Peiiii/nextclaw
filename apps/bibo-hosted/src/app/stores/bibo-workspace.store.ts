@@ -167,6 +167,24 @@ export class BiboWorkspaceStore implements WorkspaceByteStore {
       nextCursor: page.truncated ? page.cursor : null };
   };
 
+  /** Flat metadata scan avoids one remote list/stat chain for every implicit directory. */
+  listDescendants = async (cursor = ""): Promise<WorkspaceList> => {
+    const page = await this.objects.list({ prefix: this.prefix, limit: 1000,
+      include: ["httpMetadata", "customMetadata"], ...(cursor ? { cursor } : {}) } as R2ListOptions);
+    const entries = new Map<string, WorkspaceEntry>();
+    for (const object of page.objects) {
+      const relative = object.key.slice(this.prefix.length);
+      if (!relative) continue;
+      const directory = relative.endsWith("/");
+      const path = `${ROOT}/${directory ? relative.slice(0, -1) : relative}`;
+      for (let parent = this.parent(path); parent !== ROOT; parent = this.parent(parent)) {
+        if (!entries.has(parent)) entries.set(parent, this.directoryEntry(parent));
+      }
+      entries.set(path, directory ? this.directoryEntry(path, object) : this.fileEntry(path, object));
+    }
+    return { entries: [...entries.values()], nextCursor: page.truncated ? page.cursor : null };
+  };
+
   read = async (path: string, range?: { offset: number; length?: number }): Promise<WorkspaceRead | null> => {
     const target = this.resolve(path);
     if (target === ROOT) return null;
