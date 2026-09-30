@@ -63,7 +63,7 @@ type BiboRunSnapshot = {
 
 ### 发布前证据
 
-- 后端完整回归 135/135：新增组装真实 Worker→Harness→Cloudflare storage adapter 的断流恢复测试，task.create 副作用只出现一次；刷新订阅相同 runId、并发拒绝、结束后实例重启读取、账户隔离、中断识别均通过。
+- 集成后完整回归 141/141（含 3 项连接恢复测试）：新增组装真实 Worker→Harness→Cloudflare storage adapter 的断流恢复测试，task.create 副作用只出现一次；刷新订阅相同 runId、并发拒绝、结束后实例重启读取、账户隔离、中断识别均通过。部署配置回归锁定官方防回收开关，防止只保留 waitUntil 却漏掉平台前提。
 - SDK 18/18、连接恢复 owner 3/3：snapshot/heartbeat 解析、无接收确认恢复、旧回答不能冒充新回答、未知网络不能冒充 idle。
 - Worker/client/scripts 与 SDK tsc 通过；Vite 构建通过。
 - 真实 Chromium 桌面 1360×900、手机模拟 390×844：无 sessionStorage 新页恢复、刷新、网络中断/online、结果回读、失败原因展示、刷新后停止均通过；没有自动重发 POST；每个场景 5 次只读订阅。提问交互原回归通过。
@@ -73,4 +73,22 @@ type BiboRunSnapshot = {
 
 ### 上线复验
 
-待写入最终生产身份、首字/恢复时间与主线同步结果。旧大型交付 BE-03/BE-12 的网络恢复结论仅覆盖“真实终态后恢复”，本次发现运行中移动恢复缺口；完成此处 RR-01～RR-07 后才补上该范围。
+源码 `ff985b814` 从干净冻结远程 master 发布；生产 Worker `2bf0e569-98a1-41d8-8746-217076ac5461`，Deployment `c06db9b8-b2bc-4946-aadd-13867b9da07c`，100% 流量。API 读取实际版本确认 nodejs_compat 和 durable_object_io_tasks_prevent_eviction 均生效。上传 16.96 秒、切换 3.40 秒，无镜像构建，继续使用官方 Sandbox 0.12.10。后续新增仅为测试和证据，不改变已部署业务产物。
+
+| ID | 状态 | 当前证据与边界 |
+| --- | --- | --- |
+| RR-01 | passed | 真实模型 run `2587d519-e40a-4a12-84b5-c3881d9076ed` 接收后关闭原流，后续恢复相同 ID 与 committed，正式历史恰好两条。服务端日志只有预期的三次 exec（两次等待写入、一次读取），耗时 50196/45169/189ms；副作用不自动重放由组装 Harness 测试及云端计数控制任务证明。 |
+| RR-02 | passed | 生产新页面与刷新均恢复正在执行的 run、停止按钮和忙状态，不依赖 sessionStorage；刷新后停止同一任务，终态 RUN_CANCELLED。 |
+| RR-03 | passed | 生产 Chromium 手机模拟 390×844：刷新、实际网络离线、online 恢复，恢复到可停止 787ms，4 次只读订阅、0 自动 chat POST；未知状态没有发送入口。无 iPhone 实机证据。 |
+| RR-04 | passed | 上述真实模型/OS 任务服务端实际总时长 104560ms 并保存成功，超过原 85 秒阈值。独立云端控制任务在无订阅 94 秒时仍完成；明确停止与 timeout reason 控制测试、初始化识别 RUN_INTERRUPTED 均通过。没有把客户端最终回读的总等待时间当执行耗时。 |
+| RR-05 | passed | 生产已保存回答再次读 history 与 committed 一致；本地组装跨账号查询 404、取消 409。终态结果按 committedMessageCount 截止，避免读到后来另一轮回答。 |
+| RR-06 | passed | 上海客户端经本机代理、默认模型、一个新会话加四次续聊：首字 3160/2345/1912/2025/1875ms，中位数 2025ms、最大 3160ms。日志逐条证实 Sandbox 获取 0/0/0/0/0，服务端首字 2465/1697/1225/1364/1236ms。仅 5 次描述样本，不能当长期 p95/p99 保证。 |
+| RR-07 | passed | Worker/client/scripts 与 SDK tsc、Vite、141 项应用/恢复回归、18 项 SDK 回归、桌面/手机恢复与原提问 UI 回归通过。diff maintainability 无错误；集成后 chat store 402 行的预算警告保留，未为压行拆散状态 owner。implementation-review: passed。 |
+
+验收账号为专用 synthetic smoke account；它此前用完 250 次 UTC 日模型限额，已通过既有管理入口仅清零该测试账号计数，总用量保留。测试脚本第一次收到 snapshot 后主动 abort，客户端迭代器按预期抛 AbortError；没有重发这次已接收任务，而是查询并恢复原 ID。API 查询发生于原任务执行第约 83 秒，随后 96 秒完全无请求；最终 104560ms 的执行耗时取自服务端日志。严格“执行全程无订阅”的证据来自前述云端控制任务与原流关闭后的真实 exec 阶段，不把所有客户端等待都当后台工作时间。
+
+旧大型交付 BE-03/BE-12 的网络恢复结论原本仅覆盖“真实终态后恢复”。此处补足运行中恢复与断流不取消的明确合同，不改变旧整体合同其它未通过项的状态。上线入口：[Bibo](https://app.bibo.bot/)；刷新后可观察“工作中／工具执行／保存中／连接恢复／空闲”，只有明确停止才取消生成。当前单次 10 分钟上限继续适用。
+
+## 复盘决定
+
+`retrospective_decision=updated-original-owner`：在此设计与应用 README 明确订阅和执行的生命周期边界、官方开关及 10 分钟保障范围；既有应用回归增加部署开关测试，恢复 smoke 纳入 package 命令，旧验收账本补充实际运行中证据。高影响反例是“局部删除 cancel 不足以保证真实后台运行”，纠正点是验证平台配置、真实无连接存活和 UI 重新获取状态三者共同成立。没有新增全局提示词规则，也没有用测试夹具代替现网证明。

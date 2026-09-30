@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test, { after, beforeEach } from "node:test";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -198,6 +198,12 @@ class PersonalSpaceFixture {
 }
 
 const personalSpace = (initial?: BiboSpaceState) => new PersonalSpaceFixture(initial);
+
+test("deployment enables the Cloudflare protection required for detached background work", async () => {
+  const config = await readFile(new URL("../../wrangler.toml", import.meta.url), "utf8");
+  const flags = JSON.parse(config.match(/^compatibility_flags\s*=\s*(\[.*\])$/m)![1]) as string[];
+  assert.ok(flags.includes("durable_object_io_tasks_prevent_eviction"));
+});
 
 test("disconnect detaches the observer, refresh attaches the same task, and completion survives restart", async (t) => {
   const space = personalSpace();
