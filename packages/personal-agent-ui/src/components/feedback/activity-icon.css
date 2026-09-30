@@ -1,0 +1,18 @@
+.ui-activity-indicator { display:inline-grid; flex:none; place-items:center; width:var(--ui-icon-button-size); height:var(--ui-icon-button-size); color:var(--ui-muted); border-radius:var(--ui-radius-sm); }
+.ui-activity-indicator:focus-visible { outline:2px solid var(--ui-focus); outline-offset:2px; }
+.ui-activity-icon { width:18px; height:18px; flex:none; overflow:visible; }
+.ui-activity-icon :is(g, circle, path, rect) { transform-box:fill-box; transform-origin:center; }
+.ui-activity-icon__breath { animation:ui-activity-breathe 4s ease-in-out infinite; }
+.ui-activity-icon .ui-activity-icon__orbit { transform-box:view-box; animation:ui-activity-orbit 2.4s linear infinite; }
+.ui-activity-icon__bars path { animation:ui-activity-work 1.2s ease-in-out infinite; }
+.ui-activity-icon__bars path:nth-child(2) { animation-delay:-.8s; }
+.ui-activity-icon__bars path:nth-child(3) { animation-delay:-.4s; }
+.ui-activity-icon__settle { animation:ui-activity-settle 1.6s ease-in-out infinite; }
+.ui-activity-icon__pause { animation:ui-activity-breathe 2s ease-in-out infinite; }
+.ui-activity-icon .ui-activity-icon__reconnect { transform-box:view-box; animation:ui-activity-reconnect 2.8s ease-in-out infinite; }
+@keyframes ui-activity-breathe { 0%,100% { opacity:.55; transform:scale(.85); } 50% { opacity:1; transform:scale(1); } }
+@keyframes ui-activity-orbit { to { transform:rotate(360deg); } }
+@keyframes ui-activity-work { 0%,100% { transform:scaleY(.55); opacity:.55; } 50% { transform:scaleY(1); opacity:1; } }
+@keyframes ui-activity-settle { 0%,100% { transform:translateY(-1px); opacity:.55; } 50% { transform:translateY(2px); opacity:1; } }
+@keyframes ui-activity-reconnect { 0%,100% { transform:rotate(-12deg); opacity:.55; } 50% { transform:rotate(12deg); opacity:1; } }
+@media (prefers-reduced-motion:reduce) { .ui-activity-icon * { animation:none; } }

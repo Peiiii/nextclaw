@@ -24,7 +24,7 @@ For integration against a separately running local Worker, start `pnpm -C apps/b
 
 ### 后台运行与手机返回
 
-聊天运行由账号 Durable Object 中的 `BiboRunService` 持有，执行仍走公共 NextclawHarness。页面流只订阅结果：切后台、锁屏、刷新、断流均不会取消任务；只有明确点击停止才取消。刷新、新标签页、pageshow、visibilitychange 和 online 会读取 `/api/runs` 并订阅同一个 runId；顶部显示空闲、工作、保存、停止或连接恢复状态。网络未知时不开放盲目重复发送。
+聊天运行由账号 Durable Object 中的 `BiboRunService` 持有，执行仍走公共 NextclawHarness。页面流只订阅结果：切后台、锁屏、刷新、断流均不会取消任务；只有明确点击停止才取消。刷新、新标签页、pageshow、visibilitychange 和 online 会读取 `/api/runs` 并订阅同一个 runId；品牌或标题同行的 SVG 图标表达空闲、思考、执行、保存、停止和连接恢复，悬停或键盘聚焦查看文字状态，跨会话时可点击回到正在工作的对话。状态不独占一行，减少动态效果时保留静态轮廓。网络未知时不开放盲目重复发送。
 
 部署必须保留 `durable_object_io_tasks_prevent_eviction`：此官方开关让 DO 的 waitUntil 任务获得最多 15 分钟防回收保护。当前单次生成上限为 10 分钟，工具与模型仍有各自的操作超时；超过上限、明确取消、服务中断分别显示原因。意外实例丢失不会自动重放已产生副作用的工具。无限后台进程不在该单次运行合同内。
 

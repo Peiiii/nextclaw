@@ -15,6 +15,7 @@ export { PageHeader } from "./components/page-header";
 export { Dialog, Sheet } from "./components/overlays/overlay";
 export { ConfirmDialog } from "./components/overlays/confirm-dialog";
 export { IconButton } from "./components/icon-button";
+export { ActivityIcon, type ActivityIconState } from "./components/feedback/activity-icon";
 export { Tooltip } from "./components/overlays/tooltip";
 export { Popover } from "./components/overlays/popover";
 export { Tab, TabList } from "./components/navigation/tabs";

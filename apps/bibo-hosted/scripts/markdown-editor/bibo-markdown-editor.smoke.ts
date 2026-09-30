@@ -441,7 +441,15 @@ try {
     for (const width of [1440, 390, 320]) {
       const page = await browser.newPage({ viewport: { width, height: 900 }, isMobile: width < 500, hasTouch: width < 500 });
       try { await checkEditor(page, width); }
-      catch (error) { await page.screenshot({ path: "/tmp/bibo-markdown-editor-failure.png" }); console.error(await page.locator("body").innerText()); throw error; }
+      catch (error) {
+        await page.screenshot({ path: "/tmp/bibo-markdown-editor-failure.png" });
+        console.error(await page.evaluate(() => [".bibo-main", ".bibo-topbar", ".bibo-file-workbench", ".tiptap", ".ui-markdown-block-handle"].map(selector => {
+          const node = document.querySelector<HTMLElement>(selector);
+          const box = node?.getBoundingClientRect();
+          return { selector, x: box?.x, y: box?.y, width: box?.width, scrollLeft: node?.scrollLeft, visibility: node && getComputedStyle(node).visibility };
+        })));
+        console.error(await page.locator("body").innerText()); throw error;
+      }
       finally { await page.close(); }
     }
   } finally { await browser.close(); }

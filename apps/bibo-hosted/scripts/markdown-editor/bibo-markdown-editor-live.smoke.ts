@@ -92,14 +92,15 @@ try {
     }), false, "a restored code-ending document is not an unsaved edit");
     await page.locator(".tiptap:visible").getByRole("heading", { name: `Markdown 上线验收 ${width}` }).waitFor();
     await page.locator(".tiptap:visible h1").waitFor();
-    await page.locator(".tiptap:visible").click();
-    await page.keyboard.press("ControlOrMeta+End");
+    await page.locator(".tiptap:visible h1").click();
+    await page.keyboard.press("End");
     await page.keyboard.press("Enter");
     await page.keyboard.insertText("正文编辑真实保存");
     await page.reload({ waitUntil: "networkidle" });
     await page.locator(".tiptap:visible").getByText("正文编辑真实保存", { exact: true }).waitFor();
     assert.deepEqual(dialogs, [], "dirty document refresh has no browser confirmation");
     assert.ok(!(await space<File>("file.get", { id: createdId })).content.includes("正文编辑真实保存"), "refresh restores the local draft before server save");
+    await page.locator(".tiptap:visible").getByText("正文编辑真实保存", { exact: true }).click();
     await page.keyboard.press("ControlOrMeta+s");
     await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
     assert.ok((await space<File>("file.get", { path })).content.includes("正文编辑真实保存"));
