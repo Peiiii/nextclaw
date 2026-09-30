@@ -26,7 +26,7 @@ For integration against a separately running local Worker, start `pnpm -C apps/b
 
 部署必须保留 `durable_object_io_tasks_prevent_eviction`：此官方开关让 DO 的 waitUntil 任务获得最多 15 分钟防回收保护。当前单次生成上限为 10 分钟，工具与模型仍有各自的操作超时；超过上限、明确取消、服务中断分别显示原因。意外实例丢失不会自动重放已产生副作用的工具。无限后台进程不在该单次运行合同内。
 
-`pnpm -C apps/bibo-hosted exec tsx scripts/chat/bibo-run-recovery.smoke.ts` 覆盖桌面/手机尺寸、无缓存刷新、网络恢复、不重复发送和服务失败可见性；真实 Cloudflare 无订阅后台验证及上线结果见[恢复设计](../../docs/designs/2026-09-30-bibo-run-recovery.design.md)。
+`pnpm -C apps/bibo-hosted exec tsx scripts/chat/bibo-run-recovery.smoke.ts` 覆盖桌面/手机尺寸、保留 pending 且延迟查询的刷新、无缓存新页面、网络恢复、不重复发送、后续草稿保留和真实失败原因可见性。首次打开显示中性的“正在查询状态”，断线时重新连接；本地输入凭据不代表任务中断。任务业务状态归 `BiboConversationManager`，页面通过 `useBiboConversation` 订阅，`BiboClient` 只负责 HTTP/SSE；职责和验收见[会话状态设计](../../docs/designs/2026-10-01-bibo-conversation-state.design.md)。真实 Cloudflare 无订阅后台验证见[原恢复设计](../../docs/designs/2026-09-30-bibo-run-recovery.design.md)。
 
 - The Worker serves static assets and proxies registration/login to the existing NextClaw account API. It stores the platform session in an HttpOnly cookie. Workspace actions reuse only a platform-verified user ID for at most 30 seconds, bounded by the credential expiry and keyed by its SHA-256 digest in the existing Cache API. Cache failures fall back to fresh verification; logout removes that entry. Account and model/balance checks remain fresh. Revocation can take up to 30 seconds to affect workspace actions; cache hits never extend this interval.
 - A named Durable Object is selected from the verified account ID. It runs the public NextclawHarness; plain chat and workspace byte tools do not start a Container. OS tools acquire an account-isolated official Cloudflare Sandbox only when needed.

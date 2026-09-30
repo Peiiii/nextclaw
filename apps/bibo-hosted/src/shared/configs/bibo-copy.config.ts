@@ -1,6 +1,6 @@
 export const biboCopy = {
   runIdle: "Bibo · 空闲", runWorking: "Bibo · 正在工作", runSaving: "Bibo · 正在保存结果",
-  runStopping: "Bibo · 正在停止", runReconnecting: "连接中断 · 正在恢复任务状态", runOpen: "查看正在工作的会话",
+  runStopping: "Bibo · 正在停止", runChecking: "Bibo · 正在查询状态", runReconnecting: "连接中断 · 正在重新连接", runOpen: "查看正在工作的会话",
   runToolWorking: "正在使用工具处理任务",
   recent: "最近",
   more: "更多",
@@ -135,7 +135,6 @@ export const biboCopy = {
   createAccount: "创建账号",
   busy: "请稍候",
   retryFailed: "重试消息",
-  interrupted: "上次生成中断，内容未保存。消息已放回输入框，可重新发送。",
   retry: "输入已保留，可重新发送。",
   resetConfirm: "确认清空 Bibo 的对话和个人空间？这项操作无法撤销。",
   resetDone: "个人空间已清空。你可以重新开始。",

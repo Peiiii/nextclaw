@@ -3,7 +3,8 @@ import { Link, Outlet, useLocation, useNavigation } from "react-router";
 import { readWorkspaceRoute, workspaceHref } from "@/app/workspace-router";
 import { Button, Composer, IconButton, Markdown, Message, Sheet, NavigationItem } from "@nextclaw/personal-agent-ui";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
-import { useBiboChatStore, type BiboDisplayMessage } from "@/features/chat/stores/bibo-chat.store";
+import { useBiboChatStore } from "@/features/chat/stores/bibo-chat.store";
+import type { BiboDisplayMessage } from "@/features/chat/managers/bibo-conversation.manager";
 import { BiboSpaceView, BiboWorkspace, FileTabs, FileEditorHeader, NoteNavigation, useBiboSpaceStore, type BiboView } from "@/features/space";
 
 import { ArrowDown, CalendarDays, CheckCheck, FileText, Folder, Home, Inbox, Menu, MessageCircle, MessageCircleQuestion, PanelLeftClose, PanelLeftOpen, PanelRight, Plus, Sparkles, type LucideIcon } from "lucide-react";
@@ -13,6 +14,7 @@ import { AccountMenu } from "./account-menu";
 import { AuthPanel } from "./auth-panel";
 import { workspaceResources } from "@/features/space";
 import { QuestionPanel, QuestionReference, QuestionTags } from "./session-user-questions";
+import { useBiboConversation } from "@/features/chat/hooks/use-bibo-conversation";
 
 const suggestions = [
   { icon: MessageCircle, label: "先认识我", text: "我想让你成为我的个人搭档。先问我三个关键问题，了解我最近最在意的目标，然后帮我选一件今天能推进的事。" },
@@ -48,11 +50,12 @@ const mobileNavigation = navigation.filter(item => ["overview", "chat", "inbox",
 
 function RunStatus() {
   const store = useBiboChatStore();
+  const run = useBiboConversation();
   const view = useBiboSpaceStore((state) => state.view);
-  const label = store.recovering ? copy.runReconnecting : store.phase === "saving" ? copy.runSaving : store.phase === "stopping" ? copy.runStopping
-    : store.phase === "generating" ? store.activity ? copy.runToolWorking : copy.runWorking : copy.runIdle;
-  return store.user && <div className="bibo-run-status" role="status" aria-live="polite">{store.runSessionId && (view !== "chat" || store.runSessionId !== store.activeSessionId)
-    ? <Link to={`/chat/${store.runSessionId}`} aria-label={copy.runOpen}>{label}</Link> : label}</div>;
+  const label = run.connection === "checking" ? copy.runChecking : run.recovering ? copy.runReconnecting : run.phase === "saving" ? copy.runSaving : run.phase === "stopping" ? copy.runStopping
+    : run.phase === "generating" ? run.activity ? copy.runToolWorking : copy.runWorking : copy.runIdle;
+  return store.user && <div className="bibo-run-status" role="status" aria-live="polite">{run.runSessionId && (view !== "chat" || run.runSessionId !== store.activeSessionId)
+    ? <Link to={`/chat/${run.runSessionId}`} aria-label={copy.runOpen}>{label}</Link> : label}</div>;
 }
 
 export function BiboApp() {
@@ -117,6 +120,7 @@ export function BiboApp() {
       document.removeEventListener("visibilitychange", reconnect);
       window.removeEventListener("pageshow", reconnect);
       window.removeEventListener("online", reconnect);
+      useBiboChatStore.getState().conversation.dispose();
     };
   }, []);
   useLayoutEffect(() => {
@@ -184,15 +188,16 @@ export function BiboApp() {
 
 export function ChatPage() {
   const store = useBiboChatStore();
+  const run = useBiboConversation();
   const pendingNavigation = useNavigation();
   const route = readWorkspaceRoute(useLocation().pathname);
   const sessionSwitching = !store.authChecked || store.sessionLoading || pendingNavigation.state !== "idle" || route.sessionId !== store.activeSessionId;
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const messages = store.displayMessages();
+  const messages = run.messages;
   const questions = store.messages.flatMap((message) => message.questions ?? []).filter((question) => question.status === "pending");
   const openQuestion = questions.find((question) => question.id === store.openQuestionId);
-  const submittingQuestionId = store.phase !== "idle" ? store.pendingQuestion?.id : undefined;
+  const submittingQuestionId = run.busy ? run.pendingQuestion?.id : undefined;
   const reopenQuestions = questions.filter((question) => question.id !== submittingQuestionId && !store.skippedQuestionIds.includes(question.id));
   const hasMessages = messages.length > 0;
   const failedMessages = store.failedMessages[store.activeSessionId ?? "new"] ?? [];
@@ -200,7 +205,7 @@ export function ChatPage() {
   useEffect(() => {
     const list = listRef.current;
     if (list && store.following) list.scrollTop = list.scrollHeight;
-  }, [store.messages.length, store.pendingMessage, store.partial, store.following]);
+  }, [store.messages.length, run.pendingMessage, run.partial, store.following]);
   const onScroll = () => {
     const list = listRef.current;
     if (list) store.setFollowing(list.scrollHeight - list.scrollTop - list.clientHeight < 90);
@@ -224,8 +229,8 @@ export function ChatPage() {
       </section>
       <div className="bibo-composer-wrap">
         {status && <div className="bibo-status" role="status" aria-live="polite">{status}</div>}
-        {store.phase === "idle" && failedMessages.length > 0 && <Button tone="text" onClick={() => void store.send(failedMessages[0])}>{copy.retryFailed}{failedMessages.length > 1 ? ` (${failedMessages.length})` : ""}</Button>}
-        {openQuestion && <QuestionPanel key={openQuestion.id} question={openQuestion} busy={store.phase !== "idle" || sessionSwitching}
+        {!run.busy && failedMessages.length > 0 && <Button tone="text" onClick={() => void store.send(failedMessages[0])}>{copy.retryFailed}{failedMessages.length > 1 ? ` (${failedMessages.length})` : ""}</Button>}
+        {openQuestion && <QuestionPanel key={openQuestion.id} question={openQuestion} busy={run.busy || sessionSwitching}
           initialCustom={store.failedQuestionInput?.id === openQuestion.id ? store.failedQuestionInput.answer : ""}
           onClose={store.closeQuestion}
           onAnswer={(answer) => void store.send(answer, { id: openQuestion.id, title: openQuestion.title, action: "answer" })}
@@ -233,7 +238,7 @@ export function ChatPage() {
         {!openQuestion && reopenQuestions.length > 0 && <button type="button" className="bibo-question-reopen" onClick={() => store.openQuestion(reopenQuestions[0].id)}>
           <MessageCircleQuestion size={15} aria-hidden="true" />{copy.questionPending} {reopenQuestions.length}</button>}
         <Composer inputRef={inputRef} value={store.draft} onChange={store.setDraft} onSend={() => void store.send()} onStop={() => void store.stop()}
-          busy={store.phase !== "idle" || store.recovering || sessionSwitching} canStop={!store.recovering && store.phase === "generating" && Boolean(store.runId) && store.runSessionId === store.activeSessionId}
+          busy={run.busy || sessionSwitching} canStop={!run.recovering && run.phase === "generating" && Boolean(run.runId) && run.runSessionId === store.activeSessionId}
           readOnly={sessionSwitching} busyLabel={copy.busy}
           placeholder={copy.placeholder} sendLabel={copy.send} stopLabel={copy.stop} />
       </div>

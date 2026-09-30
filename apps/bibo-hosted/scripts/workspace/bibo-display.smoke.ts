@@ -43,7 +43,7 @@ try {
         const value = { id: "same-event", sessionId: "session-a", target: { type: "file", payload: { path: detail.path, viewer } } };
         const messages = [{ role: "assistant", text: `[产物](${detail.uri}) 回答 ${++index}`, at: String(index) }];
         if (!fail) savedMessages = messages;
-        return route.fulfill({ contentType: "text/event-stream", body: frame("accepted", { runId: "r1" }) + frame("delta", { text: "正在处理" })
+        return route.fulfill({ contentType: "text/event-stream", body: frame("accepted", { runId: `display-run-${index}` }) + frame("delta", { text: "正在处理" })
           + (show ? frame("show-content", value) + frame("show-content", value) : "")
           + (fail ? frame("error", { error: "结果未能保存" }) : frame("saving", {}) + frame("committed", { text: messages[0]!.text, messages })) });
       });

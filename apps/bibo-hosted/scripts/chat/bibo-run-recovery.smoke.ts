@@ -20,16 +20,21 @@ try {
     const page = await context.newPage();
     await mockApi(page);
     let run: BiboRunSnapshot = { runId: "run-restored", sessionId: "session-a", message: "后台任务的输入", phase: "generating",
-      startedAt: Date.now(), updatedAt: Date.now(), partial: "已经完成第一步。", activity: "exec" };
+      startedAt: Date.now(), updatedAt: Date.now(), partial: "已经完成第一步。", activity: "exec", clientRequestId: "recovery-request" };
     let disconnected = false;
     let release!: () => void;
     let finished = new Promise<void>((resolve) => { release = resolve; });
     let subscriptions = 0;
     let posts = 0;
+    let queryGate: Promise<void> | undefined;
+    let releaseQuery!: () => void;
+    let queried!: () => void;
     page.on("request", (request) => { if (new URL(request.url()).pathname === "/api/chat") posts++; });
     await page.route("**/api/runs**", async (route) => {
       if (disconnected) return route.abort("internetdisconnected");
       if (new URL(route.request().url()).pathname === "/api/runs") {
+        queried?.();
+        await queryGate;
         return route.fulfill({ contentType: "application/json", body: JSON.stringify({ run, activeRuns: run.phase === "generating" ? [run] : [] }) });
       }
       subscriptions++;
@@ -46,21 +51,35 @@ try {
     await page.getByRole("button", { name: "停止生成", exact: true }).waitFor();
     await page.getByText(run.partial, { exact: true }).waitFor();
     assert.equal(posts, 0, "fresh tab without pending storage attaches instead of resending");
-    await page.evaluate(() => sessionStorage.clear());
+    await page.evaluate((run) => sessionStorage.setItem("bibo-pending-smoke", JSON.stringify({
+      message: run.message, sessionId: run.sessionId, clientRequestId: run.clientRequestId,
+    })), run);
+    queryGate = new Promise<void>((resolve) => { releaseQuery = resolve; });
+    const queryStarted = new Promise<void>((resolve) => { queried = resolve; });
     await page.reload();
+    await queryStarted;
+    await page.getByText("Bibo · 正在查询状态", { exact: true }).first().waitFor();
+    assert.equal(await page.getByText(/上次生成中断|内容未保存/).count(), 0, "receipt must not be treated as failure before authority returns");
+    assert.equal(await page.locator("textarea").inputValue(), "", "active input must not be restored as a failed draft");
+    assert.equal(await page.getByRole("button", { name: "发送消息", exact: true }).count(), 0);
+    releaseQuery();
+    queryGate = undefined;
     await page.getByRole("button", { name: "停止生成", exact: true }).waitFor();
     assert.equal(await page.getByText(run.partial, { exact: true }).count(), 1, "snapshot replaces partial without duplication");
     disconnected = true;
     await page.evaluate(() => window.dispatchEvent(new Event("pageshow")));
-    await page.getByText("连接中断 · 正在恢复任务状态", { exact: true }).first().waitFor();
+    await page.getByText("连接中断 · 正在重新连接", { exact: true }).first().waitFor();
     assert.equal(await page.getByRole("button", { name: "发送消息", exact: true }).count(), 0, "unknown server state cannot expose send");
     disconnected = false;
     await page.evaluate(() => window.dispatchEvent(new Event("online")));
     await page.getByRole("button", { name: "停止生成", exact: true }).waitFor();
+    await page.locator("textarea").fill("下一条独立草稿");
     run = { ...run, phase: "completed", activity: undefined };
     release();
     await page.getByText("后台任务完整结果", { exact: true }).waitFor();
     await page.getByText("Bibo · 空闲", { exact: true }).first().waitFor();
+    assert.equal(await page.locator("textarea").inputValue(), "下一条独立草稿", "commit must preserve the user's later draft");
+    assert.equal(await page.evaluate(() => sessionStorage.getItem("bibo-pending-smoke")), null);
     await page.reload();
     await page.getByText("后台任务完整结果", { exact: true }).waitFor();
     assert.equal(posts, 0);
@@ -85,7 +104,7 @@ try {
     await page.getByText("已停止这次任务。", { exact: true }).waitFor();
     assert.equal(stops, 1);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    console.log(JSON.stringify({ mobile, refresh: true, freshTab: true, reconnect: true, noRepeatPost: true, failureVisible: true, stopAfterRefresh: true, subscriptions }));
+    console.log(JSON.stringify({ mobile, refreshWithReceipt: true, delayedAuthorityNoFalseFailure: true, freshTab: true, reconnect: true, noRepeatPost: true, failureVisible: true, stopAfterRefresh: true, subscriptions }));
     await context.close();
   }
 } finally { await browser.close(); server.kill("SIGTERM"); await once(server, "exit").catch(() => undefined); }
