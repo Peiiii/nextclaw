@@ -1,11 +1,12 @@
 import type { BiboClient, BiboEvent, BiboFile, BiboInboxItem, BiboOverview, BiboProject, BiboTask } from "@nextclaw/bibo-client";
 import type { BiboView } from "@/features/space/stores/bibo-space.store";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
+import type { FileDirectoryManager } from "@/features/space/managers/file-directory.manager";
 
 type Page<T> = { items: T[]; nextCursor: string | null };
 type Lists = {
   overview?: BiboOverview; projects?: BiboProject[]; tasks?: BiboTask[];
-  inbox?: BiboInboxItem[]; files?: BiboFile[]; notes?: BiboFile[];
+  inbox?: BiboInboxItem[]; notes?: BiboFile[];
   cursors: Record<string, string | null>;
 };
 
@@ -52,8 +53,8 @@ export function savedTaskView(state: Parameters<typeof taskListFilter>[0] & {
 
 export function readNextSpacePage(client: BiboClient, state: Parameters<typeof taskListFilter>[0] & {
   noteQuery: string; inboxScope: "pending" | "unread" | "all";
-}, domain: "tasks" | "events" | "inbox" | "files" | "notes", cursor: string): Promise<Page<unknown>> {
-  const action = { tasks: "task.list", events: "event.list", inbox: "inbox.list", files: "file.list", notes: "file.list" }[domain];
+}, domain: "tasks" | "events" | "inbox" | "notes", cursor: string): Promise<Page<unknown>> {
+  const action = { tasks: "task.list", events: "event.list", inbox: "inbox.list", notes: "file.list" }[domain];
   return client.space(action, { limit: 100, cursor,
     ...(domain === "tasks" ? taskListFilter(state) : {}),
     ...(domain === "notes" ? { kind: "note", query: state.noteQuery, sort: "recent" } : {}),
@@ -73,7 +74,7 @@ export async function readCalendarEvents(client: BiboClient, range: { from: stri
 }
 
 export async function readSpaceLists(client: BiboClient, input: {
-  view: BiboView; taskFilter: Record<string, unknown>; noteQuery: string; inboxScope: "pending" | "unread" | "all";
+  view: BiboView; taskFilter: Record<string, unknown>; noteQuery: string; inboxScope: "pending" | "unread" | "all"; fileDirectory: FileDirectoryManager;
 }): Promise<Lists> {
   if (input.view === "overview") return { overview: await client.space<BiboOverview>("overview.get"), cursors: {} };
   if (input.view === "tasks") {
@@ -87,12 +88,10 @@ export async function readSpaceLists(client: BiboClient, input: {
     const inbox = await client.space<Page<BiboInboxItem>>("inbox.list", { limit: 100, unresolved: input.inboxScope === "pending", unread: input.inboxScope === "unread" });
     return { inbox: inbox.items, cursors: { inbox: inbox.nextCursor } };
   }
-  if (input.view === "files" || input.view === "notes") {
-    const [files, notes] = await Promise.all([
-      client.space<Page<BiboFile>>("file.list", { limit: 100 }),
-      input.view === "notes" ? client.space<Page<BiboFile>>("file.list", { kind: "note", query: input.noteQuery, sort: "recent", limit: 100 }) : Promise.resolve(null),
-    ]);
-    return { files: files.items, ...(notes ? { notes: notes.items } : {}), cursors: { files: files.nextCursor, ...(notes ? { notes: notes.nextCursor } : {}) } };
+  if (input.view === "files") await input.fileDirectory.refresh();
+  if (input.view === "notes") {
+    const [notes] = await Promise.all([client.space<Page<BiboFile>>("file.list", { kind: "note", query: input.noteQuery, sort: "recent", limit: 100 }), input.fileDirectory.refresh()]);
+    return { notes: notes.items, cursors: { notes: notes.nextCursor } };
   }
   return { cursors: {} };
 }

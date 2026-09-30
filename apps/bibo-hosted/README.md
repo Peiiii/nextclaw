@@ -41,6 +41,8 @@ For integration against a separately running local Worker, start `pnpm -C apps/b
 
 ## Build and deploy
 
+文件目录按文件夹读取直接子项；展开目录后才读取内容，“加载更多文件”只加载所在目录的下一页。刷新与笔记/文件页切换会重读已加载的目录页，不会把未返回的其他目录误判为删除。目录读取失败保留已有内容并提供所在目录的重试。面包屑目录浏览复用同一目录 manager。`file.list` 使用 `parentPath: ""` 查询根目录，非空 `parentPath` 查询该目录直接子项并透传分页游标；省略 `parentPath` 时继续用于全空间搜索和最近笔记。
+
 Question panels distinguish closing from skipping: close keeps the pending reminder, while skip silently hides it without sending a message or starting an AI run. Skipped questions remain answerable from their original message, and the per-account preference survives reload within the browser tab. `scripts/chat/bibo-question.smoke.ts` verifies skip, refresh, reopening and answer retry on desktop and mobile; the live question smoke's skip mode verifies unchanged history before reopening and answering.
 
 Bibo normally asks conversational questions in its reply. The structured question tool is reserved for a concrete decision discovered during task execution, with a few clear choices that usually resolve the missing information in one selection or at most one or two exchanges. Explicit user requests for choice-based interaction also qualify. This policy enters every run through Bibo's product context, including accounts with a customized identity file.

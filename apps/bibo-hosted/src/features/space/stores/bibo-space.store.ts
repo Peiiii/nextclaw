@@ -5,6 +5,7 @@ import { readBiboTheme, readWorkspaceLayout, revealedFileLayout, writeBiboTheme,
 import { readCalendarEvents, readNextSpacePage, readSpaceLists, savedTaskView, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
 import { navigateWorkspace } from "@/app/workspace-router";
 import { closedFileState, fileDeletionState, openedFileState, restoredFileTargets } from "@/features/space/utils/file-state.utils";
+import { FileDirectoryManager, type FileDirectories } from "@/features/space/managers/file-directory.manager";
 import { FileEditingManager } from "@/features/space/managers/file-editing.manager";
 import { InboxReaderManager } from "@/features/space/managers/inbox-reader.manager";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
@@ -64,6 +65,7 @@ class BiboSpaceOwner {
   events: BiboEvent[] = [];
   inbox: BiboInboxItem[] = [];
   files: BiboFile[] = [];
+  directories: FileDirectories = {};
   notes: BiboFile[] = [];
   fileQuery = "";
   fileMatches: BiboFile[] = [];
@@ -90,9 +92,11 @@ class BiboSpaceOwner {
 
   readonly inboxReader: InboxReaderManager;
   readonly fileEditing: FileEditingManager;
+  readonly fileDirectory: FileDirectoryManager;
   constructor(private readonly store: StoreApi<BiboSpaceOwner>) {
     this.inboxReader = new InboxReaderManager(store, client);
     this.fileEditing = new FileEditingManager(store, client, this.pendingCreates, this.set);
+    this.fileDirectory = new FileDirectoryManager(store, client);
   }
   private get = (): BiboSpaceOwner => this.store.getState();
   private set = (update: Partial<BiboSpaceOwner> | ((state: BiboSpaceOwner) => Partial<BiboSpaceOwner>)): void => {
@@ -136,20 +140,7 @@ class BiboSpaceOwner {
     this.set({ workspaceRatio: Math.min(0.7, Math.max(0.3, ratio)) });
     this.saveLayout();
   };
-  toggleFolder = (id: string): void => { this.set((state) => ({ expandedFolders: { ...state.expandedFolders, [id]: !state.expandedFolders[id] } })); this.saveLayout(); };
   showFileBrowser = (): void => this.set({ fileBrowserVisible: true });
-  searchFiles = async (query: string, more = false): Promise<void> => {
-    if (more && (this.get().fileSearchLoading || query !== this.get().fileQuery || !this.get().fileSearchCursor)) return;
-    const cursor = more ? this.get().fileSearchCursor : null;
-    this.set({ fileQuery: query, fileSearchLoading: !!query.trim(), fileSearchError: "", ...(more ? {} : { fileMatches: [], fileSearchCursor: null }) });
-    if (!query.trim()) return;
-    try {
-      const page = await client.space<Page<BiboFile>>("file.list", { query, limit: 50, ...(cursor ? { cursor } : {}) });
-      if (this.get().fileQuery !== query) return;
-      this.set((state) => ({ fileMatches: more ? [...state.fileMatches, ...page.items] : page.items, fileSearchCursor: page.nextCursor }));
-    } catch (error) { if (this.get().fileQuery === query) this.set({ fileSearchError: message(error) }); }
-    finally { if (this.get().fileQuery === query) this.set({ fileSearchLoading: false }); }
-  };
   private revealFile = (id: string): void => {
     this.set((state) => revealedFileLayout(state, id));
     this.saveLayout();
@@ -212,7 +203,7 @@ class BiboSpaceOwner {
     const view = this.get().view;
     if (view === "chat" && !this.get().workspaceOpen) return;
     if (view !== "chat") await this.load(view);
-    if (this.get().workspaceOpen && view !== "files") await this.load("files");
+    if (this.get().workspaceOpen && view !== "files" && view !== "notes") await this.load("files");
     for (const id of this.get().tabs) {
       if (this.get().fileDrafts[id]?.dirty) continue;
       try {
@@ -232,7 +223,7 @@ class BiboSpaceOwner {
       if (view === "calendar") await this.loadCalendarMonth(this.get().calendarDate);
       else {
         const { noteQuery, inboxScope } = this.get();
-        const lists = await readSpaceLists(client, { view, taskFilter: taskListFilter(this.get()), noteQuery, inboxScope });
+        const lists = await readSpaceLists(client, { view, taskFilter: taskListFilter(this.get()), noteQuery, inboxScope, fileDirectory: this.fileDirectory });
         if (this.viewLoadRequest[view] !== request || (view === "inbox" && inboxRevision !== this.inboxReader.revision)) return true;
         this.set((state) => ({ ...lists, cursors: { ...state.cursors, ...lists.cursors } }));
       }
@@ -268,7 +259,7 @@ class BiboSpaceOwner {
     return request;
   };
 
-  loadMore = async (domain: "tasks" | "events" | "inbox" | "files" | "notes"): Promise<void> => {
+  loadMore = async (domain: "tasks" | "events" | "inbox" | "notes"): Promise<void> => {
     const cursor = this.get().cursors[domain];
     if (!cursor || this.get().moreLoading[domain]) return;
     this.set((state) => ({ moreLoading: { ...state.moreLoading, [domain]: true } }));

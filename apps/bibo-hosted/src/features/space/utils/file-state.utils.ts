@@ -3,6 +3,15 @@ import type { BiboFile, BiboFileDetail } from "@nextclaw/bibo-client";
 
 type WorkspaceState = ReturnType<typeof useBiboSpaceStore.getState>;
 
+export function directoryFileState(files: BiboFile[], path: string, items: BiboFile[], complete: boolean): BiboFile[] {
+  const parent = (file: BiboFile) => file.path.includes("/") ? file.path.slice(0, file.path.lastIndexOf("/")) : "";
+  const incoming = new Set(items.map(file => file.id));
+  const removed = complete ? files.filter(file => parent(file) === path && !incoming.has(file.id)) : [];
+  const retained = files.filter(file => !incoming.has(file.id) && !removed.some(entry =>
+    file.id === entry.id || entry.kind === "folder" && file.path.startsWith(`${entry.path}/`)));
+  return [...retained, ...items];
+}
+
 export function restoredFileTargets(state: WorkspaceState, view: WorkspaceState["view"]) {
   const active = state.activeFileId;
   const selected = active && !state.fileDetails[active] && (view === "files" || state.notes.some((note) => note.id === active))

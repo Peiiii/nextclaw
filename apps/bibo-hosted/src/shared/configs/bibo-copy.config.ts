@@ -50,6 +50,7 @@ export const biboCopy = {
   fileEmptyDirectory: "文件夹为空",
   fileMore: "加载更多文件",
   fileDirectoryRetry: "重试读取目录",
+  fileDirectoryLoading: "正在读取目录",
   fileTabs: "打开的文件",
   fileWorkspaceTabs: "工作区文件",
   fileOpening: "正在打开…",

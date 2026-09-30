@@ -6,8 +6,9 @@ import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { FileKindIcon } from "./file-kind-icon";
 
 function DirectoryBrowser({ path, onNavigate, onOpenFile }: { path: string; onNavigate: (path: string) => void; onOpenFile: (id: string) => void }) {
-  const { files, fileDetails, cursors, moreLoading, loadMore, readStatus, error, load } = useBiboSpaceStore();
-  const entries = [...new Map([...files, ...Object.values(fileDetails)].map((file) => [file.id, file])).values()]
+  const { files, directories, fileDirectory } = useBiboSpaceStore();
+  const directory = directories[path];
+  const entries = files
     .filter((file) => file.path.slice(0, Math.max(0, file.path.lastIndexOf("/"))) === path)
     .sort((a, b) => Number(b.kind === "folder") - Number(a.kind === "folder") || a.path.localeCompare(b.path));
   return <div className="file-directory-browser">
@@ -15,14 +16,14 @@ function DirectoryBrowser({ path, onNavigate, onOpenFile }: { path: string; onNa
       {path && <IconButton label={copy.fileParent} icon={<ChevronLeft />} tooltip={false} onClick={() => onNavigate(path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "")} />}
       <span title={path}>{path || copy.fileRoot}</span>
     </div>
-    {readStatus.files === "loading" && <LoadingState label="正在读取目录" />}
-    {error && <div><Notice tone="error">{error}</Notice><Button tone="text" onClick={() => void load("files")}>{copy.fileDirectoryRetry}</Button></div>}
+    {directory?.status === "loading" && <LoadingState label={copy.fileDirectoryLoading} />}
+    {directory?.error && <div><Notice tone="error">{directory.error}</Notice><Button tone="text" onClick={() => void fileDirectory.load(path)}>{copy.fileDirectoryRetry}</Button></div>}
     {entries.map((file) => <Button key={file.id} tone="text" className="file-directory-entry"
       onClick={() => file.kind === "folder" ? onNavigate(file.path) : onOpenFile(file.id)}>
       <FileKindIcon file={file} /><span title={file.path}>{file.path.split("/").at(-1)}</span>{file.kind === "folder" && <ChevronRight aria-hidden="true" />}
     </Button>)}
-    {!entries.length && !cursors.files && readStatus.files === "ready" && !error && <EmptyState title={copy.fileEmptyDirectory} />}
-    {cursors.files && <Button tone="text" disabled={moreLoading.files} onClick={() => void loadMore("files")}>{copy.fileMore}</Button>}
+    {!entries.length && !directory?.cursor && directory?.status === "ready" && <EmptyState title={copy.fileEmptyDirectory} />}
+    {directory?.cursor && <Button tone="text" disabled={directory.status === "loading"} onClick={() => void fileDirectory.load(path, true)}>{copy.fileMore}</Button>}
   </div>;
 }
 
@@ -34,12 +35,12 @@ function DirectorySegment({ label, path, current, iconOnly, onOpenFile }: { labe
     if (value) {
       setBrowsePath(path);
       const store = useBiboSpaceStore.getState();
-      if (store.readStatus.files !== "ready") void store.load("files");
+      void store.fileDirectory.load(path);
     }
   }} trigger={iconOnly ? <IconButton label={label} icon={<FolderOpen />} /> : <Button tone="text" aria-current={current ? "page" : undefined}>
     {!path && !current && <FolderOpen aria-hidden="true" />}{label}{current && <ChevronDown aria-hidden="true" />}
   </Button>}>
-    <DirectoryBrowser path={browsePath} onNavigate={setBrowsePath} onOpenFile={(id) => { onOpenFile(id); setOpen(false); }} />
+    <DirectoryBrowser path={browsePath} onNavigate={(next) => { setBrowsePath(next); void useBiboSpaceStore.getState().fileDirectory.load(next); }} onOpenFile={(id) => { onOpenFile(id); setOpen(false); }} />
   </Popover>;
 }
 

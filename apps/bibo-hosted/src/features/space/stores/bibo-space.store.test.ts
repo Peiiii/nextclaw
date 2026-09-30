@@ -3,6 +3,64 @@ import test, { type TestContext, type Mock } from "node:test";
 import type { BiboInboxItem } from "@nextclaw/bibo-client";
 import type { useBiboSpaceStore as BiboSpaceStoreHook } from "./bibo-space.store";
 
+async function checkFileDirectories(t: TestContext, useBiboSpaceStore: typeof BiboSpaceStoreHook, fetchMock: Mock<typeof fetch>): Promise<void> {
+  await t.test("tool subtrees cannot displace notes from the root directory on repeated refresh", async () => {
+  useBiboSpaceStore.getState().bindAccount(null, true);
+  const file = (path: string, kind = "artifact") => ({ id: path, path, kind, version: "v1", createdAt: "now", updatedAt: "now" });
+  const folder = file("笔记", "folder");
+  const note = { ...file("笔记/清单.md", "note"), content: "# 清单", uri: "nextclaw://objects/file/笔记%2F清单.md" };
+  const root = [file(".local", "folder"), folder, file("测试.md", "note")];
+  const tools = Array.from({ length: 140 }, (_, i) => file(`.local/tool-${String(i).padStart(3, "0")}`));
+  fetchMock.mock.mockImplementation(async (_url: unknown, init: RequestInit) => {
+    const { action, input } = JSON.parse(init.body as string);
+    const items = input.parentPath === "" ? root : input.parentPath === "笔记" ? [note] : input.parentPath === ".local" ? tools : [root[0], ...tools, folder, note, root[2]];
+    return Response.json({ result: action === "file.get" ? note : input.ancestorOf ? { items: [folder], nextCursor: null }
+      : { items: items.slice(Number(input.cursor ?? 0), Number(input.cursor ?? 0) + 100), nextCursor: items.length > Number(input.cursor ?? 0) + 100 ? "100" : null } });
+  });
+  const owner = useBiboSpaceStore.getState();
+  await owner.load("files");
+  assert.ok(useBiboSpaceStore.getState().files.some(entry => entry.id === folder.id), "root notes folder must be discoverable without paging through tools");
+  await owner.openFile(note.id);
+  await owner.load("files");
+  assert.ok(useBiboSpaceStore.getState().files.some(entry => entry.id === note.id), "an opened note cannot disappear on refresh");
+  owner.fileDirectory.toggle(".local");
+  await owner.fileDirectory.load(".local");
+  await owner.fileDirectory.load(".local", true);
+  assert.equal(useBiboSpaceStore.getState().files.filter(entry => entry.path.startsWith(".local/")).length, 140);
+  assert.equal(useBiboSpaceStore.getState().directories[".local"]?.cursor, null);
+  await owner.load("files");
+  await owner.load("files");
+  assert.equal(useBiboSpaceStore.getState().files.filter(entry => entry.path.startsWith(".local/")).length, 140, "refresh retains every loaded directory page");
+  assert.ok(useBiboSpaceStore.getState().files.some(entry => entry.id === note.id));
+  });
+  await t.test("directory failures retain nodes, stale responses and removed subtrees cannot overwrite current truth", async () => {
+    useBiboSpaceStore.getState().bindAccount(null, true);
+    const owner = useBiboSpaceStore.getState();
+    const file = (path: string, kind = "artifact") => ({ id: path, path, kind, version: "v1", createdAt: "now", updatedAt: "now" });
+    const pending: Array<{ input: Record<string, unknown>; resolve: (response: Response) => void }> = [];
+    fetchMock.mock.mockImplementation((_url: unknown, init: RequestInit) => new Promise<Response>(resolve => pending.push({ input: JSON.parse(init.body as string).input, resolve })));
+    const response = (items: unknown[]) => Response.json({ result: { items, nextCursor: null } });
+    const first = owner.fileDirectory.load();
+    pending.at(-1)!.resolve(response([file("笔记", "folder")])); await first;
+    const stale = owner.fileDirectory.load(); const old = pending.at(-1)!;
+    const newer = owner.fileDirectory.load(); pending.at(-1)!.resolve(response([file("笔记", "folder"), file("新增.md")])); await newer;
+    old.resolve(response([])); await stale;
+    assert.ok(useBiboSpaceStore.getState().files.some(file => file.id === "新增.md"));
+    const failed = owner.fileDirectory.load(); pending.at(-1)!.resolve(Response.json({ error: "暂时断线" }, { status: 503 })); await failed;
+    assert.ok(useBiboSpaceStore.getState().files.some(file => file.id === "新增.md"));
+    assert.equal(useBiboSpaceStore.getState().directories[""]?.status, "error");
+    const child = owner.fileDirectory.load("笔记"); const late = pending.at(-1)!;
+    const removed = owner.fileDirectory.load(); pending.at(-1)!.resolve(response([file("新增.md")])); await removed;
+    late.resolve(response([file("笔记/迟到.md")])); await child;
+    assert.equal(useBiboSpaceStore.getState().files.some(file => file.path.startsWith("笔记")), false);
+    assert.equal(useBiboSpaceStore.getState().directories[""]?.status, "ready");
+    const previousAccount = owner.fileDirectory.load(); const privateResponse = pending.at(-1)!;
+    owner.bindAccount(null, true);
+    privateResponse.resolve(response([file("private.md")])); await previousAccount;
+    assert.deepEqual(useBiboSpaceStore.getState().files, []);
+  });
+}
+
 
 test("space lifecycle isolates accounts, preserves failed drafts and safely resumes file tabs", async (t) => {
   const originalWindow = globalThis.window;
@@ -230,6 +288,7 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
   await checkNoteRestoration(t, useBiboSpaceStore, responses);
   await checkInboxRead(t, useBiboSpaceStore, fetchMock);
   await checkNewNote(useBiboSpaceStore, fetchMock);
+  await checkFileDirectories(t, useBiboSpaceStore, fetchMock);
 });
 
 async function checkNoteRestoration(t: TestContext, useBiboSpaceStore: typeof BiboSpaceStoreHook,

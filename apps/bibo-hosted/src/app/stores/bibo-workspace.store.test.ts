@@ -156,6 +156,29 @@ test("overview recent notes scan one metadata page across 108 directories withou
   assert.ok(folders.items.every(file => !file.path.includes("private")));
 });
 
+test("directory listing isolates direct children, opaque pages and empty folders from tool subtrees", async () => {
+  const { store, save } = fixture();
+  for (let index = 0; index < 140; index++) save(`user-1/workspace/.local/tool-${String(index).padStart(3, "0")}`, new Uint8Array([1]));
+  save("user-1/workspace/笔记/清单.md", new Uint8Array([1]));
+  save("user-1/workspace/空目录/", new Uint8Array());
+  save("user-2/workspace/private.md", new Uint8Array([1]));
+  const service = new BiboWorkspaceFileService(store);
+  const root = await service.execute("file.list", { parentPath: "", limit: 100 }) as { items: BiboFileDetail[]; nextCursor: string | null };
+  assert.deepEqual(root.items.map(file => file.path).sort(), [".local", "笔记", "空目录"].sort());
+  assert.equal(root.nextCursor, null);
+  const first = await service.execute("file.list", { parentPath: ".local", limit: 100 }) as typeof root;
+  assert.equal(first.items.length, 100);
+  assert.ok(first.nextCursor);
+  const second = await service.execute("file.list", { parentPath: ".local", limit: 100, cursor: first.nextCursor }) as typeof root;
+  assert.equal(second.items.length, 40);
+  assert.equal(second.nextCursor, null);
+  assert.equal(new Set([...first.items, ...second.items].map(file => file.id)).size, 140);
+  assert.deepEqual(await service.execute("file.list", { parentPath: "空目录" }), { items: [], nextCursor: null });
+  await assert.rejects(service.execute("file.list", { parentPath: "../private" }));
+  await assert.rejects(service.execute("file.list", { parentPath: "笔记", kind: "note" }));
+  await assert.rejects(service.execute("file.list", { parentPath: "missing" }));
+});
+
 test("flat listing follows short metadata pages and retains directory markers and declared file kinds", async () => {
   const { store, save, bucket } = fixture();
   save("user-1/workspace/notes/", new Uint8Array(), undefined, { biboCreatedAt: "2026-09-01T00:00:00.000Z" });
