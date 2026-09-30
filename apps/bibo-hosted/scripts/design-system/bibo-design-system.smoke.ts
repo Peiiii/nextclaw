@@ -42,6 +42,7 @@ export async function checkContentBounds(page: Page): Promise<void> {
 
 export async function checkThemes(page: Page, width: number, base: string): Promise<void> {
   await page.goto(`${base}/chat/session-a`, { waitUntil: "networkidle" });
+  if (width > 760) await checkRailGeometry(page);
   if (width > 760) await checkShellFrame(page, width);
   const composer = page.getByRole("textbox", { name: /告诉 Bibo/ });
   await checkAssistantReading(page);
@@ -60,8 +61,28 @@ export async function checkThemes(page: Page, width: number, base: string): Prom
   assert.equal(await composer.inputValue(), "主题切换期间保留草稿");
   assert.ok(await message!.evaluate((element) => element.isConnected), "switching themes preserves message nodes");
   assert.equal(await page.locator("html").getAttribute("data-bibo-theme"), "neutral");
+  if (width > 760) await checkRailGeometry(page);
   await composer.fill("");
   await checkThemePersistence(page, width);
+}
+
+async function checkRailGeometry(page: Page): Promise<void> {
+  const entries = await page.locator(".bibo-navigation-rail .ui-navigation-item").evaluateAll((elements) => elements.map((element) => {
+    const box = element.getBoundingClientRect();
+    const icon = element.querySelector("svg")!;
+    const iconBox = icon.getBoundingClientRect();
+    return { width: box.width, height: box.height, iconWidth: iconBox.width, iconHeight: iconBox.height, stroke: getComputedStyle(icon).strokeWidth };
+  }));
+  assert.equal(entries.length, 9, "module, sidebar and account entries share the navigation primitive");
+  const size = await page.evaluate(() => matchMedia("(pointer: coarse)").matches ? 44 : 36);
+  for (const entry of entries) assert.deepEqual(entry, { width: size, height: size, iconWidth: 18, iconHeight: 18, stroke: "1.7px" }, "all rail entries share geometry and icon weight");
+  const account = page.getByRole("button", { name: "账号与帮助" });
+  await account.hover();
+  const feedback = await account.evaluate((element) => getComputedStyle(element, "::before").backgroundColor);
+  const module = page.locator(".bibo-navigation-rail a").first();
+  await module.hover();
+  assert.equal(await module.evaluate((element) => getComputedStyle(element, "::before").backgroundColor), feedback, "account and module hover use the same surface feedback");
+  await page.mouse.move(600, 100);
 }
 
 async function checkShellFrame(page: Page, width: number): Promise<void> {

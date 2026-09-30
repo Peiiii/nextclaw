@@ -69,7 +69,7 @@ export function BiboApp() {
     if (main) {
       main.dataset.workspaceMotion = "true";
       // Establish the current geometry before this explicit opening/closing action.
-      getComputedStyle(main).gridTemplateColumns;
+      void getComputedStyle(main).gridTemplateColumns;
     }
     if (open) space.showWorkspace(); else space.closeWorkspace();
   };
@@ -133,7 +133,7 @@ export function BiboApp() {
   const collapsedFileTree = space.view === "files" && space.treeCollapsed,
     fileHeader = (space.view === "files" || space.view === "notes") && (space.tabs.length > 0 || collapsedFileTree) && (space.view !== "notes" || !space.fileBrowserVisible) && (!mobile || !space.fileBrowserVisible || collapsedFileTree);
   const workspaceTitle = space.view === "chat" ? store.sessions.find((session) => session.id === store.activeSessionId)?.title ?? "新对话" : navigation.find((item) => item.view === space.view)?.label;
-  const workspaceNavigation = <nav className="bibo-primary-nav" aria-label="工作空间">{navigation.map((item) => <NavigationItem key={item.view} label={item.label} selected={space.view === item.view} tooltip={!mobile}><Link to={workspaceHref(item.view, store.activeSessionId)} className={`bibo-nav-item${space.view === item.view ? " is-active" : ""}`} aria-label={item.label} aria-current={space.view === item.view ? "page" : undefined} onClick={closeMenu}><item.icon aria-hidden="true" className="bibo-nav-mark" /><span className="bibo-nav-text">{item.label}</span>{item.view === "inbox" && (space.overview?.counts.unread ?? 0) > 0 && <small>{space.overview?.counts.unread}</small>}</Link></NavigationItem>)}</nav>;
+  const workspaceNavigation = <nav className="bibo-primary-nav" aria-label="工作空间">{navigation.map((item) => <NavigationItem key={item.view} label={item.label} selected={space.view === item.view} layout={mobile ? "row" : "icon"} tooltip={!mobile}><Link to={workspaceHref(item.view, store.activeSessionId)} className={`bibo-nav-item${space.view === item.view ? " is-active" : ""}`} aria-label={item.label} aria-current={space.view === item.view ? "page" : undefined} onClick={closeMenu}><item.icon aria-hidden="true" className="bibo-nav-mark" /><span className="bibo-nav-text">{item.label}</span>{item.view === "inbox" && (space.overview?.counts.unread ?? 0) > 0 && <small>{space.overview?.counts.unread}</small>}</Link></NavigationItem>)}</nav>;
   const sidebarContent = <>
       <div className="sidebar-header">
       {space.view === "notes" ? <span className="bibo-brand">{copy.notes}</span> : <Link className="bibo-brand" to="/" aria-label="Bibo 首页"><span>Bibo<span className="bibo-brand-dot">.</span></span></Link>}
@@ -146,7 +146,7 @@ export function BiboApp() {
       </nav>}
   </>;
   return <div ref={shellRef} className={`bibo-shell${space.view === "chat" ? " is-chat" : ""}${space.view === "overview" ? " is-overview" : ""}${space.view === "notes" && space.fileBrowserVisible ? " is-notes-collection" : ""}${space.sidebarCollapsed ? " is-sidebar-collapsed" : ""}${space.workspaceOpen && space.view === "chat" ? " has-workspace" : ""}`}>
-    {mobile ? <Sheet open={store.menuOpen && !authOpen} onOpenChange={store.setMenuOpen} title="个人空间" closeLabel="关闭导航" returnFocusRef={menuButtonRef}><aside className="bibo-sidebar is-drawer" aria-label="导航">{sidebarContent}</aside></Sheet> : <aside ref={sidebarRef} className="bibo-sidebar" aria-label="导航"><div className="bibo-navigation-rail" data-ui-surface="frame"><IconButton label={space.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} icon={space.sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />} aria-expanded={!space.sidebarCollapsed} onClick={space.toggleSidebar} />{workspaceNavigation}<div className="bibo-sidebar-spacer" /><AccountMenu compact /></div><div ref={sidebarPanelRef} className="bibo-sidebar-panel" data-ui-surface="sidebar">{sidebarContent}</div></aside>}
+    {mobile ? <Sheet open={store.menuOpen && !authOpen} onOpenChange={store.setMenuOpen} title="个人空间" closeLabel="关闭导航" returnFocusRef={menuButtonRef}><aside className="bibo-sidebar is-drawer" aria-label="导航">{sidebarContent}</aside></Sheet> : <aside ref={sidebarRef} className="bibo-sidebar" aria-label="导航"><div className="bibo-navigation-rail" data-ui-surface="frame"><NavigationItem label={space.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} layout="icon"><button type="button" aria-label={space.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} aria-expanded={!space.sidebarCollapsed} onClick={space.toggleSidebar}>{space.sidebarCollapsed ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}</button></NavigationItem>{workspaceNavigation}<div className="bibo-sidebar-spacer" /><AccountMenu compact /></div><div ref={sidebarPanelRef} className="bibo-sidebar-panel" data-ui-surface="sidebar">{sidebarContent}</div></aside>}
     <main ref={mainRef} className="bibo-main" data-workspace-motion={workspaceMotionKey.current === location.key}>
       <header className={`bibo-topbar${fileHeader ? " is-file-header" : ""}${fileHeader && space.view === "notes" ? " is-note-header" : ""}`} data-ui-surface="frame"><div className="bibo-topbar-leading">
         <IconButton ref={menuButtonRef} className="bibo-menu-button" label="打开菜单" icon={<Menu />} tooltip={false} aria-expanded={store.menuOpen} onClick={() => store.setMenuOpen(!store.menuOpen)} />
@@ -172,7 +172,7 @@ export function ChatPage() {
   const questions = store.messages.flatMap((message) => message.questions ?? []).filter((question) => question.status === "pending");
   const openQuestion = questions.find((question) => question.id === store.openQuestionId);
   const submittingQuestionId = store.phase !== "idle" ? store.pendingQuestion?.id : undefined;
-  const reopenQuestions = questions.filter((question) => question.id !== submittingQuestionId);
+  const reopenQuestions = questions.filter((question) => question.id !== submittingQuestionId && !store.skippedQuestionIds.includes(question.id));
   const hasMessages = messages.length > 0;
   const failedMessages = store.failedMessages[store.activeSessionId ?? "new"] ?? [];
   const status = store.status || store.replyErrors[store.activeSessionId ?? "new"];
@@ -208,7 +208,7 @@ export function ChatPage() {
           initialCustom={store.failedQuestionInput?.id === openQuestion.id ? store.failedQuestionInput.answer : ""}
           onClose={store.closeQuestion}
           onAnswer={(answer) => void store.send(answer, { id: openQuestion.id, title: openQuestion.title, action: "answer" })}
-          onDismiss={() => void store.send("跳过", { id: openQuestion.id, title: openQuestion.title, action: "dismiss" })} />}
+          onDismiss={store.skipQuestion} />}
         {!openQuestion && reopenQuestions.length > 0 && <button type="button" className="bibo-question-reopen" onClick={() => store.openQuestion(reopenQuestions[0].id)}>
           <MessageCircleQuestion size={15} aria-hidden="true" />{copy.questionPending} {reopenQuestions.length}</button>}
         <Composer inputRef={inputRef} value={store.draft} onChange={store.setDraft} onSend={() => void store.send()} onStop={() => void store.stop()}
