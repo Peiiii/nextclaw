@@ -3,16 +3,16 @@ import { NextclawHarness, Contribution } from "@nextclaw/harness";
 import { CloudflarePlatform } from "./cloudflare-platform.service";
 import { createShowContentTools, composeAgentToolCatalog, createWorkspaceByteTools,
   projectUserQuestions, type CompactionSummaryProvider } from "@nextclaw/kernel";
-import type { BiboSpaceService } from "@/features/bibo-domain";
+import { createBiboSpaceTool, type BiboSpaceService } from "@/features/bibo-domain";
 import type { BiboMessageContent, BiboQuestion, BiboShowContent } from "@nextclaw/bibo-client";
 import { eventKeys, getKeyId, type UiShowContentEventPayload } from "@nextclaw/shared";
-import { createBiboSpaceTool } from "@/features/bibo-domain/tools/bibo-space.tools";
 import type { BiboWorkspaceFileService } from "./bibo-workspace-file.service";
-import type { BiboEdgeSession } from "../stores/bibo-edge-session.store";
-import { errorDetails, logDiagnostic, runFailure } from "../diagnostics/bibo-diagnostics.utils";
-import { applyBiboStorageChanges } from "../utils/bibo-storage.utils";
-import { projectBiboRunContent } from "../utils/bibo-session.utils";
-import { createBiboContextFiles } from "../utils/bibo-context-files.utils";
+import type { BiboEdgeSession } from "@/app/stores/bibo-edge-session.store";
+import { errorDetails, logDiagnostic, runFailure } from "@/app/diagnostics/bibo-diagnostics.utils";
+import { applyBiboStorageChanges } from "@/app/utils/bibo-storage.utils";
+import { projectBiboRunContent } from "@/app/utils/bibo-session.utils";
+import { createBiboContextFiles } from "@/app/utils/bibo-context-files.utils";
+import { biboQuestionUsage } from "@/app/utils/bibo-identity.utils";
 
 export type BiboEdgeRunResult = {
   text: string;
@@ -130,7 +130,7 @@ export class BiboConversationService {
     await this.harness.start();
     const record = await this.platform.sessions.getSession(input.sessionId);
     const saved: BiboEdgeSession | null = record ? { version: 1, messages: record.messages, metadata: record.metadata ?? {} } : null;
-    const contextBlocks = input.contextBlocks ?? [];
+    const contextBlocks = [biboQuestionUsage, ...input.contextBlocks ?? []];
     const events: NcpEndpointEvent[] = [];
     const displayEvents: BiboShowContent[] = [];
     const showBus = { emit: (key: unknown, value: UiShowContentEventPayload) => {

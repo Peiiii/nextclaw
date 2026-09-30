@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { NcpLLMApi, NcpMessage } from "@nextclaw/ncp";
 import { createQuestionMessage, createQuestionResolutionMessage, projectUserQuestions } from "@nextclaw/kernel";
-import { projectBiboConversation } from "../utils/bibo-session.utils";
-import { BiboSpaceStateStore } from "../bibo-space-state.service";
+import { projectBiboConversation } from "@/app/utils/bibo-session.utils";
+import { BiboSpaceStateStore } from "@/app/bibo-space-state.service";
 import { BiboConversationService } from "./bibo-conversation.service";
 import { BiboSpaceActionService } from "./bibo-edge-space.service";
-import { BiboEdgeSessionStore } from "../stores/bibo-edge-session.store";
-import { CloudflareSessionStore } from "../stores/cloudflare-session.store";
+import { BiboEdgeSessionStore } from "@/app/stores/bibo-edge-session.store";
+import { CloudflareSessionStore } from "@/app/stores/cloudflare-session.store";
 import { BiboExecutionService } from "./bibo-execution.service";
 import type { getSandbox, Sandbox } from "@cloudflare/sandbox";
 import type { WorkspaceByteStore, WorkspaceEntry } from "@nextclaw/kernel";
@@ -437,6 +437,11 @@ test("edge questions use the same NCP extension and resolution metadata across t
     new BiboSpaceStateStore(storage as unknown as DurableObjectStorage),
     { generate: async function* (input) {
       calls += 1;
+      const prompt = JSON.stringify(input.messages);
+      assert.match(prompt, /默认在普通回复中自然提问/);
+      assert.match(prompt, /执行具体任务的过程中/);
+      assert.match(prompt, /少量合理选项/);
+      assert.match(prompt, /最多一两次交互/);
       if (calls === 1) {
         assert.equal(input.tools?.some((tool) => tool.function.name === "request_user_input_async"), true);
         yield { id: "before-question", choices: [{ index: 0, delta: { content: "先说明。" }, finish_reason: null }] };

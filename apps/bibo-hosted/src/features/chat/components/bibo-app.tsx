@@ -69,7 +69,7 @@ export function BiboApp() {
     if (main) {
       main.dataset.workspaceMotion = "true";
       // Establish the current geometry before this explicit opening/closing action.
-      getComputedStyle(main).gridTemplateColumns;
+      void getComputedStyle(main).gridTemplateColumns;
     }
     if (open) space.showWorkspace(); else space.closeWorkspace();
   };
@@ -172,7 +172,7 @@ export function ChatPage() {
   const questions = store.messages.flatMap((message) => message.questions ?? []).filter((question) => question.status === "pending");
   const openQuestion = questions.find((question) => question.id === store.openQuestionId);
   const submittingQuestionId = store.phase !== "idle" ? store.pendingQuestion?.id : undefined;
-  const reopenQuestions = questions.filter((question) => question.id !== submittingQuestionId);
+  const reopenQuestions = questions.filter((question) => question.id !== submittingQuestionId && !store.skippedQuestionIds.includes(question.id));
   const hasMessages = messages.length > 0;
   const failedMessages = store.failedMessages[store.activeSessionId ?? "new"] ?? [];
   const status = store.status || store.replyErrors[store.activeSessionId ?? "new"];
@@ -208,7 +208,7 @@ export function ChatPage() {
           initialCustom={store.failedQuestionInput?.id === openQuestion.id ? store.failedQuestionInput.answer : ""}
           onClose={store.closeQuestion}
           onAnswer={(answer) => void store.send(answer, { id: openQuestion.id, title: openQuestion.title, action: "answer" })}
-          onDismiss={() => void store.send("跳过", { id: openQuestion.id, title: openQuestion.title, action: "dismiss" })} />}
+          onDismiss={store.skipQuestion} />}
         {!openQuestion && reopenQuestions.length > 0 && <button type="button" className="bibo-question-reopen" onClick={() => store.openQuestion(reopenQuestions[0].id)}>
           <MessageCircleQuestion size={15} aria-hidden="true" />{copy.questionPending} {reopenQuestions.length}</button>}
         <Composer inputRef={inputRef} value={store.draft} onChange={store.setDraft} onSend={() => void store.send()} onStop={() => void store.stop()}
