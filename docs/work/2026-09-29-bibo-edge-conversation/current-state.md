@@ -1,5 +1,17 @@
 # 当前执行状态
 
+## 2026-09-30 最新生产与主干（覆盖下方历史状态）
+
+- 生产源码 `b2b8555a5a2005c21282ad966664bc0eb8e349eb`，Worker `c18689db-8e03-4507-bf76-f74aeb96a21c`。挂载复用已上线；共享 Kernel 可选批量读取引导文件，每批最多四个，Cloudflare 按预算读取 UTF-8 前缀，本地仍使用原读法。后续远程 `b3d113493` 仅包含另一 UI 任务的文档记录；本地主干已快进并 reconcile 为 LOCAL_MAINLINE_SYNCED，原七项无关 WIP 完整保留。没有发布 NextClaw 新版本。
+- 发布前 Bibo 43/43、真实 Node 文件/历史恢复及引导政策 6/6、Kernel/Harness/Bibo 三份类型检查、治理检查通过；diff-only 0 errors，仅原 provider 目录数量例外 warning。合并最新 UI 后再次通过 Bibo 三份 tsc 和 Vite build。从冻结远程主干部署，官方镜像不变；上传 6.34 秒、切换 2.37 秒。
+- 最新生产聊天→文件→OS 改写→续聊全部提交，历史 8 条和 R2 正文正确；首字 3296/5847/9755/7441 ms，总时长 3426/6638/10599/7579 ms。生产关联 session `2fe9ef2b-d38f-4087-8b84-0b9a88c8808a` 的 Sandbox handle 获取为 0/0/1/0；文件读 389 ms、写 1171 ms，mount 2462 ms、exec 2090 ms。续聊客户端 7.441 秒与服务端首文本 1.587 秒有显著差异，不能全部归为模型或容器。日志 `/tmp/bibo-batch-context-production-core.log`。
+- 最新完整顺序短纯聊 24/24 成功提交，首字 p50/p95/max 为 2345/2930/3042 ms；服务端模型前 p50/p95/max 为 758/1017/1589 ms，服务端首文本 p50/p95 为 1527/1928 ms；24 次 Sandbox 获取合计 0。CPU 合计 831 ms，墙钟 59.651 秒（每百条 3.4625 CPU 秒、248.546 墙钟秒、31.814 GB-s）。上海经本机代理、默认模型、一个新会话后 23 次续聊；n=24 不足以可靠估计 p99。日志 `/tmp/bibo-batch-context-production-latency-retry.log`，session `529147e2-e1cb-4e6c-8c41-d124727e1b79`。相对历史旧 p95 7.669 秒、模型前 p95 5.390 秒为下降 61.8%/81.1%，是跨时段参考，不冒充同期随机 A/B。
+- 同版本较早的测量尝试有一次首字 6523 ms 并提交，随后客户端 TLS 建立前 ECONNRESET，清理同样遇网络错误；保留 `/tmp/bibo-batch-context-production-latency.log`，不丢弃慢样本。将该已完成样本与完整组一起看，25 个可观察成功样本 p95 3042 ms、最大 6523 ms；中断轮次不是通过样本，不自动重试可能已经接纳的消息。临时残留会话 `7fd5bea8-5e14-46e2-b059-7a28fae654ec` 已精确清理，`/tmp/bibo-exact-session-cleanup.log` exit 0。
+- 同版本真实浏览器 display 冒烟 exit 0：异步提问、文件生成与自动预览、保存历史、桌面/手机刷新均通过，58 个 delta、总 10.053 秒；`/tmp/bibo-batch-context-production-browser.log`。沿用此前有效的编辑/网页读取、取消/重试、冲突和隔离证据，不声称代理断开必然取消上游。
+- 同源码真实 Cloudflare/R2 `read_file` 工具 24 次结果正确，p50/p95/max 为 142/212/428 ms，零 OS；`/tmp/bibo-file-timing-preflight-result-fixed.log`。官方挂载内生成 100 MiB 文本和二进制，Worker 完整逐字节回读通过，写入 12.443/16.130 秒、含校验 19.344/24.700 秒，读取观测块最大 4 KiB；`/tmp/bibo-mounted-large-preflight-result-shell.log`。前两次探针错误使用镜像不存在的 python3（exit 127），不是挂载不支持大文件；已改用镜像已有 shell 工具，不改产品镜像。没有测得精确 Worker 内存峰值。
+- 挂载优化后的自然连续闲置 367127 ms，直接 R2 读零 OS，重启+重挂载+命令 6525 ms，持久字节正确、临时文件消失；`/tmp/bibo-mount-cache-idle-read.log`。校正 max_instances=20 后的 4 冷命令 2.387～3.452 秒、16 跨轮命令 221～597 ms 继续有效。当前保温预留 0，无池命中指标；更广的冷态/负载矩阵和统计尾部仍未证明。
+- 验收账本已按有效核心证据更新 BE-01/03/04/06/07/09/10/12；剩余缺口不能继续描述为工具不可用或尚未部署。最终数据迁移归属核对、严格可比性能/冷态矩阵和规模内存观测仍待闭合，不宣布整体合同全部通过。本轮复盘只更新原设计/状态/账本事实：错误测试前提不作为产品根因，容量与网络差异不作为固有冷启，不挑选较快窗口；未创建新的流程/规则或治理脚本。
+
 ## 2026-09-30 当前生产核心验收与性能返工
 
 - 新增跨轮性能修复，尚待生产发布：官方 Sandbox 子类复用生命周期内已成功的固定路径挂载，检查实际 FUSE，stop/destroy 清缓存，代际避免旧操作回填；不访问 SDK 私有授权，不改镜像。定向 37/37、三份 tsc、新代码治理通过；维护性 0 errors/1 warning（app 接近 400 行预算）。主观 Review：缓存与 SDK 在同一个 DO/容器生命周期内、没有持久“挂载真值”，同参数并发合并，异常和回收沿官方流程，未新增另一套执行协议；源码范围无阻断 findings。

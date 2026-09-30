@@ -6,7 +6,7 @@ import {
   ActionMenuLink,
   ActionMenuRadioGroup,
   Button,
-  IconButton,
+  NavigationItem,
   Dialog,
 } from "@nextclaw/personal-agent-ui";
 import { useBiboChatStore } from "@/features/chat/stores/bibo-chat.store";
@@ -39,7 +39,7 @@ export function AccountMenu({ compact = false }: { compact?: boolean }) {
       <ActionMenu
         label="账号与帮助"
         transferringFocus={confirming}
-        trigger={compact ? <IconButton ref={trigger} className="account-menu-trigger" label="账号与帮助" tooltipSide="right" icon={<CircleUserRound />} /> :
+        trigger={compact ? <NavigationItem ref={trigger} label="账号与帮助" layout="icon"><button type="button" className="account-menu-trigger" aria-label="账号与帮助"><CircleUserRound aria-hidden="true" /></button></NavigationItem> :
           <Button
             ref={trigger}
             className="account-menu-trigger"
