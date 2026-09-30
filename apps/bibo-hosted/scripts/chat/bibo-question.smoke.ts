@@ -23,7 +23,7 @@ async function ready(): Promise<void> {
 async function checkSilentSkip(page: Page, title: string, requestCount: () => number): Promise<void> {
   const panel = page.getByRole("region", { name: "问题" });
   const reminder = page.locator(".bibo-question-reopen");
-  const entry = page.locator(".ui-message--assistant .ui-message__body").first().getByRole("button", { name: `回答问题：${title}` });
+  const entry = page.locator(".bibo-message-row--assistant .bibo-ordered-content").first().getByRole("button", { name: `回答问题：${title}` });
   await panel.getByRole("button", { name: "关闭问题", exact: true }).click();
   await reminder.waitFor();
   await reminder.click();
@@ -43,7 +43,7 @@ async function checkSilentSkip(page: Page, title: string, requestCount: () => nu
 }
 
 async function checkSavedAnswer(page: Page): Promise<void> {
-  const body = page.locator(".ui-message--assistant .ui-message__body").first();
+  const body = page.locator(".bibo-message-row--assistant .bibo-ordered-content").first();
   await body.getByText("已回答", { exact: true }).waitFor();
   await page.reload({ waitUntil: "domcontentloaded" });
   await body.getByText("已回答", { exact: true }).waitFor();
@@ -83,9 +83,9 @@ async function checkQuestionSequenceAndRecovery(page: Page): Promise<void> {
   await page.goto(`${base}/chat/session-a`, { waitUntil: "domcontentloaded" });
   const panel = page.getByRole("region", { name: "问题" });
   await panel.getByRole("heading", { name: question.title }).waitFor();
-  const body = page.locator(".ui-message--assistant .ui-message__body").first();
-  const sequence = await body.locator(":scope > .bibo-ordered-content > *").allTextContents();
-  assert.deepEqual(sequence.map((text) => text.trim()), ["先说明。", question.title, "随后继续。"], "question stays inside the assistant body in generation order");
+  const body = page.locator(".bibo-message-row--assistant .bibo-ordered-content").first();
+  const sequence = await body.locator(":scope > *").evaluateAll(nodes => nodes.map(node => (node.querySelector(".ui-message__body") ?? node).textContent?.trim()));
+  assert.deepEqual(sequence, ["先说明。", question.title, "随后继续。"], "question remains between the assistant cards in generation order");
   await checkSilentSkip(page, question.title, () => chatRequests);
   await panel.getByRole("textbox", { name: "或自行填写回复" }).fill("杭州");
   await panel.getByRole("button", { name: "发送", exact: true }).click();

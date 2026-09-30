@@ -317,16 +317,16 @@ try {
       const surfaceBox = await page.locator(".ui-markdown-editor-host").boundingBox();
       assert.ok(editorBox && surfaceBox && editorBox.y < 210 && surfaceBox.height > viewport.height * .55, "note content occupies the main workspace at desktop and mobile sizes");
       assert.equal(await page.getByRole("button", { name: "保存", exact: true }).count(), 0, "idle saved files leave no redundant save control");
-      if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
+      if (viewport.width < 600) await page.locator(".bibo-mobile-nav").getByRole("button", { name: "更多" }).click();
       await page.getByRole("link", { name: /文件/ }).click();
       await page.getByRole("treeitem", { name: /想法.md/ }).click();
       await openMarkdownSource(page);
       await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
       assert.equal(await page.getByRole("textbox", { name: "编辑 想法.md" }).textContent(), "# 更新过的想法");
-      await page.getByRole("button", { name: "预览", exact: true }).click();
+      await page.getByRole("button", { name: "文件操作", exact: true }).click();
+      await page.getByRole("menuitem", { name: "正文", exact: true }).click();
       await page.getByRole("heading", { name: "更新过的想法" }).waitFor();
-      assert.equal(await page.getByRole("group", { name: "文件模式" }).getByRole("button", { name: "预览" }).getAttribute("aria-pressed"), "true");
-      await page.getByRole("button", { name: "编辑", exact: true }).click();
+      assert.equal(await page.getByRole("group", { name: "文件模式" }).count(), 0);
       if (viewport.width < 600) await page.locator(".file-mobile-back button").click();
       await page.getByRole("button", { name: "收起目录树", exact: true }).click();
       await page.locator(".bibo-file-tab > button").first().click();
@@ -343,7 +343,7 @@ try {
         await page.getByRole("button", { name: "确认移动" }).click();
         await page.getByRole("textbox", { name: "编辑 新的想法.md" }).waitFor();
       }
-      if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
+      if (viewport.width < 600) await page.locator(".bibo-mobile-nav").getByRole("button", { name: "更多" }).click();
       await page.getByRole("navigation", { name: "工作空间" }).getByRole("link", { name: /日程/ }).click();
       await page.getByRole("heading", { name: "日程", exact: true }).waitFor();
       const calendarAction = page.getByRole("button", { name: "＋ 新日程" });

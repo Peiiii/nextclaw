@@ -56,9 +56,11 @@ stores/bibo-chat.store.ts                  # 应用业务 owner
 components/...                            # 只消费视图和意图
 ```
 
-Manager 公开 `store`、`bindAccount(userId)`、`connect(selectedSessionId?)`、`reconnect()`、`send({sessionId,message,question?,previousLastAt?})`、`stop()`、`dispose({discardInput?})`，并提供纯展示投影 `displayMessages(history, selectedSessionId)`。`send` 同步占用发送锁且保存输入凭据后才进行任何 await；空会话的创建也归它编排，通过 created 业务结果交回 app 更新导航。重复点击不能创建两次。账号显式清空使用 discardInput；普通卸载保留凭据，方便刷新查询确认。
+Manager 公开只读 `store`（getState/getInitialState/subscribe）、`bindAccount(userId)`、`connect(selectedSessionId?)`、`reconnect()`、`send({sessionId,message,question?,previousLastAt?})`、`stop()`、`dispose({discardInput?})`，并提供纯展示投影 `displayMessages(history, selectedSessionId)`。调用方只能订阅和表达业务意图，不能 setState。`send` 同步占用发送锁且保存输入凭据后才进行任何 await；空会话的创建也归它编排，通过 created 业务结果交回 app 更新导航。重复点击不能创建两次。账号显式清空使用 discardInput；普通卸载保留凭据，方便刷新查询确认。
 
 内部状态只保留 `run: BiboRunSnapshot | null`、`submission`（尚未接收或本地问题上下文）、`connection: checking | ready | reconnecting`、`starting`、`stopping`、稳定的 pending 展示 IDs。run 的 phase/id/partial/activity 不再复制到 app store；busy、phase、可停止、任务会话 ID 都由一次纯投影导出。starting 只是请求前的本地发送锁，stopping 只是取消意图，不推断服务端已经取消。
+
+集成到 4099f573a 主干时保留既有消息分块和时间合同：delta 继续调用 client 公共 `appendBiboTextBlock`，partialBlocks 存在 canonical run 内；展示投影生成已有 content 卡片，不把分块状态留回 app。未确认输入的 submittedAt 是本地提交时间，权威快照返回后使用 startedAt；历史 ID 继续复用原 `chat-message.utils` owner。界面保留已上线的紧凑状态图标，checking 只有中性的可访问名称/提示，不能回退成多条状态栏。原问题、空间能力及底层 client 业务边界不变，受影响方案复审通过。
 
 本地 `bibo-pending-{userId}` 只保存请求凭据及失败时可返还的输入，不能证明运行/失败/已保存。新凭据保留 `clientRequestId`、会话、消息及 question 完整引用；复用原键，逐字段安全解析，缺少完整问题引用时以既有 questionId 定位问题。没有请求 ID 的无效凭据不作失败判断。凭据生命周期归 manager，app 不再自行读写或比较文字判断保存。
 
@@ -102,6 +104,10 @@ show-content 归本次任务的结果：manager 在单次订阅内按 event ID �
 黄金链路 C：回答已有问题 → 失败时重新打开同一问题并保留答案，不覆盖新草稿 → 主动重试成功，问题状态及任务结果更新 → Bibo 发出 show-content 时仍打开正确空间文件。该链路复用既有问题/展示 smoke；不在用户真实会话发送测试消息。
 
 技术正确性由 AI 验证；用户不承担安装、测试或排障。没有必须等待用户确认的审美项。移动验证以浏览器设备模拟为准，不能宣称物理 iPhone/原生网络验证。
+
+线上黄金链路脚本为 `apps/bibo-hosted/scripts/chat/bibo-run-recovery-live.smoke.ts`：使用专门测试账号，一次真实 Agent 请求创建合成文件，在确认 generating 后刷新并延迟真实 GET；新开 390px 页面、同 runId 完成、history 不重复、show-content 打开、终态刷新及单次 POST 均检查。只清理本脚本创建的会话/文件。定向 fixture 继续覆盖确定性的断线、真实 failed、取消与竞态，不用线上模型人为制造这些故障。
+
+集成回归定位了原主干 `BiboWorkspace` 漏接 FileEditor 的受控 preview 属性，导致已提交的 source 请求仍显示 HTML 预览。只补回原空间 owner → FileEditor 的 preview/onPreviewChange 连接，不增加文件业务状态；展示 smoke 的源码/预览切换和提交门因此均通过。全产品 smoke 另在文件树键盘导航即时焦点断言失败，该代码不属于本次修改，不能据此宣称全量产品测试通过。
 
 ## 剩余风险与非目标
 

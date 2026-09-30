@@ -1,10 +1,12 @@
+import { openMarkdownBody } from "../personal-workspace.fixture";
 import assert from "node:assert/strict";
 import type { Page } from "playwright";
 const richFor = (page: Page) => page.locator(".tiptap:visible");
-const mode = (page: Page, name: string) => page.getByRole("group", { name: "文件模式" }).getByRole("button", { name, exact: true });
 
 async function blockMenu(page: Page, selector: string) {
   const block = richFor(page).locator(selector).first();
+  // Mode changes can place a new editor under the stationary pointer; re-enter it.
+  await page.mouse.move(0, 0);
   await block.hover();
   const handle = page.getByRole("button", { name: "块操作", exact: true });
   await handle.waitFor();
@@ -30,7 +32,7 @@ export async function checkBlockInteractions(page: Page, openSource: (page: Page
   ]) {
     console.log(`Block operations: ${kind}`);
     await openSource(page); await replaceSource(page, source + "\n\n后续正文");
-    await mode(page, "编辑").click();
+    await openMarkdownBody(page);
     const original = await richFor(page).textContent();
     const menu = await blockMenu(page, selector);
     assert.equal(await page.locator(".ui-markdown-block-kind").first().innerText(), kind);
@@ -59,7 +61,7 @@ export async function checkBlockInteractions(page: Page, openSource: (page: Page
 
 async function checkBlockKeyboardAndDrag(page: Page, openSource: (page: Page) => Promise<void>, replaceSource: (page: Page, text: string) => Promise<void>) {
   await openSource(page); await replaceSource(page, "转换正文\n\n第二段\n\n第三段");
-  await mode(page, "编辑").click();
+  await openMarkdownBody(page);
   await checkConversionAndDrag(page);
   await richFor(page).locator(":scope > p").first().click();
   await page.keyboard.press("Shift+F10");
@@ -69,7 +71,7 @@ async function checkBlockKeyboardAndDrag(page: Page, openSource: (page: Page) =>
 
 async function checkNestedBlocks(page: Page, openSource: (page: Page) => Promise<void>, replaceSource: (page: Page, text: string) => Promise<void>) {
   await openSource(page); await replaceSource(page, "- 父项\n  - 子项\n    - 孙项\n- 兄弟项\n\n末尾");
-  await mode(page, "编辑").click();
+  await openMarkdownBody(page);
   const nested = "li li:first-child > p";
   await blockMenu(page, nested);
   assert.equal(await page.locator(".ui-markdown-block-kind").first().innerText(), "列表项");
@@ -92,7 +94,7 @@ async function checkTableInsertionFocus(page: Page, openSource: (page: Page) => 
     ["列操作", "在左侧插入列", 1, 1], ["列操作", "在右侧插入列", 1, 2],
   ] as const) {
     await openSource(page); await replaceSource(page, "| A | B |\n| --- | --- |\n| C | D |\n\n结束");
-    await mode(page, "编辑").click();
+    await openMarkdownBody(page);
     const table = richFor(page).locator("table");
     await table.locator("tr").nth(1).locator("td").nth(1).hover();
     const trigger = page.getByRole("button", { name: menu, exact: true });

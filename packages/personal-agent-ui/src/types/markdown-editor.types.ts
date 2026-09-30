@@ -29,6 +29,8 @@ export type MarkdownEditorProps = {
   layout?: "document" | "embedded";
   /** Optional host for document tools in the surrounding page header. */
   toolbarContainer?: HTMLElement | null;
+  /** Focus the body once when a newly created document mounts. */
+  autoFocus?: boolean;
   value: string; onChange: (value: string) => void; source: boolean; label: string;
   labels: MarkdownEditorLabels; active?: boolean; scrollProgress?: number;
   onScrollProgress?: (progress: number) => void;

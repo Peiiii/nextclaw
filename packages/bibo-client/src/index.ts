@@ -1,5 +1,6 @@
 export { BiboClient } from "./services/bibo-client.service";
-export type { BiboRunSnapshot, BiboRunState } from "./types/bibo-client.types";
+export type { BiboRunSnapshot, BiboRunState, BiboTextBlock } from "./types/bibo-client.types";
+export { appendBiboTextBlock } from "./utils/bibo-protocol.utils";
 export { BiboClientError } from "./utils/bibo-protocol.utils";
 export type { BiboChatEvent, BiboClientOptions, BiboMessage, BiboMessageContent, BiboQuestion, BiboQuestionReference, BiboSession, BiboUser } from "./types/bibo-client.types";
 export { readMessageContent, readQuestions } from "./utils/bibo-protocol.utils";

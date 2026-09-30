@@ -8,6 +8,7 @@
 
 - 公共组件：`Button`、`Input` / `Select` / `Textarea` / `Field`、`SegmentedControl`、`ListRow`、`EmptyState`、`Notice`、`Message` / `Markdown`、`Composer`、`Dialog` / `Sheet`、`ActionMenu` / `ActionMenuItem` / `ActionMenuLink`、`IconButton`。
 - 文件页使用 `Tab` / `TabList`；外观选择使用 `ActionMenuRadioGroup`；操作提示使用 `Tooltip`。文件激活、关闭、草稿和保存仍由应用持有。
+- `ActivityIcon` 用 18px SVG 轮廓与轻动效表达空闲、思考、执行、保存、停止和恢复连接；减少动态效果时保持静态轮廓。业务状态、可访问文案与链接由调用方提供；只读图标使用 `ui-activity-indicator` 与 `Tooltip`，可导航图标复用 `NavigationItem`。放入既有品牌或标题行，不为状态增加独立文字行。
 - 工作空间与会话入口复用 `NavigationItem`，保留调用方的真实链接；共享行高、内边距、选中与 hover 配方。图标栏的模块、侧栏切换与账号菜单统一使用 `layout="icon"`：鼠标 36px、触控 44px 点击区，18px 图标和 1.7 线宽；菜单触发属性与 ref 透传到真实按钮，应用不覆盖尺寸。
 - 公共样式：`src/styles/theme.css` 中的 `--ui-*` token 和 `.ui-*` class，统一默认、hover、focus、selected、disabled 与错误状态。
 - 品牌配置：Bibo 的名称、标记、文案、配色覆盖留在应用层，通过 props 和主题变量注入。未来改名无需重命名组件包或公共 API。
@@ -31,7 +32,9 @@
 
 桌面应用壳保留 8px 轻外缘、左侧图标栏和内侧圆角画布，圆角复用 radius-lg（18px）。工具栏收入正文表面；右工作区标题与全局工具栏位于同一行。概览已有问候标题，桌面不再展示重复模块顶栏，展开与收起侧栏都保留画布圆角。手机保持全屏内容与工作区覆盖。壳层布局由应用拥有，控件配方复用本包。
 
-笔记使用场景侧栏和单行顶栏：文件 Tab 与格式、预览、保存、目录、更多入口分居左右，正文保持专注。文件页与对话工作区保留 Tab 与路径操作两行，路径和目录图标通过公共 Popover 浏览目录。文件列表、分页、草稿仍归应用 owner。Tab 的最大宽度受容器限制，轻边界与 hover 区分可点击状态，独立关闭槽不嵌套按钮。浮层复用统一避让与焦点规则。
+笔记和对话文档使用单行顶栏：文档标题胶囊与格式、保存、目录、更多入口分居左右，Markdown 默认直接编辑。标题菜单只含带图标的分组操作，使用 `ActionMenuSeparator`；文档切换复用目录 Popover，路径末段向下箭头提示可展开。文件页保留多文件 Tab，也将编辑工具收入同一行。文件列表、分页、草稿仍归应用 owner。Tab 的最大宽度受容器限制，轻选中表面与 hover 区分状态，独立关闭槽不嵌套按钮。浮层复用统一避让与焦点规则。
+
+文档正文为 14px、1.85 行高；连续普通段落间距 8px，其他区块保留 12px 与标题层次。块手柄以首个文字行居中，列表以列表外缘定位，避开标记和 checkbox。新文档可传入 `MarkdownEditor autoFocus`，仅首次挂载聚焦。编辑器在刷新前同步 flush，但不阻止浏览器刷新；是否保存与恢复草稿归调用方。
 
 | 角色 | 鼠标／桌面规范 | 触控尺寸／窄屏布局 |
 | --- | --- | --- |

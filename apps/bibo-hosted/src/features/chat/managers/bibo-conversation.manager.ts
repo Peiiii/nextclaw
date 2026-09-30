@@ -1,13 +1,13 @@
-import { createStore } from "zustand/vanilla";
-import { BiboClientError, type BiboClient, type BiboChatEvent, type BiboMessage, type BiboRunSnapshot, type BiboSession } from "@nextclaw/bibo-client";
+import { createStore, type StoreApi } from "zustand/vanilla";
+import { BiboClientError, appendBiboTextBlock, type BiboClient, type BiboChatEvent, type BiboRunSnapshot, type BiboSession } from "@nextclaw/bibo-client";
+import type { BiboDisplayMessage } from "@/features/chat/utils/chat-message.utils";
 
 type QuestionInput = { id: string; title: string; action: "answer" | "dismiss" };
 export type BiboSubmission = {
   sessionId: string | null; message: string; clientRequestId?: string; previousLastAt?: string;
-  question?: QuestionInput; questionId?: string;
+  question?: QuestionInput; questionId?: string; submittedAt?: number;
 };
 type MessageIds = [string, string];
-export type BiboDisplayMessage = BiboMessage & { id: string; pending?: boolean };
 type ConversationState = {
   run: BiboRunSnapshot | null;
   submission: BiboSubmission | null;
@@ -37,12 +37,13 @@ export function conversationView(state: ConversationState) {
     pendingMessage: run?.message ?? submission?.message ?? null, pendingIds: state.messageIds,
     pendingQuestion: submission?.question ? { id: submission.question.id, title: submission.question.title,
       action: submission.question.action === "answer" ? "answered" as const : "dismissed" as const } : null,
-  };
+  } as const;
 }
 
 /** Owns the browser's task projection and read connection. Only the server owns execution. */
 export class BiboConversationManager {
-  readonly store = createStore<ConversationState>(() => ({ ...idle(), connection: "checking" }));
+  private readonly stateStore = createStore<ConversationState>(() => ({ ...idle(), connection: "checking" }));
+  readonly store: Pick<StoreApi<ConversationState>, "getState" | "getInitialState" | "subscribe"> = this.stateStore;
   private accountId: string | null = null;
   private selectedSessionId?: string;
   private generation = 0;
@@ -57,14 +58,18 @@ export class BiboConversationManager {
 
   constructor(private readonly client: BiboClient, private readonly storage: Pick<Storage, "getItem" | "setItem" | "removeItem">, private readonly results: Results) {}
 
-  get view() { return conversationView(this.store.getState()); }
+  get view() { return conversationView(this.stateStore.getState()); }
 
   displayMessages = (history: BiboDisplayMessage[], sessionId: string | null): BiboDisplayMessage[] => {
     const { pendingIds, pendingMessage, pendingQuestion, partial, runSessionId, runStartedAt } = this.view;
     if (sessionId !== runSessionId || !pendingIds || !pendingMessage) return history;
+    const { run, submission } = this.stateStore.getState();
+    const timestamp = run?.startedAt ?? submission?.submittedAt;
+    const at = timestamp === undefined ? "" : new Date(timestamp).toISOString();
+    const blocks = run?.partialBlocks ?? (partial ? [{ id: "answer", text: partial }] : []);
     return [...history.filter((message) => Date.parse(message.at) < runStartedAt),
-      { id: pendingIds[0], role: "user", text: pendingMessage, at: "", pending: true, ...(pendingQuestion ? { replyToQuestion: pendingQuestion } : {}) },
-      { id: pendingIds[1], role: "assistant", text: partial, at: "", pending: true }];
+      { id: pendingIds[0], role: "user", text: pendingMessage, at, pending: true, ...(pendingQuestion ? { replyToQuestion: pendingQuestion } : {}) },
+      { id: pendingIds[1], role: "assistant", text: partial, content: blocks.map(block => ({ type: "text" as const, text: block.text })), at, pending: true }];
   };
 
   bindAccount = (accountId: string | null): void => {
@@ -75,10 +80,11 @@ export class BiboConversationManager {
       try {
         const value: unknown = JSON.parse(this.storage.getItem(this.pendingKey()) ?? "null");
         if (value && typeof value === "object") {
-          const { message, sessionId, clientRequestId, previousLastAt, questionId, question } = value as Record<string, unknown>;
+          const { message, sessionId, clientRequestId, previousLastAt, questionId, question, submittedAt } = value as Record<string, unknown>;
           if (typeof message === "string" && (typeof sessionId === "string" || sessionId === null) && typeof clientRequestId === "string") {
             const input = question && typeof question === "object" ? question as Record<string, unknown> : null;
             this.retained = { message, sessionId, clientRequestId,
+              ...(typeof submittedAt === "number" && Number.isFinite(submittedAt) ? { submittedAt } : {}),
               ...(typeof previousLastAt === "string" ? { previousLastAt } : {}), ...(typeof questionId === "string" ? { questionId } : {}),
               ...(input && typeof input.id === "string" && typeof input.title === "string" && (input.action === "answer" || input.action === "dismiss")
                 ? { question: { id: input.id, title: input.title, action: input.action } } : {}),
@@ -86,7 +92,7 @@ export class BiboConversationManager {
           }
         }
       } catch { /* A local receipt is optional, never evidence of task failure. */ }
-      this.store.setState({ connection: "checking" });
+      this.stateStore.setState({ connection: "checking" });
     }
   };
   private pendingKey = () => `bibo-pending-${this.accountId}`;
@@ -117,24 +123,24 @@ export class BiboConversationManager {
     this.reportedUnconfirmed = false;
     this.failures = 0;
     this.settled.clear();
-    this.store.setState(idle());
+    this.stateStore.setState(idle());
   };
 
   connect = (sessionId?: string): Promise<void> => {
     const changed = this.selectedSessionId !== sessionId;
     this.selectedSessionId = sessionId;
-    if (this.store.getState().starting && !this.store.getState().submission?.sessionId) return Promise.resolve();
-    if (this.controller && active(this.store.getState().run)) return Promise.resolve();
-    if (changed && !active(this.store.getState().run)) this.clearConnection();
+    if (this.stateStore.getState().starting && !this.stateStore.getState().submission?.sessionId) return Promise.resolve();
+    if (this.controller && active(this.stateStore.getState().run)) return Promise.resolve();
+    if (changed && !active(this.stateStore.getState().run)) this.clearConnection();
     return this.reconnect();
   };
   reconnect = (): Promise<void> => {
     if (!this.accountId) return Promise.resolve();
-    if (this.store.getState().starting && !this.store.getState().submission?.sessionId) return Promise.resolve();
+    if (this.stateStore.getState().starting && !this.stateStore.getState().submission?.sessionId) return Promise.resolve();
     if (this.querying) return this.querying;
     const generation = this.clearConnection();
-    this.store.setState({ connection: this.store.getState().run ? "reconnecting" : "checking" });
-    const sessionId = this.retained?.sessionId ?? this.store.getState().run?.sessionId ?? this.selectedSessionId;
+    this.stateStore.setState({ connection: this.stateStore.getState().run ? "reconnecting" : "checking" });
+    const sessionId = this.retained?.sessionId ?? this.stateStore.getState().run?.sessionId ?? this.selectedSessionId;
     const operation = (async () => {
       try {
         const state = await this.client.runState(sessionId);
@@ -145,12 +151,12 @@ export class BiboConversationManager {
         if (this.retained && !matching) {
           if (!this.reportedUnconfirmed) this.results.failed(this.retained, this.sendError ?? new BiboClientError("这条消息未得到接收确认，输入已保留。"));
           this.reportedUnconfirmed = true;
-          this.store.setState({ submission: null, starting: false });
+          this.stateStore.setState({ submission: null, starting: false });
           // A previous completed task cannot stand in for the unaccepted submission.
-          if (!active(run)) { this.store.setState(idle()); return; }
+          if (!active(run)) { this.stateStore.setState(idle()); return; }
         }
-        this.store.setState({ connection: "ready", starting: false });
-        if (!run || this.settled.has(run.runId)) { this.store.setState(idle()); return; }
+        this.stateStore.setState({ connection: "ready", starting: false });
+        if (!run || this.settled.has(run.runId)) { this.stateStore.setState(idle()); return; }
         this.snapshot(run);
         if (run.phase === "failed") this.fail(run);
         else void this.listen(generation, (signal, event) => this.client.resumeRun(run.runId, event, signal));
@@ -158,10 +164,10 @@ export class BiboConversationManager {
         if (generation !== this.generation) return;
         if (error instanceof BiboClientError && error.status === 401) {
           if (this.retained) this.results.failed(this.retained, error);
-          this.store.setState(idle());
+          this.stateStore.setState(idle());
           return;
         }
-        this.store.setState({ connection: "reconnecting" });
+        this.stateStore.setState({ connection: "reconnecting" });
         this.scheduleRetry();
       }
     })();
@@ -171,12 +177,12 @@ export class BiboConversationManager {
   };
 
   private snapshot = (run: BiboRunSnapshot): void => {
-    const previous = this.store.getState();
+    const previous = this.stateStore.getState();
     if (this.reportedUnconfirmed && this.retained && this.retained.clientRequestId === run.clientRequestId) {
       this.results.confirmed(this.retained);
       this.reportedUnconfirmed = false;
     }
-    this.store.setState({ run, starting: false, stopping: previous.run?.runId === run.runId && previous.stopping && run.phase === "generating",
+    this.stateStore.setState({ run, starting: false, stopping: previous.run?.runId === run.runId && previous.stopping && run.phase === "generating",
       submission: this.retained?.clientRequestId === run.clientRequestId ? this.retained : null,
       messageIds: previous.messageIds && (previous.run?.runId === run.runId || previous.submission?.clientRequestId === run.clientRequestId)
         ? previous.messageIds : [crypto.randomUUID(), crypto.randomUUID()] });
@@ -184,11 +190,11 @@ export class BiboConversationManager {
   private fail = (run: BiboRunSnapshot): void => {
     if (!this.settled.has(run.runId)) {
       this.settled.add(run.runId);
-      this.results.failed(this.store.getState().submission ?? { sessionId: run.sessionId, message: run.message },
+      this.results.failed(this.stateStore.getState().submission ?? { sessionId: run.sessionId, message: run.message },
         new BiboClientError(run.error?.message ?? "这次任务未能完成。"));
     }
     if (this.retained?.clientRequestId === run.clientRequestId) this.retain(null);
-    this.store.setState(idle());
+    this.stateStore.setState(idle());
   };
   private scheduleRetry = (): void => {
     clearTimeout(this.retry);
@@ -202,19 +208,20 @@ export class BiboConversationManager {
     try {
       await operation(controller.signal, (event) => {
         if (generation !== this.generation) return;
-        const { run, submission, messageIds } = this.store.getState();
-        this.store.setState({ connection: "ready" });
+        const { run, submission, messageIds } = this.stateStore.getState();
+        this.stateStore.setState({ connection: "ready" });
         if (event.name === "snapshot") this.snapshot(event.value);
         if (event.name === "accepted" && submission?.sessionId && run?.runId !== event.value.runId) {
           const now = Date.now();
-          this.store.setState({ run: { runId: event.value.runId, sessionId: submission.sessionId, message: submission.message,
+          this.stateStore.setState({ run: { runId: event.value.runId, sessionId: submission.sessionId, message: submission.message,
             phase: "generating", startedAt: now, updatedAt: now, partial: "", clientRequestId: submission.clientRequestId }, starting: false });
         }
         if (event.name === "delta" && run) {
           this.failures = 0;
-          this.store.setState({ run: { ...run, partial: run.partial + event.value.text } });
+          const blocks = appendBiboTextBlock(run.partialBlocks ?? (run.partial ? [{ id: "answer", text: run.partial }] : []), event.value.text, event.value.blockId);
+          this.stateStore.setState({ run: { ...run, partialBlocks: blocks, partial: blocks.map(block => block.text).join("\n\n") } });
         }
-        if (event.name === "saving" && run) this.store.setState({ run: { ...run, phase: "saving", activity: undefined }, stopping: false });
+        if (event.name === "saving" && run) this.stateStore.setState({ run: { ...run, phase: "saving", activity: undefined }, stopping: false });
         if (event.name === "show-content") contents.set(event.value.id, event.value);
         if (event.name === "committed" && (run || submission?.sessionId) && (!run || !this.settled.has(run.runId))) {
           if (run) this.settled.add(run.runId);
@@ -222,13 +229,13 @@ export class BiboConversationManager {
           if (!run || this.retained?.clientRequestId === run.clientRequestId) this.retain(null);
           this.results.committed(event.value, run?.sessionId ?? submission!.sessionId!, messageIds, run?.message ?? submission!.message);
           for (const shown of contents.values()) this.results.content(shown);
-          this.store.setState(idle());
+          this.stateStore.setState(idle());
         }
       });
     } catch (error) {
       if (generation !== this.generation) return;
       this.sendError = error;
-      this.store.setState({ connection: "reconnecting", starting: false });
+      this.stateStore.setState({ connection: "reconnecting", starting: false });
       // Transport errors are not task failures. Read the authority before returning input.
       if (this.failures === 0 && !this.querying) { this.failures++; void this.reconnect(); }
       else this.scheduleRetry();
@@ -237,7 +244,7 @@ export class BiboConversationManager {
     }
   };
 
-  send = async (input: Omit<BiboSubmission, "clientRequestId">): Promise<void> => {
+  send = async (input: Omit<BiboSubmission, "clientRequestId" | "submittedAt">): Promise<void> => {
     if (!this.accountId || this.view.busy || !input.message.trim()) return;
     const generation = this.clearConnection();
     this.sendError = undefined;
@@ -247,21 +254,22 @@ export class BiboConversationManager {
     const sameUnconfirmed = previous?.message === input.message.trim() && previous.sessionId === input.sessionId &&
       previous.previousLastAt === input.previousLastAt && (previous.question?.id ?? previous.questionId) === input.question?.id;
     let submission: BiboSubmission = { ...input, message: input.message.trim(),
-      clientRequestId: sameUnconfirmed && previous?.clientRequestId ? previous.clientRequestId : crypto.randomUUID() };
+      clientRequestId: sameUnconfirmed && previous?.clientRequestId ? previous.clientRequestId : crypto.randomUUID(),
+      submittedAt: sameUnconfirmed && previous?.submittedAt ? previous.submittedAt : Date.now() };
     this.retain(submission);
-    this.store.setState({ starting: true, submission, messageIds: [crypto.randomUUID(), crypto.randomUUID()] });
+    this.stateStore.setState({ starting: true, submission, messageIds: [crypto.randomUUID(), crypto.randomUUID()] });
     if (!submission.sessionId) {
       try {
         const session = await this.client.createSession();
         if (generation !== this.generation) return;
         submission = { ...submission, sessionId: session.id };
         this.retain(submission);
-        this.store.setState({ submission });
+        this.stateStore.setState({ submission });
         this.results.created(session);
       } catch (error) {
         if (generation !== this.generation) return;
         this.results.failed(submission, error);
-        this.store.setState(idle());
+        this.stateStore.setState(idle());
         return;
       }
     }
@@ -271,16 +279,16 @@ export class BiboConversationManager {
   };
 
   stop = async (): Promise<void> => {
-    const { run, connection, stopping } = this.store.getState();
+    const { run, connection, stopping } = this.stateStore.getState();
     if (!run?.runId || run.phase !== "generating" || connection !== "ready" || stopping) return;
     const generation = this.generation;
-    this.store.setState({ stopping: true });
+    this.stateStore.setState({ stopping: true });
     try { await this.client.cancel(run.runId); }
     catch (error) {
-      if (generation !== this.generation || this.store.getState().run?.runId !== run.runId) return;
+      if (generation !== this.generation || this.stateStore.getState().run?.runId !== run.runId) return;
       // Cancellation may have reached the server despite the lost response.
       this.sendError = error;
-      this.store.setState({ stopping: false });
+      this.stateStore.setState({ stopping: false });
       void this.reconnect();
       throw error;
     }

@@ -251,7 +251,7 @@ export class BiboSpaceService {
       ["inbox.create", "inbox", "送达一条第一方提醒", "{title,body,kind?,source?,requestId?}"],
       ["inbox.read", "inbox", "标记已读", "{id,version}"],
       ["inbox.resolve", "inbox", "标记已处理", "{id,version}"],
-      ["file.list", "files", "列出文件树节点；笔记可按最近编辑排序", "{kind?,query?,ancestorOf?,sort?:'recent',limit?,cursor?}"],
+      ["file.list", "files", "按 parentPath 列出目录直接子项（空字符串为根）；省略时全空间检索，笔记可按最近编辑排序", "{parentPath?,kind?,query?,ancestorOf?,sort?:'recent',limit?,cursor?}"],
       ["file.get", "files", "读取文件内容", "{id} 或 {path:个人空间相对/绝对路径}"],
       ["file.create", "files", "创建文件夹、笔记、文档或产物", "{path,kind,content?,requestId?}"],
       ["file.update", "files", "保存文本内容", "{id,version,content}"],
@@ -435,7 +435,12 @@ export class BiboSpaceService {
   private fileAction = async (action: string, state: State, input: Record<string, unknown>): Promise<ActionResult> => {
     if (action === "file.list") {
       if (input.sort !== undefined && input.sort !== "recent") throw new BiboSpaceError("文件排序方式不正确。", 400);
-      const files = state.files.filter((item) => (input.kind === undefined || item.kind === input.kind) && (input.query === undefined || item.path.toLocaleLowerCase().includes(String(input.query).toLocaleLowerCase())) && (input.ancestorOf === undefined || item.kind === "folder" && String(input.ancestorOf).startsWith(`${item.path}/`)));
+      if (input.parentPath !== undefined) {
+        if (typeof input.parentPath !== "string" || ["kind", "query", "ancestorOf", "sort"].some(key => input[key] !== undefined)) throw new BiboSpaceError("目录读取条件不正确。", 400);
+        if (input.parentPath && !state.files.some(file => file.kind === "folder" && file.path === this.safePath(input.parentPath))) throw new BiboSpaceError("文件夹不存在或已删除。", 404);
+      }
+      const files = state.files.filter((item) => (input.parentPath === undefined || dirname(item.path).replace(/^\.$/, "") === input.parentPath)
+        && (input.kind === undefined || item.kind === input.kind) && (input.query === undefined || item.path.toLocaleLowerCase().includes(String(input.query).toLocaleLowerCase())) && (input.ancestorOf === undefined || item.kind === "folder" && String(input.ancestorOf).startsWith(`${item.path}/`)));
       files.sort((a, b) => input.sort === "recent" ? b.updatedAt.localeCompare(a.updatedAt) || a.path.localeCompare(b.path, "zh-CN") : a.path.localeCompare(b.path, "zh-CN"));
       return { result: page(files, input), changed: false };
     }

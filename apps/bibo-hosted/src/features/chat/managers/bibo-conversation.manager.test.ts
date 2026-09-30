@@ -241,7 +241,9 @@ test("unconfirmed input keeps its request ID for deliberate retry and a late acc
   assert.equal(posts, 1, "only the deliberate send posts");
   accepted = true;
   await seen.manager.reconnect();
-  assert.deepEqual(seen.confirmations, [receipt]);
+  assert.equal(seen.confirmations.length, 1);
+  assert.equal(seen.confirmations[0]?.clientRequestId, receipt.clientRequestId);
+  assert.equal(seen.confirmations[0]?.message, receipt.message);
   assert.equal(seen.manager.view.phase, "generating");
 });
 

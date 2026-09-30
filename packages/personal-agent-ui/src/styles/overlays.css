@@ -39,6 +39,7 @@
 .ui-action-menu__item { @apply flex items-center [min-height:34px] [padding:8px_10px] [border-radius:var(--ui-radius-sm)] outline-none [color:inherit] no-underline text-base cursor-pointer select-none; }
 .ui-action-menu__item[data-highlighted] { @apply [background:var(--ui-hover)]; }
 .ui-action-menu__item > svg { flex:none; margin-right:8px; }
+.ui-action-menu__separator { height:1px; margin:6px 10px; background:var(--ui-line); }
 .ui-action-menu__item[data-disabled] { @apply [opacity:.5] pointer-events-none; }
 .ui-action-menu__item.is-danger { @apply [color:var(--ui-danger)]; }
 .ui-action-menu__label { @apply [padding:8px_10px_4px] text-base [color:var(--ui-muted)]; }

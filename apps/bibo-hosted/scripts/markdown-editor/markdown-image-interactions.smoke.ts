@@ -1,3 +1,4 @@
+import { openMarkdownBody } from "../personal-workspace.fixture";
 import assert from "node:assert/strict";
 import type { Page } from "playwright";
 
@@ -13,11 +14,10 @@ export async function checkImageUploads(page: Page, openSource: (page: Page) => 
     await route.fulfill({ status: fail ? 503 : 201, json: fail ? { error: "测试上传失败" } : { url: "/api/assets/12345678-1234-4123-8123-123456789012" } });
   });
   await page.route("**/api/assets/*", route => route.fulfill({ contentType: "image/png", body: png }));
-  const mode = (name: string) => page.getByRole("group", { name: "文件模式" }).getByRole("button", { name, exact: true });
   const rich = page.locator(".tiptap:visible");
   async function checkSuccessfulUpload() {
     await openSource(page); await replaceSource(page, "Before\n\nTarget");
-    await mode("编辑").click();
+    await openMarkdownBody(page);
     await rich.locator(":scope > p").last().click();
     await page.waitForFunction(() => {
       const root = document.querySelector(".tiptap") as HTMLElement & { editor: { state: { selection: { $from: { parent: { textContent: string } } } } } };
@@ -32,13 +32,13 @@ export async function checkImageUploads(page: Page, openSource: (page: Page) => 
     await rich.locator("img[src^='/api/assets/']").waitFor();
     assert.equal(await rich.locator(":scope > p").last().locator("img[src^='/api/assets/']").count(), 1, "async upload retains the insertion block while typing elsewhere");
     assert.match(await rich.locator(":scope > p").first().innerText(), /During upload/);
-    await mode("预览").click();
-    await page.locator(".ui-markdown-document img[src^='/api/assets/']").waitFor();
+    await openMarkdownBody(page);
+    await page.locator(".tiptap img[src^='/api/assets/']").waitFor();
     await openSource(page);
     assert.match((await page.locator(".cm-content .cm-line").allTextContents()).join("\n"), /!\[sample\]\(\/api\/assets\//);
   }
   async function checkUploadFailureAndSourceConflict() {
-    await mode("编辑").click();
+    await openMarkdownBody(page);
     const before = await rich.innerText();
     fail = true;
     uploadStarted = new Promise<void>(resolve => { started = resolve; });
@@ -52,7 +52,7 @@ export async function checkImageUploads(page: Page, openSource: (page: Page) => 
     await chooseUpload(page); await uploadStarted;
     await openSource(page); await replaceSource(page, "Source changed while uploading");
     release();
-    await mode("编辑").click();
+    await openMarkdownBody(page);
     await page.getByRole("alert").filter({ hasText: "上传期间源码已修改" }).waitFor();
     assert.equal(await rich.innerText(), "Source changed while uploading", "late upload cannot overwrite edits made in source mode");
     await page.getByRole("alert").filter({ hasText: "上传期间源码已修改" }).getByRole("button", { name: "关闭", exact: true }).click();
@@ -78,7 +78,7 @@ export async function checkImageUploads(page: Page, openSource: (page: Page) => 
   await checkUploadFailureAndSourceConflict();
   await checkClipboardAndDrop();
   await openSource(page); await replaceSource(page, "```text\nkeep-code\n```");
-  await mode("编辑").click(); await rich.locator("pre code").click();
+  await openMarkdownBody(page); await rich.locator("pre code").click();
   uploadStarted = new Promise<void>(resolve => { started = resolve; });
   await chooseUpload(page); await uploadStarted; release();
   await rich.locator(":scope > p img[src^='/api/assets/']").waitFor();
@@ -91,8 +91,7 @@ export async function checkImageUploads(page: Page, openSource: (page: Page) => 
 async function checkImagePresentation(page: Page, openSource: (page: Page) => Promise<void>, replaceSource: (page: Page, text: string) => Promise<void>) {
   await page.route("https://example.com/resize.png", route => route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="180"><rect width="300" height="180" fill="#658975"/></svg>' }));
   await openSource(page); await replaceSource(page, '![Original alt](https://example.com/resize.png "Original caption")');
-  const mode = (name: string) => page.getByRole("group", { name: "文件模式" }).getByRole("button", { name, exact: true });
-  await mode("编辑").click();
+  await openMarkdownBody(page);
   const rich = page.locator(".tiptap:visible"), image = rich.locator("img[src]");
   await image.waitFor();
   await image.evaluate(element => (element as HTMLImageElement).decode());
@@ -108,12 +107,12 @@ async function checkImagePresentation(page: Page, openSource: (page: Page) => Pr
   await openSource(page);
   const source = (await page.locator(".cm-content .cm-line").allTextContents()).join("\n");
   assert.match(source, /<img[^>]*width="220"/);
-  await mode("预览").click();
-  const preview = page.locator(".ui-markdown-document img[src]");
+  await openMarkdownBody(page);
+  const preview = page.locator(".tiptap img[src]");
   assert.equal(await preview.getAttribute("alt"), "Accessible description");
   assert.equal(Math.round((await preview.boundingBox())!.width), 220);
-  assert.equal(await page.locator(".ui-markdown-document .chat-image-caption").innerText(), 'A "quoted" caption');
-  await mode("编辑").click();
+  assert.equal(await page.locator(".tiptap .ui-rich-image-caption").innerText(), 'A "quoted" caption');
+  await openMarkdownBody(page);
   assert.equal(Math.round((await image.boundingBox())!.width), 220);
   assert.equal(await rich.locator(".ui-rich-image-caption").innerText(), 'A "quoted" caption');
   console.log("Images: caption/alt, drag/numeric dimensions, undo and read/source round trip passed");

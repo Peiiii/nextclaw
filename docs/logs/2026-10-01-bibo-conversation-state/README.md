@@ -20,7 +20,7 @@
 
 ## 迭代完成说明
 
-进行中。根因已定位：本地 pending 被当作失败事实并先于服务端查询执行。修复把决策移入唯一任务 owner，消除文字匹配保存推断和 app 任务字段副本，直接针对错误 owner/执行顺序。
+实现及最终 Review 完成，待部署/线上验收。根因已定位：本地 pending 被当作失败事实并先于服务端查询执行。修复把决策移入唯一任务 owner，消除文字匹配保存推断和 app 任务字段副本，直接针对错误 owner/执行顺序。
 
 ## 测试/验证/验收方式
 
@@ -36,7 +36,7 @@ BCS-01—09 逐项证据归 current-state。执行 manager 行为测试、Bibo p
 
 ## 可维护性总结汇总
 
-旧 task/recovery 双 owner 删除，BiboClient 边界不变；仅新增有实际消费者的 manager 和薄 hook。文件路径 preflight 通过。最终 diff-only 自动检查与主观职责审查待执行。
+旧 task/recovery 双 owner 删除，BiboClient 边界不变；仅新增有实际消费者的 manager 和薄 hook。文件路径 preflight 通过。最终 12 文件 diff-only 0 errors/0 warnings；治理、ratchet、定向 ESLint 通过，主观职责 Review 无开放 finding。
 
 ## NPM 包发布记录
 

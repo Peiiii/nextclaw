@@ -1,8 +1,15 @@
 import type { Locator, Page } from "playwright";
 
 export async function openMarkdownSource(page: Page, scope: Page | Locator = page): Promise<void> {
+  if (await scope.locator(".cm-content:visible").count()) return;
   await scope.getByRole("button", { name: "文件操作", exact: true }).click();
   await page.getByRole("menuitem", { name: "源码", exact: true }).click();
+}
+
+export async function openMarkdownBody(page: Page, scope: Page | Locator = page): Promise<void> {
+  if (await scope.locator(".tiptap:visible").count()) return;
+  await scope.getByRole("button", { name: "文件操作", exact: true }).click();
+  await page.getByRole("menuitem", { name: "正文", exact: true }).click();
 }
 
 const instant = "2026-09-25T09:00:00.000Z";
@@ -31,7 +38,9 @@ export async function mockApi(page: Page, longTitles = false, fileNavigation = f
   }
   const fileAction = (action: string, input: Record<string, unknown>): { result?: unknown; error?: string; status?: number } => {
     if (action === "file.list") {
-      const matches = files.filter((file) => !input.kind || file.kind === input.kind).sort((a, b) => input.sort === "recent" ? b.updatedAt.localeCompare(a.updatedAt) || a.path.localeCompare(b.path) : a.path.localeCompare(b.path));
+      const matches = files.filter((file) => (!input.kind || file.kind === input.kind)
+        && (input.parentPath === undefined || (file.path.includes("/") ? file.path.slice(0, file.path.lastIndexOf("/")) : "") === input.parentPath))
+        .sort((a, b) => input.sort === "recent" ? b.updatedAt.localeCompare(a.updatedAt) || a.path.localeCompare(b.path) : a.path.localeCompare(b.path));
       const offset = Number(input.cursor ?? 0);
       const limit = Number(input.limit ?? 50);
       return { result: { items: matches.slice(offset, offset + limit), nextCursor: offset + limit < matches.length ? String(offset + limit) : null } };

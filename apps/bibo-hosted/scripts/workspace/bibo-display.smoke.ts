@@ -67,7 +67,9 @@ try {
       else assert.equal(await workspace.count(), 0, "later replies respect a closed mobile workspace");
       viewer = "source"; show = true;
       await send();
-      assert.equal(await workspace.getByRole("textbox", { name: "编辑 report.html" }).textContent(), detail.content);
+      const source = workspace.getByRole("textbox", { name: "编辑 report.html" });
+      await source.waitFor();
+      assert.equal(await source.textContent(), detail.content);
       await page.getByRole("button", { name: "关闭工作区" }).click();
       fail = true;
       await send();
@@ -86,7 +88,9 @@ try {
       await workspace.getByText(/当前仅显示部分内容/).waitFor();
       assert.equal(await workspace.locator(".bibo-file-editor-surface").count(), 0);
       assert.equal(await workspace.getByRole("button", { name: "编辑", exact: true }).count(), 0);
-      assert.equal(await workspace.getByRole("link", { name: "下载原文件" }).getAttribute("href"), "/api/workspace/file?path=report.html");
+      await workspace.getByRole("button", { name: "文件操作", exact: true }).click();
+      assert.equal(await page.getByRole("menuitem", { name: "下载原文件" }).getAttribute("href"), "/api/workspace/file?path=report.html");
+      await page.keyboard.press("Escape");
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
       await page.screenshot({ path: `/tmp/bibo-file-preview-${viewport.width}.png`, fullPage: true });
       assert.deepEqual(errors, [], "browser has no runtime errors");
