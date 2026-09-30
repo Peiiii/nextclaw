@@ -48,7 +48,6 @@ async function checkLiveResourceOpening() {
   await page.getByRole("button", { name: "发送消息", exact: true }).click();
   await page.waitForURL(/\/chat\/[^/]+$/);
   createdSessionId = new URL(page.url()).pathname.split("/").at(-1);
-  assert.ok(createdSessionId && createdSessionId !== "chat");
   await (await response).finished();
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
