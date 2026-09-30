@@ -12,6 +12,8 @@ Both sides of a chat, inbox bodies and file previews use personal-agent-ui's Mar
 
 Markdown file links use the existing resource manager: object URIs, personal-space relative/absolute paths and local `file:` URIs resolve to the same file route. The server alone validates account ownership, saved-file registration and the workspace root. Use `pnpm -C apps/bibo-hosted smoke:resources` to cover file links, previews, refresh, unsafe URI rejection and failure feedback at desktop/mobile widths.
 
+Notes and conversation documents keep their single-document header while opening, empty or failed; historical file tabs remain in Files. Block controls stay outside the complete block boundary, including whole task lists and their checkboxes. `scripts/workspace/bibo-document-chat.smoke.ts` covers delayed resource opening with restored tabs and whole-list handle positioning on desktop/mobile.
+
 ## Local frontend development
 
 From the repository root, run `pnpm dev:bibo:ui` and open `http://127.0.0.1:5188/`. This starts the real React/TypeScript app with Vite hot updates, including source changes in `@nextclaw/personal-agent-ui`. A development-only local API supplies a signed-in preview account, a Markdown conversation, and delayed SSE chunks. Send a message to inspect incomplete Markdown while it arrives, the saving state, and the committed result. Reset clears the in-memory conversation; restarting Vite restores the example. This mode makes no Cloudflare or model requests and needs no credentials.

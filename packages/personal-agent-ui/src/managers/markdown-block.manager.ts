@@ -78,7 +78,7 @@ export class MarkdownBlockManager {
     const style = getComputedStyle(firstLine);
     const height = Math.min(box.height, parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.85);
     const list = element.closest("li")?.parentElement;
-    const left = list?.matches("ul,ol") ? list.getBoundingClientRect().left : box.left;
+    const left = list?.matches("ul,ol") ? list.getBoundingClientRect().left : element.getBoundingClientRect().left;
     const kind = node.type.name === "paragraph" && node.childCount === 1 && node.firstChild?.type.name === "image" ? "image" : node.type.name;
     const anchor = { x: left - 30, y: box.top, width: 20, height };
     let convertible = ["paragraph", "heading", "codeBlock"].includes(kind);
