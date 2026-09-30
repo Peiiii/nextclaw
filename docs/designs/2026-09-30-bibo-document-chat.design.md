@@ -38,7 +38,7 @@ contract-id: bibo-document-chat-20260930；scope-revision: 3（用户指定面�
 | BDC-04 | true | 本地真实模型可发送并打开生成文件，密钥留服务端 | passed | 5191 Harness/DeepSeek 创建本地预览体验-0930.md、show_file、编辑保存刷新及再次打开 |
 | BDC-05 | true | 桌面与手机正常渲染、主题保留、列表和标题对齐 | passed | document-chat 和 Markdown 三宽度渲染、无横向溢出；审美由用户判断 |
 | BDC-06 | true | 新建直接打开，默认名称唯一，重复点击与失败可恢复 | passed | 真实浏览器连续新建两份；store 409 避让、重复点击锁、503 重试沿用 requestId |
-| BDC-07 | true | 所有页面刷新不弹确认，未保存笔记草稿仍可恢复 | passed | Bibo 拦截源码统一删除；document-chat 脏草稿刷新无 dialog 且恢复；线上待部署后补充 |
+| BDC-07 | true | 所有页面刷新不弹确认，未保存笔记草稿仍可恢复 | passed | Bibo 拦截源码统一删除；document-chat 脏草稿刷新无 dialog 且恢复；线上 1440/390 脏草稿刷新、再次保存及零 dialog 通过 |
 | BDC-08 | true | 菜单操作与文档条目分开、操作有图标与分组；侧栏紧凑；块手柄首行居中且避开列表标记 | passed | document-chat 图标/分组、末项箭头切换、侧栏与 heading/普通/嵌套/待办 handle 几何断言 |
 
 交付遵循 Bibo 默认授权：验证及审查通过后精确提交、集成主干、部署涉及范围、线上复验。本地地址持续保留供用户比较。不能把几何近似或浏览器渲染称为整个 ChatGPT 像素复刻。

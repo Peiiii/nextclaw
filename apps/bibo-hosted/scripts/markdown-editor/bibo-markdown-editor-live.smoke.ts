@@ -34,7 +34,7 @@ type File = { id: string; path: string; version: number; content: string };
 async function space<T>(action: string, input: Record<string, unknown>): Promise<T> {
   return page.evaluate(async ({ action, input }) => {
     const response = await fetch("/api/space", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action, input }) });
-    if (!response.ok) throw new Error(`${action}: ${response.status}`);
+    if (!response.ok) throw new Error(`${action}: ${response.status} ${await response.text()}`);
     return (await response.json()).result;
   }, { action, input });
 }
@@ -66,12 +66,14 @@ try {
   await page.locator(".tiptap:visible h1").waitFor();
   const createdPath = (await page.getByRole("button", { name: /^文档 / }).getAttribute("aria-label"))!.slice("文档 ".length);
   createdId = (await space<File>("file.get", { path: createdPath })).id;
+  console.log("Production test note:", createdId, path);
   await page.getByRole("button", { name: /^文档 / }).click();
   await page.getByRole("menuitem", { name: "移动 / 重命名", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "移动 / 重命名", exact: true });
   await dialog.getByRole("textbox", { name: "文件新路径" }).fill(path);
   await dialog.getByRole("button", { name: "确认移动", exact: true }).click();
   await dialog.waitFor({ state: "hidden" });
+  createdId = (await space<File>("file.get", { path })).id;
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     const text = `# Markdown 上线验收 ${width}\n\n这是 **真实保存** 的中文文档。\n\n- 默认预览\n- 编辑与高亮源码\n\n\`\`\`typescript\nconst saved = true;\n\`\`\``;
@@ -97,10 +99,10 @@ try {
     await page.keyboard.press("Enter");
     await page.keyboard.insertText("正文编辑真实保存");
     await page.reload({ waitUntil: "networkidle" });
-    await page.locator(".tiptap:visible").getByText("正文编辑真实保存", { exact: true }).waitFor();
+    await page.locator(".tiptap:visible").getByText(/正文编辑真实保存/).waitFor();
     assert.deepEqual(dialogs, [], "dirty document refresh has no browser confirmation");
     assert.ok(!(await space<File>("file.get", { id: createdId })).content.includes("正文编辑真实保存"), "refresh restores the local draft before server save");
-    await page.locator(".tiptap:visible").getByText("正文编辑真实保存", { exact: true }).click();
+    await page.locator(".tiptap:visible").getByText(/正文编辑真实保存/).click();
     await page.keyboard.press("ControlOrMeta+s");
     await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
     assert.ok((await space<File>("file.get", { path })).content.includes("正文编辑真实保存"));
@@ -108,11 +110,19 @@ try {
     await page.screenshot({ path: `/tmp/bibo-markdown-editor-live-${width}.png` });
     console.log(`Production ${width}px: UI creation, editing, exact persisted Markdown and refreshed preview passed`);
   }
+} catch (error) {
+  await page.screenshot({ path: "/tmp/bibo-production-failure.png" }).catch(() => undefined);
+  throw error;
 } finally {
   if (createdId) {
-    const file = await space<File>("file.get", { id: createdId });
-    await space("file.delete", { id: file.id, version: file.version });
-    console.log("Removed only this run's test note");
+    try {
+      const file = await space<File>("file.get", { id: createdId });
+      await space("file.delete", { id: file.id, version: file.version });
+      console.log("Removed only this run's test note");
+    } catch (error) {
+      console.error("Test note cleanup failed:", createdId, error);
+      process.exitCode = 1;
+    }
   }
   await browser.close();
 }

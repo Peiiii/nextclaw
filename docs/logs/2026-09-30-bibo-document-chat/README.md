@@ -2,7 +2,7 @@
 
 ## 迭代完成说明
 
-状态：验证收尾中；提交与线上部署待完成。有效设计与验收账本见 [文档与聊天设计](../../designs/2026-09-30-bibo-document-chat.design.md)。本批所有实现位于 `codex/bibo-document-chat-polish`，主工作区原有 thought/design 草稿保持不变。
+状态：实现、验证、Review 与线上部署完成；主干回流结果见发布记录。有效设计与验收账本见 [文档与聊天设计](../../designs/2026-09-30-bibo-document-chat.design.md)。本批所有实现位于 `codex/bibo-document-chat-polish`，主工作区原有 thought/design 草稿保持不变。
 
 原始输入为 2026-09-30 本会话的 ChatGPT dot 页面、Bibo 编辑器和 Codex 标题截图。附件文字只作为内容与外观参考。用户要求保留 Bibo 主题，明确补充：直接新建唯一名称笔记；移除本地及线上所有刷新确认；菜单只显示带图标的分组操作；切换文档放在面包屑末项；侧栏紧凑；块手柄在首行居中并避开列表标记。参考图路径为本会话的 `codex-clipboard-61c67431`、`c5891f44`、`c1b9c6da`、`79e65f16`、`2fdf43a4`、`2229d708`、`6bcac4fc`、`a3967c3d` 等附件。
 
@@ -15,11 +15,14 @@
 - HTTP SSE 到 SDK/store/React 的分段测试覆盖第一张卡片在后续块和 committed 后节点不变、历史顺序、时间去重和刷新恢复；真实 Harness 文本边界另由服务组装测试覆盖。
 - Markdown 回归在 1440px / 390px / 320px 验证格式、块操作、拖拽、嵌套、表格、图片、折叠、源码往返、IME、历史、草稿、失败/冲突恢复和保存中输入。
 - `5191` 使用独立本地 home 与现有 DeepSeek 配置；真实浏览器完成模型创建笔记、show_file 自动打开、编辑保存并刷新；模型再次打开同一持久文件成功。无托管试用额度，密钥未复制到网页、日志或仓库。开发会话索引属于进程状态，文件属于所选持久 home。
-- 产品级及异步问题回归通过；桌面/手机断线恢复保留卡片边界和节点且不重复 POST。targeted lint 无错误，diff-only maintainability 无新增错误。线上验收记录部署完成后补充。
+- 产品级及异步问题回归通过；桌面/手机断线恢复保留卡片边界和节点且不重复 POST。targeted lint 无错误，diff-only maintainability 无新增错误。
+- 线上 1440px / 390px 使用专用账号验证直接新建、重命名、源码精确保存、正文修改、脏草稿刷新恢复、再次保存；浏览器 dialog 为零。真实图片上传、保存、刷新显示、匿名 401 与跨站上传 403 通过。所有本次临时笔记已精确清理。
 
 ## 发布/部署方式
 
 按 Bibo 默认授权精确提交并合入远程 master，从干净、冻结的远程 master 运行 `deploy:worker`。仅 Worker/UI 变化；本地 Harness 控制器为 dev-only，不进入线上产物。使用官方 `--containers-rollout=none`，部署前容器为 `bibo-core-preflight-sandbox`，镜像 `docker.io/cloudflare/sandbox:0.12.10`；部署后核对同一身份和镜像，验证线上静态产物、真实笔记保存/刷新。完成后执行主线 reconcile。
+
+2026-09-30 发布代码提交 `8fed10446706a2b84e6800d836a3e6a58bff99cf`，Cloudflare Worker version `2a07f5a9-918a-4bd2-ab4b-dd4808806985`，入口 `https://app.bibo.bot/notes`。线上 HTML 的四个入口 JS/CSS 与本地冻结构建逐字节 hash 一致。容器 ID `a03d66d0-3bf3-4515-be31-aaeed2aa489a`、名称及镜像均未变。本次后续提交仅补充验收脚本与交付文档，无运行时代码变化，不重复部署。
 
 ## 用户/产品视角的验收步骤
 
@@ -32,6 +35,8 @@
 复用 Harness、Bibo 领域动作、公共编辑器、目录 Popover、ActionMenu 和账号布局存储，未建立新模型网关、消息后台或草稿 owner。新增 FileEditingManager 归拢创建、保存和冲突恢复，沿 store 的唯一 writer 保留持久化与账号生命周期保护；space store 从 426 行降到 415 行。合并主干的恢复链路后，文本块累加统一归 SDK，BiboRunService 的临时快照保留边界，前端负责拆卡；已提交历史仍只在 committed 更新。原有稳定消息 ID 派生移至同一个消息投影工具，chat store 保持在 400 行预算以内。
 
 文件组织 preflight 已覆盖新增组件、工具、manager、local-preview 控制器、测试及文档。维护检查无新增错误，既存文件预算和 executeRun 复杂度警告保留，主观复核聚焦 owner、异步账号隔离和协议兼容。纠偏沉淀在本批设计、公共 UI README 和回归用例；不为单次审美反馈增加全局规则。
+
+线上验收脚本修正：新工作区合同以路径作为文件 ID，重命名后必须取回当前 ID；清理失败不能掩盖原始验证错误。富编辑器插入位置不作为草稿恢复判据，验收读取实际插入文字并核对服务器内容，刷新后先聚焦编辑器再发送保存快捷键。一次认证请求发生网络超时，未创建测试数据；恢复网络后完整验收通过。上述经验更新原测试 owner，不增加通用治理规则。
 
 ## NPM 包发布记录
 
