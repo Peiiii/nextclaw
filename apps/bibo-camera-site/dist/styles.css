@@ -1510,9 +1510,20 @@ body { min-height: 100svh; transition: background-color 600ms, color 600ms; }
 .result h2 { font-size: 32px; }
 .result-bottom { border-top-style: dashed; color: #47532e; }
 [data-frame="3"] .context-note { left: 9%; top: 101px; }
+body[data-scene="1"] { background: #f0eaf6; }
+body[data-scene="2"] { background: #292336; color: #f4f0e5; }
+body[data-scene="2"] header { border-color: #a898b933; }
+body[data-scene="2"] .site-actions > button { border-color: #c7b5dc55; }
+body[data-scene="2"] header p,
+body[data-scene="2"] .intro-note,
+body[data-scene="2"] .eyebrow,
+body[data-scene="2"] footer,
+body[data-scene="2"] .frame-caption > span { color: #bdb0cd; }
+body[data-scene="2"] #headline-end { color: #dce99e; }
 body[data-scene="2"] .camera::before { background: #706082; }
 body[data-scene="2"] .speech { color: #302d3c; }
 body[data-scene="2"] .viewfinder { border-color: #9e8ab9; box-shadow: 0 8px 0 #17121f; }
+body[data-scene="3"] { background: #eff2db; }
 @media (max-width: 1000px) and (min-width: 701px) {
   .intro-note { display: none; }
   .source { width: 150px; padding: 15px; }
