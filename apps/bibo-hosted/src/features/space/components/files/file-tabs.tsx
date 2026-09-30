@@ -7,7 +7,8 @@ import { FileKindIcon } from "./file-kind-icon";
 import { FileDirectoryButton } from "./file-breadcrumbs";
 
 export function FileTabs({ workspace = false }: { workspace?: boolean }) {
-  const { files, tabs, activeFileId, workspaceFileId, fileDetails, fileDrafts, openFile, openWorkspace, closeFile, saveFile, showFileBrowser, treeCollapsed, toggleTree, view } = useBiboSpaceStore();
+  const { files, notes, tabs, activeFileId, workspaceFileId, fileDetails, fileDrafts, openFile, openWorkspace, closeFile, saveFile, showFileBrowser, treeCollapsed, toggleTree, view } = useBiboSpaceStore();
+  const visibleTabs = !workspace && view === "notes" ? tabs.filter((id) => (fileDetails[id] ?? files.find((file) => file.id === id) ?? notes.find((file) => file.id === id))?.kind === "note") : tabs;
   const selected = workspace ? workspaceFileId : activeFileId;
   const prefix = workspace ? "bibo-workspace-file-tab" : "bibo-file-tab";
   const open = workspace ? openWorkspace : openFile;
@@ -43,7 +44,7 @@ export function FileTabs({ workspace = false }: { workspace?: boolean }) {
     {!workspace && treeCollapsed && view === "files" && <div className="file-tree-toggle"><IconButton label="展开目录树" icon={<PanelLeftOpen />} onClick={expandTree} /></div>}
     {!workspace && <div className={`file-mobile-back${view === "notes" ? " is-notes-back" : ""}`}><IconButton label={view === "notes" ? copy.backToNotes : copy.fileDirectory} icon={<ArrowLeft />} onClick={() => { if (treeCollapsed && view === "files") toggleTree(); showFileBrowser(); }} /></div>}
     <TabList className="bibo-file-tabs" ref={tabbar} aria-label={workspace ? copy.fileWorkspaceTabs : copy.fileTabs}>
-      {tabs.map((id) => {
+      {visibleTabs.map((id) => {
         const file = fileDetails[id] ?? files.find((item) => item.id === id);
         return <div key={id} role="presentation" className={`bibo-file-tab ui-tab-item${selected === id ? " is-active" : ""}`}>
           <Tab id={`${prefix}-${id}`} aria-controls={`${prefix}-${id}-panel`} aria-label={file?.path ?? "已删除"} selected={selected === id} label={file?.path ?? "已删除"} onClick={() => void open(id)}>

@@ -4,7 +4,7 @@ import { calendarMonthRange } from "@/features/space/utils/calendar.utils";
 import { readBiboTheme, readWorkspaceLayout, revealedFileLayout, writeBiboTheme, writeWorkspaceLayout, type BiboTheme } from "@/features/space/utils/workspace-layout.utils";
 import { readCalendarEvents, readNextSpacePage, readSpaceLists, savedTaskView, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
 import { navigateWorkspace } from "@/app/workspace-router";
-import { closedFileState, fileDeletionState, openedFileState, savedFileState } from "@/features/space/utils/file-state.utils";
+import { closedFileState, fileDeletionState, openedFileState, restoredFileTargets, savedFileState } from "@/features/space/utils/file-state.utils";
 import { InboxReaderManager } from "@/features/space/managers/inbox-reader.manager";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 import { readFileDrafts, writeFileDrafts } from "@/features/space/utils/file-draft-storage.utils";
@@ -225,10 +225,7 @@ class BiboSpaceOwner {
         this.set((state) => ({ ...lists, cursors: { ...state.cursors, ...lists.cursors } }));
       }
       if (view === "files" || view === "notes") {
-        const active = this.get().activeFileId;
-        if (active && !this.get().fileDetails[active]) await this.openFile(active);
-        const workspace = this.get().workspaceFileId;
-        if (this.get().workspaceOpen && workspace && workspace !== active && !this.get().fileDetails[workspace]) await this.openFile(workspace);
+        for (const file of restoredFileTargets(this.get(), view)) await this.openFile(file.id, undefined, file.select);
       }
       if (request === this.viewLoadRequest[view]) this.set((state) => ({ readStatus: { ...state.readStatus, [view]: "ready" } }));
       return true;
@@ -301,11 +298,13 @@ class BiboSpaceOwner {
     finally { this.set({ saving: false }); }
   };
 
-  openFile = async (id: string, verified?: BiboFileDetail): Promise<void> => {
-    const request = ++this.fileOpenRequest;
+  openFile = async (id: string, verified?: BiboFileDetail, select = true): Promise<void> => {
+    const request = select ? ++this.fileOpenRequest : this.fileOpenRequest;
+    const view = this.get().view;
     this.closedFiles.delete(id); this.set({ fileOpenError: null });
     const cached = verified ? undefined : this.get().fileDetails[id];
     if (cached) {
+      if (!select) return;
       this.set((state) => ({ activeFileId: id, tabs: state.tabs.includes(id) ? state.tabs : [...state.tabs, id] }));
       this.revealFile(id);
       return;
@@ -314,8 +313,9 @@ class BiboSpaceOwner {
       const detail = verified ?? await client.readFile({ id });
       const ancestors = detail.path.includes("/") ? await client.space<Page<BiboFile>>("file.list", { ancestorOf: detail.path, limit: 100 }) : { items: [] };
       if (this.closedFiles.has(id)) return;
-      this.set((state) => openedFileState(state, detail, ancestors.items, request === this.fileOpenRequest));
-      if (request === this.fileOpenRequest) this.revealFile(id);
+      const active = select && request === this.fileOpenRequest && view === this.get().view;
+      this.set((state) => openedFileState(state, detail, ancestors.items, active));
+      if (active) this.revealFile(id);
     } catch (error) {
       if (error instanceof BiboClientError && error.status === 404 && this.get().tabs.includes(id) && !this.get().fileDrafts[id]) { this.closeFile(id); return; }
       if (request === this.fileOpenRequest) this.set({ fileOpenError: { id, message: message(error) } });
@@ -331,7 +331,7 @@ class BiboSpaceOwner {
     if (active && !this.get().fileDetails[active]) void this.openFile(active);
   };
 
-  editFile = (id: string, content: string): void => this.set((state) => state.fileDetails[id]?.preview ? {} : ({ fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id]!, content, dirty: true } } }));
+  editFile = (id: string, content: string): void => this.set((state) => !state.fileDrafts[id] || state.fileDetails[id]?.preview || state.fileDrafts[id].content === content ? {} : ({ fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id], content, dirty: content !== state.fileDetails[id]?.content } } }));
 
   saveFile = async (id: string): Promise<void> => {
     const draft = this.get().fileDrafts[id];

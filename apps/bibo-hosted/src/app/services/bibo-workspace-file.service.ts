@@ -43,7 +43,7 @@ export class BiboWorkspaceFileService {
     if (entry.kind === "directory") return { ...file, content: null,
       uri: createSystemObjectReferenceUri("file", file.id) };
     const read = await this.workspace.read(entry.path, { offset: 0,
-      length: entry.bytes > EDITOR_BYTES ? PREVIEW_BYTES : EDITOR_BYTES });
+      length: Math.min(entry.bytes, entry.bytes > EDITOR_BYTES ? PREVIEW_BYTES : EDITOR_BYTES) });
     if (!read) throw new BiboSpaceError("文件不存在或已删除。", 404);
     const bytes = new Uint8Array(await new Response(read.body).arrayBuffer());
     const truncated = read.entry.bytes > bytes.byteLength;

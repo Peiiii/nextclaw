@@ -61,7 +61,7 @@ async function checkLiveImage(page: Page) {
 }
 try {
   await page.goto(`${origin}/notes`, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "新笔记", exact: true }).click();
+  await page.getByRole("complementary", { name: "全部笔记", exact: true }).getByRole("button", { name: "新笔记", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "新笔记", exact: true });
   await dialog.getByRole("textbox", { name: "文件名称" }).fill(path);
   await dialog.getByRole("button", { name: "创建", exact: true }).click();
@@ -80,6 +80,12 @@ try {
     assert.equal(saved.content, text, "real server persisted exactly the Markdown text");
     await page.reload({ waitUntil: "networkidle" });
     await page.getByRole("heading", { name: `Markdown 上线验收 ${width}` }).waitFor();
+    await page.waitForTimeout(350);
+    assert.equal(await page.evaluate(() => {
+      const event = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    }), false, "a restored code-ending document is not an unsaved edit");
     await page.getByRole("button", { name: "预览", exact: true }).click();
     await page.locator(".ui-markdown-document:visible").getByRole("heading", { name: `Markdown 上线验收 ${width}` }).waitFor();
     await page.getByRole("button", { name: "编辑", exact: true }).click();

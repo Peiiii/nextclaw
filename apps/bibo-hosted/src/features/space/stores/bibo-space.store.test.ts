@@ -226,8 +226,42 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
   await checkMissingFileWarning(t, useBiboSpaceStore, requests, responses);
   await checkWriteFeedback(t, responses, overview);
   await checkPreviewProtection(t, useBiboSpaceStore, requests);
+  await checkNoteRestoration(t, useBiboSpaceStore, responses);
   await checkInboxRead(t, useBiboSpaceStore, fetchMock);
 });
+
+async function checkNoteRestoration(t: TestContext, useBiboSpaceStore: typeof BiboSpaceStoreHook,
+  responses: Array<(response: Response) => void>): Promise<void> {
+  await t.test("note restoration stays in its collection and background workspace reads never select a document", async () => {
+    const current = useBiboSpaceStore.getState();
+    const note = { id: "note.md", path: "note.md", kind: "note", version: "v1", content: "saved", uri: "nextclaw://objects/file/note.md", createdAt: "now", updatedAt: "now" };
+    const artifact = { ...note, id: "diagram.md", path: "diagram.md", kind: "artifact" };
+    useBiboSpaceStore.setState({ view: "notes", activeFileId: artifact.id, tabs: [artifact.id], fileDetails: {}, fileDrafts: {}, fileBrowserVisible: true, workspaceOpen: true, workspaceFileId: artifact.id });
+    const load = current.load("notes");
+    responses.at(-2)!(Response.json({ result: { items: [note, artifact], nextCursor: null } }));
+    responses.at(-1)!(Response.json({ result: { items: [note], nextCursor: null } }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    responses.at(-1)!(Response.json({ result: artifact }));
+    await load;
+    assert.equal(useBiboSpaceStore.getState().fileBrowserVisible, true);
+    assert.equal(useBiboSpaceStore.getState().fileDrafts[artifact.id]?.dirty, false);
+    await current.openFile(note.id, note as never);
+    assert.equal(useBiboSpaceStore.getState().activeFileId, note.id);
+    assert.equal(useBiboSpaceStore.getState().fileBrowserVisible, false);
+    await current.openFile(artifact.id, undefined, false);
+    assert.equal(useBiboSpaceStore.getState().activeFileId, note.id);
+    assert.equal(useBiboSpaceStore.getState().fileBrowserVisible, false);
+    current.editFile(note.id, "saved");
+    assert.equal(useBiboSpaceStore.getState().fileDrafts[note.id]?.dirty, false, "initialization is not an edit");
+    current.editFile(note.id, "changed");
+    assert.equal(useBiboSpaceStore.getState().fileDrafts[note.id]?.dirty, true);
+    current.editFile(note.id, "saved");
+    assert.equal(useBiboSpaceStore.getState().fileDrafts[note.id]?.dirty, false, "undoing all changes releases the unload guard");
+    current.closeFile(note.id);
+    assert.equal(useBiboSpaceStore.getState().fileBrowserVisible, true, "closing the last note returns to its collection");
+    assert.deepEqual(useBiboSpaceStore.getState().tabs, [artifact.id], "other module tabs are preserved");
+  });
+}
 
 async function checkPreviewProtection(t: TestContext, useBiboSpaceStore: typeof BiboSpaceStoreHook,
   requests: readonly unknown[]): Promise<void> {

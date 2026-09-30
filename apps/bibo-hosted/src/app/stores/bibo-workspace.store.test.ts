@@ -76,6 +76,7 @@ function fixture() {
       if (!file) return null;
       const offset = options?.range?.offset ?? 0;
       const length = options?.range?.length;
+      if (options?.range && offset >= file.bytes.length) throw new Error("Unsatisfiable R2 range");
       return { ...entry(key), body: new Blob([new Uint8Array(file.bytes.subarray(offset, length === undefined ? undefined : offset + length))]).stream() };
     },
     async put(key: string, bytes: Uint8Array | ReadableStream<Uint8Array>, options?: {
@@ -190,6 +191,20 @@ test("directory move, delete and paged list operate on R2 path keys", async () =
   assert.ok(await store.read("moved/deep/a.txt"));
   await store.remove("moved");
   assert.equal(files.size, 0);
+});
+
+test("empty notes can be created, reopened, saved and moved without an unsatisfiable R2 range", async () => {
+  const { store } = fixture();
+  const service = new BiboWorkspaceFileService(store);
+  const created = await service.execute("file.create", { path: "empty.md", kind: "note", content: "" }) as BiboFileDetail;
+  assert.equal(created.content, "");
+  assert.equal(created.preview, undefined);
+  assert.equal((await service.execute("file.get", { id: created.id }) as BiboFileDetail).content, "");
+  const saved = await service.execute("file.update", { id: created.id, version: created.version, content: "" }) as BiboFileDetail;
+  const moved = await service.execute("file.move", { id: saved.id, version: saved.version, path: "renamed.md" }) as BiboFileDetail;
+  assert.equal(moved.content, "");
+  await store.write("from-os.md", new Blob([]).stream());
+  assert.equal((await service.execute("file.get", { id: "from-os.md" }) as BiboFileDetail).content, "");
 });
 
 test("file page, direct Worker tools and mounted OS share R2 immediately without an index", async () => {
