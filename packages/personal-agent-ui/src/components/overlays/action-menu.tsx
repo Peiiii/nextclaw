@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode, RefObject } from "react";
+import { useRef, type ReactElement, type ReactNode, type RefObject } from "react";
 import * as Menu from "@radix-ui/react-dropdown-menu";
 import { Check, MoreVertical } from "lucide-react";
 import { IconButton } from "../icon-button";
@@ -18,8 +18,12 @@ export function ActionMenu({
   transferringFocus?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
+  const pointerDismissed = useRef(false);
   return (
-    <Menu.Root onOpenChange={onOpenChange}>
+    <Menu.Root onOpenChange={(open) => {
+      if (open) pointerDismissed.current = false;
+      onOpenChange?.(open);
+    }}>
       <Menu.Trigger asChild>
         {trigger ?? (
           <IconButton ref={triggerRef} label={label} icon={<MoreVertical />} />
@@ -28,11 +32,13 @@ export function ActionMenu({
       <Menu.Portal>
         <Menu.Content
           className="ui-action-menu"
+          data-focus-transfer={transferringFocus || undefined}
           align="end"
           sideOffset={5}
           collisionPadding={8}
+          onPointerDownOutside={() => { pointerDismissed.current = true; }}
           onCloseAutoFocus={(event) => {
-            if (transferringFocus) event.preventDefault();
+            if (transferringFocus || pointerDismissed.current) event.preventDefault();
           }}
         >
           {children}
@@ -46,15 +52,18 @@ export function ActionMenuLink({
   children,
   href,
   external = false,
+  download,
 }: {
   children: ReactNode;
   href: string;
   external?: boolean;
+  download?: boolean;
 }) {
   return (
     <Menu.Item asChild className="ui-action-menu__item">
       <a
         href={href}
+        download={download}
         target={external ? "_blank" : undefined}
         rel={external ? "noopener noreferrer" : undefined}
       >

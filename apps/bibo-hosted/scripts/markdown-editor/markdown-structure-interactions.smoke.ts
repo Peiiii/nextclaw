@@ -51,7 +51,8 @@ async function checkToggleVisibility(page: Page) {
 
 async function checkToggleInsertion(page: Page) {
   const rich = page.locator(".tiptap:visible");
-  await page.locator(".ui-markdown-editor-toolbar").getByRole("button", { name: "插入内容", exact: true }).click();
+  await page.getByRole("button", { name: "更多格式", exact: true }).click();
+  await page.getByRole("menuitem", { name: "插入内容", exact: true }).click();
   await page.getByRole("option", { name: "折叠块", exact: true }).click();
   await page.keyboard.type("Inserted toggle");
   assert.equal(await rich.locator("summary").last().innerText(), "Inserted toggle");

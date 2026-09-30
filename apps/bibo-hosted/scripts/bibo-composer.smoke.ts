@@ -89,14 +89,14 @@ async function checkComposerGeometry(page: Page, width: number): Promise<void> {
   await input.waitFor();
   const inputBox = (await input.boundingBox())!;
   const sendBox = (await send.boundingBox())!;
-  if (width < 760) {
-    assert.equal(inputBox.height, 24, "mobile starts with one text line");
-    assert.ok(sendBox.y < inputBox.y + inputBox.height && sendBox.x >= inputBox.x + inputBox.width, "mobile send action shares the input row");
+  {
+    assert.equal(inputBox.height, 24, "composer starts with one text line");
+    assert.ok(sendBox.y < inputBox.y + inputBox.height && sendBox.x >= inputBox.x + inputBox.width, "send action shares the input row");
     await input.fill("第一行\n第二行\n第三行");
     assert.ok((await input.boundingBox())!.height >= 72, "mobile grows with its content");
     await input.fill("");
     assert.equal((await input.boundingBox())!.height, 24, "clearing restores one line");
-  } else assert.equal(inputBox.height, 48, "desktop retains two lines of writing space");
+  }
 }
 
 async function checkGeneration(page: Page, width: number, state: MockState): Promise<void> {
@@ -109,7 +109,7 @@ async function checkGeneration(page: Page, width: number, state: MockState): Pro
   await send.click();
   assert.equal(await input.inputValue(), "");
   await input.fill("下一条草稿");
-  await page.waitForFunction(() => document.documentElement.dataset.composerStream === "ready");
+  await checkWaitingReply(page);
   await page.getByRole("button", { name: "请稍候", exact: true }).waitFor();
   await input.press("Enter");
   assert.equal(await page.evaluate(() => document.documentElement.dataset.composerRuns), "1", "Enter during a run must not send concurrently");
@@ -195,12 +195,14 @@ async function checkFailureQueue(page: Page): Promise<void> {
 
 async function chooseConversation(page: Page, title: string): Promise<void> {
   const menu = page.getByRole("button", { name: "打开菜单", exact: true });
+  await page.locator('.ui-overlay--sheet[data-state="closed"]').waitFor({ state: "hidden" });
   if (await menu.isVisible()) await menu.click();
   await page.getByRole("link", { name: title, exact: true }).click();
 }
 
 async function openBlankConversation(page: Page): Promise<void> {
   const menu = page.getByRole("button", { name: "打开菜单", exact: true });
+  await page.locator('.ui-overlay--sheet[data-state="closed"]').waitFor({ state: "hidden" });
   if (await menu.isVisible()) await menu.click();
   await page.getByRole("button", { name: "新建会话", exact: true }).click();
   await page.locator(".bibo-welcome").waitFor();
@@ -310,4 +312,11 @@ try {
   } finally { await browser.close(); }
 } finally {
   if (server && server.exitCode === null) { server.kill("SIGTERM"); await once(server, "exit"); }
+}
+
+async function checkWaitingReply(page: Page): Promise<void> {
+  await page.waitForFunction(() => document.documentElement.dataset.composerStream === "ready");
+  await page.locator(".ui-message__typing").waitFor();
+  assert.equal(await page.locator(".ui-message__typing i").count(), 3, "waiting reply uses a compact three-dot indicator");
+  assert.equal(await page.locator(".ui-message--waiting .ui-message__body").evaluate(element => getComputedStyle(element).backgroundColor), "rgb(241, 241, 241)", "waiting indicator stays neutral in the classic theme");
 }

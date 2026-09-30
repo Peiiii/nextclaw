@@ -5,7 +5,7 @@ import { BiboCompanion } from "@/shared/components/bibo-companion";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { day, datetime } from "@/features/space/utils/date-format.utils";
 export function Overview() {
-  const { overview, navigate, selectInbox, selectTask, selectEvent, openFile } = useBiboSpaceStore();
+  const { overview, navigate, inboxReader, selectTask, selectEvent, openFile } = useBiboSpaceStore();
   const hour = new Date().getHours();
   const greeting = hour < 11 ? "早上好" : hour < 18 ? "下午好" : "晚上好";
   const hasActivity = Boolean(overview && (overview.inbox.length || overview.events.length || overview.tasks.length || overview.notes.length || overview.projects.length));
@@ -52,7 +52,7 @@ export function Overview() {
                     key={item.id}
                     onClick={() => {
                       navigate("inbox");
-                      selectInbox(item.id);
+                      inboxReader.select(item.id);
                     }}
                   >
                     <strong>{item.title}</strong>

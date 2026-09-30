@@ -4,7 +4,7 @@ import { once } from "node:events";
 import { readFileSync } from "node:fs";
 import { chromium, type Page, type Route } from "playwright";
 import { mockApi, openMarkdownSource } from "./personal-workspace.fixture";
-import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs, checkSessionActionFade, checkLongPlanningDetails } from "./design-system/bibo-design-system.smoke";
+import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs, checkSessionActionFade, checkLongPlanningDetails, checkOverviewCanvas, checkMobileDrawerTooltip } from "./design-system/bibo-design-system.smoke";
 import { checkFileRowActions, checkMissingRestoredFile, checkWorkspaceFiles, checkWorkspaceReopening, openWorkspaceFile } from "./design-system/workspace-file.smoke";
 const port = process.env.BIBO_SMOKE_PORT ?? String(30000 + process.pid % 20000);
 const base = `http://127.0.0.1:${port}`;
@@ -178,10 +178,12 @@ async function checkLongConversation(page: Page, width: number): Promise<void> {
   assert.ok(await title.evaluate((element) => element.getBoundingClientRect().height < 30), "toolbar title stays on one line");
   await page.getByRole("button", { name: "新对话", exact: true }).click({ trial: true });
   await page.getByRole("button", { name: "打开右侧工作区" }).click();
+  await page.locator(".bibo-workspace").evaluate(async element => { await Promise.all(element.getAnimations().map(animation => animation.finished)); });
   await checkContentBounds(page);
   await page.getByRole("button", { name: "关闭工作区" }).click();
   if (width <= 760) await page.getByRole("button", { name: "打开菜单" }).click();
   else await page.locator(".bibo-session-wrap").hover();
+  if (width <= 760) await page.locator(".ui-overlay--sheet").evaluate(async element => { await Promise.all(element.getAnimations().map(animation => animation.finished)); });
   const sidebar = await page.locator(".bibo-session-wrap").evaluate((row) => {
     const label = row.querySelector<HTMLElement>(".bibo-session-title")!;
     const button = row.querySelector<HTMLButtonElement>(".session-actions button")!;
@@ -211,6 +213,7 @@ async function checkLongTitles(page: Page, width: number): Promise<void> {
     await checkContentBounds(page);
     if (view === "chat") await checkLongConversation(page, width);
     if (view === "overview") {
+      await checkOverviewCanvas(page, width);
       for (const row of await page.locator(".bibo-summary-row").all()) {
         const title = await row.locator("strong").boundingBox();
         const metadata = await row.locator("span").boundingBox();
@@ -240,35 +243,6 @@ async function checkLongTitles(page: Page, width: number): Promise<void> {
   }
 }
 
-async function checkMobileDrawerTooltip(page: Page, width: number, touch: boolean): Promise<void> {
-  await page.goto(`${base}/chat`, { waitUntil: "networkidle" });
-  const trigger = page.getByRole("button", { name: "打开菜单", exact: true });
-  if (touch) await trigger.tap(); else await trigger.click();
-  const drawer = page.getByRole("dialog", { name: "个人空间" });
-  await drawer.waitFor();
-  const nav = await drawer.locator(".bibo-primary-nav").evaluate((element) => {
-    const first = element.querySelector("a")!;
-    const navBox = element.getBoundingClientRect();
-    const itemBox = first.getBoundingClientRect();
-    return { justify: getComputedStyle(element).justifyItems, left: itemBox.left - navBox.left, right: navBox.right - itemBox.right };
-  });
-  assert.equal(nav.justify, "normal", "mobile drawer navigation remains left aligned");
-  assert.ok(Math.abs(nav.left - nav.right) <= 1, "mobile navigation fills the drawer instead of centering its labels");
-  await page.waitForTimeout(400);
-  assert.equal(await page.getByRole("tooltip").count(), 0, "opening a mobile drawer must not display a tooltip");
-  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("role")), "dialog");
-  await page.screenshot({ path: `/tmp/bibo-mobile-drawer-${width}${touch ? "" : "-hybrid"}.png` });
-  await page.keyboard.press("Tab");
-  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("aria-label")), "关闭导航");
-  await page.getByRole("button", { name: "新建会话" }).focus();
-  await page.waitForTimeout(400);
-  assert.equal(await page.getByRole("tooltip").count(), 0, "a focused drawer action must not show a floating tooltip");
-  await page.keyboard.press("Escape");
-  await drawer.waitFor({ state: "hidden" });
-  await page.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "打开菜单", undefined, { timeout: 1500 });
-  await page.waitForTimeout(400);
-  assert.equal(await page.getByRole("tooltip").count(), 0, "restoring focus must not display a tooltip");
-}
 
 try {
   await ready();
@@ -331,7 +305,7 @@ try {
       await page.screenshot({ path: `/tmp/bibo-product-${viewport.width}.png`, fullPage: true });
       if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
       await page.getByRole("link", { name: /笔记/ }).click();
-      await page.getByRole("button", { name: /想法.md/ }).first().click();
+      await page.locator(".bibo-note-list").getByRole("button", { name: /^想法 / }).click();
       await openMarkdownSource(page);
       const editor = page.getByRole("textbox", { name: "编辑 想法.md" });
       await editor.fill("# 更新过的想法");
@@ -475,7 +449,7 @@ try {
       const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: touch, isMobile: touch });
       if (width === 390 && !touch) await mockApi(page);
       else await checkLongTitles(page, width);
-      if (width <= 390) await checkMobileDrawerTooltip(page, width, touch);
+      if (width <= 390) await checkMobileDrawerTooltip(page, width, touch, base);
       await page.close();
     }
     for (const width of [1440, 390]) {

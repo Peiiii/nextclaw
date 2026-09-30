@@ -4,6 +4,7 @@ import type { BiboFile } from "@nextclaw/bibo-client";
 import {
   ActionMenu,
   ActionMenuItem,
+  ActionMenuLink,
   Button,
   ConfirmDialog,
   Dialog,
@@ -52,6 +53,7 @@ export function FileActions({ file, tabIndex, label, onSource }: { file: BiboFil
         transferringFocus={moving || deleting}
       >
         {onSource && <ActionMenuItem onSelect={onSource}>{copy.fileSource}</ActionMenuItem>}
+        {file.kind !== "folder" && <ActionMenuLink download href={`/api/workspace/file?path=${encodeURIComponent(file.path)}`}>{copy.fileDownload}</ActionMenuLink>}
         <ActionMenuItem onSelect={startMove}>移动 / 重命名</ActionMenuItem>
         <ActionMenuItem danger disabled={saving} onSelect={() => { setFailure(""); setDeleting(true); }}>
           删除

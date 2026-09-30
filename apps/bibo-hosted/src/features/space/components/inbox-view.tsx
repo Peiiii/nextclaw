@@ -6,9 +6,10 @@ import { workspaceResources } from "@/features/space/managers/workspace-resource
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { datetime, inboxTime } from "@/features/space/utils/date-format.utils";
 import { inboxExcerpt, inboxReadingBody } from "@/features/space/utils/inbox-content.utils";
+import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 const sourceClient = new BiboClient();
 export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promise<void> }) {
-  const { inbox, selectedInboxId, inboxSelection, selectInbox, act, navigate, openFile, saving, cursors, moreLoading, loadMore } = useBiboSpaceStore();
+  const { inbox, selectedInboxId, inboxSelection, inboxReadError, inboxReading, inboxReader, act, navigate, openFile, saving, cursors, moreLoading, loadMore } = useBiboSpaceStore();
   const [openingSource, setOpeningSource] = useState(false);
   const [sourceError, setSourceError] = useState("");
   const [actionFailure, setActionFailure] = useState("");
@@ -17,13 +18,13 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
     const timer = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
-  const { inboxScope, setInboxScope } = useBiboSpaceStore();
+  const { inboxScope } = useBiboSpaceStore();
   const selected = inbox.find((item) => item.id === selectedInboxId) ?? inboxSelection;
-  const update = async (action: "inbox.read" | "inbox.resolve") => {
+  const update = async () => {
     if (!selected) return;
     const accountId = useBiboSpaceStore.getState().accountId;
     setActionFailure("");
-    const result = await act(action, { id: selected.id, version: selected.version }, "inbox");
+    const result = await act("inbox.resolve", { id: selected.id, version: selected.version }, "inbox");
     const current = useBiboSpaceStore.getState();
     if (!result && current.accountId === accountId && current.selectedInboxId === selected.id) setActionFailure(current.actionError);
   };
@@ -68,11 +69,11 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
     <div className="bibo-page workspace-page">
       <div className={`bibo-split inbox-layout${selected ? " is-detail-open" : ""}`}>
         <div className="bibo-list-pane">
-          <div className="bibo-pane-label"><SegmentedControl label="收件箱范围" value={inboxScope} options={[{ value: "pending", label: "待处理" }, { value: "unread", label: "未读" }, { value: "all", label: "全部" }]} onChange={setInboxScope} /></div>
+          <div className="bibo-pane-label"><SegmentedControl label="收件箱范围" value={inboxScope} options={[{ value: "pending", label: "待处理" }, { value: "unread", label: "未读" }, { value: "all", label: "全部" }]} onChange={inboxReader.scope} /></div>
           {inbox.length ? (
             inbox.map((item) => (
               <InboxItemRow key={item.id} item={item} now={now} selected={selected?.id === item.id}
-                onClick={() => { setSourceError(""); setActionFailure(""); selectInbox(item.id); }} />
+                onClick={() => { setSourceError(""); setActionFailure(""); inboxReader.select(item.id); }} />
             ))
           ) : (
             <EmptyState title="现在很安静" />
@@ -87,24 +88,24 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
           {selected ? (
             <>
               <div className="inbox-detail-toolbar">
-                <Button className="inbox-back" tone="text" onClick={() => { setSourceError(""); setActionFailure(""); selectInbox(null); }}>
+                <Button className="inbox-back" tone="text" onClick={() => { setSourceError(""); setActionFailure(""); inboxReader.select(null); }}>
                   ← 全部消息
                 </Button>
                 <div className="bibo-action-row inbox-actions">
-                  {!selected.readAt && (
+                  {!selected.readAt && inboxReadError?.id === selected.id && (
                     <Button
                       tone="secondary"
-                      disabled={saving}
-                      onClick={() => void update("inbox.read")}
+                      disabled={saving || inboxReading[selected.id]}
+                      onClick={() => void inboxReader.read(selected)}
                     >
-                      标记已读
+                      {copy.inboxReadRetry}
                     </Button>
                   )}
                   {!selected.resolvedAt && (
                     <Button
                       tone="primary"
-                      disabled={saving}
-                      onClick={() => void update("inbox.resolve")}
+                      disabled={saving || inboxReading[selected.id]}
+                      onClick={() => void update()}
                     >
                       已处理
                     </Button>
@@ -118,6 +119,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
               </div>
               {sourceError && <div className="inbox-detail-feedback"><Notice tone="error">{sourceError}</Notice></div>}
               {actionFailure && <div className="inbox-detail-feedback"><Notice tone="error">{actionFailure}</Notice></div>}
+              {inboxReadError?.id === selected.id && <div className="inbox-detail-feedback"><Notice tone="error">{inboxReadError.message}</Notice></div>}
               <div className="inbox-reader" key={selected.id}>
                 <article className="inbox-article">
                   <header className="inbox-article-heading">

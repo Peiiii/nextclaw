@@ -5,6 +5,7 @@ import { readBiboTheme, readWorkspaceLayout, revealedFileLayout, writeBiboTheme,
 import { readCalendarEvents, readNextSpacePage, readSpaceLists, savedTaskView, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
 import { navigateWorkspace } from "@/app/workspace-router";
 import { closedFileState, fileDeletionState, openedFileState, savedFileState } from "@/features/space/utils/file-state.utils";
+import { InboxReaderManager } from "@/features/space/managers/inbox-reader.manager";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 import { readFileDrafts, writeFileDrafts } from "@/features/space/utils/file-draft-storage.utils";
 import type { Page, FileDraft, TaskDraft, EventDraft } from "@/features/space/types/bibo-space.types";
@@ -74,6 +75,8 @@ class BiboSpaceOwner {
   selectedEventId: string | null = null;
   selectedInboxId: string | null = null;
   inboxSelection: BiboInboxItem | null = null;
+  inboxReadError: { id: string; message: string } | null = null;
+  inboxReading: Record<string, boolean> = {};
   tabs: string[] = [];
   activeFileId: string | null = null;
   fileDetails: Record<string, BiboFileDetail> = {};
@@ -82,26 +85,28 @@ class BiboSpaceOwner {
   taskDrafts: Record<string, TaskDraft> = {};
   eventDrafts: Record<string, EventDraft> = {};
 
-  constructor(private readonly setState: StoreApi<BiboSpaceOwner>["setState"], private readonly get: StoreApi<BiboSpaceOwner>["getState"]) {}
+  readonly inboxReader: InboxReaderManager;
+  constructor(private readonly store: StoreApi<BiboSpaceOwner>) { this.inboxReader = new InboxReaderManager(store, client); }
+  private get = (): BiboSpaceOwner => this.store.getState();
   private set = (update: Partial<BiboSpaceOwner> | ((state: BiboSpaceOwner) => Partial<BiboSpaceOwner>)): void => {
     if (this.get()?.instanceId !== this.instanceId) return;
     const previous = this.get().fileDrafts;
-    this.setState(update);
+    this.store.setState(update);
     const state = this.get();
     if (state.accountId && state.fileDrafts !== previous) {
       const error = writeFileDrafts(state.accountId, state.fileDrafts) ? "" : biboCopy.fileDraftStorageFailed;
-      if (state.draftStorageError !== error) this.setState({ draftStorageError: error });
+      if (state.draftStorageError !== error) this.store.setState({ draftStorageError: error });
     }
   };
 
   bindAccount = (accountId: string | null, reset = false): void => {
     if (this.accountId === accountId && !reset) return;
-    const owner = new BiboSpaceOwner(this.setState, this.get);
+    const owner = new BiboSpaceOwner(this.store);
     owner.view = this.get().view;
     owner.accountId = accountId;
     if (accountId && reset) owner.draftStorageError = writeFileDrafts(accountId, {}) ? "" : biboCopy.fileDraftStorageFailed;
     if (accountId && !reset) Object.assign(owner, readWorkspaceLayout(accountId), { fileDrafts: readFileDrafts(accountId) });
-    this.setState(owner, true);
+    this.store.setState(owner, true);
     if (accountId) void owner.load();
   };
 
@@ -173,7 +178,6 @@ class BiboSpaceOwner {
     if (undo && await this.act("task.update", undo, "tasks")) this.set({ taskUndo: null });
   };
   searchNotes = (noteQuery: string): void => { this.set({ noteQuery }); void this.load("notes"); };
-  setInboxScope = (inboxScope: BiboSpaceOwner["inboxScope"]): void => { this.set({ inboxScope, selectedInboxId: null, inboxSelection: null }); void this.load("inbox"); };
   selectEvent = (id: string | null, verified?: BiboEvent): void => {
     this.set({ selectedEventId: id });
     if (!id) return;
@@ -184,13 +188,6 @@ class BiboSpaceOwner {
       this.set((state) => ({ events: [...state.events.filter((item) => item.id !== id), event] }));
       if (this.get().selectedEventId === id) this.setCalendarDate(new Date(event.startAt));
     }).catch((error) => this.set({ error: message(error) }));
-  };
-  selectInbox = (id: string | null): void => {
-    this.set({ selectedInboxId: id, inboxSelection: null });
-    if (!id || this.get().inbox.some((item) => item.id === id)) return;
-    void client.space<BiboInboxItem>("inbox.get", { id }).then((item) => {
-      if (this.get().selectedInboxId === id) this.set({ inboxSelection: item });
-    }).catch((error) => { if (this.get().selectedInboxId === id) this.set({ error: message(error) }); });
   };
   keepTaskDraft = (id: string, draft: TaskDraft): void => this.set((state) => ({ taskDrafts: { ...state.taskDrafts, [id]: draft } }));
   clearTaskDraft = (id: string): void => this.set((state) => { const drafts = { ...state.taskDrafts }; delete drafts[id]; return { taskDrafts: drafts }; });
@@ -215,6 +212,7 @@ class BiboSpaceOwner {
 
   load = async (view: BiboView = this.get().view): Promise<boolean> => {
     if (view === "chat") return this.get().workspaceOpen ? this.load("files") : true;
+    const inboxRevision = this.inboxReader.revision;
     const request = (this.viewLoadRequest[view] ?? 0) + 1;
     this.viewLoadRequest[view] = request;
     this.set((state) => ({ loading: true, error: "", readStatus: { ...state.readStatus, [view]: state.readStatus[view] === "ready" ? "ready" : "loading" } }));
@@ -223,7 +221,7 @@ class BiboSpaceOwner {
       else {
         const { noteQuery, inboxScope } = this.get();
         const lists = await readSpaceLists(client, { view, taskFilter: taskListFilter(this.get()), noteQuery, inboxScope });
-        if (this.viewLoadRequest[view] !== request) return true;
+        if (this.viewLoadRequest[view] !== request || (view === "inbox" && inboxRevision !== this.inboxReader.revision)) return true;
         this.set((state) => ({ ...lists, cursors: { ...state.cursors, ...lists.cursors } }));
       }
       if (view === "files" || view === "notes") {
@@ -268,14 +266,16 @@ class BiboSpaceOwner {
     try {
       const view = domain === "events" ? "calendar" : domain;
       const revision = this.viewLoadRequest[view];
+      const inboxRevision = this.inboxReader.revision;
       const result = await readNextSpacePage(client, this.get(), domain, cursor);
-      if (this.viewLoadRequest[view] !== revision) return;
+      if (this.viewLoadRequest[view] !== revision || (domain === "inbox" && inboxRevision !== this.inboxReader.revision)) return;
       this.set((state) => state.cursors[domain] === cursor ? { [domain]: [...(state[domain] as unknown[]), ...result.items], cursors: { ...state.cursors, [domain]: result.nextCursor } } : {});
     } catch (error) { this.set({ error: message(error) }); }
     finally { this.set((state) => ({ moreLoading: { ...state.moreLoading, [domain]: false } })); }
   };
 
   act = async <T>(action: string, input: Record<string, unknown>, view: BiboView): Promise<T | null> => {
+    if (action === "inbox.read" || action === "inbox.resolve") return this.inboxReader.act(action, input) as Promise<T | null>;
     if (this.get().saving) return null;
     this.set({ error: "", actionError: "", feedback: { message: "", task: null }, saving: true });
     const requestKey = action.endsWith(".create") ? JSON.stringify({ action, input }) : null;
@@ -284,7 +284,6 @@ class BiboSpaceOwner {
     try {
       const result = await client.space<T>(action, { ...input, ...(requestId ? { requestId } : {}) });
       if (this.get().instanceId !== this.instanceId) return null;
-      if (["inbox.read", "inbox.resolve"].includes(action) && this.get().inboxSelection?.id === input.id) this.set({ inboxSelection: result as BiboInboxItem });
       if (requestKey) this.pendingCreates.delete(requestKey);
       if (["task.create", "task.update", "task.delete"].includes(action)) {
         const saved = result as BiboTask | { deleted: string };
@@ -423,4 +422,4 @@ class BiboSpaceOwner {
   };
 }
 
-export const useBiboSpaceStore = create<BiboSpaceOwner>((set, get) => new BiboSpaceOwner(set, get));
+export const useBiboSpaceStore = create<BiboSpaceOwner>((_set, _get, store) => new BiboSpaceOwner(store));

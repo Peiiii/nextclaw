@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { workspaceHref } from "@/app/workspace-router";
-import { LoaderCircle, MoreVertical, Plus } from "lucide-react";
+import { LoaderCircle, MoreVertical, SquarePen } from "lucide-react";
 import type { BiboSession } from "@nextclaw/bibo-client";
 import {
   ActionMenu,
@@ -14,6 +14,7 @@ import {
   NavigationItem,
 } from "@nextclaw/personal-agent-ui";
 import { useBiboChatStore } from "@/features/chat/stores/bibo-chat.store";
+import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 
 function SessionActions({ session }: { session: BiboSession }) {
   const store = useBiboChatStore();
@@ -125,17 +126,9 @@ export function SessionNavigation({
   const store = useBiboChatStore();
   return (
     <div className="bibo-session-nav">
+      <NavigationItem label={copy.newConversation} tooltip={false}><button className="bibo-new-chat" aria-label={copy.createConversation} onClick={() => { onNavigate(); void store.createSession(); }}><SquarePen aria-hidden="true" /><span>{copy.newConversation}</span></button></NavigationItem>
       <div className="bibo-session-head">
         <span>最近对话</span>
-        <IconButton
-          label="新建会话"
-          icon={<Plus />}
-          tooltip={!mobile}
-          onClick={() => {
-            onNavigate();
-            void store.createSession();
-          }}
-        />
       </div>
       {store.sessions.map((session) => (
         <div key={session.id} className="bibo-session-wrap">

@@ -6,6 +6,7 @@ import {
   ActionMenuLink,
   ActionMenuRadioGroup,
   Button,
+  IconButton,
   Dialog,
 } from "@nextclaw/personal-agent-ui";
 import { useBiboChatStore } from "@/features/chat/stores/bibo-chat.store";
@@ -17,7 +18,7 @@ const themeOptions = [
   { value: "neutral", label: copy.neutralTheme },
 ] as const;
 
-export function AccountMenu() {
+export function AccountMenu({ compact = false }: { compact?: boolean }) {
   const store = useBiboChatStore();
   const theme = useBiboSpaceStore((state) => state.theme);
   const setTheme = useBiboSpaceStore((state) => state.setTheme);
@@ -38,7 +39,7 @@ export function AccountMenu() {
       <ActionMenu
         label="账号与帮助"
         transferringFocus={confirming}
-        trigger={
+        trigger={compact ? <IconButton ref={trigger} className="account-menu-trigger" label="账号与帮助" tooltipSide="right" icon={<CircleUserRound />} /> :
           <Button
             ref={trigger}
             className="account-menu-trigger"

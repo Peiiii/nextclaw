@@ -7,6 +7,8 @@
 @container (max-width: 420px) { .ui-markdown-editor-formats { display:none; } .ui-markdown-editor-more { display:block; } }
 .ui-markdown-editor-toolbar { display:flex; align-items:center; gap:4px; padding:4px 8px; border-bottom:1px solid var(--ui-line); overflow-x:auto; flex:none; }
 .ui-markdown-editor-toolbar-space { flex:1; }
+.ui-rich-markdown-editor { position:relative; }
+.ui-markdown-editor-toolbar.is-compact { flex:none; width:max-content; padding:0; border:0; background:transparent; --ui-icon-radius:50%; }
 .ui-markdown-editor-host { flex:1; min-height:0; min-width:0; overflow:hidden; }
 .ui-markdown-editor .cm-editor { height:100%; background:transparent; font-size:14px; }
 .ui-markdown-editor .cm-editor.cm-focused { outline:none; }

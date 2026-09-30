@@ -1,4 +1,4 @@
-import { PanelLeftOpen, X } from "lucide-react";
+import { ArrowLeft, PanelLeftOpen, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button, Dialog, IconButton, Tab, TabList } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
@@ -41,20 +41,20 @@ export function FileTabs({ workspace = false }: { workspace?: boolean }) {
   };
   return <>
     {!workspace && treeCollapsed && view === "files" && <div className="file-tree-toggle"><IconButton label="展开目录树" icon={<PanelLeftOpen />} onClick={expandTree} /></div>}
-    {!workspace && <div className="file-mobile-back"><Button tone="text" onClick={() => { if (treeCollapsed && view === "files") toggleTree(); showFileBrowser(); }}>← {view === "notes" ? "全部笔记" : "目录"}</Button></div>}
+    {!workspace && <div className={`file-mobile-back${view === "notes" ? " is-notes-back" : ""}`}><IconButton label={view === "notes" ? copy.backToNotes : copy.fileDirectory} icon={<ArrowLeft />} onClick={() => { if (treeCollapsed && view === "files") toggleTree(); showFileBrowser(); }} /></div>}
     <TabList className="bibo-file-tabs" ref={tabbar} aria-label={workspace ? copy.fileWorkspaceTabs : copy.fileTabs}>
       {tabs.map((id) => {
         const file = fileDetails[id] ?? files.find((item) => item.id === id);
         return <div key={id} role="presentation" className={`bibo-file-tab ui-tab-item${selected === id ? " is-active" : ""}`}>
           <Tab id={`${prefix}-${id}`} aria-controls={`${prefix}-${id}-panel`} aria-label={file?.path ?? "已删除"} selected={selected === id} label={file?.path ?? "已删除"} onClick={() => void open(id)}>
-            {file && <FileKindIcon file={file} />}<span>{file?.path.split("/").at(-1) ?? "已删除"}</span>{fileDrafts[id]?.dirty ? " •" : ""}
+            {file && <FileKindIcon file={file} />}<span>{(file?.path.split("/").at(-1) ?? "已删除").replace(view === "notes" ? /\.(md|markdown|mdown)$/i : /$^/, "")}</span>{fileDrafts[id]?.dirty ? " •" : ""}
           </Tab>
           <IconButton label={`关闭 ${file?.path ?? "文件"}`} icon={<X />} disabled={fileDrafts[id]?.saving}
             onClick={() => { if (fileDrafts[id]?.dirty) { setFailure(""); setClosing(id); } else closeFile(id); }} />
         </div>;
       })}
     </TabList>
-    <FileDirectoryButton onOpenFile={(id) => void open(id)} />
+    {(workspace || view !== "notes") && <FileDirectoryButton onOpenFile={(id) => void open(id)} />}
     <Dialog open={closing !== null} onOpenChange={(value) => { if (!value) setClosing(null); }} title="保存文件修改？" description={closing ? fileDetails[closing]?.path : undefined}
       closeLabel="取消关闭" busy={closing ? fileDrafts[closing]?.saving : false} initialFocusRef={cancel}>
       <p className="ui-overlay__hint">这份文件有未保存的修改。</p>
