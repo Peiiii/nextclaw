@@ -46,6 +46,15 @@ const navigation: { view: BiboView; label: string; icon: LucideIcon }[] = [
 ];
 const mobileNavigation = navigation.filter(item => ["overview", "chat", "inbox", "tasks"].includes(item.view));
 
+function RunStatus() {
+  const store = useBiboChatStore();
+  const view = useBiboSpaceStore((state) => state.view);
+  const label = store.recovering ? copy.runReconnecting : store.phase === "saving" ? copy.runSaving : store.phase === "stopping" ? copy.runStopping
+    : store.phase === "generating" ? store.activity ? copy.runToolWorking : copy.runWorking : copy.runIdle;
+  return store.user && <div className="bibo-run-status" role="status" aria-live="polite">{store.runSessionId && (view !== "chat" || store.runSessionId !== store.activeSessionId)
+    ? <Link to={`/chat/${store.runSessionId}`} aria-label={copy.runOpen}>{label}</Link> : label}</div>;
+}
+
 export function BiboApp() {
   const store = useBiboChatStore();
   const space = useBiboSpaceStore();
@@ -69,7 +78,7 @@ export function BiboApp() {
     if (main) {
       main.dataset.workspaceMotion = "true";
       // Establish the current geometry before this explicit opening/closing action.
-      getComputedStyle(main).gridTemplateColumns;
+      void getComputedStyle(main).gridTemplateColumns;
     }
     if (open) space.showWorkspace(); else space.closeWorkspace();
   };
@@ -98,7 +107,18 @@ export function BiboApp() {
       shell.style.removeProperty("--bibo-viewport-height");
     };
   }, []);
-  useEffect(() => { void store.bootstrap(); }, []);
+  useEffect(() => {
+    void store.bootstrap();
+    const reconnect = () => { if (document.visibilityState !== "hidden") useBiboChatStore.getState().reconnect(); };
+    document.addEventListener("visibilitychange", reconnect);
+    window.addEventListener("pageshow", reconnect);
+    window.addEventListener("online", reconnect);
+    return () => {
+      document.removeEventListener("visibilitychange", reconnect);
+      window.removeEventListener("pageshow", reconnect);
+      window.removeEventListener("online", reconnect);
+    };
+  }, []);
   useLayoutEffect(() => {
     useBiboSpaceStore.getState().activateView(route.view);
     const chat = useBiboChatStore.getState();
@@ -111,7 +131,7 @@ export function BiboApp() {
     const guardDrafts = (event: BeforeUnloadEvent) => {
       const state = useBiboSpaceStore.getState();
       const chat = useBiboChatStore.getState();
-      if (chat.phase !== "idle" || Object.values(chat.drafts).some((draft) => draft.trim()) || Object.values(state.fileDrafts).some((draft) => draft.dirty) || Object.keys(state.taskDrafts).length || Object.keys(state.eventDrafts).length) {
+      if (Object.values(chat.drafts).some((draft) => draft.trim()) || Object.values(state.fileDrafts).some((draft) => draft.dirty) || Object.keys(state.taskDrafts).length || Object.keys(state.eventDrafts).length) {
         event.preventDefault(); event.returnValue = "";
       }
     };
@@ -138,6 +158,7 @@ export function BiboApp() {
       <div className="sidebar-header">
       {space.view === "notes" ? <span className="bibo-brand">{copy.notes}</span> : <Link className="bibo-brand" to="/" aria-label="Bibo 首页"><span>Bibo<span className="bibo-brand-dot">.</span></span></Link>}
       </div>
+      {!mobile && <RunStatus />}
       {mobile && workspaceNavigation}
       {space.view === "notes" ? <NoteNavigation onNavigate={closeMenu} /> : <SessionNavigation active={space.view === "chat"} onNavigate={closeMenu} mobile={mobile} />}
       <div className="bibo-sidebar-spacer" />
@@ -150,7 +171,7 @@ export function BiboApp() {
     <main ref={mainRef} className="bibo-main" data-workspace-motion={workspaceMotionKey.current === location.key}>
       <header className={`bibo-topbar${fileHeader ? " is-file-header" : ""}${fileHeader && space.view === "notes" ? " is-note-header" : ""}`} data-ui-surface="frame"><div className="bibo-topbar-leading">
         <IconButton ref={menuButtonRef} className="bibo-menu-button" label="打开菜单" icon={<Menu />} tooltip={false} aria-expanded={store.menuOpen} onClick={() => store.setMenuOpen(!store.menuOpen)} />
-        <h1 className={fileHeader ? "visually-hidden" : "workspace-title"} title={workspaceTitle}>{workspaceTitle}</h1>
+        <div className="bibo-topbar-context"><h1 className={fileHeader ? "visually-hidden" : "workspace-title"} title={workspaceTitle}>{workspaceTitle}</h1><RunStatus /></div>
       </div>{fileHeader && <FileTabs />}{fileHeader && space.view === "notes" && <div className="bibo-file-header-tools" ref={setFileHeaderContainer} />}{space.view === "chat" && <div className="bibo-topbar-actions"><IconButton label={copy.newConversation} icon={<Plus />} onClick={() => void store.createSession()} /><IconButton label={copy.workspace} icon={<PanelRight />} aria-pressed={space.workspaceOpen} onClick={() => toggleWorkspace(!space.workspaceOpen)} /></div>}</header>
       <FileEditorHeader.Provider value={fileHeaderContainer}><Outlet /></FileEditorHeader.Provider>
       {route.view === "chat" && <BiboWorkspace onClose={() => toggleWorkspace(false)} />}
@@ -212,7 +233,7 @@ export function ChatPage() {
         {!openQuestion && reopenQuestions.length > 0 && <button type="button" className="bibo-question-reopen" onClick={() => store.openQuestion(reopenQuestions[0].id)}>
           <MessageCircleQuestion size={15} aria-hidden="true" />{copy.questionPending} {reopenQuestions.length}</button>}
         <Composer inputRef={inputRef} value={store.draft} onChange={store.setDraft} onSend={() => void store.send()} onStop={() => void store.stop()}
-          busy={store.phase !== "idle" || sessionSwitching} canStop={store.phase === "generating" && Boolean(store.runId) && store.runSessionId === store.activeSessionId}
+          busy={store.phase !== "idle" || store.recovering || sessionSwitching} canStop={!store.recovering && store.phase === "generating" && Boolean(store.runId) && store.runSessionId === store.activeSessionId}
           readOnly={sessionSwitching} busyLabel={copy.busy}
           placeholder={copy.placeholder} sendLabel={copy.send} stopLabel={copy.stop} />
       </div>

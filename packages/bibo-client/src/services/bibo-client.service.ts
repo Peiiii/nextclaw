@@ -1,6 +1,6 @@
-import type { BiboChatEvent, BiboClientOptions, BiboFileReadInput, BiboMessage, BiboSession, BiboUser } from "../types/bibo-client.types";
+import type { BiboChatEvent, BiboClientOptions, BiboFileReadInput, BiboMessage, BiboRunState, BiboSession, BiboUser } from "../types/bibo-client.types";
 import type { BiboFileDetail } from "../types/bibo-space.types";
-import { readFileDetail, readShowContent } from "../utils/bibo-protocol.utils";
+import { readFileDetail, readRunState, readShowContent } from "../utils/bibo-protocol.utils";
 import { BiboClientError, isRecord, readBiboStream, readCommitted, readMessages, readSession, readUser } from "../utils/bibo-protocol.utils";
 
 function errorMessage(value: unknown): string | null {
@@ -19,9 +19,10 @@ export class BiboClient {
     catch { throw new BiboClientError("网络连接失败，请稍后重试。"); }
   };
 
-  private request = async (path: string, body?: unknown): Promise<unknown> => {
+  private request = async (path: string, body?: unknown, signal?: AbortSignal): Promise<unknown> => {
     const response = await this.fetchResponse(`/api/${path}`, {
       method: body === undefined ? "GET" : "POST",
+      signal,
       credentials: "same-origin",
       ...(body === undefined ? {} : {
         headers: { "content-type": "application/json" },
@@ -42,6 +43,24 @@ export class BiboClient {
   history = async (sessionId?: string): Promise<BiboMessage[]> => {
     const value = await this.request(`history${sessionId ? `?id=${encodeURIComponent(sessionId)}` : ""}`);
     return readMessages(isRecord(value) ? value.messages : null);
+  };
+
+  runState = async (sessionId?: string): Promise<BiboRunState> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+    try { return readRunState(await this.request(`runs${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ""}`, undefined, controller.signal)); }
+    finally { clearTimeout(timeout); }
+  };
+
+  resumeRun = async (runId: string, onEvent: (event: BiboChatEvent) => void, signal?: AbortSignal): Promise<void> => {
+    const response = await this.fetchResponse(`/api/runs/${encodeURIComponent(runId)}/events`, {
+      credentials: "same-origin", headers: { accept: "text/event-stream" }, signal,
+    });
+    if (!response.ok) {
+      const value: unknown = await response.json().catch(() => null);
+      throw new BiboClientError(errorMessage(value) ?? `请求失败 (${response.status})`, response.status);
+    }
+    await readBiboStream(response, onEvent);
   };
 
   sessions = async (): Promise<BiboSession[]> => {
@@ -119,10 +138,11 @@ export class BiboClient {
   };
 
   chat = async (message: string, onEvent: (event: BiboChatEvent) => void, sessionId?: string,
-    question?: { id: string; action: "answer" | "dismiss" }, clientRequestId?: string): Promise<void> => {
+    question?: { id: string; action: "answer" | "dismiss" }, clientRequestId?: string, signal?: AbortSignal): Promise<void> => {
     const response = await this.fetchResponse("/api/chat", {
       method: "POST",
       credentials: "same-origin",
+      signal,
       headers: { "content-type": "application/json", accept: "text/event-stream" },
       body: JSON.stringify({ message, sessionId, ...(question ? { questionId: question.id, questionAction: question.action } : {}),
         ...(clientRequestId ? { clientRequestId } : {}) }),

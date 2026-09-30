@@ -126,6 +126,7 @@ export class BiboConversationService {
     createTools?: () => readonly NcpTool[];
     signal?: AbortSignal;
     onDelta?: (delta: string) => void;
+    onActivity?: (toolName?: string) => void;
   }): Promise<BiboEdgeRunResult> => {
     await this.harness.start();
     const record = await this.platform.sessions.getSession(input.sessionId);
@@ -170,7 +171,11 @@ export class BiboConversationService {
     const callbacks = {
       signal: input.signal,
       onAssistantDelta: input.onDelta,
-      onEvent: (event: NcpEndpointEvent) => { events.push(event); },
+      onEvent: (event: NcpEndpointEvent) => {
+        events.push(event);
+        if (event.type === NcpEventType.MessageToolCallStart) input.onActivity?.(event.payload.toolName);
+        if (event.type === NcpEventType.MessageToolCallResult && event.payload.final !== false) input.onActivity?.();
+      },
     };
     try {
       if (input.question) {
@@ -187,7 +192,7 @@ export class BiboConversationService {
         input.runId, input.sessionId);
     } catch (error) {
       reportEdgeRunError(events, tools, input.runId, input.sessionId, error);
-      throw runFailure(error, input.signal?.aborted);
+      throw runFailure(input.signal?.reason ?? error, input.signal?.aborted);
     } finally {
       this.scopes.delete(input.sessionId);
     }

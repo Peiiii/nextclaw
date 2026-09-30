@@ -170,7 +170,9 @@ class PersonalSpaceFixture {
       },
     },
   };
-  private readonly ctx = { storage: this.storage, id: { toString: () => "account-space" }, waitUntil: (_promise: Promise<unknown>) => {} };
+  private initialized: Promise<unknown> = Promise.resolve();
+  private readonly ctx = { storage: this.storage, id: { toString: () => "account-space" }, waitUntil: (_promise: Promise<unknown>) => {},
+    blockConcurrencyWhile: (initialize: () => Promise<unknown>) => { this.initialized = initialize(); } };
   private owner: InstanceType<typeof worker.BiboUserContainer>;
 
   constructor(initial?: BiboSpaceState) {
@@ -178,7 +180,10 @@ class PersonalSpaceFixture {
     this.owner = this.instance();
   }
 
-  private instance = () => new worker.BiboUserContainer(this.ctx, this.env);
+  private instance = () => {
+    const owner = new worker.BiboUserContainer(this.ctx, this.env);
+    return { fetch: async (request: Request) => { await this.initialized; return owner.fetch(request); } };
+  };
   importSession = (record: Parameters<CloudflareSessionStore["importSessionSnapshot"]>[0]) => new CloudflareSessionStore(this.storage as unknown as DurableObjectStorage).importSessionSnapshot(record);
   stored = () => new BiboSpaceStateStore(this.storage as unknown as DurableObjectStorage).load();
   action = (action: string, input: Record<string, unknown> = {}) => this.owner.fetch(new Request("https://bibo.internal/space", { method: "POST", body: JSON.stringify({ action, input }) }));
@@ -193,6 +198,62 @@ class PersonalSpaceFixture {
 }
 
 const personalSpace = (initial?: BiboSpaceState) => new PersonalSpaceFixture(initial);
+
+test("disconnect detaches the observer, refresh attaches the same task, and completion survives restart", async (t) => {
+  const space = personalSpace();
+  const { session } = await (await space.createSession()).json() as { session: { id: string } };
+  let complete!: () => void;
+  let entered!: () => void;
+  const generating = new Promise<void>((resolve) => { entered = resolve; });
+  let calls = 0;
+  let signal: AbortSignal | undefined;
+  t.mock.method(globalThis, "fetch", async (_url: unknown, init?: RequestInit) => {
+    calls++;
+    if (calls === 1) return modelTool("bibo", { operation: "call", action: "task.create", input: { title: "Exactly once after disconnect" } });
+    signal = init?.signal ?? undefined;
+    entered();
+    await new Promise<void>((resolve) => { complete = resolve; });
+    return modelText("后台完成");
+  });
+  const post = () => space.ownerFetch(new Request("https://bibo.internal/run", { method: "POST", headers: { accept: "text/event-stream" },
+    body: JSON.stringify({ message: "继续工作", sessionId: session.id, token: "token", userId: "user-1" }) }));
+  const stream = await post();
+  const reader = stream.body!.getReader();
+  const snapshot = new TextDecoder().decode((await reader.read()).value);
+  const runId = JSON.parse(snapshot.match(/^data: (.+)$/m)![1]!).runId;
+  await generating;
+  await reader.cancel();
+  assert.equal(signal?.aborted, false, "disconnect must never cancel the model/task");
+  const state = await (await space.ownerFetch(new Request(`https://bibo.internal/runs?sessionId=${session.id}`))).json() as { run: { runId: string; phase: string }; activeRuns: unknown[] };
+  assert.equal(state.run.runId, runId);
+  assert.equal(state.run.phase, "generating");
+  assert.equal((await post()).status, 429);
+  assert.equal(calls, 2, "repeat send cannot execute a second task");
+  const restored = await space.ownerFetch(new Request(`https://bibo.internal/runs/${runId}/events`));
+  complete();
+  assert.match(await restored.text(), /event: committed/);
+  assert.equal(calls, 2);
+  assert.deepEqual((await space.stored())!.tasks.map((task) => task.title), ["Exactly once after disconnect"]);
+  await space.restart();
+  const saved = await space.ownerFetch(new Request(`https://bibo.internal/runs/${runId}/events`));
+  assert.match(await saved.text(), /后台完成/);
+  assert.equal(space.calls(), 0);
+  const other = personalSpace();
+  assert.equal((await other.ownerFetch(new Request(`https://bibo.internal/runs/${runId}/events`))).status, 404);
+  assert.equal((await other.cancel(runId)).status, 409);
+});
+
+test("a vanished task becomes a visible interruption at instance initialization", async () => {
+  const space = personalSpace();
+  const record = { runId: "vanished", sessionId: "lost", message: "unfinished", phase: "generating", startedAt: 1, updatedAt: 2, partial: "" };
+  space.values.set("runState:lost", record);
+  await space.restart();
+  const state = await (await space.ownerFetch(new Request("https://bibo.internal/runs?sessionId=lost"))).json() as { run: { phase: string; error: { code: string } }; activeRuns: unknown[] };
+  assert.equal(state.run.phase, "failed");
+  assert.equal(state.run.error.code, "RUN_INTERRUPTED");
+  assert.deepEqual(state.activeRuns, []);
+  assert.match(await (await space.ownerFetch(new Request("https://bibo.internal/runs/vanished/events"))).text(), /服务发生中断/);
+});
 
 test("workspace downloads use the authenticated account and preserve original bytes without Sandbox", async () => {
   const space = personalSpace();
