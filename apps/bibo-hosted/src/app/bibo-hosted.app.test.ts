@@ -21,7 +21,7 @@ const bundle = await build({
         contents: args.path === "cloudflare:workers"
           ? "export class DurableObject { constructor(ctx, env) { this.ctx = ctx; this.env = env; } }"
           : args.path === "@cloudflare/sandbox"
-            ? "export class Sandbox {} export class ContainerProxy {} export const getSandbox = (binding) => { binding.onAcquire(); return { exec: async () => ({ exitCode: 0, stdout: '', stderr: '' }), destroy: async () => {} }; };"
+            ? "export class Sandbox { constructor(ctx) { this.fixture = ctx; } async mountBucket(...args) { await this.fixture.mount(...args); } async exec(command) { return this.fixture.exec(command); } async onStop() { this.fixture.stops++; } async destroy() { this.fixture.destroyed++; } } export class ContainerProxy {} export const getSandbox = (binding) => { binding.onAcquire(); return { exec: async () => ({ exitCode: 0, stdout: '', stderr: '' }), destroy: async () => {} }; };"
             : "export const currentUser = async () => ({ id: 'user-1' }); export const sessionUser = currentUser; export const isPlatformAdmin = async (token) => token === 'admin'; export const cookieToken = () => 'token'; export const authRoute = async () => new Response(); export const json = (value, status = 200, headers = {}) => Response.json(value, { status, headers }); export const publicError = (error, status) => Response.json({ error }, { status });",
       }));
     },
@@ -33,10 +33,56 @@ after(() => rm(bundleDirectory, { recursive: true, force: true }));
 const bundlePath = join(bundleDirectory, "worker.mjs");
 await writeFile(bundlePath, bundle.outputFiles[0]!.text);
 const worker = await import(pathToFileURL(bundlePath).href) as {
+  Sandbox: new (ctx: object, env: object) => { mountBucket(bucket: string, path: string, options: { prefix: string }): Promise<void>; onStop(): Promise<void>; destroy(): Promise<void> };
   BiboUserContainer: new (ctx: object, env: object) => { fetch(request: Request): Promise<Response> };
   BiboModelBudget: new (ctx: object, env: object) => { fetch(request: Request): Promise<Response> };
   default: { fetch(request: Request, env: object): Promise<Response> };
 };
+
+test("Sandbox mount reuse checks FUSE and expires on stop, destroy and mount failure", async () => {
+  let mounts = 0;
+  let live = true;
+  let failed = false;
+  const fixture = { stops: 0, destroyed: 0,
+    mount: async () => { mounts++; if (failed) throw new Error("mount unavailable"); live = true; },
+    exec: async (command: string) => { assert.equal(command, "mountpoint -q /mnt/bibo-data/1"); return { exitCode: live ? 0 : 1 }; } };
+  const sandbox = new worker.Sandbox(fixture, {});
+  const mount = () => sandbox.mountBucket("SNAPSHOTS", "/mnt/bibo-data/1", { prefix: "/user/workspace/" });
+  await Promise.all([mount(), mount()]);
+  assert.equal(mounts, 1);
+  await mount();
+  assert.equal(mounts, 1);
+  live = false;
+  await mount();
+  assert.equal(mounts, 2);
+  await sandbox.onStop();
+  failed = true;
+  await assert.rejects(mount(), /mount unavailable/);
+  failed = false;
+  await mount();
+  assert.equal(mounts, 4);
+  await sandbox.destroy();
+  await mount();
+  assert.equal(mounts, 5);
+  assert.equal(fixture.stops, 1);
+  assert.equal(fixture.destroyed, 1);
+});
+
+test("a mount completing after Sandbox stop cannot refill the lifetime cache", async () => {
+  let finish!: () => void;
+  let mounts = 0;
+  const fixture = { stops: 0, destroyed: 0,
+    mount: async () => { mounts++; if (mounts === 1) await new Promise<void>((resolve) => { finish = resolve; }); },
+    exec: async () => ({ exitCode: 0 }) };
+  const sandbox = new worker.Sandbox(fixture, {});
+  const mount = () => sandbox.mountBucket("SNAPSHOTS", "/mnt/bibo-data/1", { prefix: "/user/workspace/" });
+  const first = mount();
+  await sandbox.onStop();
+  finish();
+  await first;
+  await mount();
+  assert.equal(mounts, 2);
+});
 
 const emptySpace = (): BiboSpaceState => ({ schema: 1, tasks: [], projects: [], events: [], files: [], inbox: [], deliveryStatuses: {}, replays: {} });
 

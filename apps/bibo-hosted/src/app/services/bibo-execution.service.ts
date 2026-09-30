@@ -30,7 +30,7 @@ function args(raw: unknown): Record<string, unknown> {
 }
 
 /** OS state is temporary; mounted user directories are already persisted directly in R2. */
-export class BiboExecutionService {
+export class BiboExecutionService<T extends Sandbox = Sandbox> {
   private readonly sandboxes = new Map<string, SandboxHandle>();
   private readonly mountedSandboxes = new Set<string>();
   private acquisitionCount = 0;
@@ -38,7 +38,7 @@ export class BiboExecutionService {
   get sandboxAcquisitions(): number { return this.acquisitionCount; }
 
   constructor(
-    private readonly namespace: DurableObjectNamespace<Sandbox>,
+    private readonly namespace: DurableObjectNamespace<T>,
     private readonly accountId: string,
     private readonly signal: AbortSignal,
     private readonly workspace: WorkspaceByteStore & { mountPrefix(path: string): Promise<string> },

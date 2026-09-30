@@ -1,4 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
+import { Sandbox as OfficialSandbox } from "@cloudflare/sandbox";
 import { streamEvent, type RunResult } from "./bibo-run-stream.utils";
 import { json, publicError } from "./bibo-auth.utils";
 import { biboFetch } from "./routes/bibo-http.route";
@@ -17,7 +18,51 @@ import { parseBiboSpaceRequest } from "./utils/bibo-space-request.utils";
 import { prepareBiboSessionRun, type BiboSession } from "./utils/bibo-session.utils";
 import { prepareBiboRun, type PreparedBiboRun } from "./utils/bibo-run-preparation.utils";
 export { BiboModelBudget } from "./bibo-model-gateway.service";
-export { Sandbox, ContainerProxy } from "@cloudflare/sandbox";
+export { ContainerProxy } from "@cloudflare/sandbox";
+
+/** Cache only within the official Sandbox lifetime; R2 authorization stays upstream. */
+export class Sandbox extends OfficialSandbox {
+  private mountedParameters?: string;
+  private mountGeneration = 0;
+  private pendingMount?: { parameters: string; promise: Promise<void> };
+
+  override async mountBucket(...input: Parameters<OfficialSandbox["mountBucket"]>): Promise<void> {
+    const [bucket, path] = input;
+    if (bucket !== "SNAPSHOTS" || path !== "/mnt/bibo-data/1") return super.mountBucket(...input);
+    const parameters = JSON.stringify(input);
+    if (this.pendingMount?.parameters === parameters) return this.pendingMount.promise;
+    const generation = this.mountGeneration;
+    const promise = (async () => {
+      if (this.mountedParameters === parameters) {
+        const result = await super.exec("mountpoint -q /mnt/bibo-data/1");
+        if (result.exitCode === 0 && generation === this.mountGeneration) return;
+      }
+      this.mountedParameters = undefined;
+      await super.mountBucket(...input);
+      if (generation === this.mountGeneration) this.mountedParameters = parameters;
+    })();
+    this.pendingMount = { parameters, promise };
+    try { await promise; }
+    catch (error) { if (generation === this.mountGeneration) this.mountedParameters = undefined; throw error; }
+    finally { if (this.pendingMount?.promise === promise) this.pendingMount = undefined; }
+  }
+
+  private clearMount = (): void => {
+    this.mountGeneration += 1;
+    this.mountedParameters = undefined;
+    this.pendingMount = undefined;
+  };
+
+  override async onStop(...input: Parameters<OfficialSandbox["onStop"]>): Promise<void> {
+    this.clearMount();
+    await super.onStop(...input);
+  }
+
+  override async destroy(): Promise<void> {
+    this.clearMount();
+    await super.destroy();
+  }
+}
 
 type Message = BiboSession["messages"][number];
 type Session = BiboSession;
@@ -263,7 +308,7 @@ export class BiboUserContainer extends DurableObject<Env> {
     }
   };
 
-  private finishExecution = async (execution: BiboExecutionService, active: ActiveRun): Promise<void> => {
+  private finishExecution = async (execution: Pick<BiboExecutionService, "dispose" | "sandboxAcquisitions">, active: ActiveRun): Promise<void> => {
     try { await execution.dispose(); }
     catch (error) { logDiagnostic("worker", "run.execution-cleanup-failed",
       { ...active, ...errorDetails(error), errorCode: "EXECUTION_CLEANUP_FAILED" }, "error"); }

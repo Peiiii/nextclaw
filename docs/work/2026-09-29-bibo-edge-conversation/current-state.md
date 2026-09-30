@@ -1,5 +1,20 @@
 # 当前执行状态
 
+## 2026-09-30 当前生产核心验收与性能返工
+
+- 新增跨轮性能修复，尚待生产发布：官方 Sandbox 子类复用生命周期内已成功的固定路径挂载，检查实际 FUSE，stop/destroy 清缓存，代际避免旧操作回填；不访问 SDK 私有授权，不改镜像。定向 37/37、三份 tsc、新代码治理通过；维护性 0 errors/1 warning（app 接近 400 行预算）。主观 Review：缓存与 SDK 在同一个 DO/容器生命周期内、没有持久“挂载真值”，同参数并发合并，异常和回收沿官方流程，未新增另一套执行协议；源码范围无阻断 findings。
+- 修复后按生产 max_instances=20 校正隔离环境容量并交错 transport 顺序，4 次冷命令为 2482/2387/3452/3260 ms，4 次挂载为 1339/732/1586/736 ms，16 次跨轮已执行命令 221～597 ms。此前 max_instances=1 连续 destroy→新建的 13～15 秒与该条件混杂，不能视为生产固有冷启。n=4 冷样本不等于可靠 p99，仍补自然休眠验证。日志 `/tmp/bibo-mount-cache-production-capacity-timing.log`。
+- 待发布源码真实隔离核心门 exit 0：聊天/文件阶段零获取、展示/持久回读、挂载命令写入、跨轮读取、连续上下文、取消后无最终副作用全部通过；聊天/文件/OS/续聊首字 3600/6726/8613/2134 ms，总时长 3661/6951/8990/2290 ms。日志 `/tmp/bibo-mount-cache-core-preflight.log`。两次探针在 TLS 建立前 ECONNRESET，后续同入口成功；未把网络失败算行为通过。
+
+- 当前生产源码 `d72e9b734d71b0fc665f980414ff8402b07dac2b`，Worker `9b4e7d4c-f4c7-42ea-b19b-a65e40f1704b`。本地 master、远程 master 和任务分支已对齐，reconcile 返回 LOCAL_MAINLINE_SYNCED，主工作区无关 WIP 保留。没有发布 NextClaw 新版本。上传 8.62 秒、切换 2.48 秒，沿用官方 Sandbox 镜像；日志 `/tmp/bibo-resource-counter-production-deploy.log`。
+- 最新生产四轮脚本 exit 0：聊天→文件→挂载 OS 改写→上下文续聊，原始 R2 正文和历史 8 条匹配；Sandbox 获取分别 0/0/1/0，文件 read 448 ms、write 1105 ms，mount 2809 ms、exec 2178 ms。首字 5191/7856/10896/2697 ms，含工具任务不能混算无工具首字。日志 `/tmp/bibo-resource-counter-production-core.log`，session `5cb29fee-c859-49fb-9b1f-a80545c1aa13`。Cloudflare 四请求 CPU/墙钟合计 311 ms/25.440 秒。
+- 生产恢复脚本 exit 0：write→edit→read 精确正文、web_fetch、同 requestId 重试不重复历史、旧版本写入 409 保留新内容、双会话并发、显式取消后续聊、未知会话 404 和越界路径 400 均通过。代理 reader 断开没有传达上游取消，原长回复继续 18.931 秒并提交；等待真实终态后重新发送成功，不将真实运行中的 429 当假忙。日志 `/tmp/bibo-core-recovery-final-20260930.log`，session `a06453ea-f3b0-48ff-9706-33b2e458806a`。文件和 HTTP 工具资源获取均为 0。
+- 隔离真实 Cloudflare/R2 大文件验证 exit 0：1 字节、1048577 字节、100 MiB 文本和 100 MiB 二进制，完整字节校验、范围、改名、删除、旧版本保护和账号 namespace 隔离通过；无 OS 获取。100 MiB 写入 4050/4241 ms，含生成和校验总时长 17669/22496 ms。生成缓冲 256 KiB、读取观测块最大 4 KiB；128 MiB Worker 完成，但未测真实进程内存峰值，未验证网页原始上传入口。日志 `/tmp/bibo-large-storage-20260930.log`。
+- 自然回收验证：直接 R2 读取不获取 OS，重新启动并官方重挂载后持久字节正确、临时 OS 文件消失，耗时 **13018 ms**，超出冷回退 p95 8 秒目标。日志 `/tmp/bibo-idle-read-newline-20260930.log`。830544 ms 是最初设置到最终读取的时间，期间有复验，不冒充连续闲置 13.8 分钟。
+- 共享公开 Harness 在真实 workerd/storage 中强制长上下文压缩：summaryCalls=1、modelCalls=1、20 条原历史保留、checkpoint 持久、模型输入含摘要。摘要和模型为可控夹具，证明共享压缩/保存装配，不证明真实模型摘要质量。日志 `/tmp/bibo-compaction-preflight-result.log`。
+- SDK 官方 transport 对照：RPC 冷命令 5175 ms、跨轮挂载命令 4280～4368 ms；HTTP 冷命令 13829 ms、跨轮 2531～2697 ms（各 4 个热样本）。源码核查 SDK 默认已经是 HTTP，生产无覆盖项，因此不把“改成 HTTP”当成优化。冷样本太少且有平台调度变量；继续定位挂载/冷回退，不新造执行器。
+- 成本已按当前 OS 分支、5 分钟尾部重算 300/900/1800 条与 A/E 对照，详见总体设计首节；24 条纯聊实际 CPU/墙钟为 758 ms/58.072 秒。核心功能证据已补齐，性能、最终文件规模矩阵仍未全部过门，目标保持 active。
+
 ## 2026-09-30 核心恢复与请求资源计数
 
 - 最终范围 revision 6 已消除合同尾部继续要求全部本地模块/后台托管/设备的冲突，不降低原延迟、可靠保存和文件规模门槛。
