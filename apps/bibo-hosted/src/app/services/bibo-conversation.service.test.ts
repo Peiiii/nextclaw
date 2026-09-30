@@ -360,10 +360,13 @@ test("one NCP conversation mounts a directory, executes in the temporary OS, the
   let prefix = "";
   const sandbox = {
     mountBucket: async (_binding: string, _path: string, options: { prefix: string }) => { prefix = options.prefix; },
-    exec: async (command: string) => {
+    startProcess: async (command: string, options: object) => {
+      assert.equal("signal" in options, false);
       if (command === "change mounted plan") await workspace.write("plan.md", new Blob(["after"]).stream());
-      return { success: true, exitCode: 0, stdout: "changed", stderr: "", command, duration: 1 };
+      return { id: "plan-command", waitForExit: async () => ({ exitCode: 0 }) };
     },
+    getProcessLogs: async () => ({ stdout: "changed", stderr: "" }),
+    killProcess: async () => {},
     destroy: async () => {},
   };
   const execution = new BiboExecutionService({} as DurableObjectNamespace<Sandbox>, crypto.randomUUID(),

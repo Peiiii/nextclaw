@@ -333,6 +333,10 @@ interface ExecutionEnvironment {
 
 官方 SDK 0.12.10 的 R2 binding 挂载约束：同一 Sandbox 内同一 binding 不允许不同 prefix；选择一个目录挂载，多目录需要选择共同父目录或分别使用环境，不引入自制同步文件系统。此限制来自安装版本的 mountBucketR2Egress 校验，必须在工具调用前明确反馈，不能让模型反复尝试注定失败的挂载。
 
+执行传输修正（2026-09-30，局部 design-review: passed）：真实 Cloudflare 验证发现 `exec({signal})` 在 Worker → Sandbox RPC 边界报 `AbortSignal serialization is not enabled`。前台命令使用官方 `startProcess`、`waitForExit`、`getProcessLogs`，超时或本轮取消调用官方 `killProcess(id)`，信号只留在调用方；不销毁整个环境影响后台任务。覆盖启动前/启动过程中/运行中的取消，以及超时停止；发布前必须在隔离 Cloudflare 环境跑通聊天、文件写读展示、挂载命令改写与同会话续聊，不能以工具事件 committed 当执行成功。挂载恢复只卸载已证明存在的 FUSE mount，非空普通目录不得清除。
+
+挂载授权修正：SDK 0.12.10 的重复路径错误会删除 activeMounts 记录及 egress 授权；不能把“already in use”视为幂等成功。单个限时聊天调用内缓存成功挂载，避免 mount_directory→exec 再次挂载；下轮重建调用句柄遇到此错误时只卸载活 FUSE 并重新调用官方 mountBucket 恢复授权。真实验收须覆盖下一轮直接命令读回，模型输出、退出码 0 均不能证明 R2 写入成功。
+
 ## 8. 请求完整时序
 
 ```mermaid

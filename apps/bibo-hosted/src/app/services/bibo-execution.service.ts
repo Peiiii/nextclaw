@@ -32,6 +32,7 @@ function args(raw: unknown): Record<string, unknown> {
 /** OS state is temporary; mounted user directories are already persisted directly in R2. */
 export class BiboExecutionService {
   private readonly sandboxes = new Map<string, SandboxHandle>();
+  private readonly mountedSandboxes = new Set<string>();
 
   constructor(
     private readonly namespace: DurableObjectNamespace<Sandbox>,
@@ -107,9 +108,7 @@ export class BiboExecutionService {
       const environment = await this.getEnvironment(environmentName(value.environment));
       context?.reportExecutionStarted?.();
       await this.ensureMount(environment);
-      const result = await (await this.getSandbox(environment)).exec(command, {
-        cwd: "/workspace", timeout: COMMAND_TIMEOUT_MS, signal: this.signal,
-      });
+      const result = await this.runCommand(await this.getSandbox(environment), command);
       return JSON.stringify({
         exitCode: result.exitCode,
         stdout: result.stdout.slice(0, MAX_OUTPUT_CHARS),
@@ -123,17 +122,51 @@ export class BiboExecutionService {
     },
   });
 
+  private runCommand = async (sandbox: SandboxHandle, command: string) => {
+    if (this.signal.aborted) throw new Error("Execution was cancelled");
+    // AbortSignal cannot cross the Worker -> Sandbox RPC boundary. Keep it
+    // local and cancel the official process handle instead of serializing it.
+    const process = await sandbox.startProcess(command, { cwd: "/workspace", timeout: COMMAND_TIMEOUT_MS });
+    let stopping: Promise<void> | undefined;
+    const stop = () => { stopping ??= sandbox.killProcess(process.id); void stopping.catch(() => {}); };
+    this.signal.addEventListener("abort", stop, { once: true });
+    try {
+      if (this.signal.aborted) stop();
+      const { exitCode } = await process.waitForExit(COMMAND_TIMEOUT_MS);
+      if (stopping) await stopping;
+      if (this.signal.aborted) throw new Error("Execution was cancelled");
+      const { stdout, stderr } = await sandbox.getProcessLogs(process.id);
+      return { exitCode, stdout, stderr };
+    } catch (error) {
+      stop();
+      await stopping;
+      throw error;
+    } finally {
+      this.signal.removeEventListener("abort", stop);
+    }
+  };
+
   private ensureMount = async (environment: Environment): Promise<void> => {
     const mount = environment.mount;
-    if (!mount) return;
+    if (!mount || this.mountedSandboxes.has(environment.sandboxId)) return;
+    const sandbox = await this.getSandbox(environment);
     try {
-      await (await this.getSandbox(environment)).mountBucket("SNAPSHOTS", mount.path, { prefix: mount.prefix });
+      await sandbox.mountBucket("SNAPSHOTS", mount.path, { prefix: mount.prefix });
     } catch (error) {
-      // The SDK remembers mounts while its DO remains alive. Reissue after a DO
-      // restart; accept only this exact, already-authorized mount collision.
+      // SDK 0.12.10 clears mount authorization even on a duplicate-path error.
+      // Re-establish it; accepting that error leaves an unusable FUSE mount.
       const expected = `Mount path "${mount.path}" is already in use by bucket "SNAPSHOTS". Unmount the existing bucket first or use a different mount path.`;
-      if (!(error instanceof Error) || error.message !== expected) throw error;
+      // A Sandbox DO can restart while its container and FUSE mount survive.
+      // Re-establish SDK egress authorization after removing only that live
+      // mount. Never clear a nonempty local directory or stack another mount.
+      if (!(error instanceof Error) || !(error.message === expected || error.message.startsWith(
+        `S3FS mount failed: s3fs: MOUNTPOINT directory ${mount.path} is not empty.`))) throw error;
+      const recovered = await this.runCommand(sandbox,
+        `mountpoint -q ${mount.path} && fusermount -u ${mount.path}`);
+      if (recovered.exitCode !== 0) throw error;
+      await sandbox.mountBucket("SNAPSHOTS", mount.path, { prefix: mount.prefix });
     }
+    this.mountedSandboxes.add(environment.sandboxId);
   };
 
   private environmentTool = (): NcpTool => ({
@@ -199,6 +232,7 @@ export class BiboExecutionService {
     await sandbox.destroy();
     await this.storage.delete(`${ENVIRONMENT_PREFIX}${environment.name}`);
     this.sandboxes.delete(environment.sandboxId);
+    this.mountedSandboxes.delete(environment.sandboxId);
   };
 
   private scheduleReclamation = async (): Promise<void> => {
@@ -230,5 +264,6 @@ export class BiboExecutionService {
 
   dispose = async (): Promise<void> => {
     this.sandboxes.clear();
+    this.mountedSandboxes.clear();
   };
 }

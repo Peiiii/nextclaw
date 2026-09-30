@@ -1,5 +1,14 @@
 # 当前执行状态
 
+## 2026-09-30 发布前基本功能验证通过，OS 修复待部署
+
+- 最新用户要求先完成基本功能验证再更新生产，已同步 acceptance-contract；这取代此前先上线后验收的执行顺序，不降低完整 BE 目标。
+- 生产当前为 `080aec982` / Worker `0c5f4862-434f-4c2f-9f20-cde912b962ed`，共享无动态编译校验已部署。此前 OS 命令仍存在远程 AbortSignal 序列化失败和重复挂载授权被 SDK 清除的问题。
+- 待发布 Bibo 源码在隔离 Cloudflare Worker `bibo-core-preflight` / 版本 `31a870c8-fe7b-4169-b4a9-9e747d5abfa9`，通过真实 Harness、认证模型代理、同类型 R2 binding 和官方 Sandbox 镜像验证：聊天→write/read/show→mount/exec 改写→R2 字节回读→上下文续聊→新调用句柄挂载读取→取消真实 sleep 命令。聊天及非 OS 文件工具 Sandbox 获取计数 **0**；取消后的终端写入不存在，进程 waitForExit 已完成。证据 `/tmp/bibo-process-rpc-preflight-result.log`；此前两类真实失败保留 tail 与日志，不能以 exitCode 或模型文字代替字节回读。
+- 一组单样本首字/总时长：聊天 3119/3207 ms，文件工具 5286/5521 ms，冷启动挂载命令 14493/14958 ms，续聊 1851/1920 ms。这不是 p95/p99，尚不放行 BE-02 或完整成本/能力目标。
+- 修复只在 Bibo 执行器环境适配：取消信号不跨 RPC，调用官方进程 ID 停止接口；单轮成功挂载不重复，跨轮遇真实 FUSE 残留/重复路径错误安全卸载并通过官方 mountBucket 恢复授权，不删除非空普通目录。NextClaw 无包发布。官方 SDK 进程日志追加换行，测试按日志格式核对，持久字节仍严格比较。
+- 本地会话/执行器/工作区回归 **36/36**，执行器分支 **12/12**；Bibo 三份 tsc 通过。发布前 diff-only Review 已无 errors/warnings；本条生产部署和生产复验仍待执行。完整 BE-01～14 不因局部门槛通过而全部完成。
+
 ## 2026-09-30 用户要求先上线：Bibo 已部署，完整验收继续
 
 - 用户明确要求先部署 Bibo、随后验收优化，禁止发布 NextClaw 新版本，并要求同步本地主干。没有执行 NPM、runtime 或 desktop 发布。
