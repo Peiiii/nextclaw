@@ -22,15 +22,30 @@ const workspace = {
   mountPrefix: async (path: string) => path === "/data/workspace" ? "/user/workspace/" : "/user/workspace/notes/",
 } as WorkspaceByteStore & { mountPrefix(path: string): Promise<string> };
 
+function commandSandbox(execute: (command: string) => Promise<{ exitCode: number; stdout?: string; stderr?: string }>) {
+  const results = new Map<string, { exitCode: number; stdout?: string; stderr?: string }>();
+  return {
+    startProcess: async (command: string, options: unknown) => {
+      assert.equal("signal" in (options as object), false);
+      const id = crypto.randomUUID();
+      const result = await execute(command);
+      results.set(id, result);
+      return { id, waitForExit: async () => ({ exitCode: result.exitCode }) };
+    },
+    getProcessLogs: async (id: string) => ({ stdout: results.get(id)?.stdout ?? "", stderr: results.get(id)?.stderr ?? "" }),
+    killProcess: async () => {},
+  };
+}
+
 test("chat does not acquire an OS; commands lazily acquire and reuse one sandbox", async () => {
   let acquired = 0;
   let destroyed = 0;
   const commands: string[] = [];
   const fake = {
-    exec: async (command: string) => {
+    ...commandSandbox(async (command: string) => {
       commands.push(command);
       return { success: true, exitCode: 0, stdout: "ready", stderr: "", command, duration: 1 };
-    },
+    }),
     mountBucket: async () => {},
     destroy: async () => { destroyed += 1; },
   };
@@ -40,9 +55,11 @@ test("chat does not acquire an OS; commands lazily acquire and reuse one sandbox
   const exec = execution.tools().find((tool) => tool.name === "exec")!;
 
   assert.equal(acquired, 0);
+  assert.equal(execution.sandboxAcquisitions, 0);
   const first = await exec.execute({ command: "printf ready" });
   await exec.execute({ command: "pwd" });
   assert.equal(acquired, 1);
+  assert.equal(execution.sandboxAcquisitions, 1);
   assert.deepEqual(commands, ["printf ready", "pwd"]);
   assert.equal(JSON.parse(first as string).workspaceIsTemporary, true);
   await execution.dispose();
@@ -53,7 +70,7 @@ test("mount_directory directly uses the persistent R2 prefix without a projectio
   let acquired = 0;
   const mounts: Array<{ binding: string; path: string; prefix: string }> = [];
   const fake = {
-    exec: async (command: string) => ({ exitCode: 0, stdout: command, stderr: "" }),
+    ...commandSandbox(async (command: string) => ({ exitCode: 0, stdout: command, stderr: "" })),
     mountBucket: async (binding: string, path: string, options: { prefix: string }) => {
       if (mounts.length) throw new Error(`Mount path "${path}" is already in use by bucket "SNAPSHOTS". Unmount the existing bucket first or use a different mount path.`);
       mounts.push({ binding, path, prefix: options.prefix });
@@ -88,13 +105,63 @@ test("cancelled or invalid exec never acquires an OS", async () => {
   assert.equal(acquired, 0);
 });
 
+for (const liveMount of [true, false]) test(`restarted Sandbox recovers only a live FUSE mount (live=${liveMount})`, async () => {
+  let attempts = 0;
+  const commands: string[] = [];
+  const fake = {
+    mountBucket: async () => {
+      attempts++;
+      if (attempts === 1) throw new Error("S3FS mount failed: s3fs: MOUNTPOINT directory /mnt/bibo-data/1 is not empty.\n");
+    },
+    ...commandSandbox(async (command: string) => { commands.push(command); return { exitCode: liveMount ? 0 : 1 }; }),
+  };
+  const acquire = (() => fake) as unknown as typeof getSandbox;
+  const service = new BiboExecutionService({} as DurableObjectNamespace<Sandbox>, "mount-recovery",
+    new AbortController().signal, workspace, new MemoryEnvironmentStorage().asStorage(), acquire);
+  const operation = service.tools()[0]!.execute({ path: "." });
+  if (liveMount) await operation;
+  else await assert.rejects(operation, /is not empty/);
+  assert.equal(attempts, liveMount ? 2 : 1);
+  assert.deepEqual(commands, ["mountpoint -q /mnt/bibo-data/1 && fusermount -u /mnt/bibo-data/1"]);
+});
+
+test("a later turn restores authorization after the SDK rejects an existing mount", async () => {
+  const storage = new MemoryEnvironmentStorage();
+  let authorized = false;
+  let mounted = false;
+  let mounts = 0;
+  const fake = {
+    ...commandSandbox(async (command: string) => {
+      assert.equal(command, "mountpoint -q /mnt/bibo-data/1 && fusermount -u /mnt/bibo-data/1");
+      mounted = false;
+      return { exitCode: 0 };
+    }),
+    mountBucket: async () => {
+      mounts++;
+      if (mounted) {
+        authorized = false;
+        throw new Error('Mount path "/mnt/bibo-data/1" is already in use by bucket "SNAPSHOTS". Unmount the existing bucket first or use a different mount path.');
+      }
+      mounted = authorized = true;
+    },
+  };
+  const create = () => new BiboExecutionService({} as DurableObjectNamespace<Sandbox>, "mount-turn",
+    new AbortController().signal, workspace, storage.asStorage(), (() => fake) as unknown as typeof getSandbox);
+  await create().tools()[0]!.execute({ path: "." });
+  const next = create();
+  await next.tools()[0]!.execute({ path: "." });
+  await next.tools()[0]!.execute({ path: "." });
+  assert.equal(mounts, 3);
+  assert.equal(authorized, true);
+});
+
 test("named environments survive service disposal and remain distinct across chat turns", async () => {
   const storage = new MemoryEnvironmentStorage();
   const ids: string[] = [];
   let destroys = 0;
   const acquire = ((_namespace: unknown, id: string) => {
     ids.push(id);
-    return { exec: async () => ({ exitCode: 0, stdout: "", stderr: "" }),
+    return { ...commandSandbox(async () => ({ exitCode: 0, stdout: "", stderr: "" })),
       setKeepAlive: async () => {}, destroy: async () => { destroys++; } };
   }) as unknown as typeof getSandbox;
   const create = () => new BiboExecutionService({} as DurableObjectNamespace<Sandbox>, "account-1",
@@ -115,6 +182,30 @@ test("named environments survive service disposal and remain distinct across cha
   assert.equal(destroys, 1);
   await second.tools()[1]!.execute({ command: "pwd" });
   assert.notEqual(ids[3], ids[0]);
+});
+
+for (const phase of ["starting", "running", "timeout"] as const) test(`foreground command stops only its process on ${phase}`, async () => {
+  const controller = new AbortController();
+  let killed = 0;
+  let finish!: (result: { exitCode: number }) => void;
+  const waiting = new Promise<{ exitCode: number }>(resolve => { finish = resolve; });
+  const fake = {
+    startProcess: async (_command: string, options: object) => {
+      assert.equal("signal" in options, false);
+      if (phase === "starting") controller.abort();
+      return { id: "foreground", waitForExit: async () => {
+        if (phase === "timeout") throw new Error("process exit timed out");
+        if (phase === "running") controller.abort();
+        return waiting;
+      } };
+    },
+    killProcess: async (id: string) => { assert.equal(id, "foreground"); killed++; finish({ exitCode: 137 }); },
+    getProcessLogs: async () => { throw new Error("Cancelled commands cannot report success"); },
+  };
+  const service = new BiboExecutionService({} as DurableObjectNamespace<Sandbox>, "cancel-command",
+    controller.signal, workspace, new MemoryEnvironmentStorage().asStorage(), (() => fake) as unknown as typeof getSandbox);
+  await assert.rejects(service.tools()[1]!.execute({ command: "sleep 60" }), phase === "timeout" ? /timed out/ : /cancelled/);
+  assert.equal(killed, 1);
 });
 
 test("background retention is alarm-backed before keepAlive and failed cleanup retains its retry record", async () => {

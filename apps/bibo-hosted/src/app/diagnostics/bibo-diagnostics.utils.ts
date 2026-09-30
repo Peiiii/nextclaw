@@ -7,6 +7,7 @@ type DiagnosticFields = RunTrace & {
   compactionStatus?: string; phase?: string;
   errorType?: string; errorLocation?: string;
   displayCount?: number; showFileStatus?: string;
+  sandboxAcquisitions?: number;
 };
 
 export function readTrace(headers: Headers): RunTrace {
@@ -31,6 +32,7 @@ export function logDiagnostic(component: "worker" | "container" | "model", event
     persisted: fields.persisted, runtimeId: fields.runtimeId, compactionStatus: fields.compactionStatus, phase: fields.phase,
     errorType: fields.errorType, errorLocation: fields.errorLocation,
     displayCount: fields.displayCount, showFileStatus: fields.showFileStatus,
+    sandboxAcquisitions: fields.sandboxAcquisitions,
   };
   console[level](JSON.stringify(record));
 }

@@ -8,6 +8,12 @@
 
 本次改写撤回此前“把核心搬入 Harness，Kernel 反向依赖 Harness”“Node host 留在通用 Kernel 根入口”的讨论草稿。旧段落不再作为实现依据。没有撤销用户结果、真实数据保护、性能成本门槛或上线要求。
 
+### 2026-09-30 核心范围的生产资源证据
+
+BE-01 尚缺最终生产请求关联的 Sandbox 获取计数。由现有 `BiboExecutionService` 在唯一 `getSandbox` 接缝记录本轮首次获取的 handle 数，缓存复用不重复计数；由现有 app 在本轮执行清理后发出 `run.resources` 标量诊断，关联 runId/sessionId。计数是获取尝试，不冒充实际容器启动或计费时长；零获取足以证明该请求未通过执行器触达 OS。无需新计数服务、全局状态或公共 SDK 类型，日志不含路径、命令、正文、账号凭据。
+
+方案 Review（当前局部）：通过。只扩充已有诊断 owner 和资源 owner 的观察值，不改变工具路由、保存或生命周期。验证用现有懒获取/复用测试断言零与一，并在同源码隔离主链路及生产无 OS/有 OS 请求中关联日志；源码修改后运行 Bibo 三份 tsc、定向测试和 diff-only 检查。
+
 ## 1. 用户目标、依据和非目标
 
 | 原始要求 | 设计位置 | 证明方式 |
@@ -333,6 +339,10 @@ interface ExecutionEnvironment {
 
 官方 SDK 0.12.10 的 R2 binding 挂载约束：同一 Sandbox 内同一 binding 不允许不同 prefix；选择一个目录挂载，多目录需要选择共同父目录或分别使用环境，不引入自制同步文件系统。此限制来自安装版本的 mountBucketR2Egress 校验，必须在工具调用前明确反馈，不能让模型反复尝试注定失败的挂载。
 
+执行传输修正（2026-09-30，局部 design-review: passed）：真实 Cloudflare 验证发现 `exec({signal})` 在 Worker → Sandbox RPC 边界报 `AbortSignal serialization is not enabled`。前台命令使用官方 `startProcess`、`waitForExit`、`getProcessLogs`，超时或本轮取消调用官方 `killProcess(id)`，信号只留在调用方；不销毁整个环境影响后台任务。覆盖启动前/启动过程中/运行中的取消，以及超时停止；发布前必须在隔离 Cloudflare 环境跑通聊天、文件写读展示、挂载命令改写与同会话续聊，不能以工具事件 committed 当执行成功。挂载恢复只卸载已证明存在的 FUSE mount，非空普通目录不得清除。
+
+挂载授权修正：SDK 0.12.10 的重复路径错误会删除 activeMounts 记录及 egress 授权；不能把“already in use”视为幂等成功。单个限时聊天调用内缓存成功挂载，避免 mount_directory→exec 再次挂载；下轮重建调用句柄遇到此错误时只卸载活 FUSE 并重新调用官方 mountBucket 恢复授权。真实验收须覆盖下一轮直接命令读回，模型输出、退出码 0 均不能证明 R2 写入成功。
+
 ## 8. 请求完整时序
 
 ```mermaid
@@ -394,6 +404,8 @@ Worker 可读已提交对象，不能假定正在写的大文件是完整结果�
 | 文件写冲突 | 条件写或互斥挂载，禁止静默覆盖 | UI/工具/挂载交错写 |
 
 ## 11. 现有代码迁移和能力对账
+
+**2026-09-30 当前范围修订**：用户选择核心交付，先解决“必须成立”。本次以 [验收合同 revision 6](../work/2026-09-29-bibo-edge-conversation/acceptance-contract.md#2026-09-30-核心交付范围用户已确认revision-6) 为准：统一 Harness、本地原用法保护、连续上下文、文件/网页/提问、按需 OS、保存/隔离、速度/成本及上线是完成门。技能/记忆检索/MCP、多模型、复杂子任务、多 OS 并行、后台托管、完整项目/应用管理与设备配对按实际需求另行评估，不在本次为追求本地模块全量映射继续扩建。以下完整能力列表保留作对账来源，不代表全部都须开放到 Bibo；禁止把未开放能力说成已等价。
 
 | 现有模块 | 处理 | 不得丢失 |
 | --- | --- | --- |
