@@ -1,0 +1,31 @@
+.camera .companion { z-index: 5; }
+.companion > .fountain {
+  inset: auto;
+  right: -27px;
+  top: 104px;
+  width: 50px;
+  height: 68px;
+  z-index: 6;
+  transform: rotate(-25deg);
+  transform-origin: 50% 85%;
+  touch-action: manipulation;
+  transition: transform .2s;
+}
+.fountain svg { display: block; width: 100%; height: 100%; overflow: visible; }
+@media (hover: hover) {
+  .companion > .fountain:hover { transform: rotate(-30deg) translateY(-2px); }
+}
+.companion > .fountain:active { transform: rotate(-22deg) translateY(1px); }
+.fountain-hint { opacity: .7; }
+.fountain.is-spraying #fountain-nozzle { fill: #fff9c5; filter: drop-shadow(0 0 4px #ffae47); }
+.fountain.is-spraying .fountain-hint { stroke: #e7993d; }
+.fountain.is-spraying { animation: popper-recoil .3s ease-out; }
+@keyframes popper-recoil { 30% { translate: 2px 3px; } 70% { translate: -1px -2px; } }
+.fountain-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.fountain-canvas { position: fixed; inset: 0; z-index: 20; width: 100%; height: 100%; pointer-events: none; }
+@media (max-width: 700px) {
+  .companion > .fountain { right: -9px; top: 83px; width: 44px; height: 60px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .companion > .fountain { transition: none; animation: none; }
+}

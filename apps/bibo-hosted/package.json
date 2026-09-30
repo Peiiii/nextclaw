@@ -10,7 +10,7 @@
     "build:ui-dependencies": "pnpm --filter @nextclaw/shared build && pnpm --filter @nextclaw/agent-chat-ui build",
     "build:client": "pnpm build:ui-dependencies && vite build",
     "build": "pnpm build:client",
-    "test": "tsx --test src/app/bibo-auth.utils.test.ts src/app/bibo-hosted.app.test.ts src/app/bibo-run-stream.utils.test.ts src/app/services/bibo-execution.service.test.ts src/app/utils/bibo-context-files.utils.test.ts src/app/services/bibo-conversation.service.test.ts src/app/migration/bibo-edge-export.service.test.ts src/app/migration/bibo-edge-migration.service.test.ts src/app/services/model/bibo-model.service.test.ts src/app/services/bibo-edge-web.service.test.ts src/app/stores/bibo-edge-session.store.test.ts src/app/stores/cloudflare-session.store.test.ts src/app/stores/bibo-space-file.store.test.ts src/app/stores/bibo-workspace.store.test.ts src/features/search/routes/bibo-search.route.test.ts src/features/bibo-domain/services/bibo-space.service.test.ts src/features/bibo-domain/tools/bibo-space.tools.test.ts src/features/space/utils/calendar.utils.test.ts src/features/space/stores/bibo-space.store.test.ts",
+    "test": "tsx --test src/app/bibo-auth.utils.test.ts src/app/bibo-hosted.app.test.ts src/app/bibo-run-stream.utils.test.ts src/app/services/bibo-execution.service.test.ts src/app/utils/bibo-context-files.utils.test.ts src/app/services/bibo-conversation.service.test.ts src/app/migration/bibo-edge-export.service.test.ts src/app/migration/bibo-edge-migration.service.test.ts src/app/services/model/bibo-model.service.test.ts src/app/services/bibo-edge-web.service.test.ts src/app/stores/bibo-edge-session.store.test.ts src/app/stores/cloudflare-session.store.test.ts src/app/stores/bibo-space-file.store.test.ts src/app/stores/bibo-workspace.store.test.ts src/features/search/routes/bibo-search.route.test.ts src/features/bibo-domain/services/bibo-space.service.test.ts src/features/bibo-domain/tools/bibo-space.tools.test.ts src/features/space/utils/calendar.utils.test.ts src/features/space/stores/bibo-space.store.test.ts src/features/chat/stores/bibo-run-recovery.store.test.ts",
     "smoke:client": "pnpm build:client && tsx scripts/bibo-product.smoke.ts && tsx scripts/chat/bibo-question.smoke.ts",
     "smoke:markdown": "pnpm build:client && tsx scripts/bibo-markdown.smoke.ts && tsx scripts/bibo-markdown-chat.smoke.ts",
     "smoke:inbox": "pnpm build:client && tsx scripts/inbox/bibo-inbox-layout.smoke.ts",
@@ -30,7 +30,8 @@
     "smoke:planning": "tsx scripts/workspace-planning.smoke.ts",
     "smoke:feedback": "pnpm build:client && tsx scripts/workspace-resources.smoke.ts",
     "smoke:resources": "pnpm build:client && tsx scripts/workspace-resources.smoke.ts",
-    "smoke:display": "pnpm build:client && tsx scripts/workspace/bibo-display.smoke.ts"
+    "smoke:display": "pnpm build:client && tsx scripts/workspace/bibo-display.smoke.ts",
+    "smoke:recovery": "pnpm build:client && tsx scripts/chat/bibo-run-recovery.smoke.ts"
   },
   "dependencies": {
     "@cloudflare/sandbox": "0.12.10",

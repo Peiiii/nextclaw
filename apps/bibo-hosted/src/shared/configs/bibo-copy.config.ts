@@ -1,4 +1,7 @@
 export const biboCopy = {
+  runIdle: "Bibo · 空闲", runWorking: "Bibo · 正在工作", runSaving: "Bibo · 正在保存结果",
+  runStopping: "Bibo · 正在停止", runReconnecting: "连接中断 · 正在恢复任务状态", runOpen: "查看正在工作的会话",
+  runToolWorking: "正在使用工具处理任务",
   recent: "最近",
   more: "更多",
   title: "Bibo · 你的个人 AI 搭档",

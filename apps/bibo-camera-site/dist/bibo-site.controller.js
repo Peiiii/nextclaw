@@ -19,7 +19,6 @@ let frame = 0;
 let exposing = false;
 let changeTimer;
 let releaseTimer;
-let greetingTimer;
 let sceneAnimations = [];
 let gestureStart = null;
 let suppressTouchClick = false;
@@ -209,7 +208,7 @@ function render() {
     frame === 3 ? "从第一帧重看故事" : "点击取景画面，看下一帧",
   );
   if (reduced.matches) speech.textContent = current.speech;
-  creature.setAttribute("aria-label", frame === 0 ? "把这件事交给 Bibo" : "和 Bibo 打个招呼");
+  creature.setAttribute("aria-label", frame === 3 ? "拍一下 Bibo，重看第一幕" : "拍一下 Bibo，看下一幕");
   previous.disabled = frame === 0;
   for (const item of frames)
     document
@@ -220,8 +219,6 @@ function moveTo(next, direction = next > frame ? 1 : -1) {
   if (exposing || next < 0 || next >= frames.length) return;
   stopPlayback();
   cancelHandoff();
-  clearTimeout(greetingTimer);
-  companion.classList.remove("hello");
   if (reduced.matches) {
     frame = next;
     render();
@@ -361,16 +358,7 @@ camera.addEventListener("keydown", (event) => {
     moveTo(frame - 1);
   }
 });
-creature.addEventListener("click", () => {
-  if (frame === 0) { advance(); return; }
-  clearTimeout(greetingTimer);
-  companion.classList.add("hello");
-  speech.textContent = "在呢。按一下快门，我陪你看。";
-  greetingTimer = setTimeout(() => {
-    companion.classList.remove("hello");
-    speech.textContent = frames[frame].speech;
-  }, 2000);
-});
+creature.addEventListener("click", advance);
 document.addEventListener("pointermove", (event) => {
   if (reduced.matches || event.pointerType !== "mouse") return;
   const rect = creature.getBoundingClientRect();
@@ -411,7 +399,6 @@ window.addEventListener("pagehide", () => {
   clearSceneAnimations();
   clearTimeout(changeTimer);
   clearTimeout(releaseTimer);
-  clearTimeout(greetingTimer);
 });
 window.addEventListener("pageshow", (event) => {
   if (!event.persisted) return;
