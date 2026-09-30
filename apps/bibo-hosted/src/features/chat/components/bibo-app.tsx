@@ -50,6 +50,15 @@ const navigation: { view: BiboView; label: string; icon: LucideIcon }[] = [
 ];
 const mobileNavigation = navigation.filter(item => ["overview", "chat", "inbox", "tasks"].includes(item.view));
 
+function RunStatus() {
+  const store = useBiboChatStore();
+  const view = useBiboSpaceStore((state) => state.view);
+  const label = store.recovering ? copy.runReconnecting : store.phase === "saving" ? copy.runSaving : store.phase === "stopping" ? copy.runStopping
+    : store.phase === "generating" ? store.activity ? copy.runToolWorking : copy.runWorking : copy.runIdle;
+  return store.user && <div className="bibo-run-status" role="status" aria-live="polite">{store.runSessionId && (view !== "chat" || store.runSessionId !== store.activeSessionId)
+    ? <Link to={`/chat/${store.runSessionId}`} aria-label={copy.runOpen}>{label}</Link> : label}</div>;
+}
+
 export function BiboApp() {
   const store = useBiboChatStore();
   const space = useBiboSpaceStore();
@@ -102,7 +111,18 @@ export function BiboApp() {
       shell.style.removeProperty("--bibo-viewport-height");
     };
   }, []);
-  useEffect(() => { void store.bootstrap(); }, []);
+  useEffect(() => {
+    void store.bootstrap();
+    const reconnect = () => { if (document.visibilityState !== "hidden") useBiboChatStore.getState().reconnect(); };
+    document.addEventListener("visibilitychange", reconnect);
+    window.addEventListener("pageshow", reconnect);
+    window.addEventListener("online", reconnect);
+    return () => {
+      document.removeEventListener("visibilitychange", reconnect);
+      window.removeEventListener("pageshow", reconnect);
+      window.removeEventListener("online", reconnect);
+    };
+  }, []);
   useLayoutEffect(() => {
     useBiboSpaceStore.getState().activateView(route.view);
     const chat = useBiboChatStore.getState();
@@ -126,11 +146,12 @@ export function BiboApp() {
   const collapsedFileTree = space.view === "files" && space.treeCollapsed,
     fileHeader = (space.view === "files" || space.view === "notes") && (space.tabs.length > 0 || collapsedFileTree) && (space.view !== "notes" || !space.fileBrowserVisible) && (!mobile || !space.fileBrowserVisible || collapsedFileTree);
   const workspaceTitle = space.view === "chat" ? store.sessions.find((session) => session.id === store.activeSessionId)?.title ?? "新对话" : navigation.find((item) => item.view === space.view)?.label;
-  const workspaceNavigation = <nav className="bibo-primary-nav" aria-label="工作空间">{navigation.map((item) => <NavigationItem key={item.view} label={item.label} selected={space.view === item.view} tooltip={!mobile}><Link to={workspaceHref(item.view, store.activeSessionId)} className={`bibo-nav-item${space.view === item.view ? " is-active" : ""}`} aria-label={item.label} aria-current={space.view === item.view ? "page" : undefined} onClick={closeMenu}><item.icon aria-hidden="true" className="bibo-nav-mark" /><span className="bibo-nav-text">{item.label}</span>{item.view === "inbox" && (space.overview?.counts.unread ?? 0) > 0 && <small>{space.overview?.counts.unread}</small>}</Link></NavigationItem>)}</nav>;
+  const workspaceNavigation = <nav className="bibo-primary-nav" aria-label="工作空间">{navigation.map((item) => <NavigationItem key={item.view} label={item.label} selected={space.view === item.view} layout={mobile ? "row" : "icon"} tooltip={!mobile}><Link to={workspaceHref(item.view, store.activeSessionId)} className={`bibo-nav-item${space.view === item.view ? " is-active" : ""}`} aria-label={item.label} aria-current={space.view === item.view ? "page" : undefined} onClick={closeMenu}><item.icon aria-hidden="true" className="bibo-nav-mark" /><span className="bibo-nav-text">{item.label}</span>{item.view === "inbox" && (space.overview?.counts.unread ?? 0) > 0 && <small>{space.overview?.counts.unread}</small>}</Link></NavigationItem>)}</nav>;
   const sidebarContent = <>
       <div className="sidebar-header">
       {space.view === "notes" ? <span className="bibo-brand">{copy.notes}</span> : <Link className="bibo-brand" to="/" aria-label="Bibo 首页"><span>Bibo<span className="bibo-brand-dot">.</span></span></Link>}
       </div>
+      {!mobile && <RunStatus />}
       {mobile && workspaceNavigation}
       {space.view === "notes" ? <NoteNavigation onNavigate={closeMenu} /> : <SessionNavigation active={space.view === "chat"} onNavigate={closeMenu} mobile={mobile} />}
       <div className="bibo-sidebar-spacer" />
@@ -139,11 +160,11 @@ export function BiboApp() {
       </nav>}
   </>;
   return <div ref={shellRef} className={`bibo-shell${space.view === "chat" ? " is-chat" : ""}${space.view === "overview" ? " is-overview" : ""}${space.view === "notes" && space.fileBrowserVisible ? " is-notes-collection" : ""}${space.sidebarCollapsed ? " is-sidebar-collapsed" : ""}${space.workspaceOpen && space.view === "chat" ? " has-workspace" : ""}`}>
-    {mobile ? <Sheet open={store.menuOpen && !authOpen} onOpenChange={store.setMenuOpen} title="个人空间" closeLabel="关闭导航" returnFocusRef={menuButtonRef}><aside className="bibo-sidebar is-drawer" aria-label="导航">{sidebarContent}</aside></Sheet> : <aside ref={sidebarRef} className="bibo-sidebar" aria-label="导航"><div className="bibo-navigation-rail" data-ui-surface="frame"><IconButton label={space.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} icon={space.sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />} aria-expanded={!space.sidebarCollapsed} onClick={space.toggleSidebar} />{workspaceNavigation}<div className="bibo-sidebar-spacer" /><AccountMenu compact /></div><div ref={sidebarPanelRef} className="bibo-sidebar-panel" data-ui-surface="sidebar">{sidebarContent}</div></aside>}
+    {mobile ? <Sheet open={store.menuOpen && !authOpen} onOpenChange={store.setMenuOpen} title="个人空间" closeLabel="关闭导航" returnFocusRef={menuButtonRef}><aside className="bibo-sidebar is-drawer" aria-label="导航">{sidebarContent}</aside></Sheet> : <aside ref={sidebarRef} className="bibo-sidebar" aria-label="导航"><div className="bibo-navigation-rail" data-ui-surface="frame"><NavigationItem label={space.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} layout="icon"><button type="button" aria-label={space.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} aria-expanded={!space.sidebarCollapsed} onClick={space.toggleSidebar}>{space.sidebarCollapsed ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}</button></NavigationItem>{workspaceNavigation}<div className="bibo-sidebar-spacer" /><AccountMenu compact /></div><div ref={sidebarPanelRef} className="bibo-sidebar-panel" data-ui-surface="sidebar">{sidebarContent}</div></aside>}
     <main ref={mainRef} className="bibo-main" style={{ "--workspace-ratio": `${space.workspaceRatio * 100}%` } as CSSProperties} data-workspace-motion={workspaceMotionKey.current === location.key}>
       <header className={`bibo-topbar${fileHeader ? " is-file-header" : ""}${fileHeader && space.view === "notes" ? " is-note-header" : ""}`} data-ui-surface="frame"><div className="bibo-topbar-leading">
         <IconButton ref={menuButtonRef} className="bibo-menu-button" label="打开菜单" icon={<Menu />} tooltip={false} aria-expanded={store.menuOpen} onClick={() => store.setMenuOpen(!store.menuOpen)} />
-        <h1 className={fileHeader ? "visually-hidden" : "workspace-title"} title={workspaceTitle}>{workspaceTitle}</h1>
+        <div className="bibo-topbar-context"><h1 className={fileHeader ? "visually-hidden" : "workspace-title"} title={workspaceTitle}>{workspaceTitle}</h1><RunStatus /></div>
       </div>{fileHeader && <FileTabs />}{fileHeader && <div className="bibo-file-header-tools" ref={setFileHeaderContainer} />}{space.view === "chat" && <div className="bibo-topbar-actions"><IconButton label={copy.newConversation} icon={<Plus />} onClick={() => void store.createSession()} /><IconButton label={copy.workspace} icon={<PanelRight />} aria-pressed={space.workspaceOpen} onClick={() => toggleWorkspace(!space.workspaceOpen)} /></div>}</header>
       <FileEditorHeader.Provider value={fileHeaderContainer}><Outlet /></FileEditorHeader.Provider>
       {route.view === "chat" && <BiboWorkspace onClose={() => toggleWorkspace(false)} />}
@@ -166,7 +187,7 @@ export function ChatPage() {
   const questions = store.messages.flatMap((message) => message.questions ?? []).filter((question) => question.status === "pending");
   const openQuestion = questions.find((question) => question.id === store.openQuestionId);
   const submittingQuestionId = store.phase !== "idle" ? store.pendingQuestion?.id : undefined;
-  const reopenQuestions = questions.filter((question) => question.id !== submittingQuestionId);
+  const reopenQuestions = questions.filter((question) => question.id !== submittingQuestionId && !store.skippedQuestionIds.includes(question.id));
   const hasMessages = messages.length > 0;
   const failedMessages = store.failedMessages[store.activeSessionId ?? "new"] ?? [];
   const status = store.status || store.replyErrors[store.activeSessionId ?? "new"];
@@ -202,11 +223,11 @@ export function ChatPage() {
           initialCustom={store.failedQuestionInput?.id === openQuestion.id ? store.failedQuestionInput.answer : ""}
           onClose={store.closeQuestion}
           onAnswer={(answer) => void store.send(answer, { id: openQuestion.id, title: openQuestion.title, action: "answer" })}
-          onDismiss={() => void store.send("跳过", { id: openQuestion.id, title: openQuestion.title, action: "dismiss" })} />}
+          onDismiss={store.skipQuestion} />}
         {!openQuestion && reopenQuestions.length > 0 && <button type="button" className="bibo-question-reopen" onClick={() => store.openQuestion(reopenQuestions[0].id)}>
           <MessageCircleQuestion size={15} aria-hidden="true" />{copy.questionPending} {reopenQuestions.length}</button>}
         <Composer inputRef={inputRef} value={store.draft} onChange={store.setDraft} onSend={() => void store.send()} onStop={() => void store.stop()}
-          busy={store.phase !== "idle" || sessionSwitching} canStop={store.phase === "generating" && Boolean(store.runId) && store.runSessionId === store.activeSessionId}
+          busy={store.phase !== "idle" || store.recovering || sessionSwitching} canStop={!store.recovering && store.phase === "generating" && Boolean(store.runId) && store.runSessionId === store.activeSessionId}
           readOnly={sessionSwitching} busyLabel={copy.busy}
           placeholder={copy.placeholder} sendLabel={copy.send} stopLabel={copy.stop} />
       </div>

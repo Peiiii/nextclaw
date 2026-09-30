@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { appendStreamingBlock, messageTime } from "./chat-message.utils";
+import { appendBiboTextBlock as appendStreamingBlock } from "@nextclaw/bibo-client";
+import { messageTime } from "./chat-message.utils";
 
 test("stream blocks preserve earlier answers across actual boundaries", () => {
   const first = appendStreamingBlock([], "先检查", "before-tool");

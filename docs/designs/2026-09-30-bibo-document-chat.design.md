@@ -21,7 +21,7 @@
 
 - 文档：现有 Tiptap/MarkdownEditor → fileDrafts → saveFile → file.update，版本、草稿和恢复继续归 space store。顶栏通过已有 FileEditorHeader portal 承接。
 - 布局：space store 持有比例，已有按账号的 workspace layout 校验和存储。分隔条只连接指针/键盘事件和容器几何。
-- 消息：内核 MessageTextStart/Delta 的实际块 → Bibo delta 可选 blockId → bibo-client 校验 → chat store 临时块 → 消息组件。正式 content 已保留各文本 part，协议不新增消息事件类型或存储 owner。无 blockId 的数据作为一个文本块。
+- 消息：内核 MessageTextStart/Delta 的实际块 → 现有 BiboRunService 的 delta 可选 blockId 与快照 partialBlocks → bibo-client 校验和统一文本块累加 → chat store 临时投影 → 消息组件。拆卡归前端；后端仍保存一份正式 content，复用既有恢复 owner，未创建第二套消息存储。无 blockId 的数据作为一个文本块。断线快照保留真实块边界，完成后清除临时块。
 - 本地：dev-only Vite 中间件在 BIBO_UI_LIVE=1 时复用公共 Harness、NodePlatform 与 Bibo 领域工具，读取现有 NextClaw 模型配置，使用独立本地数据目录。API 密钥留在服务端原配置，不复制到网页或日志；绕开托管演示额度，模型供应商自身额度仍适用。默认模式继续本地 fixture。仅 loopback 使用，拒绝跨站请求。
 
 抽象审计：复用现有编辑器、顶栏、布局存储、SSE 与内核事件；不新增编辑模式、消息后台或模型网关。一个纯消息投影工具与一个分隔条组件分别拥有稳定派生规则和独立交互。
@@ -34,7 +34,7 @@ contract-id: bibo-document-chat-20260930；scope-revision: 3（用户指定面�
 | --- | --- | --- | --- | --- |
 | BDC-01 | true | 单行操作顶栏加紧凑路径行、默认直接编辑，保存刷新及失败恢复保留 | passed | document-chat 1440/390；Markdown 1440/390/320；space store 保存与冲突用例 |
 | BDC-02 | true | 拖拽、键盘、复位、刷新记忆与窄屏可用 | passed | document-chat 真浏览器拖拽、Arrow/Home、双击、刷新及手机无分隔条 |
-| BDC-03 | true | 真实块流式分段、时间间隔、历史顺序与节点稳定 | passed | 真实 HTTP SSE→SDK/store/React 分阶段节点检查；Harness 文本 start/delta 服务测试；SDK blockId 校验 |
+| BDC-03 | true | 真实块流式分段、时间间隔、历史顺序与节点稳定 | passed | 真实 HTTP SSE→SDK/store/React 分阶段节点检查；Harness 文本 start/delta 服务测试；SDK blockId/快照校验；服务订阅及桌面/手机断线快照维持两张卡片和节点 |
 | BDC-04 | true | 本地真实模型可发送并打开生成文件，密钥留服务端 | passed | 5191 Harness/DeepSeek 创建本地预览体验-0930.md、show_file、编辑保存刷新及再次打开 |
 | BDC-05 | true | 桌面与手机正常渲染、主题保留、列表和标题对齐 | passed | document-chat 和 Markdown 三宽度渲染、无横向溢出；审美由用户判断 |
 | BDC-06 | true | 新建直接打开，默认名称唯一，重复点击与失败可恢复 | passed | 真实浏览器连续新建两份；store 409 避让、重复点击锁、503 重试沿用 requestId |

@@ -2,7 +2,7 @@ name = "bibo-hosted"
 account_id = "adb27b39051202962038992eeaf8f6bb"
 main = "src/app/bibo-hosted.app.ts"
 compatibility_date = "2026-09-24"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat", "durable_object_io_tasks_prevent_eviction"]
 workers_dev = true
 routes = [{ pattern = "app.bibo.bot", custom_domain = true }, { pattern = "bibo.bot/app/*", zone_name = "bibo.bot" }]
 

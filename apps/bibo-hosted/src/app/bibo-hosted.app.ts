@@ -1,6 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
 import { Sandbox as OfficialSandbox } from "@cloudflare/sandbox";
-import { streamEvent, type RunResult } from "./bibo-run-stream.utils";
 import { json, publicError } from "./bibo-auth.utils";
 import { biboFetch } from "./routes/bibo-http.route";
 import { BiboSpaceError } from "@/features/bibo-domain";
@@ -13,10 +12,11 @@ import { BiboExecutionService } from "./services/bibo-execution.service";
 import { BiboWorkspaceFileService } from "./services/bibo-workspace-file.service";
 import { BiboWorkspaceStore } from "./stores/bibo-workspace.store";
 import { BiboSpaceActionService } from "./services/bibo-edge-space.service";
-import { BiboRunError, errorDetails, logDiagnostic, readTrace, runFailure, type RunTrace } from "./diagnostics/bibo-diagnostics.utils";
+import { BiboRunError, errorDetails, logDiagnostic, readTrace, runFailure } from "./diagnostics/bibo-diagnostics.utils";
 import { parseBiboSpaceRequest } from "./utils/bibo-space-request.utils";
 import { prepareBiboSessionRun, type BiboSession } from "./utils/bibo-session.utils";
 import { prepareBiboRun, type PreparedBiboRun } from "./utils/bibo-run-preparation.utils";
+import { BiboRunService, type BiboActiveRun } from "./services/bibo-run.service";
 export { BiboModelBudget } from "./bibo-model-gateway.service";
 export { ContainerProxy } from "@cloudflare/sandbox";
 
@@ -64,11 +64,9 @@ export class Sandbox extends OfficialSandbox {
   }
 }
 
-type Message = BiboSession["messages"][number];
 type Session = BiboSession;
 type PreparedRun = PreparedBiboRun;
-type ActiveRun = RunTrace & { id: string; phase: "generating" | "saving"; controller: AbortController; acceptedAt: number;
-  finished: Promise<void>; complete: () => void };
+type ActiveRun = BiboActiveRun;
 
 export class BiboUserContainer extends DurableObject<Env> {
   private maintenance = false;
@@ -78,10 +76,23 @@ export class BiboUserContainer extends DurableObject<Env> {
   private readonly workspace = new BiboWorkspaceStore(this.env.SNAPSHOTS, this.ctx.id.toString());
   private readonly workspaceFiles = new BiboWorkspaceFileService(this.workspace);
   private readonly spaceActions = new BiboSpaceActionService(this.ctx.storage, this.spaceState, this.workspaceFiles);
-  private readonly activeRuns = new Map<string, ActiveRun>();
-  private readonly activeSessions = new Map<string, string>();
+  private readonly runs = new BiboRunService(this.ctx.storage, (operation) => this.ctx.waitUntil(operation), async (run) => {
+    const sessionId = run.sessionId;
+    const response = await biboSessionRoute(new Request(`https://bibo.internal/history?id=${encodeURIComponent(sessionId)}`),
+      new URL(`https://bibo.internal/history?id=${encodeURIComponent(sessionId)}`), this.ctx.storage);
+    if (!response.ok) throw new Error("Saved history unavailable");
+    const history = await response.json() as { messages: BiboSession["messages"] };
+    const messages = history.messages.slice(0, run.committedMessageCount);
+    const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
+    return { ...history, messages, text: messages.at(-1)?.text ?? "", session: sessions.find((session) => session.id === sessionId) ?? null };
+  });
   private conversation: BiboConversationService | undefined;
   private readonly modelScopes = new Map<string, ReturnType<typeof createBiboModel>>();
+
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    ctx.blockConcurrencyWhile(() => this.runs.initialize());
+  }
 
   private modelForSession = (sessionId: string | undefined): ReturnType<typeof createBiboModel> => {
     const model = sessionId ? this.modelScopes.get(sessionId) : undefined;
@@ -109,7 +120,7 @@ export class BiboUserContainer extends DurableObject<Env> {
   };
 
   override async alarm(): Promise<void> {
-    if (this.maintenance || this.activeRuns.size) {
+    if (this.maintenance || this.runs.size) {
       await this.ctx.storage.setAlarm(Date.now() + 60_000);
       return;
     }
@@ -123,6 +134,9 @@ export class BiboUserContainer extends DurableObject<Env> {
   override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const route = url.pathname;
+    if (route === "/runs" && request.method === "GET") return json(this.runs.state(url.searchParams.get("sessionId") ?? undefined));
+    const subscription = /^\/runs\/([a-zA-Z0-9_-]{1,100})\/events$/.exec(route);
+    if (subscription && request.method === "GET") return this.runs.subscribe(subscription[1]);
     if (route === "/workspace/file" && request.method === "GET") {
       try { return await this.workspaceFiles.download(url.searchParams.get("path")); }
       catch (error) { return publicError(error instanceof Error ? error.message : "文件暂时无法下载。",
@@ -130,7 +144,7 @@ export class BiboUserContainer extends DurableObject<Env> {
     }
     if (route.startsWith("/sessions") || route === "/history") {
       const mutation = request.method === "POST";
-      if (mutation && (this.maintenance || (route !== "/sessions/new" && this.activeRuns.size))) {
+      if (mutation && (this.maintenance || (route !== "/sessions/new" && this.runs.size))) {
         return publicError("Bibo 正在处理另一项操作，请稍后再试。", 429);
       }
       if (mutation) this.maintenance = true;
@@ -145,12 +159,7 @@ export class BiboUserContainer extends DurableObject<Env> {
     if (route === "/reset" && request.method === "POST") return this.reset();
     if (route === "/cancel" && request.method === "POST") {
       const body = await request.json().catch(() => null) as { runId?: unknown } | null;
-      const active = typeof body?.runId === "string" ? this.activeRuns.get(body.runId) : undefined;
-      if (!body || !active || body.runId !== active.id) return publicError("这次生成已经结束。", 409);
-      if (active.phase === "saving") return publicError("回答正在保存，请稍后查看。", 409);
-      active.controller.abort();
-      logDiagnostic("worker", "run.cancelled", { ...active, stage: active.phase });
-      return json({ ok: true });
+      return typeof body?.runId === "string" ? this.runs.cancel(body.runId) : publicError("任务编号不正确。", 400);
     }
     if (route === "/space" && request.method === "POST") {
       const pending = this.spaceQueue.then(() => this.space(request));
@@ -162,7 +171,7 @@ export class BiboUserContainer extends DurableObject<Env> {
   }
 
   private reset = async (): Promise<Response> => {
-    if (this.maintenance || this.activeRuns.size) return publicError("Bibo 正在处理任务，请完成后再清空。", 429);
+    if (this.maintenance || this.runs.size) return publicError("Bibo 正在处理任务，请完成后再清空。", 429);
     this.maintenance = true;
     try {
       await this.spaceQueue;
@@ -170,7 +179,9 @@ export class BiboUserContainer extends DurableObject<Env> {
       const execution = new BiboExecutionService(this.env.BIBO_SANDBOX, this.ctx.id.toString(),
         new AbortController().signal, this.workspace, this.ctx.storage);
       await execution.releaseAll();
-      return await resetBiboSessions(this.ctx.storage, this.env.SNAPSHOTS, this.ctx.id.toString());
+      const response = await resetBiboSessions(this.ctx.storage, this.env.SNAPSHOTS, this.ctx.id.toString());
+      this.runs.clear();
+      return response;
     } finally { this.maintenance = false; }
   };
 
@@ -206,61 +217,22 @@ export class BiboUserContainer extends DurableObject<Env> {
       logDiagnostic("worker", "run.rejected", { ...trace, status: 429, errorCode: "RUN_BUSY" }, "warn");
       return publicError("Bibo 正在处理上一条消息，请稍后再试。", 429);
     }
-    const streaming = request.headers.get("accept")?.includes("text/event-stream") ?? false;
-    let complete!: () => void;
-    const finished = new Promise<void>((resolve) => { complete = resolve; });
-    const active: ActiveRun = { ...trace, id: trace.runId, phase: "generating", controller: new AbortController(), acceptedAt: Date.now(), finished, complete };
-    this.activeRuns.set(active.id, active);
-    logDiagnostic("worker", "run.accepted", active);
-    if (streaming) {
-      let disconnected = false;
-      const body = new ReadableStream<Uint8Array>({
-        start: (controller) => {
-          const encoder = new TextEncoder();
-          const send = (event: string, value: unknown) => {
-            if (!disconnected) controller.enqueue(encoder.encode(streamEvent(event, value)));
-          };
-          send("accepted", { runId: active.id });
-          const operation = this.executeRun(request, active, (delta, blockId) => send("delta", { text: delta, ...(blockId ? { blockId } : {}) }), () => send("saving", {}))
-            .then(async (response) => {
-              const value = await response.json() as { error?: string; code?: string; text?: string; messages?: Message[]; displayEvents?: RunResult["displayEvents"] };
-              if (!response.ok) return send("error", { error: value.error ?? "Bibo 暂时无法完成这次任务。", code: value.code, runId: active.id });
-              for (const event of value.displayEvents ?? []) send("show-content", event);
-              send("committed", value);
-            })
-            .catch((error: unknown) => {
-              logDiagnostic("worker", "stream.failed", { ...active, errorCode: runFailure(error).code }, "error");
-              send("error", { error: "Bibo 暂时无法完成这次任务，请稍后重试。", runId: active.id });
-            })
-            .finally(() => { if (!disconnected) controller.close(); });
-          this.ctx.waitUntil(operation);
-        },
-        cancel: () => {
-          disconnected = true;
-          logDiagnostic("worker", "client.disconnected", { ...active, stage: active.phase });
-          if (active.phase === "generating") active.controller.abort();
-        },
-      });
-      return new Response(body, { headers: { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" } });
+    const payload = await prepareBiboRun(request, this.ctx.storage);
+    if (payload instanceof Response) return payload;
+    try {
+      const active = await this.runs.start({ runId: trace.runId, sessionId: payload.session.id, message: payload.message, clientRequestId: payload.clientRequestId },
+        (active) => this.executeRun(payload, active));
+      return request.headers.get("accept")?.includes("text/event-stream") ? this.runs.subscribe(active.id) : this.runs.result(active.id);
+    } catch (error) {
+      const failure = runFailure(error);
+      return json({ error: failure.message, code: failure.code }, failure.status);
     }
-    return this.executeRun(request, active);
   };
 
-  private executeRun = async (request: Request, active: ActiveRun, onDelta?: (text: string, blockId?: string) => void, onSaving?: () => void): Promise<Response> => {
+  private executeRun = async (payload: PreparedRun, active: ActiveRun): Promise<Response> => {
     let persisted = false;
     let stage = "prepare";
-    const started = Date.now();
     try {
-      const payload = await prepareBiboRun(request, this.ctx.storage);
-      if (payload instanceof Response) {
-        logDiagnostic("worker", "run.rejected", { ...active, stage, status: payload.status, errorCode: "RUN_INVALID_OR_LIMITED" }, "warn");
-        return payload;
-      }
-      active.sessionId = payload.session.id;
-      if (this.activeSessions.has(payload.session.id)) {
-        return publicError("这个会话仍在处理上一条消息，请等待完成或停止后重试。", 429);
-      }
-      this.activeSessions.set(payload.session.id, active.id);
       logDiagnostic("worker", "run.started", active);
       if (!payload.userId) throw new BiboRunError("EDGE_INPUT_UNSUPPORTED", 503, "Bibo 暂时无法继续这次会话，请稍后重试。");
       const model = createBiboModel(this.env, payload.userId, active, () =>
@@ -270,7 +242,7 @@ export class BiboUserContainer extends DurableObject<Env> {
       const runExecution = new BiboExecutionService(this.env.BIBO_SANDBOX, this.ctx.id.toString(),
         active.controller.signal, this.workspace, this.ctx.storage);
       stage = "generate";
-      const timeout = setTimeout(() => active.controller.abort(new BiboRunError("RUN_TIMEOUT", 504, "本次回复超时，已完成的操作仍保留。请查看结果后继续。")), 85_000);
+      const timeout = setTimeout(() => active.controller.abort(new BiboRunError("RUN_TIMEOUT", 504, "这次任务超过 10 分钟，已完成的操作仍保留。请查看结果后继续。")), 600_000);
       let firstDelta = true;
       let result: BiboEdgeRunResult;
       try {
@@ -279,9 +251,10 @@ export class BiboUserContainer extends DurableObject<Env> {
           tools: createBiboEdgeWebTools(this.env, payload.userId, payload.token),
           createTools: () => runExecution.tools(),
           runId: active.id, signal: active.controller.signal,
+          onActivity: (activity) => this.runs.activity(active.id, activity),
           onDelta: (delta, blockId) => {
             if (firstDelta && delta) { firstDelta = false; logDiagnostic("worker", "run.first-delta", { ...active, durationMs: Date.now() - active.acceptedAt }); }
-            onDelta?.(delta, blockId);
+            this.runs.delta(active.id, delta, blockId);
           } });
       } finally {
         clearTimeout(timeout);
@@ -290,21 +263,18 @@ export class BiboUserContainer extends DurableObject<Env> {
       active.phase = "saving";
       stage = "save";
       logDiagnostic("worker", "run.saving", active);
-      onSaving?.();
+      await this.runs.saving(active.id);
       const saved = await this.persistEdgeRun(payload, result, edge);
       persisted = saved.ok;
       if (!persisted) logDiagnostic("worker", "run.save-failed", { ...active, stage, status: saved.status, errorCode: "RUN_SAVE_FAILED" }, "error");
       return saved;
     } catch (error) {
-      const failure = runFailure(error, active.controller.signal.aborted);
+      const failure = runFailure(active.controller.signal.reason ?? error, active.controller.signal.aborted);
       logDiagnostic("worker", "run.failed", { ...active, ...errorDetails(error), stage, status: failure.status, errorCode: failure.code }, "error");
       return json({ error: failure.message, code: failure.code, runId: active.id }, failure.status);
     } finally {
-      if (active.sessionId && this.activeSessions.get(active.sessionId) === active.id) {
-        this.modelScopes.delete(active.sessionId);
-        this.activeSessions.delete(active.sessionId);
-      }
-      this.finishRun(active, { persisted, stage, started });
+      this.modelScopes.delete(active.sessionId);
+      this.finishRun(active, { persisted, stage, started: active.acceptedAt });
     }
   };
 
@@ -317,8 +287,6 @@ export class BiboUserContainer extends DurableObject<Env> {
 
   private finishRun = (active: ActiveRun, result: { persisted: boolean; stage: string; started: number }): void => {
     logDiagnostic("worker", "run.finished", { ...active, stage: result.stage, persisted: result.persisted, durationMs: Date.now() - result.started });
-    this.activeRuns.delete(active.id);
-    active.complete();
   };
 }
 

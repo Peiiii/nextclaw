@@ -130,6 +130,6 @@ export async function mockApi(page: Page, longTitles = false, fileNavigation = f
       ].map(([name, value]) => `event: ${name}\ndata: ${JSON.stringify(value)}\n\n`).join("");
       return route.fulfill({ status: 200, contentType: "text/event-stream", body: frames });
     }
-    return path === "/api/chat/availability" ? reply({ ok: true }) : reply({ error: `Unmocked path: ${path}` }, 404);
+    return path === "/api/runs" ? reply({ run: null, activeRuns: [] }) : path === "/api/chat/availability" ? reply({ ok: true }) : reply({ error: `Unmocked path: ${path}` }, 404);
   });
 }

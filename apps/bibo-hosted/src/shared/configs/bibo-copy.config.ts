@@ -1,4 +1,7 @@
 export const biboCopy = {
+  runIdle: "Bibo · 空闲", runWorking: "Bibo · 正在工作", runSaving: "Bibo · 正在保存结果",
+  runStopping: "Bibo · 正在停止", runReconnecting: "连接中断 · 正在恢复任务状态", runOpen: "查看正在工作的会话",
+  runToolWorking: "正在使用工具处理任务",
   recent: "最近",
   more: "更多",
   workspaceResize: "调整分栏宽度（方向键调整，双击或 Home 复位）",
@@ -49,6 +52,8 @@ export const biboCopy = {
   fileDirectoryRetry: "重试读取目录",
   fileTabs: "打开的文件",
   fileWorkspaceTabs: "工作区文件",
+  fileOpening: "正在打开…",
+  fileOpenFailed: "打开失败",
   fileCloseWorkspace: "关闭工作区",
   fileSaved: "已保存",
   fileUnsaved: "未保存",

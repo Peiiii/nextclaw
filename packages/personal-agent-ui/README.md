@@ -4,9 +4,11 @@
 
 ## 边界
 
+`Markdown` 的解析、公式和代码高亮仅在实际阅读内容时按需加载；加载期间保留安全的纯文本，应用壳与无需 Markdown 的概览不等待这些依赖。服务端渲染应使用支持 Suspense 的流式入口并等待内容就绪。
+
 - 公共组件：`Button`、`Input` / `Select` / `Textarea` / `Field`、`SegmentedControl`、`ListRow`、`EmptyState`、`Notice`、`Message` / `Markdown`、`Composer`、`Dialog` / `Sheet`、`ActionMenu` / `ActionMenuItem` / `ActionMenuLink`、`IconButton`。
 - 文件页使用 `Tab` / `TabList`；外观选择使用 `ActionMenuRadioGroup`；操作提示使用 `Tooltip`。文件激活、关闭、草稿和保存仍由应用持有。
-- 工作空间与会话入口复用 `NavigationItem`，保留调用方的真实链接；共享行高、内边距、选中与 hover 配方。
+- 工作空间与会话入口复用 `NavigationItem`，保留调用方的真实链接；共享行高、内边距、选中与 hover 配方。图标栏的模块、侧栏切换与账号菜单统一使用 `layout="icon"`：鼠标 36px、触控 44px 点击区，18px 图标和 1.7 线宽；菜单触发属性与 ref 透传到真实按钮，应用不覆盖尺寸。
 - 公共样式：`src/styles/theme.css` 中的 `--ui-*` token 和 `.ui-*` class，统一默认、hover、focus、selected、disabled 与错误状态。
 - 品牌配置：Bibo 的名称、标记、文案、配色覆盖留在应用层，通过 props 和主题变量注入。未来改名无需重命名组件包或公共 API。
 - 业务流程：网络请求、导航、确认、保存判定与 store 不进入组件包。组件不得依赖 Bibo、Zustand、Cloudflare 或服务端代码。

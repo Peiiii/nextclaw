@@ -1,9 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BiboClientError, readBiboStream, readMessages, readShowContent } from "./bibo-protocol.utils";
+import { BiboClientError, readBiboStream, readMessages, readRunState, readShowContent } from "./bibo-protocol.utils";
 
 const encoder = new TextEncoder();
 const committed = 'event: committed\ndata: {"text":"你好","messages":[{"role":"assistant","text":"你好","at":"now"}]}\n\n';
+
+test("run snapshots cross SSE and JSON with stable request identity and validate malformed state", async () => {
+  const run = { runId: "r", sessionId: "s", clientRequestId: "request-1", message: "输入", phase: "generating", startedAt: 1, updatedAt: 2, partial: "已输出", partialBlocks: [{ id: "first", text: "已输出" }], activity: "exec" };
+  assert.deepEqual(readRunState({ run, activeRuns: [run] }).run, run);
+  assert.throws(() => readRunState({ run: { ...run, phase: "bogus" }, activeRuns: [] }), /任务状态/);
+  assert.throws(() => readRunState({ run: { ...run, updatedAt: NaN }, activeRuns: [] }), /任务状态/);
+  for (const partialBlocks of [null, [{ id: "", text: "x" }], [{ id: "first", text: 1 }]]) {
+    assert.throws(() => readRunState({ run: { ...run, partialBlocks }, activeRuns: [] }), /任务状态/);
+  }
+  const events: string[] = [];
+  await readBiboStream(new Response(`event: snapshot\ndata: ${JSON.stringify(run)}\n\nevent: heartbeat\ndata: {}\n\n${committed}`), (event) => events.push(event.name));
+  assert.deepEqual(events, ["snapshot", "committed"]);
+});
 
 test("decodes split UTF-8 and CRLF frames before the stream finishes", async () => {
   const first = encoder.encode('event: delta\r\ndata: {"text":"你');

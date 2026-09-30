@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { chromium, type Page } from "playwright";
+import { chromium, type Page, type Request } from "playwright";
 
 const origin = "https://app.bibo.bot";
 const displayOnly = process.env.BIBO_SMOKE_SCOPE === "display";
@@ -190,6 +190,25 @@ async function streamedRun(page: Page, message = prompt): Promise<{ deltaCount: 
 const browser = await chromium.launch({ headless: true });
 let smokeError: unknown;
 let smokeResult: Record<string, unknown> | undefined;
+async function verifySilentSkip(page: Page, historyPath: string): Promise<void> {
+  const before = await json<unknown>(historyPath);
+  let requests = 0;
+  const count = (request: Request) => { if (request.url() === `${origin}/api/chat`) requests += 1; };
+  page.on("request", count);
+  try {
+    await page.getByRole("region", { name: "问题" }).getByRole("button", { name: "跳过" }).click();
+    await page.getByRole("region", { name: "问题" }).waitFor({ state: "hidden" });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    const entry = page.getByRole("button", { name: "回答问题：报告装订方式？" });
+    await entry.waitFor();
+    assert.equal(await page.locator(".bibo-question-reopen").count(), 0);
+    assert.equal(await page.getByRole("region", { name: "问题" }).count(), 0);
+    assert.equal(requests, 0, "Skip must not start a run");
+    assert.deepEqual(await json<unknown>(historyPath), before, "Skip must leave saved history unchanged");
+    await entry.click();
+  } finally { page.off("request", count); }
+}
+
 try {
   const account = await json<{ user?: { id: string } }>("/api/auth/me");
   assert.equal(account.user?.id, smokeAccount.userId, "Smoke account identity does not match the local credential file");
@@ -298,10 +317,10 @@ try {
   await page.locator(".bibo-message-row--assistant .bibo-question-tag").filter({ hasText: "报告装订方式？" }).waitFor();
   await panel.getByRole("button", { name: "关闭问题" }).click();
   await page.getByRole("button", { name: "回答问题：报告装订方式？" }).click();
+  if (skipQuestion) await verifySilentSkip(page, historyPath);
   await page.evaluate(() => { Reflect.set(window, "biboSmokeStream", null); });
   const replyResponse = page.waitForResponse((response) => response.url() === `${origin}/api/chat`, { timeout: 300_000 });
-  if (skipQuestion) await panel.getByRole("button", { name: "跳过" }).click();
-  else await panel.getByRole("button", { name: /胶装/ }).first().click();
+  await panel.getByRole("button", { name: /胶装/ }).first().click();
   await panel.waitFor({ state: "hidden", timeout: 5_000 });
   assert.equal((await replyResponse).status(), 200, "Question reply request was rejected");
   await page.waitForFunction(() => Reflect.get(window, "biboSmokeStream") !== null, null, { timeout: 300_000 });
@@ -310,9 +329,9 @@ try {
   await page.locator(".bibo-question-reference").filter({ hasText: "报告装订方式？" }).waitFor({ timeout: 300_000 });
   const answered = await json<typeof questioned>(historyPath);
   assert.equal(answered.messages.at(-2)?.replyToQuestion?.id, asked.id, "Answer must retain its question reference");
-  assert.equal(answered.messages.at(-2)?.text, skipQuestion ? "跳过" : "胶装");
-  assert.equal(answered.messages.at(-2)?.replyToQuestion?.action, skipQuestion ? "dismissed" : "answered");
-  assert.equal(answered.messages.find((item) => item.questions?.some((question) => question.id === asked.id))?.questions?.find((question) => question.id === asked.id)?.status, skipQuestion ? "dismissed" : "answered");
+  assert.equal(answered.messages.at(-2)?.text, "胶装");
+  assert.equal(answered.messages.at(-2)?.replyToQuestion?.action, "answered");
+  assert.equal(answered.messages.find((item) => item.questions?.some((question) => question.id === asked.id))?.questions?.find((question) => question.id === asked.id)?.status, "answered");
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator(".bibo-question-reference").filter({ hasText: "报告装订方式？" }).waitFor();
   smokeResult = { ok: true, requestId, modelStream, search, searchStream, ...stream, asyncQuestion: true,

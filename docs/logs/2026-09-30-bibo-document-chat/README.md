@@ -10,12 +10,12 @@
 
 ## 测试/验证/验收方式
 
-- Bibo Worker、网页及脚本 tsc（脚本检查同时覆盖 runner 类型闭包）、公共 UI tsc；Bibo 134 项单元检查及 SDK 18 项检查通过。
+- Bibo Worker、网页及脚本 tsc（脚本检查同时覆盖 runner 类型闭包）、公共 UI tsc；合并主干后 Bibo 143 项单元检查及 SDK 19 项检查通过。
 - 定向真实浏览器覆盖 1440px / 390px：直接创建、重名避让、末项面包屑切换、图标菜单、保存、脏草稿刷新恢复、handle 几何、分栏拖拽与键盘/复位/刷新记忆。
 - HTTP SSE 到 SDK/store/React 的分段测试覆盖第一张卡片在后续块和 committed 后节点不变、历史顺序、时间去重和刷新恢复；真实 Harness 文本边界另由服务组装测试覆盖。
 - Markdown 回归在 1440px / 390px / 320px 验证格式、块操作、拖拽、嵌套、表格、图片、折叠、源码往返、IME、历史、草稿、失败/冲突恢复和保存中输入。
 - `5191` 使用独立本地 home 与现有 DeepSeek 配置；真实浏览器完成模型创建笔记、show_file 自动打开、编辑保存并刷新；模型再次打开同一持久文件成功。无托管试用额度，密钥未复制到网页、日志或仓库。开发会话索引属于进程状态，文件属于所选持久 home。
-- 产品级及异步问题回归、targeted lint 和 diff-only maintainability 检查正在收尾。线上验收记录部署完成后补充。
+- 产品级及异步问题回归通过；桌面/手机断线恢复保留卡片边界和节点且不重复 POST。targeted lint 无错误，diff-only maintainability 无新增错误。线上验收记录部署完成后补充。
 
 ## 发布/部署方式
 
@@ -29,7 +29,7 @@
 
 ## 可维护性总结汇总
 
-复用 Harness、Bibo 领域动作、公共编辑器、目录 Popover、ActionMenu 和账号布局存储，未建立新模型网关、消息后台或草稿 owner。新增 FileEditingManager 归拢创建、保存和冲突恢复，沿 store 的唯一 writer 保留持久化与账号生命周期保护；space store 从 426 行降到 415 行。真实块 ID 由现有内核事件投影，SDK 校验，正式历史仍只在 committed 更新。
+复用 Harness、Bibo 领域动作、公共编辑器、目录 Popover、ActionMenu 和账号布局存储，未建立新模型网关、消息后台或草稿 owner。新增 FileEditingManager 归拢创建、保存和冲突恢复，沿 store 的唯一 writer 保留持久化与账号生命周期保护；space store 从 426 行降到 415 行。合并主干的恢复链路后，文本块累加统一归 SDK，BiboRunService 的临时快照保留边界，前端负责拆卡；已提交历史仍只在 committed 更新。原有稳定消息 ID 派生移至同一个消息投影工具，chat store 保持在 400 行预算以内。
 
 文件组织 preflight 已覆盖新增组件、工具、manager、local-preview 控制器、测试及文档。维护检查无新增错误，既存文件预算和 executeRun 复杂度警告保留，主观复核聚焦 owner、异步账号隔离和协议兼容。纠偏沉淀在本批设计、公共 UI README 和回归用例；不为单次审美反馈增加全局规则。
 

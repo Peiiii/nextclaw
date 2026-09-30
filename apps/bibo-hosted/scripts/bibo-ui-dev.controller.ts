@@ -217,7 +217,8 @@ export function biboUiDevController(): Plugin {
           if (live && (request.headers.origin && request.headers.origin !== `http://${request.headers.host}` || request.headers["sec-fetch-site"] === "cross-site")) return json(response, { error: "请从本地预览页面操作。" }, 403);
           if (pathname === "/api/auth/me") return json(response, { user });
           if (pathname === "/api/assets" || pathname.startsWith("/api/assets/")) return assets(request, response);
-          if (pathname === "/api/chat/availability") return json(response, { ok: true });
+          if (pathname === "/api/chat/availability" || pathname === "/api/runs")
+            return json(response, pathname === "/api/runs" ? { run: null, activeRuns: [] } : { ok: true });
           if (pathname === "/api/workspace/file" && request.method === "GET") return downloadFile(request, response, (await spaceReady).space);
           if (pathname === "/api/history") {
             const selectedId = new URL(request.url!, "http://localhost").searchParams.get("id");

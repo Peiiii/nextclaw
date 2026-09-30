@@ -1,12 +1,16 @@
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
+import type { BiboMessage } from "@nextclaw/bibo-client";
 
-export type StreamingBlock = { id: string; text: string };
-export function appendStreamingBlock(blocks: StreamingBlock[], text: string, blockId = "answer"): StreamingBlock[] {
-  if (!text) return blocks;
-  const last = blocks.at(-1);
-  return last?.id === blockId
-    ? [...blocks.slice(0, -1), { id: blockId, text: last.text + text }]
-    : [...blocks, { id: blockId, text }];
+export type BiboDisplayMessage = BiboMessage & { id: string; pending?: boolean };
+export function identifyMessages(messages: BiboMessage[], previous: BiboDisplayMessage[], pendingIds: [string, string] | null = null): BiboDisplayMessage[] {
+  const existing = new Map(previous.map(message => [`${message.role}:${message.at}`, message]));
+  return messages.map((message, index) => {
+    const previous = existing.get(`${message.role}:${message.at}`);
+    if (previous?.text === message.text && JSON.stringify(previous.content) === JSON.stringify(message.content) && JSON.stringify(previous.questions) === JSON.stringify(message.questions) &&
+      JSON.stringify(previous.replyToQuestion) === JSON.stringify(message.replyToQuestion)) return previous;
+    const pendingId = pendingIds && index >= messages.length - 2 ? pendingIds[index - (messages.length - 2)] : undefined;
+    return { ...message, id: previous?.id ?? pendingId ?? crypto.randomUUID() };
+  });
 }
 
 export function messageTime(at: string, previous?: string, now = new Date()): string | null {

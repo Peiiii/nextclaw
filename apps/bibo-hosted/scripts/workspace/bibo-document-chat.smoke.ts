@@ -129,6 +129,8 @@ async function openCardStream(origin: string, messages: BiboMessage[], pauses: [
     send("delta", { text: "第一张卡片", blockId: "first" });
     await pauses[0];
     send("delta", { text: "第二张卡片", blockId: "second" });
+    send("snapshot", { runId: "stream-cards", sessionId: "session-a", message: "分段回复", phase: "generating", startedAt: Date.parse(messages[0].at), updatedAt: Date.now(),
+      partial: messages[1].text, partialBlocks: [{ id: "first", text: "第一张卡片" }, { id: "second", text: "第二张卡片" }], activity: "bibo" });
     await pauses[1];
     send("saving", {});
     const at = messages[0].at;

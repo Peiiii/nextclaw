@@ -5,6 +5,8 @@ const richFor = (page: Page) => page.locator(".tiptap:visible");
 
 async function blockMenu(page: Page, selector: string) {
   const block = richFor(page).locator(selector).first();
+  // Mode changes can place a new editor under the stationary pointer; re-enter it.
+  await page.mouse.move(0, 0);
   await block.hover();
   const handle = page.getByRole("button", { name: "块操作", exact: true });
   await handle.waitFor();

@@ -1,7 +1,7 @@
-import { ChatMessageMarkdown, type ChatMessageTexts } from "@nextclaw/agent-chat-ui";
-import { useCallback, useMemo } from "react";
-import { MarkdownCodeBlock } from "./code-block";
+import { lazy, Suspense } from "react";
 import "../../styles/markdown-document.css";
+
+const MarkdownRenderer = lazy(() => import("./reading/markdown-renderer"));
 
 export type MarkdownLabels = {
   copyCode: string; copiedCode: string; copyFailed: string;
@@ -21,25 +21,14 @@ const defaultLabels: MarkdownLabels = {
   footnotes: "注释", backToReference: "返回正文",
 };
 
-const hostedUrl = (url: string, key: string) =>
-  (key === "src" ? /^(https:\/\/|\/(?!\/))/i.test(url) : /^(https?:\/\/|mailto:|tel:|#)/i.test(url)) ? url : "";
-
-export function Markdown({ text, labels = defaultLabels, isStreaming = false, role = "assistant", resolveResourceHref, document = false }: {
+export type MarkdownProps = {
   text: string; labels?: MarkdownLabels; isStreaming?: boolean; role?: "user" | "assistant"; resolveResourceHref?: (uri: string) => string | null; document?: boolean;
-}) {
-  const texts = useMemo(() => ({
-    copyCodeLabel: labels.copyCode, copiedCodeLabel: labels.copiedCode,
-    frontmatterLabel: "文档属性", detailsLabel: "详情",
-    mermaidDiagramLabel: labels.diagramAlt, mermaidLoadingLabel: labels.diagramLoading,
-    mermaidRenderErrorLabel: labels.diagramError, mermaidExpandLabel: labels.expandDiagram,
-    attachmentExpandLabel: labels.expandImage, attachmentCloseLabel: labels.closePreview,
-    previewZoomInLabel: labels.zoomIn, previewZoomOutLabel: labels.zoomOut, previewResetZoomLabel: labels.resetZoom,
-    footnoteLabel: labels.footnotes, footnoteBackLabel: labels.backToReference, imageAltLabel: labels.imageAlt,
-  } satisfies Partial<ChatMessageTexts>), [labels]);
-  const renderCodeBlock = useCallback(({ source, language, isStreaming: streaming }: { source: string; language: string; isStreaming: boolean }) =>
-    <MarkdownCodeBlock code={source} language={language} labels={labels} texts={texts} isStreaming={streaming} />, [labels, texts]);
+};
+
+export function Markdown({ text, labels = defaultLabels, isStreaming = false, role = "assistant", resolveResourceHref, document = false }: MarkdownProps) {
   return <div className={`ui-markdown${document ? " ui-markdown-document" : ""}`}>
-    <ChatMessageMarkdown text={text} role={role} texts={texts} isStreaming={isStreaming}
-      allowHtml={document} urlTransform={(uri, key) => hostedUrl(uri, key) || (key === "href" ? resolveResourceHref?.(uri) ?? "" : "")} renderCodeBlock={renderCodeBlock} />
+    <Suspense fallback={<div aria-busy="true" style={{ whiteSpace: "pre-wrap" }}>{text}</div>}>
+      <MarkdownRenderer text={text} labels={labels} role={role} isStreaming={isStreaming} document={document} resolveResourceHref={resolveResourceHref} />
+    </Suspense>
   </div>;
 }

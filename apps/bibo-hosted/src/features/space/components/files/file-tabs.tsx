@@ -8,7 +8,7 @@ import { FileDirectoryButton } from "./file-breadcrumbs";
 import { FileActions } from "./file-actions";
 
 export function FileTabs({ workspace = false }: { workspace?: boolean }) {
-  const { files, notes, tabs, activeFileId, workspaceFileId, fileDetails, fileDrafts, openFile, openWorkspace, closeFile, saveFile, showFileBrowser, treeCollapsed, toggleTree, view } = useBiboSpaceStore();
+  const { files, notes, tabs, activeFileId, workspaceFileId, fileDetails, fileDrafts, fileOpenError, openFile, openWorkspace, closeFile, saveFile, showFileBrowser, treeCollapsed, toggleTree, view } = useBiboSpaceStore();
   const visibleTabs = !workspace && view === "notes" ? tabs.filter((id) => (fileDetails[id] ?? files.find((file) => file.id === id) ?? notes.find((file) => file.id === id))?.kind === "note") : tabs;
   const selected = workspace ? workspaceFileId : activeFileId;
   const prefix = workspace ? "bibo-workspace-file-tab" : "bibo-file-tab";
@@ -52,10 +52,11 @@ export function FileTabs({ workspace = false }: { workspace?: boolean }) {
       trailing={selected ? <ActionMenuItem disabled={fileDrafts[selected]?.saving} onSelect={() => requestClose(selected)}><X size={18} />{copy.closeDocument}</ActionMenuItem> : undefined} />
     </div> : <TabList className="bibo-file-tabs" ref={tabbar} aria-label={workspace ? copy.fileWorkspaceTabs : copy.fileTabs}>
       {visibleTabs.map((id) => {
-        const file = fileDetails[id] ?? files.find((item) => item.id === id);
+        const file = fileDetails[id] ?? files.find((item) => item.id === id) ?? notes.find((item) => item.id === id);
+        const label = file?.path ?? (fileOpenError?.id === id ? copy.fileOpenFailed : copy.fileOpening);
         return <div key={id} role="presentation" className={`bibo-file-tab ui-tab-item${selected === id ? " is-active" : ""}`}>
-          <Tab id={`${prefix}-${id}`} aria-controls={`${prefix}-${id}-panel`} aria-label={file?.path ?? "已删除"} selected={selected === id} label={file?.path ?? "已删除"} onClick={() => void open(id)}>
-            {file && <FileKindIcon file={file} />}<span>{(file?.path.split("/").at(-1) ?? "已删除").replace(view === "notes" ? /\.(md|markdown|mdown)$/i : /$^/, "")}</span>{fileDrafts[id]?.dirty ? " •" : ""}
+          <Tab id={`${prefix}-${id}`} aria-controls={`${prefix}-${id}-panel`} aria-label={label} aria-busy={!file && fileOpenError?.id !== id} selected={selected === id} label={label} onClick={() => void open(id)}>
+            {file && <FileKindIcon file={file} />}<span>{(file?.path.split("/").at(-1) ?? label).replace(view === "notes" ? /\.(md|markdown|mdown)$/i : /$^/, "")}</span>{fileDrafts[id]?.dirty ? " •" : ""}
           </Tab>
           <IconButton label={`关闭 ${file?.path ?? "文件"}`} icon={<X />} disabled={fileDrafts[id]?.saving}
             onClick={() => { if (fileDrafts[id]?.dirty) { setFailure(""); setClosing(id); } else closeFile(id); }} />

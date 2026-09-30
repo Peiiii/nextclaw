@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-09-29T08:24:24.101Z",
+  "generatedAt": "2026-09-30T08:28:35.763Z",
   "hero": {
-    "currentLoc": 318521,
-    "testLoc": 135069,
-    "trackedFiles": 3422,
-    "recentCommitCount": 765,
+    "currentLoc": 321027,
+    "testLoc": 137277,
+    "trackedFiles": 3469,
+    "recentCommitCount": 787,
     "activeDays30": 30,
-    "recentReleaseCount": 52,
-    "latestReleaseDate": "2026-09-28",
+    "recentReleaseCount": 54,
+    "latestReleaseDate": "2026-09-30",
     "latestNoteDate": "2026-09-27",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 3373701,
-    "basePercentOfBenchmark": 9.44,
-    "lighterByPercent": 90.56
+    "benchmarkCodeLines": 3381323,
+    "basePercentOfBenchmark": 9.49,
+    "lighterByPercent": 90.51
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-06-02",
-        "label": "06-02",
-        "value": 174106
-      },
       {
         "key": "2026-06-03",
         "label": "06-03",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-09-29",
         "label": "09-29",
         "value": 318521
+      },
+      {
+        "key": "2026-09-30",
+        "label": "09-30",
+        "value": 321027
       }
     ],
     "testLocDaily": [
@@ -1327,14 +1327,14 @@ export default {
         "key": "2026-09-29",
         "label": "09-29",
         "value": 135069
+      },
+      {
+        "key": "2026-09-30",
+        "label": "09-30",
+        "value": 137277
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-08-31",
-        "label": "08-31",
-        "value": 31
-      },
       {
         "key": "2026-09-01",
         "label": "09-01",
@@ -1478,7 +1478,12 @@ export default {
       {
         "key": "2026-09-29",
         "label": "09-29",
-        "value": 56
+        "value": 72
+      },
+      {
+        "key": "2026-09-30",
+        "label": "09-30",
+        "value": 37
       }
     ],
     "commitWeekly": [
@@ -1540,7 +1545,7 @@ export default {
       {
         "key": "2026-09-28",
         "label": "09-28",
-        "value": 123
+        "value": 176
       }
     ],
     "releaseMonthly": [
@@ -1602,7 +1607,7 @@ export default {
       {
         "key": "2026-09",
         "label": "09/26",
-        "value": 12
+        "value": 14
       }
     ]
   },
@@ -1610,31 +1615,31 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 76652,
-        "testCodeLines": 42834,
-        "files": 940,
-        "sharePercent": 24.1
+        "codeLines": 76646,
+        "testCodeLines": 42766,
+        "files": 938,
+        "sharePercent": 23.9
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 49348,
-        "testCodeLines": 26315,
-        "files": 468,
-        "sharePercent": 15.5
+        "codeLines": 50825,
+        "testCodeLines": 27245,
+        "files": 500,
+        "sharePercent": 15.8
       },
       {
         "name": "packages/nextclaw-service",
-        "codeLines": 17107,
-        "testCodeLines": 9111,
+        "codeLines": 17124,
+        "testCodeLines": 9116,
         "files": 175,
-        "sharePercent": 5.4
+        "sharePercent": 5.3
       },
       {
         "name": "packages/nextclaw-core",
-        "codeLines": 16752,
-        "testCodeLines": 6942,
-        "files": 180,
-        "sharePercent": 5.3
+        "codeLines": 16800,
+        "testCodeLines": 6971,
+        "files": 186,
+        "sharePercent": 5.2
       },
       {
         "name": "workers/nextclaw-provider-gateway-api",
@@ -1645,15 +1650,15 @@ export default {
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
-        "codeLines": 14219,
-        "testCodeLines": 9596,
-        "files": 149,
-        "sharePercent": 4.5
+        "codeLines": 14221,
+        "testCodeLines": 9636,
+        "files": 150,
+        "sharePercent": 4.4
       },
       {
         "name": "packages/nextclaw-server",
         "codeLines": 13705,
-        "testCodeLines": 10938,
+        "testCodeLines": 10939,
         "files": 161,
         "sharePercent": 4.3
       },
@@ -1662,16 +1667,34 @@ export default {
         "codeLines": 11059,
         "testCodeLines": 3661,
         "files": 95,
-        "sharePercent": 3.5
+        "sharePercent": 3.4
       }
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 3373701,
-      "basePercentOfBenchmark": 9.44,
-      "lighterByPercent": 90.56
+      "benchmarkCodeLines": 3381323,
+      "basePercentOfBenchmark": 9.49,
+      "lighterByPercent": 90.51
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-09-30",
+        "tagCount": 27,
+        "sampleTags": [
+          "@nextclaw/agent-chat-ui@0.12.4-beta.0",
+          "@nextclaw/channel-extension-dingtalk@0.2.55-beta.0",
+          "@nextclaw/channel-extension-discord@0.2.55-beta.0"
+        ]
+      },
+      {
+        "date": "2026-09-29",
+        "tagCount": 9,
+        "sampleTags": [
+          "@nextclaw/client-sdk@0.12.14-beta.0",
+          "@nextclaw/companion@0.2.71-beta.0",
+          "@nextclaw/harness@0.2.28-beta.0"
+        ]
+      },
       {
         "date": "2026-09-28",
         "tagCount": 46,
@@ -1706,24 +1729,6 @@ export default {
           "@nextclaw/agent-chat-ui@0.12.1",
           "@nextclaw/client-sdk@0.12.10",
           "@nextclaw/companion@0.2.67"
-        ]
-      },
-      {
-        "date": "2026-09-14",
-        "tagCount": 4,
-        "sampleTags": [
-          "v0.55.0-desktop.3",
-          "@nextclaw/agent-chat-ui@0.12.0",
-          "@nextclaw/ui@0.26.5"
-        ]
-      },
-      {
-        "date": "2026-09-13",
-        "tagCount": 121,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.10.1",
-          "@nextclaw/app-runtime@0.16.8",
-          "@nextclaw/channel-extension-dingtalk@0.2.50"
         ]
       }
     ]
@@ -3174,7 +3179,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-09-29T08:24:21.535Z",
+    "locGeneratedAt": "2026-09-30T08:28:33.827Z",
     "sourceCount": {
       "notes": 73,
       "scopes": 8

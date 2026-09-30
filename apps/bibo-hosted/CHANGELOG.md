@@ -1,5 +1,19 @@
 # @nextclaw/bibo-hosted
 
+## 0.2.1-beta.1
+
+### Patch Changes
+
+- c108c95: 精简 Bibo 工作界面和笔记画布，统一操作入口、菜单焦点和侧栏动效。聊天输入器从单行增长，AI 回复使用轻中性卡片及配套 Markdown 配色，复制入口左对齐，等待回复使用三点提示。移动导航统一交互，打开收件箱消息自动保存已读状态。
+- ffba9e5: 统一 Bibo 左侧图标栏的模块导航、侧栏切换与账号入口尺寸、图标线宽和交互反馈，修复左下角账号图标与其他入口不一致的问题。
+- Updated dependencies
+- Updated dependencies [7c00b06]
+  - @nextclaw/core@0.18.6-beta.0
+  - @nextclaw/harness@0.2.28-beta.1
+  - @nextclaw/kernel@0.19.2-beta.1
+  - @nextclaw/ncp-agent-runtime-next@0.1.30-beta.0
+  - @nextclaw/ncp-toolkit@0.6.28
+
 ## 0.2.1-beta.0
 
 ### Patch Changes

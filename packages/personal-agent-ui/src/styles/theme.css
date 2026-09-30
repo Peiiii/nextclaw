@@ -86,11 +86,14 @@
 body { @apply text-base leading-6; }
 .ui-navigation-item { @apply relative isolate flex items-center gap-3 [min-height:32px] [padding:4px_10px] [border-radius:var(--ui-radius-sm)] [color:var(--ui-muted)] no-underline text-base leading-6 cursor-pointer text-left; }
 .ui-navigation-item > svg { width:18px; height:18px; flex:none; stroke-width:1.7; }
+.ui-navigation-item--icon { justify-content:center; width:36px; height:36px; min-width:36px; padding:0; }
+.ui-navigation-item--icon[data-state="open"]::before { background:var(--ui-navigation-selection); }
 .ui-navigation-item--stack { flex-direction:column; justify-content:center; gap:2px; min-width:0; height:56px; padding:4px 0; font-size:12px; line-height:16px; }
 .ui-navigation-item--stack > svg { width:20px; height:20px; }
 .ui-navigation-item::before { @apply content-[""] absolute inset-0 -z-10 [border-radius:var(--ui-radius-sm)]; }
 .ui-navigation-item--stack::before { inset:auto; top:6px; bottom:6px; left:50%; width:min(56px,80%); transform:translateX(-50%); border-radius:12px; }
 .ui-navigation-item:hover { @apply [color:var(--ui-ink)]; }
+.ui-navigation-item:focus-visible { outline:2px solid var(--ui-focus); outline-offset:2px; }
 .ui-navigation-item:hover::before { @apply [background:var(--ui-navigation-hover)]; }
 .ui-navigation-item[aria-current="page"] { @apply [color:var(--ui-ink)]; }
 .ui-navigation-item[aria-current="page"]::before { background:var(--ui-navigation-selection); }
@@ -100,6 +103,8 @@ body { @apply text-base leading-6; }
 @media (pointer: coarse) {
   .ui-navigation-item { @apply [min-height:var(--ui-navigation-item-height,_44px)]; }
   .ui-navigation-item::before { @apply [top:calc((var(--ui-navigation-item-height,_44px)_-_32px)_/_2)] [bottom:calc((var(--ui-navigation-item-height,_44px)_-_32px)_/_2)]; }
+  .ui-navigation-item--icon { width:44px; height:44px; min-width:44px; }
+  .ui-navigation-item--icon::before { inset:6px; }
   .ui-navigation-item--stack::before { top:6px; bottom:6px; }
 }
 * { @apply [box-sizing:border-box]; }

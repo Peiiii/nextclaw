@@ -1,5 +1,27 @@
 # nextclaw-server
 
+## 0.23.14-beta.1
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/core
+  - @nextclaw/feishu-core
+  - @nextclaw/harness
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/server
+  - @nextclaw/service
+  - nextclaw
+
+- Updated dependencies
+- Updated dependencies [7c00b06]
+  - @nextclaw/core@0.18.6-beta.0
+  - @nextclaw/kernel@0.19.2-beta.1
+  - @nextclaw/mcp@0.3.56-beta.0
+  - @nextclaw/runtime@0.4.55-beta.0
+
 ## 0.23.14-beta.0
 
 ### Patch Changes
