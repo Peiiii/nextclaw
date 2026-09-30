@@ -1,6 +1,6 @@
 # Bibo 会话任务状态职责设计
 
-日期：2026-10-01。状态：Design Ready。风险：L3（前端状态、异步订阅、刷新持久化）。
+日期：2026-10-01。状态：已实现、合入、上线并通过本范围 AI 验收。风险：L3（前端状态、异步订阅、刷新持久化）。
 工作记录与验收进度：[current-state](../work/2026-10-01-bibo-conversation-state/current-state.md)。
 前置合同：[产品愿景](../VISION.md)、[原任务生命周期设计](2026-09-30-bibo-run-recovery.design.md)。
 
@@ -118,3 +118,13 @@ show-content 归本次任务的结果：manager 在单次订阅内按 event ID �
 ## 方案 Review
 
 mode=design：已从原截图、用户关于 client/业务层的纠偏和 BCS 合同独立走查。明确关闭了三项易漏反例：新会话 await 前加锁、明确失败重试必须新 request ID 而未确认请求保留 ID、completed 查询仍需要终态重放；覆盖账号/迟到回调与相邻问题、内容打开。实现期间补充检查了 GET 先于晚到 POST 接收的窗口，保留未确认凭据，复审受影响的 BCS-04/05 通过。相邻展示 smoke 暴露了旧入口缺少事件去重/提交门，按既有“未保存不展示”标准补充单订阅结果缓冲，BCS-07 受影响方案复审通过。没有开放的范围决定。`design-review: passed`，仅适用于本文前端任务边界，后端持久化一致性不在结论内。
+
+mode=implementation：159 项 Bibo 测试、Worker/client/scripts TypeScript、Vite、桌面/移动恢复/问题/展示 smoke 通过；diff-only 12 文件 0 errors/0 warnings、定向 ESLint、治理及 ratchet 通过。主观复核确认一份任务投影、只读公开 store、明确结果通知、薄 hook，旧 recovery 与历史文字匹配已删除。`implementation-review: passed`，全产品文件树冒烟失败仍单独披露。
+
+## 最终交付与复盘
+
+部署源为 `aa44603a514ba13932116b6830701d8279ef68e3`（含实现 checkpoint `b827936fb` 和当前主干集成），入口 `deploy:worker --containers-rollout=none`；Worker version `161e6b79-9e30-42a8-8bb1-7861be5d4d20`。线上 `/assets/index-CR80KHlU.js` 包含新查询文案，旧“上次生成中断”文案已移除。部署前后 sandbox / 旧 bibousercontainer 的应用 ID、版本、镜像均不变，没有镜像 rollout 或 NPM 发布。
+
+真实专用测试账号一次模型请求验证：generating 时刷新、保留凭据并延迟真实 GET、无凭据新 390px 页面、同 runId 完成、历史用户输入仅一条、committed 后文件打开、桌面/移动终态再刷新、总 POST chat=1、无浏览器异常。测试创建的会话和文件已清理；用户原会话未写入测试内容。BCS-01—09 本范围全部有对应证据；不宣称物理手机或全产品 smoke 通过。
+
+`retrospective_decision=updated-original-owner`：原后台生命周期设计追加本设计索引，前端误判事实与请求凭据边界归本文，竞态保护归 manager 外部行为测试和真实刷新脚本。原规则已有“唯一 owner、未知不冒充失败”的要求，不因单例再增加常驻规则或新 SDK 包。

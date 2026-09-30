@@ -4,7 +4,7 @@ The trial model gateway currently admits `deepseek-flash` and its `deepseek/` or
 
 Independent Cloudflare Worker and Container service at `https://app.bibo.bot/`. The existing `bibo-bot` Worker keeps handling `bibo.bot/*`; the previous `bibo.bot/app/*` route redirects to this service. No NextClaw service, account database, or existing Bibo concept-site route is changed.
 
-The React app consumes the hosted API through the private `@nextclaw/bibo-client` package. That package owns same-origin HTTP and incremental SSE decoding; the Zustand store owns pending and saved conversation state. See the package README for its contract and tests.
+The React app consumes the hosted API through the private `@nextclaw/bibo-client` package. That package owns same-origin HTTP and incremental SSE decoding. `BiboConversationManager` owns task state and connections, exposing a read-only Zustand store through `useBiboConversation`; the application store owns saved history, drafts and domain interactions. See the package README for the transport contract and tests.
 
 Operation feedback follows the result: visible updates do not also produce success toasts. Write failures belong to their form, row, inbox action, or individual file draft; read failures retain a page/workspace retry. Saved tasks outside the active filter offer an inline details link, and saved events reveal their date. Undo, clipboard confirmation, saving state, and version-conflict recovery remain available. Screen readers receive committed-state announcements. Run `pnpm -C apps/bibo-hosted smoke:feedback` for desktop/mobile failure-and-retry, filtered saves, edits during saves, conflicts, projects, events, and inbox actions.
 
@@ -15,6 +15,8 @@ Markdown file links use the existing resource manager: object URIs, personal-spa
 Notes and conversation documents keep their single-document header while opening, empty or failed; historical file tabs remain in Files. Block controls stay outside the complete block boundary, including whole task lists and their checkboxes. `scripts/workspace/bibo-document-chat.smoke.ts` covers delayed resource opening with restored tabs and whole-list handle positioning on desktop/mobile.
 
 ## Local frontend development
+
+`pnpm -C apps/bibo-hosted exec tsx scripts/chat/bibo-run-recovery-live.smoke.ts` verifies a real active-task refresh, delayed authoritative reads, a fresh mobile-width page, the same completed run, saved history, content opening and exactly one chat POST against production. It uses the existing private synthetic-account file and cleans up only its own conversation and file.
 
 From the repository root, run `pnpm dev:bibo:ui` and open `http://127.0.0.1:5188/`. This starts the real React/TypeScript app with Vite hot updates, including source changes in `@nextclaw/personal-agent-ui`. A development-only local API supplies a signed-in preview account, a Markdown conversation, and delayed SSE chunks. Send a message to inspect incomplete Markdown while it arrives, the saving state, and the committed result. Reset clears the in-memory conversation; restarting Vite restores the example. This mode makes no Cloudflare or model requests and needs no credentials.
 
