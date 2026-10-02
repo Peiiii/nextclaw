@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { delimiter, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import {
@@ -12,6 +16,36 @@ import {
   selectRuntimeWorkflowRun,
 } from "./release-beta-runtime.mjs";
 import { verifyPublicRuntimeManifests } from "./release-runtime-manifest-verify.mjs";
+
+test("beta release plans keep publication branches separate from protected Pages dispatch", { skip: process.platform === "win32" }, () => {
+  const fixture = mkdtempSync(join(tmpdir(), "nextclaw-beta-dispatch-"));
+  try {
+    execFileSync("git", ["init", "-b", "codex/release-fixture"], { cwd: fixture, stdio: "ignore" });
+    execFileSync("git", ["-c", "user.name=fixture", "-c", "user.email=fixture@example.test", "commit", "--allow-empty", "-m", "fixture"], { cwd: fixture, stdio: "ignore" });
+    mkdirSync(join(fixture, ".changeset"));
+    writeFileSync(join(fixture, ".changeset/pre.json"), JSON.stringify({ mode: "pre", tag: "beta" }));
+    const bin = join(fixture, "bin");
+    mkdirSync(bin);
+    for (const command of ["gh", "curl", "npm"]) {
+      writeFileSync(join(bin, command), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+    }
+    const env = { ...process.env, PATH: `${bin}${delimiter}${process.env.PATH}` };
+    delete env.NODE_TEST_CONTEXT;
+    const runPlan = (script, args) => execFileSync(process.execPath, [fileURLToPath(new URL(script, import.meta.url)), ...args], {
+      cwd: fixture,
+      encoding: "utf8",
+      env,
+    });
+    const full = runPlan("./release-beta.mjs", ["--dry-run"]);
+    assert.match(full, /- branch: codex\/release-fixture/);
+    assert.match(full, /- runtime workflow branch: master/);
+    const runtime = runPlan("./release-beta-runtime.mjs", ["--dry-run", "--version", "0.59.0-beta.2"]);
+    assert.match(runtime, /- branch: master/);
+    assert.match(runtime, /- release tag: nextclaw@0\.59\.0-beta\.2/);
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
 
 test("desktop recovery isolates packaging fixes from the published runtime identity", () => {
   const resolve = (paths) => resolveDesktopReleaseTarget("published", "current", {

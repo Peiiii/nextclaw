@@ -13,7 +13,7 @@ import {
 } from "./release-checkpoints.mjs";
 
 // Accepted uploads can stay unavailable while npm finishes its publish-time scan.
-const DEFAULT_ATTEMPTS = 60;
+const DEFAULT_ATTEMPTS = 120;
 const DEFAULT_DELAY_MS = 10000;
 
 function readNumericArg(flag, fallback) {

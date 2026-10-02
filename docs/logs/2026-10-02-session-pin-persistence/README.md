@@ -38,3 +38,5 @@
 ## NPM 包发布记录
 
 本轮不涉及 NPM 包发布。`@nextclaw/kernel`、`@nextclaw/server`、`@nextclaw/ui`、`@nextclaw/service`、`@nextclaw/core`、`nextclaw` 的本批变化尚未发布，已登记 patch changeset，待统一发布；触发条件是用户后续授权适用发布流程。
+
+2026-10-02 用户随后授权 beta 发布，以上变化已进入 `nextclaw@0.59.0-beta.2`；kernel `0.19.2-beta.2`、server `0.23.14-beta.2`、UI `0.27.5-beta.2`、service `0.7.8-beta.2`、core `0.18.6-beta.1` 均经 registry 核验。四平台 Runtime 与公网 beta manifest 同步完成，完整发布与恢复证据见[同批发布记录](../2026-10-02-beta-release/README.md)。首次提交时的未发布状态保留为历史事实。

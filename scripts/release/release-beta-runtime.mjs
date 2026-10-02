@@ -15,6 +15,7 @@ const ROOT_DIR = process.cwd();
 const REPO = "Peiiii/nextclaw";
 const CHANNELS = new Set(["beta", "stable"]);
 const RUNTIME_WORKFLOW = "npm-runtime-update-release.yml";
+export const DEFAULT_RUNTIME_WORKFLOW_BRANCH = "master";
 const RUNTIME_MANIFEST_TARGETS = [
   { platform: "darwin", arch: "arm64" },
   { platform: "darwin", arch: "x64" },
@@ -32,7 +33,7 @@ Options:
   --channel <channel>                   Runtime update channel (beta or stable; default: beta)
   --dry-run                             Print the intended runtime-channel closure without mutating anything
   --verify-only                         Verify the existing release and public channel without dispatching or uploading
-  --branch <branch>                     Override the git branch used for workflow dispatch
+  --branch <branch>                     Override the workflow branch (default: master)
   --version <version>                   Override the nextclaw version to publish to the runtime channel
   --release-tag <tag>                   Override the GitHub release tag used for runtime bundle assets
   --prepared-source-sha <sha>           Require and promote Runtime artifacts from this exact prepared source
@@ -137,12 +138,6 @@ function ensureCommandAvailable(command, args = ["--version"]) {
   } catch {
     throw new Error(`Required command is unavailable: ${command}`);
   }
-}
-
-function readCurrentBranch() {
-  return run("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
-    capture: true,
-  }).trim();
 }
 
 function readHeadSha() {
@@ -372,7 +367,7 @@ async function main() {
   ensureCommandAvailable("npm", ["--version"]);
 
   const channel = normalizeChannel(options.channel);
-  const branch = options.branch ?? readCurrentBranch();
+  const branch = options.branch ?? DEFAULT_RUNTIME_WORKFLOW_BRANCH;
   const releaseTarget = readHeadSha();
   const nextclawVersion =
     options.version?.trim() || readPublishedVersion(channel);
@@ -385,7 +380,8 @@ async function main() {
     options.releaseTag?.trim() || `nextclaw@${nextclawVersion}`;
   const preparedSourceSha = options.preparedSourceSha?.trim() || null;
   const expectedReleaseNotesUrl = channel === "stable"
-    ? readStableReleaseNotesUrl(nextclawVersion, preparedSourceSha) : null;
+    ? readStableReleaseNotesUrl(nextclawVersion, preparedSourceSha)
+    : `https://github.com/${REPO}/releases/tag/${releaseTag}`;
 
   if (options.dryRun) {
     console.log(`release:${channel}:runtime dry run`);

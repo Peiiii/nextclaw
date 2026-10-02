@@ -39,3 +39,5 @@ kernel 公共分页筛选增加 scheduledOnly，SQLite 在计数和分页前识�
 本批使用普通 Git 提交和主干推送，具体提交与集成身份以 Git 历史为准；远程完成后执行 `pnpm release:reconcile:mainline`，已有活跃 WIP 阻止镜像快进时由自动 retry owner 接管，不 rebase、stash 或 reset 主工作区。预览从已合入远程主干的冻结源码运行，沿列表选择、打开历史和刷新复验。
 
 未执行 NPM、Runtime、Desktop、文档站或 Bibo 部署；无安装迁移及新增 CLI 命令。四包 patch changeset 供后续统一发布，新功能尚未进入现有安装版本。
+
+上述状态为首次合入时的历史记录。用户后续授权 beta 发布，本功能已进入 `nextclaw@0.59.0-beta.2`，kernel `0.19.2-beta.2`、server `0.23.14-beta.2`、client-sdk `0.12.14-beta.2`、UI `0.27.5-beta.2` 均已公开核验；四平台 Runtime 与公网 beta manifest 完成。版本笔记、同身份恢复和真实安装证据见[同批发布记录](../2026-10-02-beta-release/README.md)。

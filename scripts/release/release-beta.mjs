@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readLatestReleaseCheckpoint } from "./release-checkpoints.mjs";
 import { verifyPublicRuntimeManifests } from "./release-runtime-manifest-verify.mjs";
+import { DEFAULT_RUNTIME_WORKFLOW_BRANCH } from "./release-beta-runtime.mjs";
 
 const ROOT_DIR = process.cwd();
 const REPO = "Peiiii/nextclaw";
@@ -29,7 +30,7 @@ Options:
   --release-tag <tag>                   Override the GitHub release tag used for runtime bundle assets
   --minimum-launcher-version-override <version>
                                         Recovery-only runtime manifest floor override
-  --branch <branch>                     Override the git branch pushed and used for workflow dispatch
+  --branch <branch>                     Override the git branch pushed; Runtime runs from master
   --help                                Show this help
 
 Default behavior:
@@ -306,10 +307,11 @@ function verifyRuntimeReleaseAssets(releaseTag, nextclawVersion) {
   return releaseSummary;
 }
 
-async function verifyPublicBetaManifests(nextclawVersion) {
+async function verifyPublicBetaManifests(nextclawVersion, releaseTag) {
   return verifyPublicRuntimeManifests({
     channel: BETA_CHANNEL,
     expectedVersion: nextclawVersion,
+    expectedReleaseNotesUrl: `https://github.com/${REPO}/releases/tag/${releaseTag}`,
     readJsonCommand,
     repo: REPO,
     run,
@@ -329,6 +331,7 @@ function buildDryRunPlan(branch, options) {
     options.skipRuntimeChannel
       ? "- runtime update channel: skipped by flag"
       : "- runtime update channel: trigger workflow + wait + verify if nextclaw is in the batch",
+    ...(!options.skipRuntimeChannel ? [`- runtime workflow branch: ${DEFAULT_RUNTIME_WORKFLOW_BRANCH}`] : []),
     "- desktop: excluded"
   ];
 }
@@ -375,7 +378,7 @@ function runPublishedBetaInstall(nextclawVersion, announceReady) {
   }
 }
 
-async function runRuntimeReleaseClosure(branch, nextclawVersion, options) {
+async function runRuntimeReleaseClosure(nextclawVersion, options) {
   if (options.skipRuntimeChannel || !nextclawVersion) {
     return {
       publicManifestSummary: null,
@@ -390,16 +393,16 @@ async function runRuntimeReleaseClosure(branch, nextclawVersion, options) {
   const dispatchId = randomUUID();
   const dispatchStartedAtMs = Date.now();
   triggerRuntimeWorkflow({
-    branch,
+    branch: DEFAULT_RUNTIME_WORKFLOW_BRANCH,
     dispatchId,
     minimumLauncherVersionOverride: options.minimumLauncherVersionOverride,
     releaseTag,
     releaseTarget
   });
-  const workflowRun = await waitForWorkflowRun(branch, dispatchId, dispatchStartedAtMs);
+  const workflowRun = await waitForWorkflowRun(DEFAULT_RUNTIME_WORKFLOW_BRANCH, dispatchId, dispatchStartedAtMs);
   const runtimeRunSummary = watchWorkflowRun(workflowRun.databaseId);
   const runtimeReleaseSummary = verifyRuntimeReleaseAssets(releaseTag, nextclawVersion);
-  const publicManifestSummary = await verifyPublicBetaManifests(nextclawVersion);
+  const publicManifestSummary = await verifyPublicBetaManifests(nextclawVersion, releaseTag);
   return {
     publicManifestSummary,
     runtimeReleaseSummary,
@@ -453,7 +456,6 @@ async function main() {
   const { nextclawVersion, releaseCommit } = runLocalBetaRelease(branch);
   runPublishedBetaInstall(nextclawVersion, !options.skipRuntimeChannel);
   const { publicManifestSummary, runtimeReleaseSummary, runtimeRunSummary } = await runRuntimeReleaseClosure(
-    branch,
     nextclawVersion,
     options
   );
