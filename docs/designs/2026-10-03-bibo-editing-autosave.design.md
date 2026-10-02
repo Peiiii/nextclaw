@@ -44,14 +44,24 @@
 | BE-03 | true | 断网/失败保留草稿、刷新恢复、联网自动同步与文字重试；冲突显式处理 | passed | editing-experience 验证 503、刷新恢复、文字重试与断网无写入/联网提交；manager 测试验证 409 停止写入及确认丢失后读取认可 |
 | BE-04 | true | 账号切换取消旧定时器，迟到响应隔离；只读文件不提交 | passed | manager 测试验证账号切换、旧回执隔离、事件清理、只读与后台 flush |
 | BE-05 | true | 冷加载/缓存刷新/错误/空目录/分页/目录往返菜单几何稳定，键盘和触屏可达 | passed | editing-experience 在 1440/390/320 对比加载/完成/空目录/重试/下一页的 clientHeight、clientWidth 和 top；缓存条目保留，Escape 恢复焦点；原基线变化约 82px |
-| BE-06 | true | TypeScript、回归、Review 与 Bibo 上线闭环；真实中文多级笔记无手动保存后能刷新读到正文 | not-run | Worker/网页/脚本 tsc、170 测试、完整产品浏览器回归、八组编辑器加载恢复、构建、targeted lint、治理检查通过；等待上线与真实服务复验 |
+| BE-06 | true | TypeScript、回归、Review 与 Bibo 上线闭环；真实中文多级笔记无手动保存后能刷新读到正文 | passed | 本地完整验证及 Review 通过；37c203014 部署 Worker d1ac358c-117c-4318-8370-97296ff2bdd9，线上桌面/手机多级中文笔记精确正文、刷新、失败恢复与真实对话工作区自动保存通过 |
 
 黄金验收：手机进入笔记 → 连续输入 → 自动保存确认 → 刷新读到相同正文；断网/失败编辑 → 草稿反馈 → 刷新恢复 → 联网/重试保存 → 服务端正文确认；打开目录 → 延迟读取/刷新 → 进入空目录/返回/错误重试 → 面板位置尺寸保持、文件可打开。
 
 验证覆盖输入快照、版本冲突、账号生命周期的定向测试；桌面与 320/390 手机真实浏览器覆盖保存、恢复和目录几何；线上用本次专用中文多级笔记复验自动保存，清理本次测试数据。规则与基础设施噪声不重复列为验收；不强加全量离线应用或实时多人协作。
 
-方案审查：用户两项要求均覆盖；账号、冲突、只读及旧响应反例被明确约束，保持一条写入与草稿链路，无阻断 finding。尚未关闭：BE-06 的交付后真实服务验证。
+方案审查：用户两项要求均覆盖；账号、冲突、只读及旧响应反例被明确约束，保持一条写入与草稿链路，无阻断 finding。Required BE-01 至 BE-06 均为 current passed，无未关闭项。产品入口为正常登录后的 `https://app.bibo.bot/notes` 与 `https://app.bibo.bot/files`；可直接用已有笔记/文件编辑，等待自动保存并刷新验证。体验偏好仍待用户反馈，不冒充用户验收通过。
 
 证据日志：`/tmp/bibo-editing-status-final-smoke.log`、`/tmp/bibo-autosave-final-tests.log`、`/tmp/bibo-autosave-product-final.log`、`/tmp/bibo-autosave-loading.log`、`/tmp/bibo-autosave-markdown-final.log`、`/tmp/bibo-autosave-document-final.log`。完整编辑器回归覆盖桌面、390px、320px 的 IME、历史、图片、冲突及保存中继续输入。实际截图为 `/tmp/bibo-editing-saved-notes-320.png`、`/tmp/bibo-editing-retry-390.png` 和 `/tmp/bibo-directory-stable-320.png`，仅作为当前本机验收证据，不进入发布素材。
 
 实现 Review：diff-only maintainability 15 个源码/脚本，0 errors；3 个既有文件接近行数预算，其中两份冒烟脚本各减少 2 行，store 只增加 4 行连接，编排仍由既有 manager 负责。主观复核账号销毁/迟到响应、快照版本、离线/错误/冲突和菜单状态迁移，无未关闭 finding。TypeScript、targeted ESLint、治理检查与 backlog ratchet 通过；产物和验收证据保持同一修改范围。
+
+## 交付与复盘
+
+2026-10-03 从 clean、HEAD 等于远程 master 的 37c20301412f792b270847d43e1638610ff9e9d6 执行 `deploy:worker`，`--containers-rollout=none`。Worker 版本为 d1ac358c-117c-4318-8370-97296ff2bdd9；线上入口的 JS/CSS 资产名与冻结构建一致。部署前后 Sandbox application a0357e31-1925-4df6-af70-6e9d9028acf0 保持 version 1、`docker.io/cloudflare/sandbox:0.12.10`，未发布镜像。
+
+`/tmp/bibo-autosave-live.log` 记录真实受保护测试账号的创建、移动至中文多级路径、1440/390 自动保存精确 Markdown、刷新、503 草稿恢复/文字重试、图片真实保存和一个真实模型对话中打开工作区并保存。仅删除本轮专用笔记、目录和会话。故障通过拦截本轮笔记写入模拟，成功保存和正文核对使用真实后端。截图 `/tmp/bibo-markdown-editor-live-390.png` 已人工检查。菜单瞬态几何和断网恢复由当前构建浏览器故障注入覆盖，不宣称原生应用级全量离线能力。
+
+本地主干存在既有个人文档 WIP，回流返回 `LOCAL_WORKTREE_RETRYING`，交由既有自动 worker 继续，未 stash/reset/rebase 或混入这些改动。Bibo 应用变化已提交主干并上线；官网、NPM、桌面、NextClaw 文档站、容器发布均不属于本次变化范围。AUTOMATION_INTERVENTIONS: 0。
+
+retrospective_decision：将可复用产品边界更新到原 `FileEditingManager` 定向测试和 Bibo README，记录保存中撤销与确认丢失两个反例。既有冒烟不再假定编辑后的草稿永远未保存；需要验证脏稿恢复时显式模拟保存失败，正常路径验证自动提交的正文。设计文档保留基线与最终交付证据；没有流程缺陷的重复证据，不新增全局规则、检查器或平行存储 owner。parent_status=ready-for-completion-check。
