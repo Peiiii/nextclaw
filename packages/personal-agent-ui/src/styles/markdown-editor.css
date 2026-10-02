@@ -33,7 +33,7 @@
 .ui-markdown-editor .cm-search .cm-button:hover { background:var(--ui-selection); }
 .ui-markdown-editor .cm-searchMatch { background:var(--ui-selection); outline:1px solid var(--ui-primary); }
 @media (pointer:coarse) { .ui-markdown-editor .cm-search button { min-height:44px; } }
-@media (max-width:760px) { .ui-markdown-editor .cm-line { padding-left:16px; padding-right:16px; } .ui-markdown-editor .cm-content { padding-top:16px; } }
+@media (max-width:760px) { .ui-markdown-editor .cm-line { padding-left:24px; padding-right:24px; } .ui-markdown-editor .cm-content { padding-top:16px; padding-bottom:48px; } }
 .ui-markdown-mode--embedded { flex:none; width:100%; }
 .ui-markdown-mode--embedded .ui-markdown-editor { overflow:visible; }
 .ui-markdown-mode--embedded .ui-rich-markdown-scroll { overflow:visible; }
