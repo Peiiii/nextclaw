@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
+import { navigateResource, navigateWorkspace } from "@/app/workspace-router";
 import { Check } from "lucide-react";
-import { BiboClient, BiboClientError, type BiboEvent, type BiboFileDetail, type BiboInboxItem, type BiboTask } from "@nextclaw/bibo-client";
-import { Button, EmptyState, ListRow, Markdown, Notice, SegmentedControl } from "@nextclaw/personal-agent-ui";
+import type { BiboInboxItem } from "@nextclaw/bibo-client";
+import { Button, EmptyState, ListRow, LoadingState, Markdown, Notice, SegmentedControl } from "@nextclaw/personal-agent-ui";
 import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { datetime, inboxTime } from "@/features/space/utils/date-format.utils";
 import { inboxExcerpt, inboxReadingBody } from "@/features/space/utils/inbox-content.utils";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
-const sourceClient = new BiboClient();
 export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promise<void> }) {
-  const { inbox, selectedInboxId, inboxSelection, inboxReadError, inboxReading, inboxReader, act, navigate, openFile, saving, cursors, moreLoading, loadMore } = useBiboSpaceStore();
+  const { inbox, selectedInboxId, inboxSelection, inboxReadError, inboxReading, inboxReader, act, saving, cursors, moreLoading, loadMore, error } = useBiboSpaceStore();
   const [openingSource, setOpeningSource] = useState(false);
   const [sourceError, setSourceError] = useState("");
   const [actionFailure, setActionFailure] = useState("");
@@ -34,40 +34,31 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
     setSourceError("");
     setOpeningSource(true);
     try {
-      let verified: BiboTask | BiboEvent | BiboFileDetail | undefined;
-      if (item.source.kind === "task" || item.source.kind === "event" || item.source.kind === "file") {
-        verified = await sourceClient.space(`${item.source.kind}.get`, { id: item.source.id });
-      }
       const current = useBiboSpaceStore.getState();
       if (current.accountId !== accountId || current.view !== "inbox" || current.selectedInboxId !== item.id) return;
       if (item.source.kind === "task") {
-        navigate("tasks");
-        useBiboSpaceStore.getState().selectTask(item.source.id, verified as BiboTask);
+        navigateResource(`/tasks/${encodeURIComponent(item.source.id)}`);
       }
       if (item.source.kind === "event") {
-        navigate("calendar");
-        useBiboSpaceStore.getState().selectEvent(item.source.id, verified as BiboEvent);
+        navigateResource(`/calendar/${encodeURIComponent(item.source.id)}`);
       }
       if (item.source.kind === "file") {
-        navigate("files");
-        void openFile(item.source.id, verified as BiboFileDetail);
+        navigateResource(`/files/${encodeURIComponent(item.source.id)}`);
       }
       if (item.source.kind === "session") {
-        navigate("chat");
-        void onOpenSession(item.source.id);
+        navigateWorkspace("chat");
+        await onOpenSession(item.source.id);
       }
     } catch (error) {
       const current = useBiboSpaceStore.getState();
       if (current.accountId === accountId && current.view === "inbox" && current.selectedInboxId === item.id) {
-        setSourceError(error instanceof BiboClientError && error.status === 404
-          ? "来源已删除或无法访问。"
-          : error instanceof Error ? error.message : "暂时无法读取来源，请重试。");
+        setSourceError(error instanceof Error ? error.message : "暂时无法读取来源，请重试。");
       }
     } finally { setOpeningSource(false); }
   };
   return (
     <div className="bibo-page workspace-page">
-      <div className={`bibo-split inbox-layout${selected ? " is-detail-open" : ""}`}>
+      <div className={`bibo-split inbox-layout${selectedInboxId ? " is-detail-open" : ""}`}>
         <div className="bibo-list-pane">
           <div className="bibo-pane-label"><SegmentedControl label="收件箱范围" value={inboxScope} options={[{ value: "pending", label: "待处理" }, { value: "unread", label: "未读" }, { value: "all", label: "全部" }]} onChange={inboxReader.scope} /></div>
           {inbox.length ? (
@@ -89,7 +80,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
             <>
               <div className="inbox-detail-toolbar">
                 <Button className="inbox-back" tone="text" onClick={() => { setSourceError(""); setActionFailure(""); inboxReader.select(null); }}>
-                  ← 全部消息
+                  {copy.inboxBack}
                 </Button>
                 <div className="bibo-action-row inbox-actions">
                   {!selected.readAt && inboxReadError?.id === selected.id && (
@@ -137,7 +128,7 @@ export function Inbox({ onOpenSession }: { onOpenSession: (id: string) => Promis
               </div>
             </>
           ) : (
-            <EmptyState title="选择一条消息" />
+            selectedInboxId ? <><Button className="inbox-back" tone="text" onClick={() => inboxReader.select(null)}>{copy.inboxBack}</Button>{error ? <><Notice tone="error">{error}</Notice><Button onClick={workspaceResources.retryRoute}>重试打开</Button></> : <LoadingState label={copy.resourceLoading} />}</> : <EmptyState title="选择一条消息" />
           )}
         </div>
       </div>

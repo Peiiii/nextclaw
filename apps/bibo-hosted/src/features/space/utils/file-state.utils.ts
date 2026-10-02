@@ -12,15 +12,6 @@ export function directoryFileState(files: BiboFile[], path: string, items: BiboF
   return [...retained, ...items];
 }
 
-export function restoredFileTargets(state: WorkspaceState, view: WorkspaceState["view"]) {
-  const active = state.activeFileId;
-  const selected = active && !state.fileDetails[active] && (view === "files" || state.notes.some((note) => note.id === active))
-    ? [{ id: active, select: true }] : [];
-  const workspace = state.workspaceFileId;
-  if (state.workspaceOpen && workspace && !state.fileDetails[workspace] && !selected.some((file) => file.id === workspace)) selected.push({ id: workspace, select: false });
-  return selected;
-}
-
 export function savedFileState(state: WorkspaceState, detail: BiboFileDetail, submittedContent: string): Partial<WorkspaceState> {
   const id = detail.id;
   const current = state.fileDrafts[id];
@@ -61,15 +52,17 @@ export function openedFileState(state: WorkspaceState, detail: BiboFileDetail, a
 export function fileDeletionState(current: WorkspaceState, removed: ReadonlySet<string>): Partial<WorkspaceState> {
   const index = current.tabs.indexOf(current.activeFileId ?? "");
   const tabs = current.tabs.filter((id) => !removed.has(id));
-  const activeFileId = current.activeFileId && !removed.has(current.activeFileId)
+  const selectable = (id: string) => !removed.has(id) && (current.view !== "notes" ||
+    (current.fileDetails[id] ?? current.notes.find(note => note.id === id) ?? current.files.find(file => file.id === id))?.kind === "note");
+  const activeFileId = !current.activeFileId || !removed.has(current.activeFileId)
     ? current.activeFileId
-    : current.tabs.slice(index + 1).find((id) => !removed.has(id)) ?? current.tabs.slice(0, index).reverse().find((id) => !removed.has(id)) ?? null;
+    : current.tabs.slice(index + 1).find(selectable) ?? current.tabs.slice(0, index).reverse().find(selectable) ?? null;
   return {
     tabs, activeFileId,
     fileDetails: Object.fromEntries(Object.entries(current.fileDetails).filter(([id]) => !removed.has(id))),
     fileDrafts: Object.fromEntries(Object.entries(current.fileDrafts).filter(([id]) => !removed.has(id))),
     expandedFolders: Object.fromEntries(Object.entries(current.expandedFolders).filter(([id]) => !removed.has(id))),
-    fileBrowserVisible: tabs.length === 0 || current.fileBrowserVisible,
+    fileBrowserVisible: !activeFileId || current.fileBrowserVisible,
     ...(current.workspaceFileId && removed.has(current.workspaceFileId) ? { workspaceOpen: false, workspaceFileId: null } : {}),
   };
 }

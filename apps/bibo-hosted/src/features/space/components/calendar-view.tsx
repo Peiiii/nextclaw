@@ -1,7 +1,9 @@
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { BiboEvent } from "@nextclaw/bibo-client";
-import { Button, Dialog, EmptyState, IconButton, ListRow, LoadingState, SegmentedControl, Tooltip } from "@nextclaw/personal-agent-ui";
+import { Button, Dialog, EmptyState, IconButton, ListRow, LoadingState, Notice, SegmentedControl, Tooltip } from "@nextclaw/personal-agent-ui";
+import { biboCopy } from "@/shared/configs/bibo-copy.config";
+import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import {
   calendarEventLayout,
@@ -382,10 +384,11 @@ export function CalendarView() {
             />
         </aside>
       </div>}
-      <Dialog open={creating || Boolean(selected)} title={selected ? "编辑日程" : "新日程"} closeLabel="关闭日程编辑" busy={saving}
+      <Dialog open={creating || Boolean(selectedEventId)} title={selectedEventId ? "编辑日程" : "新日程"} closeLabel="关闭日程编辑" busy={saving}
         onOpenChange={(open) => { if (!open) closeDetails(); }}>
         {(creating || selected) && <EventForm key={selected?.id ?? `new-${slot?.toISOString() ?? anchor.toDateString()}`}
           event={selected} date={anchor} slot={slot} onDone={closeDetails} />}
+        {!creating && selectedEventId && !selected && (error ? <><Notice tone="error">{error}</Notice><Button onClick={workspaceResources.retryRoute}>重试打开</Button></> : <LoadingState label={biboCopy.resourceLoading} />)}
       </Dialog>
     </div>
   );

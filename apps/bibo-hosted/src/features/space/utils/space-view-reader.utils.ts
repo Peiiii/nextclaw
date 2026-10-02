@@ -90,7 +90,7 @@ export async function readSpaceLists(client: BiboClient, input: {
   }
   if (input.view === "files") await input.fileDirectory.refresh();
   if (input.view === "notes") {
-    const [notes] = await Promise.all([client.space<Page<BiboFile>>("file.list", { kind: "note", query: input.noteQuery, sort: "recent", limit: 100 }), input.fileDirectory.refresh()]);
+    const notes = await client.space<Page<BiboFile>>("file.list", { kind: "note", query: input.noteQuery, sort: "recent", limit: 100 });
     return { notes: notes.items, cursors: { notes: notes.nextCursor } };
   }
   return { cursors: {} };

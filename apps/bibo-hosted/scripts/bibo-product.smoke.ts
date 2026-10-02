@@ -84,6 +84,9 @@ async function checkTreeKeyboard(page: Page): Promise<void> {
   await node("B-folder").focus();
   for (const [key, path] of [["ArrowRight", "B-folder"], ["ArrowRight", "B-folder/nested"], ["ArrowRight", "B-folder/nested"], ["ArrowRight", "B-folder/nested/readme.md"], ["ArrowLeft", "B-folder/nested"], ["ArrowLeft", "B-folder/nested"], ["ArrowUp", "B-folder"], ["ArrowDown", "B-folder/nested"], ["Home", "A-empty"], ["End", "想法.md"]]) {
     await page.keyboard.press(key!); assert.equal(await focused(), path);
+    if (key === "ArrowRight" && ["B-folder", "B-folder/nested"].includes(path!) && await node(path!.split("/").at(-1)!).getAttribute("aria-expanded") === "true") {
+      await node(path === "B-folder" ? "nested" : "readme.md").waitFor();
+    }
   }
   assert.equal(await node("nested").getAttribute("aria-expanded"), "false");
   const group = await node("B-folder").getAttribute("aria-owns");

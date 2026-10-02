@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { chromium, type Locator, type Page } from "playwright";
+import { chromium, type Locator, type Page, type Route } from "playwright";
+import { mockApi } from "./personal-workspace.fixture";
 
 const base = process.env.BIBO_SMOKE_BASE ?? "http://127.0.0.1:5198";
 const server = process.env.BIBO_SMOKE_BASE ? null : spawn(process.execPath, [new URL("../node_modules/vite/bin/vite.js", import.meta.url).pathname, "preview", "--host", "127.0.0.1", "--port", "5198", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: ["ignore", "pipe", "pipe"] });
@@ -39,6 +40,7 @@ async function mockNavigation(page: Page) {
     const action = route.request().method() === "POST" ? String(route.request().postDataJSON().action) : "";
     const response = url.pathname === "/api/auth/me" || url.pathname === "/api/auth/login" ? { user: { id: "routing-test", email: "test@example.com" } }
       : url.pathname === "/api/auth/logout" ? { ok: true }
+      : url.pathname === "/api/runs" ? { run: null, activeRuns: [] }
       : url.pathname === "/api/sessions" ? { sessions: sessionIds.map((id) => ({ id, title: `会话 ${id.toUpperCase()}`, createdAt: at, updatedAt: at, messageCount: 1 })) }
         : url.pathname === "/api/history" ? { messages: [{ role: "assistant", text: `正文 ${sessionId}`, at }] }
           : action === "overview.get" ? { result: { inbox: [], tasks: [], events: [], notes: [], projects: [], counts: { unread: 0, activeTasks: 0 } } }
@@ -54,8 +56,14 @@ async function mockNavigation(page: Page) {
 }
 
 async function sidebar(page: Page) {
-  const menu = page.getByRole("button", { name: "打开菜单", exact: true });
-  if (await menu.isVisible() && await menu.getAttribute("aria-expanded") !== "true") await menu.click();
+  const menu = page.locator(".bibo-menu-button");
+  if (page.viewportSize()!.width <= 760) {
+    await page.locator('.ui-overlay--sheet[data-state="closed"]').filter({ has: page.locator(".bibo-sidebar") }).waitFor({ state: "detached" });
+    if (await menu.getAttribute("aria-expanded") !== "true") {
+      const trigger = await menu.isVisible() ? menu : page.locator(".bibo-mobile-nav").getByRole("button", { name: "更多", exact: true });
+      await trigger.click();
+    }
+  }
   return page.locator(".bibo-sidebar:visible");
 }
 
@@ -178,6 +186,176 @@ async function verifyViewport(page: Page, width: number) {
   console.log(`Routing ${width}: history, drafts, blank chat, direct links, refresh, race and missing session passed`);
 }
 
+class ResourceRoutingFixture {
+  readonly calls: Array<{ action: string; input: Record<string, unknown> }> = [];
+  readonly chunks: string[] = [];
+  readonly pendingLists: Array<() => void> = [];
+  readonly pendingDetails: Array<() => void> = [];
+  private listsHeld = false;
+  private detailHeld = false;
+  private slowDetail = () => {};
+  holdLists = (value: boolean): void => { this.listsHeld = value; };
+  holdDetail = (value: boolean): void => { this.detailHeld = value; };
+  releaseLists = (): void => { this.pendingLists.splice(0).forEach(release => release()); };
+  releaseDomainDetails = (): void => { this.pendingDetails.splice(0).forEach(release => release()); };
+  releaseDetail = (): void => { this.slowDetail(); };
+  private respond = async (route: Route): Promise<void> => {
+    const body = route.request().postDataJSON();
+    this.calls.push(body);
+    if (body.action.endsWith(".list") && this.listsHeld) await new Promise<void>(resolve => this.pendingLists.push(resolve));
+    if (this.detailHeld && ["task.get", "event.get", "inbox.get"].includes(body.action)) await new Promise<void>(resolve => this.pendingDetails.push(resolve));
+    if (body.action === "file.get" && body.input.id === "nested-note") return route.fulfill({ json: { result: { id: "nested-note", path: "笔记/nested.md", kind: "note", content: "# 嵌套正文", version: 1, uri: "nextclaw://objects/file/nested-note", createdAt: at, updatedAt: at } } });
+    if (body.action === "file.get" && body.input.id === "slow") {
+      if (this.detailHeld) await new Promise<void>(resolve => { this.slowDetail = resolve; });
+      return route.fulfill({ json: { result: { id: "slow", path: "slow.md", kind: "note", content: "迟到的正文", version: 1, uri: "nextclaw://objects/file/slow", createdAt: at, updatedAt: at } } });
+    }
+    return route.fallback();
+  };
+  bind = async (page: Page): Promise<void> => {
+    page.on("request", request => { if (request.url().includes("/assets/")) this.chunks.push(request.url()); });
+    await mockApi(page);
+    await page.route("**/api/space", this.respond);
+    await page.addInitScript(() => localStorage.setItem("space-layout:smoke", JSON.stringify({ tabs: ["file-a", "slow"], activeFileId: "file-a", workspaceOpen: true, workspaceFileId: "slow" })));
+  };
+}
+
+type ResourceFixture = ResourceRoutingFixture;
+
+async function checkNoteCollection(page: Page, { calls, chunks }: ResourceFixture) {
+  await page.goto(`${base}/notes`, { waitUntil: "networkidle" });
+  await page.locator(".bibo-note-list").waitFor();
+  assert.equal(calls.filter(call => call.action === "file.get").length, 0, "notes collection never restores old document or hidden chat workspace");
+  assert.deepEqual(calls.filter(call => call.action === "file.list").map(call => call.input.kind), ["note"], "notes only requests its own list");
+  assert.equal(chunks.some(url => /(?:tasks-view|calendar-view|inbox-view|overview-view)-/.test(url)), false, "unvisited page chunks remain unloaded");
+  await (await sidebar(page)).getByRole("link", { name: "想法", exact: true }).click();
+  await page.waitForURL(`${base}/notes/file-a`);
+  await page.locator(".bibo-file-editor").waitFor();
+  assert.equal(await page.locator(".bibo-note-list").count(), 0);
+  await page.goBack();
+  await page.locator(".bibo-note-list").waitFor();
+  await page.goForward();
+  await page.locator(".bibo-file-editor").waitFor();
+}
+
+async function checkNoteDemand(page: Page, fixture: ResourceFixture) {
+  const { calls, pendingLists } = fixture;
+  fixture.holdLists(true);
+  const before = calls.length;
+  await page.goto(`${base}/notes/file-a`, { waitUntil: "domcontentloaded" });
+  await page.locator(".bibo-file-editor").waitFor();
+  assert.equal(pendingLists.length, 1, "detail completes while the notes list is pending");
+  assert.equal(calls.slice(before).filter(call => call.action === "file.get").length, 1, "direct entry reads its target once");
+  assert.equal(await page.locator(".bibo-note-list").count(), 0);
+  fixture.holdLists(false); pendingLists.splice(0).forEach(release => release());
+  await page.waitForLoadState("networkidle");
+  fixture.holdDetail(true);
+  await (await sidebar(page)).getByRole("link", { name: "笔记", exact: true }).click();
+  await page.locator(".bibo-note-list").waitFor();
+  // Use the real history API to exercise a detail absent from the list.
+  await page.evaluate(() => { history.pushState(null, "", "/notes/slow"); dispatchEvent(new PopStateEvent("popstate")); });
+  await page.getByRole("status", { name: "正在打开文件", exact: true }).waitFor();
+  assert.equal(await page.locator(".bibo-note-list").count(), 0);
+  await (await sidebar(page)).getByRole("link", { name: "笔记", exact: true }).click();
+  await page.locator(".bibo-note-list").waitFor();
+  fixture.releaseDetail(); fixture.holdDetail(false);
+  await page.waitForLoadState("networkidle");
+  assert.equal(await page.locator(".bibo-file-editor").count(), 0, "late detail cannot leave the collection");
+}
+
+async function checkFileEntries(page: Page, fixture: ResourceFixture) {
+  const { calls } = fixture;
+  await page.goto(`${base}/files`, { waitUntil: "networkidle" });
+  assert.equal(calls.slice(-1)[0]?.action, "file.list");
+  assert.equal(await page.locator(".bibo-file-editor").count(), 0, "files collection ignores persisted selection");
+  await page.goto(`${base}/files/file-a`, { waitUntil: "networkidle" });
+  await page.locator(".bibo-file-editor").waitFor();
+  await page.reload({ waitUntil: "networkidle" });
+  await page.locator(".bibo-file-editor").waitFor();
+  await page.goto(`${base}/files/missing`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "重试打开", exact: true }).waitFor();
+  fixture.holdLists(true);
+  await page.goto(`${base}/files/nested-note`, { waitUntil: "domcontentloaded" });
+  await page.locator(".bibo-file-editor").waitFor();
+  assert.ok(fixture.pendingLists.length, "nested file renders before directory reads finish");
+  fixture.holdLists(false); fixture.releaseLists();
+  await page.waitForLoadState("networkidle");
+}
+
+async function checkDomainRoutes(page: Page, fixture: ResourceFixture, width: number) {
+  for (const [view, id, title, close] of [
+    ["tasks", "task-a", "梳理产品方案", "关闭任务详情"],
+    ["calendar", "event-a", "编辑日程", "关闭日程编辑"],
+    ["inbox", "inbox-a", "确认方案方向", "← 全部消息"],
+  ]) {
+    fixture.holdLists(true);
+    fixture.holdDetail(true);
+    await page.goto(`${base}/${view}/${id}`, { waitUntil: "domcontentloaded" });
+    await page.getByRole("status", { name: "正在打开详情", exact: true }).waitFor();
+    assert.equal(fixture.pendingDetails.length, 1, "direct entry starts detail without waiting for a list");
+    fixture.holdDetail(false); fixture.releaseDomainDetails();
+    await page.getByRole("heading", { name: title, exact: true }).waitFor();
+    if (view === "calendar") await page.getByRole("textbox", { name: "标题", exact: true }).waitFor();
+    assert.equal(new URL(page.url()).pathname, `/${view}/${id}`, "opening a resource retains its URL");
+    assert.ok(fixture.pendingLists.length, `${view} detail is independent of its list`);
+    fixture.holdLists(false); fixture.releaseLists();
+    await page.waitForLoadState("networkidle");
+    if (view === "inbox" && width >= 760) await (await sidebar(page)).getByRole("link", { name: "收件箱", exact: true }).click();
+    else await page.getByRole("button", { name: close, exact: true }).click();
+    await page.waitForURL(`${base}/${view}`);
+    await page.goBack();
+    await page.getByRole("heading", { name: title, exact: true }).waitFor();
+    await page.goForward();
+    await page.waitForURL(`${base}/${view}`);
+    await page.reload({ waitUntil: "networkidle" });
+    assert.equal(await page.getByRole("dialog").count(), 0, "collection refresh never restores a closed detail");
+  }
+}
+
+async function verifyResourceRouting(page: Page, width: number) {
+  const fixture = new ResourceRoutingFixture();
+  await fixture.bind(page);
+  await checkNoteCollection(page, fixture);
+  await checkNoteDemand(page, fixture);
+  await checkFileEntries(page, fixture);
+  await checkDomainRoutes(page, fixture, width);
+  await checkDomainFailure(page, fixture);
+  await checkInboxSource(page, fixture);
+  await page.screenshot({ path: `/tmp/bibo-resource-routing-${width}.png` });
+  console.log(`Resource routing ${width}: persistent collection, lazy chunks, direct detail before list, history, refresh, delayed response and failure passed`);
+}
+
+async function checkInboxSource(page: Page, { calls }: ResourceFixture) {
+  await page.goto(`${base}/inbox/inbox-a`, { waitUntil: "networkidle" });
+  const before = calls.length;
+  await page.getByRole("button", { name: "查看来源 ↗", exact: true }).click();
+  await page.waitForURL(`${base}/tasks/task-a`);
+  await page.getByRole("heading", { name: "梳理产品方案", exact: true }).waitFor();
+  assert.equal(calls.slice(before).filter(call => call.action === "task.get").length, 1, "source navigation reads through the target route once");
+}
+
+async function checkDomainFailure(page: Page, fixture: ResourceFixture) {
+  for (const [view, action, id, title] of [["tasks", "task.get", "task-a", "梳理产品方案"], ["calendar", "event.get", "event-a", "编辑日程"], ["inbox", "inbox.get", "inbox-a", "确认方案方向"]]) {
+    let failed = false;
+    const failOnce = async (route: Route) => {
+      if (failed || route.request().postDataJSON().action !== action) return route.fallback();
+      failed = true;
+      return route.fulfill({ status: 503, json: { error: "路由详情读取失败" } });
+    };
+    fixture.holdLists(true);
+    await page.route("**/api/space", failOnce);
+    await page.goto(`${base}/${view}/${id}`, { waitUntil: "domcontentloaded" });
+    const scope = view === "inbox" ? page.locator(".bibo-detail-pane") : page.getByRole("dialog");
+    await scope.getByText("路由详情读取失败", { exact: true }).waitFor();
+    await scope.getByRole("button", { name: "重试打开", exact: true }).click();
+    if (view === "calendar") await scope.getByRole("textbox", { name: "标题", exact: true }).waitFor();
+    else await scope.getByRole("heading", { name: title, exact: true }).waitFor();
+    assert.equal(new URL(page.url()).pathname, `/${view}/${id}`, "retry retains the target URL");
+    fixture.holdLists(false); fixture.releaseLists();
+    await page.waitForLoadState("networkidle");
+    await page.unroute("**/api/space", failOnce);
+  }
+}
+
 async function checkMobileAuthLayout(page: Page, auth: Locator, submit: Locator): Promise<void> {
   const [story, mascot, copy, form, note, action] = await Promise.all([
     auth.locator(".bibo-auth-story").boundingBox(), auth.locator(".bibo-auth-companion").boundingBox(),
@@ -251,9 +429,15 @@ try {
   await ready;
   const browser = await chromium.launch();
   try {
-    for (const width of [1440, 390]) {
+    for (const width of process.env.BIBO_ROUTING_WIDTH ? [Number(process.env.BIBO_ROUTING_WIDTH)] : [1440, 390]) {
       const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width < 760 });
-      try { await verifyViewport(page, width); } finally { await page.close(); }
+      try { await verifyViewport(page, width); }
+      catch (error) { await page.screenshot({ path: `/tmp/bibo-routing-failure-${width}.png` }); throw error; }
+      finally { await page.close(); }
+      const resources = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width < 760 });
+      try { await verifyResourceRouting(resources, width); }
+      catch (error) { await resources.screenshot({ path: `/tmp/bibo-resource-routing-failed-${width}.png` }); console.log(await resources.evaluate(() => ({ path: location.pathname, menu: document.querySelector(".bibo-menu-button")?.outerHTML, sidebar: document.querySelector(".bibo-sidebar")?.closest(".ui-overlay")?.outerHTML.slice(0, 500) }))); throw error; }
+      finally { await resources.close(); }
     }
     for (const width of [390, 320]) {
       const page = await browser.newPage({ viewport: { width, height: width === 320 ? 568 : 844 }, hasTouch: true });

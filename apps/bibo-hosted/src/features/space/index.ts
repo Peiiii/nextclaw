@@ -6,4 +6,4 @@ export type { BiboView } from "./stores/bibo-space.store";
 export { workspaceResources } from "./managers/workspace-resource.manager";
 export { FileTabs } from "./components/files/file-tabs";
 export { FileEditorHeader } from "./components/files/file-editor";
-export { NoteNavigation } from "./components/files/files-view";
+export { NoteNavigation } from "./components/files/note-navigation";

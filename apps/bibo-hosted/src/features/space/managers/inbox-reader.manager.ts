@@ -2,6 +2,7 @@ import type { StoreApi } from "zustand";
 import type { BiboClient, BiboInboxItem } from "@nextclaw/bibo-client";
 import type { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
+import { navigateResource } from "@/app/workspace-router";
 
 type SpaceState = ReturnType<typeof useBiboSpaceStore.getState>;
 const message = (error: unknown) => error instanceof Error ? error.message : biboCopy.inboxReadRetry;
@@ -18,10 +19,12 @@ export class InboxReaderManager {
   scope = (inboxScope: SpaceState["inboxScope"]): void => {
     if (!this.active()) return;
     this.set({ inboxScope, selectedInboxId: null, inboxSelection: null, inboxReadError: null });
+    navigateResource("/inbox");
     void this.store.getState().load("inbox");
   };
-  select = (id: string | null): void => {
+  select = (id: string | null, fromRoute = false): void => {
     if (!this.active()) return;
+    if (!fromRoute && navigateResource(`/inbox${id ? `/${encodeURIComponent(id)}` : ""}`)) return;
     const known = this.store.getState().inbox.find(item => item.id === id);
     this.set({ selectedInboxId: id, inboxSelection: known ?? null, inboxReadError: null });
     if (!id) return;
@@ -67,8 +70,10 @@ export class InboxReaderManager {
       const saved = await this.client.space<BiboInboxItem>(action, { ...input, ...(read ? { version: read.version } : {}) });
       if (!this.active()) return null;
       this.revision++;
-      if (this.store.getState().selectedInboxId === saved.id) this.set(state => state.inboxScope === "all"
-        ? { inboxSelection: saved } : { selectedInboxId: null, inboxSelection: null });
+      if (this.store.getState().selectedInboxId === saved.id) {
+        if (this.store.getState().inboxScope === "all") this.set({ inboxSelection: saved });
+        else this.select(null);
+      }
       const refreshed = await this.store.getState().load("inbox");
       const overviewRefreshed = await this.store.getState().load("overview");
       this.set({ feedback: { message: biboCopy.operationSaved, task: null }, ...(!refreshed || !overviewRefreshed ? { error: biboCopy.savedReadFailed } : {}) });

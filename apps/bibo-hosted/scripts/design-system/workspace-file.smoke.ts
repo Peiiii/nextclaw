@@ -47,10 +47,12 @@ export async function checkMissingRestoredFile(page: Page, base: string): Promis
     tabs: ["file-a", "missing-file"], activeFileId: "file-a", workspaceOpen: true, workspaceFileId: "missing-file",
   })));
   await page.goto(`${base}/files`, { waitUntil: "networkidle" });
+  assert.equal(await page.locator(".bibo-file-editor").count(), 0, "collection entry does not restore the old selection");
+  await page.getByRole("treeitem", { name: "想法.md", exact: true }).click();
   await openMarkdownSource(page);
   await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
   assert.equal(await page.getByText("File missing", { exact: true }).count(), 0, "a missing restored tab must not warn about the existing file");
-  assert.equal(await page.locator(".bibo-file-tab").count(), 1, "the missing restored tab is removed");
+  assert.equal(await page.locator(".bibo-file-tab").count(), 2, "unvisited saved tabs remain available without a background read");
 }
 
 async function checkSingleHeader(page: Page, surface: Locator, width: number, workspace: boolean): Promise<void> {

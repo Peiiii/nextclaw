@@ -1,11 +1,12 @@
 import { Link } from "react-router";
+import { navigateResource, navigateWorkspace } from "@/app/workspace-router";
 import { EmptyState, ListRow } from "@nextclaw/personal-agent-ui";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 import { BiboCompanion } from "@/shared/components/bibo-companion";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { day, datetime } from "@/features/space/utils/date-format.utils";
 export function Overview() {
-  const { overview, navigate, inboxReader, selectTask, selectEvent, openFile } = useBiboSpaceStore();
+  const { overview } = useBiboSpaceStore();
   const hour = new Date().getHours();
   const greeting = hour < 11 ? "早上好" : hour < 18 ? "下午好" : "晚上好";
   const hasActivity = Boolean(overview && (overview.inbox.length || overview.events.length || overview.tasks.length || overview.notes.length || overview.projects.length));
@@ -51,8 +52,7 @@ export function Overview() {
                     className="bibo-summary-row"
                     key={item.id}
                     onClick={() => {
-                      navigate("inbox");
-                      inboxReader.select(item.id);
+                      navigateResource(`/inbox/${encodeURIComponent(item.id)}`);
                     }}
                   >
                     <strong>{item.title}</strong>
@@ -76,8 +76,7 @@ export function Overview() {
                     className="bibo-summary-row"
                     key={file.id}
                     onClick={() => {
-                      navigate("notes");
-                      void openFile(file.id);
+                      navigateResource(`/notes/${encodeURIComponent(file.id)}`);
                     }}
                   >
                     <strong>{file.path.split("/").at(-1)}</strong>
@@ -102,8 +101,7 @@ export function Overview() {
                     className="bibo-summary-row"
                     key={event.id}
                     onClick={() => {
-                      navigate("calendar");
-                      selectEvent(event.id);
+                      navigateResource(`/calendar/${encodeURIComponent(event.id)}`);
                     }}
                   >
                     <span>{datetime(event.startAt)}</span>
@@ -126,8 +124,7 @@ export function Overview() {
                     className="bibo-summary-row"
                     key={task.id}
                     onClick={() => {
-                      navigate("tasks");
-                      selectTask(task.id);
+                      navigateResource(`/tasks/${encodeURIComponent(task.id)}`);
                     }}
                   >
                     <strong>{task.title}</strong>
@@ -146,7 +143,7 @@ export function Overview() {
 }
 
 function OverviewProjects() {
-  const { overview, navigate, filterTasks } = useBiboSpaceStore();
+  const { overview, filterTasks } = useBiboSpaceStore();
   if (!overview) return null;
   return (
     <>
@@ -161,7 +158,7 @@ function OverviewProjects() {
               <ListRow variant="card" key={project.id}
                 onClick={() => {
                   filterTasks("", project.id);
-                  navigate("tasks");
+                  navigateWorkspace("tasks");
                 }}
               >
                 <strong>{project.name}</strong>

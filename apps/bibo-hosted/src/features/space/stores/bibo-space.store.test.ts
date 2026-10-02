@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test, { type TestContext, type Mock } from "node:test";
 import type { BiboInboxItem } from "@nextclaw/bibo-client";
 import type { useBiboSpaceStore as BiboSpaceStoreHook } from "./bibo-space.store";
+import { fileDeletionState } from "@/features/space/utils/file-state.utils";
 
 async function checkFileDirectories(t: TestContext, useBiboSpaceStore: typeof BiboSpaceStoreHook, fetchMock: Mock<typeof fetch>): Promise<void> {
   await t.test("tool subtrees cannot displace notes from the root directory on repeated refresh", async () => {
@@ -112,6 +113,7 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
   await t.test("restored neighbor loads and stale opens cannot steal selection", async () => {
   useBiboSpaceStore.setState({ tabs: ["first-file", "restored-file"], activeFileId: "first-file", fileDetails: {} });
   store.closeFile("first-file");
+  void store.openFile(useBiboSpaceStore.getState().activeFileId!);
   assert.equal(requests[5]!.action, "file.get");
   assert.equal(requests[5]!.input.id, "restored-file");
   responses[5]!(Response.json({ result: { id: "restored-file", path: "restored.md", kind: "document", version: 1, content: "restored content", uri: "nextclaw://objects/file/restored-file", createdAt: "now", updatedAt: "now" } }));
@@ -299,17 +301,14 @@ async function checkNoteRestoration(t: TestContext, useBiboSpaceStore: typeof Bi
     const artifact = { ...note, id: "diagram.md", path: "diagram.md", kind: "artifact" };
     useBiboSpaceStore.setState({ view: "notes", activeFileId: artifact.id, tabs: [artifact.id], fileDetails: {}, fileDrafts: {}, fileBrowserVisible: true, workspaceOpen: true, workspaceFileId: artifact.id });
     const load = current.load("notes");
-    responses.at(-2)!(Response.json({ result: { items: [note, artifact], nextCursor: null } }));
     responses.at(-1)!(Response.json({ result: { items: [note], nextCursor: null } }));
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    responses.at(-1)!(Response.json({ result: artifact }));
     await load;
     assert.equal(useBiboSpaceStore.getState().fileBrowserVisible, true);
-    assert.equal(useBiboSpaceStore.getState().fileDrafts[artifact.id]?.dirty, false);
+    assert.equal(useBiboSpaceStore.getState().fileDetails[artifact.id], undefined, "a collection load never reads hidden workspace content");
     await current.openFile(note.id, note as never);
     assert.equal(useBiboSpaceStore.getState().activeFileId, note.id);
     assert.equal(useBiboSpaceStore.getState().fileBrowserVisible, false);
-    await current.openFile(artifact.id, undefined, false);
+    await current.openFile(artifact.id, artifact as never, false);
     assert.equal(useBiboSpaceStore.getState().activeFileId, note.id);
     assert.equal(useBiboSpaceStore.getState().fileBrowserVisible, false);
     current.editFile(note.id, "saved");
@@ -321,6 +320,10 @@ async function checkNoteRestoration(t: TestContext, useBiboSpaceStore: typeof Bi
     current.closeFile(note.id);
     assert.equal(useBiboSpaceStore.getState().fileBrowserVisible, true, "closing the last note returns to its collection");
     assert.deepEqual(useBiboSpaceStore.getState().tabs, [artifact.id], "other module tabs are preserved");
+    const collection = { ...useBiboSpaceStore.getState(), activeFileId: null, fileBrowserVisible: true, tabs: [artifact.id, note.id] };
+    const removed = fileDeletionState(collection, new Set([artifact.id]));
+    assert.equal(removed.activeFileId, null, "deleting from a collection never selects another persisted tab");
+    assert.equal(removed.fileBrowserVisible, true);
   });
 }
 
@@ -350,11 +353,12 @@ async function checkMissingFileWarning(t: TestContext, useBiboSpaceStore: typeof
     useBiboSpaceStore.setState({ tabs: ["missing-file", real.id], activeFileId: real.id, workspaceOpen: true, workspaceFileId: "missing-file", fileDetails: { [real.id]: real as never }, fileDrafts: {}, error: "", fileOpenError: null });
     const load = current.load("files");
     responses.at(-1)!(Response.json({ result: { items: [real], nextCursor: null } }));
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await load;
+    const missing = current.openWorkspace("missing-file");
     assert.equal(requests.at(-1)?.action, "file.get");
     assert.equal(requests.at(-1)?.input.id, "missing-file");
     responses.at(-1)!(Response.json({ error: "对象不存在或已删除。" }, { status: 404 }));
-    await load;
+    await missing;
     const restored = useBiboSpaceStore.getState();
     assert.deepEqual(restored.tabs, [real.id]);
     assert.equal(restored.workspaceFileId, real.id);

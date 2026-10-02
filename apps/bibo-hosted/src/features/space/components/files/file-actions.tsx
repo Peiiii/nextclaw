@@ -14,10 +14,12 @@ import {
   IconButton,
 } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
+import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 
 export function FileActions({ file, tabIndex, label, onSource, onBody, menuTrigger, leading, trailing }: { file: BiboFile; tabIndex?: number; label?: string; onSource?: () => void; onBody?: () => void; menuTrigger?: ReactElement<RefAttributes<HTMLButtonElement>>; leading?: ReactNode; trailing?: ReactNode }) {
-  const { moveFile, deleteFile, saving, fileDetails, fileDrafts } = useBiboSpaceStore();
+  const { saving, fileDetails, fileDrafts } = useBiboSpaceStore();
+  const { moveFile, deleteFile } = workspaceResources;
   const [moving, setMoving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [path, setPath] = useState(file.path);

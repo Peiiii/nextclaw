@@ -17,6 +17,11 @@ Notes and conversation documents keep their single-document header while opening
 ## Local frontend development
 
 `pnpm -C apps/bibo-hosted exec tsx scripts/chat/bibo-run-recovery-live.smoke.ts` verifies a real active-task refresh, delayed authoritative reads, a fresh mobile-width page, the same completed run, saved history, content opening and exactly one chat POST against production. It uses the existing private synthetic-account file and cleans up only its own conversation and file.
+### 页面导航与按需读取
+
+模块入口 `/notes`、`/files`、`/tasks`、`/calendar`、`/inbox` 稳定显示集合，不因上次打开的 Tab 自动切入详情。笔记与其他资源使用 `/<module>/<id>`；文件路径引用使用 `/files/path/<encoded-path>`。URL 决定当前对象，支持复制链接、直接进入、刷新及浏览器返回/前进。详情立即读取目标，侧栏列表独立加载；列表较慢不会阻塞正文。未访问的空间页面模块按需加载，笔记集合只请求笔记列表，不预读旧文件正文。Tab 与未保存草稿保留，对话右侧工作区只在实际显示时恢复目标。
+
+`pnpm -C apps/bibo-hosted smoke:routing` 覆盖桌面/手机、持久化旧 Tab、延迟列表与正文、直链、历史往返、刷新和缺失对象。已有预览占用默认端口时，可设置 `BIBO_SMOKE_BASE` 指向本工作区独立的 Vite preview。
 
 From the repository root, run `pnpm dev:bibo:ui` and open `http://127.0.0.1:5188/`. This starts the real React/TypeScript app with Vite hot updates, including source changes in `@nextclaw/personal-agent-ui`. A development-only local API supplies a signed-in preview account, a Markdown conversation, and delayed SSE chunks. Send a message to inspect incomplete Markdown while it arrives, the saving state, and the committed result. Reset clears the in-memory conversation; restarting Vite restores the example. This mode makes no Cloudflare or model requests and needs no credentials.
 

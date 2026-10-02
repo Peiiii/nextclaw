@@ -94,7 +94,7 @@ export function BiboApp() {
       // Establish the current geometry before this explicit opening/closing action.
       void getComputedStyle(main).gridTemplateColumns;
     }
-    if (open) space.showWorkspace(); else space.closeWorkspace();
+    if (open) workspaceResources.showWorkspace(); else space.closeWorkspace();
   };
   const mobileNavRef = useRef<HTMLElement>(null);
   const [fileHeaderContainer, setFileHeaderContainer] = useState<HTMLDivElement | null>(null);
@@ -135,13 +135,13 @@ export function BiboApp() {
     };
   }, []);
   useLayoutEffect(() => {
-    useBiboSpaceStore.getState().activateView(route.view);
+    useBiboSpaceStore.getState().bindAccount(store.user?.id ?? null, false, false);
+    workspaceResources.activateRoute(route);
     const chat = useBiboChatStore.getState();
     if (route.view !== "chat" || !chat.authChecked || !chat.user) return;
     if (route.sessionId) void chat.selectSession(route.sessionId, true);
     else if (chat.activeSessionId || chat.sessionLoading) void chat.createSession(true);
   }, [location.pathname, store.authChecked, store.user?.id]);
-  useEffect(() => { useBiboSpaceStore.getState().bindAccount(store.user?.id ?? null); }, [store.user?.id]);
   useEffect(() => {
     document.addEventListener("click", workspaceResources.intercept);
     return () => document.removeEventListener("click", workspaceResources.intercept);
@@ -249,12 +249,6 @@ export function ChatPage() {
 export function SpacePage() {
   const route = readWorkspaceRoute(useLocation().pathname);
   const view = route.view;
-  const account = useBiboSpaceStore((state) => state.accountId);
-  const ready = useBiboSpaceStore((state) => state.readStatus[view] === "ready");
-  useEffect(() => {
-    if (account && ready && route.resourceId) void workspaceResources.open(`/${view}/${encodeURIComponent(route.resourceId)}`);
-    else if (account && ready && route.filePath) void workspaceResources.open(`/files/path/${encodeURIComponent(route.filePath)}`);
-  }, [account, ready, view, route.resourceId, route.filePath]);
   const selectSession = useBiboChatStore((state) => state.selectSession);
   return <BiboSpaceView view={view} onOpenSession={selectSession} />;
 }

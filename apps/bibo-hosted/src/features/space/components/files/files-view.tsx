@@ -8,9 +8,8 @@ import {
   RowActionTray,
   Input,
   Notice,
-  NavigationItem,
 } from "@nextclaw/personal-agent-ui";
-import { FileText, Library, Plus, Search, SquarePen } from "lucide-react";
+import { FileText, Plus, Search } from "lucide-react";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { day } from "@/features/space/utils/date-format.utils";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
@@ -19,19 +18,6 @@ import { FileWorkbench } from "./file-workbench";
 import { FileActions } from "./file-actions";
 import { CreateFileDialog } from "./create-file-dialog";
 
-export function NoteNavigation({ onNavigate }: { onNavigate: () => void }) {
-  const { notes, activeFileId, fileBrowserVisible, openFile, showFileBrowser, createNote, saving } = useBiboSpaceStore();
-  return <nav className="bibo-session-nav" aria-label={copy.notes}>
-    <NavigationItem label={copy.newNote} tooltip={false}><button className="bibo-new-chat" disabled={saving} onClick={() => void createNote().then(created => { if (created) onNavigate(); })}><SquarePen aria-hidden="true" /><span>{copy.newNote}</span></button></NavigationItem>
-    <NavigationItem label={copy.allNotes} selected={fileBrowserVisible} tooltip={false}>
-      <button className="bibo-session-item" onClick={() => { showFileBrowser(); onNavigate(); }}><Library />{copy.allNotes}</button>
-    </NavigationItem>
-    <div className="bibo-session-head bibo-note-nav-heading">{copy.recent}</div>
-    {notes.map(file => <NavigationItem key={file.id} label={file.path} selected={!fileBrowserVisible && activeFileId === file.id} truncatedLabel>
-      <button className="bibo-session-item" onClick={() => { void openFile(file.id); onNavigate(); }}><FileText /><span className="bibo-session-title">{file.path.split("/").at(-1)?.replace(/\.(md|markdown|mdown)$/i, "")}</span></button>
-    </NavigationItem>)}
-  </nav>;
-}
 export function Files({ notesOnly }: { notesOnly: boolean }) {
   const {
     files,
@@ -46,7 +32,6 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
     loadMore,
     treeCollapsed,
     toggleTree,
-    showFileBrowser,
     openFile,
     fileBrowserVisible,
     treeWidth,
@@ -64,7 +49,6 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
   const collapseControl = useRef<HTMLButtonElement>(null);
   const toggleDirectory = () => {
     toggleTree();
-    if (treeCollapsed) showFileBrowser();
     requestAnimationFrame(() => {
       if (treeCollapsed) collapseControl.current?.focus();
       else document.querySelector<HTMLButtonElement>('[aria-label="展开目录树"]')?.focus();
@@ -99,7 +83,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
             }}
           />
         )}
-        {notesOnly && (
+        {notesOnly && fileBrowserVisible && (
           <aside className="bibo-note-list" aria-label={copy.allNotes}>
             <div className="bibo-notes-heading">
               <h1>{copy.allNotes}</h1>
