@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { chromium, type Locator, type Page, type Route } from "playwright";
 import { mockApi } from "./personal-workspace.fixture";
+const nestedNoteId = "笔记/功能演示 - 起步.md";
 
 const base = process.env.BIBO_SMOKE_BASE ?? "http://127.0.0.1:5198";
 const server = process.env.BIBO_SMOKE_BASE ? null : spawn(process.execPath, [new URL("../node_modules/vite/bin/vite.js", import.meta.url).pathname, "preview", "--host", "127.0.0.1", "--port", "5198", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: ["ignore", "pipe", "pipe"] });
@@ -204,7 +205,7 @@ class ResourceRoutingFixture {
     this.calls.push(body);
     if (body.action.endsWith(".list") && this.listsHeld) await new Promise<void>(resolve => this.pendingLists.push(resolve));
     if (this.detailHeld && ["task.get", "event.get", "inbox.get"].includes(body.action)) await new Promise<void>(resolve => this.pendingDetails.push(resolve));
-    if (body.action === "file.get" && body.input.id === "nested-note") return route.fulfill({ json: { result: { id: "nested-note", path: "笔记/nested.md", kind: "note", content: "# 嵌套正文", version: 1, uri: "nextclaw://objects/file/nested-note", createdAt: at, updatedAt: at } } });
+    if (body.action === "file.get" && body.input.id === nestedNoteId) return route.fulfill({ json: { result: { id: nestedNoteId, path: nestedNoteId, kind: "note", content: "# 嵌套正文", version: 1, uri: `nextclaw://objects/file/${encodeURIComponent(nestedNoteId)}`, createdAt: at, updatedAt: at } } });
     if (body.action === "file.get" && body.input.id === "slow") {
       if (this.detailHeld) await new Promise<void>(resolve => { this.slowDetail = resolve; });
       return route.fulfill({ json: { result: { id: "slow", path: "slow.md", kind: "note", content: "迟到的正文", version: 1, uri: "nextclaw://objects/file/slow", createdAt: at, updatedAt: at } } });
@@ -274,11 +275,17 @@ async function checkFileEntries(page: Page, fixture: ResourceFixture) {
   await page.goto(`${base}/files/missing`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "重试打开", exact: true }).waitFor();
   fixture.holdLists(true);
-  await page.goto(`${base}/files/nested-note`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${base}/files/${nestedNoteId.split("/").map(encodeURIComponent).join("/")}`, { waitUntil: "domcontentloaded" });
   await page.locator(".bibo-file-editor").waitFor();
   assert.ok(fixture.pendingLists.length, "nested file renders before directory reads finish");
   fixture.holdLists(false); fixture.releaseLists();
   await page.waitForLoadState("networkidle");
+  for (const path of [`/notes/${encodeURIComponent(nestedNoteId)}`, `/notes/${nestedNoteId.split("/").map(encodeURIComponent).join("/")}`]) {
+    await page.goto(base + path, { waitUntil: "networkidle" });
+    await page.locator(".tiptap:visible").getByRole("heading", { name: "嵌套正文", exact: true }).waitFor();
+    await page.reload({ waitUntil: "networkidle" });
+    await page.locator(".tiptap:visible").getByRole("heading", { name: "嵌套正文", exact: true }).waitFor();
+  }
 }
 
 async function checkDomainRoutes(page: Page, fixture: ResourceFixture, width: number) {

@@ -1,7 +1,7 @@
 import { parseSystemObjectReferenceUri } from "@nextclaw/shared";
 import { BiboClient, type BiboFile } from "@nextclaw/bibo-client";
-import { navigateResource, readWorkspaceRoute } from "@/app/workspace-router";
-import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
+import { filePathHref, navigateResource, readWorkspaceRoute, resourceHref } from "@/app/workspace-router";
+import { useBiboSpaceStore, type BiboView } from "@/features/space/stores/bibo-space.store";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 import { writeWorkspaceLayout } from "@/features/space/utils/workspace-layout.utils";
 
@@ -27,7 +27,7 @@ class WorkspaceResourceManager {
     if ((viewChanged || !state.readStatus[route.view]) && !(route.view === "calendar" && route.resourceId)) void state.load(route.view);
     if (route.view === "files" || route.view === "notes") {
       if (route.resourceId) void state.openFile(route.resourceId, undefined, true, true);
-      else if (route.filePath) void this.openFile(`/files/path/${encodeURIComponent(route.filePath)}`, route.view,
+      else if (route.filePath) void this.openFile(filePathHref(route.filePath), route.view,
         () => this.routeKey === key && state.accountId === useBiboSpaceStore.getState().accountId).catch(error => {
           if (this.routeKey === key) useBiboSpaceStore.setState({ error: error instanceof Error ? error.message : "暂时无法打开资源。" });
         });
@@ -58,7 +58,7 @@ class WorkspaceResourceManager {
   private syncFileSelection = (): void => {
     const state = useBiboSpaceStore.getState();
     if (state.view === "files" || state.view === "notes") {
-      navigateResource(`/${state.view}${state.activeFileId ? `/${encodeURIComponent(state.activeFileId)}` : ""}`);
+      navigateResource(state.activeFileId ? resourceHref(state.view, state.activeFileId) : `/${state.view}`);
     } else if (state.view === "chat" && state.workspaceOpen && state.workspaceFileId && !state.fileDetails[state.workspaceFileId]) void state.openWorkspace(state.workspaceFileId);
   };
 
@@ -84,8 +84,8 @@ class WorkspaceResourceManager {
   href = (uri: string): string | null => {
     const object = parseSystemObjectReferenceUri(uri);
     if (object) {
-      const module = ({ file: "files", task: "tasks", event: "calendar", "inbox-delivery": "inbox", "chat-session": "chat" } as Record<string, string>)[object.objectType];
-      return module ? `/${module}/${encodeURIComponent(object.objectId)}` : uri;
+      const module = ({ file: "files", task: "tasks", event: "calendar", "inbox-delivery": "inbox", "chat-session": "chat" } as Record<string, BiboView>)[object.objectType];
+      return module ? resourceHref(module, object.objectId) : uri;
     }
     if (uri.startsWith("nextclaw://")) {
       try {
@@ -101,7 +101,7 @@ class WorkspaceResourceManager {
         return this.pathHref(decodeURIComponent(url.pathname));
       } catch { return null; }
     }
-    if (/^\/(files|notes|tasks|calendar|inbox|chat)\/[^/]+$/.test(uri)) return uri;
+    if (/^\/(files|notes|tasks|calendar|inbox|chat)\/.+$/.test(uri) || uri.startsWith("/files?path=")) return uri;
     if (/^[a-z][a-z\d+.-]*:/i.test(uri) || uri.startsWith("//")) return null;
     try {
       const path = decodeURIComponent(uri.split(/[?#]/, 1)[0] ?? "").replace(/^\.\//, "").replace(/^\/workspace\//, "");
@@ -111,13 +111,14 @@ class WorkspaceResourceManager {
 
   private pathHref = (path: string): string | null => {
     if (!path || path.startsWith("//") || path.includes("\\") || path.split("/").some((part, index) => !part && index !== 0 || part === "." || part === "..")) return null;
-    return `/files/path/${encodeURIComponent(path)}`;
+    return filePathHref(path);
   };
 
   private openFile = async (href: string, view: string, current: () => boolean, preview?: boolean): Promise<void> => {
     if (view === "chat") useBiboSpaceStore.setState({ workspaceOpen: true, workspaceResolving: true, error: "" });
-    const path = /^\/files\/path\/(.+)$/.exec(href);
-    const file = await this.client.readFile(path ? { path: decodeURIComponent(path[1]!) } : { id: decodeURIComponent(href.slice(7)) });
+    const url = new URL(href, "https://app.bibo.bot");
+    const route = readWorkspaceRoute(url.pathname, url.search);
+    const file = await this.client.readFile(route.filePath ? { path: route.filePath } : { id: route.resourceId! });
     if (!current() || view === "chat" && !useBiboSpaceStore.getState().workspaceOpen) return;
     if (file.kind === "folder") throw new Error(biboCopy.folderReference);
     const state = useBiboSpaceStore.getState();
@@ -129,11 +130,11 @@ class WorkspaceResourceManager {
     const token = ++this.request;
     const account = useBiboSpaceStore.getState().accountId;
     const view = useBiboSpaceStore.getState().view;
-    if (!/^\/(files|notes|tasks|calendar|inbox|chat)\//.test(href)) {
+    if (!/^\/(files|notes|tasks|calendar|inbox|chat)\//.test(href) && !href.startsWith("/files?path=")) {
       useBiboSpaceStore.setState({ ...(view === "chat" ? { workspaceOpen: true } : {}), workspaceResolving: false, error: "此资源暂不支持打开。" });
       return;
     }
-    if (view !== "chat" || !href.startsWith("/files/")) {
+    if (view !== "chat" || !(href.startsWith("/files/") || href.startsWith("/files?path="))) {
       navigateResource(href);
       return;
     }
@@ -152,7 +153,7 @@ class WorkspaceResourceManager {
     if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>(".ui-markdown a[href]") : null;
     const href = anchor?.getAttribute("href");
-    if (!href || !(href.startsWith("nextclaw://") || /^\/(files|notes|tasks|calendar|inbox|chat)\//.test(href))) return;
+    if (!href || !(href.startsWith("nextclaw://") || /^\/(files|notes|tasks|calendar|inbox|chat)\//.test(href) || href.startsWith("/files?path="))) return;
     event.preventDefault();
     void this.open(href);
   };

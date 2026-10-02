@@ -3,7 +3,7 @@ import { BiboClient, BiboClientError, type BiboEvent, type BiboFile, type BiboFi
 import { calendarMonthRange } from "@/features/space/utils/calendar.utils";
 import { readWorkspaceLayout, revealedFileLayout, writeWorkspaceLayout } from "@/features/space/utils/workspace-layout.utils";
 import { readCalendarEvents, readNextSpacePage, readSpaceLists, savedTaskView, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
-import { navigateResource } from "@/app/workspace-router";
+import { navigateResource, resourceHref } from "@/app/workspace-router";
 import { closedFileState, fileDeletionState, openedFileState } from "@/features/space/utils/file-state.utils";
 import { FileDirectoryManager, type FileDirectories } from "@/features/space/managers/file-directory.manager";
 import { FileEditingManager } from "@/features/space/managers/file-editing.manager";
@@ -290,7 +290,7 @@ class BiboSpaceOwner {
   openFile = async (id: string, verified?: BiboFileDetail, select = true, fromRoute = false): Promise<void> => {
     if (select && !fromRoute && ["notes", "files"].includes(this.get().view)) {
       if (verified) this.set(state => openedFileState(state, verified, [], false));
-      if (navigateResource(`/${this.get().view}/${encodeURIComponent(id)}`)) return;
+      if (navigateResource(resourceHref(this.get().view, id))) return;
     }
     const request = select ? ++this.fileOpenRequest : this.fileOpenRequest;
     const view = this.get().view;

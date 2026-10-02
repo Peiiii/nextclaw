@@ -23,7 +23,9 @@ Notes and conversation documents keep their single-document header while opening
 `pnpm -C apps/bibo-hosted exec tsx scripts/chat/bibo-run-recovery-live.smoke.ts` verifies a real active-task refresh, delayed authoritative reads, a fresh mobile-width page, the same completed run, saved history, content opening and exactly one chat POST against production. It uses the existing private synthetic-account file and cleans up only its own conversation and file.
 ### 页面导航与按需读取
 
-模块入口 `/notes`、`/files`、`/tasks`、`/calendar`、`/inbox` 稳定显示集合，不因上次打开的 Tab 自动切入详情。笔记与其他资源使用 `/<module>/<id>`；文件路径引用使用 `/files/path/<encoded-path>`。URL 决定当前对象，支持复制链接、直接进入、刷新及浏览器返回/前进。详情立即读取目标，侧栏列表独立加载；列表较慢不会阻塞正文。未访问的空间页面模块按需加载，笔记集合只请求笔记列表，不预读旧文件正文。Tab 与未保存草稿保留，对话右侧工作区只在实际显示时恢复目标。
+模块入口 `/notes`、`/files`、`/tasks`、`/calendar`、`/inbox` 稳定显示集合，不因上次打开的 Tab 自动切入详情。笔记和文件 ID 是完整路径，详情使用 `/notes/<分段编码路径>`、`/files/<分段编码路径>`，支持中文与多级目录；文件路径引用使用 `/files?path=<encoded-path>`，不会与真实 `path/` 文件夹冲突。其它资源使用 `/<module>/<id>`。URL 决定当前对象，支持复制链接、直接进入、刷新及浏览器返回/前进。详情立即读取目标，侧栏列表独立加载；列表较慢不会阻塞正文。未访问的空间页面模块按需加载，笔记集合只请求笔记列表，不预读旧文件正文。Tab 与未保存草稿保留，对话右侧工作区只在实际显示时恢复目标。
+
+编辑器模块加载超过 12 秒会显示慢加载提示和“重新加载页面”入口；模块失败会显示明确错误。慢请求成功后自然进入编辑器，不自动刷新。重新加载继续恢复当前笔记的本标签页草稿，不保存或覆盖服务器内容。`smoke:editor-loading` 覆盖桌面、手机正文与源码模块的延迟、失败及恢复。
 
 `pnpm -C apps/bibo-hosted smoke:routing` 覆盖桌面/手机、持久化旧 Tab、延迟列表与正文、直链、历史往返、刷新和缺失对象。已有预览占用默认端口时，可设置 `BIBO_SMOKE_BASE` 指向本工作区独立的 Vite preview。
 

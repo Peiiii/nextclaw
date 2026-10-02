@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { navigateResource, navigateWorkspace } from "@/app/workspace-router";
+import { navigateResource, navigateWorkspace, resourceHref } from "@/app/workspace-router";
 import { EmptyState, ListRow } from "@nextclaw/personal-agent-ui";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 import { BiboCompanion } from "@/shared/components/bibo-companion";
@@ -76,7 +76,7 @@ export function Overview() {
                     className="bibo-summary-row"
                     key={file.id}
                     onClick={() => {
-                      navigateResource(`/notes/${encodeURIComponent(file.id)}`);
+                      navigateResource(resourceHref("notes", file.id));
                     }}
                   >
                     <strong>{file.path.split("/").at(-1)}</strong>

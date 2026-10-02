@@ -93,7 +93,7 @@ export function FileEditor({ id, compact = false, notesOnly = false, defaultPrev
         )
       )}
       {!restricted && (editorOpened || !preview) && <div className="bibo-file-editor-surface" hidden={preview}>
-        <MarkdownEditor autoFocus={createdFileId === id} toolbarContainer={toolbarContainer} value={draft.content} onChange={(value) => editFile(id, value)} source={source || !markdown} active={!preview} label={`${copy.fileEdit} ${detail.path}`} labels={copy.markdownEditor} uploadImage={uploadImage} scrollProgress={previewScroll.current} onScrollProgress={(progress) => { if (!preview) previewScroll.current = progress; }} />
+        <MarkdownEditor autoFocus={createdFileId === id} toolbarContainer={toolbarContainer} value={draft.content} onChange={(value) => editFile(id, value)} source={source || !markdown} active={!preview} label={`${copy.fileEdit} ${detail.path}`} labels={copy.markdownEditor} onLoadRetry={() => window.location.reload()} uploadImage={uploadImage} scrollProgress={previewScroll.current} onScrollProgress={(progress) => { if (!preview) previewScroll.current = progress; }} />
       </div>}
       <div className="bibo-file-editor-status" role="status" aria-live="polite" title={draft.dirty ? copy.fileUnsaved : `已保存 · v${draft.version}`}>
         <span>{draft.saving ? copy.fileSaving : draft.conflict ? copy.fileConflict : draft.error ? copy.fileSaveFailed : draft.dirty ? copy.fileUnsaved : copy.fileSaved}</span>

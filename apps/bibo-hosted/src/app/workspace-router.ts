@@ -5,11 +5,12 @@ import type * as ChatComponents from "@/features/chat";
 const views: BiboView[] = ["overview", "chat", "inbox", "calendar", "tasks", "notes", "files"];
 const routes = [
   { index: true, handle: { view: "overview" as BiboView } },
-  ...views.filter((view) => view !== "overview").map((view) => ({
+  ...views.filter((view) => !["overview", "notes", "files"].includes(view)).map((view) => ({
     path: view === "chat" ? "chat/:sessionId?" : `${view}/:resourceId?`,
     handle: { view },
   })),
-  { path: "files/path/:filePath", handle: { view: "files" as BiboView } },
+  { path: "notes/*", handle: { view: "notes" as BiboView } },
+  { path: "files/*", handle: { view: "files" as BiboView } },
   { path: "*", handle: { view: "overview" as BiboView, notFound: true } },
 ];
 let router: ReturnType<typeof createBrowserRouter>;
@@ -26,10 +27,30 @@ export function initializeWorkspaceRouter({ BiboApp, ChatPage, SpacePage, NotFou
   return router;
 }
 
-export function readWorkspaceRoute(pathname = router.state.location.pathname) {
+export function readWorkspaceRoute(pathname = router.state.location.pathname, search = router?.state.location.search ?? "") {
   const match = matchRoutes(routes.map((route) => ({ path: route.path ?? "", handle: route.handle })), pathname)?.at(-1);
-  return { view: match?.route.handle?.view ?? "overview", sessionId: match?.params.sessionId ?? null, resourceId: match?.params.resourceId ?? null, filePath: match?.params.filePath ?? null,
-    notFound: match?.route.handle && "notFound" in match.route.handle ? true : false };
+  const handle = match?.route.handle;
+  const view = handle?.view ?? "overview";
+  let resourceId = match?.params.resourceId ?? null, filePath: string | null = null;
+  let notFound = Boolean(handle && "notFound" in handle);
+  if (view === "notes" || view === "files") {
+    // File IDs are paths. Decode the original pathname once, preserving literal "%2F" names.
+    try {
+      resourceId = decodeURIComponent(pathname.slice(`/${view}/`.length)) || null;
+      if (view === "files" && !resourceId) filePath = new URLSearchParams(search).get("path") || null;
+    } catch { notFound = true; }
+  }
+  return { view, sessionId: match?.params.sessionId ?? null, resourceId, filePath, notFound };
+}
+
+const encodedPath = (value: string): string => value.split("/").map(encodeURIComponent).join("/");
+
+export function resourceHref(view: BiboView, id: string): string {
+  return `/${view}/${view === "notes" || view === "files" ? encodedPath(id) : encodeURIComponent(id)}`;
+}
+
+export function filePathHref(path: string): string {
+  return `/files?path=${encodeURIComponent(path)}`;
 }
 
 export function workspaceHref(view: BiboView, sessionId: string | null = null): string {

@@ -29,8 +29,9 @@ const page = await context.newPage();
 page.setDefaultTimeout(20000);
 const dialogs: string[] = [];
 page.on("dialog", (dialog) => { dialogs.push(dialog.type()); void dialog.accept(); });
-const path = `markdown-editor-smoke-${crypto.randomUUID().slice(0, 8)}.md`;
-type File = { id: string; path: string; version: number; content: string };
+const folder = `markdown-editor-smoke-${crypto.randomUUID().slice(0, 8)}`;
+const path = `${folder}/功能演示 - 起步.md`;
+type File = { id: string; path: string; version: number; content: string; uri: string };
 async function space<T>(action: string, input: Record<string, unknown>): Promise<T> {
   return page.evaluate(async ({ action, input }) => {
     const response = await fetch("/api/space", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action, input }) });
@@ -39,11 +40,12 @@ async function space<T>(action: string, input: Record<string, unknown>): Promise
   }, { action, input });
 }
 let createdId: string | undefined;
+let createdFolder: { id: string; version: number } | undefined;
 let createdSessionId: string | undefined;
 async function checkLiveResourceOpening() {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${origin}/chat`, { waitUntil: "networkidle" });
-  await page.getByRole("textbox", { name: /告诉 Bibo/ }).fill(`请只回复「收到」，不要调用工具。\n\n[验证笔记](nextclaw://objects/file/${createdId})`);
+  await page.getByRole("textbox", { name: /告诉 Bibo/ }).fill(`请只回复「收到」，不要调用工具。\n\n[验证笔记](${(await space<File>("file.get", { id: createdId })).uri})`);
   const [response] = await Promise.all([
     page.waitForResponse(response => new URL(response.url()).pathname === "/api/chat"),
     page.getByRole("button", { name: "发送消息", exact: true }).click(),
@@ -122,6 +124,7 @@ async function checkLiveImage(page: Page) {
 }
 try {
   await page.goto(`${origin}/notes`, { waitUntil: "networkidle" });
+  createdFolder = await space("file.create", { path: folder, kind: "folder" });
   await page.getByRole("complementary", { name: "全部笔记", exact: true }).getByRole("button", { name: "新笔记", exact: true }).click();
   await page.locator(".tiptap:visible h1").waitFor();
   const createdPath = (await page.getByRole("button", { name: /^文档 / }).getAttribute("aria-label"))!.slice("文档 ".length);
@@ -146,6 +149,7 @@ try {
     assert.equal(saved.content, text, "real server persisted exactly the Markdown text");
     await page.reload({ waitUntil: "networkidle" });
     await page.getByRole("heading", { name: `Markdown 上线验收 ${width}` }).waitFor();
+    assert.equal(new URL(page.url()).pathname, `/notes/${path.split("/").map(encodeURIComponent).join("/")}`, "nested notes retain their canonical detail route after refresh");
     await page.waitForTimeout(350);
     assert.equal(await page.evaluate(() => {
       const event = new Event("beforeunload", { cancelable: true });
@@ -190,6 +194,13 @@ try {
       console.error("Test note cleanup failed:", createdId, error);
       process.exitCode = 1;
     }
+  }
+  if (createdFolder) {
+    try {
+      const current = await space<{ id: string; version: number }>("file.get", { id: createdFolder.id });
+      await space("file.delete", { id: current.id, version: current.version });
+      console.log("Removed only this run's test folder");
+    } catch (error) { console.error("Test folder cleanup failed:", error); process.exitCode = 1; }
   }
   await browser.close();
 }
