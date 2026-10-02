@@ -1,5 +1,14 @@
 # @nextclaw/ui
 
+## 0.27.5-beta.2
+
+### Patch Changes
+
+- 5243fa0: Add a Scheduled conversation view with server-side filtering, search, pagination, and persistent view selection on desktop and mobile.
+- a1f251b: Keep session pins across refreshes, instance restarts, and browsers, and place pinned sessions before pagination so older pinned work remains visible. Existing browser pins migrate automatically without overriding a saved unpin. Failed saves restore the previous state and show an error. Add matching `sessions pin` / `sessions unpin` CLI actions and AI session updates.
+- Updated dependencies [5243fa0]
+  - @nextclaw/client-sdk@0.12.14-beta.2
+
 ## 0.27.5-beta.1
 
 ### Patch Changes

@@ -75,13 +75,24 @@
   "changesets": [
     "async-question-message-order",
     "auto-release-batch-20260930055215886",
+    "bibo-background-run-recovery",
+    "bibo-compact-activity",
+    "bibo-conversation-state",
+    "bibo-document-chat-polish",
+    "bibo-document-opening-handle",
     "bibo-dots-interface",
+    "bibo-file-directory-consistency",
+    "bibo-mobile-note-spacing",
     "bibo-navigation-icons",
+    "bibo-resource-routing",
     "bibo-task-detail-drawer",
     "bibo-task-reading",
+    "bibo-ui-state-initialization",
     "context-files-batch-reads",
     "nc-185-panel-refresh",
+    "scheduled-session-view",
     "session-journal-delta-coalescing",
+    "session-pin-persistence",
     "user-message-line-breaks"
   ]
 }

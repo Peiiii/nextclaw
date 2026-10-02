@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.59.0-beta.2",
+  "channel": "beta",
+  "releaseType": "minor",
+  "publishedAt": "2026-10-02",
+  "title": { "zh-CN": "NextClaw v0.59.0-beta.2", "en-US": "NextClaw v0.59.0-beta.2" },
+  "summary": {
+    "zh-CN": "会话置顶更持久，定时任务会话有了独立视图。",
+    "en-US": "Persistent session pins and a dedicated view for scheduled conversations."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-10-02-nextclaw-v0-59-0-beta-2",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-10-02-nextclaw-v0-59-0-beta-2"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "会话置顶", "en-US": "Session pins" },
+      "items": [
+        {
+          "title": { "zh-CN": "跨刷新与重启保留", "en-US": "Keep pins across refreshes and restarts" },
+          "body": {
+            "zh-CN": "置顶保存在实例中，较旧的置顶会话也优先显示。旧浏览器置顶自动迁移，已取消的置顶不会被缓存恢复；保存失败时恢复原状态并提示错误。",
+            "en-US": "Pins are stored in the instance, with older pinned conversations also shown first. Existing browser pins migrate without restoring a saved unpin. Failed saves restore the previous state and show an error."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "定时任务会话", "en-US": "Scheduled conversations" },
+      "items": [
+        {
+          "title": { "zh-CN": "独立列表视图", "en-US": "A dedicated list view" },
+          "body": {
+            "zh-CN": "桌面和手机可切换到定时任务视图，集中查看任务创建的专属会话，支持服务端搜索、分页和视图选择持久化。任务绑定的已有普通会话保留原分类。",
+            "en-US": "Desktop and mobile now offer a Scheduled view for dedicated task conversations, with server-side search, pagination, and a persistent view selection. Existing regular conversations bound to a task keep their original classification."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "命令行", "en-US": "Command line" },
+      "items": [
+        {
+          "title": { "zh-CN": "置顶与取消置顶", "en-US": "Pin and unpin conversations" },
+          "body": {
+            "zh-CN": "新增 `nextclaw sessions pin <key>` 和 `nextclaw sessions unpin <key>`，与会话列表共用持久化设置。",
+            "en-US": "Use `nextclaw sessions pin <key>` and `nextclaw sessions unpin <key>` with the same persistent settings as the conversation list."
+          }
+        }
+      ]
+    }
+  ]
+}

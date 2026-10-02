@@ -1,5 +1,14 @@
 # @nextclaw/client-sdk
 
+## 0.12.14-beta.2
+
+### Patch Changes
+
+- 5243fa0: Add a Scheduled conversation view with server-side filtering, search, pagination, and persistent view selection on desktop and mobile.
+- Updated dependencies [5243fa0]
+- Updated dependencies [a1f251b]
+  - @nextclaw/server@0.23.14-beta.2
+
 ## 0.12.14-beta.1
 
 ### Patch Changes

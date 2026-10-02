@@ -1,5 +1,22 @@
 # nextclaw
 
+## 0.59.0-beta.2
+
+### Patch Changes
+
+- a1f251b: Keep session pins across refreshes, instance restarts, and browsers, and place pinned sessions before pagination so older pinned work remains visible. Existing browser pins migrate automatically without overriding a saved unpin. Failed saves restore the previous state and show an error. Add matching `sessions pin` / `sessions unpin` CLI actions and AI session updates.
+- Updated dependencies [5243fa0]
+- Updated dependencies [a1f251b]
+  - @nextclaw/kernel@0.19.2-beta.2
+  - @nextclaw/server@0.23.14-beta.2
+  - @nextclaw/service@0.7.8-beta.2
+  - @nextclaw/core@0.18.6-beta.1
+  - @nextclaw/remote@0.3.71-beta.2
+  - @nextclaw/mcp@0.3.56-beta.1
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.56-beta.1
+  - @nextclaw/runtime@0.4.55-beta.1
+  - @nextclaw/ncp-mcp@0.2.56-beta.1
+
 ## 0.59.0-beta.1
 
 ### Patch Changes

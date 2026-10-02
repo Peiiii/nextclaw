@@ -12,8 +12,9 @@ import {
   resolveCheckpointReleaseBatchPackages
 } from "./release-checkpoints.mjs";
 
-const DEFAULT_ATTEMPTS = 12;
-const DEFAULT_DELAY_MS = 5000;
+// Accepted uploads can stay unavailable while npm finishes its publish-time scan.
+const DEFAULT_ATTEMPTS = 60;
+const DEFAULT_DELAY_MS = 10000;
 
 function readNumericArg(flag, fallback) {
   const entry = process.argv.find((value) => value.startsWith(`${flag}=`));
