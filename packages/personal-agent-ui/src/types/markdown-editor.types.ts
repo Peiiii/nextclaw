@@ -9,7 +9,7 @@ export type MarkdownEditorLabels = {
     insert: string; text: string; advanced: string; url: string; confirm: string; upload: string; caption: string;
     language: string; noResults: string; copy: string; preview: string; hide: string; edit: string;
     mathHint: string; mathExample: string; inlineMath: string; blockMath: string;
-    loading: string; error: string; imageError: string; metadata: string;
+    loading: string; loadSlow: string; loadError: string; reload: string; error: string; imageError: string; metadata: string;
     addRow: string; addColumn: string; deleteRow: string; deleteColumn: string;
     toggleHeaderRow: string; toggleHeaderColumn: string; alignLeft: string; alignCenter: string; alignRight: string; mergeCells: string; splitCell: string;
     moveRowUp: string; moveRowDown: string; moveColumnLeft: string; moveColumnRight: string;
@@ -33,6 +33,8 @@ export type MarkdownEditorProps = {
   autoFocus?: boolean;
   value: string; onChange: (value: string) => void; source: boolean; label: string;
   labels: MarkdownEditorLabels; active?: boolean; scrollProgress?: number;
+  /** Reloads the host after a failed module request; the host owns draft preservation. */
+  onLoadRetry?: () => void;
   onScrollProgress?: (progress: number) => void;
   uploadImage?: (file: File) => Promise<string>;
 };

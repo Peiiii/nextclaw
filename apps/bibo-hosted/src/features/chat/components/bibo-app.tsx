@@ -81,7 +81,7 @@ export function BiboApp() {
     );
   }, [ui.theme]);
   const location = useLocation();
-  const route = readWorkspaceRoute(location.pathname);
+  const route = readWorkspaceRoute(location.pathname, location.search);
   const { shellRef, sidebarRef, mainRef, sidebarMotion, workspaceMotion, startSidebarMotion, startWorkspaceMotion } = useLayoutMotion(`${location.key}:${space.accountId ?? ""}`);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const sidebarPanelRef = useRef<HTMLDivElement>(null);
@@ -138,7 +138,7 @@ export function BiboApp() {
     if (route.view !== "chat" || !chat.authChecked || !chat.user) return;
     if (route.sessionId) void chat.selectSession(route.sessionId, true);
     else if (chat.activeSessionId || chat.sessionLoading) void chat.createSession(true);
-  }, [location.pathname, store.authChecked, store.user?.id]);
+  }, [location.pathname, location.search, store.authChecked, store.user?.id]);
   useEffect(() => {
     document.addEventListener("click", workspaceResources.intercept);
     return () => document.removeEventListener("click", workspaceResources.intercept);

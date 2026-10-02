@@ -3,7 +3,7 @@ import { BiboClient, type BiboChatEvent, type BiboMessage, type BiboQuestion, ty
 import { BiboConversationManager, type BiboSubmission } from "@/features/chat/managers/bibo-conversation.manager";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 import { useBiboSpaceStore, workspaceResources } from "@/features/space";
-import { navigateConversation, readWorkspaceRoute, replaceConversationContext } from "@/app/workspace-router";
+import { filePathHref, navigateConversation, readWorkspaceRoute, replaceConversationContext } from "@/app/workspace-router";
 import { identifyMessages, type BiboDisplayMessage } from "@/features/chat/utils/chat-message.utils";
 
 const biboClient = new BiboClient();
@@ -47,7 +47,7 @@ class BiboChatOwner {
     content: (shown) => {
       const userId = this.get().user?.id;
       const current = () => this.get().user?.id === userId && this.get().activeSessionId === shown.sessionId && useBiboSpaceStore.getState().view === "chat";
-      if (current()) void workspaceResources.open(`/files/path/${encodeURIComponent(shown.target.payload.path)}`, shown.target.payload.viewer !== "source", current);
+      if (current()) void workspaceResources.open(filePathHref(shown.target.payload.path), shown.target.payload.viewer !== "source", current);
     },
   });
   reconnect = (): void => {

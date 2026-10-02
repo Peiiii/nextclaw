@@ -89,6 +89,7 @@ export const biboCopy = {
       language: "代码语言", noResults: "无匹配结果", copy: "复制", preview: "预览", hide: "收起", edit: "编辑",
       mathHint: "Enter 换行，⌘/Ctrl + Enter 确认。多行对齐可使用 aligned。", mathExample: "多行示例", inlineMath: "行内公式", blockMath: "公式块",
       loading: "正在打开编辑器…", error: "暂时无法完成，请重试。", imageError: "请输入有效内容；图片地址需以 https:// 开头。", metadata: "文档属性",
+      loadSlow: "编辑器加载较慢，请检查网络连接。", loadError: "编辑器未能加载，请检查网络连接后重试。", reload: "重新加载页面",
       addRow: "在下方插入行", addColumn: "在右侧插入列", deleteRow: "删除当前行", deleteColumn: "删除当前列",
       toggleHeaderRow: "切换标题行", toggleHeaderColumn: "切换标题列", alignLeft: "左对齐", alignCenter: "居中对齐", alignRight: "右对齐", mergeCells: "合并单元格", splitCell: "拆分单元格",
       moveRowUp: "向上移动行", moveRowDown: "向下移动行", moveColumnLeft: "向左移动列", moveColumnRight: "向右移动列",

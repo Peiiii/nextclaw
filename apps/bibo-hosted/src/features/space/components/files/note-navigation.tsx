@@ -3,6 +3,7 @@ import { NavigationItem } from "@nextclaw/personal-agent-ui";
 import { FileText, Library, SquarePen } from "lucide-react";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
+import { resourceHref } from "@/app/workspace-router";
 
 export function NoteNavigation({ onNavigate }: { onNavigate: () => void }) {
   const { notes, activeFileId, fileBrowserVisible, createNote, saving } = useBiboSpaceStore();
@@ -13,7 +14,7 @@ export function NoteNavigation({ onNavigate }: { onNavigate: () => void }) {
     </NavigationItem>
     <div className="bibo-session-head bibo-note-nav-heading">{copy.recent}</div>
     {notes.map(file => <NavigationItem key={file.id} label={file.path} selected={!fileBrowserVisible && activeFileId === file.id} truncatedLabel>
-      <Link to={`/notes/${encodeURIComponent(file.id)}`} className="bibo-session-item" onClick={onNavigate}><FileText /><span className="bibo-session-title">{file.path.split("/").at(-1)?.replace(/\.(md|markdown|mdown)$/i, "")}</span></Link>
+      <Link to={resourceHref("notes", file.id)} className="bibo-session-item" onClick={onNavigate}><FileText /><span className="bibo-session-title">{file.path.split("/").at(-1)?.replace(/\.(md|markdown|mdown)$/i, "")}</span></Link>
     </NavigationItem>)}
   </nav>;
 }

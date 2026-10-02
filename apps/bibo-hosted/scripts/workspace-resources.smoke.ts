@@ -78,7 +78,7 @@ async function verifyMarkdownFileLinks(page: Page, workspace: Locator): Promise<
   const close = page.getByRole("button", { name: "关闭工作区" });
   if (await close.count()) await close.click();
   const absolute = page.getByRole("link", { name: "搭档启动卡.md", exact: true });
-  assert.equal(await absolute.getAttribute("href"), `/files/path/${encodeURIComponent("/data/workspace/搭档启动卡.md")}`);
+  assert.equal(await absolute.getAttribute("href"), `/files?path=${encodeURIComponent("/data/workspace/搭档启动卡.md")}`);
   assert.equal(await absolute.evaluate((node) => getComputedStyle(node).textDecorationLine), "underline");
   for (const name of ["搭档启动卡.md", "相对文件", "本机文件 URI"]) {
     await page.getByRole("link", { name, exact: true }).click();
@@ -156,7 +156,7 @@ async function verifyModules(page: Page) {
       await page.getByRole("button", { name: "已处理", exact: true }).click();
       await page.getByText(/^已处理 ·/).waitFor();
       await page.getByRole("link", { name: "收件箱里的启动卡", exact: true }).click();
-      await page.waitForURL("**/files/path/**");
+      await page.waitForURL("**/files?path=**");
       await page.getByRole("tab", { name: "搭档启动卡.md", exact: true }).waitFor();
     } else await page.getByRole("textbox", { name: path === "/tasks" ? "任务名称" : "标题", exact: true }).waitFor();
   }
