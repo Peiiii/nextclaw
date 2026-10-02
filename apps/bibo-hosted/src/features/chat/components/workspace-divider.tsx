@@ -1,9 +1,9 @@
 import { useRef, type RefObject } from "react";
-import { useBiboSpaceStore } from "@/features/space";
+import { useWorkspaceUiStore } from "@/features/space";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 
 export function WorkspaceDivider({ container }: { container: RefObject<HTMLElement> }) {
-  const { workspaceRatio, resizeWorkspace } = useBiboSpaceStore();
+  const { workspaceRatio, resizeWorkspace } = useWorkspaceUiStore();
   const pointer = useRef<number | null>(null);
   const release = () => {
     pointer.current = null;

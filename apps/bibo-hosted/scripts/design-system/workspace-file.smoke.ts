@@ -173,6 +173,11 @@ export async function checkWorkspaceFiles(page: Page, width: number, base: strin
     await workspace.getByRole("button", { name: /^文档 / }).waitFor();
     await workspace.getByRole("button", { name: /^文档 / }).click();
     await page.getByRole("menuitem", { name: "关闭当前文档", exact: true }).click();
+    const confirmation = page.getByRole("dialog", { name: "保存文件修改？" });
+    if (await confirmation.count()) {
+      await confirmation.getByRole("button", { name: "保存并关闭", exact: true }).click();
+      await confirmation.waitFor({ state: "hidden" });
+    }
   }
   await workspace.getByRole("heading", { name: "选择文件或笔记" }).waitFor();
   await openWorkspaceFile(page, ["想法.md"]);

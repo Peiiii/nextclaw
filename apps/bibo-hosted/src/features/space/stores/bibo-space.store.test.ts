@@ -4,6 +4,61 @@ import type { BiboInboxItem } from "@nextclaw/bibo-client";
 import type { useBiboSpaceStore as BiboSpaceStoreHook } from "./bibo-space.store";
 import { fileDeletionState } from "@/features/space/utils/file-state.utils";
 
+async function checkDisplayInitialization(t: TestContext): Promise<void> {
+  const originalWindow = globalThis.window;
+  const storageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  const saved = new Map<string, string>([
+    ["bibo-ui-layout", JSON.stringify({ sidebarCollapsed: true, treeCollapsed: true, treeWidth: 280, workspaceRatio: 0.62 })],
+    ["space-layout:first", JSON.stringify({ sidebarCollapsed: false, tabs: ["private-file"], activeFileId: "private-file", expandedFolders: { private: true } })],
+  ]);
+  let blocked = false;
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: {
+    getItem: (key: string) => { if (blocked) throw new Error("storage blocked"); return saved.get(key) ?? null; },
+    setItem: (key: string, value: string) => { if (blocked) throw new Error("storage blocked"); saved.set(key, value); },
+  } });
+  globalThis.window = { location: { search: "" }, matchMedia: () => ({ matches: true }) } as unknown as Window & typeof globalThis;
+  const { useBiboSpaceStore } = await import("./bibo-space.store");
+  const { useWorkspaceUiStore } = await import("./workspace-ui.store");
+  t.after(() => {
+    if (storageDescriptor) Object.defineProperty(globalThis, "localStorage", storageDescriptor);
+    else Reflect.deleteProperty(globalThis, "localStorage");
+    useWorkspaceUiStore.setState({ sidebarCollapsed: false, treeCollapsed: false, treeWidth: 230, workspaceRatio: 0.55 });
+    useBiboSpaceStore.setState({ view: "overview" });
+    useBiboSpaceStore.getState().bindAccount(null, true);
+    globalThis.window = originalWindow;
+  });
+  const { readWorkspaceUiLayout } = await import("../utils/workspace-layout.utils");
+  assert.equal(useBiboSpaceStore.getState().accountId, null);
+  assert.equal(useWorkspaceUiStore.getState().sidebarCollapsed, true, "the first store snapshot already contains the saved layout");
+  useBiboSpaceStore.setState({ view: "chat" });
+  useBiboSpaceStore.getState().bindAccount("first");
+  assert.equal(useWorkspaceUiStore.getState().sidebarCollapsed, true, "legacy account layout cannot override device display preferences");
+  assert.deepEqual(useBiboSpaceStore.getState().tabs, ["private-file"]);
+  useBiboSpaceStore.getState().bindAccount("second");
+  assert.deepEqual(useBiboSpaceStore.getState().tabs, []);
+  assert.deepEqual(useBiboSpaceStore.getState().expandedFolders, {});
+  assert.equal(useWorkspaceUiStore.getState().treeCollapsed, true);
+  assert.equal(useWorkspaceUiStore.getState().treeWidth, 280);
+  assert.equal(useWorkspaceUiStore.getState().workspaceRatio, 0.62);
+  useWorkspaceUiStore.setState({ treeCollapsed: false }); // Mobile presentation does not persist the desktop preference.
+  useWorkspaceUiStore.getState().toggleSidebar();
+  assert.equal(readWorkspaceUiLayout().treeCollapsed, true);
+  useWorkspaceUiStore.getState().resizeTree(900);
+  assert.equal(readWorkspaceUiLayout().treeWidth, 360);
+  useWorkspaceUiStore.getState().resizeWorkspace(0.9);
+  assert.equal(readWorkspaceUiLayout().workspaceRatio, 0.7);
+  blocked = true;
+  useWorkspaceUiStore.getState().toggleSidebar();
+  useBiboSpaceStore.getState().bindAccount("third");
+  assert.equal(useWorkspaceUiStore.getState().sidebarCollapsed, true, "account binding preserves this visit's layout when storage is blocked");
+  assert.equal(useWorkspaceUiStore.getState().treeWidth, 360);
+  assert.equal(useWorkspaceUiStore.getState().workspaceRatio, 0.7);
+  assert.deepEqual(readWorkspaceUiLayout(), { sidebarCollapsed: false, treeCollapsed: false, treeWidth: 230, workspaceRatio: 0.55 });
+  blocked = false;
+  saved.set("bibo-ui-layout", "broken JSON");
+  assert.deepEqual(readWorkspaceUiLayout(), { sidebarCollapsed: false, treeCollapsed: false, treeWidth: 230, workspaceRatio: 0.55 });
+}
+
 async function checkFileDirectories(t: TestContext, useBiboSpaceStore: typeof BiboSpaceStoreHook, fetchMock: Mock<typeof fetch>): Promise<void> {
   await t.test("tool subtrees cannot displace notes from the root directory on repeated refresh", async () => {
   useBiboSpaceStore.getState().bindAccount(null, true);
@@ -73,6 +128,7 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
     requests.push(JSON.parse(init.body as string));
     return new Promise<Response>((resolve) => responses.push(resolve));
   });
+  await t.test("display preferences restore before authentication and survive account changes without sharing file state", checkDisplayInitialization);
   const { useBiboSpaceStore } = await import("./bibo-space.store");
   useBiboSpaceStore.getState().bindAccount("first");
   useBiboSpaceStore.getState().keepEventDraft("new", { title: "private draft", description: "", startAt: "", endAt: "", version: null });
