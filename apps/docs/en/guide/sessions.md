@@ -8,6 +8,8 @@ Session history is kept locally in the journal and SQLite session catalog. Durin
 
 When the catalog is large, the sidebar places pinned sessions first, then orders by activity time and preloads the next page near the end of the list. Pins, search, ordering, and totals are handled by the local catalog, so older sessions remain browsable and searchable.
 
+Switch to Scheduled view to see conversations created by scheduled tasks. Filtering happens before pagination, and search and pins remain available. Tasks bound to an existing ordinary conversation keep its original classification. See [Tasks and sessions](/en/guide/chat) for the complete workflow.
+
 You may also need:
 
 - [Create your first task](/en/guide/create-task)

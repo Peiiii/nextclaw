@@ -11,6 +11,17 @@ export type SessionMetadataUpdate = {
   expectedMetadata?: Record<string, unknown>;
 };
 
+export type SessionListFilter = {
+  query?: string;
+  peerId?: string;
+  scheduledOnly?: boolean;
+};
+
+export type SessionListPageOptions = SessionListFilter & {
+  page: number;
+  pageSize: number;
+};
+
 /** Storage operations consumed by the shared session owner, independent of local files. */
 export interface SessionPersistence {
   appendSessionEvent(params: {
@@ -22,11 +33,7 @@ export interface SessionPersistence {
   deleteSession(sessionId: string): Promise<AgentSessionRecord | null>;
   getSessionSummary(sessionId: string): Promise<NcpSessionSummary | null>;
   listSessionSummaries(options?: { limit?: number }): Promise<NcpSessionSummary[]>;
-  listSessionSummaryPage(options: {
-    page: number;
-    pageSize: number;
-    query?: string;
-  }): Promise<{ sessions: NcpSessionSummary[]; total: number }>;
+  listSessionSummaryPage(options: SessionListPageOptions): Promise<{ sessions: NcpSessionSummary[]; total: number }>;
   listSessionMessages(sessionId: string): Promise<NcpMessage[]>;
   listSessionMessagePage(params: {
     sessionId: string;

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import { CloudflareSessionStore } from "./cloudflare-session.store";
-import { applyBiboStorageChanges } from "../utils/bibo-storage.utils";
+import { applyBiboStorageChanges } from "@/app/utils/bibo-storage.utils";
 
 class Storage {
   values = new Map<string, unknown>();
@@ -36,6 +36,23 @@ async function setup() {
   await store.importSessionSnapshot({ sessionId: "s", agentId: "main", updatedAt: new Date(0).toISOString(), messages: [], metadata: {} });
   return { storage, store };
 }
+
+test('shared catalog filters precede paging and totals', async () => {
+  const { storage, store } = await setup();
+  for (let i = 0; i < 4; i++) await store.importSessionSnapshot({
+    sessionId: `filter-${i}`, updatedAt: new Date(i * 1_000).toISOString(), messages: [],
+    metadata: { label: 'Report', agent_peer_id: 'peer-1', ...(i < 2 ? { cron_job_id: `job-${i}` } : {}) },
+  });
+  const reopened = new CloudflareSessionStore(storage.asStorage());
+  const filter = { pageSize: 1, scheduledOnly: true, peerId: 'peer-1', query: 'report' };
+  const first = await reopened.listSessionSummaryPage({ ...filter, page: 1 });
+  const second = await reopened.listSessionSummaryPage({ ...filter, page: 2 });
+  assert.equal(first.total, 2);
+  assert.equal(second.total, 2);
+  assert.deepEqual(first.sessions.map(s=>s.sessionId), ['filter-1']);
+  assert.deepEqual(second.sessions.map(s=>s.sessionId), ['filter-0']);
+  assert.equal((await reopened.listSessionSummaryPage({ ...filter, peerId: 'missing', page: 1 })).total, 0);
+});
 
 test("journal survives owner restart and checkpoint does not replay a completed turn twice", async () => {
   const { storage, store } = await setup();

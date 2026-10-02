@@ -1,8 +1,7 @@
-import type { CreatedSession, CreateSessionInput, SessionSearchService } from "@nextclaw/core";
+import { BUILTIN_MAIN_AGENT_ID, type CreatedSession, type CreateSessionInput, type SessionSearchService } from "@nextclaw/core";
 import { NcpEventType } from '@nextclaw/ncp';
 import { SessionTitleService } from '@kernel/services/session-title.service.js';
 import type { LlmProviderRuntime } from '@kernel/managers/llm-provider.manager.js';
-import { BUILTIN_MAIN_AGENT_ID } from "@nextclaw/core";
 import type {
   ListMessagesOptions,
   ListSessionsOptions,
@@ -13,11 +12,12 @@ import type {
 } from "@nextclaw/ncp";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { DEFAULT_AGENT_RUNTIME_ENTRY_ID } from "@kernel/configs/agent-runtime.config.js";
-import type { SessionPersistence } from "@kernel/types/session.types.js";
 import type {
   AgentRunSession,
   CreateAgentRunSessionParams,
   SessionMessagePage,
+  SessionListPageOptions,
+  SessionPersistence,
   SessionSettingsPatch,
   SessionTokenUsageSummary,
 } from "@kernel/types/session.types.js";
@@ -332,7 +332,7 @@ export class SessionManager implements NcpSessionApi {
     );
   };
   listSessionPage = async (
-    options: { page: number; pageSize: number; query?: string },
+    options: SessionListPageOptions,
   ): Promise<{ sessions: NcpSessionSummary[]; total: number }> => {
     const result = await this.options.journalStore.listSessionSummaryPage(options);
     return { ...result, sessions: result.sessions.map(this.workingDirResolver.withWorkingDir) };

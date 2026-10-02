@@ -153,21 +153,16 @@ export class NcpSessionRoutesController {
     );
     const rawQuery = c.req.query("query")?.trim();
     const peerId = c.req.query("peerId")?.trim();
-    if (peerId) {
-      const sessions = await sessionManager.listSessions({ limit: pageSize, peerId });
-      const payload: UiNcpSessionListView = {
-        sessions: sessions.map(this.toSessionListSummary),
-        total: sessions.length,
-        page: 1,
-        pageSize,
-        hasMore: false,
-      };
-      return c.json(ok(payload));
+    const scheduledOnly = c.req.query("scheduledOnly");
+    if (scheduledOnly !== undefined && scheduledOnly !== "true" && scheduledOnly !== "false") {
+      return c.json(err("INVALID_FILTER", "scheduledOnly must be true or false"), 400);
     }
     const result = await sessionManager.listSessionPage({
       page,
       pageSize,
       ...(rawQuery ? { query: rawQuery } : {}),
+      ...(peerId ? { peerId } : {}),
+      ...(scheduledOnly === "true" ? { scheduledOnly: true } : {}),
     });
     const payload: UiNcpSessionListView = {
       sessions: result.sessions.map(this.toSessionListSummary),

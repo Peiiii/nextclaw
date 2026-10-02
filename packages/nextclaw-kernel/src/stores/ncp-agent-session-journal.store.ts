@@ -25,7 +25,7 @@ import { SessionJournalLoaderStore } from "./session-journal-loader.store.js";
 import { NcpAgentSessionSummaryIndexStore } from "./ncp-agent-session-summary-index.store.js";
 import { NcpAgentSessionSummaryReadStore } from "./ncp-agent-session-summary-read.store.js";
 import { assertSessionJournalTailComplete, recoverSessionJournalMaintenance } from "./session-journal-maintenance.store.js";
-import type { SessionMessagePage, SessionMetadataUpdate, SessionPersistence } from "@kernel/types/session.types.js";
+import type { SessionListPageOptions, SessionMessagePage, SessionMetadataUpdate, SessionPersistence } from "@kernel/types/session.types.js";
 export class NcpAgentSessionJournalStore implements SessionPersistence {
   private readonly sessions = new Map<string, LoadedNcpAgentJournalSession>();
   private readonly nextSeqBySession = new Map<string, number>();
@@ -121,7 +121,7 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
   listSessionSummaries = async (options?: { limit?: number }): Promise<NcpSessionSummary[]> => {
     return await this.summaryReadStore.list(options?.limit);
   };
-  listSessionSummaryPage = (options: { page: number; pageSize: number; query?: string }) => this.summaryReadStore.listPage(options);
+  listSessionSummaryPage = (options: SessionListPageOptions) => this.summaryReadStore.listPage(options);
   getSessionSummary = async (sessionId: string): Promise<NcpSessionSummary | null> => {
     const normalizedSessionId = normalizeNcpSessionId(sessionId);
     if (!normalizedSessionId) {

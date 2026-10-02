@@ -1,8 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ChatSidebarSessionArea } from "@/features/chat/components/layout/chat-sidebar-desktop-layout";
+import type { ChatSessionListMode } from '@/features/chat/stores/chat-session-list.store';
 
-function renderSessionArea(isProjectFirstView: boolean, onScrollNearEnd = vi.fn()) {
+function renderSessionArea(listMode: ChatSessionListMode, onScrollNearEnd = vi.fn()) {
   const onAddProject = vi.fn();
   const onSelectMode = vi.fn();
 
@@ -14,7 +15,7 @@ function renderSessionArea(isProjectFirstView: boolean, onScrollNearEnd = vi.fn(
       groups={[]}
       isCollapsed={false}
       isLoading={false}
-      isProjectFirstView={isProjectFirstView}
+      listMode={listMode}
       onAddProject={onAddProject}
       onScrollNearEnd={onScrollNearEnd}
       onSelectMode={onSelectMode}
@@ -29,8 +30,15 @@ function renderSessionArea(isProjectFirstView: boolean, onScrollNearEnd = vi.fn(
 }
 
 describe("ChatSidebarSessionArea", () => {
-  it("renders an accessible animated segmented control for list modes", () => {
-    const { onSelectMode } = renderSessionArea(false);
+  it('explains when scheduled conversations will appear', () => {
+    renderSessionArea('scheduled');
+    expect(screen.getByText('No scheduled task conversations yet. They will appear after a task runs.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Scheduled' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.queryByRole('button', { name: 'Add Project' })).toBeNull();
+  });
+
+  it("renders an accessible segmented control for all three list modes", () => {
+    const { onSelectMode } = renderSessionArea('time-first');
     const modeGroup = screen.getByRole("group", { name: "Session list view" });
     const timeButton = screen.getByRole("button", { name: "Time" });
     const projectButton = screen.getByRole("button", { name: "Project" });
@@ -40,12 +48,9 @@ describe("ChatSidebarSessionArea", () => {
     expect(modeGroup.className).toContain("bg-foreground/[0.04]");
     expect(modeGroup.className).not.toContain("border");
     expect(modeGroup.className).not.toContain("shadow-inner");
-    const modeIndicator = modeGroup.querySelector("span[aria-hidden='true']");
-    expect(modeIndicator?.className).toContain("rounded-full");
-    expect(modeIndicator?.className).toContain("bg-gray-200/70");
-    expect(modeIndicator?.className).not.toContain("shadow-");
-    expect(modeIndicator?.className).not.toContain("ring-");
-    expect(modeIndicator?.className).toContain("transition-transform");
+    const scheduledButton = screen.getByRole('button', { name: 'Scheduled' });
+    expect(scheduledButton.getAttribute('aria-pressed')).toBe('false');
+    expect(timeButton.className).toContain('bg-[var(--sidebar-segment-selection)]');
     expect(timeButton.getAttribute("aria-pressed")).toBe("true");
     expect(projectButton.getAttribute("aria-pressed")).toBe("false");
     expect(timeButton.className).toContain("rounded-full");
@@ -59,16 +64,15 @@ describe("ChatSidebarSessionArea", () => {
     fireEvent.click(projectButton);
 
     expect(onSelectMode).toHaveBeenCalledWith("project-first");
+    fireEvent.click(scheduledButton);
+    expect(onSelectMode).toHaveBeenLastCalledWith('scheduled');
   });
 
   it("uses a folder-plus icon for the add-project action", () => {
-    const { onAddProject } = renderSessionArea(true);
+    const { onAddProject } = renderSessionArea('project-first');
     const addProjectButton = screen.getByRole("button", {
       name: "Add Project",
     });
-    const modeIndicator = screen
-      .getByRole("group", { name: "Session list view" })
-      .querySelector("span[aria-hidden='true']");
 
     expect(
       addProjectButton
@@ -76,8 +80,7 @@ describe("ChatSidebarSessionArea", () => {
         ?.classList.contains("lucide-folder-plus"),
     ).toBe(true);
     expect(addProjectButton.className).toContain("hover:before:bg-[var(--interaction-hover)]");
-    expect(modeIndicator?.className).toContain("translate-x-full");
-    expect(modeIndicator?.className).toContain("motion-reduce:transition-none");
+    expect(screen.getByRole('button', { name: 'Project' }).className).toContain('bg-[var(--sidebar-segment-selection)]');
     expect(
       screen
         .getByRole("button", { name: "Project" })
@@ -92,7 +95,7 @@ describe("ChatSidebarSessionArea", () => {
   });
 
   it("requests the next page before scrolling reaches the end", () => {
-    const { onScrollNearEnd } = renderSessionArea(false);
+    const { onScrollNearEnd } = renderSessionArea('time-first');
     const scroller = document.querySelector(".overflow-y-auto") as HTMLDivElement;
     Object.defineProperties(scroller, {
       scrollHeight: { value: 2_000 },

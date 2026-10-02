@@ -2,6 +2,7 @@ import type {
   NcpSessionContextCompactionView,
   NcpSessionSkillsView,
   SessionPatchUpdate,
+  SessionListQuery,
   UiNcpAssetPutView,
   UiNcpSessionListView,
   UiNcpSessionMessagesView,
@@ -33,8 +34,8 @@ export class SessionsService {
     private readonly eventBus: EventBus
   ) {}
 
-  readonly list = async (params?: { limit?: number; page?: number; pageSize?: number; query?: string; peerId?: string }): Promise<UiNcpSessionListView> => {
-    const { limit, page, pageSize, query: rawQuery, peerId: rawPeerId } = params ?? {};
+  readonly list = async (params?: SessionListQuery): Promise<UiNcpSessionListView> => {
+    const { limit, page, pageSize, query: rawQuery, peerId: rawPeerId, scheduledOnly } = params ?? {};
     const query = new URLSearchParams();
     if (typeof limit === "number" && Number.isFinite(limit)) {
       query.set("limit", String(Math.max(1, Math.trunc(limit))));
@@ -42,6 +43,7 @@ export class SessionsService {
     if (typeof page === "number" && Number.isFinite(page)) query.set("page", String(Math.max(1, Math.trunc(page))));
     if (typeof pageSize === "number" && Number.isFinite(pageSize)) query.set("pageSize", String(Math.max(1, Math.trunc(pageSize))));
     if (rawQuery?.trim()) query.set("query", rawQuery.trim());
+    if (scheduledOnly !== undefined) query.set("scheduledOnly", String(scheduledOnly));
     const peerId = rawPeerId?.trim();
     if (peerId) {
       query.set("peerId", peerId);

@@ -12,13 +12,7 @@ import type {
 } from "@/shared/lib/api/types";
 
 // GET /api/ncp/sessions
-export async function fetchNcpSessions(params?: {
-  limit?: number;
-  page?: number;
-  pageSize?: number;
-  query?: string;
-  peerId?: string;
-}): Promise<NcpSessionsListView> {
+export async function fetchNcpSessions(params?: Parameters<typeof nextclawClient.sessions.list>[0]): Promise<NcpSessionsListView> {
   return (await nextclawClient.sessions.list(params)) as NcpSessionsListView;
 }
 

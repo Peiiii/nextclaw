@@ -354,6 +354,21 @@ describe('paginated ncp session realtime cache', () => {
     expect(queryClient.getQueryState(queryKey)?.isInvalidated).toBe(true);
   });
 
+  it('refetches scheduled membership without injecting ordinary summaries', () => {
+    const queryClient = new QueryClient();
+    const queryKey = ['ncp-session-pages', 100, null, true];
+    const current = { pages: [{ ...createSessionsList(), page: 1, pageSize: 100 }], pageParams: [1] };
+    queryClient.setQueryData(queryKey, current);
+    for (const summary of [createSessionsList().sessions[0]!, {
+      sessionId: 'ordinary-new', messageCount: 0, updatedAt: '2026-10-02', status: 'idle' as const,
+    }]) {
+      applyNcpSessionRealtimeEvent(queryClient, { type: 'session.summary.upsert', payload: { summary } });
+      expect(queryClient.getQueryData(queryKey)).toEqual(current);
+      expect(queryClient.getQueryState(queryKey)?.isInvalidated).toBe(true);
+    }
+    queryClient.clear();
+  });
+
   it('invalidates paginated queries after deletion changes their membership', () => {
     const queryClient = new QueryClient();
     const queryKey = ['ncp-session-pages', 100, null] as const;

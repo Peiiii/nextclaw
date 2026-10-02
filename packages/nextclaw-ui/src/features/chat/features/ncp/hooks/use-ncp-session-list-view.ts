@@ -29,6 +29,7 @@ export function useNcpSessionListView(
   params: { limit?: number; query?: string | null } = {},
 ) {
   const storedQuery = useChatSessionListStore((state) => state.snapshot.query);
+  const listMode = useChatSessionListStore((state) => state.snapshot.listMode);
   const runningSessionKeys = useChatSessionListStore((state) => state.runningSessionKeys);
   const pinOverrides = useChatSessionListStore((state) => state.optimisticPinnedBySessionKey);
   const query = params.query ?? storedQuery;
@@ -36,6 +37,7 @@ export function useNcpSessionListView(
   const sessionsQuery = useInfiniteNcpSessions({
     pageSize: params.limit ?? 100,
     query: deferredQuery,
+    scheduledOnly: listMode === 'scheduled',
   });
 
   const allItems = useMemo<NcpSessionListItemView[]>(() => {

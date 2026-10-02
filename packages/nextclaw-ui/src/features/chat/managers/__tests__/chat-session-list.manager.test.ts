@@ -320,16 +320,16 @@ describe("ChatSessionListManager draft and selection flow", () => {
 describe("ChatSessionListManager list preference and read state", () => {
   beforeEach(resetChatSessionListManagerState);
 
-  it("updates the sidebar list mode without touching other session list state", () => {
+  it.each(['project-first', 'scheduled'] as const)("persists %s without touching other session list state", (mode) => {
     const uiManager = {} as ConstructorParameters<
       typeof ChatSessionListManager
     >[0];
 
     const manager = new ChatSessionListManager(uiManager);
-    manager.setListMode("project-first");
+    manager.setListMode(mode);
 
     expect(useChatSessionListStore.getState().snapshot.listMode).toBe(
-      "project-first",
+      mode,
     );
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe(
       "session-1",
@@ -337,7 +337,7 @@ describe("ChatSessionListManager list preference and read state", () => {
     expect(persistStorage.get(chatSessionListModeStorageKey)).toMatchObject({
       state: {
         snapshot: {
-          listMode: "project-first",
+          listMode: mode,
         },
       },
     });
@@ -514,6 +514,15 @@ describe("ChatSessionListStore persistence", () => {
         collapsedProjectRoots: [],
       },
     });
+  });
+
+  it('restores the scheduled view after rehydration', () => {
+    useChatSessionListStore.persist.setOptions({ storage: {
+      getItem: () => ({ state: { snapshot: { listMode: 'scheduled' } } }),
+      setItem: vi.fn(), removeItem: vi.fn(),
+    } });
+    useChatSessionListStore.persist.rehydrate();
+    expect(useChatSessionListStore.getState().snapshot.listMode).toBe('scheduled');
   });
 
   it("falls back to time-first when the persisted sidebar list mode is invalid", () => {

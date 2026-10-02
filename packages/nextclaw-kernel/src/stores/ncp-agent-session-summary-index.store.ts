@@ -1,5 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
+import type { SessionListFilter } from "@kernel/types/session.types.js";
 import { NcpEventType, type NcpEndpointEvent, type NcpMessage, type NcpSessionSummary } from "@nextclaw/ncp";
 import {
   type LoadedNcpAgentJournalSession,
@@ -22,23 +23,35 @@ const CATALOG_SCHEMA_VERSION = 2;
 const MIGRATION_STATUS_KEY = "migration_status";
 const MIGRATION_COMPLETE = "complete";
 
-type SessionCatalogPageOptions = {
+type SessionCatalogPageOptions = SessionListFilter & {
   offset: number;
   limit: number;
-  query?: string;
 };
-function buildCatalogFilter(query?: string): { sql: string; params: string[] } {
+function buildCatalogFilter(options: SessionListFilter): { sql: string; params: string[] } {
+  const { query, peerId, scheduledOnly } = options;
+  const conditions = ["deleted_at IS NULL"];
+  const params: string[] = [];
+  if (scheduledOnly) {
+    conditions.push(`(json_extract(metadata_json, '$.session_origin') = 'cron' OR
+      (json_type(metadata_json, '$.cron_job_id') = 'text' AND
+        LENGTH(TRIM(json_extract(metadata_json, '$.cron_job_id'))) > 0) OR
+      session_id GLOB 'cron:*')`);
+  }
+  if (peerId?.trim()) {
+    conditions.push("peer_id = ?");
+    params.push(peerId.trim());
+  }
   const normalized = query?.trim().toLocaleLowerCase();
-  if (!normalized) return { sql: "deleted_at IS NULL", params: [] };
+  if (!normalized) return { sql: conditions.join(" AND "), params };
   const pattern = `%${normalized.replace(/[\\%_]/g, "\\$&")}%`;
   return {
-    sql: `deleted_at IS NULL AND (
+    sql: `${conditions.join(" AND ")} AND (
       LOWER(session_id) LIKE ? ESCAPE '\\' OR
       LOWER(COALESCE(peer_id, '')) LIKE ? ESCAPE '\\' OR
       LOWER(COALESCE(agent_id, '')) LIKE ? ESCAPE '\\' OR
       LOWER(metadata_json) LIKE ? ESCAPE '\\'
     )`,
-    params: [pattern, pattern, pattern, pattern],
+    params: [...params, pattern, pattern, pattern, pattern],
   };
 }
 function readEventMessage(event: NcpAgentSessionJournalReplayEvent): NcpMessage | undefined {
@@ -92,7 +105,7 @@ export class NcpAgentSessionSummaryIndexStore {
 
   listPage = async (options: SessionCatalogPageOptions): Promise<NcpSessionSummary[]> => {
     await this.ensureReady();
-    const filter = buildCatalogFilter(options.query);
+    const filter = buildCatalogFilter(options);
     const rows = this.db().prepare(
       `SELECT * FROM sessions
        WHERE ${filter.sql}
@@ -103,9 +116,9 @@ export class NcpAgentSessionSummaryIndexStore {
     return rows.map((row) => structuredClone(rowToSummary(row)));
   };
 
-  count = async (query?: string): Promise<number> => {
+  count = async (options: SessionListFilter = {}): Promise<number> => {
     await this.ensureReady();
-    const filter = buildCatalogFilter(query);
+    const filter = buildCatalogFilter(options);
     const row = this.db().prepare(
       `SELECT COUNT(*) AS total FROM sessions WHERE ${filter.sql}`,
     ).get(...filter.params) as { total: number };

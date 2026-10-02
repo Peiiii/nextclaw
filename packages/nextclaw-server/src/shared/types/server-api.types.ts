@@ -1,5 +1,5 @@
 import type { Config, ThinkingLevel } from "@nextclaw/core";
-import type { SessionSettingsPatch, SessionTokenUsageSummary } from "@nextclaw/kernel";
+import type { SessionListPageOptions, SessionSettingsPatch, SessionTokenUsageSummary } from "@nextclaw/kernel";
 import type { AgentProfileView } from "./server-api-agent.types.js";
 import type { AppEvent } from "@nextclaw/shared";
 import type {
@@ -633,6 +633,8 @@ export type ProductAnalyticsView = Config["productAnalytics"];
 export type ProductAnalyticsAudience = ProductAnalyticsView["audience"];
 export type ProductAnalyticsConfigUpdate = Partial<ProductAnalyticsView>;
 export type { ProductAnalyticsStatusView } from "./server-api-config.types.js";
+
+export type SessionListQuery = Partial<SessionListPageOptions> & { limit?: number };
 
 export type UiNcpSessionListView = {
   sessions: NcpSessionSummary[];
