@@ -60,7 +60,7 @@ async function checkTwoRows(page: Page, surface: Locator, width: number, workspa
     return { header: header.height, tools: tools.height, overflowControls, adjacent: header.bottom === tools.top && tools.bottom === content.top, overflow: document.documentElement.scrollWidth > innerWidth };
   }, workspace);
   assert.equal(layout.header, width > 760 ? 44 : 56);
-  assert.equal(layout.tools, 44, "paths and operations occupy exactly one row");
+  assert.equal(layout.tools, width > 760 ? 44 : 56, "paths and operations occupy one row, including touch targets and vertical padding");
   assert.deepEqual(layout.overflowControls, [], "controls never wrap or overflow the toolbar row");
   assert.equal(layout.adjacent, true, "content starts immediately after the two chrome rows");
   assert.equal(layout.overflow, false);
@@ -77,7 +77,14 @@ export async function checkWorkspaceFiles(page: Page, width: number, base: strin
   await checkFileDrafts(page, workspace, width);
   await checkEmptyDirectory(page, workspace);
   await page.screenshot({ path: `/tmp/bibo-file-workspace-${width}.png`, fullPage: true });
-  while (await workspace.getByRole("button", { name: /^关闭 / }).count()) await workspace.getByRole("button", { name: /^关闭 / }).first().click();
+  while (await workspace.getByRole("button", { name: /^关闭 / }).count()) {
+    await workspace.getByRole("button", { name: /^关闭 / }).first().click();
+    const confirmation = page.getByRole("dialog", { name: "保存文件修改？" });
+    if (await confirmation.count()) {
+      await confirmation.getByRole("button", { name: "保存并关闭", exact: true }).click();
+      await confirmation.waitFor({ state: "hidden" });
+    }
+  }
   await workspace.getByRole("heading", { name: "选择文件或笔记" }).waitFor();
   await openWorkspaceFile(page, ["想法.md"]);
   await openMarkdownSource(page, workspace);
@@ -174,7 +181,7 @@ async function checkFileDrafts(page: Page, workspace: Locator, width: number): P
     const inactive = workspace.locator(".ui-tab-item:not(.is-active)").first();
     const resting = await inactive.evaluate((node) => getComputedStyle(node).backgroundColor);
     await inactive.hover();
-    await inactive.evaluate(async node => { getComputedStyle(node).backgroundColor; await Promise.all(node.getAnimations().map(animation => animation.finished)); });
+    await inactive.evaluate(async node => { void getComputedStyle(node).backgroundColor; await Promise.all(node.getAnimations().map(animation => animation.finished)); });
     assert.notEqual(await inactive.evaluate((node) => getComputedStyle(node).backgroundColor), resting, "inactive tab hover remains visible on the frame");
   }
   await workspace.getByRole("navigation", { name: "文件路径" }).getByRole("button", { name: "B-folder", exact: true }).click();

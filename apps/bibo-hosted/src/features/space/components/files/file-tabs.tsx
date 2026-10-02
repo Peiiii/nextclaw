@@ -2,12 +2,14 @@ import { ArrowLeft, PanelLeftOpen, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button, Dialog, IconButton, Tab, TabList } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
+import { useWorkspaceUiStore } from "@/features/space/stores/workspace-ui.store";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { FileKindIcon } from "./file-kind-icon";
 import { FileDirectoryButton } from "./file-breadcrumbs";
 
 export function FileTabs({ workspace = false }: { workspace?: boolean }) {
-  const { files, notes, tabs, activeFileId, workspaceFileId, fileDetails, fileDrafts, fileOpenError, openFile, openWorkspace, closeFile, saveFile, showFileBrowser, treeCollapsed, toggleTree, view } = useBiboSpaceStore();
+  const { files, notes, tabs, activeFileId, workspaceFileId, fileDetails, fileDrafts, fileOpenError, openFile, openWorkspace, closeFile, saveFile, showFileBrowser, view } = useBiboSpaceStore();
+  const { treeCollapsed, toggleTree } = useWorkspaceUiStore();
   const visibleTabs = !workspace && view === "notes" ? tabs.filter((id) => (fileDetails[id] ?? files.find((file) => file.id === id) ?? notes.find((file) => file.id === id))?.kind === "note") : tabs;
   const selected = workspace ? workspaceFileId : activeFileId;
   const prefix = workspace ? "bibo-workspace-file-tab" : "bibo-file-tab";

@@ -1,7 +1,7 @@
 import { create, type StoreApi } from "zustand";
 import { BiboClient, BiboClientError, type BiboEvent, type BiboFile, type BiboFileDetail, type BiboInboxItem, type BiboOverview, type BiboProject, type BiboTask } from "@nextclaw/bibo-client";
 import { calendarMonthRange } from "@/features/space/utils/calendar.utils";
-import { readBiboTheme, readWorkspaceLayout, revealedFileLayout, writeBiboTheme, writeWorkspaceLayout, type BiboTheme } from "@/features/space/utils/workspace-layout.utils";
+import { readWorkspaceLayout, revealedFileLayout, writeWorkspaceLayout } from "@/features/space/utils/workspace-layout.utils";
 import { readCalendarEvents, readNextSpacePage, readSpaceLists, savedTaskView, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
 import { navigateWorkspace } from "@/app/workspace-router";
 import { closedFileState, fileDeletionState, openedFileState, restoredFileTargets, savedFileState } from "@/features/space/utils/file-state.utils";
@@ -33,10 +33,6 @@ class BiboSpaceOwner {
   private fileOpenRequest = 0;
   private readonly closedFiles = new Set<string>();
   view: BiboView = "overview";
-  theme = readBiboTheme();
-  sidebarCollapsed = false;
-  treeCollapsed = false;
-  treeWidth = 230;
   expandedFolders: Record<string, boolean> = {};
   fileBrowserVisible = true;
   workspaceOpen = false;
@@ -120,10 +116,6 @@ class BiboSpaceOwner {
 
   navigate = navigateWorkspace;
 
-  toggleSidebar = (): void => { this.set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })); this.saveLayout(); };
-  setTheme = (theme: BiboTheme): void => { this.set({ theme }); writeBiboTheme(theme); };
-  toggleTree = (): void => { this.set((state) => ({ treeCollapsed: !state.treeCollapsed })); this.saveLayout(); };
-  resizeTree = (width: number): void => { this.set({ treeWidth: Math.min(360, Math.max(180, width)) }); this.saveLayout(); };
   toggleFolder = (id: string): void => { this.set((state) => ({ expandedFolders: { ...state.expandedFolders, [id]: !state.expandedFolders[id] } })); this.saveLayout(); };
   showFileBrowser = (): void => this.set({ fileBrowserVisible: true });
   searchFiles = async (query: string, more = false): Promise<void> => {

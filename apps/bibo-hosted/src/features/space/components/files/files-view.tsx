@@ -12,6 +12,7 @@ import {
 } from "@nextclaw/personal-agent-ui";
 import { FileText, Library, Plus, Search, SquarePen } from "lucide-react";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
+import { useWorkspaceUiStore } from "@/features/space/stores/workspace-ui.store";
 import { day } from "@/features/space/utils/date-format.utils";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { FileTree } from "./file-tree";
@@ -47,15 +48,13 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
     workspaceFileId,
     workspaceOpen,
     loadMore,
-    treeCollapsed,
-    toggleTree,
     showFileBrowser,
     openFile,
     fileBrowserVisible,
-    treeWidth,
     noteQuery,
     searchNotes,
   } = useBiboSpaceStore();
+  const { treeCollapsed, toggleTree, treeWidth } = useWorkspaceUiStore();
   const [kind, setKind] = useState<BiboFile["kind"]>(
     notesOnly ? "note" : "document"
   );

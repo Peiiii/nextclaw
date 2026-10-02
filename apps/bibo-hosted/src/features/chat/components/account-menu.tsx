@@ -11,7 +11,7 @@ import {
 } from "@nextclaw/personal-agent-ui";
 import { useBiboChatStore } from "@/features/chat/stores/bibo-chat.store";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
-import { useBiboSpaceStore } from "@/features/space";
+import { useWorkspaceUiStore } from "@/features/space";
 
 const themeOptions = [
   { value: "classic", label: copy.classicTheme },
@@ -20,8 +20,8 @@ const themeOptions = [
 
 export function AccountMenu({ compact = false }: { compact?: boolean }) {
   const store = useBiboChatStore();
-  const theme = useBiboSpaceStore((state) => state.theme);
-  const setTheme = useBiboSpaceStore((state) => state.setTheme);
+  const theme = useWorkspaceUiStore((state) => state.theme);
+  const setTheme = useWorkspaceUiStore((state) => state.setTheme);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");

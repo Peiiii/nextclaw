@@ -2,6 +2,71 @@ import { openMarkdownSource } from "../personal-workspace.fixture";
 import assert from "node:assert/strict";
 import type { Locator, Page } from "playwright";
 
+export async function checkLayoutInitialization(page: Page, base: string): Promise<void> {
+  await page.goto(base, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "收起侧边栏", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector(".bibo-sidebar")!.getBoundingClientRect().width < 100);
+  await page.locator(".bibo-sidebar").evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
+  const width = await page.locator(".bibo-sidebar").evaluate((element) => element.getBoundingClientRect().width);
+  let releaseAccount!: () => void;
+  const accountGate = new Promise<void>((resolve) => { releaseAccount = resolve; });
+  await page.route("**/api/auth/me", async (route) => { await accountGate; await route.fallback(); });
+  await page.addInitScript(() => {
+    (window as unknown as { layoutTransitions: string[] }).layoutTransitions = [];
+    document.addEventListener("transitionrun", (event) => {
+      if ((event.target as Element).matches(".bibo-sidebar, .bibo-sidebar-panel, .bibo-workspace, .bibo-main"))
+        (window as unknown as { layoutTransitions: string[] }).layoutTransitions.push((event.target as Element).className);
+    });
+  });
+  try {
+    await checkSidebarRestoration(page, width, releaseAccount);
+    await checkResponsiveLayoutPreference(page, base);
+  } finally { releaseAccount(); await page.unroute("**/api/auth/me"); }
+}
+
+async function checkSidebarRestoration(page: Page, width: number, releaseAccount: () => void): Promise<void> {
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator(".bibo-shell").waitFor();
+  assert.equal(await page.locator(".bibo-sidebar").evaluate((element) => element.getBoundingClientRect().width), width,
+    "first paint restores the collapsed sidebar before the account response");
+  releaseAccount();
+  await page.getByRole("button", { name: "账号与帮助" }).waitFor();
+  await page.waitForLoadState("networkidle");
+  assert.equal(await page.locator(".bibo-sidebar").evaluate((element) => element.getBoundingClientRect().width), width);
+  assert.deepEqual(await page.evaluate(() => (window as unknown as { layoutTransitions: string[] }).layoutTransitions), [],
+    "restoring layout must not replay user action transitions");
+  await page.screenshot({ path: `/tmp/bibo-layout-initialization-${new URL(page.url()).hostname}.png` });
+  const motion = await page.evaluate<number[]>(`(async () => {
+    document.querySelector('[aria-label="展开侧边栏"]').click();
+    const widths = [];
+    const start = performance.now();
+    do { await new Promise(requestAnimationFrame); widths.push(document.querySelector('.bibo-sidebar').getBoundingClientRect().width); }
+    while (performance.now() - start < 300);
+    return widths;
+  })()`);
+  assert.ok(motion.some((sample) => sample > width + 1 && sample < motion.at(-1)! - 1), "explicit expansion retains intermediate animation frames");
+  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await page.getByRole("button", { name: "收起侧边栏", exact: true }).getAttribute("aria-expanded"), "true");
+  assert.deepEqual(await page.evaluate(() => (window as unknown as { layoutTransitions: string[] }).layoutTransitions), []);
+}
+
+async function checkResponsiveLayoutPreference(page: Page, base: string): Promise<void> {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.getByRole("button", { name: "收起侧边栏", exact: true }).click();
+  assert.equal(await page.locator(".bibo-sidebar").evaluate((element) => getComputedStyle(element).transitionDuration), "0s");
+  await page.getByRole("button", { name: "展开侧边栏", exact: true }).click();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto(`${base}/files`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "收起目录树", exact: true }).click();
+  await page.getByRole("button", { name: "展开目录树", exact: true }).waitFor();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await page.locator(".bibo-file-tree").isVisible(), true, "mobile restores a visible directory even when the desktop preference is collapsed");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "展开目录树", exact: true }).waitFor();
+}
+
 export async function checkLongPlanningDetails(page: Page, view: "tasks" | "calendar") {
   await page.locator(view === "tasks" ? ".bibo-task-row" : ".bibo-agenda-event:visible").first().click();
   if (view === "tasks") await page.getByRole("button", { name: "编辑任务", exact: true }).click();

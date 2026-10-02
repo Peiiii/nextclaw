@@ -4,7 +4,7 @@ import { readWorkspaceRoute, workspaceHref } from "@/app/workspace-router";
 import { Button, Composer, IconButton, Markdown, Message, Sheet, NavigationItem } from "@nextclaw/personal-agent-ui";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { useBiboChatStore, type BiboDisplayMessage } from "@/features/chat/stores/bibo-chat.store";
-import { BiboSpaceView, BiboWorkspace, FileTabs, FileEditorHeader, NoteNavigation, useBiboSpaceStore, type BiboView } from "@/features/space";
+import { BiboSpaceView, BiboWorkspace, FileTabs, FileEditorHeader, NoteNavigation, useBiboSpaceStore, useWorkspaceUiStore, type BiboView } from "@/features/space";
 
 import { ArrowDown, CalendarDays, CheckCheck, FileText, Folder, Home, Inbox, Menu, MessageCircle, MessageCircleQuestion, PanelLeftClose, PanelLeftOpen, PanelRight, Plus, Sparkles, type LucideIcon } from "lucide-react";
 import { SessionNavigation } from "./session-navigation";
@@ -13,6 +13,7 @@ import { AccountMenu } from "./account-menu";
 import { AuthPanel } from "./auth-panel";
 import { workspaceResources } from "@/features/space";
 import { QuestionPanel, QuestionReference, QuestionTags } from "./session-user-questions";
+import { useLayoutMotion } from "@/features/chat/hooks/use-layout-motion";
 
 const suggestions = [
   { icon: MessageCircle, label: "先认识我", text: "我想让你成为我的个人搭档。先问我三个关键问题，了解我最近最在意的目标，然后帮我选一件今天能推进的事。" },
@@ -58,28 +59,24 @@ function RunStatus() {
 export function BiboApp() {
   const store = useBiboChatStore();
   const space = useBiboSpaceStore();
+  const ui = useWorkspaceUiStore();
   useLayoutEffect(() => {
-    document.documentElement.dataset.biboTheme = space.theme;
+    document.documentElement.dataset.biboTheme = ui.theme;
     document.querySelector('meta[name="theme-color"]')?.setAttribute(
       "content", getComputedStyle(document.documentElement).getPropertyValue("--ui-canvas").trim(),
     );
-  }, [space.theme]);
+  }, [ui.theme]);
   const location = useLocation();
   const route = readWorkspaceRoute(location.pathname);
-  const shellRef = useRef<HTMLDivElement>(null);
+  const { shellRef, sidebarRef, mainRef, sidebarMotion, workspaceMotion, startSidebarMotion, startWorkspaceMotion } = useLayoutMotion(`${location.key}:${space.accountId ?? ""}`);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const sidebarRef = useRef<HTMLElement>(null);
   const sidebarPanelRef = useRef<HTMLDivElement>(null);
-  const mainRef = useRef<HTMLElement>(null);
-  const workspaceMotionKey = useRef<string | null>(null);
+  const toggleSidebar = () => {
+    startSidebarMotion();
+    ui.toggleSidebar();
+  };
   const toggleWorkspace = (open: boolean) => {
-    workspaceMotionKey.current = location.key;
-    const main = mainRef.current;
-    if (main) {
-      main.dataset.workspaceMotion = "true";
-      // Establish the current geometry before this explicit opening/closing action.
-      void getComputedStyle(main).gridTemplateColumns;
-    }
+    startWorkspaceMotion();
     if (open) space.showWorkspace(); else space.closeWorkspace();
   };
   const mobileNavRef = useRef<HTMLElement>(null);
@@ -148,9 +145,9 @@ export function BiboApp() {
     for (const element of [sidebarRef.current, mainRef.current, mobileNavRef.current]) {
       if (element) element.inert = authOpen;
     }
-    if (sidebarPanelRef.current) sidebarPanelRef.current.inert = authOpen || space.sidebarCollapsed;
-  }, [authOpen, mobile, space.sidebarCollapsed]);
-  const collapsedFileTree = space.view === "files" && space.treeCollapsed,
+    if (sidebarPanelRef.current) sidebarPanelRef.current.inert = authOpen || ui.sidebarCollapsed;
+  }, [authOpen, mobile, ui.sidebarCollapsed]);
+  const collapsedFileTree = space.view === "files" && ui.treeCollapsed,
     fileHeader = (space.view === "files" || space.view === "notes") && (space.tabs.length > 0 || collapsedFileTree) && (space.view !== "notes" || !space.fileBrowserVisible) && (!mobile || !space.fileBrowserVisible || collapsedFileTree);
   const workspaceTitle = space.view === "chat" ? store.sessions.find((session) => session.id === store.activeSessionId)?.title ?? "新对话" : navigation.find((item) => item.view === space.view)?.label;
   const workspaceNavigation = <nav className="bibo-primary-nav" aria-label="工作空间">{navigation.map((item) => <NavigationItem key={item.view} label={item.label} selected={space.view === item.view} layout={mobile ? "row" : "icon"} tooltip={!mobile}><Link to={workspaceHref(item.view, store.activeSessionId)} className={`bibo-nav-item${space.view === item.view ? " is-active" : ""}`} aria-label={item.label} aria-current={space.view === item.view ? "page" : undefined} onClick={closeMenu}><item.icon aria-hidden="true" className="bibo-nav-mark" /><span className="bibo-nav-text">{item.label}</span>{item.view === "inbox" && (space.overview?.counts.unread ?? 0) > 0 && <small>{space.overview?.counts.unread}</small>}</Link></NavigationItem>)}</nav>;
@@ -166,9 +163,9 @@ export function BiboApp() {
         <AccountMenu />
       </nav>}
   </>;
-  return <div ref={shellRef} className={`bibo-shell${space.view === "chat" ? " is-chat" : ""}${space.view === "overview" ? " is-overview" : ""}${space.view === "notes" && space.fileBrowserVisible ? " is-notes-collection" : ""}${space.sidebarCollapsed ? " is-sidebar-collapsed" : ""}${space.workspaceOpen && space.view === "chat" ? " has-workspace" : ""}`}>
-    {mobile ? <Sheet open={store.menuOpen && !authOpen} onOpenChange={store.setMenuOpen} title="个人空间" closeLabel="关闭导航" returnFocusRef={menuButtonRef}><aside className="bibo-sidebar is-drawer" aria-label="导航">{sidebarContent}</aside></Sheet> : <aside ref={sidebarRef} className="bibo-sidebar" aria-label="导航"><div className="bibo-navigation-rail" data-ui-surface="frame"><NavigationItem label={space.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} layout="icon"><button type="button" aria-label={space.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} aria-expanded={!space.sidebarCollapsed} onClick={space.toggleSidebar}>{space.sidebarCollapsed ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}</button></NavigationItem>{workspaceNavigation}<div className="bibo-sidebar-spacer" /><AccountMenu compact /></div><div ref={sidebarPanelRef} className="bibo-sidebar-panel" data-ui-surface="sidebar">{sidebarContent}</div></aside>}
-    <main ref={mainRef} className="bibo-main" data-workspace-motion={workspaceMotionKey.current === location.key}>
+  return <div ref={shellRef} data-sidebar-motion={sidebarMotion} className={`bibo-shell${space.view === "chat" ? " is-chat" : ""}${space.view === "overview" ? " is-overview" : ""}${space.view === "notes" && space.fileBrowserVisible ? " is-notes-collection" : ""}${ui.sidebarCollapsed ? " is-sidebar-collapsed" : ""}${space.workspaceOpen && space.view === "chat" ? " has-workspace" : ""}`}>
+    {mobile ? <Sheet open={store.menuOpen && !authOpen} onOpenChange={store.setMenuOpen} title="个人空间" closeLabel="关闭导航" returnFocusRef={menuButtonRef}><aside className="bibo-sidebar is-drawer" aria-label="导航">{sidebarContent}</aside></Sheet> : <aside ref={sidebarRef} className="bibo-sidebar" aria-label="导航"><div className="bibo-navigation-rail" data-ui-surface="frame"><NavigationItem label={ui.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} layout="icon"><button type="button" aria-label={ui.sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"} aria-expanded={!ui.sidebarCollapsed} onClick={toggleSidebar}>{ui.sidebarCollapsed ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}</button></NavigationItem>{workspaceNavigation}<div className="bibo-sidebar-spacer" /><AccountMenu compact /></div><div ref={sidebarPanelRef} className="bibo-sidebar-panel" data-ui-surface="sidebar">{sidebarContent}</div></aside>}
+    <main ref={mainRef} className="bibo-main" data-workspace-motion={workspaceMotion}>
       <header className={`bibo-topbar${fileHeader ? " is-file-header" : ""}${fileHeader && space.view === "notes" ? " is-note-header" : ""}`} data-ui-surface="frame"><div className="bibo-topbar-leading">
         <IconButton ref={menuButtonRef} className="bibo-menu-button" label="打开菜单" icon={<Menu />} tooltip={false} aria-expanded={store.menuOpen} onClick={() => store.setMenuOpen(!store.menuOpen)} />
         <div className="bibo-topbar-context"><h1 className={fileHeader ? "visually-hidden" : "workspace-title"} title={workspaceTitle}>{workspaceTitle}</h1><RunStatus /></div>

@@ -2,6 +2,7 @@ import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } 
 import type { BiboFile } from "@nextclaw/bibo-client";
 import { Button, IconButton, Input, ListRow, LoadingState, RowActionTray, Tooltip } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
+import { useWorkspaceUiStore } from "@/features/space/stores/workspace-ui.store";
 import { FileActions } from "./file-actions";
 import { FileKindIcon } from "./file-kind-icon";
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
@@ -149,7 +150,8 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
   );
 }
 export function FileTree({ onCreate, onToggle, toggleControlRef }: { onCreate: CreateFile; onToggle: () => void; toggleControlRef: React.RefObject<HTMLButtonElement> }) {
-  const { treeCollapsed, treeWidth, resizeTree, fileQuery, searchFiles, cursors, moreLoading, loadMore } = useBiboSpaceStore();
+  const { fileQuery, searchFiles, cursors, moreLoading, loadMore } = useBiboSpaceStore();
+  const { treeCollapsed, treeWidth, resizeTree } = useWorkspaceUiStore();
   const resizeStart = useRef({ x: 0, width: treeWidth });
   return (
     <aside className="bibo-file-tree">
