@@ -21,14 +21,15 @@ export function useNcpSessions(params?: { limit?: number; peerId?: string }) {
   });
 }
 
-export function useInfiniteNcpSessions(params: { pageSize: number; query?: string }) {
+export function useInfiniteNcpSessions(params: { pageSize: number; query?: string; scheduledOnly?: boolean }) {
   return useInfiniteQuery({
-    queryKey: ['ncp-session-pages', params.pageSize, params.query?.trim() || null],
+    queryKey: ['ncp-session-pages', params.pageSize, params.query?.trim() || null, params.scheduledOnly ?? false],
     initialPageParam: 1,
     queryFn: ({ pageParam }) => fetchNcpSessions({
       page: pageParam,
       pageSize: params.pageSize,
       ...(params.query?.trim() ? { query: params.query.trim() } : {}),
+      ...(params.scheduledOnly ? { scheduledOnly: true } : {}),
     }),
     getNextPageParam: (lastPage) => lastPage.hasMore ? (lastPage.page ?? 1) + 1 : undefined,
     ...ncpSessionQueryDefaults,

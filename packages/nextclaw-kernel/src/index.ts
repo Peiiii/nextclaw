@@ -22,7 +22,7 @@ export * from "@kernel/managers/extension.manager.js";
 export * from "@kernel/managers/inbox-delivery.manager.js";
 export * from "@kernel/managers/system-object-reference.manager.js";
 export * from "@kernel/managers/session.manager.js";
-export type { SessionPersistence, SessionMessagePage } from "@kernel/types/session.types.js";
+export type { SessionPersistence, SessionMessagePage, SessionListFilter, SessionListPageOptions } from "@kernel/types/session.types.js";
 export { SessionMessageCursorError } from "@kernel/types/session.types.js";
 export { SessionEventReplayer } from "@kernel/utils/ncp-agent-session-replay.utils.js";
 export { createNcpAgentSessionSummary } from "@kernel/utils/ncp-agent-session-journal.utils.js";

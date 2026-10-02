@@ -4,7 +4,7 @@ import { SessionEventReplayer, createNcpAgentSessionSummary, applyNcpAgentRunLif
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { NcpEventType, type NcpSessionSummary } from "@nextclaw/ncp";
 import { BiboEdgeSessionStore } from "./bibo-edge-session.store";
-import { applyBiboStorageChanges } from "../utils/bibo-storage.utils";
+import { applyBiboStorageChanges } from "@/app/utils/bibo-storage.utils";
 
 type Head = Omit<AgentSessionRecord, "messages"> & {
   sequence: number;
@@ -149,10 +149,16 @@ export class CloudflareSessionStore implements SessionPersistence {
     status: head.activeRun ? "running" : "idle",
   });
 
-  listSessionSummaryPage: SessionPersistence["listSessionSummaryPage"] = async ({ page, pageSize, query }) => {
+  listSessionSummaryPage: SessionPersistence["listSessionSummaryPage"] = async ({ page, pageSize, query, peerId, scheduledOnly }) => {
     const normalized = query?.trim().toLowerCase();
-    const sessions = (await this.listSessionSummaries()).filter((session) => !normalized ||
-      `${session.sessionId} ${session.metadata?.label ?? ""}`.toLowerCase().includes(normalized));
+    const peer = peerId?.trim();
+    const sessions = (await this.listSessionSummaries()).filter((session) => {
+      const jobId = session.metadata?.cron_job_id;
+      const scheduled = session.metadata?.session_origin === 'cron' ||
+        (typeof jobId === 'string' && Boolean(jobId.trim())) || session.sessionId.startsWith('cron:');
+      return (!peer || session.peerId === peer) && (!scheduledOnly || scheduled) &&
+        (!normalized || `${session.sessionId} ${session.metadata?.label ?? ""}`.toLowerCase().includes(normalized));
+    });
     const size = Math.max(1, Math.floor(pageSize));
     const start = Math.max(0, Math.floor(page) - 1) * size;
     return { sessions: sessions.slice(start, start + size), total: sessions.length };

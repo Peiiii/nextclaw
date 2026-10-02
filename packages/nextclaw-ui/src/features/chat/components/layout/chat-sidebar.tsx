@@ -207,7 +207,6 @@ export function ChatSidebar({
     defaultSessionType,
     sessionTypeOptions,
   });
-  const isProjectFirstView = listSnapshot.listMode === "project-first";
   const shouldCollapse = !isMobileVariant && isSidebarCollapsed;
   const optimisticReadAtBySessionKey = useChatSessionUnreadState(
     items,
@@ -300,7 +299,7 @@ export function ChatSidebar({
 
       {isMobileVariant ? (
         <ChatSidebarMobileToolbar
-          isProjectFirstView={isProjectFirstView}
+          listMode={listSnapshot.listMode}
           onSelectMode={presenter.chatSessionListManager.setListMode}
           onAddProject={openProjectAdd}
           query={listSnapshot.query}
@@ -326,7 +325,7 @@ export function ChatSidebar({
         groups={groups}
         isCollapsed={shouldCollapse}
         isLoading={isLoading}
-        isProjectFirstView={isProjectFirstView}
+        listMode={listSnapshot.listMode}
         onAddProject={openProjectAdd}
         onScrollNearEnd={() => {
           if (hasMore && !isLoadingMore) void loadMore();

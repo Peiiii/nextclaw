@@ -17,6 +17,7 @@ type ChatSidebarSessionListProps = {
   variant?: 'desktop' | 'mobile';
   isLoading: boolean;
   isProjectFirstView: boolean;
+  emptyLabel?: string;
   groups: ChatSidebarDateGroup[];
   projectGroups: ChatSidebarProjectGroup[];
   projectCronJobCountByRoot: ReadonlyMap<string, number>;
@@ -75,6 +76,7 @@ export function ChatSidebarSessionList({
   groups,
   isLoading,
   isProjectFirstView,
+  emptyLabel,
   projectGroups,
   projectCronJobCountByRoot,
   renderSessionItem,
@@ -90,7 +92,7 @@ export function ChatSidebarSessionList({
 
   if (isProjectFirstView) {
     return projectGroups.length === 0 ? (
-      <ChatSidebarEmptyState label={t("chatSidebarProjectViewEmpty")} />
+      <ChatSidebarEmptyState label={emptyLabel ?? t("chatSidebarProjectViewEmpty")} />
     ) : (
       <ChatSidebarProjectGroups
         groups={projectGroups}
@@ -103,7 +105,7 @@ export function ChatSidebarSessionList({
   }
 
   if (groups.length === 0) {
-    return <ChatSidebarEmptyState label={t("sessionsEmpty")} />;
+    return <ChatSidebarEmptyState label={emptyLabel ?? t("sessionsEmpty")} />;
   }
 
   return (

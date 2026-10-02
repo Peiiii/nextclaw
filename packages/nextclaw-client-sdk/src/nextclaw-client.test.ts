@@ -427,7 +427,7 @@ it("searches server paths within an explicit project root", async () => {
   );
 });
 
-it("lists sessions from the existing ncp api", async () => {
+it.each([true, false, undefined])("lists sessions with scheduledOnly=%s", async (scheduledOnly) => {
   const fetchImpl = vi.fn(async () => {
     return new Response(
       JSON.stringify({
@@ -451,11 +451,11 @@ it("lists sessions from the existing ncp api", async () => {
     fetchImpl,
   });
 
-  const result = await client.sessions.list({ limit: 10, peerId: "peer-1" });
+  const result = await client.sessions.list({ limit: 10, peerId: "peer-1", scheduledOnly });
 
   expect(result.total).toBe(1);
   expect(fetchImpl).toHaveBeenCalledWith(
-    "http://127.0.0.1:55667/api/ncp/sessions?limit=10&peerId=peer-1",
+    `http://127.0.0.1:55667/api/ncp/sessions?limit=10${scheduledOnly === undefined ? '' : `&scheduledOnly=${scheduledOnly}`}&peerId=peer-1`,
     expect.objectContaining({ method: "GET" }),
   );
 });

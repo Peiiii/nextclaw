@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import { ChatSidebarListModeSwitch } from '@/features/chat/components/chat-sidebar-list-mode-switch';
+import type { ChatSessionListMode } from '@/features/chat/stores/chat-session-list.store';
 import { Link } from 'react-router-dom';
 import { AlarmClock, ChevronDown, Clock3, Folder, FolderPlus, Plus, Search, X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -36,11 +37,11 @@ export function ChatSidebarDesktopToolbar({ onCreateSession, collapsed }: Pick<C
   </>;
 }
 
-export function ChatSidebarListToolbar({ query, onQueryChange, isProjectFirstView, onSelectMode, onAddProject }: {
+export function ChatSidebarListToolbar({ query, onQueryChange, listMode, onSelectMode, onAddProject }: {
   query: string;
   onQueryChange: (query: string) => void;
-  isProjectFirstView: boolean;
-  onSelectMode: (mode: 'time-first' | 'project-first') => void;
+  listMode: ChatSessionListMode;
+  onSelectMode: (mode: ChatSessionListMode) => void;
   onAddProject: () => void;
 }) {
   const [searchOpen, setSearchOpen] = useState(Boolean(query));
@@ -53,9 +54,9 @@ export function ChatSidebarListToolbar({ query, onQueryChange, isProjectFirstVie
   };
   return <div className="shrink-0 px-3">
     <div className="flex h-8 items-center justify-between gap-1">
-      <ChatSidebarListModeSwitch isProjectFirstView={isProjectFirstView} onSelectMode={onSelectMode} />
+      <ChatSidebarListModeSwitch listMode={listMode} onSelectMode={onSelectMode} />
       <IconActionGroup>
-        {isProjectFirstView ? <IconActionButton icon={<FolderPlus className="h-3.5 w-3.5" />} label={t('chatProjectAdd')} onClick={onAddProject} /> : null}
+        {listMode === 'project-first' ? <IconActionButton icon={<FolderPlus className="h-3.5 w-3.5" />} label={t('chatProjectAdd')} onClick={onAddProject} /> : null}
         <IconActionButton ref={searchButtonRef} icon={<Search className="h-3.5 w-3.5" />} label={t('chatSidebarSearchPlaceholder')}
           aria-expanded={searchOpen} aria-controls={searchId} onClick={() => { if (searchOpen) closeSearch(); else setSearchOpen(true); }} />
       </IconActionGroup>
@@ -74,11 +75,11 @@ export function ChatSidebarListToolbar({ query, onQueryChange, isProjectFirstVie
 }
 
 export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps & {
-  isProjectFirstView: boolean;
-  onSelectMode: (mode: 'time-first' | 'project-first') => void;
+  listMode: ChatSessionListMode;
+  onSelectMode: (mode: ChatSessionListMode) => void;
   onAddProject: () => void;
 }) {
-  const { query, onQueryChange, onCreateSession, isProjectFirstView, onSelectMode, onAddProject } = props;
+  const { query, onQueryChange, onCreateSession, listMode, onSelectMode, onAddProject } = props;
   const [searchOpen, setSearchOpen] = useState(Boolean(query));
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   return (
@@ -88,18 +89,20 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps & {
           <h1>
             <PopoverTrigger asChild>
               <button type="button" aria-label={t('chatSidebarViewMode')} className="flex h-11 min-w-0 items-center gap-1.5 rounded-lg px-1 text-[18px] font-semibold text-foreground">
-                {t('chat')}{isProjectFirstView ? <Folder className="h-4 w-4" /> : null}
+                {t(listMode === 'scheduled' ? 'chatSidebarViewScheduled' : 'chat')}
+                {listMode === 'project-first' ? <Folder className="h-4 w-4" /> : null}
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </button>
             </PopoverTrigger>
           </h1>
           <ChatPopoverContent align="start" variant="menu">
             <div onClick={() => setViewMenuOpen(false)}>
-              <ChatSessionHeaderMenuItem icon={Clock3} label={t('chatSidebarViewTime')} onClick={() => onSelectMode('time-first')} />
-              <ChatSessionHeaderMenuItem icon={Folder} label={t('chatSidebarViewProject')} onClick={() => onSelectMode('project-first')} />
+              <ChatSessionHeaderMenuItem icon={Clock3} label={t('chatSidebarViewTime')} selected={listMode === 'time-first'} onClick={() => onSelectMode('time-first')} />
+              <ChatSessionHeaderMenuItem icon={Folder} label={t('chatSidebarViewProject')} selected={listMode === 'project-first'} onClick={() => onSelectMode('project-first')} />
+              <ChatSessionHeaderMenuItem icon={AlarmClock} label={t('chatSidebarViewScheduled')} selected={listMode === 'scheduled'} onClick={() => onSelectMode('scheduled')} />
               <ChatSessionHeaderMenuItem icon={FolderPlus} label={t('chatProjectAdd')} onClick={onAddProject} />
               <Link to="/cron" className={`${ACTION_MENU_ITEM_CLASS} text-foreground ${ACTION_FEEDBACK.item}`}>
-                <AlarmClock className="h-4 w-4 text-muted-foreground" />{t('cron')}
+                <AlarmClock className="h-4 w-4 text-muted-foreground" />{t('chatSidebarManageScheduledTasks')}
               </Link>
             </div>
           </ChatPopoverContent>

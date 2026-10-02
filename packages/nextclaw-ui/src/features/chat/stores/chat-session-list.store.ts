@@ -1,7 +1,7 @@
 import { create, type StateCreator } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
-export type ChatSessionListMode = 'time-first' | 'project-first';
+export type ChatSessionListMode = 'time-first' | 'project-first' | 'scheduled';
 export type ChatSessionListSnapshot = {
   selectedSessionKey: string | null;
   selectedAgentId: string;
@@ -26,7 +26,7 @@ type PersistedChatSessionListStore = {
 };
 
 function isChatSessionListMode(value: unknown): value is ChatSessionListMode {
-  return value === 'time-first' || value === 'project-first';
+  return value === 'time-first' || value === 'project-first' || value === 'scheduled';
 }
 
 function normalizePersistedStringList(value: unknown): string[] {

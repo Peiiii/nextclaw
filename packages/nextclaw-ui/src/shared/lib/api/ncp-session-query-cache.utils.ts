@@ -70,7 +70,7 @@ function updateExistingNcpSessionSummaryPages(
     const containsSession = current?.pages.some((page) =>
       page.sessions.some((session) => session.sessionId === summary.sessionId)
     );
-    if (query || !containsSession) {
+    if (query || queryKey[3] === true || !containsSession) {
       void queryClient.invalidateQueries({ queryKey, exact: true });
       continue;
     }

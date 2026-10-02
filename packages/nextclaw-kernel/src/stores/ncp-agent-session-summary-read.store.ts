@@ -1,4 +1,5 @@
 import type { NcpSessionSummary } from "@nextclaw/ncp";
+import type { SessionListFilter, SessionListPageOptions } from "@kernel/types/session.types.js";
 import { createNcpAgentSessionSummary } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import type { NcpAgentSessionActivitySnapshot } from "@kernel/stores/ncp-agent-session-metadata.store.js";
 
@@ -6,8 +7,8 @@ type SessionSummaryReadStoreOptions = {
   summaryIndex: {
     get: (sessionId: string) => Promise<NcpSessionSummary | null>;
     list: (limit?: number) => Promise<NcpSessionSummary[]>;
-    listPage: (options: { offset: number; limit: number; query?: string }) => Promise<NcpSessionSummary[]>;
-    count: (query?: string) => Promise<number>;
+    listPage: (options: SessionListFilter & { offset: number; limit: number }) => Promise<NcpSessionSummary[]>;
+    count: (options: SessionListFilter) => Promise<number>;
   };
   readJournalModifiedAt: (sessionId: string) => Promise<string>;
   readMetadata: (
@@ -31,20 +32,17 @@ export class NcpAgentSessionSummaryReadStore {
     return selected;
   };
 
-  listPage = async (options: {
-    page: number;
-    pageSize: number;
-    query?: string;
-  }): Promise<{ sessions: NcpSessionSummary[]; total: number }> => {
-    const page = Math.max(1, Math.trunc(options.page));
-    const pageSize = Math.max(1, Math.trunc(options.pageSize));
+  listPage = async (options: SessionListPageOptions): Promise<{ sessions: NcpSessionSummary[]; total: number }> => {
+    const { page: requestedPage, pageSize: requestedPageSize, ...filter } = options;
+    const page = Math.max(1, Math.trunc(requestedPage));
+    const pageSize = Math.max(1, Math.trunc(requestedPageSize));
     const [summaries, total] = await Promise.all([
       this.options.summaryIndex.listPage({
+        ...filter,
         offset: (page - 1) * pageSize,
         limit: pageSize,
-        ...(options.query?.trim() ? { query: options.query.trim() } : {}),
       }),
-      this.options.summaryIndex.count(options.query),
+      this.options.summaryIndex.count(filter),
     ]);
     return { sessions: summaries, total };
   };

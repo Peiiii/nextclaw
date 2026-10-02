@@ -1,4 +1,4 @@
-import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
+import { useChatSessionListStore, type ChatSessionListMode } from "@/features/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 import type { ChatUiManager } from "@/features/chat/managers/chat-ui.manager";
 import type { SetStateAction } from "react";
@@ -131,7 +131,7 @@ export class ChatSessionListManager {
     }
   };
 
-  setListMode = (next: SetStateAction<"time-first" | "project-first">) => {
+  setListMode = (next: SetStateAction<ChatSessionListMode>) => {
     const prev = useChatSessionListStore.getState().snapshot.listMode;
     const value = this.resolveUpdateValue(prev, next);
     if (value === prev) {

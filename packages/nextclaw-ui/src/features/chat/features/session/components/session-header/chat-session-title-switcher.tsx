@@ -170,7 +170,7 @@ function ChatSessionTitleSwitcherPopover({
               {t("chatSessionSwitcherTitle")}
             </div>
             <ChatSidebarListModeSwitch
-              isProjectFirstView={isProjectFirstView}
+              listMode={listMode}
               onSelectMode={presenter.chatSessionListManager.setListMode}
             />
           </div>
@@ -209,7 +209,7 @@ function ChatSessionTitleSwitcherPopover({
                   : t(
                       isProjectFirstView
                         ? "chatSidebarProjectViewEmpty"
-                        : "sessionsEmpty",
+                        : listMode === 'scheduled' ? "chatSidebarScheduledViewEmpty" : "sessionsEmpty",
                     )
               }
             />

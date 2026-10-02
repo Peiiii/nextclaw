@@ -1,6 +1,7 @@
 import { BrandHeader } from "@/shared/components/common/brand-header";
 import { StatusBadge } from "@/shared/components/common/status-badge";
 import { ChatSidebarListToolbar } from "@/features/chat/components/layout/chat-sidebar-toolbar";
+import type { ChatSessionListMode } from "@/features/chat/stores/chat-session-list.store";
 import type {
   groupSessionsByDate,
   groupSessionsByProject,
@@ -154,7 +155,7 @@ export function ChatSidebarSessionArea({
   groups,
   isCollapsed,
   isLoading,
-  isProjectFirstView,
+  listMode,
   onAddProject,
   onScrollNearEnd = () => undefined,
   onSelectMode,
@@ -170,10 +171,10 @@ export function ChatSidebarSessionArea({
   groups: ReturnType<typeof groupSessionsByDate>;
   isCollapsed: boolean;
   isLoading: boolean;
-  isProjectFirstView: boolean;
+  listMode: ChatSessionListMode;
   onAddProject: () => void;
   onScrollNearEnd?: () => void;
-  onSelectMode: (mode: "time-first" | "project-first") => void;
+  onSelectMode: (mode: ChatSessionListMode) => void;
   projectGroups: ReturnType<typeof groupSessionsByProject>;
   projectCronJobCountByRoot: ReadonlyMap<string, number>;
   renderSessionItem: (item: NcpSessionListItemView) => JSX.Element;
@@ -182,7 +183,7 @@ export function ChatSidebarSessionArea({
   >[0]["sessionTypeOptions"];
 }) {
   const scrollRestoration = useScrollRestoration<HTMLDivElement>({
-    restorationKey: "chat-sidebar:sessions",
+    restorationKey: `chat-sidebar:sessions:${listMode}`,
     isEnabled: !isCollapsed,
   });
   const { onScroll: onScrollPositionSave, scrollRef } = scrollRestoration;
@@ -195,7 +196,7 @@ export function ChatSidebarSessionArea({
       {variant === 'desktop' ? <ChatSidebarListToolbar
           query={query}
           onQueryChange={onQueryChange}
-          isProjectFirstView={isProjectFirstView}
+          listMode={listMode}
           onSelectMode={onSelectMode}
           onAddProject={onAddProject}
         /> : null}
@@ -218,7 +219,8 @@ export function ChatSidebarSessionArea({
         <ChatSidebarSessionList
           variant={variant}
           isLoading={isLoading}
-          isProjectFirstView={isProjectFirstView}
+          isProjectFirstView={listMode === 'project-first'}
+          emptyLabel={query.trim() ? t('chatSessionSwitcherNoResults') : listMode === 'scheduled' ? t('chatSidebarScheduledViewEmpty') : undefined}
           groups={groups}
           projectGroups={projectGroups}
           projectCronJobCountByRoot={projectCronJobCountByRoot}

@@ -93,19 +93,15 @@ it('persists pins through HTTP, restores cold pages, and never creates missing p
 });
 
 it("passes peerId filters through the ncp session list route", async () => {
-  const listSessionCalls: Array<{ limit?: number; peerId?: string }> = [];
+  const listSessionCalls: Array<{ page: number; pageSize: number; peerId?: string }> = [];
   const app = createUiRouter({
     configPath: createConfigPath(),
     appEventBus: new EventBus(),
     kernel: createRouterTestKernel({
       sessionManager: {
-        listSessions: async (options?: { limit?: number; peerId?: string }) => {
-          const { limit, peerId } = options ?? {};
-          listSessionCalls.push({
-            ...(typeof limit === "number" ? { limit } : {}),
-            ...(peerId ? { peerId } : {}),
-          });
-          return peerId === "peer-1"
+        listSessionPage: async (options: { page: number; pageSize: number; peerId?: string }) => {
+          listSessionCalls.push(options);
+          const sessions = options.peerId === "peer-1"
             ? [{
                 sessionId: "session-1",
                 peerId: "peer-1",
@@ -118,6 +114,7 @@ it("passes peerId filters through the ncp session list route", async () => {
                 },
               }]
             : [];
+          return { sessions, total: sessions.length };
         },
       } as never,
     }),
@@ -144,7 +141,7 @@ it("passes peerId filters through the ncp session list route", async () => {
     },
   });
   expect(payload.data.sessions[0]?.metadata).not.toHaveProperty("last_context_compaction");
-  expect(listSessionCalls).toEqual([{ limit: 10, peerId: "peer-1" }]);
+  expect(listSessionCalls).toEqual([{ page: 1, pageSize: 10, peerId: "peer-1" }]);
 });
 
 it("passes numbered pagination and search to the session catalog", async () => {

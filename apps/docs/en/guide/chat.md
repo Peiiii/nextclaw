@@ -3,7 +3,9 @@
 The More menu below a message opens run metadata and trigger details when those records are available. Its actions use the same icons, spacing, and highlight feedback as session, project, and other object menus. Closing a detail dialog returns focus to the original More button.
 
 
-In the desktop sidebar, switch between Time and Project views at the top left of the conversation list. Click the search icon on the right to open a search field below the controls. Close it with the close button or Escape to clear the filter and hide the field. In Project view, Add Project appears immediately to the left of search.
+In the desktop sidebar, switch between Time, Project, and Scheduled views at the top left of the conversation list. Click the search icon on the right to open a search field below the controls. Close it with the close button or Escape to clear the filter and hide the field. In Project view, Add Project appears immediately to the left of search.
+
+Scheduled view lists dedicated conversations created by scheduled tasks. Search, pin, and open them to read their results; refreshing preserves the selected view. On phones, use the view menu above the list. The conversation title menu also offers these views when the sidebar is collapsed. Tasks without a conversation yet are absent, and tasks bound to an existing ordinary conversation keep using that conversation. Configuration, enabling, disabling, and manual execution remain on the scheduled task management page.
 
 A session is not merely chat history. It is the container where a task keeps its goal, messages, tool activity, working directory, file results, and follow-up changes.
 

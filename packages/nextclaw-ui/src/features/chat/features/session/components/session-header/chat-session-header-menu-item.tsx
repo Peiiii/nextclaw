@@ -8,6 +8,7 @@ type ChatSessionHeaderMenuItemProps = {
   onClick: () => void;
   disabled?: boolean;
   destructive?: boolean;
+  selected?: boolean;
 };
 
 export function ChatSessionHeaderMenuItem({
@@ -16,15 +17,18 @@ export function ChatSessionHeaderMenuItem({
   onClick,
   disabled = false,
   destructive = false,
+  selected,
 }: ChatSessionHeaderMenuItemProps) {
   return (
     <button
       type="button"
+      aria-pressed={selected}
       className={cn(
         ACTION_MENU_ITEM_CLASS,
         destructive
           ? ACTION_FEEDBACK.destructive
-          : `text-foreground ${ACTION_FEEDBACK.item}`
+          : `text-foreground ${ACTION_FEEDBACK.item}`,
+        selected && 'bg-[var(--interaction-selection)]',
       )}
       onClick={onClick}
       disabled={disabled}
