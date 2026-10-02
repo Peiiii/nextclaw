@@ -10,7 +10,11 @@ function isSessionActivityRunning(summary: NcpSessionSummaryView): boolean {
 }
 
 function sortSessionSummaries(summaries: readonly NcpSessionSummaryView[]): NcpSessionSummaryView[] {
-  return [...summaries].sort((left, right) => readSessionActivityAt(right).localeCompare(readSessionActivityAt(left)));
+  return [...summaries].sort((left, right) =>
+    Number(right.metadata?.pinned === true) - Number(left.metadata?.pinned === true) ||
+    readSessionActivityAt(right).localeCompare(readSessionActivityAt(left)) ||
+    right.sessionId.localeCompare(left.sessionId),
+  );
 }
 
 function shouldReplaceSessionSummary(current: NcpSessionSummaryView, next: NcpSessionSummaryView): boolean {

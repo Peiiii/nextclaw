@@ -653,6 +653,8 @@
   "chatSidebarOlder": "更早",
   "chatSidebarPinned": "已置顶",
   "chatSidebarPinSession": "置顶会话",
+  "chatSessionPinFailed": "置顶状态保存失败，请重试。",
+  "chatSessionPinMigrationFailed": "部分旧置顶未能同步，请检查连接后刷新重试。",
   "chatSidebarUnpinSession": "取消置顶会话",
   "chatSidebarPinProject": "置顶项目",
   "chatSidebarUnpinProject": "取消置顶项目",

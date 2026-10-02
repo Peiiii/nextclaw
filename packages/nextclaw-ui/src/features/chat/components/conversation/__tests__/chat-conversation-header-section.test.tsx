@@ -66,6 +66,7 @@ vi.mock("@/features/chat/features/ncp/hooks/use-ncp-session-list-view", () => ({
     return {
       isLoading: mocks.isSessionListLoading,
       items,
+      pinnedSessionKeys: items.filter(({ session }) => session.metadata?.pinned === true).map(({ session }) => session.key),
     };
   },
 }));
@@ -292,12 +293,7 @@ describe("ChatConversationHeaderSection", () => {
   it("uses lightweight static groups for pinned and activity dates", async () => {
     const user = userEvent.setup();
     viewportLayoutManager.setSidebarCollapsed(true);
-    useChatSessionListStore.setState({
-      snapshot: {
-        ...useChatSessionListStore.getState().snapshot,
-        pinnedSessionKeys: ["session:ncp-2"],
-      },
-    });
+    mocks.sessionItems.find(({ session }) => session.key === 'session:ncp-2')!.session.metadata = { pinned: true };
 
     renderHeaderSection();
     await user.click(screen.getByRole("button", { name: /Switch session/ }));

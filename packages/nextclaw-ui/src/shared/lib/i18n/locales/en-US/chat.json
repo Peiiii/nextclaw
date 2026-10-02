@@ -653,6 +653,8 @@
   "chatSidebarOlder": "Older",
   "chatSidebarPinned": "Pinned",
   "chatSidebarPinSession": "Pin session",
+  "chatSessionPinFailed": "Could not save the pin. Please try again.",
+  "chatSessionPinMigrationFailed": "Some existing pins could not be synced. Check your connection and refresh to retry.",
   "chatSidebarUnpinSession": "Unpin session",
   "chatSidebarPinProject": "Pin project",
   "chatSidebarUnpinProject": "Unpin project",

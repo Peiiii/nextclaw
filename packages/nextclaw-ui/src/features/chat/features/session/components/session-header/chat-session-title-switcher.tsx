@@ -70,9 +70,6 @@ function ChatSessionTitleSwitcherPopover({
   const optimisticReadAtBySessionKey = useChatSessionListStore(
     (state) => state.optimisticReadAtBySessionKey,
   );
-  const pinnedSessionKeys = useChatSessionListStore(
-    (state) => state.snapshot.pinnedSessionKeys,
-  );
   const pinnedProjectRoots = useChatSessionListStore(
     (state) => state.snapshot.pinnedProjectRoots,
   );
@@ -85,7 +82,7 @@ function ChatSessionTitleSwitcherPopover({
   const sessionTypesData = useChatQueryStore(
     (state) => state.snapshot.sessionTypesQuery?.data ?? null,
   );
-  const { isLoading, items } = useNcpSessionListView({ query: searchQuery });
+  const { isLoading, items, pinnedSessionKeys } = useNcpSessionListView({ query: searchQuery });
   const projectsQuery = useProjects();
   const visibleProjects = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();

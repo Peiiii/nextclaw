@@ -11,10 +11,14 @@ function readRequiredString(value: unknown, key: string): string {
 }
 export class SessionsUpdateTool implements NcpTool {
   readonly name = "sessions_update";
-  readonly description = "Rename a session and/or bind it to an existing project directory.";
+  readonly description = "Rename, pin or unpin a session, and/or bind it to an existing project directory.";
   readonly parameters = {
     type: "object",
     properties: {
+      pinned: {
+        type: "boolean",
+        description: "Persist the session pin: true to pin, false to unpin.",
+      },
       sessionKey: {
         type: "string",
         description: "Exact session id to update.",
@@ -44,8 +48,12 @@ export class SessionsUpdateTool implements NcpTool {
     if (Object.prototype.hasOwnProperty.call(params, "projectRoot")) {
       patch.projectRoot = readRequiredString(params.projectRoot, "projectRoot");
     }
-    if (patch.label === undefined && patch.projectRoot === undefined) {
-      throw new Error("label or projectRoot is required.");
+    if (Object.prototype.hasOwnProperty.call(params, "pinned")) {
+      if (typeof params.pinned !== "boolean") throw new Error("pinned must be a boolean.");
+      patch.pinned = params.pinned;
+    }
+    if (patch.label === undefined && patch.projectRoot === undefined && patch.pinned === undefined) {
+      throw new Error("label, projectRoot or pinned is required.");
     }
     const session = await this.sessions.patchSessionSettings(sessionKey, patch);
     if (!session) {

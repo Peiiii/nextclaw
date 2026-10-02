@@ -442,6 +442,8 @@ nextclaw projects remove <project-id> --confirm <project-id> --json
 
 # Rename a session and manage its project binding
 nextclaw sessions rename <session-id> "Research session" --json
+nextclaw sessions pin <session-id> --json
+nextclaw sessions unpin <session-id> --json
 nextclaw sessions set-project <session-id> ~/Projects/research --json
 nextclaw sessions clear-project <session-id> --json
 
@@ -732,6 +734,8 @@ Feedback release status identifies its version and channel. Query it before repo
 | `nextclaw projects register <directory>`                     | Register an existing directory without modifying its contents; accepts optional `--name`                                                                    |
 | `nextclaw projects remove <project-id>`                      | Remove a project from the list while preserving its folder, sessions, and work; requires `--confirm <project-id>`                                            |
 | `nextclaw sessions rename <session-id> <label>`              | Rename a session                                                                                                                                             |
+| `nextclaw sessions pin <session-id>`                         | Persistently pin a session across clients and restarts                                                                                                        |
+| `nextclaw sessions unpin <session-id>`                       | Remove a session pin                                                                                                                                         |
 | `nextclaw sessions set-project <session-id> <directory>`     | Bind a session to an existing project directory                                                                                                              |
 | `nextclaw sessions clear-project <session-id>`               | Clear a session project binding                                                                                                                              |
 | `nextclaw login --api-base <url>`                            | Start browser sign-in for NextClaw Platform and save the platform token locally (`--no-open` for headless servers, `--email/--password` for direct fallback) |

@@ -7,6 +7,7 @@ export type ChatSessionListSnapshot = {
   selectedAgentId: string;
   query: string;
   listMode: ChatSessionListMode;
+  /** Legacy browser pins awaiting migration; server summaries own current pins. */
   pinnedSessionKeys: string[];
   pinnedProjectRoots: string[];
   collapsedProjectRoots: string[];
@@ -78,6 +79,8 @@ export function shouldShowUnreadSessionIndicator(params: {
 type ChatSessionListStore = {
   snapshot: ChatSessionListSnapshot;
   optimisticReadAtBySessionKey: Record<string, string>;
+  optimisticPinnedBySessionKey: Record<string, boolean>;
+  setSessionPinnedOverride: (sessionKey: string, pinned: boolean | undefined) => void;
   runningSessionKeys: string[];
   setSnapshot: (patch: Partial<ChatSessionListSnapshot>) => void;
   markSessionRead: (sessionKey: string, readAt: string | null | undefined) => void;
@@ -154,6 +157,13 @@ export const useChatSessionListStore = create<ChatSessionListStore>()(
     (set) => ({
       snapshot: initialSnapshot,
       optimisticReadAtBySessionKey: {},
+      optimisticPinnedBySessionKey: {},
+      setSessionPinnedOverride: (sessionKey, pinned) => set((state) => {
+        const next = { ...state.optimisticPinnedBySessionKey };
+        if (pinned === undefined) delete next[sessionKey];
+        else next[sessionKey] = pinned;
+        return { optimisticPinnedBySessionKey: next };
+      }),
       runningSessionKeys: [],
       setSnapshot: createSetSnapshotAction(set),
       markSessionRead: createMarkSessionReadAction(set),

@@ -126,6 +126,9 @@ export type CreateAgentRunSessionParams = {
 };
 
 export type SessionSettingsPatch = {
+  pinned?: boolean;
+  /** Import a legacy pin only when no server-side pin choice exists. */
+  pinnedIfUnset?: boolean;
   label?: string | null;
   preferredModel?: string | null;
   preferredThinking?: string | null;
@@ -136,7 +139,7 @@ export type SessionSettingsPatch = {
 
 export class SessionSettingsError extends Error {
   constructor(
-    readonly code: "PREFERRED_THINKING_INVALID",
+    readonly code: "PREFERRED_THINKING_INVALID" | "PINNED_INVALID",
     message: string,
   ) {
     super(message);

@@ -106,7 +106,6 @@ export class SessionManager implements NcpSessionApi {
     this.settings = new SessionSettingsService({
       createSession: this.createSession,
       getSession: this.getSession,
-      getSessionRecord: this.getSessionRecord,
       normalizeProjectContext: options.projectManager.normalizeSessionProjectContext,
       setSessionMetadata: this.setSessionMetadata,
     });

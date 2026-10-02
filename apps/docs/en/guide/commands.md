@@ -171,6 +171,8 @@ For the user workflow, restart-continuation behavior, and complete limits, see [
 | `nextclaw projects work state update`    | Update or reorder a work state                                                                                 |
 | `nextclaw projects work state delete`    | Delete a state and optionally migrate existing items                                                           |
 | `nextclaw sessions rename`               | Rename a session                                                                                               |
+| `nextclaw sessions pin`                  | Persistently pin a session                                                                                     |
+| `nextclaw sessions unpin`                | Remove a session pin                                                                                           |
 | `nextclaw sessions set-project`          | Bind a session to an existing project directory                                                                |
 | `nextclaw sessions clear-project`        | Clear a session's explicit project binding                                                                     |
 | `nextclaw sessions delete`               | Permanently delete a session; requires `--confirm <session-id>`                                                |

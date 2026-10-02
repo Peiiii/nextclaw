@@ -6,7 +6,7 @@ The native runtime temporarily appends the current UTC time, host timezone, and 
 
 Session history is kept locally in the journal and SQLite session catalog. During an upgrade, NextClaw rebuilds the catalog from existing journals and metadata, so sessions whose legacy list entry was incomplete can return automatically without a manual import.
 
-When the catalog is large, the sidebar shows the most recent page first and preloads the next page near the end of the list. Search, ordering, and totals are handled by the local catalog, so older sessions remain browsable and searchable.
+When the catalog is large, the sidebar places pinned sessions first, then orders by activity time and preloads the next page near the end of the list. Pins, search, ordering, and totals are handled by the local catalog, so older sessions remain browsable and searchable.
 
 You may also need:
 

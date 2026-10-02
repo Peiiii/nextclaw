@@ -57,11 +57,22 @@ describe("useNcpSessionListView", () => {
     ];
     useChatSessionListStore.setState({
       runningSessionKeys: [],
+      optimisticPinnedBySessionKey: {},
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
         query: "",
       },
     });
+  });
+
+  it('projects server pins after refresh and overlays only pending operations', () => {
+    mocks.sessions[0]!.metadata = { label: 'Alpha Task', pinned: true };
+    const { result } = renderHook(() => useNcpSessionListView());
+    expect(result.current.pinnedSessionKeys).toEqual(['session:alpha']);
+    act(() => useChatSessionListStore.getState().setSessionPinnedOverride('session:alpha', false));
+    expect(result.current.pinnedSessionKeys).toEqual([]);
+    act(() => useChatSessionListStore.getState().setSessionPinnedOverride('session:alpha', undefined));
+    expect(result.current.pinnedSessionKeys).toEqual(['session:alpha']);
   });
 
   it("uses the sidebar query by default", () => {

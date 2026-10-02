@@ -1,5 +1,5 @@
 import type { Config, ThinkingLevel } from "@nextclaw/core";
-import type { SessionTokenUsageSummary } from "@nextclaw/kernel";
+import type { SessionSettingsPatch, SessionTokenUsageSummary } from "@nextclaw/kernel";
 import type { AgentProfileView } from "./server-api-agent.types.js";
 import type { AppEvent } from "@nextclaw/shared";
 import type {
@@ -428,13 +428,8 @@ export type SessionHistoryView = {
   events: SessionEventView[];
 };
 
-export type SessionPatchUpdate = {
-  label?: string | null;
-  preferredModel?: string | null;
+export type SessionPatchUpdate = Omit<SessionSettingsPatch, "preferredThinking"> & {
   preferredThinking?: ThinkingLevel | null;
-  sessionType?: string | null;
-  projectRoot?: string | null;
-  uiReadAt?: string | null;
   clearHistory?: boolean;
 };
 

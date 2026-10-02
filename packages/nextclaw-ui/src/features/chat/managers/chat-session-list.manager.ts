@@ -3,7 +3,12 @@ import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 import type { ChatUiManager } from "@/features/chat/managers/chat-ui.manager";
 import type { SetStateAction } from "react";
 import { normalizeSessionProjectRootValue } from "@/shared/lib/session-project";
-import { updateNcpSession } from "@/shared/lib/api";
+import { applyNcpSessionRealtimeEvent, updateNcpSession } from "@/shared/lib/api";
+import { NextClawClientError } from "@nextclaw/client-sdk";
+import { appQueryClient } from "@/app-query-client";
+import type { QueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { t } from "@/shared/lib/i18n";
 import { CHAT_DRAFT_SESSION_PATH } from "@/features/chat/features/session/utils/chat-session-route.utils";
 import {
   DEFAULT_SESSION_TYPE,
@@ -34,7 +39,10 @@ function toggleListValue(values: string[], value: string): string[] {
 }
 
 export class ChatSessionListManager {
-  constructor(private uiManager: ChatUiManager) {}
+  private readonly pinWrites = new Set<string>();
+  private pinMigration: Promise<void> | null = null;
+
+  constructor(private uiManager: ChatUiManager, private queryClient: QueryClient = appQueryClient) {}
 
   private syncDraftThreadState = (draftProjectRoot: string | null) => {
     const workspaceFileTabs = useChatThreadStore
@@ -132,11 +140,51 @@ export class ChatSessionListManager {
     useChatSessionListStore.getState().setSnapshot({ listMode: value });
   };
 
-  toggleSessionPinned = (sessionKey: string) => {
-    const { pinnedSessionKeys } = useChatSessionListStore.getState().snapshot;
-    useChatSessionListStore.getState().setSnapshot({
-      pinnedSessionKeys: toggleListValue(pinnedSessionKeys, sessionKey),
+  toggleSessionPinned = async (sessionKey: string, currentlyPinned: boolean) => {
+    const key = sessionKey.trim();
+    if (!key || this.pinWrites.has(key)) return;
+    this.pinWrites.add(key);
+    try {
+      await this.pinMigration;
+      useChatSessionListStore.getState().setSessionPinnedOverride(key, !currentlyPinned);
+      const summary = await updateNcpSession(key, { pinned: !currentlyPinned });
+      applyNcpSessionRealtimeEvent(this.queryClient, {
+        type: 'session.summary.upsert', payload: { summary },
+      });
+      await this.queryClient.invalidateQueries({ queryKey: ['ncp-session-pages'] });
+    } catch {
+      toast.error(t('chatSessionPinFailed'));
+    } finally {
+      useChatSessionListStore.getState().setSessionPinnedOverride(key, undefined);
+      this.pinWrites.delete(key);
+    }
+  };
+
+  migrateLegacySessionPins = (): Promise<void> => {
+    if (this.pinMigration) return this.pinMigration;
+    this.pinMigration = this.migrateLegacySessionPinsNow().finally(() => {
+      this.pinMigration = null;
     });
+    return this.pinMigration;
+  };
+
+  private migrateLegacySessionPinsNow = async (): Promise<void> => {
+    const keys = [...useChatSessionListStore.getState().snapshot.pinnedSessionKeys];
+    let failed = false;
+    for (const key of keys) {
+      try {
+        await updateNcpSession(key, { pinned: true, pinnedIfUnset: true });
+      } catch (error) {
+        if (!(error instanceof NextClawClientError && error.status === 404)) {
+          failed = true;
+          continue;
+        }
+      }
+      const store = useChatSessionListStore.getState();
+      store.setSnapshot({ pinnedSessionKeys: store.snapshot.pinnedSessionKeys.filter((value) => value !== key) });
+    }
+    if (keys.length) await this.queryClient.invalidateQueries({ queryKey: ['ncp-session-pages'] });
+    if (failed) toast.error(t('chatSessionPinMigrationFailed'));
   };
 
   toggleProjectPinned = (projectRoot: string) => {
