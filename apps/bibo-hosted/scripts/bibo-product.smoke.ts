@@ -5,12 +5,12 @@ import { readFileSync } from "node:fs";
 import { chromium, type Page, type Route } from "playwright";
 import { mockApi, openMarkdownSource } from "./personal-workspace.fixture";
 import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs, checkSessionActionFade, checkLongPlanningDetails, checkOverviewCanvas, checkMobileDrawerTooltip } from "./design-system/bibo-design-system.smoke";
-import { checkFileRowActions, checkMissingRestoredFile, checkWorkspaceFiles, checkWorkspaceReopening, openWorkspaceFile } from "./design-system/workspace-file.smoke";
+import { checkFileRowActions, checkMissingRestoredFile, checkNoteLayout, checkWorkspaceFiles, checkWorkspaceReopening, openWorkspaceFile } from "./design-system/workspace-file.smoke";
 const port = process.env.BIBO_SMOKE_PORT ?? String(30000 + process.pid % 20000);
 const base = `http://127.0.0.1:${port}`;
 const server = spawn(process.execPath, [new URL("../node_modules/vite/bin/vite.js", import.meta.url).pathname, "preview", "--host", "127.0.0.1", "--port", port, "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
 async function ready(): Promise<void> {
-  for (let attempt = 0; attempt < 60; attempt += 1) {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
     if (server.exitCode !== null) throw new Error("The isolated preview server exited before readiness");
     try { if (await (await fetch(base)).text() === readFileSync(new URL("../dist/public/index.html", import.meta.url), "utf8")) return; } catch { /* Preview is starting. */ }
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -84,6 +84,8 @@ async function checkTreeKeyboard(page: Page): Promise<void> {
   await node("B-folder").focus();
   for (const [key, path] of [["ArrowRight", "B-folder"], ["ArrowRight", "B-folder/nested"], ["ArrowRight", "B-folder/nested"], ["ArrowRight", "B-folder/nested/readme.md"], ["ArrowLeft", "B-folder/nested"], ["ArrowLeft", "B-folder/nested"], ["ArrowUp", "B-folder"], ["ArrowDown", "B-folder/nested"], ["Home", "A-empty"], ["End", "想法.md"]]) {
     await page.keyboard.press(key!); assert.equal(await focused(), path);
+    if (key === "ArrowRight" && path === "B-folder") await node("nested").waitFor();
+    if (key === "ArrowRight" && path === "B-folder/nested" && await node("nested").getAttribute("aria-expanded") === "true") await node("readme.md").waitFor();
   }
   assert.equal(await node("nested").getAttribute("aria-expanded"), "false");
   const group = await node("B-folder").getAttribute("aria-owns");
@@ -450,6 +452,11 @@ try {
       if (width === 390 && !touch) await mockApi(page);
       else await checkLongTitles(page, width);
       if (width <= 390) await checkMobileDrawerTooltip(page, width, touch, base);
+      await page.close();
+    }
+    for (const width of [320, 390, 760, 1440]) {
+      const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width <= 760 });
+      await checkNoteLayout(page, width, base);
       await page.close();
     }
     for (const width of [1440, 390]) {
