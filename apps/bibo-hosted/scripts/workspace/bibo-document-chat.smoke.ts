@@ -57,7 +57,6 @@ try {
     await page.reload({ waitUntil: "networkidle" });
     await page.locator(".tiptap:visible").getByText("第二段", { exact: true }).waitFor();
     assert.deepEqual(dialogs, [], "refreshing a dirty note never opens a browser confirmation");
-    await page.getByRole("button", { name: "保存", exact: true }).click();
     await page.getByText("已保存", { exact: true }).waitFor();
     await handles(page);
     await page.screenshot({ path: `/tmp/bibo-document-chat-${width}.png`, animations: "disabled" });

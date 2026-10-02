@@ -63,6 +63,9 @@ export const biboCopy = {
   fileCloseWorkspace: "关闭工作区",
   fileSaved: "已保存",
   fileUnsaved: "未保存",
+  fileSavePending: "等待自动保存…",
+  fileOffline: "离线 · 草稿已保留，联网后自动保存",
+  fileRetrySave: "重试保存",
   fileSaving: "保存中…",
   fileSave: "保存",
   fileEdit: "编辑",
@@ -73,7 +76,7 @@ export const biboCopy = {
   fileByteCount: "{count} 字节",
   fileSource: "源码",
   fileConflict: "版本冲突 · 草稿已保留",
-  fileSaveFailed: "保存失败 · 请重试",
+  fileSaveFailed: "保存失败 · 草稿已保留",
   fileDraftProtected: "本标签页草稿已备份",
   fileDraftStorageFailed: "浏览器无法备份草稿，请保存后再刷新或离开。",
   markdownEditor: {

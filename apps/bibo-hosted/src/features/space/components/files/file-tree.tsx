@@ -63,10 +63,11 @@ function FileSearchResults() {
   );
 }
 function DirectoryStatus({ path }: { path: string }) {
-  const { directories, fileDirectory } = useBiboSpaceStore();
+  const { directories, files, fileDirectory } = useBiboSpaceStore();
   const directory = directories[path];
+  const hasEntries = files.some(file => parentPath(file.path) === path);
   return <>
-    {directory?.status === "loading" && <LoadingState label={copy.fileDirectoryLoading} />}
+    {!hasEntries && directory?.status === "loading" && <LoadingState label={copy.fileDirectoryLoading} />}
     {directory?.error && <div role="alert"><p>{directory.error}</p><Button tone="text" onClick={() => void fileDirectory.load(path)}>{copy.fileDirectoryRetry}</Button></div>}
     {directory?.cursor && <Button tone="text" disabled={directory.status === "loading"} onClick={() => void fileDirectory.load(path, true)}>{copy.fileMore}</Button>}
   </>;

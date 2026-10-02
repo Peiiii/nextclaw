@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, FolderOpen } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, FolderOpen, LoaderCircle } from "lucide-react";
 import { Button, EmptyState, IconButton, LoadingState, Notice, Popover } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
@@ -15,8 +15,12 @@ function DirectoryBrowser({ path, onNavigate, onOpenFile }: { path: string; onNa
     <div className="file-directory-location">
       {path && <IconButton label={copy.fileParent} icon={<ChevronLeft />} tooltip={false} onClick={() => onNavigate(path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "")} />}
       <span title={path}>{path || copy.fileRoot}</span>
+      <span className="file-directory-status" role="status" aria-label={directory?.status === "loading" ? copy.fileDirectoryLoading : undefined}>
+        {directory?.status === "loading" && <LoaderCircle aria-hidden="true" className="motion-safe:animate-spin" />}
+      </span>
     </div>
-    {directory?.status === "loading" && <LoadingState label={copy.fileDirectoryLoading} />}
+    <div className="file-directory-contents" aria-busy={directory?.status === "loading"}>
+    {!entries.length && directory?.status === "loading" && <LoadingState label={copy.fileDirectoryLoading} />}
     {directory?.error && <div><Notice tone="error">{directory.error}</Notice><Button tone="text" onClick={() => void fileDirectory.load(path)}>{copy.fileDirectoryRetry}</Button></div>}
     {entries.map((file) => <Button key={file.id} tone="text" className="file-directory-entry"
       onClick={() => file.kind === "folder" ? onNavigate(file.path) : onOpenFile(file.id)}>
@@ -24,6 +28,7 @@ function DirectoryBrowser({ path, onNavigate, onOpenFile }: { path: string; onNa
     </Button>)}
     {!entries.length && !directory?.cursor && directory?.status === "ready" && <EmptyState title={copy.fileEmptyDirectory} />}
     {directory?.cursor && <Button tone="text" disabled={directory.status === "loading"} onClick={() => void fileDirectory.load(path, true)}>{copy.fileMore}</Button>}
+    </div>
   </div>;
 }
 

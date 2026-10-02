@@ -19,6 +19,8 @@ export function savedFileState(state: WorkspaceState, detail: BiboFileDetail, su
   const editedDuringSave = current.content !== submittedContent;
   return {
     fileDetails: { ...state.fileDetails, [id]: detail },
+    files: state.files.map(file => file.id === id ? detail : file),
+    notes: state.notes.map(note => note.id === id ? detail : note),
     fileDrafts: { ...state.fileDrafts, [id]: { content: editedDuringSave ? current.content : detail.content ?? "", version: detail.version, dirty: editedDuringSave, saving: false } },
   };
 }
@@ -43,7 +45,7 @@ export function openedFileState(state: WorkspaceState, detail: BiboFileDetail, a
   return {
     files: [...new Map([...state.files, ...ancestors, detail].map((file) => [file.id, file])).values()],
     fileDetails: { ...state.fileDetails, [id]: detail },
-    fileDrafts: { ...state.fileDrafts, [id]: draft?.dirty || draft?.saving ? draft : { content: detail.content ?? "", version: detail.version, dirty: false, saving: false } },
+    fileDrafts: { ...state.fileDrafts, [id]: draft?.saving || draft?.dirty && (detail.preview || draft.content !== detail.content) ? draft : { content: detail.content ?? "", version: detail.version, dirty: false, saving: false } },
     tabs: state.tabs.includes(id) ? state.tabs : [...state.tabs, id],
     ...(active ? { activeFileId: id, error: "" } : {}),
   };

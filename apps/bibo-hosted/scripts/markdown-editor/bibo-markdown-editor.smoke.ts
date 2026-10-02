@@ -327,41 +327,40 @@ async function checkListEditing(page: Page) {
 }
 
 async function checkDraftRecovery(page: Page) {
-  await page.getByRole("button", { name: "保存", exact: true }).click();
-  await page.getByTitle("已保存 · v2").waitFor();
+  await page.getByTitle(/^已保存 · v/).waitFor();
   await page.reload({ waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "写作体验" }).waitFor();
-  const listDraft = await checkListEditing(page);
-  await page.reload({ waitUntil: "networkidle" });
-  await page.getByText("本标签页草稿已备份").waitFor();
-  await openSource(page);
-  assert.equal(await contentOf(page), listDraft, "reload restores dirty draft");
   let fail = true;
   await page.route("**/api/space", async (route) => {
     if (fail && route.request().postDataJSON().action === "file.update") return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "测试保存失败" }) });
     return route.fallback();
   });
-  await page.getByRole("button", { name: "保存", exact: true }).click();
+  const listDraft = await checkListEditing(page);
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "重试保存", exact: true }).waitFor();
+  await openSource(page);
+  assert.equal(await contentOf(page), listDraft, "reload restores dirty draft");
   await page.getByText("测试保存失败", { exact: true }).waitFor();
   assert.equal(await contentOf(page), listDraft);
   fail = false;
-  await page.getByRole("button", { name: "保存", exact: true }).click();
-  await page.getByTitle("已保存 · v3").waitFor();
+  await page.getByRole("button", { name: "重试保存", exact: true }).click();
+  await page.getByTitle(/^已保存 · v/).waitFor();
   assert.equal(await page.evaluate(() => sessionStorage.getItem("bibo-file-drafts:smoke")), null);
 }
 
 async function checkConflicts(page: Page) {
   await page.evaluate(async () => {
-    await fetch("/api/space", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "file.update", input: { id: "file-a", version: 3, content: "# 外部更新" } }) });
+    const result = await (await fetch("/api/space", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "file.get", input: { id: "file-a" } }) })).json();
+    const response = await fetch("/api/space", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "file.update", input: { id: "file-a", version: result.result.version, content: "# 外部更新" } }) });
+    if (!response.ok) throw new Error("External edit was not committed");
   });
   await replaceSource(page, "# 冲突草稿");
   assert.equal(await contentOf(page), "# 冲突草稿", "source input applied before saving");
-  await page.getByRole("button", { name: "保存", exact: true }).click();
   await page.getByText("文件已在别处更新。你的修改仍保留在这里。").waitFor();
   assert.equal(await contentOf(page), "# 冲突草稿");
   await page.getByRole("button", { name: "读取最新版本", exact: true }).click();
   await page.getByRole("button", { name: "放弃修改并读取", exact: true }).click();
-  await page.getByTitle("已保存 · v4").waitFor();
+  await page.getByTitle(/^已保存 · v/).waitFor();
   assert.equal(await contentOf(page), "# 外部更新", "conflict recovery synchronizes the existing editor");
 }
 
@@ -377,18 +376,17 @@ async function checkTypingDuringSave(page: Page) {
   });
   await replaceSource(page, "# 提交的版本");
   await openMarkdownBody(page);
-  await page.getByRole("button", { name: "保存", exact: true }).click();
-  await page.getByRole("button", { name: "保存中…", exact: true }).waitFor();
+  await page.getByText("保存中…", { exact: true }).waitFor();
   await richFor(page).click();
   await page.keyboard.press("ControlOrMeta+End");
   await page.keyboard.insertText("保存期间继续修改");
   await openSource(page);
   assert.ok(releaseSave);
   releaseSave();
-  await page.getByRole("button", { name: "保存", exact: true }).waitFor();
   assert.ok((await contentOf(page)).includes("保存期间继续修改"), "save responses cannot replace newer typing");
-  await page.getByRole("button", { name: "保存", exact: true }).click();
-  await page.getByTitle("已保存 · v6").waitFor();
+  await page.getByTitle(/^已保存 · v/).waitFor();
+  const saved = await page.evaluate(async () => (await (await fetch("/api/space", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "file.get", input: { id: "file-a" } }) })).json()).result.content);
+  assert.ok(saved.includes("保存期间继续修改"), "the newer draft is committed automatically");
 }
 
 async function checkLayout(page: Page, width: number) {

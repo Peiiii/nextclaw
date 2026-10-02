@@ -98,7 +98,6 @@ async function checkLiveTaskHandle() {
     right: document.querySelector('.ui-markdown-block-handle button[aria-label="块操作"]')!.getBoundingClientRect().right,
   }));
   assert.ok(geometry.right <= geometry.edge, "production whole-list handle stays outside checkboxes");
-  await page.getByRole("button", { name: "保存", exact: true }).click();
   await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
 }
 async function checkLiveImage(page: Page) {
@@ -110,7 +109,6 @@ async function checkLiveImage(page: Page) {
   await image.waitFor();
   const src = await image.getAttribute("src");
   assert.ok(src);
-  await page.getByRole("button", { name: "保存", exact: true }).click();
   await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
   assert.ok((await space<File>("file.get", { path })).content.includes(src));
   await page.reload({ waitUntil: "domcontentloaded" });
@@ -121,6 +119,31 @@ async function checkLiveImage(page: Page) {
   await anonymous.close();
   assert.equal((await context.request.post(origin + "/api/assets", { headers: { origin: "https://example.com" }, data: png, timeout: 60_000 })).status(), 403, "cross-site uploads are rejected before storage");
   console.log("Production private image: real upload, save, reload, authenticated display and access checks passed");
+}
+async function checkLiveDraftRecovery() {
+  let fail = true;
+  const hold = async (route: Route) => {
+    const input = route.request().postDataJSON();
+    if (fail && input.action === "file.update" && input.input.id === createdId) {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "验收模拟保存失败" }) });
+    } else await route.continue();
+  };
+  await page.route("**/api/space", hold);
+  try {
+    await page.locator(".tiptap:visible h1").click();
+    await page.keyboard.press("End"); await page.keyboard.press("Enter");
+    await page.keyboard.insertText("正文编辑真实保存");
+    await page.getByRole("button", { name: "重试保存", exact: true }).waitFor();
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator(".tiptap:visible").getByText(/正文编辑真实保存/).waitFor();
+    await page.getByRole("button", { name: "重试保存", exact: true }).waitFor();
+    assert.deepEqual(dialogs, [], "failed draft refresh has no browser confirmation");
+    assert.ok(!(await space<File>("file.get", { id: createdId })).content.includes("正文编辑真实保存"), "failed writes are only local drafts");
+    fail = false;
+    await page.getByRole("button", { name: "重试保存", exact: true }).click();
+    await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
+    assert.ok((await space<File>("file.get", { path })).content.includes("正文编辑真实保存"));
+  } finally { await page.unroute("**/api/space", hold); }
 }
 try {
   await page.goto(`${origin}/notes`, { waitUntil: "domcontentloaded" });
@@ -143,7 +166,6 @@ try {
     await openMarkdownSource(page);
     const editor = page.locator(".cm-content:visible");
     await editor.click(); await page.keyboard.press("ControlOrMeta+a"); await page.keyboard.insertText(text);
-    await page.getByRole("button", { name: "保存", exact: true }).click();
     await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
     const saved = await space<File>("file.get", { path });
     assert.equal(saved.content, text, "real server persisted exactly the Markdown text");
@@ -158,18 +180,7 @@ try {
     }), false, "a restored code-ending document is not an unsaved edit");
     await page.locator(".tiptap:visible").getByRole("heading", { name: `Markdown 上线验收 ${width}` }).waitFor();
     await page.locator(".tiptap:visible h1").waitFor();
-    await page.locator(".tiptap:visible h1").click();
-    await page.keyboard.press("End");
-    await page.keyboard.press("Enter");
-    await page.keyboard.insertText("正文编辑真实保存");
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await page.locator(".tiptap:visible").getByText(/正文编辑真实保存/).waitFor();
-    assert.deepEqual(dialogs, [], "dirty document refresh has no browser confirmation");
-    assert.ok(!(await space<File>("file.get", { id: createdId })).content.includes("正文编辑真实保存"), "refresh restores the local draft before server save");
-    await page.locator(".tiptap:visible").getByText(/正文编辑真实保存/).click();
-    await page.keyboard.press("ControlOrMeta+s");
-    await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
-    assert.ok((await space<File>("file.get", { path })).content.includes("正文编辑真实保存"));
+    await checkLiveDraftRecovery();
     if (width === 1440) await checkLiveImage(page);
     await page.screenshot({ path: `/tmp/bibo-markdown-editor-live-${width}.png` });
     console.log(`Production ${width}px: UI creation, editing, exact persisted Markdown and refreshed preview passed`);

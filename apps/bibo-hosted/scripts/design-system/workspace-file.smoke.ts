@@ -56,18 +56,19 @@ async function checkNoteTools(page: Page, width: number): Promise<void> {
   if (width <= 760) assert.ok(boxes.every(box => box.width >= 44 && box.height >= 44), "note actions keep their touch targets");
 }
 
-async function checkNoteSaveRetry(page: Page, source: Locator): Promise<void> {
+async function checkNoteSaveRetry(page: Page, content: string): Promise<void> {
+  const source = page.locator(".cm-content:visible");
   let fail = true;
   const saveFailure = async (route: Route) => {
     if (fail && route.request().postDataJSON().action === "file.update") await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "测试保存失败" }) });
     else await route.fallback();
   };
   await page.route("**/api/space", saveFailure);
-  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await source.fill(content);
   await page.getByText("测试保存失败", { exact: true }).waitFor();
   assert.ok((await source.innerText()).includes("第 40 节"), "failed save retains the complete draft");
   fail = false;
-  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.getByRole("button", { name: "重试保存", exact: true }).click();
   await page.getByTitle("已保存 · v2").waitFor();
   await page.unroute("**/api/space", saveFailure);
 }
@@ -76,13 +77,11 @@ async function checkNoteDraft(page: Page, width: number): Promise<void> {
   await openMarkdownSource(page);
   const source = page.locator(".cm-content:visible");
   const content = `# 移动笔记间距\n\n${Array.from({ length: 40 }, (_, index) => `## 第 ${index + 1} 节\n\n这是一段用于检查正文留白与长文滚动的内容。`).join("\n\n")}`;
-  await source.fill(content);
-  await page.getByRole("button", { name: "保存", exact: true }).waitFor();
+  await checkNoteSaveRetry(page, content);
   await checkNoteTools(page, width);
   if (width <= 760) {
     assert.deepEqual(await source.locator(".cm-line").first().evaluate(element => [getComputedStyle(element).paddingLeft, getComputedStyle(element).paddingRight]), ["24px", "24px"], "source shares the mobile horizontal inset");
   }
-  await checkNoteSaveRetry(page, source);
 }
 
 async function checkNoteShortViewport(page: Page, width: number): Promise<void> {
@@ -99,7 +98,6 @@ export async function checkWorkspaceReopening(page: Page): Promise<Locator> {
   await page.getByRole("button", { name: "关闭工作区" }).click();
   await page.getByRole("button", { name: "打开右侧工作区" }).click();
   assert.equal(await editor.textContent(), "# 工作区保留的修改");
-  await page.getByRole("button", { name: "保存", exact: true }).click();
   await page.getByTitle("已保存 · v2").waitFor();
   await page.reload({ waitUntil: "networkidle" });
   await openMarkdownSource(page);
@@ -285,13 +283,27 @@ async function checkFileDrafts(page: Page, workspace: Locator, width: number): P
   await openWorkspaceFile(page, ["B-folder", "nested", "readme.md"]);
   await openMarkdownSource(page, workspace);
   assert.equal(await editor.textContent(), "# 目录切换保留草稿");
+  await workspace.getByTitle("已保存 · v2").waitFor();
+  await checkFailedDraftClose(page, workspace);
+  await checkCloseNeighbor(page, workspace);
+}
+
+async function checkFailedDraftClose(page: Page, workspace: Locator): Promise<void> {
+  const editor = workspace.getByRole("textbox", { name: "编辑 B-folder/nested/readme.md" });
+  const saveFailure = async (route: Route) => {
+    if (route.request().postDataJSON().action === "file.update") await route.fulfill({ status: 503, json: { error: "测试保存失败" } });
+    else await route.fallback();
+  };
+  await page.route("**/api/space", saveFailure);
+  await editor.fill("# 关闭时保留失败草稿");
+  await workspace.getByText("测试保存失败", { exact: true }).waitFor();
   await workspace.getByRole("button", { name: /^文档 / }).click();
   await page.getByRole("menuitem", { name: "关闭当前文档", exact: true }).click();
   await page.getByRole("dialog", { name: "保存文件修改？" }).getByRole("button", { name: "取消", exact: true }).click();
-  assert.equal(await editor.textContent(), "# 目录切换保留草稿");
-  await workspace.getByRole("button", { name: "保存", exact: true }).click();
-  await workspace.getByTitle("已保存 · v2").waitFor();
-  await checkCloseNeighbor(page, workspace);
+  assert.equal(await editor.textContent(), "# 关闭时保留失败草稿");
+  await page.unroute("**/api/space", saveFailure);
+  await workspace.getByRole("button", { name: "重试保存", exact: true }).click();
+  await workspace.getByTitle("已保存 · v3").waitFor();
 }
 
 async function checkCloseNeighbor(page: Page, workspace: Locator): Promise<void> {

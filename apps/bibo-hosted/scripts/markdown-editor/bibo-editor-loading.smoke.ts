@@ -40,7 +40,10 @@ async function checkSlowRecovery(page: Page, mode: "rich" | "source", width: num
 async function checkLoading(page: Page, mode: "rich" | "source", failure: boolean, width: number): Promise<void> {
   await mockApi(page);
   await page.addInitScript(content => {
-    if (!sessionStorage.getItem("bibo-file-drafts:smoke")) sessionStorage.setItem("bibo-file-drafts:smoke", JSON.stringify({ "file-a": { content, version: 1 } }));
+    if (!sessionStorage.getItem("bibo-loading-fixture-seeded")) {
+      sessionStorage.setItem("bibo-file-drafts:smoke", JSON.stringify({ "file-a": { content, version: 1 } }));
+      sessionStorage.setItem("bibo-loading-fixture-seeded", "1");
+    }
   }, draft);
   const writes: string[] = [];
   page.on("request", request => {
@@ -64,7 +67,7 @@ async function checkLoading(page: Page, mode: "rich" | "source", failure: boolea
     }
     if (failure) await checkFailureRecovery(page, pattern, intercept);
     else await checkSlowRecovery(page, mode, width, release);
-    assert.deepEqual(writes, [], "loading recovery never saves or overwrites a draft");
+    assert.ok(writes.every(write => JSON.parse(write).input.content === draft), "automatic saves only submit the preserved draft during loading recovery");
     assert.equal(new URL(page.url()).pathname, "/notes/file-a");
     console.log(`Editor ${mode} ${failure ? "failure/reload" : "slow/eventual success"} ${width}: draft retained and route preserved`);
   } finally { release(); await page.unroute(pattern, intercept); }

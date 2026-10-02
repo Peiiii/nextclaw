@@ -349,8 +349,13 @@
 .file-breadcrumb > .ui-button { @apply flex-none px-1; }
 .file-breadcrumb [aria-current="page"] { @apply [color:var(--ui-ink)]; }
 .file-editor-tools { @apply flex flex-none justify-end items-center gap-1; }
-.file-directory-location { @apply flex items-center gap-1 [border-bottom:1px_solid_var(--ui-line)] pb-1 mb-1; }
+.file-directory-browser { width: min(296px, calc(100vw - 48px)); }
+.file-directory-contents { height:min(300px, 45dvh); overflow:auto; }
+.file-directory-location { @apply flex items-center gap-1 [border-bottom:1px_solid_var(--ui-line)] pb-1 mb-1; min-height:44px; }
 .file-directory-location span { @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap; }
+.file-directory-location > span:first-of-type { flex:1; }
+.file-directory-status { width:24px; flex:none; }
+.file-directory-status svg { width:16px; height:16px; }
 .file-directory-entry.ui-button { @apply w-full justify-start gap-2; }
 .file-directory-entry > span:not(.bibo-file-kind-icon) { @apply flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left; }
 .file-directory-entry > svg { @apply w-4 h-4 flex-none; }
@@ -365,7 +370,8 @@
 .bibo-file-editor-surface { @apply flex flex-1 min-h-0 min-w-0; }
 .bibo-file-editor-surface[hidden] { display: none; }
 .bibo-file-preview-markdown { padding:0; }
-.bibo-file-editor-status { @apply flex flex-none flex-wrap justify-end gap-2 px-4 py-1 [color:var(--ui-muted)] text-base; }
+.bibo-file-editor-status { @apply flex flex-none items-center justify-end gap-2 px-4 [color:var(--ui-muted)] text-base; height:44px; }
+.bibo-file-editor-status > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .bibo-document-tools { width:260px; max-width:calc(100vw - 48px); }
 .bibo-document-outline-title { padding:4px 8px 8px; color:var(--ui-muted); font-size:12px; }
 .bibo-document-outline { max-height:min(25vh,200px); overflow:auto; }

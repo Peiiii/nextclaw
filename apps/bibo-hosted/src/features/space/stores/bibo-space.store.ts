@@ -83,6 +83,7 @@ class BiboSpaceOwner {
   fileDetails: Record<string, BiboFileDetail> = {};
   fileDrafts: Record<string, FileDraft> = {};
   draftStorageError = "";
+  fileOffline = false;
   taskDrafts: Record<string, TaskDraft> = {};
   eventDrafts: Record<string, EventDraft> = {};
 
@@ -97,23 +98,26 @@ class BiboSpaceOwner {
   private get = (): BiboSpaceOwner => this.store.getState();
   private set = (update: Partial<BiboSpaceOwner> | ((state: BiboSpaceOwner) => Partial<BiboSpaceOwner>)): void => {
     if (this.get()?.instanceId !== this.instanceId) return;
-    const previous = this.get().fileDrafts;
+    const previous = this.get();
     this.store.setState(update);
     const state = this.get();
-    if (state.accountId && state.fileDrafts !== previous) {
+    if (state.accountId && state.fileDrafts !== previous.fileDrafts) {
       const error = writeFileDrafts(state.accountId, state.fileDrafts) ? "" : biboCopy.fileDraftStorageFailed;
       if (state.draftStorageError !== error) this.store.setState({ draftStorageError: error });
     }
+    this.fileEditing.sync(previous);
   };
 
   bindAccount = (accountId: string | null, reset = false, load = true): void => {
-    if (this.accountId === accountId && !reset) return;
+    if (this.get().accountId === accountId && !reset) return;
+    this.get().fileEditing.destroy();
     const owner = new BiboSpaceOwner(this.store);
     owner.view = this.get().view;
     owner.accountId = accountId;
     if (accountId && reset) owner.draftStorageError = writeFileDrafts(accountId, {}) ? "" : biboCopy.fileDraftStorageFailed;
     if (accountId && !reset) Object.assign(owner, readWorkspaceLayout(accountId), { fileDrafts: readFileDrafts(accountId) });
     this.store.setState(owner, true);
+    owner.fileEditing.start();
     if (accountId && load) void owner.load();
   };
 
@@ -324,7 +328,7 @@ class BiboSpaceOwner {
     this.saveLayout();
   };
 
-  editFile = (id: string, content: string): void => this.set((state) => !state.fileDrafts[id] || state.fileDetails[id]?.preview || state.fileDrafts[id].content === content ? {} : ({ fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id], content, dirty: content !== state.fileDetails[id]?.content } } }));
+  editFile = (id: string, content: string): void => this.set((state) => !state.fileDrafts[id] || state.fileDetails[id]?.preview || state.fileDrafts[id].content === content ? {} : ({ fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id], content, error: undefined, dirty: state.fileDrafts[id].saving || Boolean(state.fileDrafts[id].error) || content !== state.fileDetails[id]?.content } } }));
 
   saveFile = (id: string): Promise<void> => this.fileEditing.save(id);
   resolveFileConflict = (id: string, choice: "reload" | "overwrite"): Promise<void> => this.fileEditing.resolveConflict(id, choice);

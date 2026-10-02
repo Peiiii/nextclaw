@@ -118,7 +118,6 @@ async function checkFileNavigation(page: Page, width: number): Promise<void> {
     await page.getByRole("button", { name: "收起目录树", exact: true }).click();
     await page.getByRole("button", { name: "展开目录树", exact: true }).click();
     assert.equal(await editor.textContent(), "未保存的文件草稿");
-    await page.getByRole("button", { name: "保存", exact: true }).click();
     await page.getByTitle("已保存 · v2").waitFor();
     await page.reload({ waitUntil: "networkidle" });
     await openMarkdownSource(page);
@@ -317,7 +316,6 @@ try {
       await openMarkdownSource(page);
       const editor = page.getByRole("textbox", { name: "编辑 想法.md" });
       await editor.fill("# 更新过的想法");
-      await page.getByRole("button", { name: "保存", exact: true }).click();
       await page.getByTitle("已保存 · v2").waitFor();
       assert.equal(await page.locator(".bibo-space-feedback").count(), 0, "saved feedback stays in the editor");
       await page.screenshot({ path: `/tmp/workspace-save-status-${viewport.width}.png`, animations: "disabled" });

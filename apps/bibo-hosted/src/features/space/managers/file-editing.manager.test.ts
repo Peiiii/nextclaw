@@ -1,0 +1,111 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+test("automatic file saving serializes snapshots, recovers drafts and isolates accounts", async t => {
+  const host = Object.assign(new EventTarget(), { location: { pathname: "/notes/test.md", search: "" }, matchMedia: () => ({ matches: false }) });
+  const originalWindow = globalThis.window;
+  const storage = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage");
+  const requests: Array<{ action: string; input: { id: string; version: number; content: string }; resolve: (response: Response) => void }> = [];
+  const drafts = new Map<string, string>();
+  globalThis.window = host as unknown as Window & typeof globalThis;
+  Object.defineProperty(globalThis, "sessionStorage", { configurable: true, value: { getItem: (key: string) => drafts.get(key), setItem: (key: string, value: string) => drafts.set(key, value), removeItem: (key: string) => drafts.delete(key) } });
+  t.mock.method(globalThis, "fetch", (_url, init) => new Promise<Response>(resolve => { requests.push({ ...JSON.parse(init!.body as string), resolve }); }));
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const { useBiboSpaceStore: store } = await import("../stores/bibo-space.store");
+  const flush = () => new Promise<void>(resolve => setImmediate(resolve));
+  const file = { id: "test.md", path: "test.md", kind: "note", content: "original", version: 1 };
+  const open = async () => { store.getState().bindAccount("one", true, false); await store.getState().openFile(file.id, file as never); requests.length = 0; };
+  const acknowledge = async (version: number) => { const last = requests.at(-1)!; last.resolve(Response.json({ result: { ...file, version, content: last.input.content } })); await flush(); };
+  t.after(() => {
+    store.getState().bindAccount(null, true, false);
+    globalThis.window = originalWindow;
+    if (storage) Object.defineProperty(globalThis, "sessionStorage", storage); else Reflect.deleteProperty(globalThis, "sessionStorage");
+  });
+
+  await t.test("typing coalesces; later edits wait for the acknowledged version", async () => {
+    await open();
+    store.getState().editFile(file.id, "first");
+    t.mock.timers.tick(500);
+    store.getState().editFile(file.id, "second");
+    t.mock.timers.tick(999);
+    assert.equal(requests.length, 0);
+    t.mock.timers.tick(1);
+    assert.deepEqual(requests.map(r => r.input.content), ["second"]);
+    store.getState().editFile(file.id, "third");
+    t.mock.timers.tick(2000);
+    assert.equal(requests.length, 1, "only one write in flight");
+    await acknowledge(2);
+    assert.equal(store.getState().fileDrafts[file.id]?.dirty, true);
+    assert.equal(store.getState().fileDrafts[file.id]?.content, "third");
+    t.mock.timers.tick(1000);
+    assert.equal(requests[1]?.input.version, 2);
+    await acknowledge(3);
+    assert.equal(store.getState().fileDrafts[file.id]?.dirty, false);
+    assert.equal(drafts.size, 0, "acknowledged drafts no longer need backup");
+    assert.ok(requests.every(r => r.action === "file.update"), "saving does not refetch directory lists");
+    store.getState().editFile(file.id, "fourth"); t.mock.timers.tick(1000);
+    store.getState().editFile(file.id, "third");
+    assert.equal(store.getState().fileDrafts[file.id]?.dirty, true, "undo during a write still needs a new acknowledgement");
+    assert.ok([...drafts.values()].some(value => value.includes("third")), "undo content remains backed up while the old request is in flight");
+    await acknowledge(4); t.mock.timers.tick(1000); await acknowledge(5);
+    assert.equal(store.getState().fileDetails[file.id]?.content, "third");
+  });
+  await t.test("offline drafts survive reload and reconnect without a save action", async () => {
+    await open(); host.dispatchEvent(new Event("offline"));
+    store.getState().editFile(file.id, "offline edit");
+    t.mock.timers.tick(2000);
+    assert.equal(requests.length, 0);
+    store.getState().bindAccount(null, true, false);
+    store.getState().bindAccount("one", false, false);
+    host.dispatchEvent(new Event("offline"));
+    await store.getState().openFile(file.id, file as never);
+    assert.equal(store.getState().fileDrafts[file.id]?.content, "offline edit");
+    host.dispatchEvent(new Event("online"));
+    assert.equal(requests.at(-1)?.input.content, "offline edit");
+    await acknowledge(2);
+    assert.equal(store.getState().fileDrafts[file.id]?.dirty, false);
+  });
+  await t.test("failed writes stop until retry; conflicts never overwrite automatically", async () => {
+    await open(); store.getState().editFile(file.id, "keep me"); t.mock.timers.tick(1000);
+    requests.at(-1)!.resolve(Response.json({ error: "unavailable" }, { status: 503 })); await flush();
+    t.mock.timers.tick(20_000);
+    assert.equal(requests.length, 1);
+    assert.equal(store.getState().fileDrafts[file.id]?.error, "unavailable");
+    const retry = store.getState().saveFile(file.id);
+    requests.at(-1)!.resolve(Response.json({ error: "conflict" }, { status: 409 })); await retry;
+    host.dispatchEvent(new Event("online")); t.mock.timers.tick(20_000);
+    assert.equal(requests.length, 2);
+    assert.equal(store.getState().fileDrafts[file.id]?.content, "keep me");
+    assert.equal(store.getState().fileDrafts[file.id]?.conflict, true);
+  });
+  await t.test("verified reads recognize an already committed draft without another write", async () => {
+    await open(); host.dispatchEvent(new Event("offline"));
+    store.getState().editFile(file.id, "acknowledgement lost");
+    store.getState().bindAccount(null, true, false); store.getState().bindAccount("one", false, false);
+    await store.getState().openFile(file.id, { ...file, content: "acknowledgement lost", version: 2 } as never);
+    t.mock.timers.tick(2000);
+    assert.equal(store.getState().fileDrafts[file.id]?.dirty, false);
+    assert.equal(store.getState().fileDrafts[file.id]?.version, 2);
+    assert.equal(requests.length, 0);
+  });
+  await t.test("account switch cancels timers and ignores old acknowledgements", async () => {
+    await open(); store.getState().editFile(file.id, "old account");
+    store.getState().bindAccount("two", true, false); t.mock.timers.tick(2000);
+    assert.equal(requests.length, 0);
+    await open(); store.getState().editFile(file.id, "in flight"); t.mock.timers.tick(1000);
+    store.getState().bindAccount("two", true, false); await acknowledge(2);
+    assert.deepEqual(store.getState().fileDrafts, {});
+    host.dispatchEvent(new Event("online"));
+    assert.equal(requests.length, 1, "old account listeners are gone");
+  });
+  await t.test("read-only files never submit; backgrounding flushes writable drafts", async () => {
+    await open();
+    store.setState({ fileDetails: { [file.id]: { ...file, preview: { binary: false, totalBytes: 500000 } } as never } });
+    store.getState().editFile(file.id, "blocked"); t.mock.timers.tick(2000);
+    assert.equal(requests.length, 0);
+    await open(); store.getState().editFile(file.id, "before leaving");
+    host.dispatchEvent(new Event("pagehide"));
+    assert.equal(requests.length, 1);
+    await acknowledge(2);
+  });
+});

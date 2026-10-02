@@ -25,7 +25,7 @@ Notes and conversation documents keep their single-document header while opening
 
 模块入口 `/notes`、`/files`、`/tasks`、`/calendar`、`/inbox` 稳定显示集合，不因上次打开的 Tab 自动切入详情。笔记和文件 ID 是完整路径，详情使用 `/notes/<分段编码路径>`、`/files/<分段编码路径>`，支持中文与多级目录；文件路径引用使用 `/files?path=<encoded-path>`，不会与真实 `path/` 文件夹冲突。其它资源使用 `/<module>/<id>`。URL 决定当前对象，支持复制链接、直接进入、刷新及浏览器返回/前进。详情立即读取目标，侧栏列表独立加载；列表较慢不会阻塞正文。未访问的空间页面模块按需加载，笔记集合只请求笔记列表，不预读旧文件正文。Tab 与未保存草稿保留，对话右侧工作区只在实际显示时恢复目标。
 
-编辑器模块加载超过 12 秒会显示慢加载提示和“重新加载页面”入口；模块失败会显示明确错误。慢请求成功后自然进入编辑器，不自动刷新。重新加载继续恢复当前笔记的本标签页草稿，不保存或覆盖服务器内容。`smoke:editor-loading` 覆盖桌面、手机正文与源码模块的延迟、失败及恢复。
+编辑器模块加载超过 12 秒会显示慢加载提示和“重新加载页面”入口；模块失败会显示明确错误。慢请求成功后自然进入编辑器，不自动刷新。重新加载恢复当前笔记的本标签页草稿，验证读取文件后继续按统一自动保存合同处理。`smoke:editor-loading` 覆盖桌面、手机正文与源码模块的延迟、失败及恢复。
 
 `pnpm -C apps/bibo-hosted smoke:routing` 覆盖桌面/手机、持久化旧 Tab、延迟列表与正文、直链、历史往返、刷新和缺失对象。已有预览占用默认端口时，可设置 `BIBO_SMOKE_BASE` 指向本工作区独立的 Vite preview。
 
@@ -56,9 +56,11 @@ For integration against a separately running local Worker, start `pnpm -C apps/b
 
 ## Build and deploy
 
-文件目录按文件夹读取直接子项；展开目录后才读取内容，“加载更多文件”只加载所在目录的下一页。刷新与笔记/文件页切换会重读已加载的目录页，不会把未返回的其他目录误判为删除。目录读取失败保留已有内容并提供所在目录的重试。面包屑目录浏览复用同一目录 manager。`file.list` 使用 `parentPath: ""` 查询根目录，非空 `parentPath` 查询该目录直接子项并透传分页游标；省略 `parentPath` 时继续用于全空间搜索和最近笔记。
+文件目录按文件夹读取直接子项；展开目录后才读取内容，“加载更多文件”只加载所在目录的下一页。刷新与笔记/文件页切换会重读已加载的目录页，不会把未返回的其他目录误判为删除。目录读取失败保留已有内容并提供所在目录的重试。面包屑目录浏览复用同一目录 manager；菜单使用固定阅读区内部滚动，冷加载、缓存刷新、空目录、错误与分页保持尺寸和位置。缓存刷新保留菜单和目录树已有条目，加载反馈不撑高列表。`file.list` 使用 `parentPath: ""` 查询根目录，非空 `parentPath` 查询该目录直接子项并透传分页游标；省略 `parentPath` 时继续用于全空间搜索和最近笔记。
 
-手机笔记沿用单行文档顶栏，隐藏重复的路径行；从文档标题菜单可返回全部笔记。正文顶部和两侧均留 24px，源码从文件菜单打开，保存、正文与格式入口保留触控尺寸。`smoke:client` 同时检查 320/390/760px 与桌面的正文间距、保存失败重试、长文滚动和刷新恢复。
+手机笔记沿用单行文档顶栏，隐藏重复的路径行；从文档标题菜单可返回全部笔记。正文顶部和两侧均留 24px，源码从文件菜单打开，正文与格式入口保留触控尺寸。底部固定区域显示自动保存状态，并提供文字“保存”或“重试保存”。`smoke:client` 同时检查 320/390/760px 与桌面的正文间距、保存失败重试、长文滚动和刷新恢复。
+
+笔记、文件与聊天工作区的正文和源码共用自动保存：输入停顿 1 秒提交，当前正文获服务器确认后显示“已保存”；保存期间的新输入继续保留并依次提交。断网时不尝试写入，联网后自动保存；普通失败保留草稿并允许重试，版本冲突停止自动提交，须先读取最新或明确确认覆盖。草稿按账号保留于当前标签页的 sessionStorage，支持刷新恢复，不承诺关闭标签页后的离线存储。`smoke:editing` 覆盖自动保存、失败刷新/重试、断网恢复及目录菜单几何。
 
 Question panels distinguish closing from skipping: close keeps the pending reminder, while skip silently hides it without sending a message or starting an AI run. Skipped questions remain answerable from their original message, and the per-account preference survives reload within the browser tab. `scripts/chat/bibo-question.smoke.ts` verifies skip, refresh, reopening and answer retry on desktop and mobile; the live question smoke's skip mode verifies unchanged history before reopening and answering.
 

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Eye, SquarePen } from "lucide-react";
+import { Eye, SquarePen } from "lucide-react";
 import { Button, ConfirmDialog, IconButton, LoadingState, Markdown, MarkdownEditor, Notice, SegmentedControl } from "@nextclaw/personal-agent-ui";
 import { FileActions } from "./file-actions";
 import { FileDocumentTools } from "./file-document-tools";
@@ -13,7 +13,7 @@ export const FileEditorHeader = createContext<HTMLElement | null>(null);
 
 export function FileEditor({ id, compact = false, notesOnly = false, defaultPreview = false, initialSource = false, tabId, preview: selectedPreview, onPreviewChange }: { id: string; compact?: boolean; notesOnly?: boolean; defaultPreview?: boolean; initialSource?: boolean; tabId?: string; preview?: boolean; onPreviewChange?: (preview: boolean) => void }) {
   const headerContainer = useContext(FileEditorHeader);
-  const { fileDetails, fileDrafts, createdFileId, draftStorageError, editFile, saveFile, resolveFileConflict, openWorkspace, openFile, uploadImage } = useBiboSpaceStore();
+  const { fileDetails, fileDrafts, fileOffline, createdFileId, draftStorageError, editFile, saveFile, resolveFileConflict, openWorkspace, openFile, uploadImage } = useBiboSpaceStore();
   const [localPreview, setLocalPreview] = useState(defaultPreview);
   const [source, setSource] = useState(initialSource || selectedPreview === false);
   const [editorOpened, setEditorOpened] = useState(selectedPreview === false || !defaultPreview);
@@ -52,7 +52,6 @@ export function FileEditor({ id, compact = false, notesOnly = false, defaultPrev
       label="文件模式" value={preview ? "preview" : source && markdown ? "source" : "edit"}
       options={[{ value: "preview", label: copy.filePreview }, { value: "edit", label: copy.fileEdit }, ...(source && markdown ? [{ value: "source", label: copy.fileSource }] : [])]}
       onChange={changeMode} />)}
-    {!restricted && (draft.dirty || draft.saving) && <IconButton label={draft.saving ? copy.fileSaving : copy.fileSave} icon={<Check />} disabled={draft.saving} onClick={() => void saveFile(id)} />}
     {!restricted && markdown && (preview || !source) && <FileDocumentTools manager={documentManager} view={documentView ?? documentManager.initial} />}
     <FileActions key={id} file={detail} label="文件操作" onSource={!restricted && markdown && !source ? () => changeMode("source") : undefined} onBody={!restricted && markdown && source ? () => changeMode("edit") : undefined} />
   </div>;
@@ -96,8 +95,8 @@ export function FileEditor({ id, compact = false, notesOnly = false, defaultPrev
         <MarkdownEditor autoFocus={createdFileId === id} toolbarContainer={toolbarContainer} value={draft.content} onChange={(value) => editFile(id, value)} source={source || !markdown} active={!preview} label={`${copy.fileEdit} ${detail.path}`} labels={copy.markdownEditor} onLoadRetry={() => window.location.reload()} uploadImage={uploadImage} scrollProgress={previewScroll.current} onScrollProgress={(progress) => { if (!preview) previewScroll.current = progress; }} />
       </div>}
       <div className="bibo-file-editor-status" role="status" aria-live="polite" title={draft.dirty ? copy.fileUnsaved : `已保存 · v${draft.version}`}>
-        <span>{draft.saving ? copy.fileSaving : draft.conflict ? copy.fileConflict : draft.error ? copy.fileSaveFailed : draft.dirty ? copy.fileUnsaved : copy.fileSaved}</span>
-        {draft.dirty && !draftStorageError && <span>{copy.fileDraftProtected}</span>}
+        <span>{draft.saving ? copy.fileSaving : draft.conflict ? copy.fileConflict : draft.dirty && fileOffline ? copy.fileOffline : draft.error ? copy.fileSaveFailed : draft.dirty ? copy.fileSavePending : copy.fileSaved}</span>
+        {!restricted && draft.dirty && !draft.conflict && <Button tone="text" disabled={draft.saving || fileOffline} onClick={() => void saveFile(id)}>{draft.error ? copy.fileRetrySave : copy.fileSave}</Button>}
       </div>
       <ConfirmDialog open={recovery !== null} onOpenChange={(open) => { if (!open) setRecovery(null); }}
         title={recovery === "reload" ? "读取最新版本？" : "覆盖服务器内容？"}

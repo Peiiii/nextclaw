@@ -10,9 +10,55 @@ const message = (error: unknown) => error instanceof Error ? error.message : "æ“
 
 /** File write workflows for one account; draft persistence remains with the space store's writer. */
 export class FileEditingManager {
+  private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
+  private releaseEvents?: () => void;
   constructor(private readonly store: StoreApi<SpaceState>, private readonly client: BiboClient,
     private readonly pendingCreates: Map<string, string>, private readonly patch: (update: Patch) => void) {}
   private active = (): boolean => this.store.getState().fileEditing === this;
+
+  start = (): void => {
+    if (!this.active() || !this.store.getState().accountId || this.releaseEvents || typeof window === "undefined" || !window.addEventListener) return;
+    const host = window, page = typeof document === "undefined" ? null : document;
+    const online = () => { this.patch({ fileOffline: false }); this.flush(); };
+    const offline = () => this.patch({ fileOffline: true });
+    const hidden = () => { if (page?.visibilityState === "hidden") this.flush(); };
+    host.addEventListener("online", online);
+    host.addEventListener("offline", offline);
+    host.addEventListener("pagehide", this.flush);
+    page?.addEventListener("visibilitychange", hidden);
+    this.releaseEvents = () => {
+      host.removeEventListener("online", online);
+      host.removeEventListener("offline", offline);
+      host.removeEventListener("pagehide", this.flush);
+      page?.removeEventListener("visibilitychange", hidden);
+    };
+    this.patch({ fileOffline: typeof navigator !== "undefined" && navigator.onLine === false });
+  };
+
+  destroy = (): void => {
+    for (const timer of this.timers.values()) clearTimeout(timer);
+    this.timers.clear();
+    this.releaseEvents?.();
+    this.releaseEvents = undefined;
+  };
+
+  sync = (previous: SpaceState): void => {
+    const state = this.store.getState();
+    for (const id of this.timers.keys()) if (!state.fileDrafts[id]) this.cancel(id);
+    for (const [id, draft] of Object.entries(state.fileDrafts)) {
+      if (!state.accountId || !state.fileDetails[id] || state.fileDetails[id].preview || state.fileOffline || !draft.dirty || draft.saving || draft.error || draft.conflict) { this.cancel(id); continue; }
+      const before = previous.fileDrafts[id];
+      if (before?.content === draft.content && previous.fileDetails[id] && !before.saving) continue;
+      this.cancel(id);
+      this.timers.set(id, setTimeout(() => { this.timers.delete(id); void this.save(id); }, 1000));
+    }
+  };
+
+  private cancel = (id: string): void => { clearTimeout(this.timers.get(id)); this.timers.delete(id); };
+  private flush = (): void => {
+    if (!this.active() || !this.store.getState().accountId) return;
+    for (const id of Object.keys(this.store.getState().fileDrafts)) void this.save(id);
+  };
 
   createFile = async (path: string, kind: BiboFile["kind"]): Promise<boolean> => {
     const state = this.store.getState();
@@ -24,13 +70,13 @@ export class FileEditingManager {
 
   save = async (id: string): Promise<void> => {
     const state = this.store.getState(), draft = state.fileDrafts[id];
-    if (!this.active() || !draft || !draft.dirty || draft.saving || state.fileDetails[id]?.preview) return;
+    if (!this.active() || !draft || !draft.dirty || draft.saving || draft.conflict || state.fileOffline || !state.fileDetails[id] || state.fileDetails[id].preview) return;
+    this.cancel(id);
     this.patch(state => ({ fileDrafts: { ...state.fileDrafts, [id]: { ...draft, saving: true, error: undefined } } }));
     try {
       const detail = await this.client.space<BiboFileDetail>("file.update", { id, version: draft.version, content: draft.content });
       if (!this.active()) return;
       this.patch(state => savedFileState(state, detail, draft.content));
-      await this.store.getState().load(this.store.getState().view === "notes" ? "notes" : "files");
     } catch (error) {
       const conflict = error instanceof BiboClientError && error.status === 409;
       this.patch(state => state.fileDrafts[id] ? { fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id]!, saving: false, conflict: conflict || state.fileDrafts[id]!.conflict, error: conflict ? undefined : message(error) } } } : {});
