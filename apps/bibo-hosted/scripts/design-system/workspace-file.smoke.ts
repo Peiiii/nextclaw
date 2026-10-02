@@ -39,7 +39,7 @@ async function checkNoteBodyLayout(page: Page, width: number): Promise<void> {
     const box = element.getBoundingClientRect(), style = getComputedStyle(element);
     return { left: style.paddingLeft, right: style.paddingRight, bottom: style.paddingBottom, topGap: element.firstElementChild!.getBoundingClientRect().top - box.top, headerHeight: document.querySelector(".bibo-topbar")!.getBoundingClientRect().height };
   });
-  assert.equal(editing.topGap, width <= 760 ? 24 : 80, "note uses the document spacing");
+  assert.equal(editing.topGap, 24, "note starts near the header on desktop and mobile");
   assert.equal(editing.headerHeight, width <= 760 ? 56 : 44, "note header stays on one row");
   if (width <= 760) {
     assert.deepEqual([editing.left, editing.right, editing.bottom], ["24px", "24px", "48px"]);
