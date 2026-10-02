@@ -30,6 +30,7 @@ export function useNcpSessionListView(
 ) {
   const storedQuery = useChatSessionListStore((state) => state.snapshot.query);
   const runningSessionKeys = useChatSessionListStore((state) => state.runningSessionKeys);
+  const pinOverrides = useChatSessionListStore((state) => state.optimisticPinnedBySessionKey);
   const query = params.query ?? storedQuery;
   const deferredQuery = useDeferredValue(query);
   const sessionsQuery = useInfiniteNcpSessions({
@@ -41,12 +42,22 @@ export function useNcpSessionListView(
     const summaries = sessionsQuery.data?.pages.flatMap((page) => page.sessions) ?? [];
     const runningSessionKeySet = new Set(runningSessionKeys);
     return adaptNcpSessionSummaries(summaries).map((session) => ({
-      session,
+      session: {
+        ...session,
+        metadata: {
+          ...session.metadata,
+          pinned: pinOverrides[session.key] ?? session.metadata?.pinned === true,
+        },
+      },
       runStatus: runningSessionKeySet.has(session.key) || session.status === "running"
         ? "running"
         : undefined,
     }));
-  }, [runningSessionKeys, sessionsQuery.data?.pages]);
+  }, [pinOverrides, runningSessionKeys, sessionsQuery.data?.pages]);
+  const pinnedSessionKeys = useMemo(
+    () => allItems.filter(({ session }) => session.metadata?.pinned === true).map(({ session }) => session.key),
+    [allItems],
+  );
   const items = useMemo<NcpSessionListItemView[]>(() => {
     const visibleItems = allItems.filter(({ session }) =>
       shouldShowSessionInSidebar(session),
@@ -65,6 +76,7 @@ export function useNcpSessionListView(
 
   return {
     allItems,
+    pinnedSessionKeys,
     isLoading: sessionsQuery.isLoading,
     items,
     hasMore: sessionsQuery.hasNextPage,

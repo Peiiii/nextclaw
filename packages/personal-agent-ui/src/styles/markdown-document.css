@@ -1,13 +1,14 @@
 /* Document typography has one owner for reading and editing. Chat is separate. */
 :is(.ui-markdown.ui-markdown-document > .chat-markdown, .ui-markdown-editor.ui-rich-markdown-editor .ProseMirror) {
-  box-sizing:border-box; width:100%; max-width:var(--document-max-width,820px); margin:0 auto; padding:var(--document-top-padding,64px) var(--document-right-padding,28px) 100px var(--document-left-padding,50px);
-  color:var(--ui-ink); font-size:var(--document-font-size,15px); line-height:1.85; overflow-wrap:anywhere; word-break:normal;
+  box-sizing:border-box; width:100%; max-width:var(--document-max-width,820px); margin:0 auto; padding:var(--document-top-padding,64px) var(--document-right-padding,28px) var(--document-bottom-padding,100px) var(--document-left-padding,50px);
+  color:var(--ui-ink); font-size:var(--document-font-size,14px); line-height:1.85; overflow-wrap:anywhere; word-break:normal;
   & :is(p,h1,h2,h3,h4,h5,h6,ul,ol,blockquote,pre,hr,table) { margin:0; }
   & > :not(:first-child) { margin-top:12px; }
+  & > p + p { margin-top:8px; }
   & :is(h1,h2,h3,h4,h5,h6) { font-weight:650; line-height:1.4; letter-spacing:-.01em; }
   & > :is(h1,h2,h3,h4,h5,h6):not(:first-child) { margin-top:24px; }
   & > :is(h1,h2,h3,h4,h5,h6) + * { margin-top:8px; }
-  & h1 { font-size:2.1em; margin-bottom:24px; } & h2 { font-size:1.55em; } & h3 { font-size:1.3em; }
+  & h1 { font-size:2em; margin-bottom:24px; } & h2 { font-size:1.4em; } & h3 { font-size:1.2em; }
   & h4 { font-size:1.15em; } & :is(h5,h6) { font-size:1em; }
   & :is(ul,ol) { padding-left:24px; list-style-position:outside; }
   & ul { list-style-type:disc; } & ul ul { list-style-type:circle; }
@@ -15,7 +16,8 @@
   & li { margin:0; } & li + li { margin-top:4px; }
   & li > :is(p,ul,ol) { margin:0; }
   & li::marker { color:var(--ui-muted); font-weight:600; }
-  & :is(ul[data-type=taskList],ul.contains-task-list) { padding:0; list-style:none; }
+  & :is(ul[data-type=taskList],ul.contains-task-list) { padding-left:0; list-style:none; }
+  & :is(ul[data-type=taskList],ul.contains-task-list) :is(ul,ol) { padding-left:24px; }
   & :is(li[data-type=taskItem],li.task-list-item) { display:flex; align-items:flex-start; gap:8px; }
   & li[data-type=taskItem] > div { flex:1; min-width:0; }
   & li[data-type=taskItem] > label { display:flex; align-items:center; height:1.85em; padding:0; }
@@ -73,5 +75,8 @@
 }
 .ui-markdown.ui-markdown-document { max-width:none; margin:0; padding:0; container-type:inline-size; }
 @container (max-width:480px) {
-  :is(.ui-markdown.ui-markdown-document > .chat-markdown, .ui-markdown-editor.ui-rich-markdown-editor .ProseMirror) { padding:var(--document-top-padding,40px) var(--document-right-padding,16px) 80px var(--document-left-padding,32px); }
+  :is(.ui-markdown.ui-markdown-document > .chat-markdown, .ui-markdown-editor.ui-rich-markdown-editor .ProseMirror) {
+    padding:var(--document-top-padding,24px) var(--document-right-padding,24px) var(--document-bottom-padding,48px) var(--document-left-padding,24px);
+    & h1 { font-size:1.85em; margin-bottom:16px; }
+  }
 }

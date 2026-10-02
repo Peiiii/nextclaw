@@ -8,6 +8,7 @@ import { build } from "esbuild";
 import { type BiboSpaceState } from "@/features/bibo-domain";
 import { BiboSpaceStateStore } from "./bibo-space-state.service";
 import { CloudflareSessionStore } from "./stores/cloudflare-session.store";
+import { BiboRunService } from "./services/bibo-run.service";
 
 const bundle = await build({
   entryPoints: [new URL("./bibo-hosted.app.ts", import.meta.url).pathname],
@@ -735,4 +736,38 @@ test("available budget forwards valid chat and keeps reservation in the model en
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { forwarded: true });
   assert.equal(writes, 0);
+});
+
+test("hosted subscriptions retain actual text blocks through snapshots and reconnects", async () => {
+  const writes: unknown[] = [], operations: Promise<unknown>[] = [];
+  const storage = { put: async (_key: string, value: unknown) => { writes.push(structuredClone(value)); } } as unknown as DurableObjectStorage;
+  const service = new BiboRunService(storage, operation => operations.push(operation), async () => ({ text: "saved", messages: [] }));
+  let complete!: () => void;
+  const finished = new Promise<void>(resolve => { complete = resolve; });
+  const active = await service.start({ runId: "blocks", sessionId: "s", message: "input" }, async () => {
+    await finished;
+    return Response.json({ text: "saved", messages: [] });
+  });
+  try {
+    service.delta(active.id, "先检查", "first");
+    service.delta(active.id, "文件。", "first");
+    service.delta(active.id, "已经保存。", "second");
+    service.activity(active.id, "bibo");
+    const blocks = [{ id: "first", text: "先检查文件。" }, { id: "second", text: "已经保存。" }];
+    assert.deepEqual(service.state("s").run?.partialBlocks, blocks);
+    const first = service.subscribe(active.id).body!.getReader();
+    const snapshot = new TextDecoder().decode((await first.read()).value);
+    assert.deepEqual(JSON.parse(snapshot.match(/^data: (.+)$/m)![1]!).partialBlocks, blocks);
+    await first.cancel();
+    assert.equal(active.controller.signal.aborted, false);
+    const restored = service.subscribe(active.id);
+    complete();
+    const events = await restored.text();
+    assert.match(events, /"partialBlocks":\[/);
+    assert.match(events, /event: committed/);
+    await Promise.all(operations);
+    assert.deepEqual(service.state("s").run?.partialBlocks, []);
+    assert.equal((writes.at(-1) as { partial: string }).partial, "");
+    assert.deepEqual((writes.at(-1) as { partialBlocks: unknown[] }).partialBlocks, []);
+  } finally { complete(); await Promise.all(operations); }
 });

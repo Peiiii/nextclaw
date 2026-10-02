@@ -6,8 +6,9 @@ const getSession = vi.fn();
 const deleteSession = vi.fn();
 const deleteSessionRun = vi.fn();
 const dispose = vi.fn();
+const patchSessionSettings = vi.fn();
 const kernel = {
-  sessionManager: { getSession, deleteSession },
+  sessionManager: { getSession, deleteSession, patchSessionSettings },
   sessionRunManager: { deleteSessionRun },
   dispose,
 };
@@ -19,6 +20,18 @@ describe("SessionCommands", () => {
     getSession.mockResolvedValue(session);
     deleteSession.mockResolvedValue(undefined);
     dispose.mockResolvedValue(undefined);
+    patchSessionSettings.mockResolvedValue(session);
+  });
+
+  it('pins and unpins through the shared settings owner', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const commands = new SessionCommands(async () => ({ kernel, harness: { dispose } }) as never);
+    await commands.setPinned('session-1', true, { json: true });
+    await commands.setPinned('session-1', false, { json: true });
+    expect(patchSessionSettings.mock.calls).toEqual([
+      ['session-1', { pinned: true }], ['session-1', { pinned: false }],
+    ]);
+    expect(dispose).toHaveBeenCalledTimes(2);
   });
 
   it("deletes a confirmed session through the kernel owner", async () => {

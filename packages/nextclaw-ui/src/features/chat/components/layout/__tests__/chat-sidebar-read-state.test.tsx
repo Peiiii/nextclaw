@@ -10,6 +10,7 @@ import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 
 const mocks = vi.hoisted(() => ({
   sessionItems: [] as NcpSessionListItemView[],
+  toggleSessionPinned: vi.fn(),
 }));
 
 vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
@@ -23,6 +24,7 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
       setQuery: vi.fn(),
       setListMode: vi.fn(),
       selectSession: vi.fn(),
+      toggleSessionPinned: mocks.toggleSessionPinned,
       markSessionRead: (
         sessionKey: string | null | undefined,
         readAt: string | null | undefined,
@@ -44,6 +46,7 @@ vi.mock("@/features/chat/features/ncp/hooks/use-ncp-session-list-view", () => ({
     allItems: mocks.sessionItems,
     isLoading: false,
     items: mocks.sessionItems,
+    pinnedSessionKeys: mocks.sessionItems.filter(({ session }) => session.metadata?.pinned === true).map(({ session }) => session.key),
   }),
 }));
 
@@ -160,6 +163,16 @@ function renderReadStateSidebar(queryClient: QueryClient) {
 
 describe("ChatSidebar read state sync", () => {
   beforeEach(resetReadStateTestState);
+
+  it("renders server pins and passes the current pin state to the list manager", () => {
+    const item = createRunningSessionItem();
+    item.session.metadata = { pinned: true };
+    mocks.sessionItems = [item];
+    renderReadStateSidebar(createTestQueryClient());
+    expect(screen.getByText("Pinned")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Unpin session" }));
+    expect(mocks.toggleSessionPinned).toHaveBeenCalledWith(item.session.key, true);
+  });
 
   it("waits until the active running session is idle before persisting the read watermark", async () => {
     mocks.sessionItems = [createRunningSessionItem("running")];

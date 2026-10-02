@@ -22,7 +22,11 @@ export class MarkdownBlockManager {
     this.element = document.createElement("div");
     this.element.className = "ui-markdown-block-handle";
     const { plugin } = DragHandlePlugin({ editor, element: this.element,
-      computePositionConfig: { placement: "left-start", strategy: "absolute" },
+      computePositionConfig: { placement: "left", strategy: "absolute" },
+      getReferencedVirtualElement: () => {
+        const anchor = this.state?.anchor;
+        return anchor ? { getBoundingClientRect: () => new DOMRect(anchor.x + 30, anchor.y, 0, anchor.height) } : null;
+      },
       nestedOptions: normalizeNestedOptions({ edgeDetection: "none", rules: [{ id: "document-blocks", evaluate: ({ $pos, node, depth }) => {
         for (let ancestor = 1; ancestor < depth; ancestor++) {
           if (["table", "blockquote"].includes($pos.node(ancestor).type.name)) return 1000;
@@ -69,9 +73,14 @@ export class MarkdownBlockManager {
     if (!editor || !node || !node.isBlock) return;
     const element = editor.view.nodeDOM(position);
     if (!(element instanceof HTMLElement)) return;
-    const box = element.getBoundingClientRect();
+    const firstLine = element.matches("p,h1,h2,h3,h4,h5,h6") ? element : element.querySelector<HTMLElement>("p,h1,h2,h3,h4,h5,h6,summary") ?? element;
+    const box = firstLine.getBoundingClientRect();
+    const style = getComputedStyle(firstLine);
+    const height = Math.min(box.height, parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.85);
+    const list = element.closest("li")?.parentElement;
+    const left = list?.matches("ul,ol") ? list.getBoundingClientRect().left : element.getBoundingClientRect().left;
     const kind = node.type.name === "paragraph" && node.childCount === 1 && node.firstChild?.type.name === "image" ? "image" : node.type.name;
-    const anchor = { x: box.left - 30, y: box.top, width: 20, height: 24 };
+    const anchor = { x: left - 30, y: box.top, width: 20, height };
     let convertible = ["paragraph", "heading", "codeBlock"].includes(kind);
     node.forEach(child => { if (!child.isText && child.type.name !== "hardBreak") convertible = false; });
     const next = { position, kind, anchor, open, convertible };

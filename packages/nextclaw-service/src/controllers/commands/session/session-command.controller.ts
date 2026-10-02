@@ -34,6 +34,10 @@ export class SessionCommands {
     await this.update(sessionId, { projectRoot: null }, options);
   };
 
+  setPinned = async (sessionId: string, pinned: boolean, options: SessionCommandOptions = {}): Promise<void> => {
+    await this.update(sessionId, { pinned }, options);
+  };
+
   delete = async (
     sessionId: string,
     options: SessionDeleteCommandOptions,
@@ -60,7 +64,7 @@ export class SessionCommands {
 
   private update = async (
     sessionId: string,
-    patch: { label?: string; projectRoot?: string | null },
+    patch: { label?: string; projectRoot?: string | null; pinned?: boolean },
     options: SessionCommandOptions,
   ): Promise<void> => {
     const { kernel, harness } = await this.createKernel();

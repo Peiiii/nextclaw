@@ -6,6 +6,7 @@ class WorkspaceUiOwner {
   sidebarCollapsed = false;
   treeCollapsed = false;
   treeWidth = 230;
+  workspaceRatio = 0.55;
 
   constructor(private readonly store: StoreApi<WorkspaceUiOwner>) {
     Object.assign(this, readWorkspaceUiLayout());
@@ -24,6 +25,11 @@ class WorkspaceUiOwner {
   resizeTree = (width: number): void => {
     this.store.setState({ treeWidth: Math.min(360, Math.max(180, width)) });
     writeWorkspaceUiLayout({ treeWidth: this.store.getState().treeWidth });
+  };
+  resizeWorkspace = (ratio: number): void => {
+    if (!Number.isFinite(ratio)) return;
+    this.store.setState({ workspaceRatio: Math.min(0.7, Math.max(0.3, ratio)) });
+    writeWorkspaceUiLayout({ workspaceRatio: this.store.getState().workspaceRatio });
   };
 }
 

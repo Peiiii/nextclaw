@@ -5,13 +5,13 @@ import { readFileSync } from "node:fs";
 import { chromium, type Page, type Route } from "playwright";
 import { mockApi, openMarkdownSource } from "./personal-workspace.fixture";
 import { checkContentBounds, checkThemes, checkControlFeedback, checkFileTabs, checkSessionActionFade, checkLongPlanningDetails, checkOverviewCanvas, checkMobileDrawerTooltip, checkLayoutInitialization } from "./design-system/bibo-design-system.smoke";
-import { checkFileRowActions, checkMissingRestoredFile, checkWorkspaceFiles, checkWorkspaceReopening, openWorkspaceFile } from "./design-system/workspace-file.smoke";
+import { checkFileRowActions, checkMissingRestoredFile, checkNoteLayout, checkWorkspaceFiles, checkWorkspaceReopening, openWorkspaceFile } from "./design-system/workspace-file.smoke";
 const port = process.env.BIBO_SMOKE_PORT ?? String(30000 + process.pid % 20000);
 const base = process.env.BIBO_SMOKE_BASE ?? `http://127.0.0.1:${port}`;
 const server = process.env.BIBO_SMOKE_BASE ? null : spawn(process.execPath, [new URL("../node_modules/vite/bin/vite.js", import.meta.url).pathname, "preview", "--host", "127.0.0.1", "--port", port, "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: "ignore" });
 async function ready(): Promise<void> {
   if (!server) return;
-  for (let attempt = 0; attempt < 60; attempt += 1) {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
     if (server.exitCode !== null) throw new Error("The isolated preview server exited before readiness");
     try { if (await (await fetch(base)).text() === readFileSync(new URL("../dist/public/index.html", import.meta.url), "utf8")) return; } catch { /* Preview is starting. */ }
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -85,6 +85,8 @@ async function checkTreeKeyboard(page: Page): Promise<void> {
   await node("B-folder").focus();
   for (const [key, path] of [["ArrowRight", "B-folder"], ["ArrowRight", "B-folder/nested"], ["ArrowRight", "B-folder/nested"], ["ArrowRight", "B-folder/nested/readme.md"], ["ArrowLeft", "B-folder/nested"], ["ArrowLeft", "B-folder/nested"], ["ArrowUp", "B-folder"], ["ArrowDown", "B-folder/nested"], ["Home", "A-empty"], ["End", "想法.md"]]) {
     await page.keyboard.press(key!); assert.equal(await focused(), path);
+    if (key === "ArrowRight" && path === "B-folder") await node("nested").waitFor();
+    if (key === "ArrowRight" && path === "B-folder/nested" && await node("nested").getAttribute("aria-expanded") === "true") await node("readme.md").waitFor();
   }
   assert.equal(await node("nested").getAttribute("aria-expanded"), "false");
   const group = await node("B-folder").getAttribute("aria-owns");
@@ -322,16 +324,16 @@ try {
       const surfaceBox = await page.locator(".ui-markdown-editor-host").boundingBox();
       assert.ok(editorBox && surfaceBox && editorBox.y < 210 && surfaceBox.height > viewport.height * .55, "note content occupies the main workspace at desktop and mobile sizes");
       assert.equal(await page.getByRole("button", { name: "保存", exact: true }).count(), 0, "idle saved files leave no redundant save control");
-      if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
+      if (viewport.width < 600) await page.locator(".bibo-mobile-nav").getByRole("button", { name: "更多" }).click();
       await page.getByRole("link", { name: /文件/ }).click();
       await page.getByRole("treeitem", { name: /想法.md/ }).click();
       await openMarkdownSource(page);
       await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
       assert.equal(await page.getByRole("textbox", { name: "编辑 想法.md" }).textContent(), "# 更新过的想法");
-      await page.getByRole("button", { name: "预览", exact: true }).click();
+      await page.getByRole("button", { name: "文件操作", exact: true }).click();
+      await page.getByRole("menuitem", { name: "正文", exact: true }).click();
       await page.getByRole("heading", { name: "更新过的想法" }).waitFor();
-      assert.equal(await page.getByRole("group", { name: "文件模式" }).getByRole("button", { name: "预览" }).getAttribute("aria-pressed"), "true");
-      await page.getByRole("button", { name: "编辑", exact: true }).click();
+      assert.equal(await page.getByRole("group", { name: "文件模式" }).count(), 0);
       if (viewport.width < 600) await page.locator(".file-mobile-back button").click();
       await page.getByRole("button", { name: "收起目录树", exact: true }).click();
       await page.locator(".bibo-file-tab > button").first().click();
@@ -348,7 +350,7 @@ try {
         await page.getByRole("button", { name: "确认移动" }).click();
         await page.getByRole("textbox", { name: "编辑 新的想法.md" }).waitFor();
       }
-      if (viewport.width < 600) await page.getByRole("button", { name: "打开菜单" }).click();
+      if (viewport.width < 600) await page.locator(".bibo-mobile-nav").getByRole("button", { name: "更多" }).click();
       await page.getByRole("navigation", { name: "工作空间" }).getByRole("link", { name: /日程/ }).click();
       await page.getByRole("heading", { name: "日程", exact: true }).waitFor();
       const calendarAction = page.getByRole("button", { name: "＋ 新日程" });
@@ -455,6 +457,11 @@ try {
       if (width === 390 && !touch) await mockApi(page);
       else await checkLongTitles(page, width);
       if (width <= 390) await checkMobileDrawerTooltip(page, width, touch, base);
+      await page.close();
+    }
+    for (const width of [320, 390, 760, 1440]) {
+      const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: width <= 760 });
+      await checkNoteLayout(page, width, base);
       await page.close();
     }
     for (const width of [1440, 390]) {

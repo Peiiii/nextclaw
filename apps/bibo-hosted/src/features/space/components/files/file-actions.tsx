@@ -1,10 +1,11 @@
-import { useRef, useState } from "react";
-import { MoreVertical } from "lucide-react";
+import { cloneElement, useRef, useState, type ReactElement, type ReactNode, type RefAttributes } from "react";
+import { Code, Download, MoreVertical, Pencil, Text, Trash2 } from "lucide-react";
 import type { BiboFile } from "@nextclaw/bibo-client";
 import {
   ActionMenu,
   ActionMenuItem,
   ActionMenuLink,
+  ActionMenuSeparator,
   Button,
   ConfirmDialog,
   Dialog,
@@ -15,7 +16,7 @@ import {
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 
-export function FileActions({ file, tabIndex, label, onSource }: { file: BiboFile; tabIndex?: number; label?: string; onSource?: () => void }) {
+export function FileActions({ file, tabIndex, label, onSource, onBody, menuTrigger, leading, trailing }: { file: BiboFile; tabIndex?: number; label?: string; onSource?: () => void; onBody?: () => void; menuTrigger?: ReactElement<RefAttributes<HTMLButtonElement>>; leading?: ReactNode; trailing?: ReactNode }) {
   const { moveFile, deleteFile, saving, fileDetails, fileDrafts } = useBiboSpaceStore();
   const [moving, setMoving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -49,15 +50,21 @@ export function FileActions({ file, tabIndex, label, onSource }: { file: BiboFil
       <ActionMenu
         label={actionLabel}
         triggerRef={trigger}
-        trigger={<IconButton ref={trigger} label={actionLabel} tooltip="更多操作" tooltipSide="top" icon={<MoreVertical />} tabIndex={tabIndex} />}
+        trigger={menuTrigger ? cloneElement(menuTrigger, { ref: trigger }) : <IconButton ref={trigger} label={actionLabel} tooltip="更多操作" tooltipSide="top" icon={<MoreVertical />} tabIndex={tabIndex} />}
         transferringFocus={moving || deleting}
       >
-        {onSource && <ActionMenuItem onSelect={onSource}>{copy.fileSource}</ActionMenuItem>}
-        {file.kind !== "folder" && <ActionMenuLink download href={`/api/workspace/file?path=${encodeURIComponent(file.path)}`}>{copy.fileDownload}</ActionMenuLink>}
-        <ActionMenuItem onSelect={startMove}>移动 / 重命名</ActionMenuItem>
+        {leading}
+        {leading && <ActionMenuSeparator />}
+        <ActionMenuItem onSelect={startMove}><Pencil size={18} />{copy.fileMoveRename}</ActionMenuItem>
         <ActionMenuItem danger disabled={saving} onSelect={() => { setFailure(""); setDeleting(true); }}>
-          删除
+          <Trash2 size={18} />{copy.fileDelete}
         </ActionMenuItem>
+        {(onSource || onBody || file.kind !== "folder") && <ActionMenuSeparator />}
+        {file.kind !== "folder" && <ActionMenuLink download href={`/api/workspace/file?path=${encodeURIComponent(file.path)}`}><Download size={18} />{copy.fileDownload}</ActionMenuLink>}
+        {onSource && <ActionMenuItem onSelect={onSource}><Code size={18} />{copy.fileSource}</ActionMenuItem>}
+        {onBody && <ActionMenuItem onSelect={onBody}><Text size={18} />{copy.fileBody}</ActionMenuItem>}
+        {trailing && <ActionMenuSeparator />}
+        {trailing}
       </ActionMenu>
       <Dialog
         open={moving}

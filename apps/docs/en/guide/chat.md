@@ -82,6 +82,10 @@ NextClaw can host Native, Codex, Claude Code, Weixin, Feishu, and scheduled-task
 
 ## Session list
 
+On desktop, hover a session and click **Pin session**; on mobile, choose the same action from its menu. The NextClaw instance saves the pin across page refreshes, instance restarts, and browsers. Pinned sessions are ordered before pagination, so older work stays in the first loaded page as new sessions arrive. **Unpin session** restores ordinary time ordering. A failed save restores the previous state and offers a retry message. Existing session pins in the current browser are synced automatically after upgrading. Project pins and collapsed groups remain browser view preferences.
+
+You can also run `nextclaw sessions pin <session-id> --json` or `nextclaw sessions unpin <session-id> --json`; both use the same persisted state as the UI.
+
 Name work so it is recognizable later. Prefer names such as “July sales analysis” or “Release verification” over a list of sessions called “Hello” or “Test.”
 
 New sessions initially show a short excerpt of the first message. As soon as the user message is saved, NextClaw starts generating a concise title in the background with the model selected for that turn; it does not wait for the main reply to finish. The title request runs alongside the reply. Specific work is summarized by topic; greetings and simple small talk are named by interaction type, such as “Casual greeting,” instead of repeating the opening words. The list updates automatically, and the title survives a refresh. Failed title requests keep the temporary title without interrupting chat. Generated titles stay stable, and manual names are never overwritten. Some older versions incorrectly marked temporary titles as manual; those historical names are not overwritten in bulk.

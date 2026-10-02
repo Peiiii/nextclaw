@@ -171,6 +171,8 @@ nextclaw <command> --help
 | `nextclaw projects work state update`    | 更新或重排工作状态                                                                     |
 | `nextclaw projects work state delete`    | 删除状态并按需迁移现有工作项                                                           |
 | `nextclaw sessions rename`               | 重命名会话                                                                             |
+| `nextclaw sessions pin`                  | 持久化置顶会话                                                                         |
+| `nextclaw sessions unpin`                | 取消会话置顶                                                                           |
 | `nextclaw sessions set-project`          | 把会话绑定到现有项目目录                                                               |
 | `nextclaw sessions clear-project`        | 清除会话的显式项目绑定                                                                 |
 | `nextclaw sessions delete`               | 永久删除会话；需 `--confirm <会话 ID>`                                                 |

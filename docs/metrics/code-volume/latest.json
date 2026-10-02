@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-09-30T08:28:33.827Z",
+  "generatedAt": "2026-10-02T08:27:06.846Z",
   "projectRoot": "/home/runner/work/nextclaw/nextclaw",
   "git": {
-    "sha": "45103053df40cbfcb36802c428cc6c44bcbf090d",
+    "sha": "07b81c1e1fa494fe40d8c4df30b26341954920a1",
     "ref": "master"
   },
   "scope": {
@@ -105,30 +105,30 @@
     "codeLineSemantics": "production-code-with-tests-separated"
   },
   "totals": {
-    "files": 3469,
-    "totalLines": 501567,
-    "blankLines": 42024,
-    "commentLines": 1239,
-    "codeLines": 321027,
-    "testCodeLines": 137277
+    "files": 3479,
+    "totalLines": 502964,
+    "blankLines": 42101,
+    "commentLines": 1248,
+    "codeLines": 321744,
+    "testCodeLines": 137871
   },
   "byLanguage": [
     {
       "name": "TypeScript",
-      "files": 2721,
-      "totalLines": 389526,
-      "blankLines": 33691,
-      "commentLines": 1119,
-      "codeLines": 253759,
-      "testCodeLines": 100957
+      "files": 2729,
+      "totalLines": 390815,
+      "blankLines": 33761,
+      "commentLines": 1127,
+      "codeLines": 254376,
+      "testCodeLines": 101551
     },
     {
       "name": "TSX",
-      "files": 725,
-      "totalLines": 110081,
-      "blankLines": 8175,
-      "commentLines": 110,
-      "codeLines": 65686,
+      "files": 727,
+      "totalLines": 110189,
+      "blankLines": 8182,
+      "commentLines": 111,
+      "codeLines": 65786,
       "testCodeLines": 36110
     },
     {
@@ -216,12 +216,12 @@
     },
     {
       "name": "apps/bibo-hosted",
-      "files": 101,
-      "totalLines": 12165,
-      "blankLines": 681,
-      "commentLines": 56,
-      "codeLines": 8211,
-      "testCodeLines": 3217
+      "files": 110,
+      "totalLines": 13437,
+      "blankLines": 747,
+      "commentLines": 63,
+      "codeLines": 8836,
+      "testCodeLines": 3791
     },
     {
       "name": "workers/marketplace-api",
@@ -351,11 +351,11 @@
     },
     {
       "name": "packages/personal-agent-ui",
-      "files": 42,
-      "totalLines": 2521,
-      "blankLines": 155,
-      "commentLines": 18,
-      "codeLines": 2274,
+      "files": 43,
+      "totalLines": 2555,
+      "blankLines": 159,
+      "commentLines": 20,
+      "codeLines": 2302,
       "testCodeLines": 74
     },
     {
@@ -604,11 +604,11 @@
     {
       "name": "packages/bibo-client",
       "files": 7,
-      "totalLines": 695,
-      "blankLines": 79,
+      "totalLines": 786,
+      "blankLines": 86,
       "commentLines": 0,
-      "codeLines": 409,
-      "testCodeLines": 207
+      "codeLines": 473,
+      "testCodeLines": 227
     },
     {
       "name": "packages/nextclaw-narp-stdio-runtime-wrapper",
@@ -1236,6 +1236,16 @@
       "codeLines": 486
     },
     {
+      "path": "apps/bibo-hosted/src/features/bibo-domain/services/bibo-space.service.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 522,
+      "blankLines": 37,
+      "commentLines": 0,
+      "codeLines": 485
+    },
+    {
       "path": "apps/platform-console/src/features/auth/pages/login-page.tsx",
       "scope": "apps/platform-console",
       "language": "TSX",
@@ -1284,16 +1294,6 @@
       "blankLines": 10,
       "commentLines": 0,
       "codeLines": 481
-    },
-    {
-      "path": "apps/bibo-hosted/src/features/bibo-domain/services/bibo-space.service.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 517,
-      "blankLines": 37,
-      "commentLines": 0,
-      "codeLines": 480
     },
     {
       "path": "packages/nextclaw-app-runtime/src/services/app-installation.service.ts",
@@ -2036,16 +2036,6 @@
       "codeLines": 405
     },
     {
-      "path": "apps/bibo-hosted/src/features/space/stores/bibo-space.store.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 426,
-      "blankLines": 22,
-      "commentLines": 0,
-      "codeLines": 404
-    },
-    {
       "path": "packages/nextclaw-server/src/features/service-apps/controllers/service-apps.controller.ts",
       "scope": "packages/nextclaw-server",
       "language": "TypeScript",
@@ -2276,6 +2266,16 @@
       "codeLines": 384
     },
     {
+      "path": "apps/bibo-hosted/src/features/space/stores/bibo-space.store.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 406,
+      "blankLines": 22,
+      "commentLines": 0,
+      "codeLines": 384
+    },
+    {
       "path": "workers/marketplace-api/src/infrastructure/apps/marketplace-app-record.repository.ts",
       "scope": "workers/marketplace-api",
       "language": "TypeScript",
@@ -2373,16 +2373,6 @@
       "totalLines": 404,
       "blankLines": 28,
       "commentLines": 0,
-      "codeLines": 376
-    },
-    {
-      "path": "apps/bibo-hosted/src/features/chat/stores/bibo-chat.store.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 400,
-      "blankLines": 23,
-      "commentLines": 1,
       "codeLines": 376
     },
     {
@@ -3496,16 +3486,6 @@
       "codeLines": 303
     },
     {
-      "path": "apps/bibo-hosted/src/app/bibo-hosted.app.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 326,
-      "blankLines": 22,
-      "commentLines": 1,
-      "codeLines": 303
-    },
-    {
       "path": "packages/nextclaw-service/src/utils/runtime/service-remote-runtime.utils.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -3786,6 +3766,16 @@
       "codeLines": 289
     },
     {
+      "path": "apps/bibo-hosted/src/features/chat/stores/bibo-chat.store.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 309,
+      "blankLines": 20,
+      "commentLines": 0,
+      "codeLines": 289
+    },
+    {
       "path": "packages/nextclaw-kernel/src/tools/show-content.tools.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
@@ -4056,6 +4046,16 @@
       "codeLines": 281
     },
     {
+      "path": "apps/bibo-hosted/src/features/chat/managers/bibo-conversation.manager.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 297,
+      "blankLines": 12,
+      "commentLines": 4,
+      "codeLines": 281
+    },
+    {
       "path": "packages/nextclaw-core/src/features/config/utils/config-loader.utils.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
@@ -4293,6 +4293,16 @@
       "totalLines": 298,
       "blankLines": 28,
       "commentLines": 0,
+      "codeLines": 270
+    },
+    {
+      "path": "apps/bibo-hosted/src/app/bibo-hosted.app.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 294,
+      "blankLines": 23,
+      "commentLines": 1,
       "codeLines": 270
     },
     {
@@ -4546,6 +4556,16 @@
       "codeLines": 262
     },
     {
+      "path": "packages/personal-agent-ui/src/managers/markdown-editor.manager.ts",
+      "scope": "packages/personal-agent-ui",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 278,
+      "blankLines": 14,
+      "commentLines": 2,
+      "codeLines": 262
+    },
+    {
       "path": "packages/nextclaw-service/src/managers/runtime-update.manager.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -4553,16 +4573,6 @@
       "totalLines": 278,
       "blankLines": 17,
       "commentLines": 0,
-      "codeLines": 261
-    },
-    {
-      "path": "packages/personal-agent-ui/src/managers/markdown-editor.manager.ts",
-      "scope": "packages/personal-agent-ui",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 277,
-      "blankLines": 14,
-      "commentLines": 2,
       "codeLines": 261
     },
     {
@@ -4684,6 +4694,16 @@
       "blankLines": 22,
       "commentLines": 0,
       "codeLines": 256
+    },
+    {
+      "path": "apps/bibo-hosted/src/features/chat/components/bibo-app.tsx",
+      "scope": "apps/bibo-hosted",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 265,
+      "blankLines": 9,
+      "commentLines": 1,
+      "codeLines": 255
     },
     {
       "path": "packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime-config.utils.ts",
@@ -5376,16 +5396,6 @@
       "codeLines": 229
     },
     {
-      "path": "apps/bibo-hosted/src/features/chat/components/bibo-app.tsx",
-      "scope": "apps/bibo-hosted",
-      "language": "TSX",
-      "files": 1,
-      "totalLines": 238,
-      "blankLines": 8,
-      "commentLines": 1,
-      "codeLines": 229
-    },
-    {
       "path": "packages/nextclaw-collaboration/src/services/github-source.service.ts",
       "scope": "packages/nextclaw-collaboration",
       "language": "TypeScript",
@@ -5546,6 +5556,16 @@
       "codeLines": 222
     },
     {
+      "path": "apps/bibo-hosted/src/app/services/bibo-conversation.service.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 235,
+      "blankLines": 12,
+      "commentLines": 1,
+      "codeLines": 222
+    },
+    {
       "path": "apps/platform-admin/src/features/admin-overview/components/distribution-adoption-overview-panel.tsx",
       "scope": "apps/platform-admin",
       "language": "TSX",
@@ -5636,6 +5656,16 @@
       "codeLines": 218
     },
     {
+      "path": "apps/bibo-hosted/src/features/space/components/files/file-tree.tsx",
+      "scope": "apps/bibo-hosted",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 220,
+      "blankLines": 2,
+      "commentLines": 0,
+      "codeLines": 218
+    },
+    {
       "path": "packages/ncp-packages/nextclaw-ncp/src/toolkit/reasoning-normalization.ts",
       "scope": "packages/ncp-packages/nextclaw-ncp",
       "language": "TypeScript",
@@ -5664,16 +5694,6 @@
       "blankLines": 17,
       "commentLines": 0,
       "codeLines": 217
-    },
-    {
-      "path": "apps/bibo-hosted/src/app/services/bibo-conversation.service.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 228,
-      "blankLines": 12,
-      "commentLines": 1,
-      "codeLines": 215
     },
     {
       "path": "packages/nextclaw/src/cli/app/stores/discussion/discussion-listener-state.store.ts",
@@ -5836,6 +5856,16 @@
       "codeLines": 211
     },
     {
+      "path": "packages/bibo-client/src/utils/bibo-protocol.utils.ts",
+      "scope": "packages/bibo-client",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 229,
+      "blankLines": 18,
+      "commentLines": 0,
+      "codeLines": 211
+    },
+    {
       "path": "packages/nextclaw-ui/src/features/chat/features/message/utils/chat-message-show-content-tool-card.utils.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -5882,16 +5912,6 @@
       "files": 1,
       "totalLines": 225,
       "blankLines": 15,
-      "commentLines": 0,
-      "codeLines": 210
-    },
-    {
-      "path": "apps/bibo-hosted/src/features/space/components/files/file-tree.tsx",
-      "scope": "apps/bibo-hosted",
-      "language": "TSX",
-      "files": 1,
-      "totalLines": 212,
-      "blankLines": 2,
       "commentLines": 0,
       "codeLines": 210
     },
@@ -6306,6 +6326,16 @@
       "codeLines": 196
     },
     {
+      "path": "packages/personal-agent-ui/src/managers/markdown-block.manager.ts",
+      "scope": "packages/personal-agent-ui",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 201,
+      "blankLines": 4,
+      "commentLines": 1,
+      "codeLines": 196
+    },
+    {
       "path": "packages/extensions/nextclaw-channel-extension-email/src/services/email-channel.service.ts",
       "scope": "packages/extensions/nextclaw-channel-extension-email",
       "language": "TypeScript",
@@ -6633,16 +6663,6 @@
       "totalLines": 205,
       "blankLines": 18,
       "commentLines": 0,
-      "codeLines": 187
-    },
-    {
-      "path": "packages/personal-agent-ui/src/managers/markdown-block.manager.ts",
-      "scope": "packages/personal-agent-ui",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 192,
-      "blankLines": 4,
-      "commentLines": 1,
       "codeLines": 187
     },
     {
@@ -7006,16 +7026,6 @@
       "codeLines": 177
     },
     {
-      "path": "packages/bibo-client/src/utils/bibo-protocol.utils.ts",
-      "scope": "packages/bibo-client",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 193,
-      "blankLines": 16,
-      "commentLines": 0,
-      "codeLines": 177
-    },
-    {
       "path": "apps/companion/src/managers/companion-runtime.manager.ts",
       "scope": "apps/companion",
       "language": "TypeScript",
@@ -7153,6 +7163,16 @@
       "totalLines": 194,
       "blankLines": 19,
       "commentLines": 1,
+      "codeLines": 174
+    },
+    {
+      "path": "apps/bibo-hosted/src/app/services/bibo-workspace-file.service.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 191,
+      "blankLines": 15,
+      "commentLines": 2,
       "codeLines": 174
     },
     {
@@ -7413,16 +7433,6 @@
       "totalLines": 193,
       "blankLines": 27,
       "commentLines": 0,
-      "codeLines": 166
-    },
-    {
-      "path": "apps/bibo-hosted/src/app/services/bibo-workspace-file.service.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 183,
-      "blankLines": 15,
-      "commentLines": 2,
       "codeLines": 166
     },
     {
@@ -7926,6 +7936,16 @@
       "codeLines": 155
     },
     {
+      "path": "apps/bibo-hosted/src/shared/configs/bibo-copy.config.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 156,
+      "blankLines": 1,
+      "commentLines": 0,
+      "codeLines": 155
+    },
+    {
       "path": "workers/marketplace-api/src/infrastructure/skills/marketplace-skill-security.utils.ts",
       "scope": "workers/marketplace-api",
       "language": "TypeScript",
@@ -7943,6 +7963,16 @@
       "totalLines": 165,
       "blankLines": 11,
       "commentLines": 0,
+      "codeLines": 154
+    },
+    {
+      "path": "apps/bibo-hosted/src/app/services/bibo-run.service.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 161,
+      "blankLines": 6,
+      "commentLines": 1,
       "codeLines": 154
     },
     {
@@ -8106,6 +8136,16 @@
       "codeLines": 152
     },
     {
+      "path": "apps/bibo-hosted/src/features/chat/components/session-navigation.tsx",
+      "scope": "apps/bibo-hosted",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 155,
+      "blankLines": 3,
+      "commentLines": 0,
+      "codeLines": 152
+    },
+    {
       "path": "packages/nextclaw-kernel/src/tools/session-history.tools.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
@@ -8232,16 +8272,6 @@
       "files": 1,
       "totalLines": 156,
       "blankLines": 7,
-      "commentLines": 0,
-      "codeLines": 149
-    },
-    {
-      "path": "apps/bibo-hosted/src/features/chat/components/session-navigation.tsx",
-      "scope": "apps/bibo-hosted",
-      "language": "TSX",
-      "files": 1,
-      "totalLines": 152,
-      "blankLines": 3,
       "commentLines": 0,
       "codeLines": 149
     },
@@ -8586,14 +8616,14 @@
       "codeLines": 143
     },
     {
-      "path": "apps/bibo-hosted/src/features/space/components/files/files-view.tsx",
-      "scope": "apps/bibo-hosted",
-      "language": "TSX",
+      "path": "packages/bibo-client/src/services/bibo-client.service.ts",
+      "scope": "packages/bibo-client",
+      "language": "TypeScript",
       "files": 1,
-      "totalLines": 145,
-      "blankLines": 2,
+      "totalLines": 167,
+      "blankLines": 25,
       "commentLines": 0,
-      "codeLines": 143
+      "codeLines": 142
     },
     {
       "path": "apps/public-roadmap-feedback-portal/src/features/community-feedback/components/community-feedback-section.tsx",
@@ -8652,16 +8682,6 @@
       "files": 1,
       "totalLines": 148,
       "blankLines": 6,
-      "commentLines": 0,
-      "codeLines": 142
-    },
-    {
-      "path": "apps/bibo-hosted/src/shared/configs/bibo-copy.config.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 143,
-      "blankLines": 1,
       "commentLines": 0,
       "codeLines": 142
     },
@@ -9152,6 +9172,16 @@
       "files": 1,
       "totalLines": 140,
       "blankLines": 6,
+      "commentLines": 0,
+      "codeLines": 134
+    },
+    {
+      "path": "apps/bibo-hosted/src/features/space/components/files/files-view.tsx",
+      "scope": "apps/bibo-hosted",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 136,
+      "blankLines": 2,
       "commentLines": 0,
       "codeLines": 134
     },
@@ -9786,16 +9816,6 @@
       "codeLines": 125
     },
     {
-      "path": "packages/bibo-client/src/services/bibo-client.service.ts",
-      "scope": "packages/bibo-client",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 147,
-      "blankLines": 23,
-      "commentLines": 0,
-      "codeLines": 124
-    },
-    {
       "path": "packages/nextclaw-core/src/shared/lib/core-utils/features/openai/utils/responses-payload.utils.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
@@ -10266,6 +10286,16 @@
       "codeLines": 119
     },
     {
+      "path": "apps/bibo-hosted/src/features/space/components/files/file-actions.tsx",
+      "scope": "apps/bibo-hosted",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 121,
+      "blankLines": 2,
+      "commentLines": 0,
+      "codeLines": 119
+    },
+    {
       "path": "packages/nextclaw-kernel/src/contributions/tool-provider/providers/service-app-job-tool.provider.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
@@ -10322,6 +10352,16 @@
       "files": 1,
       "totalLines": 126,
       "blankLines": 9,
+      "commentLines": 0,
+      "codeLines": 117
+    },
+    {
+      "path": "packages/personal-agent-ui/src/components/overlays/action-menu.tsx",
+      "scope": "packages/personal-agent-ui",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 123,
+      "blankLines": 6,
       "commentLines": 0,
       "codeLines": 117
     },
@@ -10626,16 +10666,6 @@
       "codeLines": 114
     },
     {
-      "path": "packages/personal-agent-ui/src/components/overlays/action-menu.tsx",
-      "scope": "packages/personal-agent-ui",
-      "language": "TSX",
-      "files": 1,
-      "totalLines": 119,
-      "blankLines": 5,
-      "commentLines": 0,
-      "codeLines": 114
-    },
-    {
       "path": "packages/nextclaw-ui/src/features/marketplace/hooks/use-marketplace-curated-scene-route.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -10812,16 +10842,6 @@
       "files": 1,
       "totalLines": 115,
       "blankLines": 3,
-      "commentLines": 0,
-      "codeLines": 112
-    },
-    {
-      "path": "apps/bibo-hosted/src/features/space/components/files/file-actions.tsx",
-      "scope": "apps/bibo-hosted",
-      "language": "TSX",
-      "files": 1,
-      "totalLines": 114,
-      "blankLines": 2,
       "commentLines": 0,
       "codeLines": 112
     },
@@ -11166,6 +11186,16 @@
       "codeLines": 108
     },
     {
+      "path": "apps/bibo-hosted/src/features/space/components/files/file-editor.tsx",
+      "scope": "apps/bibo-hosted",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 110,
+      "blankLines": 2,
+      "commentLines": 0,
+      "codeLines": 108
+    },
+    {
       "path": "packages/nextclaw-agent-chat-ui/src/lib/input-surface/input-surface.types.ts",
       "scope": "packages/nextclaw-agent-chat-ui",
       "language": "TypeScript",
@@ -11216,6 +11246,16 @@
       "codeLines": 107
     },
     {
+      "path": "apps/bibo-hosted/src/features/chat/components/account-menu.tsx",
+      "scope": "apps/bibo-hosted",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 110,
+      "blankLines": 3,
+      "commentLines": 0,
+      "codeLines": 107
+    },
+    {
       "path": "packages/nextclaw-collaboration/src/stores/collaboration.store.ts",
       "scope": "packages/nextclaw-collaboration",
       "language": "TypeScript",
@@ -11223,16 +11263,6 @@
       "totalLines": 110,
       "blankLines": 2,
       "commentLines": 1,
-      "codeLines": 107
-    },
-    {
-      "path": "apps/bibo-hosted/src/features/space/components/files/file-editor.tsx",
-      "scope": "apps/bibo-hosted",
-      "language": "TSX",
-      "files": 1,
-      "totalLines": 109,
-      "blankLines": 2,
-      "commentLines": 0,
       "codeLines": 107
     },
     {
@@ -11272,6 +11302,16 @@
       "files": 1,
       "totalLines": 119,
       "blankLines": 13,
+      "commentLines": 0,
+      "codeLines": 106
+    },
+    {
+      "path": "apps/bibo-hosted/src/app/routes/bibo-http.route.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 112,
+      "blankLines": 6,
       "commentLines": 0,
       "codeLines": 106
     },
@@ -11366,16 +11406,6 @@
       "codeLines": 105
     },
     {
-      "path": "apps/bibo-hosted/src/app/routes/bibo-http.route.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 111,
-      "blankLines": 6,
-      "commentLines": 0,
-      "codeLines": 105
-    },
-    {
       "path": "packages/nextclaw-kernel/src/utils/app-engine-version.utils.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
@@ -11392,16 +11422,6 @@
       "files": 1,
       "totalLines": 110,
       "blankLines": 5,
-      "commentLines": 0,
-      "codeLines": 105
-    },
-    {
-      "path": "apps/bibo-hosted/src/features/chat/components/account-menu.tsx",
-      "scope": "apps/bibo-hosted",
-      "language": "TSX",
-      "files": 1,
-      "totalLines": 108,
-      "blankLines": 3,
       "commentLines": 0,
       "codeLines": 105
     },
@@ -12366,6 +12386,16 @@
       "codeLines": 93
     },
     {
+      "path": "apps/bibo-hosted/src/features/space/managers/file-directory.manager.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 99,
+      "blankLines": 5,
+      "commentLines": 1,
+      "codeLines": 93
+    },
+    {
       "path": "packages/nextclaw-harness/src/utils/external-consumer-contract.utils.ts",
       "scope": "packages/nextclaw-harness",
       "language": "TypeScript",
@@ -12466,16 +12496,6 @@
       "codeLines": 91
     },
     {
-      "path": "apps/bibo-hosted/src/features/space/utils/space-view-reader.utils.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 99,
-      "blankLines": 8,
-      "commentLines": 0,
-      "codeLines": 91
-    },
-    {
       "path": "packages/nextclaw-kernel/src/contributions/context-provider/services/context-provider-run-context.service.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
@@ -12572,6 +12592,16 @@
       "files": 1,
       "totalLines": 99,
       "blankLines": 9,
+      "commentLines": 0,
+      "codeLines": 90
+    },
+    {
+      "path": "apps/bibo-hosted/src/features/space/utils/space-view-reader.utils.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 98,
+      "blankLines": 8,
       "commentLines": 0,
       "codeLines": 90
     },
@@ -12876,6 +12906,16 @@
       "codeLines": 87
     },
     {
+      "path": "apps/bibo-hosted/src/features/space/components/bibo-space.tsx",
+      "scope": "apps/bibo-hosted",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 91,
+      "blankLines": 3,
+      "commentLines": 1,
+      "codeLines": 87
+    },
+    {
       "path": "packages/nextclaw-ui/src/features/chat/features/session/utils/chat-context-window-indicator.utils.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -13133,16 +13173,6 @@
       "totalLines": 89,
       "blankLines": 6,
       "commentLines": 0,
-      "codeLines": 83
-    },
-    {
-      "path": "apps/bibo-hosted/src/features/space/components/bibo-space.tsx",
-      "scope": "apps/bibo-hosted",
-      "language": "TSX",
-      "files": 1,
-      "totalLines": 87,
-      "blankLines": 3,
-      "commentLines": 1,
       "codeLines": 83
     },
     {
@@ -13676,6 +13706,16 @@
       "codeLines": 79
     },
     {
+      "path": "apps/bibo-hosted/src/features/space/components/files/file-tabs.tsx",
+      "scope": "apps/bibo-hosted",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 81,
+      "blankLines": 2,
+      "commentLines": 0,
+      "codeLines": 79
+    },
+    {
       "path": "packages/nextclaw-service/src/services/restart/restart-coordinator.service.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -13733,6 +13773,16 @@
       "totalLines": 87,
       "blankLines": 9,
       "commentLines": 0,
+      "codeLines": 78
+    },
+    {
+      "path": "apps/bibo-hosted/src/features/space/managers/file-editing.manager.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 86,
+      "blankLines": 7,
+      "commentLines": 1,
       "codeLines": 78
     },
     {
@@ -14746,16 +14796,6 @@
       "codeLines": 70
     },
     {
-      "path": "apps/bibo-hosted/src/features/space/components/files/file-tabs.tsx",
-      "scope": "apps/bibo-hosted",
-      "language": "TSX",
-      "files": 1,
-      "totalLines": 72,
-      "blankLines": 2,
-      "commentLines": 0,
-      "codeLines": 70
-    },
-    {
       "path": "packages/nextclaw-core/src/features/channels/services/extension-channel.service.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
@@ -14892,6 +14932,16 @@
       "files": 1,
       "totalLines": 78,
       "blankLines": 10,
+      "commentLines": 0,
+      "codeLines": 68
+    },
+    {
+      "path": "apps/bibo-hosted/src/features/space/utils/file-state.utils.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 76,
+      "blankLines": 8,
       "commentLines": 0,
       "codeLines": 68
     },
@@ -15776,6 +15826,16 @@
       "codeLines": 61
     },
     {
+      "path": "apps/bibo-hosted/src/features/space/components/files/file-breadcrumbs.tsx",
+      "scope": "apps/bibo-hosted",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 66,
+      "blankLines": 5,
+      "commentLines": 0,
+      "codeLines": 61
+    },
+    {
       "path": "apps/competitive-leaderboard/src/components/leaderboard-hero.tsx",
       "scope": "apps/competitive-leaderboard",
       "language": "TSX",
@@ -15916,16 +15976,6 @@
       "codeLines": 60
     },
     {
-      "path": "apps/bibo-hosted/src/features/space/utils/file-state.utils.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 67,
-      "blankLines": 7,
-      "commentLines": 0,
-      "codeLines": 60
-    },
-    {
       "path": "packages/nextclaw-app-runtime/src/types/app-registry.types.ts",
       "scope": "packages/nextclaw-app-runtime",
       "language": "TypeScript",
@@ -15942,16 +15992,6 @@
       "files": 1,
       "totalLines": 66,
       "blankLines": 6,
-      "commentLines": 0,
-      "codeLines": 60
-    },
-    {
-      "path": "apps/bibo-hosted/src/features/space/components/files/file-breadcrumbs.tsx",
-      "scope": "apps/bibo-hosted",
-      "language": "TSX",
-      "files": 1,
-      "totalLines": 65,
-      "blankLines": 5,
       "commentLines": 0,
       "codeLines": 60
     },
@@ -16062,6 +16102,16 @@
       "files": 1,
       "totalLines": 68,
       "blankLines": 9,
+      "commentLines": 0,
+      "codeLines": 59
+    },
+    {
+      "path": "apps/bibo-hosted/src/features/space/utils/workspace-layout.utils.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 67,
+      "blankLines": 8,
       "commentLines": 0,
       "codeLines": 59
     },
@@ -16372,16 +16422,6 @@
       "files": 1,
       "totalLines": 66,
       "blankLines": 9,
-      "commentLines": 0,
-      "codeLines": 57
-    },
-    {
-      "path": "apps/bibo-hosted/src/features/space/utils/workspace-layout.utils.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 65,
-      "blankLines": 8,
       "commentLines": 0,
       "codeLines": 57
     },
@@ -18696,6 +18736,16 @@
       "codeLines": 41
     },
     {
+      "path": "packages/bibo-client/src/types/bibo-client.types.ts",
+      "scope": "packages/bibo-client",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 47,
+      "blankLines": 6,
+      "commentLines": 0,
+      "codeLines": 41
+    },
+    {
       "path": "packages/nextclaw-service/src/utils/startup-trace.utils.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -18876,6 +18926,16 @@
       "codeLines": 40
     },
     {
+      "path": "packages/personal-agent-ui/src/types/markdown-editor.types.ts",
+      "scope": "packages/personal-agent-ui",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 46,
+      "blankLines": 3,
+      "commentLines": 3,
+      "codeLines": 40
+    },
+    {
       "path": "apps/competitive-leaderboard/src/lib/leaderboard-format.utils.ts",
       "scope": "apps/competitive-leaderboard",
       "language": "TypeScript",
@@ -19013,16 +19073,6 @@
       "totalLines": 44,
       "blankLines": 5,
       "commentLines": 0,
-      "codeLines": 39
-    },
-    {
-      "path": "packages/personal-agent-ui/src/types/markdown-editor.types.ts",
-      "scope": "packages/personal-agent-ui",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 44,
-      "blankLines": 3,
-      "commentLines": 2,
       "codeLines": 39
     },
     {
@@ -20216,6 +20266,26 @@
       "codeLines": 32
     },
     {
+      "path": "packages/personal-agent-ui/src/components/message.tsx",
+      "scope": "packages/personal-agent-ui",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 35,
+      "blankLines": 3,
+      "commentLines": 0,
+      "codeLines": 32
+    },
+    {
+      "path": "apps/bibo-hosted/src/features/chat/components/workspace-divider.tsx",
+      "scope": "apps/bibo-hosted",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 34,
+      "blankLines": 2,
+      "commentLines": 0,
+      "codeLines": 32
+    },
+    {
       "path": "packages/nextclaw-ui/src/features/chat/features/conversation/components/chat-voice-shortcut-control.tsx",
       "scope": "packages/nextclaw-ui",
       "language": "TSX",
@@ -20336,16 +20406,6 @@
       "codeLines": 31
     },
     {
-      "path": "packages/bibo-client/src/types/bibo-client.types.ts",
-      "scope": "packages/bibo-client",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 36,
-      "blankLines": 5,
-      "commentLines": 0,
-      "codeLines": 31
-    },
-    {
       "path": "packages/nextclaw-core/src/features/cron/types/cron.types.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
@@ -20409,16 +20469,6 @@
       "path": "packages/nextclaw-ui/src/features/system-status/hooks/use-current-version-release-notes-link.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
-      "files": 1,
-      "totalLines": 34,
-      "blankLines": 3,
-      "commentLines": 0,
-      "codeLines": 31
-    },
-    {
-      "path": "packages/personal-agent-ui/src/components/message.tsx",
-      "scope": "packages/personal-agent-ui",
-      "language": "TSX",
       "files": 1,
       "totalLines": 34,
       "blankLines": 3,
@@ -21656,6 +21706,16 @@
       "codeLines": 24
     },
     {
+      "path": "apps/bibo-hosted/src/features/chat/utils/chat-message.utils.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 27,
+      "blankLines": 3,
+      "commentLines": 0,
+      "codeLines": 24
+    },
+    {
       "path": "apps/nextclaw-personal-organizer-panels/src/shared/components/status-view.tsx",
       "scope": "apps/nextclaw-personal-organizer-panels",
       "language": "TSX",
@@ -22076,6 +22136,16 @@
       "codeLines": 22
     },
     {
+      "path": "packages/personal-agent-ui/src/index.ts",
+      "scope": "packages/personal-agent-ui",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 24,
+      "blankLines": 2,
+      "commentLines": 0,
+      "codeLines": 22
+    },
+    {
       "path": "packages/nextclaw-collaboration/src/index.ts",
       "scope": "packages/nextclaw-collaboration",
       "language": "TypeScript",
@@ -22358,16 +22428,6 @@
     {
       "path": "packages/nextclaw-ui/src/shared/hooks/use-system-object-references.ts",
       "scope": "packages/nextclaw-ui",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 23,
-      "blankLines": 2,
-      "commentLines": 0,
-      "codeLines": 21
-    },
-    {
-      "path": "packages/personal-agent-ui/src/index.ts",
-      "scope": "packages/personal-agent-ui",
       "language": "TypeScript",
       "files": 1,
       "totalLines": 23,
@@ -24006,6 +24066,16 @@
       "codeLines": 12
     },
     {
+      "path": "packages/personal-agent-ui/src/components/feedback/activity-icon.tsx",
+      "scope": "packages/personal-agent-ui",
+      "language": "TSX",
+      "files": 1,
+      "totalLines": 16,
+      "blankLines": 3,
+      "commentLines": 1,
+      "codeLines": 12
+    },
+    {
       "path": "apps/platform-admin/src/app/admin-marketplace-review-page.tsx",
       "scope": "apps/platform-admin",
       "language": "TSX",
@@ -24856,6 +24926,16 @@
       "codeLines": 9
     },
     {
+      "path": "packages/bibo-client/src/index.ts",
+      "scope": "packages/bibo-client",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 10,
+      "blankLines": 1,
+      "commentLines": 0,
+      "codeLines": 9
+    },
+    {
       "path": "packages/nextclaw-core/src/features/runtime-context/index.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
@@ -24952,6 +25032,16 @@
       "files": 1,
       "totalLines": 12,
       "blankLines": 3,
+      "commentLines": 1,
+      "codeLines": 8
+    },
+    {
+      "path": "apps/bibo-hosted/src/features/chat/hooks/use-bibo-conversation.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 11,
+      "blankLines": 2,
       "commentLines": 1,
       "codeLines": 8
     },
@@ -25172,16 +25262,6 @@
       "files": 1,
       "totalLines": 9,
       "blankLines": 2,
-      "commentLines": 0,
-      "codeLines": 7
-    },
-    {
-      "path": "packages/bibo-client/src/index.ts",
-      "scope": "packages/bibo-client",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 8,
-      "blankLines": 1,
       "commentLines": 0,
       "codeLines": 7
     },
@@ -27336,6 +27416,16 @@
       "codeLines": 0
     },
     {
+      "path": "apps/bibo-hosted/src/app/bibo-hosted.app.test.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 774,
+      "blankLines": 39,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-kernel/src/services/agent-run-model-input-builder.service.test.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
@@ -27422,16 +27512,6 @@
       "files": 1,
       "totalLines": 694,
       "blankLines": 59,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "apps/bibo-hosted/src/app/bibo-hosted.app.test.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 672,
-      "blankLines": 35,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -27606,6 +27686,16 @@
       "codeLines": 0
     },
     {
+      "path": "apps/bibo-hosted/src/features/space/stores/bibo-space.store.test.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 526,
+      "blankLines": 23,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-service/src/services/cron/cron-dev-service.service.test.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -27706,6 +27796,16 @@
       "codeLines": 0
     },
     {
+      "path": "apps/bibo-hosted/src/app/services/bibo-conversation.service.test.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 479,
+      "blankLines": 17,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-ui/src/features/agents/components/__tests__/agents-page.test.tsx",
       "scope": "packages/nextclaw-ui",
       "language": "TSX",
@@ -27743,16 +27843,6 @@
       "totalLines": 475,
       "blankLines": 37,
       "commentLines": 2,
-      "codeLines": 0
-    },
-    {
-      "path": "apps/bibo-hosted/src/app/services/bibo-conversation.service.test.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 470,
-      "blankLines": 17,
-      "commentLines": 0,
       "codeLines": 0
     },
     {
@@ -27842,16 +27932,6 @@
       "files": 1,
       "totalLines": 428,
       "blankLines": 41,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "apps/bibo-hosted/src/features/space/stores/bibo-space.store.test.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 423,
-      "blankLines": 20,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -28196,6 +28276,16 @@
       "codeLines": 0
     },
     {
+      "path": "apps/bibo-hosted/src/features/chat/managers/bibo-conversation.manager.test.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 337,
+      "blankLines": 18,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-core/src/features/agent/tools/shell.tools.test.ts",
       "scope": "packages/nextclaw-core",
       "language": "TypeScript",
@@ -28306,6 +28396,16 @@
       "codeLines": 0
     },
     {
+      "path": "apps/bibo-hosted/src/app/stores/bibo-workspace.store.test.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 312,
+      "blankLines": 15,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-kernel/src/services/__tests__/ncp-agent-runtime-wrapper.service.test.ts",
       "scope": "packages/nextclaw-kernel",
       "language": "TypeScript",
@@ -28402,16 +28502,6 @@
       "files": 1,
       "totalLines": 291,
       "blankLines": 24,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "apps/bibo-hosted/src/app/stores/bibo-workspace.store.test.ts",
-      "scope": "apps/bibo-hosted",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 289,
-      "blankLines": 14,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -31356,6 +31446,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/bibo-client/src/utils/bibo-protocol.utils.test.ts",
+      "scope": "packages/bibo-client",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 110,
+      "blankLines": 10,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-ui/src/features/chat/components/conversation/__tests__/chat-conversation-panel.test.tsx",
       "scope": "packages/nextclaw-ui",
       "language": "TSX",
@@ -32212,16 +32312,6 @@
       "files": 1,
       "totalLines": 89,
       "blankLines": 6,
-      "commentLines": 0,
-      "codeLines": 0
-    },
-    {
-      "path": "packages/bibo-client/src/utils/bibo-protocol.utils.test.ts",
-      "scope": "packages/bibo-client",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 88,
-      "blankLines": 8,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -35066,6 +35156,16 @@
       "codeLines": 0
     },
     {
+      "path": "apps/bibo-hosted/src/features/chat/utils/chat-message.utils.test.ts",
+      "scope": "apps/bibo-hosted",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 29,
+      "blankLines": 3,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk/src/utils/anthropic-openai-bridge.utils.test.ts",
       "scope": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk",
       "language": "TypeScript",
@@ -35457,8 +35557,8 @@
     }
   ],
   "delta": {
-    "previousCodeLines": 318521,
-    "codeLines": 2506,
-    "percent": 0.79
+    "previousCodeLines": 321744,
+    "codeLines": 0,
+    "percent": 0
   }
 }

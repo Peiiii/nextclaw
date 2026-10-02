@@ -338,9 +338,10 @@
 .file-mobile-back { @apply hidden; }
 .file-mobile-back.is-notes-back { display:block; flex:none; }
 .bibo-file-tabs { @apply flex flex-1 min-w-0 overflow-x-auto [scrollbar-width:thin]; --ui-tab-radius:10px; }
+.bibo-document-tabs { display:flex; flex:1; min-width:0; padding-inline:4px; }
 .bibo-file-editor { @apply flex-1 min-w-0 min-h-0 flex flex-col; }
 .bibo-file-editor.is-note-editor { --document-top-padding:80px; }
-.bibo-file-editor.is-compact { --document-top-padding:28px; --document-left-padding:32px; --document-right-padding:24px; }
+.bibo-file-editor.is-compact { --document-top-padding:48px; --document-left-padding:40px; --document-right-padding:40px; }
 .bibo-file-editor-head { @apply flex flex-none items-center justify-between gap-2 [padding:6px_12px]; --ui-button-radius:999px; --ui-icon-radius:50%; }
 .file-editor-location { flex:1; min-width:0; overflow:hidden; }
 .file-breadcrumb { @apply flex flex-1 min-w-0 items-center overflow-x-auto overflow-y-hidden whitespace-nowrap [scrollbar-width:thin] [color:var(--ui-muted)] text-base; }
@@ -451,6 +452,8 @@
   .bibo-file-tree, .bibo-note-list { @apply flex-none [max-height:210px] [border-right:0] [border-bottom:1px_solid_var(--bibo-hairline)]; }
   .bibo-file-tree .bibo-tree-scroll { @apply [height:auto] pb-2; }
   .bibo-file-workbench { @apply flex-1 min-h-0; }
+  .bibo-file-editor.is-note-editor { --document-top-padding:24px; --document-left-padding:24px; --document-right-padding:24px; --document-bottom-padding:48px; }
+  .is-note-editor .bibo-file-editor-head { display:none; }
   .bibo-file-preview-frame { @apply w-full [padding:20px_16px]; }
   .bibo-form-pair { @apply [grid-template-columns:1fr] gap-0; }
 }

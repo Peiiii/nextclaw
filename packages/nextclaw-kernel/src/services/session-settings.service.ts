@@ -4,7 +4,6 @@ import {
   applySessionSettingsMetadataPatch,
 } from "@kernel/utils/session-manager.utils.js";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
-import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 
 export type SessionSettingsServiceOptions = {
   createSession: (params: {
@@ -13,7 +12,6 @@ export type SessionSettingsServiceOptions = {
     task: string;
   }) => Promise<unknown>;
   getSession: (sessionId: string) => Promise<NcpSessionSummary | null>;
-  getSessionRecord: (sessionId: string) => Promise<AgentSessionRecord | null>;
   normalizeProjectContext: (value: unknown) => Promise<{
     projectId: string;
     rootPath: string;
@@ -25,6 +23,8 @@ export type SessionSettingsServiceOptions = {
 };
 
 export class SessionSettingsService {
+  private readonly writes = new Map<string, Promise<unknown>>();
+
   constructor(private readonly options: SessionSettingsServiceOptions) {}
 
   patch = async (
@@ -32,14 +32,31 @@ export class SessionSettingsService {
     patch: SessionSettingsPatch,
     createIfMissing = false,
   ): Promise<NcpSessionSummary | null> => {
-    let existing = await this.options.getSessionRecord(sessionId);
+    const previous = this.writes.get(sessionId) ?? Promise.resolve();
+    const next = previous.catch(() => undefined).then(() =>
+      this.patchNow(sessionId, patch, createIfMissing),
+    );
+    this.writes.set(sessionId, next);
+    try {
+      return await next;
+    } finally {
+      if (this.writes.get(sessionId) === next) this.writes.delete(sessionId);
+    }
+  };
+
+  private patchNow = async (
+    sessionId: string,
+    patch: SessionSettingsPatch,
+    createIfMissing: boolean,
+  ): Promise<NcpSessionSummary | null> => {
+    let existing = await this.options.getSession(sessionId);
     if (!existing && createIfMissing) {
       await this.options.createSession({
         sessionId,
         sourceSessionMetadata: {},
         task: "Session",
       });
-      existing = await this.options.getSessionRecord(sessionId);
+      existing = await this.options.getSession(sessionId);
     }
     if (!existing) return null;
     const metadata = await applySessionProjectMetadataPatch(

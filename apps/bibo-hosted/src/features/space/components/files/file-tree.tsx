@@ -6,6 +6,7 @@ import { useWorkspaceUiStore } from "@/features/space/stores/workspace-ui.store"
 import { FileActions } from "./file-actions";
 import { FileKindIcon } from "./file-kind-icon";
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 type CreateFile = (path: string, kind?: BiboFile["kind"]) => void;
 const parentPath = (path: string): string => path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
 function indexFileTree(files: BiboFile[], expanded: Record<string, boolean>) {
@@ -27,13 +28,13 @@ function indexFileTree(files: BiboFile[], expanded: Record<string, boolean>) {
   return { children, visible };
 }
 function FileSearchResults() {
-  const { fileMatches, fileSearchLoading, fileSearchCursor, fileQuery, searchFiles, openFile, fileSearchError } = useBiboSpaceStore();
+  const { fileMatches, fileSearchLoading, fileSearchCursor, fileQuery, fileDirectory, openFile, fileSearchError } = useBiboSpaceStore();
   return (
     <>
       {fileMatches.map((file) => (
         <div className="ui-list-row-group ui-row-action-host" key={file.id}>
           <ListRow
-            onClick={() => (file.kind === "folder" ? void searchFiles(`${file.path}/`) : void openFile(file.id))}
+            onClick={() => (file.kind === "folder" ? void fileDirectory.search(`${file.path}/`) : void openFile(file.id))}
           >
             <FileKindIcon file={file} />
             <span>
@@ -51,18 +52,27 @@ function FileSearchResults() {
       )}
       {fileSearchError && <div className="bibo-tree-search-error" role="alert">
         <p>{fileSearchError}</p>
-        <Button tone="text" onClick={() => void searchFiles(fileQuery)}>重试搜索</Button>
+        <Button tone="text" onClick={() => void fileDirectory.search(fileQuery)}>重试搜索</Button>
       </div>}
       {fileSearchCursor && (
-        <Button tone="text" onClick={() => void searchFiles(fileQuery, true)}>
+        <Button tone="text" onClick={() => void fileDirectory.search(fileQuery, true)}>
           更多结果
         </Button>
       )}
     </>
   );
 }
+function DirectoryStatus({ path }: { path: string }) {
+  const { directories, fileDirectory } = useBiboSpaceStore();
+  const directory = directories[path];
+  return <>
+    {directory?.status === "loading" && <LoadingState label={copy.fileDirectoryLoading} />}
+    {directory?.error && <div role="alert"><p>{directory.error}</p><Button tone="text" onClick={() => void fileDirectory.load(path)}>{copy.fileDirectoryRetry}</Button></div>}
+    {directory?.cursor && <Button tone="text" disabled={directory.status === "loading"} onClick={() => void fileDirectory.load(path, true)}>{copy.fileMore}</Button>}
+  </>;
+}
 function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
-  const { files, activeFileId, expandedFolders: expanded, toggleFolder, openFile, fileQuery, cursors, loading, error } = useBiboSpaceStore();
+  const { files, activeFileId, expandedFolders: expanded, fileDirectory, openFile, fileQuery, directories } = useBiboSpaceStore();
   const treeRef = useRef<HTMLDivElement>(null);
   const [treeFocus, setTreeFocus] = useState<string | null>(null);
   const treeId = useId();
@@ -78,10 +88,10 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
     else if (event.key === "Home") target = nodes[0];
     else if (event.key === "End") target = nodes.at(-1);
     else if (event.key === "ArrowRight" && file.kind === "folder") {
-      if (!expanded[file.id]) toggleFolder(file.id);
+      if (!expanded[file.id]) fileDirectory.toggle(file.id);
       else if (parentPath(nodes[index + 1]?.dataset.filePath ?? "") === file.path) target = nodes[index + 1];
     } else if (event.key === "ArrowLeft") {
-      if (file.kind === "folder" && expanded[file.id]) toggleFolder(file.id);
+      if (file.kind === "folder" && expanded[file.id]) fileDirectory.toggle(file.id);
       else if (parentPath(file.path)) {
         target = nodes.find((node) => node.dataset.filePath === parentPath(file.path));
       }
@@ -111,7 +121,7 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
               tabIndex={tabStop === file.id ? 0 : -1}
               data-file-path={file.path}
               onKeyDown={(event) => treeKeys(event, file)}
-              onClick={() => (file.kind === "folder" ? toggleFolder(file.id) : void openFile(file.id))}
+              onClick={() => (file.kind === "folder" ? fileDirectory.toggle(file.id) : void openFile(file.id))}
             >
               <span className="bibo-tree-disclosure" aria-hidden="true">
                 {file.kind === "folder" ? expanded[file.id] ? <ChevronDown /> : <ChevronRight /> : null}
@@ -126,11 +136,12 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
           </div>
           {file.kind === "folder" && expanded[file.id] && (
             <div id={`${treeId}-${file.id}`} role="group">
-              {children.get(file.path)?.length ? tree(file.path, level + 1) : (
+              {children.get(file.path)?.length ? tree(file.path, level + 1) : directories[file.path]?.status === "ready" && !directories[file.path]?.cursor && (
                 <p className="bibo-tree-empty-folder" style={{ paddingLeft: 40 + (level + 1) * 17 }}>
-                  {cursors.files ? "继续加载以查看内容" : "文件夹为空"}
+                  {copy.fileEmptyDirectory}
                 </p>
               )}
+              <DirectoryStatus path={file.path} />
             </div>
           )}
         </div>
@@ -144,13 +155,13 @@ function FileTreeContents({ onCreate }: { onCreate: CreateFile }) {
       aria-label={fileQuery ? "文件搜索结果" : "文件目录"}
     >
       {fileQuery ? <FileSearchResults /> : tree("", 0)}
-      {files.length === 0 && !fileQuery && loading && <LoadingState label="正在加载文件" />}
-      {files.length === 0 && !fileQuery && !loading && !error && <p className="bibo-tree-empty">还没有文件。从新建开始。</p>}
+      {!fileQuery && <DirectoryStatus path="" />}
+      {files.length === 0 && !fileQuery && directories[""]?.status === "ready" && <p className="bibo-tree-empty">还没有文件。从新建开始。</p>}
     </div>
   );
 }
 export function FileTree({ onCreate, onToggle, toggleControlRef }: { onCreate: CreateFile; onToggle: () => void; toggleControlRef: React.RefObject<HTMLButtonElement> }) {
-  const { fileQuery, searchFiles, cursors, moreLoading, loadMore } = useBiboSpaceStore();
+  const { fileQuery, fileDirectory } = useBiboSpaceStore();
   const { treeCollapsed, treeWidth, resizeTree } = useWorkspaceUiStore();
   const resizeStart = useRef({ x: 0, width: treeWidth });
   return (
@@ -170,17 +181,14 @@ export function FileTree({ onCreate, onToggle, toggleControlRef }: { onCreate: C
             aria-label="搜索文件"
             placeholder="搜索文件…"
             value={fileQuery}
-            onChange={(event) => void searchFiles(event.target.value)}
+            onChange={(event) => void fileDirectory.search(event.target.value)}
           />
           {fileQuery && (
-            <IconButton label="清除搜索" icon={<X />} onClick={() => void searchFiles("")} />
+            <IconButton label="清除搜索" icon={<X />} onClick={() => void fileDirectory.search("")} />
           )}
         </div>
       )}
       {!treeCollapsed && <FileTreeContents onCreate={onCreate} />}
-      {!treeCollapsed && !fileQuery && cursors.files && (
-        <Button tone="text" disabled={moreLoading.files} onClick={() => void loadMore("files")}>{moreLoading.files ? "正在加载…" : "加载更多文件"}</Button>
-      )}
       {!treeCollapsed && (
         <div
           className="file-tree-resizer"

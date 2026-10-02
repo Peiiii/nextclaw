@@ -119,7 +119,12 @@ export function ChatSidebar({
   const projectsQuery = useProjects();
   const projectCreateMutation = useCreateProject();
   const projectAddExistingMutation = useAddExistingProject();
-  const { allItems, hasMore, isLoading, isLoadingMore, items, loadMore } = useNcpSessionListView();
+  const { allItems, hasMore, isLoading, isLoadingMore, items, loadMore, pinnedSessionKeys: serverPinnedKeys } = useNcpSessionListView();
+  useEffect(() => {
+    if (listSnapshot.pinnedSessionKeys.length) {
+      void presenter.chatSessionListManager.migrateLegacySessionPins();
+    }
+  }, [listSnapshot.pinnedSessionKeys, presenter.chatSessionListManager]);
   const { cronJobCountByProjectRoot, cronJobCountBySessionKey } =
     useChatSidebarContextCounts(allItems);
   const { language, setLanguage } = useI18n();
@@ -153,8 +158,8 @@ export function ChatSidebar({
     [agentsQuery.data?.agents],
   );
   const pinnedSessionKeys = useMemo(
-    () => new Set(listSnapshot.pinnedSessionKeys),
-    [listSnapshot.pinnedSessionKeys],
+    () => new Set(serverPinnedKeys),
+    [serverPinnedKeys],
   );
   const pinnedProjectRoots = useMemo(
     () => new Set(listSnapshot.pinnedProjectRoots),
@@ -245,7 +250,7 @@ export function ChatSidebar({
       onSaveSessionLabel={saveSessionLabel}
       onCancelEditingSessionLabel={cancelEditingSessionLabel}
       onTogglePinned={() =>
-        presenter.chatSessionListManager.toggleSessionPinned(item.session.key)
+        void presenter.chatSessionListManager.toggleSessionPinned(item.session.key, pinnedSessionKeys.has(item.session.key))
       }
       onDeleteSession={presenter.chatThreadManager.deleteSession}
     />

@@ -252,9 +252,9 @@ export class BiboUserContainer extends DurableObject<Env> {
           createTools: () => runExecution.tools(),
           runId: active.id, signal: active.controller.signal,
           onActivity: (activity) => this.runs.activity(active.id, activity),
-          onDelta: (delta) => {
+          onDelta: (delta, blockId) => {
             if (firstDelta && delta) { firstDelta = false; logDiagnostic("worker", "run.first-delta", { ...active, durationMs: Date.now() - active.acceptedAt }); }
-            this.runs.delta(active.id, delta);
+            this.runs.delta(active.id, delta, blockId);
           } });
       } finally {
         clearTimeout(timeout);

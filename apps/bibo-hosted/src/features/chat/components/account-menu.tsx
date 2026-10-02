@@ -12,6 +12,7 @@ import {
 import { useBiboChatStore } from "@/features/chat/stores/bibo-chat.store";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { useWorkspaceUiStore } from "@/features/space";
+import { useBiboConversation } from "@/features/chat/hooks/use-bibo-conversation";
 
 const themeOptions = [
   { value: "classic", label: copy.classicTheme },
@@ -20,6 +21,7 @@ const themeOptions = [
 
 export function AccountMenu({ compact = false }: { compact?: boolean }) {
   const store = useBiboChatStore();
+  const run = useBiboConversation();
   const theme = useWorkspaceUiStore((state) => state.theme);
   const setTheme = useWorkspaceUiStore((state) => state.setTheme);
   const [confirming, setConfirming] = useState(false);
@@ -62,13 +64,13 @@ export function AccountMenu({ compact = false }: { compact?: boolean }) {
           <>
             <ActionMenuItem
               onSelect={() => void store.logout()}
-              disabled={store.phase !== "idle"}
+              disabled={run.busy}
             >
               {copy.logout}
             </ActionMenuItem>
             <ActionMenuItem
               danger
-              disabled={store.phase !== "idle"}
+              disabled={run.busy}
               onSelect={() => {
                 setFailure("");
                 setConfirming(true);

@@ -429,15 +429,7 @@ export type NcpAssetPutView = {
 
 export type NcpSessionStatusView = NcpSessionStatus;
 
-export type SessionPatchUpdate = {
-  label?: string | null;
-  preferredModel?: string | null;
-  preferredThinking?: ThinkingLevel | null;
-  sessionType?: string | null;
-  projectRoot?: string | null;
-  uiReadAt?: string | null;
-  clearHistory?: boolean;
-};
+export type { SessionPatchUpdate } from '@nextclaw/client-sdk';
 
 export type {
   ServerPathBreadcrumbView,

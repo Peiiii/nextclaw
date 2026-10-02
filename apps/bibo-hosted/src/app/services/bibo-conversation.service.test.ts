@@ -172,18 +172,27 @@ test("one Harness isolates concurrent session tools and context and survives che
         const count = (calls.get(id) ?? 0) + 1;
         calls.set(id, count);
         if (count === 1) {
+          yield { id: `call-${id}`, choices: [{ index: 0, delta: { content: `starting:${id}` }, finish_reason: null }] };
           yield { id: `call-${id}`, choices: [{ index: 0, delta: { tool_calls: [{ index: 0,
             id: `tool-${id}`, function: { name: id, arguments: "{}" } }] }, finish_reason: "tool_calls" }] };
         } else yield { id: `reply-${id}-${count}`, choices: [{ index: 0, delta: { content: `reply:${id}` }, finish_reason: "stop" }] };
       },
     }, { chat: async () => { throw new Error("unexpected compaction"); } }, fileService(memoryWorkspace().workspace));
+  const deltas = new Map<string, Array<{ text: string; blockId?: string }>>();
   const run = (id: string) => service.run({ sessionId: id, message: "hello", runId: `run-${id}`,
+    onDelta: (text, blockId) => { const parts = deltas.get(id) ?? []; parts.push({ text, blockId }); deltas.set(id, parts); },
     contextBlocks: [`context:${id}`], tools: [{ name: id, description: id,
       modelParameters: { type: "object", properties: {}, additionalProperties: false },
       validateArgs: (value) => Object.keys(value).length ? ["No arguments accepted"] : [],
       execute: async () => { executed.push(id); return { ok: true }; } }] });
   try {
     await Promise.all([run("scope-a"), run("scope-b")]);
+    for (const id of ["scope-a", "scope-b"]) {
+      const parts = deltas.get(id)!;
+      assert.deepEqual(parts.map(part => part.text), [`starting:${id}`, `reply:${id}`]);
+      assert.ok(parts.every(part => part.blockId));
+      assert.notEqual(parts[0]!.blockId, parts[1]!.blockId, "real tool boundaries produce distinct text blocks");
+    }
     assert.deepEqual(executed.sort(), ["scope-a", "scope-b"]);
     await service.commit("scope-a", {});
     await service.commit("scope-b", {});

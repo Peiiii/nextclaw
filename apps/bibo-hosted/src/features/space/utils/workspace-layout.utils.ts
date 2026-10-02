@@ -29,6 +29,7 @@ type WorkspaceUiLayout = {
   sidebarCollapsed: boolean;
   treeCollapsed: boolean;
   treeWidth: number;
+  workspaceRatio: number;
 };
 const uiLayoutKey = "bibo-ui-layout";
 
@@ -39,8 +40,9 @@ export function readWorkspaceUiLayout(): WorkspaceUiLayout {
       sidebarCollapsed: layout?.sidebarCollapsed === true,
       treeCollapsed: layout?.treeCollapsed === true,
       treeWidth: Math.min(360, Math.max(180, Number(layout?.treeWidth) || 230)),
+      workspaceRatio: typeof layout?.workspaceRatio === "number" && Number.isFinite(layout.workspaceRatio) ? Math.min(0.7, Math.max(0.3, layout.workspaceRatio)) : 0.55,
     };
-  } catch { return { sidebarCollapsed: false, treeCollapsed: false, treeWidth: 230 }; }
+  } catch { return { sidebarCollapsed: false, treeCollapsed: false, treeWidth: 230, workspaceRatio: 0.55 }; }
 }
 
 export function writeWorkspaceUiLayout(update: Partial<WorkspaceUiLayout>): void {

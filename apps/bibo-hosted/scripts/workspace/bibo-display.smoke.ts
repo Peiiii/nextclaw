@@ -43,7 +43,7 @@ try {
         const value = { id: "same-event", sessionId: "session-a", target: { type: "file", payload: { path: detail.path, viewer } } };
         const messages = [{ role: "assistant", text: `[产物](${detail.uri}) 回答 ${++index}`, at: String(index) }];
         if (!fail) savedMessages = messages;
-        return route.fulfill({ contentType: "text/event-stream", body: frame("accepted", { runId: "r1" }) + frame("delta", { text: "正在处理" })
+        return route.fulfill({ contentType: "text/event-stream", body: frame("accepted", { runId: `display-run-${index}` }) + frame("delta", { text: "正在处理" })
           + (show ? frame("show-content", value) + frame("show-content", value) : "")
           + (fail ? frame("error", { error: "结果未能保存" }) : frame("saving", {}) + frame("committed", { text: messages[0]!.text, messages })) });
       });
@@ -67,7 +67,9 @@ try {
       else assert.equal(await workspace.count(), 0, "later replies respect a closed mobile workspace");
       viewer = "source"; show = true;
       await send();
-      assert.equal(await workspace.getByRole("textbox", { name: "编辑 report.html" }).textContent(), detail.content);
+      const source = workspace.getByRole("textbox", { name: "编辑 report.html" });
+      await source.waitFor();
+      assert.equal(await source.textContent(), detail.content);
       await page.getByRole("button", { name: "关闭工作区" }).click();
       fail = true;
       await send();
@@ -86,7 +88,9 @@ try {
       await workspace.getByText(/当前仅显示部分内容/).waitFor();
       assert.equal(await workspace.locator(".bibo-file-editor-surface").count(), 0);
       assert.equal(await workspace.getByRole("button", { name: "编辑", exact: true }).count(), 0);
-      assert.equal(await workspace.getByRole("link", { name: "下载原文件" }).getAttribute("href"), "/api/workspace/file?path=report.html");
+      await workspace.getByRole("button", { name: "文件操作", exact: true }).click();
+      assert.equal(await page.getByRole("menuitem", { name: "下载原文件" }).getAttribute("href"), "/api/workspace/file?path=report.html");
+      await page.keyboard.press("Escape");
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
       await page.screenshot({ path: `/tmp/bibo-file-preview-${viewport.width}.png`, fullPage: true });
       assert.deepEqual(errors, [], "browser has no runtime errors");

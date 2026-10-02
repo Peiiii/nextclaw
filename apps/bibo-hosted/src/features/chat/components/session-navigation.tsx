@@ -15,9 +15,11 @@ import {
 } from "@nextclaw/personal-agent-ui";
 import { useBiboChatStore } from "@/features/chat/stores/bibo-chat.store";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
+import { useBiboConversation } from "@/features/chat/hooks/use-bibo-conversation";
 
 function SessionActions({ session }: { session: BiboSession }) {
   const store = useBiboChatStore();
+  const run = useBiboConversation();
   const [mode, setMode] = useState<"rename" | "delete" | null>(null);
   const [name, setName] = useState(session.title);
   const [busy, setBusy] = useState(false);
@@ -53,7 +55,7 @@ function SessionActions({ session }: { session: BiboSession }) {
         <ActionMenuItem onSelect={() => open("rename")}>重命名</ActionMenuItem>
         <ActionMenuItem
           danger
-          disabled={store.phase !== "idle"}
+          disabled={run.busy}
           onSelect={() => open("delete")}
         >
           删除会话
@@ -124,6 +126,7 @@ export function SessionNavigation({
   mobile?: boolean;
 }) {
   const store = useBiboChatStore();
+  const run = useBiboConversation();
   return (
     <div className="bibo-session-nav">
       <NavigationItem label={copy.newConversation} tooltip={false}><button className="bibo-new-chat" aria-label={copy.createConversation} onClick={() => { onNavigate(); void store.createSession(); }}><SquarePen aria-hidden="true" /><span>{copy.newConversation}</span></button></NavigationItem>
@@ -141,7 +144,7 @@ export function SessionNavigation({
             onClick={onNavigate}
           >
             <span className="bibo-session-title">{session.title}</span>
-            {store.phase !== "idle" && store.runSessionId === session.id && <LoaderCircle aria-hidden="true" className="bibo-session-progress motion-safe:animate-spin" />}
+            {run.busy && run.runSessionId === session.id && <LoaderCircle aria-hidden="true" className="bibo-session-progress motion-safe:animate-spin" />}
           </Link></NavigationItem>
           <SessionActions session={session} />
         </div>

@@ -6,6 +6,7 @@ import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { EventBus } from "@nextclaw/shared";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
+import { NcpAgentSessionJournalStore, SessionManager } from '@nextclaw/kernel';
 
 const tempDirs: string[] = [];
 
@@ -28,6 +29,66 @@ afterEach(() => {
     if (dir) {
       rmSync(dir, { recursive: true, force: true });
     }
+  }
+});
+
+it('persists pins through HTTP, restores cold pages, and never creates missing pin targets', async () => {
+  const dir = createTempDir('nextclaw-http-pins-');
+  const configPath = createConfigPath();
+  const eventBus = new EventBus();
+  const makeInstance = () => {
+    const store = new NcpAgentSessionJournalStore(dir);
+    const sessionManager = new SessionManager({
+      journalStore: store,
+      eventBus,
+      agentManager: { resolveAgentProfile: () => ({ workspace: dir }) } as never,
+      agentContextWindowManager: { forgetSession: () => undefined, previewSession: async () => null },
+      projectManager: { normalizeSessionProjectContext: async () => null },
+      resolveProjectContext: () => ({ projectRoot: null, effectiveWorkspace: dir }),
+      sessionSearch: { handleSessionUpdated: () => undefined },
+    });
+    const app = createUiRouter({
+      configPath, appEventBus: eventBus,
+      kernel: createRouterTestKernel({ sessionManager }),
+    });
+    return { store, sessionManager, app };
+  };
+  let instance = makeInstance();
+  const putPin = (id: string, patch: Record<string, unknown>) => instance.app.request(`http://localhost/api/ncp/sessions/${id}`, {
+    method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch),
+  });
+  try {
+    for (let index = 1; index <= 5; index++) {
+      await instance.store.importSessionSnapshot({
+        sessionId: `pin-${index}`, messages: [], metadata: { label: `Pin ${index}` },
+        createdAt: `2026-10-01T00:00:0${index}.000Z`, updatedAt: `2026-10-01T00:00:0${index}.000Z`,
+      });
+    }
+    for (const pinned of [true, false, true]) {
+      const response = await putPin('pin-1', { pinned });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ ok: true, data: { metadata: { pinned } } });
+    }
+    expect((await putPin('missing', { pinned: true })).status).toBe(404);
+    expect((await putPin('missing', { pinnedIfUnset: true })).status).toBe(404);
+    expect(await instance.sessionManager.getSession('missing')).toBeNull();
+    expect((await putPin('pin-1', { pinned: 'true' })).status).toBe(400);
+    await instance.sessionManager.close();
+    instance.store.close();
+    instance = makeInstance();
+    const first = await instance.app.request('http://localhost/api/ncp/sessions?page=1&pageSize=2');
+    expect(await first.json()).toMatchObject({ data: {
+      total: 5, hasMore: true, sessions: [{ sessionId: 'pin-1', metadata: { pinned: true } }, { sessionId: 'pin-5' }],
+    } });
+    await putPin('pin-1', { pinned: false });
+    await putPin('pin-1', { pinned: true, pinnedIfUnset: true });
+    const last = await instance.app.request('http://localhost/api/ncp/sessions?page=3&pageSize=2&query=Pin');
+    expect(await last.json()).toMatchObject({ data: {
+      total: 5, hasMore: false, sessions: [{ sessionId: 'pin-1', metadata: { pinned: false } }],
+    } });
+  } finally {
+    await instance.sessionManager.close();
+    instance.store.close();
   }
 });
 

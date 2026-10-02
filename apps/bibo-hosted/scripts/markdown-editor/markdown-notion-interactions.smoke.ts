@@ -1,3 +1,4 @@
+import { openMarkdownBody } from "../personal-workspace.fixture";
 import assert from "node:assert/strict";
 import type { Page } from "playwright";
 
@@ -5,7 +6,7 @@ import type { Page } from "playwright";
 export async function checkNotionInteractions(page: Page, openSource: (page: Page) => Promise<void>, replaceSource: (page: Page, text: string) => Promise<void>) {
   await openSource(page);
   await replaceSource(page, "Alpha words\n\nSecond paragraph\n\nThird paragraph");
-  await page.getByRole("group", { name: "文件模式" }).getByRole("button", { name: "编辑", exact: true }).click();
+  await openMarkdownBody(page);
   const rich = page.locator(".tiptap:visible");
   await checkSelectionFormatting(page);
   await page.keyboard.press("Escape");
@@ -32,8 +33,7 @@ export async function checkNotionInteractions(page: Page, openSource: (page: Pag
 async function checkRichTable(page: Page, openSource: (page: Page) => Promise<void>, replaceSource: (page: Page, text: string) => Promise<void>) {
   await openSource(page);
   await replaceSource(page, "| A | B |\n| --- | --- |\n| 1 $x$ | 2 |\n| 3 | 4 |\n\nEnd");
-  const mode = (name: string) => page.getByRole("group", { name: "文件模式" }).getByRole("button", { name, exact: true });
-  await mode("编辑").click();
+  await openMarkdownBody(page);
   const rich = page.locator(".tiptap:visible");
   await checkTableMenuSelection(page);
   await resizeAndFormatColumn(page);
@@ -44,14 +44,14 @@ async function checkRichTable(page: Page, openSource: (page: Page) => Promise<vo
   assert.ok(source.includes("<table"));
   assert.match(source, /colwidth="\d+/);
   assert.match(source, /align="center"/);
-  await mode("预览").click();
-  const table = page.locator(".ui-markdown-document table");
+  await openMarkdownBody(page);
+  const table = page.locator(".tiptap table");
   await table.waitFor();
   assert.equal(await table.locator(".katex").count(), 1, "math remains visible inside an HTML table");
   assert.equal(await table.locator("tr").nth(1).locator("th").count(), 1);
   const reading = await table.locator("tr").first().locator("th,td").evaluateAll(cells => cells.map(cell => cell.getBoundingClientRect().width));
   editing.forEach((width, index) => assert.ok(Math.abs(width - reading[index]) < 2, "resized columns match reading geometry"));
-  await mode("编辑").click();
+  await openMarkdownBody(page);
   assert.equal(await rich.locator("[data-type=inline-math]").count(), 1, "math remains editable after source round trip");
   assert.equal(await rich.locator("tr").nth(1).locator("th").count(), 1);
   assert.equal(await rich.locator("tr").nth(1).locator("th").evaluate(cell => getComputedStyle(cell).textAlign), "center");

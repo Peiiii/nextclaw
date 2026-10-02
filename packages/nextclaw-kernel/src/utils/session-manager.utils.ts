@@ -106,12 +106,23 @@ export function applySessionSettingsMetadataPatch(
   currentMetadata: Record<string, unknown>,
   patch: SessionSettingsPatch,
 ): Record<string, unknown> {
+  if (hasPatchField(patch, "pinned") && typeof patch.pinned !== "boolean") {
+    throw new SessionSettingsError("PINNED_INVALID", "pinned must be a boolean");
+  }
+  if (hasPatchField(patch, "pinnedIfUnset") &&
+      (typeof patch.pinnedIfUnset !== "boolean" || !hasPatchField(patch, "pinned"))) {
+    throw new SessionSettingsError("PINNED_INVALID", "pinnedIfUnset must be a boolean and requires pinned");
+  }
   const metadata = applySessionPreferencePatch(
     structuredClone(currentMetadata),
     patch,
   );
   if (Object.prototype.hasOwnProperty.call(patch, 'label')) metadata.label_source = 'manual';
-  return applySessionRuntimePatch(metadata, patch);
+  const nextMetadata = applySessionRuntimePatch(metadata, patch);
+  return hasPatchField(patch, "pinned") &&
+    !(patch.pinnedIfUnset && typeof currentMetadata.pinned === "boolean")
+    ? { ...nextMetadata, pinned: patch.pinned }
+    : nextMetadata;
 }
 
 export async function applySessionProjectMetadataPatch(

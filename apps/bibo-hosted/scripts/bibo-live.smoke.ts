@@ -314,7 +314,7 @@ try {
   assert.equal(asked.optionDescriptions?.["胶装"], "适合正式交付");
   const panel = page.getByRole("region", { name: "问题" });
   await panel.getByRole("heading", { name: "报告装订方式？" }).waitFor();
-  await page.locator(".ui-message--assistant .ui-message__body .bibo-question-tag").filter({ hasText: "报告装订方式？" }).waitFor();
+  await page.locator(".bibo-message-row--assistant .bibo-question-tag").filter({ hasText: "报告装订方式？" }).waitFor();
   await panel.getByRole("button", { name: "关闭问题" }).click();
   await page.getByRole("button", { name: "回答问题：报告装订方式？" }).click();
   if (skipQuestion) await verifySilentSkip(page, historyPath);

@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import { NcpEventType, type NcpMessage, type NcpSessionSummary } from "@nextclaw/ncp";
+import { NcpEventType, type NcpEndpointEvent, type NcpMessage, type NcpSessionSummary } from "@nextclaw/ncp";
 import {
   type LoadedNcpAgentJournalSession,
   type NcpAgentSessionJournalReplayEvent,
@@ -96,7 +96,8 @@ export class NcpAgentSessionSummaryIndexStore {
     const rows = this.db().prepare(
       `SELECT * FROM sessions
        WHERE ${filter.sql}
-       ORDER BY COALESCE(last_message_at, created_at, updated_at) DESC, session_id DESC
+       ORDER BY CASE WHEN json_type(metadata_json, '$.pinned') = 'true' THEN 1 ELSE 0 END DESC,
+         COALESCE(last_message_at, created_at, updated_at) DESC, session_id DESC
        LIMIT ? OFFSET ?`,
     ).all(...filter.params, options.limit, options.offset) as SessionCatalogRow[];
     return rows.map((row) => structuredClone(rowToSummary(row)));
@@ -123,7 +124,7 @@ export class NcpAgentSessionSummaryIndexStore {
   }): Promise<void> => {
     const sessionId = normalizeNcpSessionId(params.sessionId);
     const now = Date.now();
-    if (isSessionJournalDelta(params.event as import("@nextclaw/ncp").NcpEndpointEvent) &&
+    if (isSessionJournalDelta(params.event as NcpEndpointEvent) &&
       now - (this.lastSummaryWriteAt.get(sessionId) ?? 0) < 1_000) return;
     await this.ensureReady();
     const { event, updatedAt } = params;

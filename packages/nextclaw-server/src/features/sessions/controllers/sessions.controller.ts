@@ -460,7 +460,8 @@ export class NcpSessionRoutesController {
     let updated;
     try {
       updated = await sessionManager.patchSessionSettings(sessionId, patch, {
-        createIfMissing: true
+        createIfMissing: !Object.prototype.hasOwnProperty.call(patch, 'pinned') &&
+          !Object.prototype.hasOwnProperty.call(patch, 'pinnedIfUnset'),
       });
     } catch (error) {
       if (isSessionSettingsError(error)) {

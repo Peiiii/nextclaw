@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { QueryClient } from '@tanstack/react-query';
+import { NextClawClientError } from '@nextclaw/client-sdk';
 import type * as SharedApi from "@/shared/lib/api";
 import { ChatSessionListManager } from "@/features/chat/managers/chat-session-list.manager";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
@@ -21,7 +23,10 @@ function createLocalStoragePersistStorage() {
 
 const mocks = vi.hoisted(() => ({
   updateNcpSession: vi.fn(),
+  toastError: vi.fn(),
 }));
+
+vi.mock('sonner', () => ({ toast: { error: mocks.toastError } }));
 
 vi.mock("@/shared/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof SharedApi>();
@@ -41,8 +46,10 @@ function resetChatSessionListManagerState() {
   });
   mocks.updateNcpSession.mockReset();
   mocks.updateNcpSession.mockResolvedValue({});
+  mocks.toastError.mockReset();
   useChatSessionListStore.setState({
     optimisticReadAtBySessionKey: {},
+    optimisticPinnedBySessionKey: {},
     snapshot: {
       ...useChatSessionListStore.getState().snapshot,
       selectedSessionKey: "session-1",
@@ -336,29 +343,81 @@ describe("ChatSessionListManager list preference and read state", () => {
     });
   });
 
-  it("persists session and project list preferences through the list owner", () => {
+  it("persists project list preferences through the list owner", () => {
     const manager = new ChatSessionListManager(
       {} as ConstructorParameters<typeof ChatSessionListManager>[0],
     );
 
-    manager.toggleSessionPinned("session-2");
     manager.toggleProjectPinned("/tmp/project-alpha");
     manager.toggleProjectCollapsed("/tmp/project-alpha");
 
     expect(useChatSessionListStore.getState().snapshot).toMatchObject({
-      pinnedSessionKeys: ["session-2"],
+      pinnedSessionKeys: [],
       pinnedProjectRoots: ["/tmp/project-alpha"],
       collapsedProjectRoots: ["/tmp/project-alpha"],
     });
     expect(persistStorage.get(chatSessionListModeStorageKey)).toMatchObject({
       state: {
         snapshot: {
-          pinnedSessionKeys: ["session-2"],
+          pinnedSessionKeys: [],
           pinnedProjectRoots: ["/tmp/project-alpha"],
           collapsedProjectRoots: ["/tmp/project-alpha"],
         },
       },
     });
+  });
+
+  it('persists a pin, updates server queries and keeps optimistic state out of browser storage', async () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(['ncp-session-pages', 100, null], {
+      pages: [{ sessions: [{ sessionId: 'session-2', updatedAt: '2026-10-02', metadata: {} }], total: 1 }],
+      pageParams: [1],
+    });
+    const manager = new ChatSessionListManager({} as never, queryClient);
+    let complete!: (value: unknown) => void;
+    mocks.updateNcpSession.mockImplementation(() => new Promise((resolve) => { complete = resolve; }));
+    const pending = manager.toggleSessionPinned('session-2', false);
+    await Promise.resolve();
+    expect(useChatSessionListStore.getState().optimisticPinnedBySessionKey).toEqual({ 'session-2': true });
+    await manager.toggleSessionPinned('session-2', true);
+    expect(mocks.updateNcpSession).toHaveBeenCalledOnce();
+    expect(mocks.updateNcpSession).toHaveBeenCalledWith('session-2', { pinned: true });
+    complete({ sessionId: 'session-2', updatedAt: '2026-10-02', metadata: { pinned: true } });
+    await pending;
+    expect(queryClient.getQueryData(['ncp-session-pages', 100, null])).toMatchObject({
+      pages: [{ sessions: [{ metadata: { pinned: true } }] }],
+    });
+    expect(useChatSessionListStore.getState().optimisticPinnedBySessionKey).toEqual({});
+    expect(persistStorage.get(chatSessionListModeStorageKey)).toMatchObject({ state: { snapshot: { pinnedSessionKeys: [] } } });
+  });
+
+  it('rolls back a failed pin and allows retry', async () => {
+    const manager = new ChatSessionListManager({} as never, new QueryClient());
+    mocks.updateNcpSession.mockRejectedValueOnce(new Error('offline'));
+    await manager.toggleSessionPinned('session-2', true);
+    expect(useChatSessionListStore.getState().optimisticPinnedBySessionKey).toEqual({});
+    expect(mocks.toastError).toHaveBeenCalledOnce();
+    mocks.updateNcpSession.mockResolvedValue({ sessionId: 'session-2', updatedAt: '2026-10-02', metadata: { pinned: false } });
+    await manager.toggleSessionPinned('session-2', true);
+    expect(mocks.updateNcpSession).toHaveBeenLastCalledWith('session-2', { pinned: false });
+  });
+
+  it('migrates old pins outside loaded pages while respecting server false and retaining network failures', async () => {
+    useChatSessionListStore.getState().setSnapshot({ pinnedSessionKeys: ['old', 'unpin', 'gone', 'offline'] });
+    mocks.updateNcpSession.mockImplementation(async (id: string) => {
+      if (id === 'gone') throw new NextClawClientError({ message: 'not found', status: 404 });
+      if (id === 'offline') throw new Error('offline');
+      return { sessionId: id, metadata: id === 'unpin' ? { pinned: false } : {} };
+    });
+    const manager = new ChatSessionListManager({} as never, new QueryClient());
+    await manager.migrateLegacySessionPins();
+    expect(mocks.updateNcpSession).toHaveBeenCalledWith('old', { pinned: true, pinnedIfUnset: true });
+    expect(mocks.updateNcpSession).toHaveBeenCalledWith('unpin', { pinned: true, pinnedIfUnset: true });
+    expect(useChatSessionListStore.getState().snapshot.pinnedSessionKeys).toEqual(['offline']);
+    expect(mocks.toastError).toHaveBeenCalledOnce();
+    mocks.updateNcpSession.mockResolvedValue({ sessionId: 'offline', metadata: {} });
+    await manager.migrateLegacySessionPins();
+    expect(useChatSessionListStore.getState().snapshot.pinnedSessionKeys).toEqual([]);
   });
 
   it("marks a session as read through the session list owner boundary", () => {

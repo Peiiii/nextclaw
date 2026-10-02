@@ -21,11 +21,9 @@ import { FileActions } from "./file-actions";
 import { CreateFileDialog } from "./create-file-dialog";
 
 export function NoteNavigation({ onNavigate }: { onNavigate: () => void }) {
-  const { notes, files, activeFileId, fileBrowserVisible, openFile, showFileBrowser } = useBiboSpaceStore();
-  const [creating, setCreating] = useState(false);
-  const parent = files.some(file => file.kind === "folder" && file.path === "笔记") ? "笔记" : "";
+  const { notes, activeFileId, fileBrowserVisible, openFile, showFileBrowser, createNote, saving } = useBiboSpaceStore();
   return <nav className="bibo-session-nav" aria-label={copy.notes}>
-    <NavigationItem label={copy.newNote} tooltip={false}><button className="bibo-new-chat" onClick={() => setCreating(true)}><SquarePen aria-hidden="true" /><span>{copy.newNote}</span></button></NavigationItem>
+    <NavigationItem label={copy.newNote} tooltip={false}><button className="bibo-new-chat" disabled={saving} onClick={() => void createNote().then(created => { if (created) onNavigate(); })}><SquarePen aria-hidden="true" /><span>{copy.newNote}</span></button></NavigationItem>
     <NavigationItem label={copy.allNotes} selected={fileBrowserVisible} tooltip={false}>
       <button className="bibo-session-item" onClick={() => { showFileBrowser(); onNavigate(); }}><Library />{copy.allNotes}</button>
     </NavigationItem>
@@ -33,7 +31,6 @@ export function NoteNavigation({ onNavigate }: { onNavigate: () => void }) {
     {notes.map(file => <NavigationItem key={file.id} label={file.path} selected={!fileBrowserVisible && activeFileId === file.id} truncatedLabel>
       <button className="bibo-session-item" onClick={() => { void openFile(file.id); onNavigate(); }}><FileText /><span className="bibo-session-title">{file.path.split("/").at(-1)?.replace(/\.(md|markdown|mdown)$/i, "")}</span></button>
     </NavigationItem>)}
-    {creating && <CreateFileDialog parent={parent} initialKind="note" notesOnly onClose={() => setCreating(false)} />}
   </nav>;
 }
 export function Files({ notesOnly }: { notesOnly: boolean }) {
@@ -53,6 +50,9 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
     fileBrowserVisible,
     noteQuery,
     searchNotes,
+    createNote,
+    saving,
+    actionError,
   } = useBiboSpaceStore();
   const { treeCollapsed, toggleTree, treeWidth } = useWorkspaceUiStore();
   const [kind, setKind] = useState<BiboFile["kind"]>(
@@ -73,6 +73,7 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
   return (
     <div className={`bibo-page workspace-page bibo-files-page${notesOnly ? " is-notes-page" : ""}`}>
       {creating && <CreateFileDialog parent={parent} initialKind={kind} notesOnly={notesOnly} onClose={() => setCreating(false)} />}
+      {notesOnly && actionError && <Notice tone="error">{actionError}</Notice>}
       {fileOpenError && (!workspaceOpen || fileOpenError.id !== workspaceFileId) && <Notice tone="error">{fileOpenError.message}</Notice>}
       <div
         style={
@@ -103,18 +104,8 @@ export function Files({ notesOnly }: { notesOnly: boolean }) {
               <h1>{copy.allNotes}</h1>
               <div className="bibo-notes-actions">
               <div className="bibo-notes-search"><Search aria-hidden="true" /><Input aria-label={copy.searchNotes} placeholder={copy.search} value={noteQuery} onChange={(event) => searchNotes(event.target.value)} /></div>
-              <Button tone="primary"
-                onClick={() => {
-                  setParent(
-                    files.some(
-                      (file) => file.kind === "folder" && file.path === "笔记"
-                    )
-                      ? "笔记"
-                      : ""
-                  );
-                  setKind("note");
-                  setCreating(true);
-                }}
+              <Button tone="primary" disabled={saving}
+                onClick={() => void createNote()}
               ><Plus />{copy.newNote}</Button>
               </div>
             </div>

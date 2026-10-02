@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Button, EmptyState, IconButton, LoadingState, Notice } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore, type BiboView } from "@/features/space/stores/bibo-space.store";
 import { CalendarView } from "./calendar-view";
@@ -7,13 +7,14 @@ import { Overview } from "./overview-view";
 import { Inbox } from "./inbox-view";
 import { Tasks } from "./tasks-view";
 import { Files } from "./files/files-view";
-import { FileEditor } from "./files/file-editor";
+import { FileEditor, FileEditorHeader } from "./files/file-editor";
 import { FileTabs } from "./files/file-tabs";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 
 export function BiboWorkspace({ onClose }: { onClose: () => void }) {
   const { workspaceOpen, workspaceResolving, workspaceFileId, workspacePreview, setWorkspacePreview, fileDetails, openWorkspace, error, fileOpenError } = useBiboSpaceStore();
   const panelRef = useRef<HTMLElement>(null);
+  const [header, setHeader] = useState<HTMLDivElement | null>(null);
   useLayoutEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
@@ -28,17 +29,20 @@ export function BiboWorkspace({ onClose }: { onClose: () => void }) {
     <aside ref={panelRef} className="bibo-workspace" aria-label="右侧工作区" aria-hidden={!workspaceOpen}>
       <div className="bibo-workspace-head" data-ui-surface="frame">
         <FileTabs workspace />
+        <div className="bibo-file-header-tools" ref={setHeader} />
         <IconButton label={biboCopy.fileCloseWorkspace} icon={<X />} onClick={onClose} />
       </div>
       <div className="bibo-workspace-content">
+        <FileEditorHeader.Provider value={header}>
         {(error || openError) && <Notice tone="error">{openError || error}</Notice>}
         {workspaceResolving ? <LoadingState label="正在打开资源" /> : workspaceFileId && !current && (error || openError) ? (
           <div><EmptyState title="暂时无法打开文件" /><Button onClick={() => void openWorkspace(workspaceFileId)}>重试打开</Button></div>
         ) : workspaceFileId ? (
-          current ? <FileEditor key={workspaceFileId} id={workspaceFileId} tabId={`bibo-workspace-file-tab-${workspaceFileId}`} compact preview={workspacePreview ?? true} onPreviewChange={setWorkspacePreview} /> : <LoadingState label="正在打开文件" />
+          current ? <FileEditor key={workspaceFileId} id={workspaceFileId} tabId={`bibo-workspace-file-tab-${workspaceFileId}`} compact defaultPreview={!/\.(md|markdown|mdown)$/i.test(current.path)} initialSource={workspacePreview === false} preview={workspacePreview ?? undefined} onPreviewChange={setWorkspacePreview} /> : <LoadingState label="正在打开文件" />
         ) : (
           <EmptyState title="选择文件或笔记" />
         )}
+        </FileEditorHeader.Provider>
       </div>
     </aside>
   );

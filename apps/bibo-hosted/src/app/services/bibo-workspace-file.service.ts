@@ -106,6 +106,14 @@ export class BiboWorkspaceFileService {
     if (input.sort !== undefined && input.sort !== "recent") throw new BiboSpaceError("文件排序方式不正确。", 400);
     const limit = typeof input.limit === "number" && Number.isInteger(input.limit)
       ? Math.min(100, Math.max(1, input.limit)) : 50;
+    if (input.parentPath !== undefined) {
+      if (typeof input.parentPath !== "string" || ["kind", "query", "ancestorOf", "sort"].some(key => input[key] !== undefined)
+        || input.cursor !== undefined && typeof input.cursor !== "string") throw new BiboSpaceError("目录读取条件不正确。", 400);
+      const path = input.parentPath === "" ? ROOT : this.path(input.parentPath);
+      const page = await this.workspace.list(path, input.cursor as string | undefined, limit);
+      if (!page) throw new BiboSpaceError("文件夹不存在或已删除。", 404);
+      return { items: page.entries.map(this.file), nextCursor: page.nextCursor };
+    }
     const offset = input.cursor === undefined ? 0 : Number(input.cursor);
     if (!Number.isSafeInteger(offset) || offset < 0) throw new BiboSpaceError("分页位置不正确。", 400);
     let items: BiboFile[];

@@ -12,6 +12,18 @@ export function registerSessionCommands(
   const sessions = program.command("sessions").description("Manage sessions");
 
   sessions
+    .command("pin <session-id>")
+    .description("Persistently pin a session")
+    .option("--json", "Output JSON", false)
+    .action((sessionId, options) => commands.setPinned(sessionId, true, options));
+
+  sessions
+    .command("unpin <session-id>")
+    .description("Remove a session pin")
+    .option("--json", "Output JSON", false)
+    .action((sessionId, options) => commands.setPinned(sessionId, false, options));
+
+  sessions
     .command("rename <session-id> <label>")
     .description("Rename a session")
     .option("--json", "Output JSON", false)
