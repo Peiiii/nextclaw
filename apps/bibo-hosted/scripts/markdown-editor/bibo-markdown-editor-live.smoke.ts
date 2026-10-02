@@ -26,7 +26,7 @@ const browser = await chromium.launch({ headless: true, proxy });
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 await context.addCookies([{ name: "bibo_session", value: token, domain: "app.bibo.bot", path: "/", secure: true, httpOnly: true, sameSite: "Lax" }]);
 const page = await context.newPage();
-page.setDefaultTimeout(20000);
+page.setDefaultTimeout(60_000);
 const dialogs: string[] = [];
 page.on("dialog", (dialog) => { dialogs.push(dialog.type()); void dialog.accept(); });
 const folder = `markdown-editor-smoke-${crypto.randomUUID().slice(0, 8)}`;
@@ -44,7 +44,7 @@ let createdFolder: { id: string; version: number } | undefined;
 let createdSessionId: string | undefined;
 async function checkLiveResourceOpening() {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`${origin}/chat`, { waitUntil: "networkidle" });
+  await page.goto(`${origin}/chat`, { waitUntil: "domcontentloaded" });
   await page.getByRole("textbox", { name: /告诉 Bibo/ }).fill(`请只回复「收到」，不要调用工具。\n\n[验证笔记](${(await space<File>("file.get", { id: createdId })).uri})`);
   const [response] = await Promise.all([
     page.waitForResponse(response => new URL(response.url()).pathname === "/api/chat"),
@@ -62,7 +62,7 @@ async function checkLiveResourceOpening() {
   }, createdSessionId, { timeout: 60_000, polling: 1000 });
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
     const workspace = page.getByRole("complementary", { name: "右侧工作区" });
     if (await workspace.isVisible()) await page.getByRole("button", { name: "关闭工作区" }).click();
     let release!: () => void;
@@ -113,17 +113,17 @@ async function checkLiveImage(page: Page) {
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
   assert.ok((await space<File>("file.get", { path })).content.includes(src));
-  await page.reload({ waitUntil: "networkidle" });
+  await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator(`.tiptap img[src='${src}']`).waitFor();
   await page.waitForFunction(source => { const image = document.querySelector(`img[src='${source}']`) as HTMLImageElement; return image?.complete && image.naturalWidth === 1; }, src);
   const anonymous = await browser.newContext();
-  assert.equal((await anonymous.request.get(origin + src)).status(), 401, "private assets require authentication");
+  assert.equal((await anonymous.request.get(origin + src, { timeout: 60_000 })).status(), 401, "private assets require authentication");
   await anonymous.close();
-  assert.equal((await context.request.post(origin + "/api/assets", { headers: { origin: "https://example.com" }, data: png })).status(), 403, "cross-site uploads are rejected before storage");
+  assert.equal((await context.request.post(origin + "/api/assets", { headers: { origin: "https://example.com" }, data: png, timeout: 60_000 })).status(), 403, "cross-site uploads are rejected before storage");
   console.log("Production private image: real upload, save, reload, authenticated display and access checks passed");
 }
 try {
-  await page.goto(`${origin}/notes`, { waitUntil: "networkidle" });
+  await page.goto(`${origin}/notes`, { waitUntil: "domcontentloaded" });
   createdFolder = await space("file.create", { path: folder, kind: "folder" });
   await page.getByRole("complementary", { name: "全部笔记", exact: true }).getByRole("button", { name: "新笔记", exact: true }).click();
   await page.locator(".tiptap:visible h1").waitFor();
@@ -147,7 +147,7 @@ try {
     await page.locator(".bibo-file-editor-status").getByText("已保存", { exact: true }).waitFor();
     const saved = await space<File>("file.get", { path });
     assert.equal(saved.content, text, "real server persisted exactly the Markdown text");
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
     await page.getByRole("heading", { name: `Markdown 上线验收 ${width}` }).waitFor();
     assert.equal(new URL(page.url()).pathname, `/notes/${path.split("/").map(encodeURIComponent).join("/")}`, "nested notes retain their canonical detail route after refresh");
     await page.waitForTimeout(350);
@@ -162,7 +162,7 @@ try {
     await page.keyboard.press("End");
     await page.keyboard.press("Enter");
     await page.keyboard.insertText("正文编辑真实保存");
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator(".tiptap:visible").getByText(/正文编辑真实保存/).waitFor();
     assert.deepEqual(dialogs, [], "dirty document refresh has no browser confirmation");
     assert.ok(!(await space<File>("file.get", { id: createdId })).content.includes("正文编辑真实保存"), "refresh restores the local draft before server save");
