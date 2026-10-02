@@ -1,6 +1,96 @@
-import { openMarkdownSource } from "../personal-workspace.fixture";
+import { mockApi, openMarkdownBody, openMarkdownSource } from "../personal-workspace.fixture";
 import assert from "node:assert/strict";
 import type { Locator, Page, Route } from "playwright";
+
+export async function checkNoteLayout(page: Page, width: number, base: string): Promise<void> {
+  page.setDefaultTimeout(12000);
+  await mockApi(page);
+  await page.goto(`${base}/notes`, { waitUntil: "networkidle" });
+  await page.locator(".bibo-note-list").getByRole("button", { name: /^想法 / }).click();
+  const rich = page.locator(".tiptap:visible");
+  await rich.getByRole("heading", { name: "一个想法" }).waitFor();
+  await checkNoteBodyLayout(page, width);
+  await checkNoteTools(page, width);
+  await page.getByRole("button", { name: "更多格式", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^加粗/ }).waitFor();
+  await page.keyboard.press("Escape");
+  await checkNoteDraft(page, width);
+  await openMarkdownBody(page);
+  await page.getByRole("heading", { name: "移动笔记间距", exact: true }).waitFor();
+  await page.locator(".ui-rich-markdown-scroll").evaluate(element => { element.scrollTop = 0; });
+  await checkNoteBodyLayout(page, width);
+  await page.locator(".ui-rich-markdown-scroll").evaluate(element => { element.scrollTop = element.scrollHeight; });
+  const last = await page.getByRole("heading", { name: "第 40 节", exact: true }).boundingBox();
+  const status = await page.locator(".bibo-file-editor-status").boundingBox();
+  assert.ok(last && status && last.y < status.y, "last section remains reachable above save feedback");
+  await page.reload({ waitUntil: "networkidle" });
+  await rich.getByRole("heading", { name: "移动笔记间距", exact: true }).waitFor();
+  assert.equal(await rich.getByRole("heading", { name: "第 40 节", exact: true }).count(), 1, "refresh restores the saved note");
+  if (width <= 760) await checkNoteShortViewport(page, width);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "note has no page-level horizontal scroll");
+  await page.screenshot({ path: `/tmp/bibo-note-after-${width}.png` });
+  await page.getByRole("button", { name: "文档 想法.md", exact: true }).click();
+  await page.getByRole("menuitem", { name: "返回全部笔记", exact: true }).click();
+  await page.locator(".bibo-note-list").waitFor();
+}
+
+async function checkNoteBodyLayout(page: Page, width: number): Promise<void> {
+  const editing = await page.locator(".tiptap:visible").evaluate(element => {
+    const box = element.getBoundingClientRect(), style = getComputedStyle(element);
+    return { left: style.paddingLeft, right: style.paddingRight, bottom: style.paddingBottom, topGap: element.firstElementChild!.getBoundingClientRect().top - box.top, headerHeight: document.querySelector(".bibo-topbar")!.getBoundingClientRect().height };
+  });
+  assert.equal(editing.topGap, width <= 760 ? 24 : 80, "note uses the document spacing");
+  assert.equal(editing.headerHeight, width <= 760 ? 56 : 44, "note header stays on one row");
+  if (width <= 760) {
+    assert.deepEqual([editing.left, editing.right, editing.bottom], ["24px", "24px", "48px"]);
+    assert.equal(await page.locator(".is-note-editor .bibo-file-editor-head").isVisible(), false, "mobile note does not repeat the directory chrome");
+  }
+}
+
+async function checkNoteTools(page: Page, width: number): Promise<void> {
+  const boxes = await page.locator(".file-editor-tools button").evaluateAll(elements => elements.map(element => {
+    const box = element.getBoundingClientRect();
+    return { x: box.x, right: box.right, width: box.width, height: box.height };
+  }));
+  assert.ok(boxes.every(box => box.x >= 0 && box.right <= width), "all note actions fit the viewport");
+  if (width <= 760) assert.ok(boxes.every(box => box.width >= 44 && box.height >= 44), "note actions keep their touch targets");
+}
+
+async function checkNoteSaveRetry(page: Page, source: Locator): Promise<void> {
+  let fail = true;
+  const saveFailure = async (route: Route) => {
+    if (fail && route.request().postDataJSON().action === "file.update") await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "测试保存失败" }) });
+    else await route.fallback();
+  };
+  await page.route("**/api/space", saveFailure);
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.getByText("测试保存失败", { exact: true }).waitFor();
+  assert.ok((await source.innerText()).includes("第 40 节"), "failed save retains the complete draft");
+  fail = false;
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.getByTitle("已保存 · v2").waitFor();
+  await page.unroute("**/api/space", saveFailure);
+}
+
+async function checkNoteDraft(page: Page, width: number): Promise<void> {
+  await openMarkdownSource(page);
+  const source = page.locator(".cm-content:visible");
+  const content = `# 移动笔记间距\n\n${Array.from({ length: 40 }, (_, index) => `## 第 ${index + 1} 节\n\n这是一段用于检查正文留白与长文滚动的内容。`).join("\n\n")}`;
+  await source.fill(content);
+  await page.getByRole("button", { name: "保存", exact: true }).waitFor();
+  await checkNoteTools(page, width);
+  if (width <= 760) {
+    assert.deepEqual(await source.locator(".cm-line").first().evaluate(element => [getComputedStyle(element).paddingLeft, getComputedStyle(element).paddingRight]), ["24px", "24px"], "source shares the mobile horizontal inset");
+  }
+  await checkNoteSaveRetry(page, source);
+}
+
+async function checkNoteShortViewport(page: Page, width: number): Promise<void> {
+  await page.setViewportSize({ width, height: 400 });
+  const host = await page.locator(".bibo-file-editor-surface:visible").boundingBox();
+  assert.ok(host && host.height >= 180, "reduced mobile height retains writing space");
+  await page.setViewportSize({ width, height: 844 });
+}
 
 export async function checkWorkspaceReopening(page: Page): Promise<Locator> {
   await openMarkdownSource(page);
@@ -47,10 +137,12 @@ export async function checkMissingRestoredFile(page: Page, base: string): Promis
     tabs: ["file-a", "missing-file"], activeFileId: "file-a", workspaceOpen: true, workspaceFileId: "missing-file",
   })));
   await page.goto(`${base}/files`, { waitUntil: "networkidle" });
+  assert.equal(await page.locator(".bibo-file-editor").count(), 0, "collection entry does not restore the old selection");
+  await page.getByRole("treeitem", { name: "想法.md", exact: true }).click();
   await openMarkdownSource(page);
   await page.getByRole("textbox", { name: "编辑 想法.md" }).waitFor();
   assert.equal(await page.getByText("File missing", { exact: true }).count(), 0, "a missing restored tab must not warn about the existing file");
-  assert.equal(await page.locator(".bibo-file-tab").count(), 1, "the missing restored tab is removed");
+  assert.equal(await page.locator(".bibo-file-tab").count(), 2, "unvisited saved tabs remain available without a background read");
 }
 
 async function checkSingleHeader(page: Page, surface: Locator, width: number, workspace: boolean): Promise<void> {
@@ -81,6 +173,11 @@ export async function checkWorkspaceFiles(page: Page, width: number, base: strin
     await workspace.getByRole("button", { name: /^文档 / }).waitFor();
     await workspace.getByRole("button", { name: /^文档 / }).click();
     await page.getByRole("menuitem", { name: "关闭当前文档", exact: true }).click();
+    const confirmation = page.getByRole("dialog", { name: "保存文件修改？" });
+    if (await confirmation.count()) {
+      await confirmation.getByRole("button", { name: "保存并关闭", exact: true }).click();
+      await confirmation.waitFor({ state: "hidden" });
+    }
   }
   await workspace.getByRole("heading", { name: "选择文件或笔记" }).waitFor();
   await openWorkspaceFile(page, ["想法.md"]);

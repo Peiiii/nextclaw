@@ -1,16 +1,16 @@
 import { create, type StoreApi } from "zustand";
 import { BiboClient, BiboClientError, type BiboEvent, type BiboFile, type BiboFileDetail, type BiboInboxItem, type BiboOverview, type BiboProject, type BiboTask } from "@nextclaw/bibo-client";
 import { calendarMonthRange } from "@/features/space/utils/calendar.utils";
-import { readBiboTheme, readWorkspaceLayout, revealedFileLayout, writeBiboTheme, writeWorkspaceLayout, type BiboTheme } from "@/features/space/utils/workspace-layout.utils";
+import { readWorkspaceLayout, revealedFileLayout, writeWorkspaceLayout } from "@/features/space/utils/workspace-layout.utils";
 import { readCalendarEvents, readNextSpacePage, readSpaceLists, savedTaskView, taskListFilter } from "@/features/space/utils/space-view-reader.utils";
-import { navigateWorkspace } from "@/app/workspace-router";
-import { closedFileState, fileDeletionState, openedFileState, restoredFileTargets } from "@/features/space/utils/file-state.utils";
+import { navigateResource } from "@/app/workspace-router";
+import { closedFileState, fileDeletionState, openedFileState } from "@/features/space/utils/file-state.utils";
 import { FileDirectoryManager, type FileDirectories } from "@/features/space/managers/file-directory.manager";
 import { FileEditingManager } from "@/features/space/managers/file-editing.manager";
 import { InboxReaderManager } from "@/features/space/managers/inbox-reader.manager";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
 import { readFileDrafts, writeFileDrafts } from "@/features/space/utils/file-draft-storage.utils";
-import type { Page, FileDraft, TaskDraft, EventDraft } from "@/features/space/types/bibo-space.types";
+import type { FileDraft, TaskDraft, EventDraft } from "@/features/space/types/bibo-space.types";
 export type { TaskDraft, EventDraft } from "@/features/space/types/bibo-space.types";
 
 export type BiboView = "overview" | "chat" | "inbox" | "calendar" | "tasks" | "notes" | "files";
@@ -35,14 +35,10 @@ class BiboSpaceOwner {
   private fileOpenRequest = 0;
   private readonly closedFiles = new Set<string>();
   view: BiboView = "overview";
-  theme = readBiboTheme();
-  sidebarCollapsed = false;
-  treeCollapsed = false;
-  treeWidth = 230;
   expandedFolders: Record<string, boolean> = {};
   fileBrowserVisible = true;
+  fileRoutePath: string | null = null;
   workspaceOpen = false;
-  workspaceRatio = 0.55;
   workspaceResolving = false;
   workspaceFileId: string | null = null;
   loading = false;
@@ -110,7 +106,7 @@ class BiboSpaceOwner {
     }
   };
 
-  bindAccount = (accountId: string | null, reset = false): void => {
+  bindAccount = (accountId: string | null, reset = false, load = true): void => {
     if (this.accountId === accountId && !reset) return;
     const owner = new BiboSpaceOwner(this.store);
     owner.view = this.get().view;
@@ -118,43 +114,31 @@ class BiboSpaceOwner {
     if (accountId && reset) owner.draftStorageError = writeFileDrafts(accountId, {}) ? "" : biboCopy.fileDraftStorageFailed;
     if (accountId && !reset) Object.assign(owner, readWorkspaceLayout(accountId), { fileDrafts: readFileDrafts(accountId) });
     this.store.setState(owner, true);
-    if (accountId) void owner.load();
+    if (accountId && load) void owner.load();
   };
 
   private saveLayout = (): void => writeWorkspaceLayout(this.get());
 
-  activateView = (view: BiboView): void => {
+  activateView = (view: BiboView, load = true): void => {
     if (this.get().view === view) return;
     this.set({ view, error: "", fileOpenError: null, actionError: "", feedback: { message: "", task: null }, ...(["files", "notes"].includes(view) ? { fileBrowserVisible: true } : {}) });
-    if (view !== "chat" && this.get().accountId) void this.load(view);
+    if (load && view !== "chat" && this.get().accountId) void this.load(view);
   };
 
-  navigate = navigateWorkspace;
-
-  toggleSidebar = (): void => { this.set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })); this.saveLayout(); };
-  setTheme = (theme: BiboTheme): void => { this.set({ theme }); writeBiboTheme(theme); };
-  toggleTree = (): void => { this.set((state) => ({ treeCollapsed: !state.treeCollapsed })); this.saveLayout(); };
-  resizeTree = (width: number): void => { this.set({ treeWidth: Math.min(360, Math.max(180, width)) }); this.saveLayout(); };
-  resizeWorkspace = (ratio: number): void => {
-    if (!Number.isFinite(ratio)) return;
-    this.set({ workspaceRatio: Math.min(0.7, Math.max(0.3, ratio)) });
-    this.saveLayout();
-  };
-  showFileBrowser = (): void => this.set({ fileBrowserVisible: true });
   private revealFile = (id: string): void => {
     this.set((state) => revealedFileLayout(state, id));
     this.saveLayout();
   };
   closeWorkspace = (): void => { this.set({ workspaceOpen: false, workspaceResolving: false }); this.saveLayout(); };
-  showWorkspace = (): void => { this.set({ workspaceOpen: true }); this.saveLayout(); void this.load("files"); };
   workspacePreview: boolean | null = null;
   setWorkspacePreview = (workspacePreview: boolean): void => this.set({ workspacePreview });
   openWorkspace = async (id: string, verified?: BiboFileDetail, preview?: boolean): Promise<void> => {
     this.set((state) => ({ workspaceOpen: true, workspaceFileId: id, workspacePreview: preview ?? (!verified && state.workspaceFileId === id ? state.workspacePreview : null), fileOpenError: null }));
     this.saveLayout();
-    await this.openFile(id, verified);
+    await this.openFile(id, verified, false);
   };
-  selectTask = (id: string | null, verified?: BiboTask): void => {
+  selectTask = (id: string | null, verified?: BiboTask, fromRoute = false): void => {
+    if (!fromRoute && navigateResource(`/tasks${id ? `/${encodeURIComponent(id)}` : ""}`)) return;
     const known = verified ?? this.get().tasks.find((task) => task.id === id) ?? null;
     this.set({ selectedTaskId: id, taskSelection: known });
     if (!id || known) return;
@@ -168,10 +152,11 @@ class BiboSpaceOwner {
     void this.load("calendar");
   };
   filterTasks = (query: string, project: string, taskScope = this.get().taskScope): void => {
+    navigateResource("/tasks");
     this.set({ taskQuery: query, taskProject: project, taskScope, taskAnchor: new Date(), selectedTaskId: null, feedback: { message: "", task: null } });
     void this.load("tasks");
   };
-  setTaskScope = (taskScope: BiboSpaceOwner["taskScope"]): void => { this.set({ taskScope, taskAnchor: new Date(), selectedTaskId: null, feedback: { message: "", task: null } }); void this.load("tasks"); };
+  setTaskScope = (taskScope: BiboSpaceOwner["taskScope"]): void => { this.filterTasks(this.get().taskQuery, this.get().taskProject, taskScope); };
   toggleTaskDone = async (task: BiboTask): Promise<void> => {
     const result = await this.act<BiboTask>("task.update", { id: task.id, version: task.version, status: task.status === "done" ? "planned" : "done" }, "tasks");
     if (result) this.set({ taskUndo: { id: result.id, version: result.version, status: task.status, title: task.title } });
@@ -181,16 +166,18 @@ class BiboSpaceOwner {
     if (undo && await this.act("task.update", undo, "tasks")) this.set({ taskUndo: null });
   };
   searchNotes = (noteQuery: string): void => { this.set({ noteQuery }); void this.load("notes"); };
-  selectEvent = (id: string | null, verified?: BiboEvent): void => {
+  selectEvent = (id: string | null, verified?: BiboEvent, fromRoute = false): void => {
+    if (!fromRoute && navigateResource(`/calendar${id ? `/${encodeURIComponent(id)}` : ""}`)) return;
     this.set({ selectedEventId: id });
     if (!id) return;
     const known = verified ?? this.get().events.find((event) => event.id === id);
     if (verified) this.set((state) => ({ events: [...state.events.filter((event) => event.id !== id), verified] }));
     if (known) { this.setCalendarDate(new Date(known.startAt)); return; }
     void client.space<BiboEvent>("event.get", { id }).then((event) => {
+      if (this.get().selectedEventId !== id) return;
       this.set((state) => ({ events: [...state.events.filter((item) => item.id !== id), event] }));
-      if (this.get().selectedEventId === id) this.setCalendarDate(new Date(event.startAt));
-    }).catch((error) => this.set({ error: message(error) }));
+      this.setCalendarDate(new Date(event.startAt));
+    }).catch((error) => { if (this.get().selectedEventId === id) this.set({ error: message(error) }); });
   };
   keepTaskDraft = (id: string, draft: TaskDraft): void => this.set((state) => ({ taskDrafts: { ...state.taskDrafts, [id]: draft } }));
   clearTaskDraft = (id: string): void => this.set((state) => { const drafts = { ...state.taskDrafts }; delete drafts[id]; return { taskDrafts: drafts }; });
@@ -203,14 +190,15 @@ class BiboSpaceOwner {
     const view = this.get().view;
     if (view === "chat" && !this.get().workspaceOpen) return;
     if (view !== "chat") await this.load(view);
-    if (this.get().workspaceOpen && view !== "files" && view !== "notes") await this.load("files");
-    for (const id of this.get().tabs) {
-      if (this.get().fileDrafts[id]?.dirty) continue;
-      try {
-        const detail = await client.space<BiboFileDetail>("file.get", { id });
-        this.set((state) => ({ fileDetails: { ...state.fileDetails, [id]: detail }, fileDrafts: { ...state.fileDrafts, [id]: { content: detail.content ?? "", version: detail.version, dirty: false, saving: false } } }));
-      } catch { /* A deleted file remains visible until the user closes its tab. */ }
-    }
+    if (view === "chat" && this.get().workspaceOpen) await this.load("files");
+    if (view !== this.get().view || this.get().instanceId !== this.instanceId || view === "chat" && !this.get().workspaceOpen) return;
+    const id = view === "chat" ? this.get().workspaceFileId
+      : (view === "files" || view === "notes") && !this.get().fileBrowserVisible ? this.get().activeFileId : null;
+    if (!id || this.get().fileDrafts[id]?.dirty) return;
+    try {
+      const detail = await client.space<BiboFileDetail>("file.get", { id });
+      this.set((state) => state.fileDrafts[id]?.dirty ? {} : ({ fileDetails: { ...state.fileDetails, [id]: detail }, fileDrafts: { ...state.fileDrafts, [id]: { content: detail.content ?? "", version: detail.version, dirty: false, saving: false } } }));
+    } catch { /* A deleted file remains visible until the user closes its tab. */ }
   };
 
   load = async (view: BiboView = this.get().view): Promise<boolean> => {
@@ -224,11 +212,9 @@ class BiboSpaceOwner {
       else {
         const { noteQuery, inboxScope } = this.get();
         const lists = await readSpaceLists(client, { view, taskFilter: taskListFilter(this.get()), noteQuery, inboxScope, fileDirectory: this.fileDirectory });
-        if (this.viewLoadRequest[view] !== request || (view === "inbox" && inboxRevision !== this.inboxReader.revision)) return true;
+        if (this.get().instanceId !== this.instanceId || this.viewLoadRequest[view] !== request) return true;
+        if (view === "inbox" && inboxRevision !== this.inboxReader.revision) return this.load(view);
         this.set((state) => ({ ...lists, cursors: { ...state.cursors, ...lists.cursors } }));
-      }
-      if (view === "files" || view === "notes") {
-        for (const file of restoredFileTargets(this.get(), view)) await this.openFile(file.id, undefined, file.select);
       }
       if (request === this.viewLoadRequest[view]) this.set((state) => ({ readStatus: { ...state.readStatus, [view]: "ready" } }));
       return true;
@@ -301,9 +287,14 @@ class BiboSpaceOwner {
     finally { this.set({ saving: false }); }
   };
 
-  openFile = async (id: string, verified?: BiboFileDetail, select = true): Promise<void> => {
+  openFile = async (id: string, verified?: BiboFileDetail, select = true, fromRoute = false): Promise<void> => {
+    if (select && !fromRoute && ["notes", "files"].includes(this.get().view)) {
+      if (verified) this.set(state => openedFileState(state, verified, [], false));
+      if (navigateResource(`/${this.get().view}/${encodeURIComponent(id)}`)) return;
+    }
     const request = select ? ++this.fileOpenRequest : this.fileOpenRequest;
     const view = this.get().view;
+    const pathname = window.location.pathname;
     this.closedFiles.delete(id); this.set({ fileOpenError: null });
     const cached = verified ? undefined : this.get().fileDetails[id];
     if (cached) {
@@ -314,14 +305,15 @@ class BiboSpaceOwner {
     }
     try {
       const detail = verified ?? await client.readFile({ id });
-      const ancestors = detail.path.includes("/") ? await client.space<Page<BiboFile>>("file.list", { ancestorOf: detail.path, limit: 100 }) : { items: [] };
+      if (detail.kind === "folder") throw new Error(biboCopy.folderReference);
       if (this.closedFiles.has(id)) return;
-      const active = select && request === this.fileOpenRequest && view === this.get().view;
-      this.set((state) => openedFileState(state, detail, ancestors.items, active));
+      const active = select && request === this.fileOpenRequest && view === this.get().view && pathname === window.location.pathname;
+      this.set((state) => openedFileState(state, detail, [], active));
       if (active) this.revealFile(id);
+      if (view !== "notes") void this.fileDirectory.loadAncestors(detail);
     } catch (error) {
-      if (error instanceof BiboClientError && error.status === 404 && this.get().tabs.includes(id) && !this.get().fileDrafts[id]) { this.closeFile(id); return; }
-      if (request === this.fileOpenRequest) this.set({ fileOpenError: { id, message: message(error) } });
+      if (!fromRoute && error instanceof BiboClientError && error.status === 404 && this.get().tabs.includes(id) && !this.get().fileDrafts[id]) { this.closeFile(id); return; }
+      if (request === this.fileOpenRequest && view === this.get().view && pathname === window.location.pathname) this.set({ fileOpenError: { id, message: message(error) } });
     }
   };
   closeFile = (id: string, discard = false): void => {
@@ -330,8 +322,6 @@ class BiboSpaceOwner {
     this.closedFiles.add(id);
     this.set((state) => closedFileState(state, id));
     this.saveLayout();
-    const active = this.get().activeFileId;
-    if (active && !this.get().fileDetails[active]) void this.openFile(active);
   };
 
   editFile = (id: string, content: string): void => this.set((state) => !state.fileDrafts[id] || state.fileDetails[id]?.preview || state.fileDrafts[id].content === content ? {} : ({ fileDrafts: { ...state.fileDrafts, [id]: { ...state.fileDrafts[id], content, dirty: content !== state.fileDetails[id]?.content } } }));
@@ -339,11 +329,7 @@ class BiboSpaceOwner {
   saveFile = (id: string): Promise<void> => this.fileEditing.save(id);
   resolveFileConflict = (id: string, choice: "reload" | "overwrite"): Promise<void> => this.fileEditing.resolveConflict(id, choice);
 
-  createFile = async (path: string, kind: BiboFile["kind"]): Promise<boolean> => {
-    const detail = await this.act<BiboFileDetail>("file.create", { path, kind, content: "" }, this.get().view === "notes" ? "notes" : "files");
-    if (detail && kind !== "folder") await this.openFile(detail.id);
-    return detail !== null;
-  };
+  createFile = (path: string, kind: BiboFile["kind"]): Promise<boolean> => this.fileEditing.createFile(path, kind);
 
   createNote = (): Promise<boolean> => this.fileEditing.createNote();
 
@@ -396,8 +382,6 @@ class BiboSpaceOwner {
     for (const id of removed) this.closedFiles.add(id);
     this.set((current) => fileDeletionState(current, removed));
     this.saveLayout();
-    const active = this.get().activeFileId;
-    if (active && !this.get().fileDetails[active]) await this.openFile(active);
     return true;
   };
 }

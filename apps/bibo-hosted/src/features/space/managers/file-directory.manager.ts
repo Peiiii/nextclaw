@@ -1,8 +1,8 @@
 import type { StoreApi } from "zustand";
-import type { BiboClient, BiboFile } from "@nextclaw/bibo-client";
+import type { BiboClient, BiboFile, BiboFileDetail } from "@nextclaw/bibo-client";
 import type { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { directoryFileState } from "@/features/space/utils/file-state.utils";
-import { writeWorkspaceLayout } from "@/features/space/utils/workspace-layout.utils";
+import { revealedFileLayout, writeWorkspaceLayout } from "@/features/space/utils/workspace-layout.utils";
 
 type SpaceState = ReturnType<typeof useBiboSpaceStore.getState>;
 export type FileDirectories = Record<string, { cursor: string | null; pages: number; status: "loading" | "ready" | "error"; error: string }>;
@@ -27,6 +27,19 @@ export class FileDirectoryManager {
   refresh = async (): Promise<void> => {
     if (!await this.load()) throw new Error(this.store.getState().directories[""]?.error);
     await this.refreshExpanded();
+  };
+  loadAncestors = async (detail: BiboFileDetail): Promise<void> => {
+    if (!this.active() || !detail.path.includes("/")) return;
+    try {
+      const ancestors = await this.client.space<{ items: BiboFile[] }>("file.list", { ancestorOf: detail.path, limit: 100 });
+      if (!this.active() || this.store.getState().fileDetails[detail.id]?.path !== detail.path) return;
+      this.patch(state => ({ files: [...new Map([...ancestors.items, ...state.files].map(file => [file.id, file])).values()] }));
+      const state = this.store.getState();
+      if (state.view === "files" && state.activeFileId === detail.id && !state.fileBrowserVisible) {
+        this.patch(current => revealedFileLayout(current, detail.id));
+        writeWorkspaceLayout(this.store.getState());
+      }
+    } catch { /* Directory navigation can retry its own reads; the document remains available. */ }
   };
   search = async (query: string, more = false): Promise<void> => {
     if (!this.active()) return;

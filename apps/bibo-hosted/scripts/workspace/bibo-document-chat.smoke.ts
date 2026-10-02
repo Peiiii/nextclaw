@@ -10,7 +10,7 @@ const base = `http://127.0.0.1:${port}`;
 const server = spawn(process.execPath, [new URL("../../node_modules/vite/bin/vite.js", import.meta.url).pathname, "--host", "127.0.0.1", "--port", port, "--strictPort"], { cwd: new URL("../..", import.meta.url).pathname, stdio: "ignore" });
 const browser = await chromium.launch();
 try {
-  for (let attempt = 0; attempt < 60; attempt++) {
+  for (let attempt = 0; attempt < 200; attempt++) {
     try { if ((await fetch(base)).ok) break; } catch { /* Vite is starting. */ }
     await new Promise(resolve => setTimeout(resolve, 100));
   }
@@ -37,11 +37,15 @@ try {
     await page.locator(".tiptap:visible h1").getByText("无标题笔记 2", { exact: true }).waitFor();
     const currentPath = page.locator('.file-breadcrumb [aria-current="page"]');
     assert.equal(await currentPath.locator("svg").count(), 1, "current breadcrumb exposes its document switcher");
-    await currentPath.click();
-    await page.getByRole("dialog", { name: "浏览目录" }).getByRole("button", { name: "无标题笔记.md", exact: true }).click();
+    if (width > 760) {
+      await currentPath.click();
+      await page.getByRole("dialog", { name: "浏览目录" }).getByRole("button", { name: "无标题笔记.md", exact: true }).click();
+    } else await openNoteFromCollection(page, collection, "无标题笔记");
     await page.locator(".tiptap:visible h1").getByText("无标题笔记", { exact: true }).waitFor();
-    await currentPath.click();
-    await page.getByRole("dialog", { name: "浏览目录" }).getByRole("button", { name: "无标题笔记 2.md", exact: true }).click();
+    if (width > 760) {
+      await currentPath.click();
+      await page.getByRole("dialog", { name: "浏览目录" }).getByRole("button", { name: "无标题笔记 2.md", exact: true }).click();
+    } else await openNoteFromCollection(page, collection, "无标题笔记 2");
     await page.locator(".tiptap:visible h1").getByText("无标题笔记 2", { exact: true }).waitFor();
     await openMarkdownSource(page);
     await page.locator(".cm-content:visible").fill("# 测试笔记\n\n第一段\n\n第二段\n\n- 第一项\n- 第二项\n  - 嵌套项\n\n- [ ] 待办事项");
@@ -69,6 +73,12 @@ try {
     console.log(`${width}px: direct note creation, unique names, action menu, dirty reload recovery, save, workspace and chat passed`);
   }
 } finally { await browser.close(); server.kill(); }
+
+async function openNoteFromCollection(page: Page, collection: Locator, title: string): Promise<void> {
+  await page.getByRole("button", { name: /^文档 / }).click();
+  await page.getByRole("menuitem", { name: "返回全部笔记", exact: true }).click();
+  await collection.locator(".ui-list-row").filter({ has: page.getByText(title, { exact: true }) }).click();
+}
 
 async function streamingCards(page: Page) {
   const first = pause(), second = pause();

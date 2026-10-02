@@ -1,4 +1,5 @@
 export const biboCopy = {
+  resourceLoading: "正在打开详情",
   runIdle: "Bibo · 空闲", runWorking: "Bibo · 正在工作", runSaving: "Bibo · 正在保存结果",
   runStopping: "Bibo · 正在停止", runChecking: "Bibo · 正在查询状态", runReconnecting: "连接中断 · 正在重新连接", runOpen: "查看正在工作的会话",
   runToolWorking: "正在使用工具处理任务",
@@ -15,6 +16,9 @@ export const biboCopy = {
   overviewCompanion: "日常，多一个我。",
   inbox: "收件箱",
   inboxReadRetry: "重试标记已读",
+  folderReference: "此引用指向目录，请在文件模块查看。",
+  notANote: "此文件不是笔记",
+  inboxBack: "← 全部消息",
   calendar: "日程",
   tasks: "任务",
   taskDetail: {

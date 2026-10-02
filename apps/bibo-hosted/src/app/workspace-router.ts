@@ -1,11 +1,12 @@
 import { createBrowserRouter, matchRoutes } from "react-router";
 import type { BiboView } from "@/features/space";
+import type * as ChatComponents from "@/features/chat";
 
 const views: BiboView[] = ["overview", "chat", "inbox", "calendar", "tasks", "notes", "files"];
 const routes = [
   { index: true, handle: { view: "overview" as BiboView } },
   ...views.filter((view) => view !== "overview").map((view) => ({
-    path: view === "chat" ? "chat/:sessionId?" : ["files", "tasks", "calendar", "inbox"].includes(view) ? `${view}/:resourceId?` : view,
+    path: view === "chat" ? "chat/:sessionId?" : `${view}/:resourceId?`,
     handle: { view },
   })),
   { path: "files/path/:filePath", handle: { view: "files" as BiboView } },
@@ -14,7 +15,7 @@ const routes = [
 let router: ReturnType<typeof createBrowserRouter>;
 
 export function initializeWorkspaceRouter({ BiboApp, ChatPage, SpacePage, NotFoundPage }:
-  Pick<typeof import("@/features/chat"), "BiboApp" | "ChatPage" | "SpacePage" | "NotFoundPage">) {
+  Pick<typeof ChatComponents, "BiboApp" | "ChatPage" | "SpacePage" | "NotFoundPage">) {
   router = createBrowserRouter([{
     path: "/",
     Component: BiboApp,
@@ -41,8 +42,10 @@ export function navigateWorkspace(view: BiboView): void {
   if (target !== `${router.state.location.pathname}${router.state.location.search}`) void router.navigate(target);
 }
 
-export function navigateResource(href: string): void {
+export function navigateResource(href: string): boolean {
+  if (!router) return false;
   if (href !== `${router.state.location.pathname}${router.state.location.search}`) void router.navigate(href);
+  return true;
 }
 
 export function navigateConversation(sessionId: string | null, replace = false): void {

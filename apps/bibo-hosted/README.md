@@ -6,6 +6,10 @@ Independent Cloudflare Worker and Container service at `https://app.bibo.bot/`. 
 
 The React app consumes the hosted API through the private `@nextclaw/bibo-client` package. That package owns same-origin HTTP and incremental SSE decoding. `BiboConversationManager` owns task state and connections, exposing a read-only Zustand store through `useBiboConversation`; the application store owns saved history, drafts and domain interactions. See the package README for the transport contract and tests.
 
+侧栏收起、文件目录收起与宽度、右工作区宽度比例、主题等显示偏好由前端 Zustand 管理，保存在当前浏览器本地，首屏同步恢复，不依赖账号请求或后台设置。主动展开/收起播放动效，刷新和恢复布局不重播。文件 Tab、展开的文件夹、右工作区目标与文件草稿仍按账号隔离；手机文件目录默认展开，不覆盖桌面的收起偏好。
+
+`pnpm -C apps/bibo-hosted exec tsx scripts/workspace/bibo-layout.smoke.ts` 使用已有受保护测试账号验证线上真实首页的首屏恢复、延迟账号响应、主动动效、减少动态效果与手机目录恢复；不创建对话或调用模型。`BIBO_SMOKE_BASE=https://app.bibo.bot pnpm -C apps/bibo-hosted exec tsx scripts/bibo-product.smoke.ts` 使用线上产物和 API fixture 做完整桌面／手机交互回归。
+
 Operation feedback follows the result: visible updates do not also produce success toasts. Write failures belong to their form, row, inbox action, or individual file draft; read failures retain a page/workspace retry. Saved tasks outside the active filter offer an inline details link, and saved events reveal their date. Undo, clipboard confirmation, saving state, and version-conflict recovery remain available. Screen readers receive committed-state announcements. Run `pnpm -C apps/bibo-hosted smoke:feedback` for desktop/mobile failure-and-retry, filtered saves, edits during saves, conflicts, projects, events, and inbox actions.
 
 Both sides of a chat, inbox bodies and file previews use personal-agent-ui's Markdown host backed by NextClaw's shared parser and preview components. This includes explicit nested list markers, task checkboxes, all four math delimiters, scoped footnotes, Mermaid expansion and zoom, syntax highlighting, and image previews. The host retains its copy controls and HTTPS-only image policy. Run `pnpm -C apps/bibo-hosted smoke:markdown` to verify desktop and narrow-screen reading, clipboard feedback, streamed message identity, and refresh. Set `BIBO_SMOKE_BASE=https://app.bibo.bot` when running `scripts/bibo-markdown-chat.smoke.ts` to exercise deployed assets with mocked API fixtures; this does not replace the authenticated `smoke:live` model and persistence checks.
@@ -17,6 +21,11 @@ Notes and conversation documents keep their single-document header while opening
 ## Local frontend development
 
 `pnpm -C apps/bibo-hosted exec tsx scripts/chat/bibo-run-recovery-live.smoke.ts` verifies a real active-task refresh, delayed authoritative reads, a fresh mobile-width page, the same completed run, saved history, content opening and exactly one chat POST against production. It uses the existing private synthetic-account file and cleans up only its own conversation and file.
+### 页面导航与按需读取
+
+模块入口 `/notes`、`/files`、`/tasks`、`/calendar`、`/inbox` 稳定显示集合，不因上次打开的 Tab 自动切入详情。笔记与其他资源使用 `/<module>/<id>`；文件路径引用使用 `/files/path/<encoded-path>`。URL 决定当前对象，支持复制链接、直接进入、刷新及浏览器返回/前进。详情立即读取目标，侧栏列表独立加载；列表较慢不会阻塞正文。未访问的空间页面模块按需加载，笔记集合只请求笔记列表，不预读旧文件正文。Tab 与未保存草稿保留，对话右侧工作区只在实际显示时恢复目标。
+
+`pnpm -C apps/bibo-hosted smoke:routing` 覆盖桌面/手机、持久化旧 Tab、延迟列表与正文、直链、历史往返、刷新和缺失对象。已有预览占用默认端口时，可设置 `BIBO_SMOKE_BASE` 指向本工作区独立的 Vite preview。
 
 From the repository root, run `pnpm dev:bibo:ui` and open `http://127.0.0.1:5188/`. This starts the real React/TypeScript app with Vite hot updates, including source changes in `@nextclaw/personal-agent-ui`. A development-only local API supplies a signed-in preview account, a Markdown conversation, and delayed SSE chunks. Send a message to inspect incomplete Markdown while it arrives, the saving state, and the committed result. Reset clears the in-memory conversation; restarting Vite restores the example. This mode makes no Cloudflare or model requests and needs no credentials.
 
@@ -46,6 +55,8 @@ For integration against a separately running local Worker, start `pnpm -C apps/b
 ## Build and deploy
 
 文件目录按文件夹读取直接子项；展开目录后才读取内容，“加载更多文件”只加载所在目录的下一页。刷新与笔记/文件页切换会重读已加载的目录页，不会把未返回的其他目录误判为删除。目录读取失败保留已有内容并提供所在目录的重试。面包屑目录浏览复用同一目录 manager。`file.list` 使用 `parentPath: ""` 查询根目录，非空 `parentPath` 查询该目录直接子项并透传分页游标；省略 `parentPath` 时继续用于全空间搜索和最近笔记。
+
+手机笔记沿用单行文档顶栏，隐藏重复的路径行；从文档标题菜单可返回全部笔记。正文顶部和两侧均留 24px，源码从文件菜单打开，保存、正文与格式入口保留触控尺寸。`smoke:client` 同时检查 320/390/760px 与桌面的正文间距、保存失败重试、长文滚动和刷新恢复。
 
 Question panels distinguish closing from skipping: close keeps the pending reminder, while skip silently hides it without sending a message or starting an AI run. Skipped questions remain answerable from their original message, and the per-account preference survives reload within the browser tab. `scripts/chat/bibo-question.smoke.ts` verifies skip, refresh, reopening and answer retry on desktop and mobile; the live question smoke's skip mode verifies unchanged history before reopening and answering.
 

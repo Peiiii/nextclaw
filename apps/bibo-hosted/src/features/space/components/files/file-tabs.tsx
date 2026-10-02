@@ -2,13 +2,17 @@ import { ArrowLeft, ChevronDown, FileText, List, PanelLeftOpen, X } from "lucide
 import { useEffect, useRef, useState } from "react";
 import { ActionMenuItem, Button, Dialog, IconButton, Tab, TabList } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
+import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
+import { useWorkspaceUiStore } from "@/features/space/stores/workspace-ui.store";
 import { biboCopy as copy } from "@/shared/configs/bibo-copy.config";
 import { FileKindIcon } from "./file-kind-icon";
 import { FileDirectoryButton } from "./file-breadcrumbs";
 import { FileActions } from "./file-actions";
 
 export function FileTabs({ workspace = false }: { workspace?: boolean }) {
-  const { files, notes, tabs, activeFileId, workspaceFileId, workspaceResolving, error, fileDetails, fileDrafts, fileOpenError, openFile, openWorkspace, closeFile, saveFile, showFileBrowser, treeCollapsed, toggleTree, view } = useBiboSpaceStore();
+  const { files, notes, tabs, activeFileId, workspaceFileId, workspaceResolving, error, fileDetails, fileDrafts, fileOpenError, openFile, openWorkspace, saveFile, view } = useBiboSpaceStore();
+  const { closeFile, showFileBrowser } = workspaceResources;
+  const { treeCollapsed, toggleTree } = useWorkspaceUiStore();
   const selected = workspace ? workspaceFileId : activeFileId;
   const documentTitle = workspace || view === "notes";
   const prefix = workspace ? "bibo-workspace-file-tab" : "bibo-file-tab";
@@ -27,7 +31,8 @@ export function FileTabs({ workspace = false }: { workspace?: boolean }) {
     return () => observer.disconnect();
   }, [selected, tabs.length, files, fileDetails, documentTitle]);
   const expandTree = () => {
-    toggleTree(); showFileBrowser();
+    toggleTree();
+    if (window.matchMedia("(max-width: 760px)").matches) showFileBrowser();
     requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[aria-label="收起目录树"]')?.focus());
   };
   const saveAndClose = async () => {

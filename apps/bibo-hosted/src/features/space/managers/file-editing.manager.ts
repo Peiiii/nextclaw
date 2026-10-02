@@ -1,5 +1,5 @@
 import type { StoreApi } from "zustand";
-import { BiboClientError, type BiboClient, type BiboFileDetail } from "@nextclaw/bibo-client";
+import { BiboClientError, type BiboClient, type BiboFile, type BiboFileDetail } from "@nextclaw/bibo-client";
 import type { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
 import { savedFileState } from "@/features/space/utils/file-state.utils";
 import { biboCopy } from "@/shared/configs/bibo-copy.config";
@@ -13,6 +13,14 @@ export class FileEditingManager {
   constructor(private readonly store: StoreApi<SpaceState>, private readonly client: BiboClient,
     private readonly pendingCreates: Map<string, string>, private readonly patch: (update: Patch) => void) {}
   private active = (): boolean => this.store.getState().fileEditing === this;
+
+  createFile = async (path: string, kind: BiboFile["kind"]): Promise<boolean> => {
+    const state = this.store.getState();
+    if (!this.active()) return false;
+    const detail = await state.act<BiboFileDetail>("file.create", { path, kind, content: "" }, state.view === "notes" ? "notes" : "files");
+    if (detail && this.active() && kind !== "folder") await this.store.getState().openFile(detail.id, detail);
+    return detail !== null;
+  };
 
   save = async (id: string): Promise<void> => {
     const state = this.store.getState(), draft = state.fileDrafts[id];

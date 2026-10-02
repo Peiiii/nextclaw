@@ -2,6 +2,62 @@ import assert from "node:assert/strict";
 import test, { type TestContext, type Mock } from "node:test";
 import type { BiboInboxItem } from "@nextclaw/bibo-client";
 import type { useBiboSpaceStore as BiboSpaceStoreHook } from "./bibo-space.store";
+import { fileDeletionState } from "@/features/space/utils/file-state.utils";
+
+async function checkDisplayInitialization(t: TestContext): Promise<void> {
+  const originalWindow = globalThis.window;
+  const storageDescriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  const saved = new Map<string, string>([
+    ["bibo-ui-layout", JSON.stringify({ sidebarCollapsed: true, treeCollapsed: true, treeWidth: 280, workspaceRatio: 0.62 })],
+    ["space-layout:first", JSON.stringify({ sidebarCollapsed: false, tabs: ["private-file"], activeFileId: "private-file", expandedFolders: { private: true } })],
+  ]);
+  let blocked = false;
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: {
+    getItem: (key: string) => { if (blocked) throw new Error("storage blocked"); return saved.get(key) ?? null; },
+    setItem: (key: string, value: string) => { if (blocked) throw new Error("storage blocked"); saved.set(key, value); },
+  } });
+  globalThis.window = { location: { search: "" }, matchMedia: () => ({ matches: true }) } as unknown as Window & typeof globalThis;
+  const { useBiboSpaceStore } = await import("./bibo-space.store");
+  const { useWorkspaceUiStore } = await import("./workspace-ui.store");
+  t.after(() => {
+    if (storageDescriptor) Object.defineProperty(globalThis, "localStorage", storageDescriptor);
+    else Reflect.deleteProperty(globalThis, "localStorage");
+    useWorkspaceUiStore.setState({ sidebarCollapsed: false, treeCollapsed: false, treeWidth: 230, workspaceRatio: 0.55 });
+    useBiboSpaceStore.setState({ view: "overview" });
+    useBiboSpaceStore.getState().bindAccount(null, true);
+    globalThis.window = originalWindow;
+  });
+  const { readWorkspaceUiLayout } = await import("../utils/workspace-layout.utils");
+  assert.equal(useBiboSpaceStore.getState().accountId, null);
+  assert.equal(useWorkspaceUiStore.getState().sidebarCollapsed, true, "the first store snapshot already contains the saved layout");
+  useBiboSpaceStore.setState({ view: "chat" });
+  useBiboSpaceStore.getState().bindAccount("first");
+  assert.equal(useWorkspaceUiStore.getState().sidebarCollapsed, true, "legacy account layout cannot override device display preferences");
+  assert.deepEqual(useBiboSpaceStore.getState().tabs, ["private-file"]);
+  useBiboSpaceStore.getState().bindAccount("second");
+  assert.deepEqual(useBiboSpaceStore.getState().tabs, []);
+  assert.deepEqual(useBiboSpaceStore.getState().expandedFolders, {});
+  assert.equal(useWorkspaceUiStore.getState().treeCollapsed, true);
+  assert.equal(useWorkspaceUiStore.getState().treeWidth, 280);
+  assert.equal(useWorkspaceUiStore.getState().workspaceRatio, 0.62);
+  useWorkspaceUiStore.setState({ treeCollapsed: false }); // Mobile presentation does not persist the desktop preference.
+  useWorkspaceUiStore.getState().toggleSidebar();
+  assert.equal(readWorkspaceUiLayout().treeCollapsed, true);
+  useWorkspaceUiStore.getState().resizeTree(900);
+  assert.equal(readWorkspaceUiLayout().treeWidth, 360);
+  useWorkspaceUiStore.getState().resizeWorkspace(0.9);
+  assert.equal(readWorkspaceUiLayout().workspaceRatio, 0.7);
+  blocked = true;
+  useWorkspaceUiStore.getState().toggleSidebar();
+  useBiboSpaceStore.getState().bindAccount("third");
+  assert.equal(useWorkspaceUiStore.getState().sidebarCollapsed, true, "account binding preserves this visit's layout when storage is blocked");
+  assert.equal(useWorkspaceUiStore.getState().treeWidth, 360);
+  assert.equal(useWorkspaceUiStore.getState().workspaceRatio, 0.7);
+  assert.deepEqual(readWorkspaceUiLayout(), { sidebarCollapsed: false, treeCollapsed: false, treeWidth: 230, workspaceRatio: 0.55 });
+  blocked = false;
+  saved.set("bibo-ui-layout", "broken JSON");
+  assert.deepEqual(readWorkspaceUiLayout(), { sidebarCollapsed: false, treeCollapsed: false, treeWidth: 230, workspaceRatio: 0.55 });
+}
 
 async function checkFileDirectories(t: TestContext, useBiboSpaceStore: typeof BiboSpaceStoreHook, fetchMock: Mock<typeof fetch>): Promise<void> {
   await t.test("tool subtrees cannot displace notes from the root directory on repeated refresh", async () => {
@@ -72,6 +128,7 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
     requests.push(JSON.parse(init.body as string));
     return new Promise<Response>((resolve) => responses.push(resolve));
   });
+  await t.test("display preferences restore before authentication and survive account changes without sharing file state", checkDisplayInitialization);
   const { useBiboSpaceStore } = await import("./bibo-space.store");
   useBiboSpaceStore.getState().bindAccount("first");
   useBiboSpaceStore.getState().keepEventDraft("new", { title: "private draft", description: "", startAt: "", endAt: "", version: null });
@@ -112,6 +169,7 @@ test("space lifecycle isolates accounts, preserves failed drafts and safely resu
   await t.test("restored neighbor loads and stale opens cannot steal selection", async () => {
   useBiboSpaceStore.setState({ tabs: ["first-file", "restored-file"], activeFileId: "first-file", fileDetails: {} });
   store.closeFile("first-file");
+  void store.openFile(useBiboSpaceStore.getState().activeFileId!);
   assert.equal(requests[5]!.action, "file.get");
   assert.equal(requests[5]!.input.id, "restored-file");
   responses[5]!(Response.json({ result: { id: "restored-file", path: "restored.md", kind: "document", version: 1, content: "restored content", uri: "nextclaw://objects/file/restored-file", createdAt: "now", updatedAt: "now" } }));
@@ -299,17 +357,14 @@ async function checkNoteRestoration(t: TestContext, useBiboSpaceStore: typeof Bi
     const artifact = { ...note, id: "diagram.md", path: "diagram.md", kind: "artifact" };
     useBiboSpaceStore.setState({ view: "notes", activeFileId: artifact.id, tabs: [artifact.id], fileDetails: {}, fileDrafts: {}, fileBrowserVisible: true, workspaceOpen: true, workspaceFileId: artifact.id });
     const load = current.load("notes");
-    responses.at(-2)!(Response.json({ result: { items: [note, artifact], nextCursor: null } }));
     responses.at(-1)!(Response.json({ result: { items: [note], nextCursor: null } }));
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    responses.at(-1)!(Response.json({ result: artifact }));
     await load;
     assert.equal(useBiboSpaceStore.getState().fileBrowserVisible, true);
-    assert.equal(useBiboSpaceStore.getState().fileDrafts[artifact.id]?.dirty, false);
+    assert.equal(useBiboSpaceStore.getState().fileDetails[artifact.id], undefined, "a collection load never reads hidden workspace content");
     await current.openFile(note.id, note as never);
     assert.equal(useBiboSpaceStore.getState().activeFileId, note.id);
     assert.equal(useBiboSpaceStore.getState().fileBrowserVisible, false);
-    await current.openFile(artifact.id, undefined, false);
+    await current.openFile(artifact.id, artifact as never, false);
     assert.equal(useBiboSpaceStore.getState().activeFileId, note.id);
     assert.equal(useBiboSpaceStore.getState().fileBrowserVisible, false);
     current.editFile(note.id, "saved");
@@ -321,6 +376,10 @@ async function checkNoteRestoration(t: TestContext, useBiboSpaceStore: typeof Bi
     current.closeFile(note.id);
     assert.equal(useBiboSpaceStore.getState().fileBrowserVisible, true, "closing the last note returns to its collection");
     assert.deepEqual(useBiboSpaceStore.getState().tabs, [artifact.id], "other module tabs are preserved");
+    const collection = { ...useBiboSpaceStore.getState(), activeFileId: null, fileBrowserVisible: true, tabs: [artifact.id, note.id] };
+    const removed = fileDeletionState(collection, new Set([artifact.id]));
+    assert.equal(removed.activeFileId, null, "deleting from a collection never selects another persisted tab");
+    assert.equal(removed.fileBrowserVisible, true);
   });
 }
 
@@ -350,11 +409,12 @@ async function checkMissingFileWarning(t: TestContext, useBiboSpaceStore: typeof
     useBiboSpaceStore.setState({ tabs: ["missing-file", real.id], activeFileId: real.id, workspaceOpen: true, workspaceFileId: "missing-file", fileDetails: { [real.id]: real as never }, fileDrafts: {}, error: "", fileOpenError: null });
     const load = current.load("files");
     responses.at(-1)!(Response.json({ result: { items: [real], nextCursor: null } }));
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await load;
+    const missing = current.openWorkspace("missing-file");
     assert.equal(requests.at(-1)?.action, "file.get");
     assert.equal(requests.at(-1)?.input.id, "missing-file");
     responses.at(-1)!(Response.json({ error: "对象不存在或已删除。" }, { status: 404 }));
-    await load;
+    await missing;
     const restored = useBiboSpaceStore.getState();
     assert.deepEqual(restored.tabs, [real.id]);
     assert.equal(restored.workspaceFileId, real.id);

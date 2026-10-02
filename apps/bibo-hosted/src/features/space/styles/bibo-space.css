@@ -295,7 +295,7 @@
 .bibo-files-layout.is-tree-collapsed { @apply [grid-template-columns:minmax(0,_1fr)]; }
 .bibo-files-layout.is-tree-collapsed .bibo-file-tree { @apply hidden; }
 .file-tree-toggle { @apply flex items-center flex-none px-2; }
-.bibo-files-layout:has(.bibo-note-list) { grid-template-columns:minmax(0,1fr); }
+.is-notes-page .bibo-files-layout { grid-template-columns:minmax(0,1fr); }
 .is-notes-page .bibo-files-layout.is-browser-visible > .bibo-file-workbench, .is-notes-page .bibo-files-layout.is-content-visible > .bibo-note-list { display:none; }
 .bibo-file-tree { @apply min-w-0 [border-right:1px_solid_var(--bibo-hairline)] overflow-hidden; }
 .bibo-file-tree { @apply relative flex flex-col; }
@@ -355,7 +355,7 @@
 .file-directory-entry > span:not(.bibo-file-kind-icon) { @apply flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left; }
 .file-directory-entry > svg { @apply w-4 h-4 flex-none; }
 @media (min-width: 761px) and (max-width: 900px) {
-  .bibo-files-layout:not(:has(.bibo-note-list)) { @apply [grid-template-columns:220px_minmax(0,_1fr)]; }
+  .bibo-files-page:not(.is-notes-page) .bibo-files-layout { @apply [grid-template-columns:220px_minmax(0,_1fr)]; }
   .bibo-files-layout.is-tree-collapsed { @apply [grid-template-columns:minmax(0,_1fr)]; }
 }
 .file-conflict, .file-preview-notice { @apply flex-none [padding:12px_16px] [border-bottom:1px_solid_var(--ui-line)] [background:var(--ui-canvas)] [color:var(--ui-ink)] text-base; }
@@ -452,6 +452,8 @@
   .bibo-file-tree, .bibo-note-list { @apply flex-none [max-height:210px] [border-right:0] [border-bottom:1px_solid_var(--bibo-hairline)]; }
   .bibo-file-tree .bibo-tree-scroll { @apply [height:auto] pb-2; }
   .bibo-file-workbench { @apply flex-1 min-h-0; }
+  .bibo-file-editor.is-note-editor { --document-top-padding:24px; --document-left-padding:24px; --document-right-padding:24px; --document-bottom-padding:48px; }
+  .is-note-editor .bibo-file-editor-head { display:none; }
   .bibo-file-preview-frame { @apply w-full [padding:20px_16px]; }
   .bibo-form-pair { @apply [grid-template-columns:1fr] gap-0; }
 }

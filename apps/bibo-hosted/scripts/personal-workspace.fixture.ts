@@ -4,6 +4,7 @@ export async function openMarkdownSource(page: Page, scope: Page | Locator = pag
   if (await scope.locator(".cm-content:visible").count()) return;
   await scope.getByRole("button", { name: "文件操作", exact: true }).click();
   await page.getByRole("menuitem", { name: "源码", exact: true }).click();
+  await page.locator(".ui-action-menu").waitFor({ state: "detached" });
 }
 
 export async function openMarkdownBody(page: Page, scope: Page | Locator = page): Promise<void> {
@@ -68,8 +69,14 @@ export async function mockApi(page: Page, longTitles = false, fileNavigation = f
     }
     return { error: `Unmocked action: ${action}`, status: 400 };
   };
+  const readDomainObject = (action: string, input: Record<string, unknown>) => {
+    const items = action === "task.get" ? tasks : action === "event.get" ? events : inbox;
+    const item = items.find(item => item.id === input.id);
+    return item ? { result: item } : { error: "对象不存在或已删除。", status: 404 };
+  };
   const spaceAction = (action: string, input: Record<string, unknown>): { result?: unknown; error?: string; status?: number } => {
     if (action.startsWith("file.")) return fileAction(action, input);
+    if (["task.get", "event.get", "inbox.get"].includes(action)) return readDomainObject(action, input);
     if (action === "overview.get") return { result: { inbox: inbox.filter((item) => !item.resolvedAt), events, tasks: tasks.filter((item) => item.status !== "done"), notes: files.filter((item) => item.kind === "note"), projects: [{ id: "project-a", name: "Bibo", total: tasks.length, done: tasks.filter((item) => item.status === "done").length }], counts: { unread: inbox.filter((item) => !item.readAt && !item.resolvedAt).length, activeTasks: tasks.filter((item) => item.status !== "done").length } } };
     if (action === "project.list") return { result: { items: projects, nextCursor: null } };
     if (action === "task.list") return { result: { items: tasks.filter((task) =>

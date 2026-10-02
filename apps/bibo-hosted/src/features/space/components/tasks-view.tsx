@@ -15,8 +15,11 @@ import {
   RowActionTray,
   SegmentedControl,
   Select,
+  Sheet,
+  LoadingState,
 } from "@nextclaw/personal-agent-ui";
 import { useBiboSpaceStore } from "@/features/space/stores/bibo-space.store";
+import { workspaceResources } from "@/features/space/managers/workspace-resource.manager";
 import { datetime } from "@/features/space/utils/date-format.utils";
 import { ChevronRight, MoreVertical, SlidersHorizontal } from "lucide-react";
 import { TaskForm } from "./task-form";
@@ -154,25 +157,29 @@ export function Tasks() {
           )}
         </div>
       </div>
-      <TaskEditorOverlays creating={creating} selected={selected} saving={saving}
+      <TaskEditorOverlays creating={creating} selected={selected} selectedId={selectedTaskId} saving={saving}
         onCloseCreate={() => { setCreating(false); selectTask(null); }} onCloseDetail={() => selectTask(null)} />
     </div>
   );
 }
 
-function TaskEditorOverlays({ creating, selected, saving, onCloseCreate, onCloseDetail }: {
+function TaskEditorOverlays({ creating, selected, selectedId, saving, onCloseCreate, onCloseDetail }: {
   creating: boolean;
   selected: BiboTask | null;
+  selectedId: string | null;
   saving: boolean;
   onCloseCreate: () => void;
   onCloseDetail: () => void;
 }) {
+  const error = useBiboSpaceStore(state => state.error);
   return <>
     <Dialog open={creating} title="新任务" size="wide" closeLabel="返回任务" busy={saving}
       onOpenChange={(open) => { if (!open) onCloseCreate(); }}>
       {creating && <TaskForm onDone={onCloseCreate} />}
     </Dialog>
     {selected && <TaskDetail key={selected.id} task={selected} onClose={onCloseDetail} />}
+    {!selected && selectedId && <Sheet open title={biboCopy.taskDetail.title} closeLabel={biboCopy.taskDetail.close} side="right" size="wide" initialFocus="content"
+      onOpenChange={open => { if (!open) onCloseDetail(); }}>{error ? <><Notice tone="error">{error}</Notice><Button onClick={workspaceResources.retryRoute}>重试打开</Button></> : <LoadingState label={biboCopy.resourceLoading} />}</Sheet>}
   </>;
 }
 
