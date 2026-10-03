@@ -1,4 +1,5 @@
 import { parseSystemObjectReferenceUri } from "@nextclaw/shared";
+import { preloadMarkdownEditor } from "@nextclaw/personal-agent-ui";
 import { BiboClient, type BiboFile } from "@nextclaw/bibo-client";
 import { filePathHref, navigateResource, readWorkspaceRoute, resourceHref } from "@/app/workspace-router";
 import { useBiboSpaceStore, type BiboView } from "@/features/space/stores/bibo-space.store";
@@ -24,6 +25,11 @@ class WorkspaceResourceManager {
     state.inboxReader.select(state.accountId && route.view === "inbox" ? route.resourceId : null, true);
     if (route.view === "files" || route.view === "notes") useBiboSpaceStore.setState({ activeFileId: route.resourceId, fileRoutePath: route.filePath, fileBrowserVisible: !route.resourceId && !route.filePath, fileOpenError: null });
     if (!state.accountId || route.notFound) return;
+    const documentPath = route.resourceId ?? route.filePath;
+    if (documentPath && (route.view === "notes" || route.view === "files" && /\.(md|markdown|mdown)$/i.test(documentPath))) {
+      // Prefetch is best effort; the mounted editor owns loading feedback and recovery.
+      void preloadMarkdownEditor().catch(() => undefined);
+    }
     if ((viewChanged || !state.readStatus[route.view]) && !(route.view === "calendar" && route.resourceId)) void state.load(route.view);
     if (route.view === "files" || route.view === "notes") {
       if (route.resourceId) void state.openFile(route.resourceId, undefined, true, true);

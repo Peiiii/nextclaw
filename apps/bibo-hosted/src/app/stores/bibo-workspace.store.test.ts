@@ -7,19 +7,27 @@ import type { BiboFileDetail } from "@nextclaw/bibo-client";
 
 test("100 MiB file details read a bounded prefix and use the fetched object's version", async () => {
   const total = 100 * 1024 * 1024;
-  let requested = 0;
+  let consumed = 0;
+  let cancelled = false;
   const metadata = { path: "/data/workspace/large.txt", kind: "file", bytes: total, mediaType: "text/plain", version: "old" };
-  const workspace = { resolve: (path: string) => path, stat: async () => metadata,
+  const workspace = { resolve: (path: string) => path, stat: async () => { throw new Error("detail must not HEAD before GET"); },
     read: async (_path: string, range?: { offset: number; length: number }) => {
-      assert.deepEqual(range, { offset: 0, length: 64 * 1024 });
-      requested += range!.length;
-      const bytes = new Uint8Array(range!.length).fill(65);
-      bytes.set(new TextEncoder().encode("中").subarray(0, 2), bytes.length - 2);
-      return { entry: { ...metadata, version: "current" }, body: new Blob([bytes]).stream() };
+      assert.equal(range, undefined);
+      const body = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          const bytes = new Uint8Array(16 * 1024).fill(65);
+          consumed += bytes.length;
+          if (consumed === 64 * 1024) bytes.set(new TextEncoder().encode("中").subarray(0, 2), bytes.length - 2);
+          controller.enqueue(bytes);
+        },
+        cancel() { cancelled = true; },
+      }, { highWaterMark: 0 });
+      return { entry: { ...metadata, version: "current" }, body };
     },
   } as unknown as BiboWorkspaceStore;
   const detail = await new BiboWorkspaceFileService(workspace).execute("file.get", { path: metadata.path }) as BiboFileDetail;
-  assert.equal(requested, 64 * 1024);
+  assert.equal(consumed, 64 * 1024);
+  assert.equal(cancelled, true, "the rest of the 100 MiB stream is cancelled");
   assert.equal(detail.version, "current");
   assert.equal(detail.content?.length, 64 * 1024 - 2);
   assert.equal(detail.content?.includes("�"), false);
@@ -39,6 +47,38 @@ test("binary details are not editable text and download preserves exact bytes", 
   assert.equal(download.headers.get("content-length"), "4");
   assert.match(download.headers.get("content-disposition")!, /attachment; filename\*=UTF-8''%/);
   await assert.rejects(service.download("/etc/passwd"), /文件路径不正确/);
+});
+
+test("file details get body and version once without HEAD, including empty notes", async () => {
+  const { store, bucket } = fixture();
+  const content = "中".repeat(100_000);
+  const entry = await store.write("body.md", new Blob([content]).stream());
+  const empty = await store.write("empty.md", new Blob([]).stream());
+  let gets = 0;
+  const get = bucket.get;
+  bucket.get = async (key, options) => { gets++; return get(key, options); };
+  bucket.head = async () => { throw new Error("opening a file must not issue HEAD"); };
+  const service = new BiboWorkspaceFileService(store);
+  for (const [file, expected] of [[entry, content], [empty, ""]] as const) {
+    const detail = await service.execute("file.get", { id: file.path }) as BiboFileDetail;
+    assert.equal(detail.content, expected);
+    assert.equal(detail.version, file.version);
+    assert.equal(detail.preview, undefined);
+  }
+  assert.equal(gets, 2);
+});
+
+test("file detail still resolves explicit and implicit folders and missing paths", async () => {
+  const { store, save } = fixture();
+  await store.mkdir("explicit");
+  save("user-1/workspace/implicit/child.md", new TextEncoder().encode("child"));
+  const service = new BiboWorkspaceFileService(store);
+  for (const path of ["explicit", "implicit"]) {
+    const detail = await service.execute("file.get", { id: path }) as BiboFileDetail;
+    assert.equal(detail.kind, "folder");
+    assert.equal(detail.content, null);
+  }
+  await assert.rejects(service.execute("file.get", { id: "missing.md" }), /文件不存在/);
 });
 
 test("real R2 workspace resolves its root and scopes bootstrap reads to the requested directory", async () => {

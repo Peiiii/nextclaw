@@ -244,6 +244,7 @@ async function checkNoteCollection(page: Page, { calls, chunks }: ResourceFixtur
   assert.equal(calls.filter(call => call.action === "file.get").length, 0, "notes collection never restores old document or hidden chat workspace");
   assert.deepEqual(calls.filter(call => call.action === "file.list").map(call => call.input.kind), ["note"], "notes only requests its own list");
   assert.equal(chunks.some(url => /(?:tasks-view|calendar-view|inbox-view|overview-view)-/.test(url)), false, "unvisited page chunks remain unloaded");
+  assert.equal(chunks.some(url => /rich-markdown-editor-/.test(url)), false, "the notes collection does not load the rich editor");
   await (await sidebar(page)).getByRole("link", { name: "想法", exact: true }).click();
   await page.waitForURL(`${base}/notes/file-a`);
   await page.locator(".bibo-file-editor").waitFor();
@@ -257,8 +258,13 @@ async function checkNoteCollection(page: Page, { calls, chunks }: ResourceFixtur
 async function checkNoteDemand(page: Page, fixture: ResourceFixture) {
   const { calls, pendingLists } = fixture;
   fixture.holdLists(true);
+  fixture.holdDetail(true);
   const before = calls.length;
-  await page.goto(`${base}/notes/file-a`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${base}/notes/${nestedNoteId.split("/").map(encodeURIComponent).join("/")}`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("status", { name: "正在打开文件", exact: true }).waitFor();
+  await page.waitForFunction(() => performance.getEntriesByType("resource").some(resource => /rich-markdown-editor-.*\.js/.test(resource.name)));
+  assert.equal(await page.locator(".tiptap").count(), 0, "the editor module downloads before the pending document is available");
+  fixture.releaseDetail(); fixture.holdDetail(false);
   await page.locator(".bibo-file-editor").waitFor();
   assert.equal(pendingLists.length, 1, "detail completes while the notes list is pending");
   assert.equal(calls.slice(before).filter(call => call.action === "file.get").length, 1, "direct entry reads its target once");

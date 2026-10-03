@@ -4,8 +4,12 @@ import "../../styles/markdown-editor.css";
 import type { MarkdownEditorProps } from "../../types/markdown-editor.types";
 export type { MarkdownEditorLabels } from "../../types/markdown-editor.types";
 
-const RichMarkdownEditor = lazy(() => import("./rich-markdown-editor").then((module) => ({ default: module.RichMarkdownEditor })));
+const loadRichMarkdownEditor = () => import("./rich-markdown-editor").then((module) => ({ default: module.RichMarkdownEditor }));
+const RichMarkdownEditor = lazy(loadRichMarkdownEditor);
 const SourceMarkdownEditor = lazy(() => import("./source-markdown-editor").then((module) => ({ default: module.SourceMarkdownEditor })));
+
+/** Start the same lazy import while the host is fetching a requested document. */
+export const preloadMarkdownEditor = (): Promise<void> => loadRichMarkdownEditor().then(() => undefined);
 
 type EditorLoadProps = { labels: MarkdownEditorProps["labels"]["rich"]; onRetry?: () => void };
 

@@ -2,7 +2,7 @@ import type { BiboFile, BiboFileDetail, BiboOverview } from "@nextclaw/bibo-clie
 import { createSystemObjectReferenceUri } from "@nextclaw/shared";
 import { BiboSpaceError, type BiboSpaceService } from "@/features/bibo-domain";
 import type { BiboWorkspaceStore } from "@/app/stores/bibo-workspace.store";
-import type { WorkspaceEntry } from "@nextclaw/kernel";
+import type { WorkspaceEntry, WorkspaceRead } from "@nextclaw/kernel";
 
 const ROOT = "/data/workspace";
 const EDITOR_BYTES = 1024 * 1024;
@@ -38,14 +38,29 @@ export class BiboWorkspaceFileService {
       updatedAt: time, version: entry.version };
   };
 
-  private detail = async (entry: WorkspaceEntry): Promise<BiboFileDetail> => {
+  private detail = async (entry: WorkspaceEntry, snapshot?: WorkspaceRead): Promise<BiboFileDetail> => {
     const file = this.file(entry);
     if (entry.kind === "directory") return { ...file, content: null,
       uri: createSystemObjectReferenceUri("file", file.id) };
-    const read = await this.workspace.read(entry.path, { offset: 0,
-      length: Math.min(entry.bytes, entry.bytes > EDITOR_BYTES ? PREVIEW_BYTES : EDITOR_BYTES) });
+    const read = snapshot ?? await this.workspace.read(entry.path);
     if (!read) throw new BiboSpaceError("文件不存在或已删除。", 404);
-    const bytes = new Uint8Array(await new Response(read.body).arrayBuffer());
+    const limit = Math.min(read.entry.bytes, read.entry.bytes > EDITOR_BYTES ? PREVIEW_BYTES : EDITOR_BYTES);
+    const buffer = new Uint8Array(limit);
+    const reader = read.body.getReader();
+    let length = 0;
+    try {
+      while (length < limit) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        const bytes = chunk.value.subarray(0, limit - length);
+        buffer.set(bytes, length);
+        length += bytes.byteLength;
+      }
+    } finally {
+      try { await reader.cancel(); }
+      finally { reader.releaseLock(); }
+    }
+    const bytes = buffer.subarray(0, length);
     const truncated = read.entry.bytes > bytes.byteLength;
     let content: string | null;
     try { content = bytes.includes(0) ? null : new TextDecoder("utf-8", { fatal: true }).decode(bytes, { stream: truncated }); }
@@ -73,6 +88,12 @@ export class BiboWorkspaceFileService {
     const entry = await this.workspace.stat(path);
     if (!entry) throw new BiboSpaceError("文件不存在或已删除。", 404);
     return entry;
+  };
+
+  private readDetail = async (value: unknown): Promise<BiboFileDetail> => {
+    const path = this.path(value);
+    const read = await this.workspace.read(path);
+    return read ? this.detail(read.entry, read) : this.detail(await this.get(path));
   };
 
   private expected = (entry: WorkspaceEntry, value: unknown): void => {
@@ -135,10 +156,7 @@ export class BiboWorkspaceFileService {
   execute = async (action: string, raw: unknown): Promise<unknown> => {
     const input = record(raw);
     if (action === "file.list") return this.list(input);
-    if (action === "file.get") {
-      const entry = await this.get(input.path ?? input.id);
-      return this.detail(entry);
-    }
+    if (action === "file.get") return this.readDetail(input.path ?? input.id);
     if (action === "file.create") {
       const path = this.path(input.path);
       const kind = input.kind as BiboFile["kind"];

@@ -36,7 +36,10 @@ export class ResourceRoutingFixture {
     }
     if (body.action === "file.list" && body.input.parentPath === "") return route.fulfill({ json: { result: { items: [this.document], nextCursor: null } } });
     if (this.detailHeld && ["task.get", "event.get", "inbox.get"].includes(body.action)) await new Promise<void>(resolve => this.pendingDetails.push(resolve));
-    if (body.action === "file.get" && body.input.id === nestedNoteId) return route.fulfill({ json: { result: { id: nestedNoteId, path: nestedNoteId, kind: "note", content: "# 嵌套正文", version: 1, uri: `nextclaw://objects/file/${encodeURIComponent(nestedNoteId)}`, createdAt: at, updatedAt: at } } });
+    if (body.action === "file.get" && body.input.id === nestedNoteId) {
+      if (this.detailHeld) await new Promise<void>(resolve => { this.slowDetail = resolve; });
+      return route.fulfill({ json: { result: { id: nestedNoteId, path: nestedNoteId, kind: "note", content: "# 嵌套正文", version: 1, uri: `nextclaw://objects/file/${encodeURIComponent(nestedNoteId)}`, createdAt: at, updatedAt: at } } });
+    }
     if (body.action === "file.get" && body.input.id === "slow") {
       if (this.detailHeld) await new Promise<void>(resolve => { this.slowDetail = resolve; });
       return route.fulfill({ json: { result: { id: "slow", path: "slow.md", kind: "note", content: "迟到的正文", version: 1, uri: "nextclaw://objects/file/slow", createdAt: at, updatedAt: at } } });
