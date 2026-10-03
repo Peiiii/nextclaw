@@ -3,6 +3,10 @@ import { biboSearchRoute } from "@/features/search";
 import { biboAssetsRoute } from "@/features/assets";
 import { checkChatAvailability, modelError, modelRoute } from "@/app/bibo-model-gateway.service";
 import { errorDetails, logDiagnostic, readTrace, runFailure, traceHeaders, type RunTrace } from "@/app/diagnostics/bibo-diagnostics.utils";
+import { BiboSpaceError } from "@/features/bibo-domain";
+import { BiboWorkspaceFileService } from "@/app/services/bibo-workspace-file.service";
+import { BiboWorkspaceStore } from "@/app/stores/bibo-workspace.store";
+import { parseBiboSpaceRequest } from "@/app/utils/bibo-space-request.utils";
 
 async function createSession(env: Env, userId: string): Promise<Response> {
   const unavailable = await checkChatAvailability(env, userId);
@@ -33,6 +37,24 @@ function withAuthTiming(response: Response, authMs: number): Response {
   return new Response(response.body, { status: response.status, headers });
 }
 
+async function spaceRoute(request: Request, env: Env, container: DurableObjectStub): Promise<Response> {
+  const parsed = await parseBiboSpaceRequest(request);
+  if (parsed instanceof Response) return parsed;
+  if (parsed.action !== "file.get") return container.fetch("https://bibo.internal/space", {
+    method: "POST", headers: { "content-type": "application/json" }, body: parsed.raw,
+  });
+  // Use the same account prefix and file owner as the DO, without its action queue.
+  const files = new BiboWorkspaceFileService(new BiboWorkspaceStore(env.SNAPSHOTS, container.id.toString()));
+  const started = performance.now();
+  try {
+    const result = await files.execute(parsed.action, parsed.input);
+    return json({ result }, 200, { "server-timing": `space;dur=${(performance.now() - started).toFixed(1)}` });
+  } catch (error) {
+    if (error instanceof BiboSpaceError) return publicError(error.message, error.status);
+    throw error;
+  }
+}
+
 async function userRoute(request: Request, env: Env, url: URL): Promise<Response> {
   const path = url.pathname;
   const token = cookieToken(request);
@@ -54,10 +76,7 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
     return await container.fetch(`https://bibo.internal${path.slice(4)}${url.search}`);
   if (path === "/api/chat/availability" && request.method === "GET") return await checkChatAvailability(env, user.id) ?? json({ ok: true });
   if (path === "/api/space" && request.method === "POST") {
-    const response = await container.fetch("https://bibo.internal/space", {
-      method: "POST", headers: { "content-type": "application/json" }, body: await request.text(),
-    });
-    return withAuthTiming(response, authMs);
+    return withAuthTiming(await spaceRoute(request, env, container), authMs);
   }
   if (path === "/api/reset" && request.method === "POST") return await container.fetch("https://bibo.internal/reset", { method: "POST" });
   if (path === "/api/cancel" && request.method === "POST") return await container.fetch("https://bibo.internal/cancel", {

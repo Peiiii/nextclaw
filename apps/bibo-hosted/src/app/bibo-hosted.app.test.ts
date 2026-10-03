@@ -262,6 +262,44 @@ test("a vanished task becomes a visible interruption at instance initialization"
   assert.match(await (await space.ownerFetch(new Request("https://bibo.internal/runs/vanished/events"))).text(), /服务发生中断/);
 });
 
+test("web file reads reuse the account R2 owner without DO fetch and retain the HTTP contract", async () => {
+  const space = personalSpace();
+  const created = await space.action("file.create", { path: "read.md", kind: "note", content: "账号正文" });
+  const { result: note } = await created.json() as { result: { id: string; version: string } };
+  space.archives.set("other-space/workspace/read.md", new TextEncoder().encode("另一个账号").buffer);
+  let forwarded = 0;
+  const env = { ...space.env, BIBO_USER: { getByName: (name: string) => {
+    assert.equal(name, "user:user-1");
+    return { id: { toString: () => "account-space" }, fetch: async (url: string, init: RequestInit) => {
+      forwarded++;
+      return space.ownerFetch(new Request(url, init));
+    } };
+  } } };
+  const invoke = (action: string, input = {}, origin = "https://app.bibo.bot") => worker.default.fetch(
+    new Request("https://app.bibo.bot/api/space", { method: "POST", headers: { origin },
+      body: JSON.stringify({ action, input }) }), env);
+  const response = await invoke("file.get", { id: note.id });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("server-timing")!, /space;dur=.*auth;dur=/);
+  assert.deepEqual(await response.json(), { result: (await (await space.action("file.get", { id: note.id })).json() as { result: unknown }).result });
+  assert.equal(forwarded, 0);
+  assert.equal((await invoke("file.get", { id: "other-space/workspace/read.md" })).status, 404);
+  assert.equal((await invoke("file.get", { path: "/etc/passwd" })).status, 400);
+  assert.equal((await invoke("file.get", { id: "../other-space/read.md" })).status, 400);
+  assert.equal((await invoke("file.get", { id: "missing.md" })).status, 404);
+  assert.equal((await invoke("file.get", { id: null })).status, 400);
+  assert.equal((await invoke("file.get", { id: "x".repeat(1_100_001) })).status, 413);
+  assert.equal((await invoke("file.get", { id: note.id }, "https://other.example")).status, 403);
+  assert.equal(forwarded, 0, "invalid and foreign-account reads never enter the DO queue");
+  assert.equal((await invoke("file.update", { id: note.id, version: note.version, content: "修改后" })).status, 200);
+  assert.equal((await invoke("task.list")).status, 200);
+  assert.equal(forwarded, 2, "writes and other domain actions retain the DO owner");
+  const updated = await (await invoke("file.get", { id: note.id })).json() as { result: { content: string; version: string } };
+  assert.equal(updated.result.content, "修改后");
+  assert.notEqual(updated.result.version, note.version);
+  assert.equal(space.calls(), 0);
+});
+
 test("workspace downloads use the authenticated account and preserve original bytes without Sandbox", async () => {
   const space = personalSpace();
   const content = "原文件\n\u0000binary";

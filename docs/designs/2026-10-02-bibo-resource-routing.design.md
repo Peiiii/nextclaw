@@ -15,12 +15,22 @@
 | NP01 | true | passed | 1440/390 路由浏览器：阻塞正文仍完成编辑器下载，集合零 rich 请求；直链、刷新、迟到响应通过 |
 | NP02 | true | passed | R2 store 定向测试：小文件/空文件零 HEAD、各一次 GET；100 MiB 流消费 64 KiB 后取消；实际快照版本、UTF-8 边界、目录/缺失/二进制/下载保持 |
 | NP03 | true | passed | 1440/390 路由与八组加载恢复；320/390/1440 自动保存、草稿/断网恢复、刷新、目录菜单；完整 product 冒烟通过，172 项单测与 Bibo 三项/共享 UI tsc 通过 |
-| NP04 | true | not-run | 相同线上账号/正文/负载/网络，冷打开中位数至少降 15%、热切换至少降 25%，公布样本与波动 |
+| NP04 | true | stale | 首轮冷中位数降 22.8%、热降 24.6%，后者未达 25%；只读 Worker 链路已更改，等待同条件重新测量 |
 | NP05 | true | not-run | 精确提交冻结主干部署 UI/Worker，线上复验、清理本次测试笔记，容器身份/镜像/版本保持 |
 
 当前阶段门：单批完成上述标准；不存在 scope reduction 或待决提案。design-document: required（本节）；plan: not-required。设计 Review 从用户可观察等待、草稿恢复及 R2 元数据/正文原子快照独立审查：有界流取消替代旧 HEAD+range GET，不能把整份大文件缓冲进内存；HEAD 仅用于没有 body 时的目录识别。无新数据缓存、状态 owner 或持久化格式；单一加载函数与详情解码路径，design-review: passed。验收账本以本节为唯一 owner，未通过項仍保持打开。
 
 实现 Review：diff-only maintainability 零错误；路由回归入口 481 行临近 500 预算告警，经职责复核保留限定路径的并行加载断言，资源响应仍归既有 fixture。动作分发中的读取分支归同类 `readDetail` 工作流，未新增 service、缓存或状态；定向 ESLint 通过。源码范围只触达 Markdown 加载和文件详情读取，无容器、NPM、桌面或 NextClaw 文档站发布。`open-required: NP04, NP05`，性能与实际部署结果待线上证明，不以本地功能通过代替。
+
+线上首轮对照：冷打开中位数 4268→3293.5 ms（22.8%）；热切换 1052→793.5 ms（24.6%），NP04 未达预定 25% 门槛，保持 failed 并返工。进一步源码核对：`/api/space` 的 file.get 经 Worker→用户 DO→R2，DO 的 `/space` 又将所有动作加入 spaceQueue，列表和正文虽然在浏览器并行、服务端仍串行。R2 文件 owner 已不依赖 DO 内存或领域状态，正文读取无需这次中转与队列。
+
+授权内方案增补（未降低标准）：仅网页 `file.get` 直接在已完成认证和同源检查的 Worker 中调用同一 `BiboWorkspaceFileService`。R2 前缀取已认证账号对应 DO stub 的 id，与 DO 的 `ctx.id` 一致，禁止使用未校验输入或裸 userId 作为存储前缀。原 JSON/大小/输入校验复用 `parseBiboSpaceRequest`，结果、错误状态和 timing 保持；其它动作仍转发原 DO，写入和列表不改合同。Agent 与网页消费同一文件实现，没有新的数据缓存、读取实现或 owner。读取反映单个 R2 快照，目录全局原子性仍非既有能力；重置/写入过程中已存在 mounted OS 并发读写，读取不承诺 DO 内存锁保护。
+
+NP02 追加真实组装的外部 `/api/space` 边界：账号 R2 前缀、零 DO fetch、原有内容/version、400/404/413/403，非 file.get 继续转发。NP03 原前端证据仍有效，追加线上真实保存/刷新/空笔记；NP04、NP05 仍打开。设计 Review 检查同源与认证前置、account-space 身份来源、读写分离、公共 owner 和错误恢复，没有未关闭 finding，design-review: passed；现有 HTTP route 中使用限定空间动作 gateway，不新增文件或底层机制。
+
+只读 gateway 的组装测试通过：创建于真实 DO fixture 的文件从 Worker 同源 API 读取同一 result，账号前缀验证、错误状态和 auth/space timing、版本更新均保持，读取零 DO fetch；写入和 task.list 继续转发。173 项测试、Worker/client/scripts tsc 通过；定向 lint 仅报告未触达的原 R2 fixture 字段解构提示，不扩大改动范围。
+
+补充实现 Review：diff-only maintainability 零错误；HTTP 组装测试放在原 Worker 边界测试 owner，812/900 行预算告警经职责复核保留，未为指标搬运 mock 或增加 fixture 状态。认证/同源检查仍在 gateway 前，存储身份来自系统 stub.id；无未关闭 findings。前端与先前已验证的编辑器/服务读取实现未改变，复用其有效浏览器证据，部署后必须补真实 API 和持久化证据。
 
 ## 用户验收返工：笔记目录中的普通文档
 
