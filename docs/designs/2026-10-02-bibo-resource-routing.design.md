@@ -13,10 +13,10 @@
 | ID | Required | Status | 合同/证据 |
 | --- | --- | --- | --- |
 | NP01 | true | passed | 1440/390 路由浏览器：阻塞正文仍完成编辑器下载，集合零 rich 请求；直链、刷新、迟到响应通过 |
-| NP02 | true | passed | R2 store 定向测试：小文件/空文件零 HEAD、各一次 GET；100 MiB 流消费 64 KiB 后取消；实际快照版本、UTF-8 边界、目录/缺失/二进制/下载保持 |
-| NP03 | true | passed | 1440/390 路由与八组加载恢复；320/390/1440 自动保存、草稿/断网恢复、刷新、目录菜单；完整 product 冒烟通过，172 项单测与 Bibo 三项/共享 UI tsc 通过 |
-| NP04 | true | stale | 首轮冷中位数降 22.8%、热降 24.6%，后者未达 25%；只读 Worker 链路已更改，等待同条件重新测量 |
-| NP05 | true | not-run | 精确提交冻结主干部署 UI/Worker，线上复验、清理本次测试笔记，容器身份/镜像/版本保持 |
+| NP02 | true | passed | R2 小文件/空文件零 HEAD、各一次 GET；100 MiB 流消费 64 KiB 后取消；快照版本、UTF-8、目录/缺失/二进制/下载保持；组装 HTTP 账号前缀、零 DO fetch、400/404/413/403、非读取转发通过 |
+| NP03 | true | passed | 1440/390 路由与八组加载恢复；320/390/1440 自动保存、草稿/断网恢复、刷新、目录；完整 product、173 项单测与匹配 tsc 通过；线上 1440/390 正文/源码保存、公式、刷新及空笔记读回零页面错误 |
+| NP04 | true | passed | 校准可见编辑器事件计时，同条件各四样本：冷中位数 3754.55→2855.60 ms（23.94%）；热 730.60→326.70 ms（55.28%），原 15%/25% 门槛均保持并通过 |
+| NP05 | true | passed | 126092ccf、52e1276fb 合入远程 master，冻结 52e1276fb 部署 UI/Worker；当前 7a02ff1b-e094-4b02-8940-51b5759e4ddd，HTML 16 个引用产物匹配，测试两笔记已清理，Sandbox id/version/image 均保持 |
 
 当前阶段门：单批完成上述标准；不存在 scope reduction 或待决提案。design-document: required（本节）；plan: not-required。设计 Review 从用户可观察等待、草稿恢复及 R2 元数据/正文原子快照独立审查：有界流取消替代旧 HEAD+range GET，不能把整份大文件缓冲进内存；HEAD 仅用于没有 body 时的目录识别。无新数据缓存、状态 owner 或持久化格式；单一加载函数与详情解码路径，design-review: passed。验收账本以本节为唯一 owner，未通过項仍保持打开。
 
@@ -31,6 +31,23 @@ NP02 追加真实组装的外部 `/api/space` 边界：账号 R2 前缀、零 DO
 只读 gateway 的组装测试通过：创建于真实 DO fixture 的文件从 Worker 同源 API 读取同一 result，账号前缀验证、错误状态和 auth/space timing、版本更新均保持，读取零 DO fetch；写入和 task.list 继续转发。173 项测试、Worker/client/scripts tsc 通过；定向 lint 仅报告未触达的原 R2 fixture 字段解构提示，不扩大改动范围。
 
 补充实现 Review：diff-only maintainability 零错误；HTTP 组装测试放在原 Worker 边界测试 owner，812/900 行预算告警经职责复核保留，未为指标搬运 mock 或增加 fixture 状态。认证/同源检查仍在 gateway 前，存储身份来自系统 stub.id；无未关闭 findings。前端与先前已验证的编辑器/服务读取实现未改变，复用其有效浏览器证据，部署后必须补真实 API 和持久化证据。
+
+### 计时校准、交付与复盘
+
+发现 Playwright `locator.waitFor()` 的轮询可将页面已于约 316 ms 就绪的切换记录为约 800 ms；该 wall 指标不是约定的“用户可编辑显示”时间。保持原性能门槛，修正测量位置为页面 `MutationObserver`：冷路径观察首个可见 contenteditable；热路径从历史切换开始，观察目标文件 aria-label 对应可见编辑器，排除旧编辑器。两个版本使用完全相同的计时脚本、账号、正文、网络和四个场景，不从旧 wall 反推新事件时间。
+
+基线 Worker 5b57405b-f936-4e67-ac6b-4b28fbe7fd3a 的版本 metadata.has_preview=false；含 DO 的服务不提供普通 Version URL（[Cloudflare 合同](https://developers.cloudflare.com/workers/versions-and-deployments/version-urls/)）。因此进行短暂、只读、无 schema/容器变化的已发布基线回切，测量命令使用 EXIT trap 立即恢复冻结优化版 7a02ff1b-e094-4b02-8940-51b5759e4ddd；恢复后 HTML 引用与构建产物再次匹配，再做优化版精确测量和持久化验收。
+
+| 场景 | 基线全部样本 ms | 优化版全部样本 ms | 中位数降低 |
+| --- | --- | --- | --- |
+| 冷打开，1440/390 各两次 | 4996.1, 3778.6, 3433.1, 3730.5 | 2879.5, 3013.2, 2743.4, 2831.7 | 23.94% |
+| 热切换，1440/390 各两次 | 721.6, 732.4, 777.3, 728.8 | 382.3, 327.8, 324.0, 325.6 | 55.28% |
+
+对照与时序原始证据：`/tmp/bibo-note-performance-precise-{before,after}{,-2}.json`，汇总 `/tmp/bibo-note-performance-comparison.json`。冷基线 3433–4996 ms，优化 2743–3013 ms；热基线 721–777 ms，优化 324–382 ms。样本少且含 CDN/网络波动，结果只覆盖本网络的短笔记，不宣称用户所有内容和网络达到固定毫秒数。线上 1440/390 编辑与保存、刷新、公式及空笔记复验见 `/tmp/bibo-note-performance-live.log` 和两张同名前缀截图；一次临时测试脚本清理闭包受到 TSX 的 `__name` 转换影响，改用无闭包 helper 的清理脚本后，仅本次两条 fixture 按最新版本删除，证据 `/tmp/bibo-note-performance-cleanup.log`。
+
+容器前后 id 均为 a0357e31-1925-4df6-af70-6e9d9028acf0、version=1、image=docker.io/cloudflare/sandbox:0.12.10。主工作区原有文档 WIP 保持；主干回流为 LOCAL_WORKTREE_RETRYING，既有 worker PID 6249 自动接管，没有重置/覆盖活跃工作区。两次正常 deploy:worker owner 无发布恢复介入；基线回切属于校准实验，恢复已核验。
+
+retrospective_decision: 已更新原设计与共享 UI README，并在原路由及 Worker 组装测试 owner 固定按需并行和账号读取边界；不新增全局规则、治理脚本或正文缓存。open-required: 无；全部 Required 当前证据匹配已发布代码，parent_status: ready-for-completion-check。
 
 ## 用户验收返工：笔记目录中的普通文档
 
