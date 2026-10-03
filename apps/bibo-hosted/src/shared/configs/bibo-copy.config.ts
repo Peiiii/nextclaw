@@ -17,7 +17,6 @@ export const biboCopy = {
   inbox: "收件箱",
   inboxReadRetry: "重试标记已读",
   folderReference: "此引用指向目录，请在文件模块查看。",
-  notANote: "此文件不是笔记",
   inboxBack: "← 全部消息",
   calendar: "日程",
   tasks: "任务",

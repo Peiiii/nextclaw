@@ -2,8 +2,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { chromium, type Locator, type Page, type Route } from "playwright";
-import { mockApi } from "./personal-workspace.fixture";
-const nestedNoteId = "笔记/功能演示 - 起步.md";
+import { ResourceRoutingFixture, nestedNoteId, documentId } from "./workspace/bibo-resource-routing.fixture";
 
 const base = process.env.BIBO_SMOKE_BASE ?? "http://127.0.0.1:5198";
 const server = process.env.BIBO_SMOKE_BASE ? null : spawn(process.execPath, [new URL("../node_modules/vite/bin/vite.js", import.meta.url).pathname, "preview", "--host", "127.0.0.1", "--port", "5198", "--strictPort"], { cwd: new URL("..", import.meta.url).pathname, stdio: ["ignore", "pipe", "pipe"] });
@@ -187,40 +186,57 @@ async function verifyViewport(page: Page, width: number) {
   console.log(`Routing ${width}: history, drafts, blank chat, direct links, refresh, race and missing session passed`);
 }
 
-class ResourceRoutingFixture {
-  readonly calls: Array<{ action: string; input: Record<string, unknown> }> = [];
-  readonly chunks: string[] = [];
-  readonly pendingLists: Array<() => void> = [];
-  readonly pendingDetails: Array<() => void> = [];
-  private listsHeld = false;
-  private detailHeld = false;
-  private slowDetail = () => {};
-  holdLists = (value: boolean): void => { this.listsHeld = value; };
-  holdDetail = (value: boolean): void => { this.detailHeld = value; };
-  releaseLists = (): void => { this.pendingLists.splice(0).forEach(release => release()); };
-  releaseDomainDetails = (): void => { this.pendingDetails.splice(0).forEach(release => release()); };
-  releaseDetail = (): void => { this.slowDetail(); };
-  private respond = async (route: Route): Promise<void> => {
-    const body = route.request().postDataJSON();
-    this.calls.push(body);
-    if (body.action.endsWith(".list") && this.listsHeld) await new Promise<void>(resolve => this.pendingLists.push(resolve));
-    if (this.detailHeld && ["task.get", "event.get", "inbox.get"].includes(body.action)) await new Promise<void>(resolve => this.pendingDetails.push(resolve));
-    if (body.action === "file.get" && body.input.id === nestedNoteId) return route.fulfill({ json: { result: { id: nestedNoteId, path: nestedNoteId, kind: "note", content: "# 嵌套正文", version: 1, uri: `nextclaw://objects/file/${encodeURIComponent(nestedNoteId)}`, createdAt: at, updatedAt: at } } });
-    if (body.action === "file.get" && body.input.id === "slow") {
-      if (this.detailHeld) await new Promise<void>(resolve => { this.slowDetail = resolve; });
-      return route.fulfill({ json: { result: { id: "slow", path: "slow.md", kind: "note", content: "迟到的正文", version: 1, uri: "nextclaw://objects/file/slow", createdAt: at, updatedAt: at } } });
-    }
-    return route.fallback();
-  };
-  bind = async (page: Page): Promise<void> => {
-    page.on("request", request => { if (request.url().includes("/assets/")) this.chunks.push(request.url()); });
-    await mockApi(page);
-    await page.route("**/api/space", this.respond);
-    await page.addInitScript(() => localStorage.setItem("space-layout:smoke", JSON.stringify({ tabs: ["file-a", "slow"], activeFileId: "file-a", workspaceOpen: true, workspaceFileId: "slow" })));
-  };
-}
 
 type ResourceFixture = ResourceRoutingFixture;
+
+async function checkDocumentFromNotes(page: Page, fixture: ResourceFixture) {
+  const filesUrl = `${base}/files/${encodeURIComponent(documentId)}`;
+  const notesUrl = `${base}/notes/${encodeURIComponent(documentId)}`;
+  await page.goto(`${base}/notes/file-a`, { waitUntil: "networkidle" });
+  if (page.viewportSize()!.width > 760) {
+    await page.locator(".file-breadcrumb").getByRole("button", { name: "个人空间", exact: true }).click();
+    await page.getByRole("button", { name: documentId, exact: true }).click();
+  } else await page.goto(notesUrl, { waitUntil: "networkidle" });
+  await page.waitForURL(filesUrl);
+  await page.locator(".tiptap:visible").getByRole("heading", { name: "Mermaid 图表示例", exact: true }).waitFor();
+  assert.equal(await page.getByText("此文件不是笔记", { exact: true }).count(), 0);
+  await page.goBack();
+  await page.waitForURL(`${base}/notes/file-a`);
+  if (page.viewportSize()!.width <= 760) return;
+  // A cached ordinary document must also replace an incorrect notes URL, without rereading it.
+  const before = fixture.calls.filter(call => call.action === "file.get" && call.input.id === documentId).length;
+  await page.evaluate((url) => { history.pushState(null, "", url); dispatchEvent(new PopStateEvent("popstate")); }, notesUrl);
+  await page.waitForURL(filesUrl);
+  assert.equal(fixture.calls.filter(call => call.action === "file.get" && call.input.id === documentId).length, before);
+  await page.goBack();
+  await page.waitForURL(`${base}/notes/file-a`);
+}
+
+async function checkDocumentRecovery(page: Page, fixture: ResourceFixture) {
+  const filesUrl = `${base}/files/${encodeURIComponent(documentId)}`;
+  const notesUrl = `${base}/notes/${encodeURIComponent(documentId)}`;
+  await page.goto(notesUrl, { waitUntil: "networkidle" });
+  await page.waitForURL(filesUrl);
+  const editor = page.locator(".tiptap:visible");
+  await editor.waitFor();
+  const saved = page.waitForResponse(response => response.request().url().endsWith("/api/space") && response.request().method() === "POST" && response.request().postDataJSON().action === "file.update" && response.request().postDataJSON().input.id === documentId && response.ok());
+  await editor.fill("普通文档自动保存回归");
+  await saved;
+  await page.waitForFunction(() => document.querySelector(".bibo-file-editor-status")?.textContent === "已保存");
+  assert.equal(fixture.document.content.trim(), "# 普通文档自动保存回归");
+  await page.reload({ waitUntil: "networkidle" });
+  await page.locator(".tiptap:visible").getByText("普通文档自动保存回归", { exact: true }).waitFor();
+  await page.screenshot({ path: `/tmp/bibo-document-routing-${page.viewportSize()!.width}.png` });
+  fixture.holdDetail(true);
+  await page.goto(notesUrl, { waitUntil: "domcontentloaded" });
+  await page.getByRole("status", { name: "正在打开文件", exact: true }).waitFor();
+  await (await sidebar(page)).getByRole("link", { name: "笔记", exact: true }).click();
+  await page.locator(".bibo-note-list").waitFor();
+  fixture.releaseDetail(); fixture.holdDetail(false);
+  await page.waitForLoadState("networkidle");
+  assert.equal(page.url(), `${base}/notes`, "late ordinary-document reads cannot redirect away from the collection");
+  assert.equal(await page.locator(".bibo-file-editor").count(), 0);
+}
 
 async function checkNoteCollection(page: Page, { calls, chunks }: ResourceFixture) {
   await page.goto(`${base}/notes`, { waitUntil: "networkidle" });
@@ -322,6 +338,8 @@ async function verifyResourceRouting(page: Page, width: number) {
   const fixture = new ResourceRoutingFixture();
   await fixture.bind(page);
   await checkNoteCollection(page, fixture);
+  await checkDocumentFromNotes(page, fixture);
+  await checkDocumentRecovery(page, fixture);
   await checkNoteDemand(page, fixture);
   await checkFileEntries(page, fixture);
   await checkDomainRoutes(page, fixture, width);

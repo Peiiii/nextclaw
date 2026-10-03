@@ -63,9 +63,9 @@ export function navigateWorkspace(view: BiboView): void {
   if (target !== `${router.state.location.pathname}${router.state.location.search}`) void router.navigate(target);
 }
 
-export function navigateResource(href: string): boolean {
+export function navigateResource(href: string, replace = false): boolean {
   if (!router) return false;
-  if (href !== `${router.state.location.pathname}${router.state.location.search}`) void router.navigate(href);
+  if (href !== `${router.state.location.pathname}${router.state.location.search}`) void router.navigate(href, { replace });
   return true;
 }
 

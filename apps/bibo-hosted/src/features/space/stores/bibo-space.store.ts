@@ -293,28 +293,30 @@ class BiboSpaceOwner {
 
   openFile = async (id: string, verified?: BiboFileDetail, select = true, fromRoute = false): Promise<void> => {
     if (select && !fromRoute && ["notes", "files"].includes(this.get().view)) {
+      const state = this.get();
+      const known = verified ?? state.fileDetails[id] ?? state.files.find(file => file.id === id);
       if (verified) this.set(state => openedFileState(state, verified, [], false));
-      if (navigateResource(resourceHref(this.get().view, id))) return;
+      const view = state.view === "notes" && known && known.kind !== "note" ? "files" : state.view;
+      if (navigateResource(resourceHref(view, id))) return;
     }
     const request = select ? ++this.fileOpenRequest : this.fileOpenRequest;
     const view = this.get().view;
     const pathname = window.location.pathname;
     this.closedFiles.delete(id); this.set({ fileOpenError: null });
     const cached = verified ? undefined : this.get().fileDetails[id];
-    if (cached) {
-      if (!select) return;
-      this.set((state) => ({ activeFileId: id, tabs: state.tabs.includes(id) ? state.tabs : [...state.tabs, id] }));
-      this.revealFile(id);
-      return;
-    }
+    if (cached && !select) return;
     try {
-      const detail = verified ?? await client.readFile({ id });
+      const detail = verified ?? cached ?? await client.readFile({ id });
       if (detail.kind === "folder") throw new Error(biboCopy.folderReference);
       if (this.closedFiles.has(id)) return;
-      const active = select && request === this.fileOpenRequest && view === this.get().view && pathname === window.location.pathname;
-      this.set((state) => openedFileState(state, detail, [], active));
-      if (active) this.revealFile(id);
-      if (view !== "notes") void this.fileDirectory.loadAncestors(detail);
+      const active = select && this.get().instanceId === this.instanceId && request === this.fileOpenRequest && view === this.get().view && pathname === window.location.pathname;
+      if (cached) this.set((state) => ({ activeFileId: id, tabs: state.tabs.includes(id) ? state.tabs : [...state.tabs, id] }));
+      else this.set((state) => openedFileState(state, detail, [], active));
+      if (active) {
+        if (view === "notes" && detail.kind !== "note") navigateResource(resourceHref("files", detail.id), true);
+        this.revealFile(id);
+      }
+      if (!cached && (view !== "notes" || detail.kind !== "note")) void this.fileDirectory.loadAncestors(detail);
     } catch (error) {
       if (!fromRoute && error instanceof BiboClientError && error.status === 404 && this.get().tabs.includes(id) && !this.get().fileDrafts[id]) { this.closeFile(id); return; }
       if (request === this.fileOpenRequest && view === this.get().view && pathname === window.location.pathname) this.set({ fileOpenError: { id, message: message(error) } });
