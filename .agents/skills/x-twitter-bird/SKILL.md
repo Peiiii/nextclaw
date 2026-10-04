@@ -1,6 +1,6 @@
 ---
 name: x-twitter-bird
-description: 当用户需要搜索或读取 X/Twitter，或通过真实浏览器及 bird CLI 发布、回复和核验帖子时使用；写作内容策略不由本 skill 负责。
+description: 当用户需要搜索或读取 X/Twitter，或通过真实浏览器及 bird CLI 发帖、回复、点赞、关注和核验操作时使用；内容增长策略由 social-content 负责。
 ---
 
 # X / Twitter 读取与发布
@@ -15,7 +15,7 @@ description: 当用户需要搜索或读取 X/Twitter，或通过真实浏览器
 
 ## 操作路由
 
-读取与搜索使用下方命令。发布、浏览器操作或 CLI 故障时，读取[发布路径与故障处理](references/publishing-paths.md)。已有发布授权不重复询问。
+读取与搜索使用下方命令。首次调用 CLI 前核实实际解析到的 `bird` 是 `@steipete/bird`；出现 `Init Modele` 等无关帮助时按[写操作路径与故障处理](references/publishing-paths.md)修正命令入口。发帖、回复、点赞、关注、浏览器操作或 CLI 故障时也读取该 reference。已有操作授权不重复询问；用户以涨粉为目标时，内容与互动选题按 `social-content` 负责，不能把关注数量直接当成果。
 
 ## Setup
 
