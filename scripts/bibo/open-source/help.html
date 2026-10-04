@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用你的 Bibo</title><link rel="icon" href="/favicon.svg"><style>body{margin:0;background:#f7f4ed;color:#273b30;font:14px/1.8 system-ui}main{max-width:720px;margin:auto;padding:48px 24px}a{color:#3f7355}h2{margin-top:32px}</style></head>
+<body><main><a href="/">← 返回 Bibo</a><h1>从一件事开始</h1>
+<p>这是你部署的 Bibo 私有空间。使用部署时设置的邮箱和密码登录，不需要注册官方 Bibo 账号。</p>
+<h2>一起完成实际工作</h2><p>与 Bibo 讨论，创建任务和日程，保存笔记或文件。你可以在网页中直接修改，也可以让 Bibo 接着处理。流式回答保存完成后才成为正式历史。</p>
+<h2>真实 Linux 沙箱</h2><p>需要执行代码或命令时，Bibo 按需获取隔离的 Linux 环境。试试“用沙箱里的 Python 计算前 20 个斐波那契数，挂载工作空间，保存为 fibonacci.txt 并打开”。普通聊天和文件读写不启动沙箱。</p>
+<p>Linux 系统、安装的软件与 /workspace 是临时的；只有显式挂载的 R2 文件持久保存。默认空闲 5 分钟后沙箱可回收；指定后台进程驻留会继续消耗资源。请自行备份重要文件。</p>
+<h2>任务与数据</h2><p>刷新、切后台或离开页面不会主动取消任务。回来继续查看同一次任务；只有点击停止才取消，单次运行上限 10 分钟。服务中断不会自动重放已执行的操作。</p>
+<p>会话与结构化数据保存在你的 Cloudflare Durable Object，文件保存在你的 R2。模型调用使用你设置的 DeepSeek 密钥，可选搜索使用你设置的 Exa 密钥。Cloudflare 和模型、搜索用量由对应服务计费。</p>
+<h2>账号与维护</h2><p>退出登录清除当前浏览器 cookie，不删除数据；“清空个人空间”会删除空间内容。更换 Worker 的 BIBO_OWNER_PASSWORD Secret 会使旧登录失效。升级、费用和限制见 <a href="https://github.com/Peiiii/bibo">Bibo 开源仓库</a>。</p>
+</main></body></html>

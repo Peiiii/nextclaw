@@ -1,4 +1,7 @@
+export const biboSelfHosted = import.meta.env?.VITE_BIBO_SELF_HOSTED === "true";
+
 export const biboCopy = {
+  selfHostedAuthNote: "使用部署时设置的邮箱和密码，登录你的私有空间。",
   resourceLoading: "正在打开详情",
   runIdle: "Bibo · 空闲", runWorking: "Bibo · 正在工作", runSaving: "Bibo · 正在保存结果",
   runStopping: "Bibo · 正在停止", runChecking: "Bibo · 正在查询状态", runReconnecting: "连接中断 · 正在重新连接", runOpen: "查看正在工作的会话",

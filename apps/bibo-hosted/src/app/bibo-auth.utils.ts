@@ -1,3 +1,5 @@
+import { selfHostedLogin, selfHostedUser, type SelfHostedAuth } from "./utils/bibo-self-hosted-auth.utils";
+
 const PLATFORM = "https://ai-gateway-api.nextclaw.io";
 
 type PlatformResponse<T> = { ok: boolean; data?: T; error?: { message?: string } };
@@ -30,13 +32,15 @@ async function platformRequest<T>(path: string, token: string | null, body?: unk
   return { status: response.status, value };
 }
 
-export async function currentUser(token: string | null): Promise<BiboUser | null> {
+export async function currentUser(token: string | null, env: SelfHostedAuth = {}): Promise<BiboUser | null> {
+  if (env.BIBO_AUTH_MODE === "self-hosted") return selfHostedUser(token, env);
   if (!token) return null;
   const { status, value } = await platformRequest<{ user: BiboUser }>("/platform/auth/me", token);
   return status === 200 && value.ok ? value.data?.user ?? null : null;
 }
 
-export async function isPlatformAdmin(token: string | null): Promise<boolean> {
+export async function isPlatformAdmin(token: string | null, env: SelfHostedAuth = {}): Promise<boolean> {
+  if (env.BIBO_AUTH_MODE === "self-hosted") return false;
   if (!token) return false;
   const { status, value } = await platformRequest<unknown>("/platform/admin/overview", token);
   return status === 200 && value.ok;
@@ -55,7 +59,8 @@ function verifiedTokenExpiry(token: string): number {
   } catch { return 0; }
 }
 
-export async function sessionUser(token: string | null): Promise<Pick<BiboUser, "id"> | null> {
+export async function sessionUser(token: string | null, env: SelfHostedAuth = {}): Promise<Pick<BiboUser, "id"> | null> {
+  if (env.BIBO_AUTH_MODE === "self-hosted") return selfHostedUser(token, env);
   if (!token) return null;
   const entry = await identityCache(token).catch(() => null);
   const cached = await entry?.cache.match(entry.request).catch(() => undefined);
@@ -74,7 +79,34 @@ export async function sessionUser(token: string | null): Promise<Pick<BiboUser, 
   return user;
 }
 
-export async function authRoute(request: Request, path: string): Promise<Response> {
+type BiboAuthEnvironment = SelfHostedAuth & {
+  BIBO_MODEL_BUDGET?: { getByName(name: string): { fetch(input: string, init?: RequestInit): Promise<Response> } };
+};
+
+async function selfHostedAuthRoute(request: Request, path: string, env: BiboAuthEnvironment): Promise<Response> {
+    if (path === "/api/auth/me" && request.method === "GET") {
+      const user = await selfHostedUser(cookieToken(request), env);
+      return user ? json({ user }) : publicError("请使用部署时设置的邮箱和密码登录。", 401);
+    }
+    if (path === "/api/auth/logout" && request.method === "POST") return json({ ok: true }, 200, {
+      "set-cookie": "bibo_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0",
+    });
+    if (path !== "/api/auth/login" || request.method !== "POST") return publicError("自部署空间不开放注册，请登录。", 404);
+    if (!env.BIBO_MODEL_BUDGET) return publicError("登录服务尚未配置。", 503);
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(request.headers.get("cf-connecting-ip") ?? "local"));
+    const admission = await env.BIBO_MODEL_BUDGET.getByName("global").fetch("https://bibo.internal/login", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId: Buffer.from(digest).toString("hex") }),
+    });
+    if (!admission.ok) return publicError("登录尝试过于频繁，请稍后重试。", 429);
+    const result = await selfHostedLogin(await request.json().catch(() => null), env);
+    return result ? json({ user: result.user }, 200, {
+      "set-cookie": `bibo_session=${result.token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`,
+    }) : publicError("邮箱或密码不正确，或部署账号尚未配置。", 401);
+}
+
+export async function authRoute(request: Request, path: string, env: BiboAuthEnvironment = {}): Promise<Response> {
+  if (env.BIBO_AUTH_MODE === "self-hosted") return selfHostedAuthRoute(request, path, env);
   const routeMap: Record<string, string> = {
     "/api/auth/send-code": "/platform/auth/register/send-code",
     "/api/auth/register": "/platform/auth/register/complete",

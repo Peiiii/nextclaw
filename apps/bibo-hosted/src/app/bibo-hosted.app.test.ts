@@ -733,6 +733,24 @@ test("model reservation permits the experiment allowance and search keeps a sepa
   assert.equal((values.get("search-budget") as { dailyTotal: number }).dailyTotal, 1);
 });
 
+test("self-hosted login limit persists across instances, isolates clients and expires each minute", async () => {
+  const values = new Map<string, unknown>();
+  const storage = {
+    get: async (key: string) => structuredClone(values.get(key)),
+    put: async (key: string, value: unknown) => { values.set(key, structuredClone(value)); },
+    transaction: async (action: (value: object) => Promise<unknown>) => action(storage),
+  };
+  const call = (userId: string) => new worker.BiboModelBudget({ storage }, {}).fetch(new Request("https://bibo.internal/login", {
+    method: "POST", body: JSON.stringify({ userId }),
+  }));
+  for (let index = 0; index < 10; index++) assert.equal((await call("client-one")).status, 200);
+  assert.equal((await call("client-one")).status, 429);
+  assert.equal((await call("client-two")).status, 200);
+  assert.equal(values.has("budget"), false, "Login attempts do not consume model allowance");
+  values.set("loginBudget", { minute: Math.floor(Date.now() / 60_000) - 1, counts: { "client-one": 10 } });
+  assert.equal((await call("client-one")).status, 200);
+});
+
 test("operator can inspect and reset one test user's model allowance without erasing global usage", async () => {
   const day = new Date().toISOString().slice(0, 10);
   const values = new Map<string, unknown>([["budget", { day, total: 300, users: { "user-1": 250, "user-2": 50 } }]]);

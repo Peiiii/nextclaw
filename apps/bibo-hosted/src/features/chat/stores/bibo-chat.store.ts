@@ -1,7 +1,7 @@
 import { create, type StoreApi } from "zustand";
 import { BiboClient, type BiboChatEvent, type BiboMessage, type BiboQuestion, type BiboSession, type BiboUser } from "@nextclaw/bibo-client";
 import { BiboConversationManager, type BiboSubmission } from "@/features/chat/managers/bibo-conversation.manager";
-import { biboCopy } from "@/shared/configs/bibo-copy.config";
+import { biboCopy, biboSelfHosted } from "@/shared/configs/bibo-copy.config";
 import { useBiboSpaceStore, workspaceResources } from "@/features/space";
 import { filePathHref, navigateConversation, readWorkspaceRoute, replaceConversationContext } from "@/app/workspace-router";
 import { identifyMessages, type BiboDisplayMessage } from "@/features/chat/utils/chat-message.utils";
@@ -30,7 +30,7 @@ class BiboChatOwner {
   failedQuestionInput: { id: string; answer: string } | null = null;
   status = "";
   authFeedback: { kind: "success" | "error"; message: string } | null = null;
-  authMode: "register" | "login" = "register";
+  authMode: "register" | "login" = biboSelfHosted ? "login" : "register";
   following = true;
   menuOpen = false;
   readonly conversation = new BiboConversationManager(biboClient, sessionStorage, {

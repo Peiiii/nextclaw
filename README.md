@@ -237,6 +237,8 @@ Repository planning: [Roadmap](docs/ROADMAP.md) · [TODO](docs/TODO.md)
 
 ## Related Project
 
+[Bibo](https://github.com/Peiiii/bibo) is an open-source personal AI workspace with on-demand Linux sandbox execution, persistent R2 files, notes, tasks and calendar. Deploy it to your own Cloudflare account with your own model key. It uses the public NextClaw Harness and keeps ordinary chat and workspace operations on the edge.
+
 [Bibo Planet](https://github.com/Peiiii/bibo-planet) is an independent experiment in shared, ownerless AI spirits. It uses the public NextClaw Harness package for agent execution, but has its own world state, interface, and product direction; it is not a NextClaw personal-assistant mode.
 
 ## Community

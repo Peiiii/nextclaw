@@ -13,4 +13,5 @@ declare namespace Cloudflare {
 		BIBO_SANDBOX: DurableObjectNamespace<import("./src/app/bibo-hosted.app").Sandbox>;
 	}
 }
-interface Env extends Cloudflare.Env { BIBO_DEEPSEEK_API_KEY: string; BIBO_EXA_API_KEY?: string; BIBO_EDGE_ADMIN_TOKEN?: string }
+interface Env extends Cloudflare.Env { BIBO_DEEPSEEK_API_KEY: string; BIBO_EXA_API_KEY?: string; BIBO_EDGE_ADMIN_TOKEN?: string;
+  BIBO_AUTH_MODE?: "self-hosted"; BIBO_OWNER_EMAIL?: string; BIBO_OWNER_PASSWORD?: string }

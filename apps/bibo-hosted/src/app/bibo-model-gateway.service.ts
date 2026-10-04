@@ -21,9 +21,21 @@ export class BiboModelBudget extends DurableObject<Env> {
     if (admin && (!this.env.BIBO_EDGE_ADMIN_TOKEN || request.headers.get("x-bibo-admin-token") !== this.env.BIBO_EDGE_ADMIN_TOKEN)) {
       return modelError("Forbidden", 403);
     }
-    if (!admin && path !== "/available" && path !== "/reserve" && path !== "/search") return modelError("Not found", 404);
+    if (!admin && !["/available", "/reserve", "/search", "/login"].includes(path)) return modelError("Not found", 404);
     const { userId } = await request.json() as { userId?: unknown };
     if (typeof userId !== "string" || !userId) return modelError("Invalid user", 400);
+    if (path === "/login") {
+      const minute = Math.floor(Date.now() / 60_000);
+      const allowed = await this.ctx.storage.transaction(async (storage) => {
+        const saved = await storage.get<{ minute: number; counts: Record<string, number> }>("loginBudget");
+        const value = saved?.minute === minute ? saved : { minute, counts: {} };
+        if ((value.counts[userId] ?? 0) >= 10 || Object.keys(value.counts).length >= 1000) return false;
+        value.counts[userId] = (value.counts[userId] ?? 0) + 1;
+        await storage.put("loginBudget", value);
+        return true;
+      });
+      return allowed ? json({ ok: true }) : publicError("Too many login attempts", 429);
+    }
     if (path === "/search") return reserveBiboSearch(this.ctx.storage, userId);
     const day = new Date().toISOString().slice(0, 10);
     if (path === "/admin/status") {
@@ -71,7 +83,7 @@ export async function modelRoute(request: Request, env: Env): Promise<Response> 
   };
   if (request.method !== "POST") return modelError("Not found", 404);
   const bearer = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null;
-  const user = await currentUser(bearer);
+  const user = await currentUser(bearer, env);
   if (!user) return reject("请先登录。", 401, "MODEL_UNAUTHORIZED");
   let raw: string;
   let bytes: number;

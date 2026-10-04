@@ -17,7 +17,7 @@ async function createSession(env: Env, userId: string): Promise<Response> {
 async function adminEdgeRoute(request: Request, env: Env, path: string): Promise<Response> {
   if (request.method !== "POST") return publicError("Not found", 404);
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1] ?? null;
-  if (!(token && env.BIBO_EDGE_ADMIN_TOKEN && token === env.BIBO_EDGE_ADMIN_TOKEN) && !await isPlatformAdmin(token)) {
+  if (!(token && env.BIBO_EDGE_ADMIN_TOKEN && token === env.BIBO_EDGE_ADMIN_TOKEN) && !await isPlatformAdmin(token, env)) {
     return publicError("无权执行此操作。", 403);
   }
   const budgetOperation = path === "/api/admin/edge/model-budget-status" ? "status" :
@@ -59,7 +59,7 @@ async function userRoute(request: Request, env: Env, url: URL): Promise<Response
   const path = url.pathname;
   const token = cookieToken(request);
   const authStarted = performance.now();
-  const user = path === "/api/space" || path === "/api/assets" || path.startsWith("/api/assets/") ? await sessionUser(token) : await currentUser(token);
+  const user = path === "/api/space" || path === "/api/assets" || path.startsWith("/api/assets/") ? await sessionUser(token, env) : await currentUser(token, env);
   const authMs = performance.now() - authStarted;
   if (!user || !token) return publicError("请先登录。", 401);
   if (path === "/api/assets" || path.startsWith("/api/assets/")) return biboAssetsRoute(request, env.SNAPSHOTS, user.id);
@@ -108,7 +108,7 @@ export const biboFetch = async (request: Request, env: Env): Promise<Response> =
     }
     const path = url.pathname;
     if (path.startsWith("/api/")) {
-      if (path === "/api/search/exa") return await biboSearchRoute(request, env, currentUser);
+      if (path === "/api/search/exa") return await biboSearchRoute(request, env, (token) => currentUser(token, env));
       if (path === "/api/model/v1/chat/completions") {
         try { return await modelRoute(request, env); }
         catch (error) {
@@ -118,7 +118,7 @@ export const biboFetch = async (request: Request, env: Env): Promise<Response> =
       }
       if (request.method !== "GET" && request.headers.get("origin") !== url.origin) return publicError("请求来源不正确。", 403);
       try {
-        if (path.startsWith("/api/auth/")) return await authRoute(request, path);
+        if (path.startsWith("/api/auth/")) return await authRoute(request, path, env);
         if (path.startsWith("/api/admin/edge/")) return await adminEdgeRoute(request, env, path);
         return await userRoute(request, env, url);
       } catch (error) {

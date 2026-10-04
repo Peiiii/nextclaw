@@ -1,5 +1,13 @@
 # Bibo hosted companion
 
+## 独立开源与自部署
+
+[Bibo 开源仓库](https://github.com/Peiiii/bibo)提供完整应用、UI/client 源码、锁定的公共 NextClaw 依赖、MIT 许可证与独立 Cloudflare 部署说明。日常 Agent/文件操作在边缘运行，真实 Linux 沙箱按需获取；个人文件保存在 R2 并可挂载进沙箱。运行成本取决于实际用量、模型和沙箱驻留，不承诺完全免费。
+
+自部署配置使用 `wrangler.self-hosted.toml`；设置 `BIBO_AUTH_MODE=self-hosted`、`BIBO_OWNER_EMAIL` 和强密码 Secret `BIBO_OWNER_PASSWORD`（至少 16 位），模型使用部署者自己的 `BIBO_DEEPSEEK_API_KEY`。用 `vite build --mode self-hosted` 构建独立登录界面；官方托管部署仍使用原配置与平台账号。密码轮换使旧会话失效，cookie 最长一天，来源 IP 每分钟最多 10 次登录尝试。注册在自部署模式禁用。
+
+`node scripts/bibo/export-bibo.controller.mjs --output <空目录>` 从本仓库生成独立发布目录；只携带 Bibo 产物范围，公共内核从 NPM 使用精确版本。导出后生成并验证 lockfile，提交 `SOURCE.json` 的冻结来源。维护源码仍在本仓库，避免平行维护执行内核。
+
 The trial model gateway currently admits `deepseek-flash` and its `deepseek/` or `nextclaw/` qualified names. Generation and compaction forward the selected model; an unconfigured model returns `MODEL_NOT_CONFIGURED` before budget reservation or upstream access. It is never silently replaced. This gateway policy is separate from the shared Kernel's model configuration and does not implement a general multi-provider registry.
 
 Independent Cloudflare Worker and Container service at `https://app.bibo.bot/`. The existing `bibo-bot` Worker keeps handling `bibo.bot/*`; the previous `bibo.bot/app/*` route redirects to this service. No NextClaw service, account database, or existing Bibo concept-site route is changed.

@@ -5,6 +5,7 @@ import path from "node:path";
 import { biboUiDevController } from "./scripts/bibo-ui-dev.controller";
 
 export default defineConfig(({ mode, command }) => ({
+  define: mode === "self-hosted" ? { "import.meta.env.VITE_BIBO_SELF_HOSTED": JSON.stringify("true") } : {},
   plugins: [tailwindcss(), react(), ...(mode === "ui" ? [biboUiDevController()] : [])],
   resolve: { conditions: command === "serve" ? ["module", "browser"] : undefined, alias: { "@": path.resolve(import.meta.dirname, "src") } },
   publicDir: "static",
