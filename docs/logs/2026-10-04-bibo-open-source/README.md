@@ -6,7 +6,7 @@
 
 ## 迭代完成说明
 
-进行中。设计与有效验收见 [current-state](../../work/2026-10-04-bibo-open-source/current-state.md)。
+已完成独立 MIT 开源、首版 GitHub Release、自部署真实沙箱验证及官方应用/官网部署。设计与有效验收见 [current-state](../../work/2026-10-04-bibo-open-source/current-state.md)。
 
 ## 测试/验证/验收方式
 
@@ -18,11 +18,21 @@
 
 ## 发布/部署方式
 
-待执行：冻结源提交后导出独立仓库，GitHub v0.1.0 与 CI；自托管测试实例使用独立 Worker/R2，主线按 reconcile 回流。
+源提交 `2b913205dcf958d3d852106d665c16a7a01a4943`，独立初版提交 `448f1a73d0f4757e991160a8953c6dec3fcbfe46`。公共仓库 [Peiiii/bibo](https://github.com/Peiiii/bibo)；[v0.1.0 Release](https://github.com/Peiiii/bibo/releases/tag/v0.1.0) 含 tar.gz，SHA-256 `76c7563cd087705579f61a5a930e60edd22b5c8e0553cfa9fd32029da8ae4141` 与 GitHub 资产摘要相同。[GitHub CI](https://github.com/Peiiii/bibo/actions/runs/37186512628) 在 Ubuntu/Node 22.23.2 干净 checkout 上通过所有安装、类型、测试、构建、dry-run 步骤；标签 CI 同样通过。私密漏洞报告与 GitHub Secret 扫描保护启用。
+
+冻结远程 master 部署官方应用 Worker/UI，入口 deploy:worker / containers-rollout=none；版本 `931661f3-b3d0-4925-b8fa-188cffe0fb88`。部署前后 bibo-hosted-sandbox 与旧 bibo-hosted-bibousercontainer 的 image、application ID、version 完全一致。官网只更新一个静态资源，版本 `c5022743-d2f9-4014-80d6-1129a33523c4`，1440px/390px 真浏览器开源链接、对话框和无横向溢出通过。
+
+hosted 真浏览器验收 requestId=`bibo-live-fa288d52`：28 个增量、1 个文件展示事件，首个文件运行 12412ms；模型文件生成、自动预览、保存、桌面/手机刷新与异步问题均通过，合成测试文件/会话清理完成。旧脚本只认识 accepted 首帧、误把 /files 目录页当成具体文件；修正原脚本到 snapshot / files/<path>，未修改产品运行协议或页面去满足旧断言。
+
+独立测试 Worker、沙箱容器、R2 bucket 与辅助清理 Worker 已删除。R2 使用的是 DO 命名空间路径，初次按 owner 路径删除未清空；后用仅绑定合成 bucket 的临时 Worker 删除 1 个对象并确认剩余 0 后删除 bucket，不触碰官方存储。
+
+主区 WIP 与远程改动路径无重叠，保护性 ff-only 前后七份文件字节摘要相同；reconcile 已返回 LOCAL_MAINLINE_SYNCED。未使用 stash/reset/rebase。
+
+AUTOMATION_INTERVENTIONS: 2。部署的 GitHub SSH 校验卡住，使用同一 deploy owner 入口临时 HTTPS Git URL 重写恢复；自动化消除落点是部署 preflight 的网络超时与重试 owner，本次不因一次环境故障扩大修改范围。主线脚本因任意 tracked WIP 保守拒绝快进；路径无交集和字节摘要验证后用保护性 ff-only 并重新运行 reconcile，消除落点是既有 mainline owner 的无重叠 WIP 判定，本次不改通用协调机制。
 
 ## 用户/产品视角的验收步骤
 
-仓库说明安装 → 私有空间登录 → 对话/任务/文件 → 请求 Linux 计算与文件产物 → 刷新读回。公开入口待发布。
+[开源安装与部署](https://github.com/Peiiii/bibo#readme) → 部署者自己的邮箱/密码私有登录 → 对话/任务/文件 → 请求 Linux 计算并保存产物 → 刷新读回。[官方体验](https://app.bibo.bot)使用原托管账号；自部署与官方数据独立。已具备验收条件，待用户确认体验偏好。
 
 ## 可维护性总结汇总
 

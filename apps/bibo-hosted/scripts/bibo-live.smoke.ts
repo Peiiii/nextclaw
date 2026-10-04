@@ -92,9 +92,11 @@ function recordFrame(frame: string, state: StreamState): StreamState {
   const name = frame.match(/^event: (.+)$/m)?.[1];
   const data = frame.match(/^data: (.+)$/m)?.[1];
   if (!name || !data) return state;
-  const payload = JSON.parse(data) as { error?: string; sessionId?: string; target?: { type?: string; payload?: { path?: string } } };
+  const payload = JSON.parse(data) as { error?: string; runId?: string; phase?: string; sessionId?: string; target?: { type?: string; payload?: { path?: string } } };
   if (name === "error") throw new Error(payload.error ?? "Chat stream failed");
   if (name === "accepted") return { ...state, accepted: true };
+  if (name === "snapshot" && payload.runId && payload.phase) return { ...state, accepted: true,
+    saving: state.saving || payload.phase === "saving" };
   if (name === "delta") {
     assert.equal(state.saving, false, "Visible output must arrive before saving");
     return { ...state, deltaCount: state.deltaCount + 1 };
@@ -299,7 +301,7 @@ try {
       assert.ok(await page.locator(".ui-message--assistant").filter({ hasText: requestId }).count(), "Saved answer did not load after refresh");
       if (!displayOnly) assert.ok(await page.locator('.ui-message--assistant a[href^="https://developers.cloudflare.com/"]').count(),
         "Saved search sources must remain clickable after refresh");
-      await page.goto(`${origin}/files`, { waitUntil: "domcontentloaded" });
+      await page.goto(`${origin}/files/${encodeURIComponent(artifactPath)}`, { waitUntil: "domcontentloaded" });
       await page.getByRole("heading", { name: requestId, exact: true }).waitFor();
       await page.getByText("真实 Agent 文件验收。", { exact: true }).waitFor();
     }
