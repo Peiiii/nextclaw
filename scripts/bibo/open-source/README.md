@@ -1,16 +1,52 @@
 # Bibo
 
-**Your personal AI workspace, with a real Linux sandbox and low infrastructure overhead.**
+**An open-source personal AI workspace with a real Linux sandbox.**
 
 [中文](README.zh-CN.md) · [Try hosted Bibo](https://app.bibo.bot) · [Website](https://bibo.bot) · [Releases](https://github.com/Peiiii/bibo/releases)
 
-Bibo brings conversations, notes, tasks, a calendar, files and an attention inbox into one workspace. Ask your agent to do something, inspect the result, edit it yourself, and continue working together.
-
-The agent runs on Cloudflare's edge. A real, isolated Linux sandbox starts **when OS tools are used**: execute Python or shell commands, work with tools, and generate files. Ordinary chat, tasks and file operations do not need a container. Persistent files live in R2 and can be mounted into the sandbox; the temporary Linux environment can sleep without taking your personal files with it.
+Ask Bibo to process a spreadsheet, keep the report, and save the next steps as tasks. Conversations, notes, tasks, a calendar and files share one workspace.
 
 ![Bibo conversation beside a saved coffee-shop sales report, using clearly labelled example data](images/screenshots/bibo-chat-report.png)
 
-**From a request to something you can keep.** In this example, Python calculated a week's sales inside the Linux sandbox. Bibo saved the report in the persistent workspace, reopened it alongside the conversation, and created editable follow-up tasks. The sales figures are example data; the execution, saved file and tasks are real.
+- **Execute work:** start an isolated Linux sandbox on demand for Python, shell commands and CLI tools.
+- **Keep the result:** R2 files can be mounted in the sandbox, reopened in the web app and edited.
+- **Keep ordinary work lightweight:** chat, tasks and file operations run on Cloudflare's edge without an always-running Linux container.
+
+## See it in use
+
+These are real screenshots of hosted Bibo. Sales and order figures are example data; code execution, saved files and tasks are real.
+
+### Clean orders with Python
+
+Read a CSV, remove two duplicate rows and add an amount column. The result is five orders, nine items and a total of 214. The saved report records the Linux and Python versions read during execution.
+
+![Real order-cleaning conversation beside a saved report with calculated results and Linux/Python environment details](images/screenshots/bibo-sandbox-execution.png)
+
+### Reopen and edit your files
+
+The original CSV, cleaned CSV and Markdown report remain in your personal file space. Search, open and edit them in the workspace.
+
+![Search results for the order-cleaning folder with the saved cleaned CSV open](images/screenshots/bibo-file-workspace.png)
+
+### Save the next steps
+
+The sales example produced editable tasks for weekend preparation, investigating slow days and a review next week.
+
+![Three saved follow-up tasks with an editable weekend preparation task and its description](images/screenshots/bibo-tasks.png)
+
+### Continue on your phone
+
+<p>
+  <img src="images/screenshots/bibo-mobile-chat.png" alt="Bibo conversation and report summary on a phone" width="280" />
+  <img src="images/screenshots/bibo-mobile-tasks.png" alt="Saved Bibo tasks on a phone" width="280" />
+</p>
+
+<details>
+<summary>See the saved sales report</summary>
+
+![Saved sales report with example-data notice and calculated totals, opened in Bibo's file editor](images/screenshots/bibo-sandbox-analysis.png)
+
+</details>
 
 ## Get started locally
 
@@ -57,16 +93,6 @@ For local Worker development, put those secrets in gitignored `apps/bibo-hosted/
 - Ask: “Create a Markdown note summarizing our discussion, save it and open it.” Refresh and reopen the same file.
 - Ask: “Use Python in your Linux sandbox to calculate the first 20 Fibonacci numbers. Mount my workspace and save the result as `fibonacci.txt`, then open that file.” Bibo uses `exec` and `mount_directory`; the saved file belongs to the same R2 workspace the UI reads.
 - Refresh or leave the page while a task runs, then return to its conversation. The page subscribes to the server-owned run; leaving the page does not cancel it. Single runs are bounded to 10 minutes, and an interrupted server run is reported rather than silently replayed.
-
-### Keep the report, then act on it
-
-The saved report opens as an editable document. It remains in your personal file space after the temporary Linux environment is reclaimed.
-
-![Saved sales report with example-data notice and calculated totals, opened in Bibo's file editor](images/screenshots/bibo-sandbox-analysis.png)
-
-Follow-up actions are saved tasks you can inspect and edit, including their priority and description.
-
-![Three saved follow-up tasks with an editable weekend preparation task and its description](images/screenshots/bibo-tasks.png)
 
 ## Architecture
 

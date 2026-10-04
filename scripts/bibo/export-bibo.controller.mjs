@@ -16,8 +16,8 @@ const selected = files.filter((file) => roots.some((root) => file.startsWith(roo
   !/(?:^|\/)(?:AGENTS\.md|CLAUDE\.md|README\.md|CHANGELOG\.md|module-structure\.config\.json)$/.test(file) &&
   !file.startsWith("apps/bibo-hosted/scripts/diagnostics/") && !file.startsWith("apps/bibo-hosted/scripts/deployment/") &&
   /\.(?:ts|tsx|css|json|html|svg)$/.test(file));
-const screenshots = ["bibo-sandbox-workspace", "bibo-chat-report", "bibo-sandbox-analysis", "bibo-tasks"]
-  .map((name) => `images/screenshots/${name}.png`);
+const screenshots = ["bibo-sandbox-workspace", "bibo-chat-report", "bibo-sandbox-analysis", "bibo-tasks",
+  "bibo-sandbox-execution", "bibo-file-workspace", "bibo-mobile-chat", "bibo-mobile-tasks"].map((name) => `images/screenshots/${name}.png`);
 for (const file of selected.concat("LICENSE", ".nvmrc", "tsconfig.base.json", screenshots)) {
   const target = resolve(output, file);
   await mkdir(dirname(target), { recursive: true });

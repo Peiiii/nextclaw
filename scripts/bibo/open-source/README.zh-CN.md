@@ -1,16 +1,52 @@
 # Bibo
 
-**带真实 Linux 沙箱、运行成本轻量的个人 AI 工作空间。**
+**开源个人 AI 工作空间，带真正能跑代码的 Linux 沙箱。**
 
 [English](README.md) · [在线体验](https://app.bibo.bot) · [官网](https://bibo.bot) · [版本发布](https://github.com/Peiiii/bibo/releases)
 
-在同一个空间里与 AI 讨论、管理任务和日程、编辑笔记、保存文件。需要真正执行工作时，Bibo 可以获取隔离的 Linux 沙箱，运行 Python、Shell 和命令行工具，并生成可打开的文件产物。
-
-日常对话、任务和普通文件读写在 Cloudflare 边缘完成，不启动容器；只有操作系统工具需要沙箱。个人文件保存在 R2，沙箱可挂载同一份文件。临时执行环境回收，持久文件仍然保留。这是“低运行开销”和“真实执行能力”能够结合的关键。
+让 Bibo 处理一份表，留下报告，再把后续行动存成待办。对话、笔记、任务、日程和文件都在同一个空间里。
 
 ![在对话旁打开保存的咖啡店销售报告，报告清楚标明示例数据](images/screenshots/bibo-chat-report.png)
 
-**交办一件事，留下可继续使用的成果。** 这个例子中，Python 在 Linux 沙箱里计算了一周销售数据，Bibo 把报告保存到个人文件空间，在对话旁重新打开，并创建了三个可编辑的后续待办。销售数字是示例数据；执行、保存的报告和待办都来自真实运行。
+- **能执行：** 按需启动隔离的 Linux 沙箱，运行 Python、Shell 和命令行工具。
+- **能留下成果：** 文件保存在 R2，同一份文件可供沙箱处理、网页打开和编辑。
+- **日常开销轻：** 普通对话、任务和文件操作在 Cloudflare 边缘完成，无需常驻 Linux 容器。
+
+## 看看实际使用
+
+以下都是线上真实截图。销售和订单数字为示例数据，代码执行、文件保存和待办创建来自真实运行。
+
+### 用 Python 整理订单
+
+读取 CSV，删除两行完全重复的记录，新增金额列。结果是 5 笔订单、9 件商品、总额 214；说明记录了沙箱实际运行的 Linux 与 Python 版本。
+
+![真实订单清洗对话与打开的说明，包含计算结果和 Linux、Python 环境信息](images/screenshots/bibo-sandbox-execution.png)
+
+### 文件可以重新打开、继续编辑
+
+原表、清理后的 CSV 和 Markdown 说明保存在个人文件空间，可以搜索、打开和编辑。
+
+![搜索订单整理文件夹并打开实际保存的清理后 CSV](images/screenshots/bibo-file-workspace.png)
+
+### 把后续行动留下来
+
+销售分析后的备货、检查低谷原因和下周复盘，保存为可编辑的任务。
+
+![三个已保存的后续待办，以及周末备货任务的编辑详情](images/screenshots/bibo-tasks.png)
+
+### 手机也能接着用
+
+<p>
+  <img src="images/screenshots/bibo-mobile-chat.png" alt="手机上的 Bibo 对话与报告摘要" width="280" />
+  <img src="images/screenshots/bibo-mobile-tasks.png" alt="手机上的已保存任务列表" width="280" />
+</p>
+
+<details>
+<summary>查看保存后的完整销售报告</summary>
+
+![文件编辑器中的销售报告，包含示例数据说明和计算结果](images/screenshots/bibo-sandbox-analysis.png)
+
+</details>
 
 ## 本地看看
 
@@ -58,16 +94,6 @@ pnpm dev
 > 用 Linux 沙箱里的 Python 计算前 20 个斐波那契数。挂载我的工作空间，把结果保存为 fibonacci.txt，然后打开文件。
 
 Agent 通过 `exec` 执行、`mount_directory` 挂载持久文件；网页读取同一份 R2 文件。生成时可离开或刷新页面，回来继续查看同一次服务端任务。单次任务最长 10 分钟，服务中断会明确报错，不自动重放已有副作用的操作。
-
-### 保存报告，继续行动
-
-保存后的报告可以打开和编辑。临时 Linux 环境回收后，个人文件空间中的报告仍然保留。
-
-![文件编辑器中的销售报告，包含示例数据说明和计算结果](images/screenshots/bibo-sandbox-analysis.png)
-
-后续行动保存在任务列表里，可以查看和修改优先级、说明。
-
-![三个已保存的后续待办，以及周末备货任务的编辑详情](images/screenshots/bibo-tasks.png)
 
 ## 架构与成本
 
