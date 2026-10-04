@@ -8,7 +8,9 @@ Bibo brings conversations, notes, tasks, a calendar, files and an attention inbo
 
 The agent runs on Cloudflare's edge. A real, isolated Linux sandbox starts **when OS tools are used**: execute Python or shell commands, work with tools, and generate files. Ordinary chat, tasks and file operations do not need a container. Persistent files live in R2 and can be mounted into the sandbox; the temporary Linux environment can sleep without taking your personal files with it.
 
-![A note written by Python in Bibo's real Linux sandbox, opened from the persistent workspace](images/screenshots/bibo-sandbox-workspace.png)
+![Bibo conversation beside a saved coffee-shop sales report, using clearly labelled example data](images/screenshots/bibo-chat-report.png)
+
+**From a request to something you can keep.** In this example, Python calculated a week's sales inside the Linux sandbox. Bibo saved the report in the persistent workspace, reopened it alongside the conversation, and created editable follow-up tasks. The sales figures are example data; the execution, saved file and tasks are real.
 
 ## Get started locally
 
@@ -56,7 +58,19 @@ For local Worker development, put those secrets in gitignored `apps/bibo-hosted/
 - Ask: “Use Python in your Linux sandbox to calculate the first 20 Fibonacci numbers. Mount my workspace and save the result as `fibonacci.txt`, then open that file.” Bibo uses `exec` and `mount_directory`; the saved file belongs to the same R2 workspace the UI reads.
 - Refresh or leave the page while a task runs, then return to its conversation. The page subscribes to the server-owned run; leaving the page does not cancel it. Single runs are bounded to 10 minutes, and an interrupted server run is reported rather than silently replayed.
 
+### Keep the report, then act on it
+
+The saved report opens as an editable document. It remains in your personal file space after the temporary Linux environment is reclaimed.
+
+![Saved sales report with example-data notice and calculated totals, opened in Bibo's file editor](images/screenshots/bibo-sandbox-analysis.png)
+
+Follow-up actions are saved tasks you can inspect and edit, including their priority and description.
+
+![Three saved follow-up tasks with an editable weekend preparation task and its description](images/screenshots/bibo-tasks.png)
+
 ## Architecture
+
+For a separate execution example, see the [Linux sandbox execution record](images/screenshots/bibo-sandbox-workspace.png).
 
 ```mermaid
 flowchart LR

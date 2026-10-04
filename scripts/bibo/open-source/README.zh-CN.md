@@ -8,7 +8,9 @@
 
 日常对话、任务和普通文件读写在 Cloudflare 边缘完成，不启动容器；只有操作系统工具需要沙箱。个人文件保存在 R2，沙箱可挂载同一份文件。临时执行环境回收，持久文件仍然保留。这是“低运行开销”和“真实执行能力”能够结合的关键。
 
-![真实 Linux 沙箱中的 Python 写入笔记，网页从持久工作空间打开结果](images/screenshots/bibo-sandbox-workspace.png)
+![在对话旁打开保存的咖啡店销售报告，报告清楚标明示例数据](images/screenshots/bibo-chat-report.png)
+
+**交办一件事，留下可继续使用的成果。** 这个例子中，Python 在 Linux 沙箱里计算了一周销售数据，Bibo 把报告保存到个人文件空间，在对话旁重新打开，并创建了三个可编辑的后续待办。销售数字是示例数据；执行、保存的报告和待办都来自真实运行。
 
 ## 本地看看
 
@@ -57,7 +59,19 @@ pnpm dev
 
 Agent 通过 `exec` 执行、`mount_directory` 挂载持久文件；网页读取同一份 R2 文件。生成时可离开或刷新页面，回来继续查看同一次服务端任务。单次任务最长 10 分钟，服务中断会明确报错，不自动重放已有副作用的操作。
 
+### 保存报告，继续行动
+
+保存后的报告可以打开和编辑。临时 Linux 环境回收后，个人文件空间中的报告仍然保留。
+
+![文件编辑器中的销售报告，包含示例数据说明和计算结果](images/screenshots/bibo-sandbox-analysis.png)
+
+后续行动保存在任务列表里，可以查看和修改优先级、说明。
+
+![三个已保存的后续待办，以及周末备货任务的编辑详情](images/screenshots/bibo-tasks.png)
+
 ## 架构与成本
+
+另一个执行例子见[Linux 沙箱执行记录](images/screenshots/bibo-sandbox-workspace.png)。
 
 React → Worker → 单人 Durable Object → 公共 NextClaw Harness → 模型与工具。会话和结构化状态保存在 DO，文件保存在 R2，OS 工具才获取沙箱。网页与 Agent 复用同一个领域动作 owner。架构图及更多细节见 [English README](README.md#architecture)。`SOURCE.json` 标记上游源码版本；公共内核通过锁定版本的 NPM 包复用。
 
