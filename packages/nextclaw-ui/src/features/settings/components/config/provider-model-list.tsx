@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Settings2, Trash2, X } from "lucide-react";
 import type { ThinkingLevel } from "@/shared/lib/api";
 import { Label } from "@/shared/components/ui/label";
@@ -40,7 +40,7 @@ type ProviderModelListProps = {
   formatThinkingLevelLabel: (level: ThinkingLevel) => string;
 };
 
-export function ProviderModelList(props: ProviderModelListProps) {
+export const ProviderModelList = memo(function ProviderModelList(props: ProviderModelListProps) {
   const {
     models,
     modelConfig,
@@ -290,4 +290,4 @@ export function ProviderModelList(props: ProviderModelListProps) {
       ) : null}
     </div>
   );
-}
+});
