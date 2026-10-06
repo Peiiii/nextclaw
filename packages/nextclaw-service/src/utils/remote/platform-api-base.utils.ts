@@ -1,4 +1,5 @@
 const DEFAULT_PLATFORM_API_BASE = "https://ai-gateway-api.nextclaw.io/v1";
+const DOMESTIC_PLATFORM_API_BASE = "https://api.nextclaw.net/v1";
 const INVALID_PLATFORM_HINT =
   `Use ${DEFAULT_PLATFORM_API_BASE} or the platform root URL without a trailing path.`;
 
@@ -23,11 +24,17 @@ export function resolvePlatformApiBase(params: {
   platformBase: string;
   v1Base: string;
   inputApiBase: string;
+  platformBaseCandidates: string[];
 } {
-  const explicitApiBase = typeof params.explicitApiBase === "string" ? params.explicitApiBase.trim() : "";
-  const configuredApiBase = typeof params.configuredApiBase === "string" ? params.configuredApiBase.trim() : "";
-  const fallbackApiBase = params.fallbackApiBase ?? DEFAULT_PLATFORM_API_BASE;
-  const inputApiBase = explicitApiBase || configuredApiBase || (params.requireConfigured ? "" : fallbackApiBase);
+  const {
+    explicitApiBase: explicitApiBaseInput,
+    configuredApiBase: configuredApiBaseInput,
+    fallbackApiBase,
+    requireConfigured,
+  } = params;
+  const explicitApiBase = typeof explicitApiBaseInput === "string" ? explicitApiBaseInput.trim() : "";
+  const configuredApiBase = typeof configuredApiBaseInput === "string" ? configuredApiBaseInput.trim() : "";
+  const inputApiBase = explicitApiBase || configuredApiBase || (requireConfigured ? "" : (fallbackApiBase ?? DEFAULT_PLATFORM_API_BASE));
   if (!inputApiBase) {
     throw new Error("Platform API base is missing. Pass --api-base or run nextclaw login.");
   }
@@ -49,10 +56,22 @@ export function resolvePlatformApiBase(params: {
   }
 
   const normalizedPlatformBase = trimTrailingSlash(parsedUrl.toString());
+  const normalizedDomesticBase = trimTrailingSlash(
+    normalizeExplicitApiBase(DOMESTIC_PLATFORM_API_BASE),
+  );
+  const candidates = [normalizedPlatformBase];
+  if (
+    normalizedDomesticBase &&
+    normalizedDomesticBase !== normalizedPlatformBase
+  ) {
+    // 官方域名直连失败时，自动回退到国内可访问的备用地址。
+    candidates.push(normalizedDomesticBase);
+  }
   return {
     platformBase: normalizedPlatformBase,
     v1Base: `${normalizedPlatformBase}/v1`,
-    inputApiBase
+    inputApiBase,
+    platformBaseCandidates: [...new Set(candidates)],
   };
 }
 
