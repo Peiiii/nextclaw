@@ -1,5 +1,5 @@
 import { createKernelResourceProviders } from "@kernel/utils/catalog-resource-providers.utils.js";
-import type { NodePlatform } from "@kernel/features/node-platform/services/node-platform.service.js";
+import type { NodePlatform } from "@kernel/features/node-platform/index.js";
 import { AccessManager } from "@kernel/managers/access.manager.js";
 import type { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { AppPackageManager } from "@kernel/managers/app-package.manager.js";
@@ -7,16 +7,16 @@ import type { AppDataManager } from "@kernel/managers/app-data.manager.js";
 import type { ChannelManager } from "@kernel/managers/channel.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import { ExtensionManager } from "@kernel/managers/extension.manager.js";
-import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
-import { ProviderModelCatalogManager } from "@kernel/managers/provider-model-catalog.manager.js";
-import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
+import type { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
+import type { ProviderModelCatalogManager } from "@kernel/managers/provider-model-catalog.manager.js";
+import type { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
 import type { VerificationRecordService } from "@kernel/services/verification-record.service.js";
 import { InboxDeliveryManager } from "@kernel/managers/inbox-delivery.manager.js";
 import {
   SystemObjectReferenceManager,
 } from "@kernel/managers/system-object-reference.manager.js";
-import { McpManager } from "@kernel/managers/mcp.manager.js";
+import type { McpManager } from "@kernel/managers/mcp.manager.js";
 import { SessionContextCompactionManager } from "@kernel/managers/session-context-compaction.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import type { PlannedRestartRecoveryManager } from "@kernel/managers/planned-restart-recovery.manager.js";
@@ -26,7 +26,7 @@ import type { ServiceAppManager } from "@kernel/managers/service-app.manager.js"
 import { SkillManager } from "@kernel/managers/skill.manager.js";
 import type { AgentRuntimeSessionTypeDescribeParams } from "@kernel/features/runtime-registry/index.js";
 import { ObservationManager } from "@kernel/features/observation/index.js";
-import { AgentKernel } from "@kernel/managers/agent-kernel.manager.js";
+import type { AgentKernel } from "@kernel/managers/agent-kernel.manager.js";
 import type { IKernel } from "@kernel/types/kernel-capability.types.js";
 import {
   CapabilityGrantLegacyMigrationService,
@@ -38,15 +38,16 @@ import {
 } from "@kernel/features/desktop-host/index.js";
 import { FeatureControlsService } from "@kernel/features/feature-controls/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
-import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
+import type { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
   type GatewayController,
   getWorkspacePath,
-  MessageBus,
+  type MessageBus,
+  type ExecRunner,
   type DiagnosticRuntime,
   type SessionSearchService,
 } from "@nextclaw/core";
-import { EventBus, Ingress } from "@nextclaw/shared";
+import type { EventBus, Ingress } from "@nextclaw/shared";
 import {
   resolveKernelAppHomeDirectory,
   resolveKernelCapabilityGrantMigrationMarkerPath,
@@ -80,7 +81,7 @@ export type NextclawKernelOptions = {
   sessionSearchEnabled?: boolean;
   sessionTitleEnabled?: boolean;
   /** Host-owned command execution. The local product uses the ordinary process runner by default. */
-  execRunner?: import("@nextclaw/core").ExecRunner;
+  execRunner?: ExecRunner;
 };
 
 type NextclawKernelRuntimeControl<TGatewayInput, TUiInput, TStartInput> = {

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.59.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-10-07",
+  "title": { "zh-CN": "NextClaw v0.59.0", "en-US": "NextClaw v0.59.0" },
+  "summary": {
+    "zh-CN": "重要会话持续置顶，定时任务结果集中查看，长会话日志更紧凑。",
+    "en-US": "Persistent session pins, a dedicated Scheduled view, and smaller conversation journals."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-10-07-nextclaw-v0-59-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-10-07-nextclaw-v0-59-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "定时任务会话", "en-US": "Scheduled conversations" },
+      "items": [{
+        "title": { "zh-CN": "独立查看历史结果", "en-US": "Browse task results in a dedicated view" },
+        "body": {
+          "zh-CN": "桌面和手机可集中查看任务创建的专属会话，支持搜索、分页和视图选择持久化。绑定到已有普通会话的任务保留原有分类。",
+          "en-US": "Desktop and mobile offer a dedicated view for task-created conversations, with search, pagination, and persistent selection. Existing regular conversations bound to tasks retain their classification."
+        }
+      }]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "会话置顶", "en-US": "Session pins" },
+      "items": [{
+        "title": { "zh-CN": "跨刷新与重启保留", "en-US": "Retain pins across refreshes and restarts" },
+        "body": {
+          "zh-CN": "置顶保存在实例中并优先于普通会话分页；旧浏览器置顶自动迁移，保存失败时恢复原状态并提示错误。CLI 支持 sessions pin 和 sessions unpin。",
+          "en-US": "Pins are saved in the instance and ordered before regular pagination. Existing browser pins migrate; failed saves restore the previous state and show an error. The CLI supports sessions pin and sessions unpin."
+        }
+      }]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "会话日志", "en-US": "Conversation journals" },
+      "items": [{
+        "title": { "zh-CN": "合并流式增量与手动整理", "en-US": "Coalesced streaming deltas and manual maintenance" },
+        "body": {
+          "zh-CN": "相邻流式增量合并记录，减少日志占用。sessions compact-journal 支持预览与带备份的整理；应用和恢复前必须停止同一 HOME 的全部实例。普通升级不会自动整理旧日志。",
+          "en-US": "Adjacent streaming deltas are coalesced to reduce journal size. sessions compact-journal previews maintenance and retains a backup. Stop all instances using the same HOME before applying or restoring. Upgrades do not automatically rewrite old journals."
+        }
+      }]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "聊天阅读", "en-US": "Chat readability" },
+      "items": [{
+        "title": { "zh-CN": "保持提问顺序与用户换行", "en-US": "Preserve question order and user line breaks" },
+        "body": {
+          "zh-CN": "异步提问保留在助手消息原来的位置；用户消息的普通换行在发送和重新打开会话后正确显示。",
+          "en-US": "Asynchronous questions remain at their original position in assistant messages. Ordinary user message line breaks display correctly after sending and reopening conversations."
+        }
+      }]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "Panel App", "en-US": "Panel Apps" },
+      "items": [{
+        "title": { "zh-CN": "从宿主标签刷新", "en-US": "Refresh from the host tab" },
+        "body": {
+          "zh-CN": "刷新入口统一放在宿主标签的更多操作中，无需关闭应用，保留应用数据和授权。",
+          "en-US": "Refresh from the host tab's additional actions without closing the app, retaining app data and permissions."
+        }
+      }]
+    }
+  ]
+}

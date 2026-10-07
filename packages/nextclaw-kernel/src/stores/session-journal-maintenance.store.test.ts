@@ -133,7 +133,7 @@ describe("offline session journal maintenance", () => {
     journalDir = await mkdtemp(join(tmpdir(), "nextclaw-journal-maintenance-"));
     await seedClosedJournal(journalDir);
     const source = join(journalDir, `${sessionId}.jsonl`);
-    await writeFile(source, `${await readFile(source, "utf8")}{\"_type\":\"event\"`);
+    await writeFile(source, `${await readFile(source, "utf8")}{"_type":"event"`);
     const original = await readFile(source);
     await expect(compactSessionJournal({ journalDir, sessionId, apply: true, writersStopped: true }))
       .rejects.toThrow("incomplete tail line");
@@ -146,7 +146,7 @@ describe("offline session journal maintenance", () => {
     journalDir = await mkdtemp(join(tmpdir(), "nextclaw-journal-maintenance-"));
     await seedClosedJournal(journalDir);
     const journalPath = join(journalDir, `${sessionId}.jsonl`);
-    const torn = `${await readFile(journalPath, "utf8")}{\"_type\":\"event\"`;
+    const torn = `${await readFile(journalPath, "utf8")}{"_type":"event"`;
     await writeFile(journalPath, torn);
 
     const restarted = new NcpAgentSessionJournalStore(journalDir);

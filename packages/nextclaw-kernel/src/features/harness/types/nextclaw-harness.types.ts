@@ -1,26 +1,12 @@
-import type {
-  LLMResponse,
-  LLMStreamEvent,
-  McpServerDefinition,
-  ProviderCatalogPlugin,
-  ProviderSpec,
-  ThinkingLevel,
-} from "@nextclaw/core";
-import type {
-  McpCatalogFilter,
-  McpServerRecord,
-  McpToolCatalogEntry,
-} from "@nextclaw/mcp";
-import type { NcpEndpointEvent, NcpMessage, NcpTool } from "@nextclaw/ncp";
+import type { NcpEndpointEvent, NcpMessage } from "@nextclaw/ncp";
 import type { Disposer, EventBus, Ingress } from "@nextclaw/shared";
-import type {
-  AgentRuntimeEntry,
-  AgentRuntimeProviderRegistration,
-  AgentRuntimeSessionTypeDescribeParams,
-  AgentRuntimeSessionTypeOption,
-} from "@kernel/features/runtime-registry/index.js";
+import type { AgentManager } from "@kernel/managers/agent.manager.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
+import type { SessionRunManager } from "@kernel/managers/session-run.manager.js";
+import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import type { AgentPlatform, AgentKernelModule } from "@kernel/types/agent-platform.types.js";
 import type { Contribution } from "@kernel/features/harness/managers/nextclaw-contribution.manager.js";
-import type { UserQuestionView } from "@kernel/managers/user-question.manager.js";
+import type { UserQuestionView, UserQuestionManager } from "@kernel/managers/user-question.manager.js";
 
 export type NextclawHarnessErrorCode =
   | "invalid_input"
@@ -73,13 +59,13 @@ export type NextclawUserQuestionReply = {
 };
 
 export type NextclawHarnessResources = {
-  agents: Pick<import("@kernel/managers/agent.manager.js").AgentManager,
+  agents: Pick<AgentManager,
     "getDefaultAgentId" | "getAgent" | "listAgents" | "createAgent">;
-  sessionManager: Pick<import("@kernel/managers/session.manager.js").SessionManager,
+  sessionManager: Pick<SessionManager,
     "getSession" | "createSession" | "listSessionMessages" | "deleteSession" | "flushSession">;
-  sessionRunManager: Pick<import("@kernel/managers/session-run.manager.js").SessionRunManager, "deleteSessionRun">;
-  configManager: Pick<import("@kernel/managers/config.manager.js").ConfigManager, "config">;
-  userQuestions: Pick<import("@kernel/managers/user-question.manager.js").UserQuestionManager,
+  sessionRunManager: Pick<SessionRunManager, "deleteSessionRun">;
+  configManager: Pick<ConfigManager, "config">;
+  userQuestions: Pick<UserQuestionManager,
     "list" | "resolveAndWaitForReply">;
   eventBus: EventBus;
   ingress: Ingress;
@@ -87,8 +73,8 @@ export type NextclawHarnessResources = {
 };
 
 export type NextclawHarnessOptions = {
-  platform: import("@kernel/types/agent-platform.types.js").AgentPlatform;
-  modules?: readonly import("@kernel/types/agent-platform.types.js").AgentKernelModule[];
+  platform: AgentPlatform;
+  modules?: readonly AgentKernelModule[];
   allowSlashCommands?: boolean;
 };
 

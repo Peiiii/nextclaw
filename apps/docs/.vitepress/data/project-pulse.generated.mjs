@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-10-07T08:36:05.018Z",
+  "generatedAt": "2026-10-07T10:31:52.768Z",
   "hero": {
     "currentLoc": 322230,
     "testLoc": 138581,
     "trackedFiles": 3490,
-    "recentCommitCount": 760,
-    "activeDays30": 29,
+    "recentCommitCount": 762,
+    "activeDays30": 30,
     "recentReleaseCount": 52,
     "latestReleaseDate": "2026-10-02",
-    "latestNoteDate": "2026-10-02",
+    "latestNoteDate": "2026-10-07",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 3487474,
     "basePercentOfBenchmark": 9.24,
@@ -1518,7 +1518,7 @@ export default {
       {
         "key": "2026-10-07",
         "label": "10-07",
-        "value": 0
+        "value": 2
       }
     ],
     "commitWeekly": [
@@ -1580,7 +1580,7 @@ export default {
       {
         "key": "2026-10-05",
         "label": "10-05",
-        "value": 3
+        "value": 5
       }
     ],
     "releaseMonthly": [
@@ -1770,6 +1770,21 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-10-07-nextclaw-v0-59-0",
+        "date": "2026-10-07",
+        "tags": [],
+        "en": {
+          "title": "2026-10-07 · NextClaw v0.59.0",
+          "description": "Persistent session pins, a dedicated Scheduled view, and smaller conversation journals.",
+          "href": "/en/notes/2026-10-07-nextclaw-v0-59-0"
+        },
+        "zh": {
+          "title": "2026-10-07 · NextClaw v0.59.0",
+          "description": "重要会话持续置顶，定时任务结果集中查看，长会话日志更紧凑。",
+          "href": "/zh/notes/2026-10-07-nextclaw-v0-59-0"
+        }
+      },
       {
         "slug": "2026-10-02-nextclaw-v0-59-0-beta-2",
         "date": "2026-10-02",
@@ -3231,7 +3246,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-10-07T08:36:03.573Z",
     "sourceCount": {
-      "notes": 74,
+      "notes": 75,
       "scopes": 8
     }
   }

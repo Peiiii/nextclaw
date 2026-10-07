@@ -10,6 +10,7 @@ import type { EventBus, Ingress } from "@nextclaw/shared";
 import type { DiagnosticRuntime, SessionProjectContextResolver } from "@nextclaw/core";
 import type { BootstrapContextInput, ContextRuntimeInfo } from "@kernel/contributions/context-provider/index.js";
 import type { ProductActivitySink } from "@kernel/types/product-activity.types.js";
+import type { AgentKernel } from "@kernel/managers/agent-kernel.manager.js";
 
 /** Platform resources contain no preassembled Agent/session/runtime managers. */
 export interface AgentKernelResources {
@@ -43,7 +44,7 @@ export interface AgentPlatform {
 
 /** Trusted product composition. User extensions use the restricted Contribution API. */
 export interface AgentKernelModule {
-  attach(kernel: import("@kernel/managers/agent-kernel.manager.js").AgentKernel): void;
+  attach(kernel: AgentKernel): void;
   start(): Promise<void>;
   ready?(): Promise<void>;
   stop?(): Promise<void>;
