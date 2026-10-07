@@ -34,7 +34,7 @@
 - 恢复后的 Prepare：[37608882772](https://github.com/Peiiii/nextclaw/actions/runs/37608882772)；Parent：[37608949651](https://github.com/Peiiii/nextclaw/actions/runs/37608949651)。
 - NPM gate 耗时：从恢复 dispatch 18:40:24 到 18:51:22 为 10 分 58 秒，`time budget: missed`。NPM job 9 分 54 秒，prepared artifact 等待/下载/publish/registry/payload/Git 综合步骤 9 分 6 秒；NPM prepare 于 18:44:26 完成，不能把之后的全部等待归因于冷构建。当前 job 元数据未细分该综合步骤，不编造子阶段耗时。发布前 source 状态及类型导入已修正，后续 push 可按既有 prewarm owner 提前准备；本次不宣称已达到 60 秒目标。
 - 恢复 parent 总耗时：18:40:24 至 19:01:05 为 20 分 41 秒；Runtime job 3 分 45 秒，其中发布/通道核验 88 秒（120 秒预算达标），真实旧版升级 82 秒。最慢 prepare cell 为 darwin-x64，18:44:30 至 18:55:31 共 11 分 1 秒；prepare 与 NPM/兼容验证重叠，无人工再跑成功平台。
-- 主工作区因既存 tracked 草稿进入 `LOCAL_WORKTREE_RETRYING`，自动 owner PID `91470` 接管；远程主线已包含源修复与 NPM metadata。
+- 主工作区因既存 tracked 草稿进入 `LOCAL_WORKTREE_RETRYING`；初始发布 worktree worker 为 PID `91470`，收尾在常驻主工作区调用同一 reconcile owner，复用其已有 worker PID `48757`，避免后台重试依赖临时 checkout。远程主线已包含源修复、NPM metadata 和发布记录；主工作区仍为 `master`，既存草稿保持原状。
 - 内容补充在首轮 dispatch 后进行，不阻塞 NPM/Runtime；双语笔记与 JSON 已部署并公开核验。官网和 X 未发布，release surface review 未全闭合，保持 `CONTENT_PENDING`，不把核心发布成功写成全内容完成。
 - `AUTOMATION_INTERVENTIONS: 1`：发布前退出 beta 模式并修复晋升判定属于准备；owner 运行后因 kernel lint 根因修复并更换 source，计 1 次。修复落在原 kernel 文件，晋升保护落在原身份 owner 和执行真实 workflow 脚本的回归测试中，无第二发布路径。
 
