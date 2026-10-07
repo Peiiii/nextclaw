@@ -1,5 +1,48 @@
 # @nextclaw/service
 
+## 0.7.8
+
+### Patch Changes
+
+- e698cf8: Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/core
+  - @nextclaw/feishu-core
+  - @nextclaw/harness
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/server
+  - @nextclaw/service
+  - nextclaw
+
+- a1f251b: Keep session pins across refreshes, instance restarts, and browsers, and place pinned sessions before pagination so older pinned work remains visible. Existing browser pins migrate automatically without overriding a saved unpin. Failed saves restore the previous state and show an error. Add matching `sessions pin` / `sessions unpin` CLI actions and AI session updates.
+- Updated dependencies [260165f]
+- Updated dependencies [e698cf8]
+- Updated dependencies
+- Updated dependencies [7c00b06]
+- Updated dependencies [5243fa0]
+- Updated dependencies [8c3e7d3]
+- Updated dependencies [a1f251b]
+  - @nextclaw/kernel@0.19.2
+  - @nextclaw/core@0.18.6
+  - @nextclaw/harness@0.2.28
+  - @nextclaw/ncp-agent-runtime@0.4.28
+  - @nextclaw/server@0.23.14
+  - @nextclaw/client-sdk@0.12.14
+  - @nextclaw/remote@0.3.71
+  - @nextclaw/channel-extension-dingtalk@0.2.55
+  - @nextclaw/channel-extension-discord@0.2.55
+  - @nextclaw/channel-extension-email@0.2.55
+  - @nextclaw/channel-extension-slack@0.2.55
+  - @nextclaw/channel-extension-telegram@0.2.55
+  - @nextclaw/channel-extension-wecom@0.2.55
+  - @nextclaw/channel-extension-whatsapp@0.2.55
+  - @nextclaw/mcp@0.3.56
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.56
+  - @nextclaw/runtime@0.4.55
+  - @nextclaw/ncp-toolkit@0.6.28
+  - @nextclaw/ncp-mcp@0.2.56
+
 ## 0.7.8-beta.2
 
 ### Patch Changes

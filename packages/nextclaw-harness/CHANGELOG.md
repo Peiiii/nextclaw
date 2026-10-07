@@ -1,5 +1,28 @@
 # @nextclaw/harness
 
+## 0.2.28
+
+### Patch Changes
+
+- e698cf8: Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/core
+  - @nextclaw/feishu-core
+  - @nextclaw/harness
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/server
+  - @nextclaw/service
+  - nextclaw
+
+- Updated dependencies [260165f]
+- Updated dependencies
+- Updated dependencies [7c00b06]
+- Updated dependencies [5243fa0]
+- Updated dependencies [8c3e7d3]
+- Updated dependencies [a1f251b]
+  - @nextclaw/kernel@0.19.2
+
 ## 0.2.28-beta.2
 
 ### Patch Changes

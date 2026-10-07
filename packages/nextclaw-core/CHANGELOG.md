@@ -1,5 +1,24 @@
 # nextclaw-core
 
+## 0.18.6
+
+### Patch Changes
+
+- e698cf8: Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/core
+  - @nextclaw/feishu-core
+  - @nextclaw/harness
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/server
+  - @nextclaw/service
+  - nextclaw
+
+- a1f251b: Keep session pins across refreshes, instance restarts, and browsers, and place pinned sessions before pagination so older pinned work remains visible. Existing browser pins migrate automatically without overriding a saved unpin. Failed saves restore the previous state and show an error. Add matching `sessions pin` / `sessions unpin` CLI actions and AI session updates.
+- Updated dependencies [e698cf8]
+  - @nextclaw/feishu-core@0.3.14
+
 ## 0.18.6-beta.1
 
 ### Patch Changes

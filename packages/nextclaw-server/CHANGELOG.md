@@ -1,5 +1,34 @@
 # nextclaw-server
 
+## 0.23.14
+
+### Patch Changes
+
+- e698cf8: Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/core
+  - @nextclaw/feishu-core
+  - @nextclaw/harness
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/server
+  - @nextclaw/service
+  - nextclaw
+
+- 5243fa0: Add a Scheduled conversation view with server-side filtering, search, pagination, and persistent view selection on desktop and mobile.
+- a1f251b: Keep session pins across refreshes, instance restarts, and browsers, and place pinned sessions before pagination so older pinned work remains visible. Existing browser pins migrate automatically without overriding a saved unpin. Failed saves restore the previous state and show an error. Add matching `sessions pin` / `sessions unpin` CLI actions and AI session updates.
+- Updated dependencies [260165f]
+- Updated dependencies [e698cf8]
+- Updated dependencies
+- Updated dependencies [7c00b06]
+- Updated dependencies [5243fa0]
+- Updated dependencies [8c3e7d3]
+- Updated dependencies [a1f251b]
+  - @nextclaw/kernel@0.19.2
+  - @nextclaw/core@0.18.6
+  - @nextclaw/mcp@0.3.56
+  - @nextclaw/runtime@0.4.55
+
 ## 0.23.14-beta.2
 
 ### Patch Changes

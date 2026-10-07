@@ -1,5 +1,30 @@
 # @nextclaw/kernel
 
+## 0.19.2
+
+### Patch Changes
+
+- 260165f: Keep asynchronous questions in the assistant message at their original position, and expose ordered Bibo message content for the hosted chat.
+- Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/kernel
+
+- 7c00b06: 支持宿主批量读取 Agent 引导文件，保持文件顺序与上下文预算，减少远程存储串行等待。本地宿主继续使用原有读取方式。
+- 5243fa0: Add a Scheduled conversation view with server-side filtering, search, pagination, and persistent view selection on desktop and mobile.
+- 8c3e7d3: Coalesce adjacent session journal stream deltas, and add an explicit offline journal maintenance command with backup, cold replay verification, and startup recovery.
+- a1f251b: Keep session pins across refreshes, instance restarts, and browsers, and place pinned sessions before pagination so older pinned work remains visible. Existing browser pins migrate automatically without overriding a saved unpin. Failed saves restore the previous state and show an error. Add matching `sessions pin` / `sessions unpin` CLI actions and AI session updates.
+- Updated dependencies [e698cf8]
+- Updated dependencies [a1f251b]
+  - @nextclaw/core@0.18.6
+  - @nextclaw/ncp-agent-runtime@0.4.28
+  - @nextclaw/mcp@0.3.56
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.56
+  - @nextclaw/runtime@0.4.55
+  - @nextclaw/ncp-agent-runtime-next@0.1.30
+  - @nextclaw/ncp-toolkit@0.6.28
+  - @nextclaw/ncp-mcp@0.2.56
+
 ## 0.19.2-beta.2
 
 ### Patch Changes

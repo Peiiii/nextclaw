@@ -1,5 +1,29 @@
 # @nextclaw/desktop
 
+## 0.0.301
+
+### Patch Changes
+
+- Updated dependencies [260165f]
+- Updated dependencies [e698cf8]
+- Updated dependencies
+- Updated dependencies [7c00b06]
+- Updated dependencies [5243fa0]
+- Updated dependencies [8c3e7d3]
+- Updated dependencies [a1f251b]
+  - @nextclaw/kernel@0.19.2
+  - @nextclaw/core@0.18.6
+  - @nextclaw/harness@0.2.28
+  - @nextclaw/server@0.23.14
+  - nextclaw@0.59.0
+  - @nextclaw/channel-extension-dingtalk@0.2.55
+  - @nextclaw/channel-extension-discord@0.2.55
+  - @nextclaw/channel-extension-email@0.2.55
+  - @nextclaw/channel-extension-slack@0.2.55
+  - @nextclaw/channel-extension-telegram@0.2.55
+  - @nextclaw/channel-extension-wecom@0.2.55
+  - @nextclaw/channel-extension-whatsapp@0.2.55
+
 ## 0.0.301-beta.2
 
 ### Patch Changes

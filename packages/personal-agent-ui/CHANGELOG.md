@@ -1,5 +1,25 @@
 # @nextclaw/personal-agent-ui
 
+## 0.0.3
+
+### Patch Changes
+
+- 260165f: Keep asynchronous questions in the assistant message at their original position, and expose ordered Bibo message content for the hosted chat.
+- 98b0260: 将 Bibo 独立成行的文字状态替换为与品牌或标题同行的简约 SVG 动态图标，区分空闲、思考、执行、保存、停止和恢复连接。支持悬停与键盘状态提示、返回后台运行会话，以及减少动态效果的静态显示。
+- 50f0440: Bibo 笔记默认直接编辑，新建后立即打开并自动避免重名。收紧文档菜单、侧栏与列表排版，修正块手柄定位，文档切换统一使用路径末项的下拉入口。
+
+  支持拖拽、键盘调整和记忆聊天分栏；AI 的实际文本块提前分卡展示，长间隔显示友好时间。移除所有页面的刷新确认，保留草稿恢复，并提供连接现有真实模型的本地开发入口。
+
+- 08c488f: 修复从会话打开笔记时短暂闪出历史文档标签的问题，并让待办列表的块手柄始终位于复选框和正文外侧。
+- c108c95: 精简 Bibo 工作界面和笔记画布，统一操作入口、菜单焦点和侧栏动效。聊天输入器从单行增长，AI 回复使用轻中性卡片及配套 Markdown 配色，复制入口左对齐，等待回复使用三点提示。移动导航统一交互，打开收件箱消息自动保存已读状态。
+- 73827a0: 收紧 Bibo 手机笔记编辑页的正文留白，移除重复路径行，统一正文和源码的左右对齐。优化窄屏标题间距及块操作空间，保留格式、保存、返回入口和草稿恢复。
+- ffba9e5: 统一 Bibo 左侧图标栏的模块导航、侧栏切换与账号入口尺寸、图标线宽和交互反馈，修复左下角账号图标与其他入口不一致的问题。
+- f5e1526: 修复多级路径笔记和文件在刷新后无法打开的问题，统一资源地址编码，并为编辑器模块加载过慢或失败提供明确反馈与恢复入口。
+- 6e5e750: Open Bibo task details in a right-side drawer with visible task properties and a clearer reading layout.
+- 4841142: 重新设计任务详情的阅读、编辑和子任务布局；任务说明与文件共用 Markdown 富文本编辑器，支持嵌入内容页面。
+- Updated dependencies [32a38da]
+  - @nextclaw/agent-chat-ui@0.12.4
+
 ## 0.0.3-beta.2
 
 ### Patch Changes
