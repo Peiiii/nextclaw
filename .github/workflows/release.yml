@@ -81,8 +81,13 @@ jobs:
           const status = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
           if (status.preState?.mode === "pre") throw new Error("stable release cannot use Changesets prerelease mode");
           const version = JSON.parse(fs.readFileSync("packages/nextclaw/package.json", "utf8")).version;
-          if (!/^\d+\.\d+\.\d+$/.test(version ?? "")) throw new Error("current NextClaw version is not stable");
-          const published = execFileSync("npm", ["view", `nextclaw@${version}`, "version"], { encoding: "utf8" }).trim();
+          const planned = (status.releases ?? []).find((entry) => entry.name === "nextclaw");
+          const hasStablePlan = /^\d+\.\d+\.\d+$/.test(planned?.newVersion ?? "");
+          const currentIsStable = /^\d+\.\d+\.\d+$/.test(version ?? "");
+          if (!currentIsStable && !hasStablePlan) throw new Error("current NextClaw version is not stable and no stable release is planned");
+          const published = currentIsStable
+            ? execFileSync("npm", ["view", `nextclaw@${version}`, "version"], { encoding: "utf8" }).trim()
+            : "";
           const desktopDrafts = process.env.RELEASE_TARGET === "all"
             ? JSON.parse(execFileSync("gh", ["release", "list", "--limit", "100", "--json", "isDraft,tagName"], { encoding: "utf8" }))
             : [];
@@ -95,8 +100,7 @@ jobs:
             process.stdout.write(`mode=recovery\ntarget_version=${version}\n`);
             process.exit(0);
           }
-          const planned = (status.releases ?? []).find((entry) => entry.name === "nextclaw");
-          if (planned && /^\d+\.\d+\.\d+$/.test(planned.newVersion ?? "")) {
+          if (hasStablePlan) {
             process.stdout.write(`mode=new\ntarget_version=${planned.newVersion}\n`);
             process.exit(0);
           }

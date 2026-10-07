@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 
 import {
   assertTrustedPublishingEnvironment,
@@ -327,7 +328,7 @@ test("stable release exposes only the business target and infers recovery checkp
   );
   assert.match(
     workflow,
-    /const hasDesktopDraft = desktopDrafts\.some[\s\S]*?mode=recovery[\s\S]*?const planned =/,
+    /const hasDesktopDraft = desktopDrafts\.some[\s\S]*?mode=recovery[\s\S]*?if \(hasStablePlan\)/,
   );
   assert.match(
     workflow,
@@ -354,6 +355,57 @@ test("stable release exposes only the business target and infers recovery checkp
     workflow,
     /matrix: \$\{\{ fromJSON\(needs\.publish-npm\.outputs\.compatibility_matrix\) \}\}[\s\S]*?Reuse completed immutable compatibility evidence/,
   );
+});
+
+test("stable identity promotes an exited beta and preserves published Desktop recovery", () => {
+  const workflow = readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
+  const source = workflow.match(/node - \.changeset-status\.json <<'NODE'[^\n]*\n([\s\S]*?)\n          NODE/)?.[1];
+  assert.ok(source, "the dispatched identity resolver must exist");
+  const exited = { preState: { mode: "exit" }, releases: [{ name: "nextclaw", newVersion: "0.59.0" }] };
+  function resolve(status, version, draft = false) {
+    let output = "";
+    const calls = [];
+    const stopped = {};
+    try {
+      runInNewContext(source, {
+        require(name) {
+          if (name === "node:fs") return {
+            readFileSync(path) {
+              return JSON.stringify(path === "status.json" ? status : { version });
+            },
+          };
+          assert.equal(name, "node:child_process");
+          return {
+            execFileSync(command, args) {
+              calls.push([command, ...args]);
+              if (command === "npm") return version;
+              if (command === "gh") return JSON.stringify(draft ? [{ isDraft: true, tagName: `v${version}-desktop.1` }] : []);
+              assert.equal(command, "git");
+              return "";
+            },
+          };
+        },
+        process: {
+          argv: ["node", "-", "status.json"],
+          env: { RELEASE_TARGET: draft ? "all" : "product" },
+          stdout: { write(value) { output += value; } },
+          exit() { throw stopped; },
+        },
+      });
+    } catch (error) {
+      if (error !== stopped) throw error;
+    }
+    return { output, calls };
+  }
+  assert.deepEqual(resolve(exited, "0.59.0-beta.2"), {
+    output: "mode=new\ntarget_version=0.59.0\n",
+    calls: [],
+  });
+  assert.throws(() => resolve({ ...exited, preState: { mode: "pre" } }, "0.59.0-beta.2"), /prerelease mode/);
+  assert.throws(() => resolve({ releases: [] }, "0.59.0-beta.2"), /no stable release is planned/);
+  assert.equal(resolve(exited, "0.58.0").output, "mode=new\ntarget_version=0.59.0\n");
+  assert.equal(resolve(exited, "0.58.0", true).output, "mode=recovery\ntarget_version=0.58.0\n");
+  assert.equal(resolve({ releases: [] }, "0.58.0").output, "mode=recovery\ntarget_version=0.58.0\n");
 });
 
 test("only all-platform releases require complete content before package publication", () => {
