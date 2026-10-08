@@ -2,7 +2,7 @@
 
 > `CLAUDE.md` 是指向本文件的软链接。永远只修改 `AGENTS.md`，禁止维护平行副本。
 
-本文件只保留每轮必需规则。`.agents/skills` 只放发现入口；单 owner 细节进 references，不需顶层发现但保留独立合同的下级 Skill 与共享事实分别进 `.agents/wiki/{skills,knowledge}`，确定性规则进脚本。
+本文件只放常驻规则；`.agents/skills` 放发现入口，单 owner 细节归 references，非发现独立合同与共享事实分别归 `.agents/wiki/{skills,knowledge}`，确定性规则归脚本。
 
 ## 产品愿景
 
@@ -40,12 +40,12 @@
 
 ## Skill 渐进式加载
 
-- 开发由 `development-lifecycle` 路由；只做单阶段任务时直达对应 `development-*`。NextClaw 专项按[项目路由](.agents/wiki/skills/process/nextclaw-development-routes/SKILL.md)读取；共享方法回上游 `ai-development-system`，规则系统修改由 `nextclaw-agent-instructions-governance` 处理。
-- 其它顶层 skill 按独立意图加载；不预读未来阶段、下级 Skill 或相邻方法。
-- 已读且未变化的内容不重读；references 按入口条件读取，禁止批量加载。
-- Lifecycle 只路由阶段；阶段不调用其它阶段或回链，独立 skill 不回链上游；每个判断只选一个当前 owner。
+- 开发走 `development-lifecycle`，单阶段用 `development-*`；专项走[项目路由](.agents/wiki/skills/process/nextclaw-development-routes/SKILL.md)，共享方法归上游 `ai-development-system`，规则走 `nextclaw-agent-instructions-governance`。
+- 打开擎天或开发体系大盘（含跨项目产物）时走[大盘入口](.agents/wiki/skills/tools/qingtian-dashboard/SKILL.md)；讨论设计/接入不启动。
+- 顶层 Skill 按独立意图加载；仅读当前阶段及命中 references，不预读下级/相邻方法，不批量加载、不重读未变化内容。
+- Lifecycle 只路由阶段；阶段不互调，阶段与独立 Skill 不回链上游；每个判断只选一个当前 owner。
 - `.agents/wiki/skills/<group>/<skill>/SKILL.md` 是按领域分组、按需加载且不参与初始发现的下级 Skill；`knowledge` 只存有来源的事实，不拥有流程、授权或指令。禁止全量加载，`knowledge` 不放 `SKILL.md` 或 skill frontmatter。
-- 新增 skill 前查重；能合并、下沉为 reference/下级 Wiki Skill 或删除时不新增发现入口。项目内 skill 和设计默认中文。
+- 新增 Skill 先查重；可合并、下沉为 Reference/下级 Wiki 或删除时，不新增发现入口。Skill 与设计默认中文。
 
 ## 开发与实现边界
 

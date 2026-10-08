@@ -60,8 +60,11 @@ export const collectSkillEntries = ({ budgets, repoRoot, skillsRoot }) => {
     }
 
     const bytes = Buffer.byteLength(text);
-    if (bytes > budgets.skillBytes) {
-      violations.push(`${file}: ${bytes} bytes exceeds SKILL.md budget ${budgets.skillBytes}`);
+    const skillBytesBudget = Object.hasOwn(budgets.skillBytesByName ?? {}, name)
+      ? budgets.skillBytesByName[name]
+      : budgets.skillBytes;
+    if (bytes > skillBytesBudget) {
+      violations.push(`${file}: ${bytes} bytes exceeds SKILL.md budget ${skillBytesBudget}`);
     }
     if ((description?.length ?? 0) > budgets.descriptionChars) {
       violations.push(

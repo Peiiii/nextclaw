@@ -4,6 +4,13 @@ export const defaultSkillBudgets = Object.freeze({
   descriptionChars: 260,
   descriptionTotalChars: 2_000,
   skillBytes: 8_000,
+  // Qingtian 0.1.1 upstream payload: exact ceilings; other entries retain 8 KB.
+  // Remove these exceptions when the upstream entries fit the default budget.
+  skillBytesByName: Object.freeze({
+    "development-design": 8_029,
+    "development-lifecycle": 8_744,
+    "iterative-quality-convergence": 8_111
+  }),
   skillCount: 16,
   skillTotalBytes: 90_000
 });

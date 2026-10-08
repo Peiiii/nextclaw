@@ -1,6 +1,6 @@
 ---
 name: development-lifecycle
-description: 通用开发流程的唯一 Meta Skill；理解后选择 standard、trivial 或 bugfix，管理阶段门、返工、验收与整体完成；阶段 Skill 提供方法，知识库提供事实。
+description: 通用开发流程的唯一 Meta Skill；理解后选择 initialization、standard、trivial 或 bugfix，管理阶段门、返工、验收与整体完成；阶段 Skill 提供方法，知识库提供事实。
 ---
 
 # Development Lifecycle
@@ -17,9 +17,10 @@ Task Understanding 给出目标、授权、验收、证据/未知、owner、风�
 
 按顺序选择 `flow`：
 
-1. 恢复已有合同行为 → `bugfix`；预期未知先调查，不把新增需求当 bug。
-2. 非 bug，且局部可逆、范围清楚、惯例路径、验证直接、无真实设计分叉或高风险边界 → `trivial`。
-3. 其它变更 → `standard`。
+1. 新建独立产品，或目标目录仅有管理脚手架、没有服务本次目标的产品运行链路 → `initialization`；读取[项目初始化](references/project-initialization.md)，复用现有阶段并增加初始化门。仅规则接入/升级或已有产品新增功能不命中。
+2. 恢复已有合同行为 → `bugfix`；预期未知先调查，不把新增需求当 bug。
+3. 非 bug，且局部可逆、范围清楚、惯例路径、验证直接、无真实设计分叉或高风险边界 → `trivial`。
+4. 其它变更 → `standard`。
 
 风险独立：L0 普通文档/元信息；L1 局部低风险；L2 行为/交互；L3 跨 owner、持久化、协议或高影响规则；L4 发布、迁移、生产或不可逆操作。按内容而非扩展名或行数判断。trivial 仅 L0-L1；发现跨层影响或设计分叉升级 standard，复用有效证据。bugfix 有设计缺口时使用正式设计与方案 Review，保留修复目标。
 
@@ -27,17 +28,20 @@ Task Understanding 给出目标、授权、验收、证据/未知、owner、风�
 
 风险 L3-L4 或用户要求大型、多阶段、低监督交付/验收时读取[验收合同方法](../../wiki/skills/process/acceptance-contract-governance/SKILL.md)，登记 active contract 与稳定 ID；普通任务不普遍建 ledger。
 
-## 三条流程
+## 四条流程
 
 用户委托完整大型成果，且需跨工作项/上下文保持整体责任时，按需读取[大型交付](references/major-delivery.md)。它是交付组织方式，具体工作仍走以下 flow；仅设计/调查不扩大执行范围。
 
 | flow | 顺序与门 |
 | --- | --- |
+| initialization | 明确目标与项目上下文/接入 → 技术栈与主链路设计 → 方案 Review → 最小完整项目与首条运行链路 → 真实使用验证 → 实现 Review → 交付 → 复盘 |
 | standard | 理解澄清 → 方案与验收设计 → Review(mode=design) → 实现与迭代检查 → Validation(mode=acceptance) → Review(mode=implementation) → 用户验收交付 → 复盘 |
 | trivial | 快速理解与判定 → 修改 → 定向 Validation 与轻量 Review → 交付 → 轻量复盘；不要求独立方案或设计文档 |
 | bugfix | 预期/异常 → 复现取证与根因 → 修复和回归判定 → 必要设计/方案 Review → 修复 → 原触发与相邻行为验证、Review → 交付 → 复盘 |
 
 只有根因、路径与修后判定明确，L0-L1、单 owner、局部可逆且不改变跨层合同/状态/持久化/兼容/迁移/fallback 的 bugfix，才可内联修复设计并跳过独立方案 Review。记录 skip-design 与依据；其它 bugfix 走正式设计门。复现由理解阶段选择 reproduce 或 skip-reproduction 并说明证据，不新增 phase。
+
+initialization 与 standard 共用阶段 owner、返工状态与整体完成门；大型交付可与任一 flow 组合，不另造流程。
 
 standard 不因 diff 小跳过设计：设计含验收标准、必要测试矩阵并完成方案 Review；轻量方案不等于必须建长文档。plan 只在跨批恢复需要时建立，不是新增 phase。
 
@@ -53,7 +57,7 @@ standard 不因 diff 小跳过设计：设计含验收标准、必要测试矩�
 - 可用入口、用户验收、授权内交付：`development-delivery`。
 - 轻量反思与条件沉淀：`development-retrospective`。
 
-跨会话或恢复读取[执行状态与恢复](../../wiki/skills/process/iteration-work-notes/SKILL.md)；质量迭代宏、要求反复评审至满意或同类质量纠偏读取[质量迭代收敛](../../wiki/skills/process/iterative-quality-convergence/SKILL.md)；事实维护或资料冲突读取[项目知识治理](../../wiki/skills/process/project-knowledge-governance/SKILL.md)。只加载命中项。
+跨会话或恢复读取[执行状态与恢复](../../wiki/skills/process/iteration-work-notes/SKILL.md)；需要自主发现并成批修复质量差距、质量迭代宏、反复评审至满意或同类质量纠偏读取[质量迭代收敛](../../wiki/skills/process/iterative-quality-convergence/SKILL.md)；建立或复查长期关注事项、创建/维护/执行周期事项、事实维护或资料冲突读取[项目知识治理](../../wiki/skills/process/project-knowledge-governance/SKILL.md)。只加载命中项。
 
 AI 验收结合 Validation 合同证据与 Review 结论，不新增平行 Skill。方案 Review 不要求多代理。用户验收不适用于纯内部产物时说明依据，不强加产品运行环境。
 

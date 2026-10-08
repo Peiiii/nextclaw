@@ -55,6 +55,35 @@ test("accepts a minimal acyclic skill catalog", (t) => {
   assert.ok(result.metrics.discoveryChars > 0);
 });
 
+test("keeps per-skill byte ceilings bounded without relaxing other entries", (t) => {
+  const repoRoot = createFixture();
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+  const alphaPath = path.join(repoRoot, ".agents/skills/alpha/SKILL.md");
+  const betaPath = path.join(repoRoot, ".agents/skills/beta/SKILL.md");
+  fs.appendFileSync(alphaPath, "x".repeat(100));
+  fs.appendFileSync(betaPath, "x".repeat(100));
+  const alphaBytes = fs.statSync(alphaPath).size;
+  const audit = () => auditSkillProgressiveLoading({
+    budgets: {
+      ...generousBudgets,
+      skillBytes: 100,
+      skillBytesByName: { alpha: alphaBytes }
+    },
+    enforceDevelopmentLifecycle: false,
+    repoRoot,
+    retiredNames: []
+  });
+
+  const initial = audit().violations.filter((violation) => violation.includes("SKILL.md budget"));
+  assert.equal(initial.length, 1);
+  assert.ok(initial[0].includes("beta/SKILL.md"));
+
+  fs.appendFileSync(alphaPath, "x");
+  const oversized = audit().violations.filter((violation) => violation.includes("SKILL.md budget"));
+  assert.equal(oversized.length, 2);
+  assert.ok(oversized.some((violation) => violation.includes(`alpha/SKILL.md: ${alphaBytes + 1} bytes`)));
+});
+
 test("reports dependency cycles and broken local links", (t) => {
   const repoRoot = createFixture();
   t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
