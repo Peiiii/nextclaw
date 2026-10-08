@@ -34,7 +34,7 @@
 | QT-01 | true | 当前受管 payload 与最新公开安装包一致 | passed | 安装包 SHA-256 匹配；upgrade 16 项；qingtian check：installed payload matches source。新 sourceDigest：bdccd7d221f8afc5c12874b30a3ec2225b8f91ff67bb237de64c1d74cc8871d2；公开包无 Git 元数据，sourceCommit 为 null |
 | QT-02 | true | 项目规则和无关草稿保留，新 Wiki 入口可按需到达 | passed | AGENTS 条件入口指向已安装大盘 Skill；受管 owner 不分叉；diff 精确审计未触达原 Bibo 草稿 |
 | QT-03 | true | 渐进加载、链接、拓扑及适用治理检查通过，Review 无遗留 findings | passed | 渐进加载、governance、ratchet PASS；13/13 定向测试；3 个治理 mjs 的 ESLint/node --check 通过；maintainability 0 errors/0 warnings；内容与场景 Review 无 findings |
-| QT-04 | true | 本任务精确提交到远程 master，并核对本地主线状态 | not-run | 尚未交付 |
+| QT-04 | true | 本任务精确提交到远程 master，并核对本地主线状态 | passed | a98ca8f7b168f5355924b11ef05513de8a469795 已 push origin/master；2026-10-08 23:45:36 reconciliation 返回 LOCAL_MAINLINE_SYNCED，localOnly/remoteOnly 均为 0，原产品草稿保留 |
 
 黄金验收链路：用户在本项目请求开发任务 → 根 AGENTS 路由 lifecycle → 当前阶段按需读取更新后的方法；请求打开擎天大盘 → 根条件入口定位新 Wiki Skill。AI 用文件、链接、条件反例和安装器证明接入，不把规则安装说成已完成实际产品开发或后台执行。
 
@@ -53,3 +53,9 @@
 ## 复盘
 
 可复用事实是本版本的三个入口体积与项目预算不一致：已在原预算 owner 设置有限例外、保留退场条件，并以定向测试证明未扩大其它入口预算；AGENTS 在同一原路由收敛重复文字。除此之外 retrospective_decision: no-increment，官方安装链路已足够，不再增加长期规则或平行安装器。交付闭合后由 lifecycle 核对全部 Required IDs。
+
+## 交付闭合
+
+提交前拉取远程，确认本地主线落后 14 个提交且与任务路径/既有草稿不重叠，安全快进后提交本任务 21 个文件并推送。同步带入其它已交付的 X Skill 变更，因此最终项目审计为：顶层 16、Wiki 29、discovery 2916、description 1510 字符、SKILL.md 87036 bytes、AGENTS 11984 bytes，结果 PASS；本次升级自身新增的 Wiki 仅大盘 1 个。
+
+公开归档安装器升级复验：`upgrade --dry-run` 为 0 file changes；`qingtian check` 仍为 installed payload matches source。三个预算例外、引用和项目规则均已验证；全部 Required IDs 当前 passed，retrospective_state=completed，无剩余授权内缺口。此记录补充随任务精确提交推送；工作区遗留仅任务开始时已有的产品草稿。
