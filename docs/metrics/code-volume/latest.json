@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-10-07T08:36:03.573Z",
+  "generatedAt": "2026-10-08T08:53:45.402Z",
   "projectRoot": "/home/runner/work/nextclaw/nextclaw",
   "git": {
-    "sha": "d1301331e83c17ec3b83e0e3a284ef75f8c72673",
+    "sha": "973722eacaca526cce956f8a7d2c7488344d2578",
     "ref": "master"
   },
   "scope": {
@@ -106,20 +106,20 @@
   },
   "totals": {
     "files": 3490,
-    "totalLines": 504258,
+    "totalLines": 504246,
     "blankLines": 42192,
     "commentLines": 1255,
-    "codeLines": 322230,
+    "codeLines": 322218,
     "testCodeLines": 138581
   },
   "byLanguage": [
     {
       "name": "TypeScript",
       "files": 2738,
-      "totalLines": 391995,
+      "totalLines": 391983,
       "blankLines": 33838,
       "commentLines": 1134,
-      "codeLines": 254835,
+      "codeLines": 254823,
       "testCodeLines": 102188
     },
     {
@@ -154,10 +154,10 @@
     {
       "name": "packages/nextclaw-kernel",
       "files": 502,
-      "totalLines": 85120,
+      "totalLines": 85108,
       "blankLines": 6588,
       "commentLines": 306,
-      "codeLines": 50877,
+      "codeLines": 50865,
       "testCodeLines": 27349
     },
     {
@@ -3396,6 +3396,16 @@
       "codeLines": 310
     },
     {
+      "path": "packages/nextclaw-kernel/src/app/nextclaw-kernel.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 327,
+      "blankLines": 15,
+      "commentLines": 2,
+      "codeLines": 310
+    },
+    {
       "path": "packages/ncp-packages/nextclaw-ncp-agent-runtime/src/runtime/stream-encoder.utils.ts",
       "scope": "packages/ncp-packages/nextclaw-ncp-agent-runtime",
       "language": "TypeScript",
@@ -3413,16 +3423,6 @@
       "totalLines": 329,
       "blankLines": 20,
       "commentLines": 0,
-      "codeLines": 309
-    },
-    {
-      "path": "packages/nextclaw-kernel/src/app/nextclaw-kernel.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 326,
-      "blankLines": 15,
-      "commentLines": 2,
       "codeLines": 309
     },
     {
@@ -6416,16 +6416,6 @@
       "codeLines": 194
     },
     {
-      "path": "packages/nextclaw-kernel/src/features/harness/types/nextclaw-harness.types.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 218,
-      "blankLines": 24,
-      "commentLines": 0,
-      "codeLines": 194
-    },
-    {
       "path": "packages/nextclaw-app-runtime/src/services/app-component-contract.service.ts",
       "scope": "packages/nextclaw-app-runtime",
       "language": "TypeScript",
@@ -6932,6 +6922,16 @@
       "files": 1,
       "totalLines": 210,
       "blankLines": 30,
+      "commentLines": 0,
+      "codeLines": 180
+    },
+    {
+      "path": "packages/nextclaw-kernel/src/features/harness/types/nextclaw-harness.types.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 204,
+      "blankLines": 24,
       "commentLines": 0,
       "codeLines": 180
     },
@@ -17826,6 +17826,16 @@
       "codeLines": 47
     },
     {
+      "path": "packages/nextclaw-kernel/src/types/agent-platform.types.ts",
+      "scope": "packages/nextclaw-kernel",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 53,
+      "blankLines": 4,
+      "commentLines": 2,
+      "codeLines": 47
+    },
+    {
       "path": "packages/nextclaw-shared/src/types/update.types.ts",
       "scope": "packages/nextclaw-shared",
       "language": "TypeScript",
@@ -17983,16 +17993,6 @@
       "totalLines": 53,
       "blankLines": 7,
       "commentLines": 0,
-      "codeLines": 46
-    },
-    {
-      "path": "packages/nextclaw-kernel/src/types/agent-platform.types.ts",
-      "scope": "packages/nextclaw-kernel",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 52,
-      "blankLines": 4,
-      "commentLines": 2,
       "codeLines": 46
     },
     {
@@ -35668,7 +35668,7 @@
   ],
   "delta": {
     "previousCodeLines": 322230,
-    "codeLines": 0,
+    "codeLines": -12,
     "percent": 0
   }
 }
