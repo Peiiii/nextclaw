@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.59.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-10-09",
+  "title": {"zh-CN": "NextClaw v0.59.1", "en-US": "NextClaw v0.59.1"},
+  "summary": {
+    "zh-CN": "上下文压缩后保留已有进展，减少重复调查和重复执行。",
+    "en-US": "Preserve task progress after compaction to reduce repeated investigation and execution."
+  },
+  "links": {"html": {
+    "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-10-09-nextclaw-v0-59-1",
+    "en-US": "https://docs.nextclaw.io/en/notes/2026-10-09-nextclaw-v0-59-1"
+  }},
+  "sections": [{
+    "kind": "fix",
+    "title": {"zh-CN": "长任务连续性", "en-US": "Long-task continuity"},
+    "items": [{
+      "title": {"zh-CN": "保留执行事实与近期轮次", "en-US": "Keep execution evidence and recent rounds"},
+      "body": {
+        "zh-CN": "摘要保留工具身份与结果，继承已完成事项并更新下一步；近期完整轮次按预算保留，后续新增内容只投影一次。压缩失败保持上次检查点，执行状态不完整时先核对结果。",
+        "en-US": "Summaries preserve tool identities and outcomes, carry completed work forward and update the next step. Complete recent rounds stay within budget, and appended content is projected once. Failed compactions keep the previous checkpoint; incomplete execution status requires recovering results first."
+      }
+    }]
+  }]
+}

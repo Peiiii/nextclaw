@@ -2,7 +2,7 @@
 
 - contract-id：compaction-continuity-20261009
 - parent-goal：长任务经过一次及连续上下文压缩后，仍能识别已完成操作与正确下一步；充分验证后发布 patch。
-- scope-revision：1；授权来源：2026-10-09 当前会话，用户要求完成修复、充分测试并发布 patch。
+- scope-revision：2；授权来源：2026-10-09 当前会话，用户要求完成修复、充分测试并发布 patch，随后明确补充桌面端必须发布，并要求复用自动化、减少 Token。
 - 来源：用户截图反映压缩后重复读文件、重复调查及重复执行；用户算法建议只作参考。截图无现场 journal，不能认定具体版本或直接根因。
 
 | ID | Required | 合同 | Status | 证据 |

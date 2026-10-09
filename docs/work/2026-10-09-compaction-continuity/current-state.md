@@ -6,4 +6,5 @@
 - 源区无本任务草稿；既有无关 WIP 已保存到仓库外 `/tmp/nextclaw-compaction-audit-20261009/source-worktree*`。
 - 根因：过滤工具身份，首二尾八裁剪中间历史，mid-run 不保留工具尾部。修前探针：`/tmp/nextclaw-compaction-audit-20261009/probe-results.json`。
 - 设计 owner：[既有压缩设计](../../designs/2026-08-08-codex-aligned-context-compaction.design.md)。方案 Review 已通过，实现在该设计范围内；最终实现 Review 无未关闭 finding。
-- 下一步：提交本任务、推送 master、单次 dispatch `release.yml target=product expected_head=<frozen SHA>`；验证 NPM/runtime/升级、回流主线并更新同批记录。Desktop 不属于常规 patch 发布合同。
+- 已提交 `f1612e03a`，合入统计提交后冻结 `075edeaa253df93ef573dd9156946faaa6325143`；有效 product parent 为 `37932521522`。首次误用短 SHA 的请求 `37932253478` 在发布前身份校验失败，未发布任何包。
+- 最新范围包含 Desktop。原 product parent 启动后用户补充授权，不能修改已冻结 inputs；产品成功后从既有 `release.yml target=all` 恢复入口消费同一已发布版本与补齐的结构化内容，自动调用 Desktop owner，不重复 NPM/runtime 发布。
