@@ -1,5 +1,12 @@
 # @nextclaw/harness
 
+## 0.2.29
+
+### Patch Changes
+
+- Updated dependencies [f1612e0]
+  - @nextclaw/kernel@0.19.3
+
 ## 0.2.28
 
 ### Patch Changes

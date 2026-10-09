@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.18.7
+
+### Patch Changes
+
+- f1612e0: Preserve tool identities and complete recent tool rounds during context compaction. Carry completed work forward across repeated summaries, keep newly appended assistant parts exactly once, and recover safely when a summary cannot fit without losing execution records.
+
 ## 0.18.6
 
 ### Patch Changes

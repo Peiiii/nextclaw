@@ -1,5 +1,12 @@
 # @nextclaw/channel-extension-discord
 
+## 0.2.56
+
+### Patch Changes
+
+- Updated dependencies [f1612e0]
+  - @nextclaw/core@0.18.7
+
 ## 0.2.55
 
 ### Patch Changes

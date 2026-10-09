@@ -1,5 +1,17 @@
 # @nextclaw/kernel
 
+## 0.19.3
+
+### Patch Changes
+
+- f1612e0: Preserve tool identities and complete recent tool rounds during context compaction. Carry completed work forward across repeated summaries, keep newly appended assistant parts exactly once, and recover safely when a summary cannot fit without losing execution records.
+- Updated dependencies [f1612e0]
+  - @nextclaw/core@0.18.7
+  - @nextclaw/mcp@0.3.57
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.57
+  - @nextclaw/runtime@0.4.56
+  - @nextclaw/ncp-mcp@0.2.57
+
 ## 0.19.2
 
 ### Patch Changes

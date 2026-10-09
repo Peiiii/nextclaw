@@ -1,5 +1,14 @@
 # @nextclaw/bibo-hosted
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies [f1612e0]
+  - @nextclaw/core@0.18.7
+  - @nextclaw/kernel@0.19.3
+  - @nextclaw/harness@0.2.29
+
 ## 0.3.0
 
 ### Minor Changes
