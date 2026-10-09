@@ -150,7 +150,9 @@ Global completion notifications are reserved for background replies started dire
 
 ## Long tasks and context compaction
 
-Native Agents automatically compact earlier content when a long task approaches its context limit, then continue within the same task. The timeline shows when compaction starts and completes. The resulting context keeps a summary plus recent user messages so the resumed model can stay focused on the current request.
+Native Agents automatically compact earlier content when a long task approaches its context limit, then continue within the same task. The timeline shows when compaction starts and completes. The resulting context keeps a summary, recent user messages, and complete recent tool rounds within the available budget. Summaries distinguish completed, ongoing, failed, and blocked work, and update the next step across repeated compactions.
+
+A failed compaction preserves the last successful checkpoint. If summary generation falls back to recent records, the Agent receives an explicit warning that earlier execution status is incomplete and should recover operation results before repeating side effects.
 
 The context-window indicator separates system and tools, conversation content, output reserve, and the automatic compaction threshold. Its percentage estimates the complete model input, not only the visible chat messages.
 

@@ -131,7 +131,7 @@ describe("ContextCompactionPreflightService model-round projection", () => {
       sessionId: SESSION_ID, sessionMessages: [updated, finish.timelineMessage!], storedMetadata: {} });
     const second = await service.finish(again.pendingCompaction!);
     expect((second.timelineMessage!.metadata!.checkpoint as ContextCompactionCheckpoint).retainedMessagePartStarts)
-      .toEqual({ "multi-round": 3 });
+      .toEqual({ "multi-round": 2 });
   });
 });
 
@@ -809,13 +809,12 @@ describe("ContextCompactionPreflightService summary projection", () => {
     expect(providerManager.chat).toHaveBeenCalledOnce();
     const summaryRequest = providerManager.chat.mock.calls[0]?.[0].messages[1]?.content ?? "";
     expect(summaryRequest).toContain("Previously compressed context.");
-    expect(summaryRequest).toContain("after checkpoint 14");
+    expect(summaryRequest).toContain("after checkpoint 0");
     expect(summaryRequest).not.toContain("after checkpoint 15");
     expect(finishResult.timelineMessage?.id).toBe(pendingCompaction.serviceMessageId);
     expect(finishResult.timelineMessage?.metadata?.checkpoint).toMatchObject({
       coveredMessageCount: compressingCheckpoint.coveredMessageCount,
       coveredSessionMessageCount: compressingCheckpoint.coveredSessionMessageCount,
-      coveredUntil: "2026-06-05T17:34:00.000Z",
       id: existingCheckpoint.id,
       status: "compressed",
       summary: protocolSummary("Continue."),

@@ -12,6 +12,7 @@ export type ContextCompactionCheckpoint = {
   preservedUserMessageIds?: string[];
   retainedMessageIds?: string[];
   retainedMessagePartStarts?: Record<string, number>;
+  retainedMessagePartEnds?: Record<string, number>;
   truncatedPreservedUserMessage?: {
     messageId: string;
     text: string;
@@ -31,6 +32,7 @@ export type ContextCompactionCheckpoint = {
     rawSummaryTokens: number;
     recovery: "provider-summary" | "deterministic-recent-context";
     targetSummaryTokens: number;
+    sourceBatchCount?: number;
   };
   createdAt: string;
   updatedAt: string;

@@ -18,6 +18,31 @@ function assistantMessage(id: string, content: string): Record<string, unknown> 
 }
 
 describe("ContextCompactionService model-round retention", () => {
+  it("retains a complete recent call/result pair with a bounded snapshot", async () => {
+    const service = new ContextCompactionService();
+    const messages = [assistantMessage("old", "older evidence ".repeat(2_000)),
+      { ...assistantMessage("reply", ""), tool_calls: [{ id: "call-1", function: { name: "exec", arguments: '{"cmd":"migrate"}' } }], ncp_part_start: 0, ncp_part_end: 2 },
+      { role: "tool", content: "migration completed", tool_call_id: "call-1", ncp_message_id: "reply", ncp_part_start: 0, ncp_part_end: 2 },
+    ];
+    const plan = service.prepareForModelInput({ messages, contextTokens: 20_000, compactionThresholdTokens: 0,
+      retainLatestMessage: false, retainRecentTokens: 20_000 });
+    expect(plan!.retainedMessages.map((message) => message.role)).toEqual(["assistant", "tool"]);
+    const result = await service.compactPreparedForModelInput({ contextTokens: 20_000, plan: plan!, generateSummary: async () => "Older work done." });
+    expect(result.checkpoint).toMatchObject({ retainedMessagePartStarts: { reply: 0 }, retainedMessagePartEnds: { reply: 2 } });
+  });
+
+  it("summarizes an oversized recent round rather than retaining an orphan result", () => {
+    const service = new ContextCompactionService();
+    const messages = [assistantMessage("old", "older evidence"),
+      { ...assistantMessage("reply", ""), tool_calls: [{ id: "call-1" }] },
+      { role: "tool", tool_call_id: "call-1", content: "huge ".repeat(20_000) },
+    ];
+    const plan = service.prepareForModelInput({ messages, contextTokens: 1_000, compactionThresholdTokens: 0,
+      retainRecentTokens: 20_000 });
+    expect(plan!.retainedMessages).toEqual([]);
+    expect(plan!.coveredMessages).toHaveLength(3);
+  });
+
   it("retains a model-round tail by part boundary when rounds share one message id", async () => {
     const service = new ContextCompactionService();
     const messages = [

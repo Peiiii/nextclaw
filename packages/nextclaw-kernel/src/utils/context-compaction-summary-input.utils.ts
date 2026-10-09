@@ -1,9 +1,8 @@
 import { estimateInputTokens } from "@nextclaw/core/model-input-budget";
 import { normalizeAssistantText } from "@nextclaw/ncp";
+import { stringifyCompactionSource, truncateSummarySourceString } from "./context-compaction-summary-source.utils.js";
 
 const SUMMARY_SOURCE_MAX_CHARS = 120_000;
-const SUMMARY_SOURCE_HEAD_MESSAGES = 2;
-const SUMMARY_SOURCE_TAIL_MESSAGES = 8;
 const SUMMARY_HEADING = "# Compressed Working Context";
 export const SUMMARY_CONTINUATION_HEADING = "## Continuation Contract";
 export const SUMMARY_ESSENTIAL_COMPLETE_MARKER = "<!-- nextclaw-essential-context-complete -->";
@@ -20,80 +19,12 @@ const SUMMARY_OPTIONAL_SECTIONS = [
   ["Older Relevant Context", "older-relevant-context"],
 ] as const;
 const SUMMARY_SYSTEM_PROMPT = [
-  "Compress a coding-agent session into standalone Markdown. Do not invent facts.",
-  "Start with '# Compressed Working Context'. Then use these sections in exact order: Active Request; Current Work State; Safety and User Constraints; Continuation Contract; Critical Technical Context; Evidence and Verification; Recent High-Fidelity Context; Older Relevant Context.",
-  "The first four sections are essential and must have non-empty bodies. End the Continuation Contract body with exactly '<!-- nextclaw-essential-context-complete -->'. Put no text after that marker before the next heading.",
-  "Optional sections follow in the listed order. End each body with '<!-- nextclaw-section-complete:SLUG -->', using slugs critical-technical-context, evidence-and-verification, recent-high-fidelity-context, and older-relevant-context. Omit an optional section unless you can close it.",
-  "Keep all essential facts in the first four sections: latest user intent, active task, current work, constraints, decisions, files and changes, tool/test evidence, failures, blockers, and exact next step.",
-  "Do not restart onboarding for missing profile fields unless onboarding is the active task. A greeting does not erase the prior task.",
+  "Summarize facts as Markdown starting '# Compressed Working Context'.",
+  "Required nonempty headings, in order: Active Request; Current Work State; Safety and User Constraints; Continuation Contract. Close the last body with <!-- nextclaw-essential-context-complete -->.",
+  "Include latest intent, decisions, constraints, changed files, evidence and next step. Distinguish Done/In Progress/Blocked/Failed; keep command/file identities and outcomes. Attempted calls alone are not completion.",
+  "Update any previous summary: carry completed work and constraints forward, replace stale next steps. Completed requests are history. Repeat reads only for freshness/verification; recover uncertain side-effect status before repeating. A greeting does not erase the prior task or restart onboarding.",
+  "Optional headings follow in order: Critical Technical Context; Evidence and Verification; Recent High-Fidelity Context; Older Relevant Context. Close each body with <!-- nextclaw-section-complete:SLUG -->, using critical-technical-context, evidence-and-verification, recent-high-fidelity-context, older-relevant-context respectively. Omit sections you cannot close.",
 ].join("\n");
-
-function toCompactionSourceMessage(message: Record<string, unknown>): Record<string, unknown> {
-  return {
-    role: message.role,
-    content: message.content,
-    timestamp: message.timestamp,
-    ncp_message_id: message.ncp_message_id,
-  };
-}
-
-function truncateSummarySourceString(value: unknown, maxChars: number): unknown {
-  if (typeof value !== "string" || value.length <= maxChars) {
-    return value;
-  }
-  const marker = `[${value.length - maxChars} chars omitted]`;
-  const headChars = Math.floor((maxChars - marker.length) / 2);
-  const tailChars = maxChars - marker.length - headChars;
-  return [
-    value.slice(0, headChars).trimEnd(),
-    marker,
-    value.slice(-tailChars).trimStart(),
-  ].join("\n");
-}
-
-function stringifyCompactionSource(
-  messages: readonly Record<string, unknown>[],
-  maxChars: number,
-): string {
-  const sourceMessages = messages.map(toCompactionSourceMessage);
-  const json = JSON.stringify(sourceMessages, null, 2);
-  if (json.length <= maxChars) {
-    return json;
-  }
-  const tailStart = Math.max(
-    SUMMARY_SOURCE_HEAD_MESSAGES,
-    sourceMessages.length - SUMMARY_SOURCE_TAIL_MESSAGES,
-  );
-  const compactedMessages = [
-    ...sourceMessages.slice(0, SUMMARY_SOURCE_HEAD_MESSAGES),
-    ...(tailStart > SUMMARY_SOURCE_HEAD_MESSAGES
-      ? [{
-          role: "system",
-          content: `[${tailStart - SUMMARY_SOURCE_HEAD_MESSAGES} middle messages omitted from compaction source]`,
-        }]
-      : []),
-    ...sourceMessages.slice(tailStart),
-  ];
-  const maxStringChars = Math.max(
-    256,
-    Math.floor(maxChars / Math.max(1, compactedMessages.length) * 0.7),
-  );
-  const compactedJson = JSON.stringify(
-    compactedMessages,
-    (_key, value) => truncateSummarySourceString(value, maxStringChars),
-    2,
-  );
-  if (compactedJson.length <= maxChars) {
-    return compactedJson;
-  }
-  const marker = "\n[truncated_compaction_source_middle]\n";
-  if (maxChars <= marker.length) {
-    return compactedJson.slice(0, maxChars);
-  }
-  const headChars = Math.floor((maxChars - marker.length) / 2);
-  const tailChars = maxChars - marker.length - headChars;
-  return `${compactedJson.slice(0, headChars).trimEnd()}${marker}${compactedJson.slice(-tailChars).trimStart()}`;
-}
 
 function buildSummaryProviderMessages(params: {
   essentialOnly: boolean;
@@ -141,6 +72,7 @@ export function fitContextCompactionSummaryInput(params: {
   } = params;
   let lower = 0;
   let upper = Math.max(0, sourceMaxChars);
+  let sourceFitted = messages.length === 0;
   let fitted = buildSummaryProviderMessages({
     essentialOnly,
     messages: [],
@@ -154,18 +86,23 @@ export function fitContextCompactionSummaryInput(params: {
   }
   while (lower <= upper) {
     const sourceMaxChars = Math.floor((lower + upper) / 2);
-    const candidate = buildSummaryProviderMessages({
-      essentialOnly,
-      messages,
-      sourceMaxChars,
-      targetSummaryTokens,
-    });
+    let candidate: Record<string, unknown>[];
+    try {
+      candidate = buildSummaryProviderMessages({ essentialOnly, messages, sourceMaxChars, targetSummaryTokens });
+    } catch {
+      lower = sourceMaxChars + 1;
+      continue;
+    }
     if (estimateInputTokens(candidate) <= maxInputTokens) {
       fitted = candidate;
+      sourceFitted = true;
       lower = sourceMaxChars + 1;
     } else {
       upper = sourceMaxChars - 1;
     }
+  }
+  if (!sourceFitted) {
+    throw new Error("Compaction source cannot fit without dropping message identities.");
   }
   return fitted;
 }
@@ -315,7 +252,7 @@ export function fitContextCompactionSummaryOutput(params: {
 /**
  * Last-resort checkpoint used after bounded semantic generation failures.
  * It deliberately preserves exact recent source instead of inventing a
- * natural-language summary, while older history is dropped Codex-style.
+ * natural-language summary, and explicitly marks older execution status unknown.
  */
 export function buildContextCompactionEmergencySummary(params: {
   maxInstallableSummaryTokens: number;
@@ -323,7 +260,8 @@ export function buildContextCompactionEmergencySummary(params: {
 }): string | null {
   const { maxInstallableSummaryTokens, messages } = params;
   const build = (sourceMaxChars: number): string => {
-    const source = stringifyCompactionSource(messages, sourceMaxChars);
+    let source = "";
+    try { source = stringifyCompactionSource(messages.slice(-2), sourceMaxChars); } catch { /* Explicit degraded recovery may have no source. */ }
     const quotedSource = source
       ? source.split("\n").map((line) => `> ${line}`).join("\n")
       : "> No recent source text fit the emergency checkpoint budget.";
@@ -332,7 +270,7 @@ export function buildContextCompactionEmergencySummary(params: {
       "## Active Request\n\nContinue the latest raw user request retained after this checkpoint. If no raw user request follows, continue the active run from the exact recent source below.",
       `## Current Work State\n\nModel-based compaction did not produce a safe summary. Exact retained recent source:\n\n${quotedSource}`,
       "## Safety and User Constraints\n\nHonor the retained system, service, and user constraints verbatim. Treat dropped older context as unknown and do not invent it.",
-      `## Continuation Contract\n\nContinue from the exact recent source and following raw messages. Do not repeat work unless the retained evidence says it is incomplete.\n${SUMMARY_ESSENTIAL_COMPLETE_MARKER}`,
+      `## Continuation Contract\n\nContinue from the exact recent source and following raw messages. Older execution state is unknown: recover evidence before repeating any side effect. Do not repeat work unless the retained evidence says it is incomplete.\n${SUMMARY_ESSENTIAL_COMPLETE_MARKER}`,
     ].join("\n\n");
   };
 
@@ -363,18 +301,10 @@ export function selectContextCompactionAttemptMessages(
   if (attempt <= 1) {
     return messages.map((message) => structuredClone(message));
   }
-  const protectedHead = messages.slice(0, 2).filter((message) =>
-    message.role === "system" || message.role === "service",
-  );
-  const tailCount = attempt >= 3 ? 2 : 6;
-  const tail = messages.slice(-tailCount);
-  const seen = new Set(protectedHead);
-  const selectedMessages = [...protectedHead, ...tail].filter((message, index, selected) =>
-    selected.indexOf(message) === index && (index < protectedHead.length || !seen.has(message)),
-  );
   const contentRatio = attempt >= 3 ? 0.25 : 0.5;
-  return selectedMessages.map((message) => {
+  return messages.map((message) => {
     const copy = structuredClone(message);
+    if ((copy.role === "system" || copy.role === "service") && typeof copy.content === "string" && copy.content.includes("# Compressed Working Context")) return copy;
     if (typeof copy.content === "string" && copy.content.length > 32) {
       const maxChars = Math.max(16, Math.floor(copy.content.length * contentRatio));
       copy.content = truncateSummarySourceString(copy.content, maxChars);

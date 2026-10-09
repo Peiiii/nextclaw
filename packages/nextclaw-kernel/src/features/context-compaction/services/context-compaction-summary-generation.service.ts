@@ -8,6 +8,7 @@ import {
   selectContextCompactionAttemptMessages,
   validateContextCompactionSummary,
 } from "@kernel/utils/context-compaction-summary-input.utils.js";
+import { splitCompactionSource } from "@kernel/utils/context-compaction-summary-source.utils.js";
 
 export type GeneratedCompactionSummary = {
   diagnostics: NonNullable<ContextCompactionCheckpoint["summaryDiagnostics"]>;
@@ -77,6 +78,32 @@ export class ContextCompactionSummaryGenerationService {
   constructor(private readonly providerManager?: CompactionSummaryProvider) {}
 
   generate = async (params: SummaryGenerationRequest): Promise<GeneratedCompactionSummary> => {
+    const { maxInputTokens, targetSummaryTokens, messages: sourceMessages, signal } = params;
+    const sourceChars = Math.max(512, Math.min(60_000,
+      (maxInputTokens - targetSummaryTokens - 1_024) * 3));
+    const batches = splitCompactionSource(sourceMessages, sourceChars);
+    let generated: GeneratedCompactionSummary | undefined;
+    const usage: Record<string, number> = {};
+    let attemptCount = 0;
+    let degraded = false;
+    for (const [index, messages] of batches.entries()) {
+      const previous = generated;
+      generated = await this.generateBatch({ ...params, messages: previous
+        ? [{ role: "system", content: previous.summary }, ...messages] : messages });
+      if (batches.length > 1 && generated.diagnostics.recovery !== "provider-summary") {
+        throw new Error("Context compaction batch failed; refusing to install a partial-history checkpoint. The previous checkpoint was kept unchanged.");
+      }
+      mergeProviderUsage(usage, generated.diagnostics.providerUsage);
+      attemptCount += generated.diagnostics.attemptCount;
+      degraded ||= generated.diagnostics.degraded;
+      if (signal?.aborted) throw new DOMException("Context compaction summary generation was cancelled", "AbortError");
+      generated.diagnostics = { ...generated.diagnostics, attemptCount, degraded,
+        providerUsage: { ...usage }, sourceBatchCount: index + 1 };
+    }
+    return generated!;
+  };
+
+  private generateBatch = async (params: SummaryGenerationRequest): Promise<GeneratedCompactionSummary> => {
     if (!this.providerManager) {
       throw new Error("context compaction summary generation requires a provider manager");
     }
@@ -150,13 +177,21 @@ export class ContextCompactionSummaryGenerationService {
     if (params.signal?.aborted) {
       throw new DOMException("Context compaction summary generation was cancelled", "AbortError");
     }
-    const providerMessages = fitContextCompactionSummaryInput({
-      essentialOnly: attempt === SUMMARY_ATTEMPT_SOURCE_MAX_CHARS.length,
-      maxInputTokens: params.maxInputTokens,
-      messages: selectContextCompactionAttemptMessages(params.messages, attempt),
-      sourceMaxChars: SUMMARY_ATTEMPT_SOURCE_MAX_CHARS[attempt - 1],
-      targetSummaryTokens: params.targetSummaryTokens,
-    });
+    let providerMessages: Record<string, unknown>[];
+    try {
+      providerMessages = fitContextCompactionSummaryInput({
+        essentialOnly: attempt === SUMMARY_ATTEMPT_SOURCE_MAX_CHARS.length,
+        maxInputTokens: Math.min(params.maxInputTokens, Number.isFinite(previousInputTokens)
+          ? Math.floor(previousInputTokens * 0.7) : params.maxInputTokens),
+        messages: selectContextCompactionAttemptMessages(params.messages, attempt),
+        sourceMaxChars: SUMMARY_ATTEMPT_SOURCE_MAX_CHARS[attempt - 1],
+        targetSummaryTokens: params.targetSummaryTokens,
+      });
+    } catch (error) {
+      if (attempt === 1) throw error;
+      return this.failedAttempt({ calledProvider: false, inputTokens: 0,
+        failure: error instanceof Error ? error.message : String(error) });
+    }
     const inputTokens = estimateInputTokens(providerMessages);
     if (inputTokens >= previousInputTokens) {
       return this.failedAttempt({

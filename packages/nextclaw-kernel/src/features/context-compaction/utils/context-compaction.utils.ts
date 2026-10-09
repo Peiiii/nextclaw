@@ -88,17 +88,17 @@ function buildMidRunContinuationMessage(params: {
   };
 }
 
-function sliceMessageParts(message: NcpMessage, start: number): NcpMessage {
-  if (!Number.isInteger(start) || start < 0 || start > message.parts.length) {
+function sliceMessageParts(message: NcpMessage, start: number, end = message.parts.length): NcpMessage {
+  if (!Number.isInteger(start) || start < 0 || start > end || !Number.isInteger(end) || end > message.parts.length) {
     throw new Error("Invalid compacted message part boundary");
   }
   const projected = structuredClone(message);
-  projected.parts = projected.parts.slice(start);
+  projected.parts = projected.parts.slice(start, end);
   projected.metadata = { ...projected.metadata, [CONTEXT_COMPACTION_PART_START]: start };
   const offsets = projected.metadata?.[MODEL_ROUND_PART_OFFSETS];
   if (Array.isArray(offsets)) {
     projected.metadata = { ...projected.metadata, [MODEL_ROUND_PART_OFFSETS]:
-      offsets.filter((offset) => offset > start).map((offset) => offset - start) };
+      offsets.filter((offset) => offset > start && offset < end).map((offset) => offset - start) };
   }
   return projected;
 }
@@ -107,6 +107,10 @@ function projectMessageAfterCheckpoint(
   message: NcpMessage,
   checkpoint: ContextCompactionCheckpoint,
 ): NcpMessage | null {
+  const retainedEnd = checkpoint.retainedMessagePartEnds?.[message.id];
+  if (typeof retainedEnd === "number") {
+    return message.parts.length > retainedEnd ? sliceMessageParts(message, retainedEnd) : null;
+  }
   const coveredPartCount = checkpoint.continuationMessageCoveredPartCount;
   if (
     message.id === checkpoint.continuationMessageId &&
@@ -220,11 +224,13 @@ export function buildContextCompactionModelProjection(params: {
     .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
   const retainedMessages = regularMessages
     .filter((message) => retainedMessageIds.has(message.id))
-    .map((message) => sliceMessageParts(message, checkpoint.retainedMessagePartStarts?.[message.id] ?? 0))
+    .map((message) => sliceMessageParts(message, checkpoint.retainedMessagePartStarts?.[message.id] ?? 0,
+      checkpoint.retainedMessagePartEnds?.[message.id] ?? message.parts.length))
     .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
   const projectedRegularMessages = regularMessages
     .filter((message) =>
-      !preservedUserMessageIds.has(message.id) && !retainedMessageIds.has(message.id),
+      !preservedUserMessageIds.has(message.id) && (!retainedMessageIds.has(message.id)
+        || checkpoint.retainedMessagePartEnds?.[message.id] !== undefined),
     )
     .map((message) => projectMessageAfterCheckpoint(message, checkpoint))
     .filter((message): message is NcpMessage => Boolean(message))

@@ -159,4 +159,16 @@ describe("ContextCompactionSummaryGenerationService", () => {
     expect(generated.diagnostics.recovery).toBe("deterministic-recent-context");
     expect(estimateInputTokens(generated.summary)).toBeLessThanOrEqual(256);
   });
+
+  it("recovers safely when a shrinking retry cannot fit the minimum source", async () => {
+    const provider = { chat: vi.fn(async () => response("Partial", "length")) };
+    const generated = await new ContextCompactionSummaryGenerationService(provider).generate({
+      ...generationParams, maxInputTokens: 1_000, targetSummaryTokens: 256,
+      maxInstallableSummaryTokens: 256,
+      messages: [{ role: "tool", tool_call_id: "completed-once", content: "Operation completed." }],
+    });
+    expect(generated.diagnostics.recovery).toBe("deterministic-recent-context");
+    expect(generated.summary).toContain("recover evidence before repeating any side effect");
+    expect(estimateInputTokens(generated.summary)).toBeLessThanOrEqual(256);
+  });
 });

@@ -1,13 +1,13 @@
-import { InputBudgetPruner, estimateInputTokens } from "@core/features/agent/services/input-budget-pruner.service.js";
+import { InputBudgetPruner, estimateInputTokens } from "@core/features/agent/index.js";
 import { stripToModelInputMessage } from "./context-window-budget.service.js";
-import type { ContextCompactionCheckpoint } from "../utils/context-compaction-checkpoint.utils.js";
+import type { ContextCompactionCheckpoint } from "@core/features/runtime-context/utils/context-compaction-checkpoint.utils.js";
 
-export { readCompressedContextCompactionCheckpoint } from "../utils/context-compaction-checkpoint.utils.js";
-export type { ContextCompactionCheckpoint, ContextCompactionPhase } from "../utils/context-compaction-checkpoint.utils.js";
+export { readCompressedContextCompactionCheckpoint } from "@core/features/runtime-context/utils/context-compaction-checkpoint.utils.js";
+export type { ContextCompactionCheckpoint, ContextCompactionPhase } from "@core/features/runtime-context/utils/context-compaction-checkpoint.utils.js";
 export { ContextWindowBudgetService } from "./context-window-budget.service.js";
 export type { ContextWindowBudgetEvaluation } from "./context-window-budget.service.js";
-export { buildCompressingCompactionCheckpoint, buildContextWindowSnapshot } from "../utils/context-window-snapshot.utils.js";
-export type { ContextWindowSnapshot } from "../utils/context-window-snapshot.utils.js";
+export { buildCompressingCompactionCheckpoint, buildContextWindowSnapshot } from "@core/features/runtime-context/utils/context-window-snapshot.utils.js";
+export type { ContextWindowSnapshot } from "@core/features/runtime-context/utils/context-window-snapshot.utils.js";
 
 type RuntimeMessage = Record<string, unknown>;
 type ContextCompactionSummaryGenerator = (params: {
@@ -70,6 +70,26 @@ function readMessageId(message: RuntimeMessage): string | null {
     : null;
 }
 
+function recentTailStart(messages: RuntimeMessage[], tokenLimit: number): number {
+  let start = messages.length;
+  while (start > 0) {
+    let candidate = start - 1;
+    const last = messages[candidate]!;
+    const id = readMessageId(last);
+    if (id && typeof last.ncp_part_start === "number") {
+      while (candidate > 0 && readMessageId(messages[candidate - 1]!) === id
+        && messages[candidate - 1]!.ncp_part_start === last.ncp_part_start) candidate -= 1;
+    } else if (last.role === "tool") {
+      while (candidate > 0 && messages[candidate]!.role === "tool") candidate -= 1;
+      if (messages[candidate]!.role !== "assistant" || !Array.isArray(messages[candidate]!.tool_calls)) break;
+    }
+    // At least one older record must be summarized; retain only whole rounds.
+    if (candidate === 0 || estimateInputTokens(messages.slice(candidate).map(stripToModelInputMessage)) > tokenLimit) break;
+    start = candidate;
+  }
+  return start;
+}
+
 function toPreservedUserMessage(message: RuntimeMessage, content = message.content): RuntimeMessage {
   return {
     role: "user",
@@ -106,6 +126,7 @@ export class ContextCompactionService {
     preservableUserMessageIds?: readonly string[];
     projectedTokenLimit?: number;
     retainLatestMessage?: boolean;
+    retainRecentTokens?: number;
   }): ContextCompactionPlan | null => {
     const {
       compactionThresholdTokens,
@@ -116,6 +137,7 @@ export class ContextCompactionService {
       preservableUserMessageIds = [],
       projectedTokenLimit = contextTokens,
       retainLatestMessage = true,
+      retainRecentTokens = 0,
     } = params;
     const originalEstimate = this.inputBudgetPruner.estimate({
       messages: messages.map(stripToModelInputMessage),
@@ -131,8 +153,13 @@ export class ContextCompactionService {
       ? messages[0]
       : null;
     const conversationMessages = leadingSystemMessage ? messages.slice(1) : messages;
-    const retainedMessageCount = retainLatestMessage ? RETAINED_CURRENT_MESSAGE_COUNT : 0;
-    const coveredMessageCount = Math.max(0, conversationMessages.length - retainedMessageCount);
+    const retainedMessageCount = retainLatestMessage && conversationMessages.at(-1)?.role !== "tool"
+      ? RETAINED_CURRENT_MESSAGE_COUNT : 0;
+    const availableTokens = Math.max(0, projectedTokenLimit - fixedInputTokens
+      - estimateInputTokens(leadingSystemMessage ? [stripToModelInputMessage(leadingSystemMessage)] : []));
+    const recentStart = recentTailStart(conversationMessages,
+      Math.min(retainRecentTokens, Math.floor(availableTokens * 0.35)));
+    const coveredMessageCount = Math.max(0, Math.min(recentStart, conversationMessages.length - retainedMessageCount));
     const retainedMessages = conversationMessages.slice(coveredMessageCount);
     const coveredMessages = conversationMessages.slice(0, coveredMessageCount);
     if (coveredMessages.length === 0) {
@@ -273,6 +300,14 @@ export class ContextCompactionService {
           starts[id] = Math.min(starts[id] ?? start, start);
         }
         return starts;
+      }, Object.create(null) as Record<string, number>),
+      retainedMessagePartEnds: retainedMessages.reduce<Record<string, number>>((ends, message) => {
+        const id = readMessageId(message);
+        const end = message.ncp_part_end;
+        if (id && typeof end === "number" && Number.isInteger(end) && end >= 0) {
+          ends[id] = Math.max(ends[id] ?? 0, end);
+        }
+        return ends;
       }, Object.create(null) as Record<string, number>),
       truncatedPreservedUserMessage: preserved.truncatedMessage,
       coveredUntil: readCoveredUntil(coveredMessages, createdAt),

@@ -87,10 +87,12 @@ function toCompactionModelMessages(
   assetStore: LocalAssetStore | null,
 ): Record<string, unknown>[] {
   return messages.flatMap((message) =>
-    ncpMessageToOpenAiMessageGroups(message, { assetStore }).flatMap((group) => group.messages.map((providerMessage) => ({
+    ncpMessageToOpenAiMessageGroups(message, { assetStore }).flatMap((group, index, groups) => group.messages.map((providerMessage) => ({
       ...providerMessage,
       ncp_message_id: message.id,
       ncp_part_start: group.partStart + Number(message.metadata?.[CONTEXT_COMPACTION_PART_START] ?? 0),
+      ncp_part_end: (groups[index + 1]?.partStart ?? message.parts.length)
+        + Number(message.metadata?.[CONTEXT_COMPACTION_PART_START] ?? 0),
       timestamp: message.timestamp,
     }))),
   );
@@ -345,6 +347,7 @@ export class ContextCompactionPreflightService {
             estimateCompactionProjectionOverhead(phase)
           )),
           retainLatestMessage: phase === "pre-run",
+          retainRecentTokens: 20_000,
         });
     const coveredSessionMessageCount = plan
       ? (existingCheckpoint?.coveredSessionMessageCount ?? 0) + plan.coveredMessages.length - (existingCheckpoint ? 1 : 0)
