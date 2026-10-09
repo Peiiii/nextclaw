@@ -98,6 +98,18 @@ function sleep(ms) {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
 
+export async function retryPublishedInstall(operation, wait = sleep) {
+  for (let attempt = 1; attempt <= REGISTRY_VISIBILITY_ATTEMPTS; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (attempt === REGISTRY_VISIBILITY_ATTEMPTS || !isRetryablePublishedInstallError(error)) throw error;
+      log(`registry metadata or network unavailable; retrying download/install (${attempt}/${REGISTRY_VISIBILITY_ATTEMPTS})`);
+      await wait(REGISTRY_VISIBILITY_RETRY_MS);
+    }
+  }
+}
+
 async function removeFixture(tempRoot) {
   await rm(tempRoot, {
     recursive: true,
@@ -135,7 +147,7 @@ async function verifyPublishedStableRelease(argv) {
   const updateOnly = argv.includes("--update-only");
   assert(expectedVersion, "--published-stable requires --expected-version");
   if (packageOnly) {
-    await verifyPublishedNpmPackageArchive({ expectedVersion, run });
+    await retryPublishedInstall(() => verifyPublishedNpmPackageArchive({ expectedVersion, run }));
     log("published stable registry payload passed");
     return;
   }
@@ -210,23 +222,7 @@ async function createPublishedInstallFixture(packageSpec, label) {
     timeout: 600000,
   };
   try {
-    for (let attempt = 1; attempt <= REGISTRY_VISIBILITY_ATTEMPTS; attempt += 1) {
-      try {
-        run("npm", installArgs, installOptions);
-        break;
-      } catch (error) {
-        if (
-          attempt === REGISTRY_VISIBILITY_ATTEMPTS ||
-          !isRetryablePublishedInstallError(error)
-        ) {
-          throw error;
-        }
-        log(
-          `registry metadata or network unavailable; retrying install (${attempt}/${REGISTRY_VISIBILITY_ATTEMPTS})`,
-        );
-        await sleep(REGISTRY_VISIBILITY_RETRY_MS);
-      }
-    }
+    await retryPublishedInstall(() => run("npm", installArgs, installOptions));
   } catch (error) {
     await removeFixture(tempRoot);
     throw error;

@@ -38,4 +38,12 @@
 
 EXISTING_RELEASE_PATH：GitHub Actions `release.yml target=product`，认证沿既有 `npm-production` 环境 `NPM_TOKEN`；最近成功生产证据 [run 37608949651](https://github.com/Peiiii/nextclaw/actions/runs/37608949651)。队列审计无正在运行的 release parent，不需要取消 SHA。
 
-实际发布身份、安装/升级与主线闭环待发布 owner 结果；最终复盘回写既有设计与本记录，不新增常驻规则。
+### 发布恢复记录
+
+- 用户后续明确要求 Desktop，范围已扩展至 `release.yml target=all`；上文排除 Desktop 仅描述补充授权前的 product 范围。
+- NPM `0.59.1` 的 22 个包已发布，发布提交 `d022fb20a`。product parent `37932521522` 在 registry 元数据可见后，单次 tarball 下载仍遇到 404，失败于安装验证；未重复发布包。
+- 结构化中英文 notes 已补齐，内容提交 `58def57df`；all parent `37934477862` 恢复同一版本，NPM 安装、Node 兼容矩阵与不支持版本检查通过。Runtime 阶段因 exact-source prepare `37932436055` 未成功而拒绝继续，Desktop 未启动。
+- prepare 的 Linux x64、Windows x64、macOS arm64 均在 `pnpm deploy` 下载 `express-5.3.0.tgz` 时遇到 `ERR_PNPM_FETCH_404`；macOS x64 成功。仓库 lockfile 记录 express 5.2.1，不能仅凭错误推断产品代码故障。22:24 按基础设施恢复合同 rerun 原 run 的失败步骤，成功产物保留。
+- 自动化缺口已修复原 owner `verify-published-npm-runtime-update.mjs`：archive 下载与 npm install 复用既有有限重试策略。5 项测试覆盖临时 404 恢复、成功即停止、永久错误立即返回与 6 次上限；定向 lint、diff-only maintainability 与新代码治理通过。脚本不进入用户安装包，不新增 changeset、不重新发布 NPM。
+
+Runtime、Desktop、公开渠道与主线闭环仍待 owner 终态；不会将局部发布写成完成。

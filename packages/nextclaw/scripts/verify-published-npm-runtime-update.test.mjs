@@ -5,6 +5,7 @@ import {
   isRetryablePublishedInstallError,
   readVersionOutput,
   resolvePublishedRuntimeAsset,
+  retryPublishedInstall,
 } from "./verify-published-npm-runtime-update.mjs";
 
 test("reads the final semantic version without treating bootstrap progress as identity", () => {
@@ -46,4 +47,33 @@ test("binds the previous Runtime fixture to the official exact-version asset", (
       url: "https://github.com/Peiiii/nextclaw/releases/download/nextclaw@0.45.2/nextclaw-runtime-darwin-arm64-0.45.2.zip",
     },
   );
+});
+
+test("retries transient published downloads but stops on success or permanent failure", async () => {
+  let calls = 0;
+  const delays = [];
+  const result = await retryPublishedInstall(() => {
+    if (++calls < 3) throw new Error("npm error code E404");
+    return "downloaded exact version";
+  }, async (delay) => { delays.push(delay); });
+  assert.equal(result, "downloaded exact version");
+  assert.equal(calls, 3);
+  assert.deepEqual(delays, [5000, 5000]);
+  calls = 0;
+  await assert.rejects(retryPublishedInstall(() => {
+    calls += 1;
+    throw new Error("npm error code EACCES");
+  }, async () => { throw new Error("must not wait"); }), /EACCES/);
+  assert.equal(calls, 1);
+});
+
+test("bounds published download recovery and returns the final propagation error", async () => {
+  let calls = 0;
+  let waits = 0;
+  await assert.rejects(retryPublishedInstall(() => {
+    calls += 1;
+    throw new Error("npm error code ETARGET");
+  }, async () => { waits += 1; }), /ETARGET/);
+  assert.equal(calls, 6);
+  assert.equal(waits, 5);
 });
