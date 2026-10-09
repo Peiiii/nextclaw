@@ -12,6 +12,6 @@
 | CC-03 | true | 连续压缩更新已完成/进行中/阻塞和下一步；真实模型经过至少两次压缩后不重复已完成副作用 | passed | Codex gpt-6-luna 与 DeepSeek flash 均两次自动压缩，八个隔离操作各一次，重开会话零新增调用 |
 | CC-04 | true | 大输出、小窗口、工具 schema、失败/取消、旧 checkpoint、持久化恢复保持预算与原数据完整 | passed | 核心 13 项、kernel 88 项及 runtime/toolkit/journal 回归；缩小重试预算耗尽仍安全恢复 |
 | CC-05 | true | 匹配 tsc、lint、跨包压缩回归和实现 Review 通过；无无关 WIP 混入 | passed | core/kernel/runtime-next tsc；定向 lint、治理；实现 Review 无未关闭 finding。168 项相关检查通过；14 项未修改 UI 失败经修前基线复现，作为已有缺陷排除而非计为通过 |
-| CC-06 | true | patch 发布及适用 NPM/runtime/desktop、文档、主线闭环完成，产物可安装且身份可验证 | not-run | 待交付合同判定及发布 |
+| CC-06 | true | patch 发布及适用 NPM/runtime/desktop、文档、主线闭环完成，产物可安装且身份可验证 | passed | all parent 37934477862 成功；NPM/Runtime 0.59.1、五平台 Desktop v0.59.1-desktop.1、public manifest/APT 验证通过；Docs Deploy 37944244301 成功；产品发布提交已在远程 master。本地原有 WIP 由 LOCAL_WORKTREE_RETRYING 自动接管 |
 
 单阶段交付；不增加无关视觉截图或性能压测。状态更新不改变标准。

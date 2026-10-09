@@ -51,4 +51,14 @@ EXISTING_RELEASE_PATH：GitHub Actions `release.yml target=product`，认证沿�
 - 22:32 调用主线 reconcile，远程 master 已完整提交；本地 master 有原先 tracked WIP，owner 返回 `LOCAL_WORKTREE_RETRYING` 并启动 worker（PID 23001），不覆盖/提交无关草稿。源区 status 与 binary diff 同初始快照逐字节一致。
 - all parent 的 Desktop job 于 22:33:23 自动开始，复用 stable Draft `v0.59.1-desktop.1`、不可变产品提交与内容 checkout；仍待五平台构建、公开渠道和 APT 最终验收。
 
-Desktop 与完整交付仍待 owner 终态；不会将局部发布写成完成。
+### 最终交付与复盘
+
+北京时间 22:58:19 [all parent 37934477862](https://github.com/Peiiii/nextclaw/actions/runs/37934477862) overall success，输出 `DESKTOP_READY` / `ALL_PLATFORMS_READY`；NPM/Runtime stable `0.59.1`、内容与完整桌面交付均已闭合。
+
+[Desktop stable v0.59.1-desktop.1](https://github.com/Peiiii/nextclaw/releases/tag/v0.59.1-desktop.1) 非 Draft、非 prerelease，target `d022fb20a82478c63c90366268bd5ad4ba06f9b2`。五平台（macOS arm64/x64、Windows arm64/x64、Linux x64）构建及同一产物冒烟通过；30 个 Desktop 资产公开后，APT 补充资产使最终总数为 31。`gh-pages` 与 public Pages manifest 验证 runtime `0.59.1`，公开 stable APT 验证 launcher `0.0.302`。文档 [run 37944244301](https://github.com/Peiiii/nextclaw/actions/runs/37944244301) 成功。
+
+[Desktop child 37945221674](https://github.com/Peiiii/nextclaw/actions/runs/37945221674) 结构化观察：22:34:51 → 22:57:59，共 23m08s；最慢 job macOS x64 16m37s，其中构建 9m38s，APT job 3m50s。Runtime promotion parent job 22:29:20 → 22:33:19，共 3m59s，超过 120s 目标预算，未声称达标。NPM 首次公布后 metadata/integrity 等待约 6 分钟，随后 tarball 404；prepare 三平台依赖 tarball 404 经 failed-only rerun 恢复。恢复次数与失败不隐藏，未重发 NPM、未制造新产品或 Desktop identity。
+
+复盘处置：修复产品错误归原压缩设计及 9 项回归；archive 缺少自动重试归原安装验证脚本，两项新回归证明恢复边界；文档标题失误就地修正并补完整构建，不新增全局规则。截图现场 journal 未提供，168 项相关检查与两个真实模型测试证明本次范围，不保证任意任务永不遗忘；14 项既有 UI QueryClient 测试失败仍明确保留为基线限制。
+
+功能源码及发布记录均在远程 master，无发布分支遗漏。最终调用主线 reconcile；本地 master 的原有 tracked WIP 被保护，`LOCAL_WORKTREE_RETRYING` 单例 worker 自动续跑，不是用户待办。源区无本任务草稿或无关 WIP 覆盖。CC-01 至 CC-06 全部 passed。
