@@ -46,4 +46,9 @@ EXISTING_RELEASE_PATH：GitHub Actions `release.yml target=product`，认证沿�
 - prepare 的 Linux x64、Windows x64、macOS arm64 均在 `pnpm deploy` 下载 `express-5.3.0.tgz` 时遇到 `ERR_PNPM_FETCH_404`；macOS x64 成功。仓库 lockfile 记录 express 5.2.1，不能仅凭错误推断产品代码故障。22:24 按基础设施恢复合同 rerun 原 run 的失败步骤，成功产物保留。
 - 自动化缺口已修复原 owner `verify-published-npm-runtime-update.mjs`：archive 下载与 npm install 复用既有有限重试策略。5 项测试覆盖临时 404 恢复、成功即停止、永久错误立即返回与 6 次上限；定向 lint、diff-only maintainability 与新代码治理通过。脚本不进入用户安装包，不新增 changeset、不重新发布 NPM。
 
-Runtime、Desktop、公开渠道与主线闭环仍待 owner 终态；不会将局部发布写成完成。
+- 22:28:36 exact-source prepare rerun 成功；22:29 恢复 all parent 的失败步骤。Runtime promotion 成功，公开 `nextclaw@0.59.1`，没有重新发布 NPM。GitHub Release 正文已从同版本结构化 JSON 补齐中英文内容，保持原身份及四个 Runtime 资产。
+- 文档部署曾因新增 note frontmatter title 缺日期前缀失败，提交 `3fc522f1e` 修正。此前 `docs:i18n:check` 未覆盖构建语义；本地完整 `pnpm -C apps/docs build` 16.27s 成功，自动 Docs Deploy `37944244301` 成功，构建生成的统计快照已从任务改动中撤除。
+- 22:32 调用主线 reconcile，远程 master 已完整提交；本地 master 有原先 tracked WIP，owner 返回 `LOCAL_WORKTREE_RETRYING` 并启动 worker（PID 23001），不覆盖/提交无关草稿。源区 status 与 binary diff 同初始快照逐字节一致。
+- all parent 的 Desktop job 于 22:33:23 自动开始，复用 stable Draft `v0.59.1-desktop.1`、不可变产品提交与内容 checkout；仍待五平台构建、公开渠道和 APT 最终验收。
+
+Desktop 与完整交付仍待 owner 终态；不会将局部发布写成完成。
