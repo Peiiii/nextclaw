@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-10-09T08:58:02.996Z",
+  "generatedAt": "2026-10-10T08:27:15.134Z",
   "hero": {
-    "currentLoc": 322218,
-    "testLoc": 138581,
-    "trackedFiles": 3490,
-    "recentCommitCount": 721,
+    "currentLoc": 322285,
+    "testLoc": 138723,
+    "trackedFiles": 3493,
+    "recentCommitCount": 691,
     "activeDays30": 29,
     "recentReleaseCount": 53,
-    "latestReleaseDate": "2026-10-07",
-    "latestNoteDate": "2026-10-07",
+    "latestReleaseDate": "2026-10-09",
+    "latestNoteDate": "2026-10-09",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 3490277,
-    "basePercentOfBenchmark": 9.23,
-    "lighterByPercent": 90.77
+    "benchmarkCodeLines": 3513201,
+    "basePercentOfBenchmark": 9.17,
+    "lighterByPercent": 90.83
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-06-12",
-        "label": "06-12",
-        "value": 183613
-      },
       {
         "key": "2026-06-13",
         "label": "06-13",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-10-09",
         "label": "10-09",
         "value": 322218
+      },
+      {
+        "key": "2026-10-10",
+        "label": "10-10",
+        "value": 322285
       }
     ],
     "testLocDaily": [
@@ -1377,14 +1377,14 @@ export default {
         "key": "2026-10-09",
         "label": "10-09",
         "value": 138581
+      },
+      {
+        "key": "2026-10-10",
+        "label": "10-10",
+        "value": 138723
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-09-10",
-        "label": "09-10",
-        "value": 39
-      },
       {
         "key": "2026-09-11",
         "label": "09-11",
@@ -1528,6 +1528,11 @@ export default {
       {
         "key": "2026-10-09",
         "label": "10-09",
+        "value": 9
+      },
+      {
+        "key": "2026-10-10",
+        "label": "10-10",
         "value": 0
       }
     ],
@@ -1590,7 +1595,7 @@ export default {
       {
         "key": "2026-10-05",
         "label": "10-05",
-        "value": 12
+        "value": 21
       }
     ],
     "releaseMonthly": [
@@ -1652,7 +1657,7 @@ export default {
       {
         "key": "2026-10",
         "label": "10/26",
-        "value": 2
+        "value": 3
       }
     ]
   },
@@ -1667,9 +1672,9 @@ export default {
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 50865,
-        "testCodeLines": 27349,
-        "files": 502,
+        "codeLines": 50897,
+        "testCodeLines": 27468,
+        "files": 505,
         "sharePercent": 15.8
       },
       {
@@ -1681,8 +1686,8 @@ export default {
       },
       {
         "name": "packages/nextclaw-core",
-        "codeLines": 16800,
-        "testCodeLines": 6971,
+        "codeLines": 16835,
+        "testCodeLines": 6994,
         "files": 186,
         "sharePercent": 5.2
       },
@@ -1705,7 +1710,7 @@ export default {
         "codeLines": 13697,
         "testCodeLines": 11040,
         "files": 162,
-        "sharePercent": 4.3
+        "sharePercent": 4.2
       },
       {
         "name": "packages/nextclaw-app-runtime",
@@ -1717,11 +1722,20 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 3490277,
-      "basePercentOfBenchmark": 9.23,
-      "lighterByPercent": 90.77
+      "benchmarkCodeLines": 3513201,
+      "basePercentOfBenchmark": 9.17,
+      "lighterByPercent": 90.83
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-10-09",
+        "tagCount": 23,
+        "sampleTags": [
+          "@nextclaw/channel-extension-dingtalk@0.2.56",
+          "@nextclaw/channel-extension-discord@0.2.56",
+          "@nextclaw/channel-extension-email@0.2.56"
+        ]
+      },
       {
         "date": "2026-10-07",
         "tagCount": 27,
@@ -1766,20 +1780,26 @@ export default {
           "@nextclaw/app-runtime@0.16.11",
           "@nextclaw/channel-extension-dingtalk@0.2.54"
         ]
-      },
-      {
-        "date": "2026-09-26",
-        "tagCount": 12,
-        "sampleTags": [
-          "@nextclaw/client-sdk@0.12.12",
-          "@nextclaw/companion@0.2.69",
-          "@nextclaw/harness@0.2.26"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-10-09-nextclaw-v0-59-1",
+        "date": "2026-10-09",
+        "tags": [],
+        "en": {
+          "title": "2026-10-09 · NextClaw v0.59.1",
+          "description": "Preserve execution evidence and complete recent tool rounds across long tasks.",
+          "href": "/en/notes/2026-10-09-nextclaw-v0-59-1"
+        },
+        "zh": {
+          "title": "2026-10-09 · NextClaw v0.59.1",
+          "description": "长任务压缩保留工具执行事实与近期完整轮次，减少重复调查和重复操作。",
+          "href": "/zh/notes/2026-10-09-nextclaw-v0-59-1"
+        }
+      },
       {
         "slug": "2026-10-07-nextclaw-v0-59-0",
         "date": "2026-10-07",
@@ -3254,9 +3274,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-10-09T08:58:00.654Z",
+    "locGeneratedAt": "2026-10-10T08:27:13.218Z",
     "sourceCount": {
-      "notes": 75,
+      "notes": 76,
       "scopes": 8
     }
   }
