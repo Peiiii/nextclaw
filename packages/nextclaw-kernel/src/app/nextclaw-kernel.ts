@@ -59,6 +59,7 @@ import {
   resolveKernelPreferenceStorePath,
   resolveKernelPlannedRestartRecoveryPath,
   resolveKernelSessionsDir,
+  resolveKernelAutomationStorePath,
 } from "@kernel/app/kernel-storage-paths.js";
 import {
   createKernelContributions,
