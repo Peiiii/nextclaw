@@ -64,6 +64,8 @@ import {
   createKernelContributions,
   createKernelPlannedRestartRecovery,
   createKernelAppRuntimeManagers,
+  createKernelCoreServices,
+  createKernelOperationalManagers,
   createPortableRuntimeAcceptanceServices,
 } from "@kernel/app/kernel-manager.factory.js";
 import type { ProductActivitySink } from "@kernel/types/product-activity.types.js";
