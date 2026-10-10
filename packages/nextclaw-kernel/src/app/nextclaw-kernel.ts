@@ -39,7 +39,7 @@ import {
 import { FeatureControlsService } from "@kernel/features/feature-controls/index.js";
 import { CoreHealthCheckService } from "@kernel/features/core-health/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
-import type { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
+import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
   type GatewayController,
   getWorkspacePath,
