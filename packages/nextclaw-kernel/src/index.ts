@@ -44,6 +44,7 @@ export * from "@kernel/stores/session-journal-maintenance.store.js";
 export * from "@kernel/features/capability-grants/index.js";
 export * from "@kernel/features/desktop-host/index.js";
 export * from "@kernel/features/feature-controls/index.js";
+export * from "@kernel/features/core-health/index.js";
 export { readLearningLoopRuntimeConfig } from "@kernel/contributions/learning-loop/config.js";
 export type { LearningLoopRuntimeConfig } from "@kernel/contributions/learning-loop/config.js";
 export {
