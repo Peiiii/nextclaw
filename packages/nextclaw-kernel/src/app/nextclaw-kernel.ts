@@ -42,6 +42,7 @@ import type { KernelContribution } from "@kernel/types/kernel-contribution.types
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
   type GatewayController,
+  getDataDir,
   getWorkspacePath,
   type MessageBus,
   type ExecRunner,
@@ -49,6 +50,7 @@ import {
   type SessionSearchService,
 } from "@nextclaw/core";
 import type { EventBus, Ingress } from "@nextclaw/shared";
+import { resolve } from "node:path";
 import {
   resolveKernelAppHomeDirectory,
   resolveKernelCapabilityGrantMigrationMarkerPath,
