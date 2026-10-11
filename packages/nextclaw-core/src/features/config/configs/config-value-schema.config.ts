@@ -528,6 +528,10 @@ export const SecretsConfigSchema = z.object({
   refs: z.record(SecretRefSchema).default({})
 });
 
+export const CoreHealthConfigSchema = z.object({
+  autoDegrade: z.boolean().default(false)
+});
+
 export const ConfigSchema = z.object({
   agents: AgentsConfigSchema.default({}),
   channels: ChannelsConfigSchema.default({}),
@@ -542,7 +546,8 @@ export const ConfigSchema = z.object({
   companion: CompanionConfigSchema.default({}),
   productAnalytics: ProductAnalyticsConfigSchema.default({}),
   tools: ToolsConfigSchema.default({}),
-  secrets: SecretsConfigSchema.default({})
+  secrets: SecretsConfigSchema.default({}),
+  coreHealth: CoreHealthConfigSchema.default({})
 });
 
 export type ConfigSchemaJson = Record<string, unknown>;
