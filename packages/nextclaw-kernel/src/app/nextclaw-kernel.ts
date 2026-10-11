@@ -202,6 +202,7 @@ export class NextclawKernel {
       providerModelCatalogManager: this.providerModelCatalog,
     }));
     this.assetStore = new LocalAssetStore({ rootDir: resolve(getDataDir(), "assets") });
+    const sessionsDir = resolveKernelSessionsDir(options);
     ({ coreHealth: this.coreHealth, featureControls: this.featureControls } = createKernelCoreServices({
       desktopHost,
       getWorkspacePath: () => getWorkspacePath(this.configManager.config.agents.defaults.workspace),
