@@ -39,10 +39,8 @@ import {
 import { FeatureControlsService } from "@kernel/features/feature-controls/index.js";
 import { CoreHealthCheckService } from "@kernel/features/core-health/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
-import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
   type GatewayController,
-  getDataDir,
   getWorkspacePath,
   type MessageBus,
   type ExecRunner,
@@ -50,7 +48,6 @@ import {
   type SessionSearchService,
 } from "@nextclaw/core";
 import type { EventBus, Ingress } from "@nextclaw/shared";
-import { resolve } from "node:path";
 import {
   resolveKernelAppHomeDirectory,
   resolveKernelCapabilityGrantMigrationMarkerPath,
@@ -61,14 +58,12 @@ import {
   resolveKernelPreferenceStorePath,
   resolveKernelPlannedRestartRecoveryPath,
   resolveKernelSessionsDir,
-  resolveKernelAutomationStorePath,
 } from "@kernel/app/kernel-storage-paths.js";
 import {
   createKernelContributions,
   createKernelPlannedRestartRecovery,
   createKernelAppRuntimeManagers,
   createKernelCoreServices,
-  createKernelOperationalManagers,
   createPortableRuntimeAcceptanceServices,
 } from "@kernel/app/kernel-manager.factory.js";
 import type { ProductActivitySink } from "@kernel/types/product-activity.types.js";
@@ -189,19 +184,7 @@ export class NextclawKernel {
     this.capabilityGrants = new CapabilityGrantManager(resolveKernelCapabilityGrantStorePath(options));
     ({ verificationRecords: this.verificationRecords, portableRuntimeAcceptance: this.portableRuntimeAcceptance } =
       createPortableRuntimeAcceptanceServices({ ...options, verificationRecordStorePath: resolveKernelVerificationRecordStorePath(options) }));
-    ({
-      automation: this.automation,
-      channels: this.channels,
-      configManager: this.configManager,
-    } = createKernelOperationalManagers({
-      automationStorePath: resolveKernelAutomationStorePath(options),
-      configPath: options.configPath,
-      diagnostics: this.diagnostics,
-      messageBus: this.messageBus,
-      providerManager: this.llmProviders,
-      providerModelCatalogManager: this.providerModelCatalog,
-    }));
-    this.assetStore = new LocalAssetStore({ rootDir: resolve(getDataDir(), "assets") });
+    // automation/channels/configManager/assetStore 均来自 platform.local（master 重构后不在 kernel 内重复创建）
     const sessionsDir = resolveKernelSessionsDir(options);
     ({ coreHealth: this.coreHealth, featureControls: this.featureControls } = createKernelCoreServices({
       desktopHost,
