@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
-import { ensureDir, todayDate } from "../../../../shared/lib/core-utils/utils/helpers.utils.js";
+import { ensureDir, todayDate } from "@core/shared/lib/core-utils/index.js";
 import { renderMemoryContext } from "./utils/memory-context.utils.js";
 
 const readTextIfExists = (path: string): string => (existsSync(path) ? readFileSync(path, "utf-8") : "");
