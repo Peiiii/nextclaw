@@ -11,6 +11,7 @@ import { ShowContentToolProvider } from "./providers/show-content-tool.provider.
 import { InboxDeliveryToolProvider } from "./providers/inbox-delivery-tool.provider.js";
 import { ObservationToolProvider } from "./providers/observation-tool.provider.js";
 import { DesktopToolProvider } from "./providers/desktop-tool.provider.js";
+import { McpToolProvider } from "./providers/mcp-tool.provider.js";
 import { ServiceActionToolProvider } from "./providers/service-action-tool.provider.js";
 import { ServiceAppJobToolProvider } from "./providers/service-app-job-tool.provider.js";
 import { ServiceAppAiCapabilityToolProvider } from "./providers/service-app-ai-capability-tool.provider.js";
