@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-10-15T07:22:53.785Z",
+  "generatedAt": "2026-10-16T07:06:01.075Z",
   "hero": {
     "currentLoc": 322285,
     "testLoc": 138723,
     "trackedFiles": 3493,
-    "recentCommitCount": 573,
+    "recentCommitCount": 550,
     "activeDays30": 29,
-    "recentReleaseCount": 48,
+    "recentReleaseCount": 47,
     "latestReleaseDate": "2026-10-09",
     "latestNoteDate": "2026-10-09",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 3654388,
-    "basePercentOfBenchmark": 8.82,
-    "lighterByPercent": 91.18
+    "benchmarkCodeLines": 3660878,
+    "basePercentOfBenchmark": 8.8,
+    "lighterByPercent": 91.2
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-06-18",
-        "label": "06-18",
-        "value": 188617
-      },
       {
         "key": "2026-06-19",
         "label": "06-19",
@@ -614,6 +609,11 @@ export default {
       {
         "key": "2026-10-15",
         "label": "10-15",
+        "value": 322285
+      },
+      {
+        "key": "2026-10-16",
+        "label": "10-16",
         "value": 322285
       }
     ],
@@ -1407,14 +1407,14 @@ export default {
         "key": "2026-10-15",
         "label": "10-15",
         "value": 138723
+      },
+      {
+        "key": "2026-10-16",
+        "label": "10-16",
+        "value": 138723
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-09-16",
-        "label": "09-16",
-        "value": 24
-      },
       {
         "key": "2026-09-17",
         "label": "09-17",
@@ -1558,6 +1558,11 @@ export default {
       {
         "key": "2026-10-15",
         "label": "10-15",
+        "value": 1
+      },
+      {
+        "key": "2026-10-16",
+        "label": "10-16",
         "value": 0
       }
     ],
@@ -1620,7 +1625,7 @@ export default {
       {
         "key": "2026-10-12",
         "label": "10-12",
-        "value": 4
+        "value": 5
       }
     ],
     "releaseMonthly": [
@@ -1747,9 +1752,9 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 3654388,
-      "basePercentOfBenchmark": 8.82,
-      "lighterByPercent": 91.18
+      "benchmarkCodeLines": 3660878,
+      "basePercentOfBenchmark": 8.8,
+      "lighterByPercent": 91.2
     },
     "recentReleaseBatches": [
       {
@@ -3299,7 +3304,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-10-15T07:22:51.359Z",
+    "locGeneratedAt": "2026-10-16T07:05:58.924Z",
     "sourceCount": {
       "notes": 76,
       "scopes": 8
