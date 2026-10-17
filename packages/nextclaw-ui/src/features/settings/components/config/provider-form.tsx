@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import {
   useConfigSchema,
   useDeleteProvider,
@@ -39,7 +39,7 @@ type ProviderFormEditorProps = {
   language: ReturnType<typeof getLanguage>;
 };
 
-export function ProviderForm({
+export const ProviderForm = memo(function ProviderForm({
   providerName,
   onProviderDeleted,
 }: ProviderFormProps) {
@@ -92,7 +92,7 @@ export function ProviderForm({
       language={language}
     />
   );
-}
+});
 
 function ProviderFormEditor({
   providerName,
