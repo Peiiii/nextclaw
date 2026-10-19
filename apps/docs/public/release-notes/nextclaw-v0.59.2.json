@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.59.2",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-10-20",
+  "title": { "zh-CN": "NextClaw v0.59.2", "en-US": "NextClaw v0.59.2" },
+  "summary": {
+    "zh-CN": "摘要失败时保留恢复路径，大历史和超大消息按需加载。",
+    "en-US": "Recover safely from incomplete summaries and load large histories on demand."
+  },
+  "links": { "html": {
+    "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-10-20-nextclaw-v0-59-2",
+    "en-US": "https://docs.nextclaw.io/en/notes/2026-10-20-nextclaw-v0-59-2"
+  } },
+  "sections": [
+    { "kind": "fix", "title": { "zh-CN": "压缩与恢复", "en-US": "Compaction and recovery" }, "items": [
+      { "title": { "zh-CN": "保留原始历史并确认执行条件", "en-US": "Retain original history and confirm action conditions" }, "body": {
+        "zh-CN": "不完整摘要不会被当作完整历史。上下文仍可容纳时延后压缩；必须缩减时保存恢复检查点，先回读历史或明确澄清业务条件，再继续执行其它工具。",
+        "en-US": "Incomplete summaries are not treated as complete history. Compaction can be deferred when context fits; required reductions save a recovery checkpoint and require history reads or explicit business clarification before other tools resume."
+      } }
+    ] },
+    { "kind": "fix", "title": { "zh-CN": "大历史加载", "en-US": "Large-history loading" }, "items": [
+      { "title": { "zh-CN": "按页加载与原文分片", "en-US": "Bounded pages and source fragments" }, "body": {
+        "zh-CN": "页面、原文读取和运行缓存设有容量预算。需要重建索引时显示准备进度，可停止和重试；首次准备仍需扫描原始记录。",
+        "en-US": "History pages, source reads and runtime caches have capacity budgets. Index rebuilding shows preparation progress with cancellation and retry; initial preparation still scans the original records."
+      } }
+    ] },
+    { "kind": "compatibility", "title": { "zh-CN": "升级与回退", "en-US": "Upgrade and rollback" }, "items": [
+      { "title": { "zh-CN": "保留配置与原始记录", "en-US": "Keep configuration and original records" }, "body": {
+        "zh-CN": "通过 stable NPM 和 runtime 通道交付。旧版不能直接继续写入使用新恢复语义的会话，回退需先由当前版本恢复成完整快照；本次不发布新的桌面安装包。",
+        "en-US": "Ships through stable NPM and runtime channels. Older versions must not write conversations using the new recovery semantics; restore a complete snapshot with the current reader before rollback. No new desktop installers are included."
+      } }
+    ] }
+  ]
+}
