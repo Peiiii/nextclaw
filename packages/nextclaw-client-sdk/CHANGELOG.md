@@ -1,5 +1,16 @@
 # @nextclaw/client-sdk
 
+## 0.12.16
+
+### Patch Changes
+
+- 6e7a43a: Keep long conversations usable when context summaries are incomplete. Persist verifiable recovery checkpoints, require original-history reads or explicit business clarification before resuming actions, and prevent unsafe retry after tool execution.
+
+  Load large histories through bounded SQLite pages and exact source fragments, with visible, cancellable index preparation instead of full-history loading. Preserve original journals and support the same projection contract in local and hosted sessions.
+
+- Updated dependencies [6e7a43a]
+  - @nextclaw/server@0.23.16
+
 ## 0.12.15
 
 ### Patch Changes
