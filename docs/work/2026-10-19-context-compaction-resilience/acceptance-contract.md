@@ -20,10 +20,10 @@
 | CR-07 | true | UI/server/SDK/本地及托管 history 实际入口满足统一合同；兼容宿主边界显式验证 | passed | 本地/托管/浏览器与Bibo线上已过；Windows fsync修复33项定向验证通过。0.59.3 parent39302315623四平台×Node20/22/24/26真实实装16组全部成功，包含先前失败的Windows四组。 |
 | CR-08 | true | 固定设计负载与环境至少 30 次性能测量；字节、延迟、内存与写入放大符合预算，真实模型长任务与冷恢复可用 | passed | performance-evidence.json：固定Linux x64 guest2CPU/2GiB与M4 Chrome，每组30次；所有字节/时延/堆预算通过。真实DeepSeek两次自动压缩+冷恢复成功；环境及边界已披露。 |
 | CR-09 | true | 永久坏摘要、巨型消息、百万 delta、故障注入、状态转换与随机边界验证；匹配 tsc 和源码 Review 无未关闭问题 | passed | 永久坏摘要/故障矩阵/Unicode随机/巨型事件/百万delta/Node20驱动通过；匹配tsc、ESLint、public imports通过。人工Review无开放finding；自动维护性27预算信号的接受理由在日志明确记录，未宣称脚本通过。 |
-| CR-10 | true | 文档/changeset、冻结主线正式 patch 发布、安装升级和发布后实际 smoke、适用 runtime/update channel 与主线回流 | in-progress | 0.59.3 NPM已发布，四平台实装成功；parent39302315623正在Runtime推广，真实升级、公开内容和主线回流待闭合。 |
+| CR-10 | true | 文档/changeset、冻结主线正式 patch 发布、安装升级和发布后实际 smoke、适用 runtime/update channel 与主线回流 | passed | 0.59.3恢复parent39306362156成功；原实装16组成功证据复用，完整stable分步升级与混合安装一体升级均真实通过；四平台公开Runtime、GitHub双语正文、docs39306292558国际/国内同一tree及线上内容、Bibo线上均闭合。发布tag cdd34ef29a，功能与记录已合入origin/master。协调器LOCAL_WORKTREE_RETRYING由单例worker接管，保护primary既有WIP，无用户待办。 |
 
 ## 当前阶段门
 
-结果：保持原 journal，所有恢复可回读。当前 open-required: CR-10。0.59.3四平台实装已关闭Windows兼容边界；继续等待完整产品发布，不能以局部验证或NPM版本出现提前声明整个任务完成。
+结果：保持原 journal，所有恢复可回读。当前 open-required: 无。CR-01–CR-10均有实际证据；桌面安装包本次不适用，primary原有WIP由主线自动重试保护。最终发布、复盘决定与维护性自动检查的已接受预算信号见交付日志。
 
 契约 Review：性能、旧数据、真实入口、托管与最终发布单列，避免局部成功掩盖未交付；不重复登记通用格式/lint 规则。无待决范围变更。

@@ -14,7 +14,7 @@
 
 ## 交付结果
 
-实现与本地验证完成，最终发布验证进行中。首个0.59.2候选被Windows实装矩阵阻止推广Runtime；修复后目标为 NextClaw 0.59.3 patch，含 NPM/runtime、文档及触达的 Bibo Worker/UI；不含 desktop installer。
+**已完成并发布NextClaw 0.59.3 patch**，含NPM/runtime、文档及触达的Bibo Worker/UI；不含desktop installer。首个0.59.2候选被Windows实装矩阵阻止推广Runtime，最终0.59.3恢复parent39306362156成功，全部适用发布门已闭合。
 
 ### 实现结果
 
@@ -54,6 +54,21 @@ diff-only自动维护性检查检查121文件，报告27项error级预算信号�
 
 02:53上述两路径真实公网精确安装均通过：0.59.1完整稳定版check/download/apply、新进程0.59.3及Portable Service App调用成功；0.59.2 launcher+0.59.1 Runtime一体update也得到restart-required、pointer及新进程0.59.3。临时home/cache均由原owner清理。6个verifier单测、14个orchestration合同、ESLint/actionlint通过；局部自动维护性零error/2warning，人工复核没有开放finding。四平台公开manifest均为0.59.3/hostKind=npm-runtime-bundle/floor0.18.11，签名与hash存在；releaseNotesUrl仍指向冻结源码所确定的同一GitHub Release，最终正文使用已构建双语notes，不移动tag或修改已发布包。
 
-- 源码6e7a43a6ad已进入远程master，父发布run39296598787仅dispatch一次。NPM latest已为0.59.2；版本提交与tag `nextclaw@0.59.2` 指向c45d1a413b。Runtime及真实安装矩阵仍以parent终态为准，未提前宣称整个产品完成。
+同一0.59.3恢复parent39306362156于02:53:44从daa1098b5e单次dispatch，docs自动部署39306292558；不重复上传NPM或重建Runtime。普通本地new-release dry-run没有发布checkpoint且以仍活跃的local master为Changesets基线，不能模拟CI recovery；明确未把这次dry-run称为成功，未为绕过它移动primary master。CI现有identity gate自行从冻结SHA识别已发布0.59.3，最终完成仍以此parent终态为准。
+
+发布耗时取GitHub job/step metadata（不读取成功job日志）：0.59.2 NPM job783秒，其中prepared batch+Git731秒；0.59.3 NPM job588秒，其中同一步540秒，均为`time budget: missed`。这些含exact-source准备/发布/Git等待，不能当作纯registry上传时间。0.59.3 Runtime promotion及公开channel验证116秒，在120秒目标内；后续失败的升级验证87秒单列。NPM慢点集中于首次广泛依赖闭包与两次必要源码返工后的精确产物准备；继续复用immutable artifacts和成功兼容矩阵，不新增手工发布快速通道。细分package计时未独立导出为artifact，当前只声明可由metadata证明的层级。
+
+- 首候选源码6e7a43a6ad进入远程master，父发布run39296598787仅dispatch一次。当时NPM latest为0.59.2，tag `nextclaw@0.59.2` 指向c45d1a413b；Windows失败后未推广Runtime。该候选已被下述0.59.3正式结果取代。
 - Bibo从冻结6e7a43a6ad发布Worker/UI，47.49秒，版本6677a4c7-a923-4ce1-8a29-402dd773e914。部署前后两个容器镜像引用一致；16个入口静态资源SHA256与冻结构建一致。真实线上鉴权、桌面/触屏会话刷新与原文400/401/404通过，隔离测试会话已删除，无新增模型调用。空UI会话尚未建立canonical源，page cursor在此分支返回200空页；canonical非法游标400另由实际app route测试证明。
 - 收尾扩展UI回归：4个hooks/timeline文件35项通过。输入边界fixture原有14项均因缺QueryClient失败，用只读Vite source override加载f9da基线两组件可稳定同现14项失败；原组件/hook和fixture此前未改。为验证本次触达的输入边界，只在该fixture显式隔离无关的问题抓取provider，不修改产品行为，14项现已通过；独立问题组件3项、原文manager3项也通过，合计55项UI定向证据。该test-only修正补跑UI tsc及ESLint，并做局部diff Review。
+
+### 最终正式发布与复盘
+
+- **NEXTCLAW_STABLE_READY 0.59.3**：[恢复parent39306362156](https://github.com/Peiiii/nextclaw/actions/runs/39306362156)于02:53:44–03:01:17全部成功，453秒；未重发NPM、未重建Runtime，复用parent39302315623的16组平台/Node实装成功证据。final artifact记录version0.59.3、sha **cdd34ef29a5745ca04ec8b8bbcdbe20dcbc38816**、target product及此runId，已下载核对。原不可变产品源c574879134，恢复控制平面/内容源daa1098b5e，来源明确分开。
+- 恢复NPM job146秒，最慢为Infer release checkpoint 91秒，`time budget: missed`；这是已发布事实/历史兼容证据识别与环境准备，不是再次上传。Runtime job206秒，其中真实旧安装/升级123秒；原Runtime promotion116秒在120秒目标内。重用成功checkpoint避免重复平台安装、重新打包或新发布通道；未把job总时长冒充registry上传或Runtime promotion时间。
+- 四平台公开manifest实读均0.59.3、minimumLauncherVersion0.18.11、hostKind=npm-runtime-bundle，hash/signature字段存在；releaseNotesUrl保留冻结源决定的[同一GitHub Release](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw@0.59.3)。该Release已更新为owner生成的中英双语正文并逐字回读，四个Runtime资产仍在，tag没有移动。
+- [docs部署39306292558](https://github.com/Peiiii/nextclaw/actions/runs/39306292558)国际、国内及verify全部成功，commit daa1098b5e，tree **698e13bf8edda8003d2170004f20be57891de4bf123991e0d4c6ffa27ee1e366**。两站中英文0.59.3页面与JSON均200，JSON与源码一致；产品默认跨域读取入口docs.nextclaw.io的CORS=*已验证。额外检查发现国内镜像JSON没有CORS，旧0.59.1也如此；它不是本版产品跨域消费入口，未把国内跨域读取列为通过项，未扩大范围改托管基础设施。
+- Branch closure检查通过：origin/master与codex/compaction-resilience均包含全部用户功能、版本及已发布内容，无release-only源码。主线协调器返回**LOCAL_WORKTREE_RETRYING**，因为primary原有tracked WIP尚在；单例worker接管，未reset/stash/rebase或覆盖。原tracked diff SHA256仍**6b9d5f0f9688351cdb5bfeb74340a06dcf2a5cdef2afdbbbdffe39d0cd53e02f**，原未跟踪路径保留。远程交付已闭合，本地自动协调不是用户待办。
+- 临时Bibo发布worktree已安全移除；owned验证宿主18897、Docker容器和volume已清理，安装fixture由原owner自动清理。实施worktree保留作为可查看交付，原有设计worktree不动。没有桌面安装包授权，本次没有installer发布；这是可靠性patch，用户文档/notes已更新，无额外官网营销改版或社交传播，夜间没有社交平台读写。
+- **retrospective_decision=updated-existing-owners**：三个根因均修回原owner与反例，平台durability差异补入原设计，升级验证按完整stable与bootstrap两种真实语义分开，当前publisher可恢复旧不可变产物。current-state重写为当前快照，历史归本日志。不新增全局规则、平行发布器或空复盘文档。功能、类型、故障、性能及实装证据边界明确；没有客户日志，不能声称确定还原客户每次事故；自动维护性预算信号的人工接受不被改写成脚本通过。
+- `AUTOMATION_INTERVENTIONS=3`；`parent_status=ready-for-completion-check`；CR-01–CR-10全部关闭。最终阶段统计以task=end后observer实际rollout为准，不推算Token。

@@ -1,40 +1,24 @@
 # 当前执行状态
 
-## 目标与合同
+## 完成结果
 
-- 用户授权实现压缩鲁棒性/大历史性能设计、充分验证及完整stable产品发布；默认单代理，禁止委派。task-id=dt-c619a4e2，bugfix，retrospective尚待最终闭合。
-- [验收合同](acceptance-contract.md)、[设计](../../designs/2026-10-19-context-compaction-resilience.design.md)、[交付日志](../../logs/2026-10-19-context-compaction-resilience/README.md)、[性能原始汇总](performance-evidence.json)。CR-01–CR-09已有本地功能/性能/Review证据；CR-07的Windows实装及CR-10的最终发布仍开放，不得声明整体完成。
+- 用户授权的压缩可靠性、大历史性能实现、反例验证与正式产品patch已完成，最终版本**NextClaw 0.59.3**；task-id=dt-c619a4e2，单代理bugfix，无委派。
+- [验收合同](acceptance-contract.md) CR-01–CR-10全部关闭；[设计](../../designs/2026-10-19-context-compaction-resilience.design.md)、[交付日志](../../logs/2026-10-19-context-compaction-resilience/README.md)、[性能证据](performance-evidence.json)。无客户日志，结论覆盖已证明的失败类别与边界，不冒称还原客户每次事故。
+- 实施checkout `/Users/peiwang/Projects/nextbot-compaction-resilience`，分支`codex/compaction-resilience`，保留为可查看交付；临时Bibo发布worktree、owned验证宿主18897及Docker容器/volume已清理，原有设计worktree未动。
 
-## Git与现场
+## 发布证据
 
-- 实施checkout /Users/peiwang/Projects/nextbot-compaction-resilience，分支codex/compaction-resilience。源码6e7a43a6ad已发布到master；0.59.2版本/tag提交c45d1a413b；内容和test fixture后续已合并推送到15a8edcd8f。主工作区master的已提交HEAD是远程祖先，原WIP未触碰，diff SHA256 6b9d5f0f9688351cdb5bfeb74340a06dcf2a5cdef2afdbbbdffe39d0cd53e02f。
-- Bibo部署checkout /Users/peiwang/Projects/nextbot-compaction-resilience-compaction-resilience-release，codex/compaction-resilience-release，冻结6e7a43a6ad，已部署并验证。旧设计checkout nextbot-compaction-resilience-design保持干净。
+- 最终0.59.3产品源c574879134，版本/tag提交**cdd34ef29a5745ca04ec8b8bbcdbe20dcbc38816**，tag `nextclaw@0.59.3`；验证控制平面及双语内容**daa1098b5e25398a912da1287bab9445fffb112b**已进入远程master，没有移动tag或重发NPM。
+- **恢复parent39306362156成功**：https://github.com/Peiiii/nextclaw/actions/runs/39306362156 ，02:53:44–03:01:17；复用同一版本NPM/四Runtime资产及parent39302315623的四平台×Node20/22/24/26实装16组成功证据。final proof artifact已核对version/sha/target/runId。0.59.1完整stable分步升级与0.59.2 launcher+0.59.1 Runtime的一体升级均真实通过。
+- 四平台公开manifest均0.59.3/hostKind=npm-runtime-bundle/floor0.18.11，签名/hash存在，releaseNotesUrl指向冻结源码决定的同一GitHub Release；该Release双语正文逐字核对，四资产保留。
+- **docs39306292558成功**；国际/国内commit daa1098b5e，tree `698e13bf8edda8003d2170004f20be57891de4bf123991e0d4c6ffa27ee1e366`。中英文notes/JSON线上200且内容一致；产品跨域入口docs.nextclaw.io的CORS=*已证明。国内镜像与旧0.59.1均无CORS，未宣称它为跨域入口。
+- Bibo Worker **6677a4c7-a923-4ce1-8a29-402dd773e914**已发布并完成线上smoke，镜像引用未变，16静态资源SHA256一致。Windows及验证工具后续修正不触达DO，不重复部署。
+- 桌面安装包、社交发布不属于本次patch适用交付面；夜间未读写社交平台。首次旧历史准备仍需扫描原始记录；性能环境、首次维修耗时和Windows目录掉电语义边界见证据。
+- 人工Review无开放finding；主体自动维护性检查27个预算error/19warning，必要原owner增长已逐项接受，**不宣称该脚本通过**。后续Windows局部1个预算signal接受；验证工具局部0error/2warning。
 
-## 已完成证据
+## 主线与复盘
 
-- Kernel796项完整通过；后续faults40、runtime25、server路由5、原文UI3；Bibo174/最新route31/真实Miniflare DO通过；6个闭包tsc、3个Bibo tsc、ESLint/public imports通过。
-- UI扩展回归35 hooks/timeline+14输入边界+3问题组件+3原文=55项。14个输入边界旧fixture缺QueryClient，加载f9da基线可同现；只隔离无关question provider后14项通过。test-only提交84ca91bbb，局部maintainability零问题。
-- Linux x64 guest2CPU/2GiB（M4仿真）、每组30次：256MiB/64MiB/百万delta页p95 8.08/0.55/1.13ms，规划7.98/0.20/2.43ms，维修堆11.18/2.17/22.51MiB；首次维修24.93/4.71/115.56秒。Chrome155/M4/16GiB、50ms/10Mbps、每组30次点击可见p95=188.62/135.04ms；OS热/SQLite新连接等边界在report明确。
-- 真实DeepSeek长任务两次自动压缩+平台冷恢复保留随机文件标识与约束，约26k摘要输入token；fresh CP UUID后续用冷存储专项验证，无重复付费模型调用。
-- Bibo Worker 6677a4c7-a923-4ce1-8a29-402dd773e914，47.49秒部署；容器两镜像引用未变，16入口静态资源SHA256一致；线上鉴权/空会话刷新/原文400/401/404/desktop+触屏通过，无模型调用，测试会话已清理。日志/tmp/compaction-bibo-{deploy,published-smoke}.log及static-proof.json。Windows后续修正为本地文件系统路径，Bibo DO没有该变化轴，不重复部署。
-
-## 当前真实失败与修复
-
-- **0.59.3已于02:25首次dispatch**：parent **39302315623**，https://github.com/Peiiii/nextclaw/actions/runs/39302315623 ，冻结source **c5748791348b55f901649d25ea03dbd6b13f18eb**。只等此parent终态，不重复dispatch；预期9 NPM包/39验证闭包。3734旧source预构建39301119608已按source取消。两个root cause修复均在新source内；实际Windows四Node与runtime/升级验证仍待parent证明。
-
-- 0.59.2 parent run39296598787（https://github.com/Peiiii/nextclaw/actions/runs/39296598787）已failure。NPM 0.59.2已发布且tag存在，但Windows Node20/22/24/26实装都在snapshot import目录fsync报EPERM。runtime promotion因兼容矩阵未过而跳过，stable runtime没有推广0.59.2。不能rerun旧Windows job假装能修已发布包。
-- 新目标0.59.3：新增内部session-journal-durability.utils owner，两个原调用方复用；Windows不执行不支持的目录flush，source/intent文件仍强制flush；复制文件Windows r+，POSIX r。普通文件I/O错误仍传播；不宣称Windows具备POSIX目录fsync掉电语义。官方依据与失败日志在README。
-- 新文件preflight已过；最新33个durability/journal/maintenance测试及Kernel tsc通过，targeted ESLint和Kernel build已通过前一时点；最新日志/tmp/compaction-windows-final-{tests,types,review}.log。局部maintainability1个预算error是原journal owner新增1行导入；本体statement71→59，必要单owner增长人工接受，不假称脚本绿色。主体原Review27预算信号接受理由在日志。
-- Windows主修复已commit/push373421cce，.changeset/steady-windows-journals.md为Kernel/nextclaw patch；dry-run=0.59.2→0.59.3、9 NPM包/39验证闭包。0.59.2已成功NPM步骤不得重发或改包。
-- 又确认旧NPM0.59.2无Runtime资产，原升级夹具按同版本下载必然404。c574879修复原owner，通过官方认证release元数据选≤旧NPM且四平台资产完整的实际旧Runtime；旧package仍0.59.2、实际旧Runtime0.59.1，pointer/报告分别使用真实版本，不伪造旧安装。6项Node测试、实际官方元数据解析0.59.1、ESLint、actionlint均过；scoped maintainability零error/2warning。release.yml仅给验证步骤补已有GH_TOKEN。累计发布介入2个根因。
-- 02:46 parent39302315623：NPM成功，四平台×Node20/22/24/26实装16组全过，Runtime四资产与公开channel已推广；最后升级验证失败。失败阶段日志/tmp/compaction-v0593-failed.log，未再次发布NPM。
-- 第三个介入根因：用NPM0.59.2+Runtime0.59.1混合夹具执行分步升级，旧launcher bootstrap在第三次启动前消费downloaded状态并激活0.59.3，后续显式apply重复应用报错。原owner现先验证上一完整stable（package/runtime均0.59.1）的check/download/apply；再独立验证较新NPM+旧Runtime的一体update，严格断言pointer与新进程均为0.59.3，不把失败命令当成功。workflow升级验证改消费同一publisher控制平面，恢复旧不可变产物时可用当前验证owner。累计AUTOMATION_INTERVENTIONS=3。02:53本地真实两路径均成功；6个verifier单测+14个orchestration合同、ESLint/actionlint通过，scoped maintainability零error/2warning，人工复核无开放finding。
-- 四平台公开manifest已实读0.59.3，hostKind=npm-runtime-bundle、minimumLauncherVersion=0.18.11、签名/hash字段存在，releaseNotesUrl保留冻结源码的GitHub Release地址；最终同一Release将写双语正文。原始metadata在/tmp/compaction-v0593-public-manifests.json。
-- 中英文0.59.3 notes/index/JSON、0.59.2 superseded链接已准备且docs最终build/i18n成功，合并自动版本提交cdd34ef29a；本地HEAD9d4dfc632，尚未推送内容，等待升级验证修正后以同一0.59.3恢复。
-
-## 接下来
-
-1. 等待parent39302315623终态，只读最终summary；失败只读失败job附近。不监控成功job日志或重发旧identity。新的Windows四Node实装矩阵必须真实全过再推广Runtime。
-2. Runtime及真实旧安装升级通过后，合并自动版本提交并推送已构建的中英文0.59.3内容/记录，更新同一GitHub Release双语正文；等待docs自动部署并验证公开URL/CORS/JSON。
-4. 最终runtime/manifest/真实安装升级通过后运行pnpm release:reconcile:mainline，保护primary WIP。关闭CR-10、最终日志/retrospective精确提交推送；清理本任务临时worktree与owned临时host/docker。
-5. 最终task=end id=dt-c619a4e2落盘后按owner脚本查询实际Token，不猜数字。最终中文前缀、恰好一个真实stage标记，附commit/push对应Codex directive。不要把NPM版本出现、Bibo已上线或局部验证当作整个产品发布完成。
+- origin/master包含全部功能、版本与说明。primary `/Users/peiwang/Projects/nextbot` 保持master及原有WIP，tracked diff SHA256仍`6b9d5f0f9688351cdb5bfeb74340a06dcf2a5cdef2afdbbbdffe39d0cd53e02f`。
+- `pnpm release:reconcile:mainline`返回**LOCAL_WORKTREE_RETRYING**：primary原HEAD f9da4930b是远程祖先，原有tracked WIP阻止自动快进；单例retry worker已接管，不reset/stash/rebase或覆盖，不作为用户待办。
+- `AUTOMATION_INTERVENTIONS=3`：Windows平台落盘、previous NPM无Runtime资产、混合安装误作完整stable分步升级。均修回原代码/验证owner并有反例，未降低平台门或新增发布器。
+- `retrospective_decision=updated-existing-owners`：平台durability合同更新原设计/实现与回归；升级测试区分完整stable和bootstrap，workflow消费当前验证控制平面；本文件改为当前状态快照，历史归同一日志。不新增全局规则或空复盘文档。`parent_status=ready-for-completion-check`。
