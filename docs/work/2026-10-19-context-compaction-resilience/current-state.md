@@ -27,7 +27,10 @@
 - 新文件preflight已过；最新33个durability/journal/maintenance测试及Kernel tsc通过，targeted ESLint和Kernel build已通过前一时点；最新日志/tmp/compaction-windows-final-{tests,types,review}.log。局部maintainability1个预算error是原journal owner新增1行导入；本体statement71→59，必要单owner增长人工接受，不假称脚本绿色。主体原Review27预算信号接受理由在日志。
 - Windows主修复已commit/push373421cce，.changeset/steady-windows-journals.md为Kernel/nextclaw patch；dry-run=0.59.2→0.59.3、9 NPM包/39验证闭包。0.59.2已成功NPM步骤不得重发或改包。
 - 又确认旧NPM0.59.2无Runtime资产，原升级夹具按同版本下载必然404。c574879修复原owner，通过官方认证release元数据选≤旧NPM且四平台资产完整的实际旧Runtime；旧package仍0.59.2、实际旧Runtime0.59.1，pointer/报告分别使用真实版本，不伪造旧安装。6项Node测试、实际官方元数据解析0.59.1、ESLint、actionlint均过；scoped maintainability零error/2warning。release.yml仅给验证步骤补已有GH_TOKEN。累计发布介入2个根因。
-- 02:33 parent39302315623：identity成功，NPM batch进行中；中英文0.59.3 notes/index/JSON已准备且docs build成功，尚未推送，等待Runtime真实推广后闭合内容。
+- 02:46 parent39302315623：NPM成功，四平台×Node20/22/24/26实装16组全过，Runtime四资产与公开channel已推广；最后升级验证失败。失败阶段日志/tmp/compaction-v0593-failed.log，未再次发布NPM。
+- 第三个介入根因：用NPM0.59.2+Runtime0.59.1混合夹具执行分步升级，旧launcher bootstrap在第三次启动前消费downloaded状态并激活0.59.3，后续显式apply重复应用报错。原owner现先验证上一完整stable（package/runtime均0.59.1）的check/download/apply；再独立验证较新NPM+旧Runtime的一体update，严格断言pointer与新进程均为0.59.3，不把失败命令当成功。workflow升级验证改消费同一publisher控制平面，恢复旧不可变产物时可用当前验证owner。累计AUTOMATION_INTERVENTIONS=3。02:53本地真实两路径均成功；6个verifier单测+14个orchestration合同、ESLint/actionlint通过，scoped maintainability零error/2warning，人工复核无开放finding。
+- 四平台公开manifest已实读0.59.3，hostKind=npm-runtime-bundle、minimumLauncherVersion=0.18.11、签名/hash字段存在，releaseNotesUrl保留冻结源码的GitHub Release地址；最终同一Release将写双语正文。原始metadata在/tmp/compaction-v0593-public-manifests.json。
+- 中英文0.59.3 notes/index/JSON、0.59.2 superseded链接已准备且docs最终build/i18n成功，合并自动版本提交cdd34ef29a；本地HEAD9d4dfc632，尚未推送内容，等待升级验证修正后以同一0.59.3恢复。
 
 ## 接下来
 

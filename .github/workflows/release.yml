@@ -424,11 +424,13 @@ jobs:
       - name: Verify upgrade from previous stable
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          pnpm -C packages/nextclaw validation:npm-update --
-          --published-stable
-          --expected-version "${{ needs.publish-npm.outputs.target_version }}"
-          --previous-version "${{ needs.publish-npm.outputs.previous_version }}"
+        run: |
+          node --input-type=module -e '
+            import { runPublishedNpmRuntimeUpdateValidation } from "./.tmp/publisher/packages/nextclaw/scripts/verify-published-npm-runtime-update.mjs";
+            await runPublishedNpmRuntimeUpdateValidation(process.argv.slice(1));
+          ' -- --published-stable \
+            --expected-version "${{ needs.publish-npm.outputs.target_version }}" \
+            --previous-version "${{ needs.publish-npm.outputs.previous_version }}"
 
       - name: Record product release status
         shell: bash
