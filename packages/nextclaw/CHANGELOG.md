@@ -1,5 +1,16 @@
 # nextclaw
 
+## 0.59.3
+
+### Patch Changes
+
+- 373421c: Fix Windows session snapshot imports failing with EPERM during directory fsync. Keep source and recovery-intent file flushing, use writable handles when flushing copied files, and apply directory flushing only on platforms that support it.
+- Updated dependencies [373421c]
+  - @nextclaw/kernel@0.19.5
+  - @nextclaw/remote@0.3.74
+  - @nextclaw/server@0.23.17
+  - @nextclaw/service@0.7.11
+
 ## 0.59.2
 
 ### Patch Changes
