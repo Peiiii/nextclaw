@@ -324,12 +324,12 @@ function SearchProviderSidebar(props: {
                     {t(SEARCH_PROVIDER_DESCRIPTION_KEYS[provider.name])}
                   </p>
                 </div>
-                <div className='flex flex-col items-end gap-1'>
-                  <span className='rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground'>
+                <div className='flex shrink-0 flex-col items-end gap-1'>
+                  <span className='whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground'>
                     {providerView.apiKeySet ? t('searchStatusConfigured') : t('searchStatusNeedsSetup')}
                   </span>
                   {isEnabled ? (
-                    <span className='rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700'>
+                    <span className='whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700'>
                       {t('searchProviderActivated')}
                     </span>
                   ) : null}
