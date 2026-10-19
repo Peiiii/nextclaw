@@ -152,6 +152,8 @@ preflight 生成候选；journal ingestion 的同一会话串行写入口在校�
 
 只有持久化成功才发布 compressed。journal 追加成功而 metadata/UI 投影失败时，从已提交事件幂等重建投影；追加未成功时保留旧 checkpoint。metadata 不成为第二安装真相。
 
+平台落盘边界：目录同步仅在支持该操作的POSIX路径执行；Windows文件flush使用可写handle，源记录与恢复意图文件仍强制flush，普通I/O错误不得吞掉。Windows不宣称具备POSIX目录fsync的同等掉电语义；进程中断后的源/metadata回滚由同一durable intent保证。实现事实及官方依据见交付日志中的0.59.2 Windows矩阵返工记录。
+
 原请求若实际 overflow，仅允许在新 checkpoint 已持久提交且输入确实缩小后自动续跑一次。相同 source fingerprint 下不得反复触发相同压缩/原请求回放。
 
 失败诊断归原 checkpoint/run 事件，保留 request ID、源 revision、预算估算身份与数值、可见 finish reason、实际调用数、超时/取消原因、恢复模式及存储阶段；不在最终错误中覆盖原 cause，也不默认记录完整客户原文或凭据。观测用于定位外部故障，不作为上述安全合同成立的前提。
