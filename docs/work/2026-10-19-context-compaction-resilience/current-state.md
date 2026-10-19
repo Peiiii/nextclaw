@@ -1,5 +1,15 @@
 # 当前执行状态
 
+## 2026-10-20 01:55 发布现场（最新，覆盖以下过期状态）
+
+- 产品源码已提交并推送远程master：`6e7a43a6ad933dfc5ce0b81a9831d6b1bbae92e3`。CR-01–CR-09 passed，CR-10仍开放；原主工作区diff SHA256仍为6b9d5f0f9688351cdb5bfeb74340a06dcf2a5cdef2afdbbbdffe39d0cd53e02f，无无关WIP混入。
+- 正式父发布仅dispatch一次：`release.yml target=product expected_head=6e7a43a6ad...`，run **39296598787**，https://github.com/Peiiii/nextclaw/actions/runs/39296598787 。01:55只读状态仍in_progress；不得再次dispatch新identity或重新NPM publish。下次只检查parent终态，失败只读失败job附近。预期0.59.2，23个NPM包/41构建闭包；runtime/真实旧版升级由parent自动闭合，desktop排除。
+- 后续中英文更新笔记、index与结构化JSON已本地提交 `a60756086`，尚未推主线，避免抢占正在发布的Git阶段。docs构建通过。GitHub双语正文已由现有owner生成至 `/tmp/compaction-v0.59.2-github-notes.md`。NPM Git阶段完成后，将同一release提交合并进此分支，普通push内容、检查docs部署、更新同一GitHub Release正文，不重复发版。
+- Bibo已经从冻结远程主线6e7a43a部署：实际checkout **`/Users/peiwang/Projects/nextbot-compaction-resilience-compaction-resilience-release`**，分支codex/compaction-resilience-release，由dev:worktree wrapper offline bootstrap。deploy命令 `pnpm dev:node -- corepack pnpm -C apps/bibo-hosted run deploy`；47.49秒，Worker版本 **6677a4c7-a923-4ce1-8a29-402dd773e914**。日志/tmp/compaction-bibo-deploy.log；容器两条镜像引用前后完全一致（genericSandbox0.12.10和原旧containerdigest）。
+- Bibo生产鉴权、空会话保存/刷新、原文接口400/401/404、desktop/真实触屏无横向溢出通过，无额外模型调用；隔离测试会话已清理。原文静态资源SHA256与冻结构建一致。日志/tmp/compaction-bibo-published-smoke.log、/tmp/compaction-bibo-static-proof.json。首轮smoke把仅UI创建、尚无canonical journal的空会话错当作已有SQL会话，错误期待page cursor=broken返回400；已按实际空历史200且messages=[]、原文非法part400验证，不掩盖canonical cursor专测400。
+- 最终验证摘要及自动维护性27预算信号的人工接受理由见日志README。完整Kernel796项后，最新faults40、runtime25、server路由5、原文UI3、Bibo174/最新route31、真实DO、三套Bibo tsc与6个依赖闭包tsc、public-imports/ESLint均有匹配证据。机器性能report已提交：Linux最新三组30次页p95 8.08/0.55/1.13ms，规划7.98/0.20/2.43ms，维修堆11.18/2.17/22.51MiB；首次维修24.93/4.71/115.56秒。Chrome最新30次p95=188.62/135.04ms。
+- 仍需：parent稳定发布成功/manifest/真实安装升级证据→notes/docs/GitHub正文上线→`pnpm release:reconcile:mainline`→关闭CR-10与最终日志提交推送/适用worktree清理→retrospective marker与task-end/report（dt-c619a4e2）。不要因版本出现就宣称整个任务完成。
+
 ## 2026-10-20 01:28 最新状态（以下早期记录仅为过程证据）
 
 - 本任务仍未提交、推送或发布；主工作区 WIP 未触碰。Required CR-01–CR-10 保持开放，最终匹配版本验证、Review 与发布完成后按证据逐项关闭。
