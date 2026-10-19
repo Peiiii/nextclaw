@@ -14,7 +14,7 @@
 
 ## 交付结果
 
-实现及验证完成，正式发布尚待执行。目标为 NextClaw 0.59.2 patch，含 NPM/runtime、文档及触达的 Bibo Worker/UI；不含 desktop installer。
+实现与本地验证完成，最终发布验证进行中。首个0.59.2候选被Windows实装矩阵阻止推广Runtime；修复后目标为 NextClaw 0.59.3 patch，含 NPM/runtime、文档及触达的 Bibo Worker/UI；不含 desktop installer。
 
 ### 实现结果
 
@@ -44,7 +44,7 @@ diff-only自动维护性检查检查121文件，报告27项error级预算信号�
 
 `EXISTING_RELEASE_PATH`: release.yml target=product，npm-production NPM_TOKEN；最近成功生产run37934477862/source58def57df。未迁移认证，不执行raw npm publish。dry-run确定0.59.1→0.59.2、23个NPM包、41个workspace验证闭包，runtime更新与真实旧版升级由同一parent闭合；desktop排除。
 
-### 已发布事实（02:02，最终产品门仍待关闭）
+### 发布候选返工与最终门
 
 02:12失败定位及返工：parent39296598787在Windows四个Node20/22/24/26实装单元均失败，错误为snapshot import目录fsync的EPERM；其它平台通过，runtime promotion因依赖该矩阵成功而被正确跳过，stable runtime仍停留旧版。0.59.2 NPM身份不可修改，改为0.59.3正式patch，非重新上传旧版本。根因是把POSIX目录同步直接用于Windows，并在恢复文件上使用只读flush handle。按[Microsoft FlushFileBuffers](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)要求，Windows文件flush需GENERIC_WRITE；提取同一个内部文件系统durability owner，两原调用方复用。Windows跳过不受Node支持的目录flush，文件和intent仍强制flush；复制文件在Windows用r+，POSIX保留r。没有吞掉普通文件fsync错误；不承诺Windows具备POSIX目录fsync的同等掉电语义，原始源/intent和进程中断恢复仍有效。本地33项durability/真实snapshot/维修定向测试与Kernel tsc通过，真实Windows最终证明由新版本发布矩阵完成。该失败与修复计为发布流程1次人工介入；不改发布机制或降低平台门。
 
