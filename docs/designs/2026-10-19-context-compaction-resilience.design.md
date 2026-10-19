@@ -2,7 +2,7 @@
 
 ## 状态与用户目标
 
-2026-10-19 调研与设计，尚未实现、尚未改变已发布行为。第一轮参考 Codex、pi 源码形成韧性方案；第二轮按用户指出的几百 MB 会话加载风险补齐性能合同，原先的正确性审查不足以证明性能。范围仍为方案，不执行产品实现或发布。
+2026-10-19 调研与设计，尚未实现、尚未改变已发布行为。第一轮参考 Codex、pi；第二轮按几百 MB 会话加载风险补齐性能合同；最终补查 OpenCode 与官方 DeepSeek Harness，收敛为分层、增量、有界的主链路。前两轮不完整处已在原文替换，不把局部正确性审查当作性能或整体可用性结论。范围仍为方案，不执行产品实现或发布。
 
 用户要求的高把握来自架构：模型输出异常不能破坏历史、伪造任务状态、造成无界重试或把会话堵死。测试负责证伪这些合同，不能靠案例数量替代合同成立的理由。
 
@@ -32,6 +32,10 @@ NextClaw 基线为远程 master `260c43f29a9ddc49623192aac7f696eb3c278262`。本
 | 同版 Codex token-budget 路径 | 特定功能路径可跳过模型/服务端摘要、开启新上下文窗口 | 证明“换窗口”与“生成摘要”可分离；不能把该特定路径称为所有 Codex 用户的默认行为 |
 | pi `d2e7d8b7c1d31d3661f769d5caef7ba8d50c3e03` coding-agent | 规范 session projection 决定摘要和保留边界；旧摘要与新增历史合并；工具结果序列化有界；文件读写身份从代码抽取后附加 | 机械事实由代码保存，近期原文与摘要分开；没有采用 NextClaw 的多批全成功及完成标记门 |
 | 同版 pi 失败与提交 | 瞬态调用走共享重试；`length` 摘要与工具调用被拒绝；成功后追加 compaction entry，再重建视图；overflow compact-and-retry 有一次上限 | pi 也会失败，不能用“开源成熟产品都解决了”作为证明；可复用错误分类、提交顺序和循环边界 |
+| OpenCode `f394d9d410bc6bb7cafcebfc5e3180a9b80ebed9` | 当前实现在 `packages/core/src/session`；summary/recent 分开，实际过长拒绝后有界缩小输入，格式无效只提醒一次；完成事件才形成新视图，分页把 cursor/LIMIT 下推数据库 | 复用增量摘要、真实错误分类和持久定位；其 LIMIT 仍不能独自证明单条大对象的读取上限 |
+| 同版 OpenCode 大输出 | 工具输出按字节/行数限制，完整输出另存，模型只见有限片段与引用 | 在进入后续轮次前阻止巨大正文膨胀；不照搬文件路径与 7 天清理策略，NextClaw 的引用须授权可读且不得提前清理 |
+| DeepSeek Harness `687f282e8625c6b8d11ff58211a90524be2e4317` | 先做可持久重放、无需模型的工具结果裁剪，再测压力；普通 pressure 压缩失败仍可继续；overflow 仅在 surface generation 实际前进后有限重试 | 区分“优化没成功”和“无法继续”，进展是重试前提；不把它当作 DeepSeek 模型内部或网页端实现 |
+| 同版 DSH 投影缓存 | 以日志身份和 watermark 校验派生缓存；部分 coldSnapshot 调用仍要求调用方提供完整 log | 借鉴身份与增量 fold；不能因为存在投影缓存就认定其冷加载对 H 有界，也不照搬 pruner 的整段 Array.from 大字符串处理 |
 
 主要源码入口：
 
@@ -39,24 +43,51 @@ NextClaw 基线为远程 master `260c43f29a9ddc49623192aac7f696eb3c278262`。本
 - [Codex remote 安装](https://github.com/openai/codex/blob/4635d489254ba6d80eb6d2ef501929b0c617b6ec/codex-rs/core/src/compact_remote_v2_installation.rs)、[安装原语](https://github.com/openai/codex/blob/4635d489254ba6d80eb6d2ef501929b0c617b6ec/codex-rs/core/src/session/mod.rs)、[输出校验](https://github.com/openai/codex/blob/4635d489254ba6d80eb6d2ef501929b0c617b6ec/codex-rs/core/src/compact_remote_v2.rs)。
 - [Codex token-budget 路径](https://github.com/openai/codex/blob/4635d489254ba6d80eb6d2ef501929b0c617b6ec/codex-rs/core/src/compact_token_budget.rs)、[OpenAI 官方压缩说明](https://developers.openai.com/api/docs/guides/compaction)。官方说明明确远程压缩项是不透明状态；不能承诺复刻其内部质量。
 - [pi 压缩](https://github.com/earendil-works/pi/blob/d2e7d8b7c1d31d3661f769d5caef7ba8d50c3e03/packages/coding-agent/src/core/compaction/compaction.ts)、[序列化与文件身份](https://github.com/earendil-works/pi/blob/d2e7d8b7c1d31d3661f769d5caef7ba8d50c3e03/packages/coding-agent/src/core/compaction/utils.ts)、[session projection/append](https://github.com/earendil-works/pi/blob/d2e7d8b7c1d31d3661f769d5caef7ba8d50c3e03/packages/coding-agent/src/core/session-manager.ts)、[自动恢复](https://github.com/earendil-works/pi/blob/d2e7d8b7c1d31d3661f769d5caef7ba8d50c3e03/packages/coding-agent/src/core/agent-session.ts)。
+- [OpenCode 压缩](https://github.com/anomalyco/opencode/blob/f394d9d410bc6bb7cafcebfc5e3180a9b80ebed9/packages/core/src/session/compaction.ts)、[大输出](https://github.com/anomalyco/opencode/blob/f394d9d410bc6bb7cafcebfc5e3180a9b80ebed9/packages/core/src/tool-output.ts)、[数据库分页](https://github.com/anomalyco/opencode/blob/f394d9d410bc6bb7cafcebfc5e3180a9b80ebed9/packages/core/src/session/store.ts)。
+- [DSH pressure/overflow](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/index.ts)、[无模型裁剪](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-tool-result-pruner/src/index.ts)、[范围提交与稳定性](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/region.ts)、[投影缓存边界](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/session/session-projection-cache/src/index.ts)。
 
 ## 推荐方案与替代方案
 
-选择“原 journal + 确定性 checkpoint 视图 + 可选模型摘要 + 有界原文恢复”。先保证可以构造安全的下一窗口，再让模型摘要改善信息密度。模型不拥有覆盖边界、工具执行状态、权限、预算证明或持久提交。
+选择“原 journal + 持久派生索引 + 有界活动窗口 + 分层压缩恢复”。确定性代码管理源与预算，增量模型摘要负责通常的任务连续性，只有不能继续使用原窗口时才启用归档恢复。模型不拥有覆盖边界、工具执行状态、权限、预算证明或持久提交。
+
+最终主链路按以下顺序执行，不建立多套可切换引擎：
+
+```text
+完整 journal ──增量投影──> 持久索引/位置与轻量描述
+                              ├─> UI 有界页面
+                              ├─> Runtime 有界活动窗口
+                              └─> 授权后的原文分片
+
+活动窗口：未到软线 → 正常续跑
+          接近软线 → 机械瘦身 → 仍需压缩则一次增量摘要
+          摘要失败且旧窗口仍装得下 → 保持原事实，延后再试
+          硬线/真实 overflow 且无安全窗口 → 恢复视图，先核实再续做
+```
+
+其中软线为 `0.8 × hardInputLimit` 的初始默认；hardInputLimit 已扣正常输出 reserve、固定协议开销和估算余量。首次求解仍须证明固定输入与最小近期边界可装下，不能对小窗口机械套比例。每次发送前仍检查实际完整输入，软线只提供提前量，不是容量证明。
+
+机械瘦身只针对有原文引用的大工具/附件正文和重复表示，保留工具配对、身份、错误/已观察结果与近期用户原话；不把未知状态改为成功，不删除原始事件。新工具结果进入活动视图时即按字节预算表示，避免累积到极限再处理。既有当前工具协议是否支持来源回读由同一历史/资产 owner 闭环，引用不可用时不得静默裁剪。
+
+模型输入是“上次有效摘要 + 此后需要收敛的有界新历史”，近期完整交互单独保留；不把全部 journal 每次重喂一遍。若活动源本身含无法纳入摘要的范围，必须显式记录，不用成功摘要掩盖。
+
+普通 pressure 摘要失败时，只要原活动窗口仍可发送且没有新增不明归档，保持旧 checkpoint 和原窗口继续。失败指纹及 token 水位归原生命周期诊断：新增长达到软硬线间隔的一半、模型/配置实质变化或发生真实 overflow 才允许再尝试；同一源与预算下不在每个 tool step 重发。实际 overflow 只在持久缩减且重算输入后最多续跑一次。这个延后策略关闭“偶发格式错误就进入恢复态”和“每步重新压缩”的可用性缺口。
+
+请求缓存沿 epoch 保持稳定：规则、已安装摘要与冻结近期区间不因 UI 翻页或下一轮重新挑选而变化，新消息/回读证据追加在 suffix。机械裁剪只在明确的压力转换中持久发布一次、与新的预算事实同步；不能每轮按变化的“重要性评分”重排旧前缀。正常窗口、UI 预览与归档正文分别计量，不能用更高缓存命中率掩盖更大的总输入或多余摘要调用。
 
 | 方案 | 优点 | 不能关闭的风险 / 代价 | 决定 |
 | --- | --- | --- | --- |
 | 修 70% 重试，保留多批全成功，持久化草稿 | 当前 diff 较小，晚批失败可少算一些 | 任一模型内容失败仍能使全链阻断；草稿又引入失效、恢复和存储状态 | 不采用为根治架构 |
 | 纯滑动窗口、直接丢弃老模型上下文 | 无摘要依赖，路径简单 | 无任务恢复合同会导致遗忘和重复动作；无法满足连续性 | 不独立采用 |
 | 确定性视图、可选摘要、可回读归档 | 把历史保存/边界/预算从模型成功中解耦，失败仍可响应与核实 | 极端降级时需读原文，无法安全恢复的副作用需用户澄清 | 采用 |
+| 默认后台并行预摘要 / 全面使用 provider 原生压缩 | 可减少部分前台等待，原生能力可能有更高摘要质量 | 增加候选过期与无效调用，原生状态不能跨所有 provider 重放，均不解决全量读取 | 当前不引入；先用单条前台链路闭合资源与恢复合同 |
 
 不新增摘要服务集群、独立长期记忆库、后台压缩调度或持久批次草稿。优先删除全历史串行摘要的强依赖，并复用原 session/journal/budget owner。
 
 ## 用户链路与可保证结果
 
-1. 用户在原会话继续长任务。Native runtime 检测压力并展示现有压缩状态；原始消息不改写。
-2. 代码先准备可安装的确定性视图：规则、最新请求的有界原文/引用、近期完整交互、明确的历史范围和恢复入口。容量允许时请求一次模型摘要，合格结果加入候选。
-3. 摘要成功且没有新增未恢复范围时继续原请求；摘要不合格、为空、含工具调用、截断、超预算或摘要专用请求失败时，候选仍能以 `recovery-required` 安装。只要有未进入摘要源的有效历史或继承的未解决范围，同样保留恢复态，不能因本次摘要成功解除。界面明确“已保留历史，正在恢复任务上下文”，不能显示完整语义已恢复。
+1. 用户在原会话继续长任务。打开会话只读持久索引与有界窗口，不触发模型压缩或全量回放。Native runtime 达到软压力线时再尝试减小活动视图；原始消息不改写。
+2. 机械处理足以缓解压力则不调用摘要模型；否则准备可安装的确定性后备视图，并尝试一次有界增量摘要。两者都保留规则、最新请求、近期完整交互和明确来源。
+3. 摘要成功且没有新增未恢复范围时继续原请求；摘要不合格但旧窗口仍可安全发送，则保持旧事实正常继续并延后再试。只有必须移出尚未被承接的历史、无法满足硬输入预算或执行状态不明时才安装 `recovery-required` 后备视图，界面明确“已保留历史，正在恢复任务上下文”。不能把降级显示成完整语义已恢复，也不能因下一次摘要成功解除继承的未解决范围。
 4. 恢复阶段可以查历史、核实结果、回答和提出续做计划；恢复所需信息确实可得时自动读取。无法证明旧约束或副作用状态已恢复时，保持只读并向用户说明具体缺口，只澄清业务状态，不要求客户提供内部日志。
 5. 刷新或重启继续读取已提交 checkpoint 的同一边界与恢复状态；取消立即停止新调用且不安装未提交候选。
 
@@ -87,11 +118,11 @@ NextClaw 基线为远程 master `260c43f29a9ddc49623192aac7f696eb3c278262`。本
 
 ### 3. 摘要是可丢弃的内容，不是 checkpoint 协议
 
-- 默认一次摘要调用，provider 瞬态重试由原 provider owner 负责并有独立次数/时间上限；不再按批数放大语义调用次数。
-- 摘要阶段总时限默认 60 秒，包含该请求的传输重试；和用户取消使用不同的类型化原因。超时仅放弃可选摘要、进入已求解基线，用户取消终止整个动作；迟到响应不能改变候选或越过安装 revision 校验。主请求仍遵守原 run 的取消/超时合同，不新增并行后台任务。
+- 一次压缩动作默认一次摘要调用；机械处理足以减压时零调用。provider 瞬态重试由原 provider owner 负责并有独立次数/时间上限；不再按批数放大语义调用次数。普通 pressure 的失败按水位延后，不触发原请求回放。
+- 摘要阶段总时限默认 60 秒，包含该请求的传输重试；和用户取消使用不同的类型化原因。超时放弃可选摘要，软压力仍可用时延后、硬压力才进入后备视图；用户取消终止整个动作。迟到响应不能改变候选或越过安装 revision 校验。主请求仍遵守原 run 的取消/超时合同，不新增并行后台任务。
 - 模型只读有界源：可安装的前次摘要与预算允许的新历史；未进入摘要源的区间显式归档。不能强求每条源身份经串行调用后才换窗口。
 - 仅完整响应、非空可见文本、无工具调用、预算合格的摘要进入内容槽。内部可继续提示四节格式，但标题、完成注释或 JSON 拼写不再控制历史安装资格。
-- 截断、空输出、错误格式、超限、thinking-only、异常 finish reason 均丢弃该内容槽，使用已求解基线并标记恢复；不补写模型遗漏的事实。
+- 截断、空输出、错误格式、超限、thinking-only、异常 finish reason 均丢弃该内容槽；旧窗口能用时维持它，否则使用已求解后备视图并标记恢复。不补写模型遗漏的事实。
 - 摘要不能改变覆盖范围、工具状态、权限或恢复标记；原用户/工具内容按数据引用，不能通过摘要提高指令权限。
 - 摘要 provider 与主请求 provider 同时不可用时，返回真实 provider 故障；本方案不保证外部模型离线时仍能生成答案，也不把失败伪装成成功。
 
@@ -102,6 +133,8 @@ NextClaw 基线为远程 master `260c43f29a9ddc49623192aac7f696eb3c278262`。本
 在原 `sessions_history` owner 上增加会话内范围读取和不透明 cursor，复用 `SessionManager` / `SessionPersistence` 的分页能力；单条超大消息还须增加完整 part/文本分片读 contract，不能把 UI preview 当完整证据，也不能先加载全会话再截成一页。复用同一授权后的精确 session ID，cursor 绑定 session、revision、message 和范围，不能跨会话或越权读取。
 
 返回稳定 message/part 坐标、工具身份、已观察到的结果、截断标记、下一 cursor 和剩余范围；每页服从当前恢复窗口的字节/token 上限。不能绕过 tool registration、平台授权或存储 owner 直接读宿主文件。Native 的本地/托管宿主都必须实现同一 contract；缺少注册或读权限时明确 `history-unavailable` 并阻止自动副作用恢复。
+
+原文与资产引用寿命跟随对应会话/用户删除规则，不能照搬上游短期工具文件的自动清理期限，让合法 checkpoint 在数日后失去证据。位置/身份失效必须返回可区分错误；不通过猜测新消息或其它会话内容“修复”旧引用。
 
 ### 5. 恢复与副作用边界
 
@@ -166,6 +199,12 @@ preflight 生成候选；journal ingestion 的同一会话串行写入口在校�
 
 ### 必须改变的读取与运行入口
 
+本地存储选定为原 projection owner 下的**派生 SQLite 投影**，复用现有 SQLite opener/事务能力，原 JSONL 不改格式、不迁移原文：消息表只存有界描述/ordinal，part 与正文按不超过 64 KiB 的片段物化，tool-call owner 有独立索引，另有 checkpoint/source revision/投影 watermark。用主键或有序索引定位后再 LIMIT，不把整条大 JSON 塞进一行再读取。它替换现有派生 `messages.jsonl + offsets` 的大行读取表示，不额外维护另一套 canonical 事实；可由原 journal 重建，旧派生版本逐会话准备，不全库强迁移。
+
+UI 读描述，运行入口读取已安装 checkpoint 所选区间和受限 tail 对应的 part，历史工具读指定片段。完整消息的 SDK/导出入口仍可显式组装，但不能被普通打开、续跑或回读间接调用。投影更新事务只发布已物化的片段、归属与 watermark；内存热视图增量更新受影响内容，不能每个 delta 重序列化整个 W。最终 model-visible request 仍由同一个 builder 根据这些来源构造，存储不拥有第二套模型裁剪策略。
+
+兼容风险已取证：现有 `sqlite-database.store.ts` 在 Node 内建 SQLite 不可用时，`sql.js` 分支通过 readFileSync 加载整库，持久化通过 database.export/writeFileSync 导出整库。该分支不能承载这里的大型消息投影并被宣称满足 O(P+D) 与增量写预算。参考本地运行目标固定为 Node 22.23.2 的内建 SQLite；桌面/托管适配也须使用各自具备索引与局部读写的真实后端。不能静默撤销既有 Node 支持或在旧 Node 上悄悄进入同样有问题的 fallback；实施发布矩阵必须单列便携分支的可用性和性能边界，未闭合前不得宣传所有兼容宿主均有大日志保障。无需为此自研 B-tree、KV 框架或新增平行索引 owner。
+
 1. **存储层即区分轻量描述与正文。** 写入/投影时生成有界、确定性的消息描述、part/正文范围、字节数、工具数量和定位索引；页面只取描述和预算内正文。大参数、结果、推理、base64 与附件正文按范围或资产引用回读，不在服务端先解析整条再截短。已有图片/asset owner 继续复用，不额外复制一份归档。
 2. **ID 定位不能靠读完全部正文建 Map。** 在原 projection owner 维护持久的 message ID/ordinal、tool-call owner 与正文位置索引，增量更新并与投影同代发布；本地复用已有索引存储能力，托管宿主使用其原持久化的按键/范围查询。缓存仅是加速，不是满足性能的前提；禁止一次命中不了就扫描全历史，禁止每次读页为校验有效性 hash 整个文件。
 3. **运行态只装载可执行窗口。** 原 SessionManager 提供按已安装 checkpoint、必要边界和新 tail 构造的 bounded run seed；SessionRun/runtime/preflight/model builder 消费同一受限视图和来源引用。完整 transcript 仍由 journal/projection 拥有，不能把截短数组写回原消息集合。活跃 assistant 的新增 parts、工具归属与待确认结果使用索引补齐，不能靠保留全历史碰巧找到。读取路径禁止回退无 limit 的 `listSessionMessages()`/`getSession()`。
@@ -203,7 +242,7 @@ preflight 生成候选；journal ingestion 的同一会话串行写入口在校�
 
 | 故障类 | 结构性处理 | 允许的最终结果 |
 | --- | --- | --- |
-| 任意空/乱码/截断/格式异常摘要 | 内容槽可丢弃，基线不依赖生成 | recovery-required，仍可响应/回读 |
+| 任意空/乱码/截断/格式异常摘要 | 内容槽可丢弃；原窗口能用则延后，硬容量不足才使用后备视图 | 正常继续或明确恢复，不抛 opaque batch failure |
 | 上千短记录、身份很长、超大单条/工具结果 | 区间 manifest、字节有界来源片段与分页，不串行强制全摘要 | 有界视图或明确必需输入不适配 |
 | 固定 prompt/工具 schema 过大、模型缩窗、估算误差 | 固定/可变预算分离，完整请求校验，真实 overflow 有界收缩 | 继续或具体容量错误，无相同输入死循环 |
 | 429/5xx/流断开、鉴权/配置错误 | provider 有界瞬态重试，终态不语义重试 | 真正可用时继续，否则具体 provider 错误 |
@@ -219,7 +258,7 @@ preflight 生成候选；journal ingestion 的同一会话串行写入口在校�
 
 1. **保存性**：压缩只追加视图索引，历史不删除；候选无写权限，因此模型任意输出都不能破坏原历史。
 2. **结构完整性**：覆盖/归档/保留和工具边界来自代码；安装验证同一源 revision，不能由摘要伪造。归档可读性是提交条件。
-3. **局部推进性**：在存储正常、模型至少容纳最小恢复请求且主 provider 可用的前提下，摘要失败不阻止构造/提交恢复窗口。总摘要调用次数与历史批数无关。
+3. **局部推进性**：在存储正常、模型至少容纳最小恢复请求且主 provider 可用的前提下，普通压力失败可以沿原窗口继续，硬压力失败仍能构造/提交恢复窗口。总摘要调用次数与历史批数无关，不为一次格式异常强迫任务恢复。
 4. **终止性**：一次摘要、一次候选重求、一次 overflow replay、八次有进展的恢复读取分别有预算；provider 的独立重试也有次数和时间上限，不存在无界递归或相同状态循环。
 5. **副作用隔离**：恢复态的工具 dispatch 由代码限制，模型编造完整摘要/成功标记不能越过；未核实业务条件不自动解锁。
 6. **语义限制**：源覆盖、标记完整、回读完成均不能证明模型理解正确。任意历史的无损语义压缩、任意外部动作 exactly-once、供应商永不宕机不在可证明集合；必须通过可回读证据与保守停止管理，不能用成功率数字掩盖。
@@ -233,7 +272,7 @@ preflight 生成候选；journal ingestion 的同一会话串行写入口在校�
 黄金验收：
 
 - 原 UI/渠道发起长任务 → 多次自动压缩 → 成功路径保持原任务、约束、完成证据和下一步；压缩不新增工具副作用，冷重载投影相同。
-- 同一路径令摘要器永久空输出/拒绝服务 → 安装明确恢复窗口 → 自动读回真实原文 → 只读回答/核实；不能恢复的条件只问具体业务澄清，不再出现 opaque batch failure，也不默默重做动作。
+- 同一路径令摘要器永久空输出/拒绝服务 → 软压力保持原窗口且不在每步重试 → 达硬压力时安装明确恢复窗口 → 自动读回真实原文 → 只读回答/核实；不能恢复的条件只问具体业务澄清，不再出现 opaque batch failure，也不默默重做动作。
 - 压缩生成中取消、刷新、重启、追加、rewind → 只观察旧 checkpoint 或完整有效的新 checkpoint；后续消息与 parts 恰好投影一次。
 
 正式验证针对不变量：property-based 随机历史/part 边界及预算、状态模型的提交/取消/并发转换、摘要永久失败及每个 I/O 边界故障注入、v1/v2 读写和旧数据、跨本地/托管 history 回读权限与大消息分片、实际 provider 多轮长任务。TypeScript、原 diff-only maintainability、匹配文档与真实入口验证按触达范围执行；测试通过不代表未测试模型和任务无语义遗忘。
@@ -249,6 +288,8 @@ preflight 生成候选；journal ingestion 的同一会话串行写入口在校�
 - 好摘要不能掩盖未进入源的历史：archived-only 强制继承恢复状态，结构覆盖与语义完整分开。
 - 巨量碎片不能令 manifest 变为新超限源：默认归档加有界覆盖区间，不枚举全量身份。
 - 用户指出性能缺口后，原正确性审查结论在性能维度失效。本轮补查存储、Runtime seed、UI 与托管入口，用原 store 的 256 MiB/64 MiB 合成探针确认隐藏全量读取，新增复杂度、字节/内存/等待预算和索引损坏的可见维修合同；以上为架构审查，所有新性能目标仍待实现证明。
+- OpenCode/DSH 对照后再修正“任何坏摘要都恢复”的过强策略：普通 pressure 与实际 overflow 分开；先机械处理，增量摘要失败但原窗口能用时延后；只有真实持久缩减才允许原请求重试。该路径保留安全限制，同时减少无必要的恢复、模型调用与缓存失效。
+- 存储决策已收敛为原 owner 内的消息描述/part 分片/身份索引与 watermark 的派生 SQLite 投影，避免用“大 JSON 行 + LIMIT”假装有界；实际读取原 SQLite opener 后明确排除其整库 sql.js fallback 的大日志性能承诺，不自研索引引擎。兼容宿主须分别验证，不能以 Node 22 的结果替代。
 - “原文仍在磁盘”不能冒充可恢复：精确范围、单消息分片、两类宿主注册与授权为实施 Required 条件。
 - 模型自称恢复不能解锁动作：dispatch 白名单和未知业务条件的确认边界属于 runtime 合同。
 - 迟到生成、取消和追加不能越过提交边界：source/revision 校验、单一串行追加与线性化点明确。
