@@ -24,6 +24,7 @@ import { NcpAgentSessionSummaryReadStore } from "./ncp-agent-session-summary-rea
 import { assertSessionJournalTailComplete, recoverSessionJournalMaintenance } from "./session-journal-maintenance.store.js";
 import type { SessionListPageOptions, SessionMessagePage, SessionMetadataUpdate, SessionPersistence } from "@kernel/types/session.types.js";
 import { sessionJsonChunks } from "@kernel/utils/session-message-chunks.utils.js";
+import { syncSessionJournalDirectory, syncSessionJournalFile } from "@kernel/utils/session-journal-durability.utils.js";
 import { NcpEventType } from "@nextclaw/ncp";
 import type { ContextCompactionCheckpoint } from "@nextclaw/core/context-compaction";
 export class NcpAgentSessionJournalStore implements SessionPersistence {
@@ -305,8 +306,7 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
     const intent = await open(marker, "wx");
     try { await intent.writeFile(JSON.stringify({ sessionId, snapshot: { hadSource: Boolean(previousStat), metadata: previousMetadata } })); await intent.sync(); }
     finally { await intent.close(); }
-    const preparedDirectory = await open(this.journalDir, "r");
-    try { await preparedDirectory.sync(); } finally { await preparedDirectory.close(); }
+    await syncSessionJournalDirectory(this.journalDir);
     await rename(staged, path); activated = true;
     const nextSeq = nextRecord.messages.length + 1;
     const journalStat = await stat(path);
@@ -319,15 +319,16 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
     });
     await this.metadataStore.write(nextRecord);
     await this.summaryIndexStore.upsert(createNcpAgentSessionSummary(nextRecord));
-    const directory = await open(this.journalDir, "r");
-    try { await directory.sync(); await rm(marker); await directory.sync(); } finally { await directory.close(); }
+    await syncSessionJournalDirectory(this.journalDir);
+    await rm(marker);
+    await syncSessionJournalDirectory(this.journalDir);
     await rm(backup, { force: true });
     } catch (error) {
       await output.close().catch(() => undefined);
       if (activated) {
         if (previousStat) {
           await copyFile(backup, staged);
-          const restored = await open(staged, "r"); try { await restored.sync(); } finally { await restored.close(); }
+          await syncSessionJournalFile(staged);
           await rename(staged, path);
         } else await rm(path, { force: true });
         await this.messageProjectionStore.delete(sessionId);
@@ -338,7 +339,7 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
       }
       this.nextSeqBySession.delete(sessionId);
       await rm(marker, { force: true });
-      const directory = await open(this.journalDir, "r"); try { await directory.sync(); } finally { await directory.close(); }
+      await syncSessionJournalDirectory(this.journalDir);
       throw error;
     } finally { await rm(staged, { force: true }); }
   };

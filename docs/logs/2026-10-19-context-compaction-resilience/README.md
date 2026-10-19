@@ -46,6 +46,8 @@ diff-only自动维护性检查检查121文件，报告27项error级预算信号�
 
 ### 已发布事实（02:02，最终产品门仍待关闭）
 
+02:12失败定位及返工：parent39296598787在Windows四个Node20/22/24/26实装单元均失败，错误为snapshot import目录fsync的EPERM；其它平台通过，runtime promotion因依赖该矩阵成功而被正确跳过，stable runtime仍停留旧版。0.59.2 NPM身份不可修改，改为0.59.3正式patch，非重新上传旧版本。根因是把POSIX目录同步直接用于Windows，并在恢复文件上使用只读flush handle。按[Microsoft FlushFileBuffers](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers)要求，Windows文件flush需GENERIC_WRITE；提取同一个内部文件系统durability owner，两原调用方复用。Windows跳过不受Node支持的目录flush，文件和intent仍强制flush；复制文件在Windows用r+，POSIX保留r。没有吞掉普通文件fsync错误；不承诺Windows具备POSIX目录fsync的同等掉电语义，原始源/intent和进程中断恢复仍有效。本地33项durability/真实snapshot/维修定向测试与Kernel tsc通过，真实Windows最终证明由新版本发布矩阵完成。该失败与修复计为发布流程1次人工介入；不改发布机制或降低平台门。
+
 - 源码6e7a43a6ad已进入远程master，父发布run39296598787仅dispatch一次。NPM latest已为0.59.2；版本提交与tag `nextclaw@0.59.2` 指向c45d1a413b。Runtime及真实安装矩阵仍以parent终态为准，未提前宣称整个产品完成。
 - Bibo从冻结6e7a43a6ad发布Worker/UI，47.49秒，版本6677a4c7-a923-4ce1-8a29-402dd773e914。部署前后两个容器镜像引用一致；16个入口静态资源SHA256与冻结构建一致。真实线上鉴权、桌面/触屏会话刷新与原文400/401/404通过，隔离测试会话已删除，无新增模型调用。空UI会话尚未建立canonical源，page cursor在此分支返回200空页；canonical非法游标400另由实际app route测试证明。
 - 收尾扩展UI回归：4个hooks/timeline文件35项通过。输入边界fixture原有14项均因缺QueryClient失败，用只读Vite source override加载f9da基线两组件可稳定同现14项失败；原组件/hook和fixture此前未改。为验证本次触达的输入边界，只在该fixture显式隔离无关的问题抓取provider，不修改产品行为，14项现已通过；独立问题组件3项、原文manager3项也通过，合计55项UI定向证据。该test-only修正补跑UI tsc及ESLint，并做局部diff Review。

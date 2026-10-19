@@ -20,6 +20,7 @@ import {
 import { NcpAgentSessionMetadataStore } from "./ncp-agent-session-metadata.store.js";
 import { SessionJournalLoaderStore } from "./session-journal-loader.store.js";
 import { openSqliteDatabase, runSqliteTransaction } from "./sqlite-database.store.js";
+import { syncSessionJournalDirectory as syncDirectory, syncSessionJournalFile as syncFile } from "@kernel/utils/session-journal-durability.utils.js";
 
 type JournalEntry = {
   _type: string;
@@ -51,16 +52,6 @@ function paths(journalDir: string, sessionId: string) {
     markerDraft: `${source}.maintenance.tmp`,
     projection: join(journalDir, ".message-projections", basename),
   };
-}
-
-async function syncDirectory(path: string): Promise<void> {
-  const handle = await open(path, "r");
-  try { await handle.sync(); } finally { await handle.close(); }
-}
-
-async function syncFile(path: string): Promise<void> {
-  const handle = await open(path, "r");
-  try { await handle.sync(); } finally { await handle.close(); }
 }
 
 async function hashFile(path: string): Promise<string> {
