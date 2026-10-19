@@ -259,6 +259,12 @@ vi.mock("@/features/system-status", () => ({
   useSystemStatus: () => ({ phase: "ready", lastReadyAt: 1 }),
 }));
 
+// Question fetching is outside this composer-boundary fixture.
+vi.mock("../session-user-questions", () => ({
+  SessionUserQuestionProvider: ({ children }: { children: ReactNode }) => children,
+  SessionUserQuestions: () => null,
+}));
+
 vi.mock("../session-conversation-input", () => ({
   SessionConversationInput: memo((props: unknown) => {
     mocks.inputRenderSpy(props);
