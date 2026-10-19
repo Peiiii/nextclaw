@@ -94,6 +94,25 @@ export function resolvePublishedRuntimeAsset(version, platform, arch) {
   };
 }
 
+/** A published NPM version can precede a failed or intentionally omitted Runtime promotion. */
+export function resolvePreviousPublishedRuntimeAsset(releases, maximumVersion, platform, arch) {
+  assert(/^\d+\.\d+\.\d+$/.test(maximumVersion), "previous package version must be stable");
+  const compare = (left, right) => {
+    const a = left.split(".").map(Number), b = right.split(".").map(Number);
+    return a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+  };
+  const candidates = releases.flatMap(release => {
+    const version = /^nextclaw@(\d+\.\d+\.\d+)$/.exec(release.tag_name ?? "")?.[1];
+    if (!version || release.draft || release.prerelease || compare(version, maximumVersion) > 0) return [];
+    const names = new Set((release.assets ?? []).map(asset => asset.name));
+    const complete = ["darwin-arm64", "darwin-x64", "linux-x64", "win32-x64"]
+      .every(target => names.has(`nextclaw-runtime-${target}-${version}.zip`));
+    return complete ? [version] : [];
+  }).sort((left, right) => compare(right, left));
+  assert(candidates.length, `No complete official stable Runtime exists at or before ${maximumVersion}`);
+  return { version: candidates[0], ...resolvePublishedRuntimeAsset(candidates[0], platform, arch) };
+}
+
 function sleep(ms) {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
@@ -356,12 +375,10 @@ function parsePublishedLauncherJson(fixture, args) {
   }
 }
 
-function seedPreviousPublishedRuntime(fixture, previousVersion) {
-  const asset = resolvePublishedRuntimeAsset(
-    previousVersion,
-    process.platform,
-    process.arch,
-  );
+function seedPreviousPublishedRuntime(fixture, maximumVersion) {
+  const releases = JSON.parse(run("gh", ["api", `repos/${REPO}/releases?per_page=100`]).stdout);
+  const asset = resolvePreviousPublishedRuntimeAsset(releases, maximumVersion, process.platform, process.arch);
+  const previousVersion = asset.version;
   const downloadPath = join(fixture.tempRoot, asset.assetName);
   const extractPath = join(fixture.tempRoot, "previous-runtime");
   run("curl", ["--fail", "--location", "--output", downloadPath, asset.url], {
@@ -398,6 +415,7 @@ function seedPreviousPublishedRuntime(fixture, previousVersion) {
     "current.json",
   );
   writeFileSync(pointerPath, `${JSON.stringify({ version: previousVersion }, null, 2)}\n`);
+  return previousVersion;
 }
 
 function verifyPublishedStableUpdate(
@@ -405,7 +423,7 @@ function verifyPublishedStableUpdate(
   previousVersion,
   expectedVersion,
 ) {
-  seedPreviousPublishedRuntime(fixture, previousVersion);
+  const previousRuntimeVersion = seedPreviousPublishedRuntime(fixture, previousVersion);
   const checkSnapshot = parsePublishedLauncherJson(fixture, [
     "update",
     "--channel",
@@ -441,7 +459,7 @@ function verifyPublishedStableUpdate(
   );
   const pointerBeforeApply = JSON.parse(readFileSync(currentPointerPath, "utf8"));
   assert(
-    pointerBeforeApply.version === previousVersion,
+    pointerBeforeApply.version === previousRuntimeVersion,
     "download-only unexpectedly switched the current runtime pointer",
   );
 
@@ -521,6 +539,7 @@ function verifyPublishedStableUpdate(
 [validation:npm-update --published-stable] Published stable update verified.
 
 - previous package: ${previousVersion}
+- previous Runtime: ${previousRuntimeVersion}
 - available version: ${checkSnapshot.availableVersion}
 - download-only: did not switch current pointer
 - apply: ${appliedSnapshot.status}

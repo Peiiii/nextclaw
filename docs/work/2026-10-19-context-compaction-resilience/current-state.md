@@ -23,7 +23,8 @@
 - 0.59.2 parent run39296598787（https://github.com/Peiiii/nextclaw/actions/runs/39296598787）已failure。NPM 0.59.2已发布且tag存在，但Windows Node20/22/24/26实装都在snapshot import目录fsync报EPERM。runtime promotion因兼容矩阵未过而跳过，stable runtime没有推广0.59.2。不能rerun旧Windows job假装能修已发布包。
 - 新目标0.59.3：新增内部session-journal-durability.utils owner，两个原调用方复用；Windows不执行不支持的目录flush，source/intent文件仍强制flush；复制文件Windows r+，POSIX r。普通文件I/O错误仍传播；不宣称Windows具备POSIX目录fsync掉电语义。官方依据与失败日志在README。
 - 新文件preflight已过；最新33个durability/journal/maintenance测试及Kernel tsc通过，targeted ESLint和Kernel build已通过前一时点；最新日志/tmp/compaction-windows-final-{tests,types,review}.log。局部maintainability1个预算error是原journal owner新增1行导入；本体statement71→59，必要单owner增长人工接受，不假称脚本绿色。主体原Review27预算信号接受理由在日志。
-- .changeset/steady-windows-journals.md已写，Kernel/nextclaw patch；dry-run=0.59.2→0.59.3、9 NPM包/39验证闭包。尚未commit/push/dispatch新版本；先完成当前范围审计与提交，然后冻结master单次dispatch product expected_head。0.59.2的任何已成功NPM步骤不得重发或改包。
+- Windows主修复已commit/push373421cce，.changeset/steady-windows-journals.md为Kernel/nextclaw patch；dry-run=0.59.2→0.59.3、9 NPM包/39验证闭包。0.59.3仍未dispatch；补齐实际previous Runtime夹具后冻结新source一次dispatch。0.59.2已成功NPM步骤不得重发或改包。
+- 又确认旧NPM0.59.2无Runtime资产，原升级夹具按同版本下载必然404。现保留原owner，通过官方认证release元数据选≤旧NPM且四平台资产完整的实际旧Runtime；旧package仍0.59.2、实际旧Runtime0.59.1，pointer/报告分别使用真实版本，不伪造旧安装。6项Node测试、实际官方元数据解析0.59.1、ESLint、actionlint均过；scoped maintainability零error/2warning。release.yml仅给验证步骤补已有GH_TOKEN。累计发布介入2个根因。过时3734预构建run39301119608需按旧source取消，不新发旧版本。
 
 ## 接下来
 

@@ -422,6 +422,8 @@ jobs:
             --prepared-source-sha "${{ needs.publish-npm.outputs.prepared_source_sha }}"
 
       - name: Verify upgrade from previous stable
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: >-
           pnpm -C packages/nextclaw validation:npm-update --
           --published-stable

@@ -7,8 +7,8 @@
   "publishedAt": "2026-10-20",
   "title": { "zh-CN": "NextClaw v0.59.2", "en-US": "NextClaw v0.59.2" },
   "summary": {
-    "zh-CN": "摘要失败时保留恢复路径，大历史和超大消息按需加载。",
-    "en-US": "Recover safely from incomplete summaries and load large histories on demand."
+    "zh-CN": "NPM 包已发布；Windows 验证未通过，Runtime 更新尚未推广。",
+    "en-US": "NPM packages were published; Windows validation blocked runtime promotion."
   },
   "links": { "html": {
     "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-10-20-nextclaw-v0-59-2",
@@ -29,8 +29,8 @@
     ] },
     { "kind": "compatibility", "title": { "zh-CN": "升级与回退", "en-US": "Upgrade and rollback" }, "items": [
       { "title": { "zh-CN": "保留配置与原始记录", "en-US": "Keep configuration and original records" }, "body": {
-        "zh-CN": "通过 stable NPM 和 runtime 通道交付。旧版不能直接继续写入使用新恢复语义的会话，回退需先由当前版本恢复成完整快照；本次不发布新的桌面安装包。",
-        "en-US": "Ships through stable NPM and runtime channels. Older versions must not write conversations using the new recovery semantics; restore a complete snapshot with the current reader before rollback. No new desktop installers are included."
+        "zh-CN": "NPM 发布完成，Runtime 推广被 Windows 校验阻止，请等待后续修复版本。旧版不能直接继续写入使用新恢复语义的会话，回退需先由当前版本恢复成完整快照；本次不发布新的桌面安装包。",
+        "en-US": "NPM publication completed, while Windows validation blocked runtime promotion. Please wait for the follow-up fix. Older versions must not write conversations using the new recovery semantics; restore a complete snapshot with the current reader before rollback. No new desktop installers are included."
       } }
     ] }
   ]
