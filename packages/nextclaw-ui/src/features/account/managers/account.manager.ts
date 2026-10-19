@@ -1,5 +1,6 @@
 import { logoutRemote, pollRemoteBrowserAuth, startRemoteBrowserAuth, updateRemoteAccountProfile } from '@/shared/lib/api';
 import type { RemoteAccessView } from '@/shared/lib/api';
+import { NextClawClientError } from '@nextclaw/client-sdk';
 import {
   ensureRemoteStatus,
   refreshRemoteStatus,
@@ -79,8 +80,15 @@ export class AccountManager {
       this.scheduleBrowserAuthPoll();
     } catch (error) {
       const message = error instanceof Error ? error.message : t('remoteBrowserAuthStartFailed');
+      // 网络层失败（DNS/代理/平台地址不可达）时，附上实际请求的平台地址便于诊断。
+      const endpoint = error instanceof NextClawClientError
+        ? (typeof error.details?.url === 'string' ? error.details.url : null)
+        : null;
+      const diagnostic = endpoint
+        ? `${message} (${endpoint})`
+        : message;
       this.rejectBrowserSignIn(error);
-      toast.error(`${t('remoteBrowserAuthStartFailed')}: ${message}`);
+      toast.error(`${t('remoteBrowserAuthStartFailed')}: ${diagnostic}`);
     }
   };
 
