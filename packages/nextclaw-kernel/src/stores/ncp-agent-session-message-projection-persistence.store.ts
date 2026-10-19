@@ -1,394 +1,144 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, mkdtemp, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import type { NcpMessage } from "@nextclaw/ncp";
-import type { SessionMessagePage } from "@kernel/types/session.types.js";
+import { mkdir, rm, stat } from "node:fs/promises";
+import { join } from "node:path";
+import type { NcpEndpointEvent, NcpMessage } from "@nextclaw/ncp";
 import { safeNcpSessionFilename } from "@kernel/utils/ncp-agent-session-journal.utils.js";
-import { readNcpAgentSessionProjectionTail } from "./ncp-agent-session-message-projection-tail.store.js";
-import {
-  decodeNcpAgentSessionMessageCursor,
-  deduplicateNcpAgentSessionTailMessages,
-  encodeNcpAgentSessionMessageCursor,
-  isNcpAgentSessionMessageProjectionMeta,
-  MESSAGE_PROJECTION_OFFSET_RECORD_BYTES,
-  mergePendingCompactionMessageIds,
-  type NcpAgentSessionMessageProjectionMeta,
-  NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION,
-  parseNcpAgentSessionMessageLocation,
-  readActiveAssistantMessageId,
-  readPendingCompactionMessageIds,
-  serializeNcpAgentSessionMessage,
-  serializeNcpAgentSessionMessageLocation,
-} from "@kernel/utils/ncp-agent-session-message-projection.utils.js";
-const PROJECTION_ROOT_DIRECTORY = ".message-projections";const RETRYABLE_META_RENAME_CODES = new Set(["EPERM", "EACCES", "EBUSY"]);
-const META_RENAME_RETRY_DELAYS_MS = [50, 100, 200, 400] as const;
-type FileSystemError = Error & { code?: string; projectionRenameAttempts?: number };
-export type ReadProjectionPageParams = {
-  sessionId: string;
-  limit: number;
-  cursor?: string;
-  tailMessages?: readonly NcpMessage[];
-};
-export type ReadProjectionMessagesResult = {
-  messages: NcpMessage[];
-  meta: NcpAgentSessionMessageProjectionMeta;
-};
-export class NcpAgentSessionMessageProjectionPersistenceStore {
-  private readonly messageOrdinals = new Map<string, Map<string, number>>();
-  constructor(private readonly journalDir: string) {}  readMeta = async (sessionId: string): Promise<NcpAgentSessionMessageProjectionMeta | null> => {
-    try {
-      const parsed = JSON.parse(await readFile(this.metaPath(sessionId), "utf-8")) as unknown;
-      if (!isNcpAgentSessionMessageProjectionMeta(parsed, sessionId)) {
-        return null;
-      }
-      const meta = parsed;
-      const [dataStat, offsetsStat] = await Promise.all([
-        stat(this.dataPath(sessionId)),
-        stat(this.offsetsPath(sessionId))
-      ]);
-      if (
-        dataStat.size !== meta.dataBytes ||
-        offsetsStat.size !== meta.total * MESSAGE_PROJECTION_OFFSET_RECORD_BYTES ||
-        meta.total < 0 ||
-        meta.projectedJournalOffset < 0 ||
-        meta.dataBytes < 0
-      ) {
-        return null;
-      }
-      return structuredClone(meta);
-    } catch {
-      return null;
-    }
-  };
-  rebuild = async (params: {
-    sessionId: string;
-    messages: readonly NcpMessage[];
-    projectedJournalOffset: number;
-    contextWindow?: Record<string, unknown> | null;
-  }): Promise<void> => {
-    const { contextWindow, messages: sourceMessages, projectedJournalOffset, sessionId } = params;
-    const messages = deduplicateNcpAgentSessionTailMessages(sourceMessages);
-    const projectionPath = this.projectionPath(sessionId);
-    const projectionRoot = dirname(projectionPath);
-    await mkdir(projectionRoot, { recursive: true });
-    const temporaryPath = await mkdtemp(join(projectionRoot, ".rebuild-"));
-    try {
-      const dataFile = await open(join(temporaryPath, "messages.jsonl"), "w");
-      let dataBytes = 0;
-      try {
-        const offsetsFile = await open(join(temporaryPath, "offsets.idx"), "w");
-        try {
-          for (const message of messages) {
-            const serialized = serializeNcpAgentSessionMessage(message);
-            await dataFile.write(serialized, 0, serialized.length, dataBytes);
-            await offsetsFile.write(
-              serializeNcpAgentSessionMessageLocation({
-                offset: dataBytes,
-                length: serialized.length
-              })
-            );
-            dataBytes += serialized.length;
-          }
-          await Promise.all([dataFile.sync(), offsetsFile.sync()]);
-        } finally {
-          await offsetsFile.close();
-        }
-      } finally {
-        await dataFile.close();
-      }
-      const meta: NcpAgentSessionMessageProjectionMeta = {
-        version: NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION,
-        sessionId,
-        total: messages.length,
-        projectedJournalOffset,
-        dataBytes,
-        contextWindow: contextWindow ? structuredClone(contextWindow) : null,
-        activeMessageId: readActiveAssistantMessageId(messages),
-        pendingCompactionMessageIds: readPendingCompactionMessageIds(messages),
-      };
-      await writeFile(join(temporaryPath, "meta.json"), `${JSON.stringify(meta)}\n`, "utf-8");
-      await rm(projectionPath, { recursive: true, force: true });
-      await rename(temporaryPath, projectionPath);
-      this.messageOrdinals.set(
-        sessionId,
-        new Map(messages.map((message, index) => [message.id, index + 1])),
-      );
-    } catch (error) {
-      await rm(temporaryPath, { recursive: true, force: true });
-      throw error;
-    }
-  };
-  synchronize = async (params: {
-    sessionId: string;
-    messages: readonly NcpMessage[];
-    projectedJournalOffset: number;
-  }): Promise<boolean> => {
-    const { messages: sourceMessages, projectedJournalOffset, sessionId } = params;
-    const meta = await this.readMeta(sessionId);
-    if (!meta) {
-      return false;
-    }
-    const messages = deduplicateNcpAgentSessionTailMessages(sourceMessages);
-    const pendingCompactionMessageIds = mergePendingCompactionMessageIds(
-      meta.pendingCompactionMessageIds,
-      messages,
-    );
-    const messageOrdinals = await this.readMessageOrdinals(sessionId, meta);
-    const dataFile = await open(this.dataPath(sessionId), "r+");
-    const offsetsFile = await open(this.offsetsPath(sessionId), "r+");
-    try {
-      for (const message of messages) {
-        const serialized = serializeNcpAgentSessionMessage(message);
-        const location = { offset: meta.dataBytes, length: serialized.length };
-        const serializedLocation = Buffer.from(serializeNcpAgentSessionMessageLocation(location), "utf-8");
-        await dataFile.write(serialized, 0, serialized.length, meta.dataBytes);
-        meta.dataBytes += serialized.length;
-        const ordinal = messageOrdinals.get(message.id);
-        if (ordinal) {
-          await offsetsFile.write(
-            serializedLocation,
-            0,
-            MESSAGE_PROJECTION_OFFSET_RECORD_BYTES,
-            (ordinal - 1) * MESSAGE_PROJECTION_OFFSET_RECORD_BYTES
-          );
-          continue;
-        }
-        await offsetsFile.write(
-          serializedLocation,
-          0,
-          MESSAGE_PROJECTION_OFFSET_RECORD_BYTES,
-          meta.total * MESSAGE_PROJECTION_OFFSET_RECORD_BYTES
-        );
-        meta.total += 1;
-        messageOrdinals.set(message.id, meta.total);
-      }
-      await Promise.all([dataFile.sync(), offsetsFile.sync()]);
-    } finally {
-      await Promise.all([dataFile.close(), offsetsFile.close()]);
-    }
-    meta.projectedJournalOffset = projectedJournalOffset;
-    meta.activeMessageId = readActiveAssistantMessageId(messages);
-    meta.pendingCompactionMessageIds = [...pendingCompactionMessageIds];
-    await this.writeMeta(meta);
-    return true;
-  };
-  synchronizeJournalTail = async (params: {
-    sessionId: string;
-    journalOffset: number;
-  }): Promise<boolean> => {
-    const { journalOffset, sessionId } = params;
-    const meta = await this.readMeta(sessionId);
-    if (!meta) {
-      return false;
-    }
-    const messages = await this.readJournalTailMessages(sessionId, meta);
-    return await this.synchronize({
-      sessionId,
-      messages,
-      projectedJournalOffset: journalOffset,
-    });
-  };
-  updateContextWindow = async (sessionId: string, contextWindow: Record<string, unknown> | null): Promise<void> => {
-    const meta = await this.readMeta(sessionId);
-    if (!meta) {
-      return;
-    }
-    meta.contextWindow = contextWindow ? structuredClone(contextWindow) : null;
-    await this.writeMeta(meta);
-  };
-  listPage = async (params: {
-    sessionId: string;
-    limit: number;
-    cursor?: string;
-  }): Promise<SessionMessagePage | null> => {
-    const { cursor, limit, sessionId } = params;
-    let meta = await this.readMeta(sessionId);
-    const journalStat = await stat(this.journalPath(sessionId));
-    if (meta && meta.projectedJournalOffset > journalStat.size) {
-      meta = null;
-    }
-    if (!meta) {
-      return null;
-    }
-    return await this.readPage({
-      sessionId,
-      limit,
-      cursor,
-      tailMessages: await this.readJournalTailMessages(sessionId, meta),
-    });
-  };
-  readAll = async (sessionId: string): Promise<ReadProjectionMessagesResult | null> => {
-    let meta = await this.readMeta(sessionId);
-    const journalStat = await stat(this.journalPath(sessionId));
-    if (meta && meta.projectedJournalOffset > journalStat.size) meta = null;
-    if (!meta) return null;
-    const tailMessages = await this.readJournalTailMessages(sessionId, meta);
-    const stableMessages = meta.total > 0 ? await this.readMessages(sessionId, 1, meta.total) : [];
-    const byId = new Map(stableMessages.map((message) => [message.id, message]));
-    for (const message of tailMessages) {
-      byId.set(message.id, message);
-    }
-    return { messages: [...byId.values()], meta };
-  };
-  readPage = async (params: ReadProjectionPageParams): Promise<SessionMessagePage | null> => {
-    const { cursor, limit: requestedLimit, sessionId, tailMessages } = params;
-    const meta = await this.readMeta(sessionId);
-    if (!meta) {
-      return null;
-    }
-    const uniqueTailMessages = deduplicateNcpAgentSessionTailMessages(tailMessages ?? []);
-    const tailById = new Map(uniqueTailMessages.map((message) => [message.id, message]));
-    const messageOrdinals = uniqueTailMessages.length > 0 ? await this.readMessageOrdinals(sessionId, meta) : null;
-    const additionalTailMessages = messageOrdinals ? uniqueTailMessages.filter((message) => !messageOrdinals.has(message.id)) : [];
-    const limit = Number.isFinite(requestedLimit) ? Math.min(200, Math.max(1, Math.trunc(requestedLimit))) : 40;
-    const boundary = cursor ? decodeNcpAgentSessionMessageCursor(cursor, meta.total + 1) : meta.total + 1;
-    const includeTail = !cursor;
-    const stableLimit = includeTail ? Math.max(0, limit - additionalTailMessages.length) : limit;
-    const endOrdinal = Math.min(meta.total, boundary - 1);
-    const startOrdinal = stableLimit > 0 ? Math.max(1, endOrdinal - stableLimit + 1) : endOrdinal + 1;
-    const stableMessages =
-      startOrdinal <= endOrdinal ? await this.readMessages(sessionId, startOrdinal, endOrdinal) : [];
-    const messages = stableMessages.map((message) => tailById.get(message.id) ?? message);
-    const messageDetailCursors = Object.fromEntries(stableMessages.map((message, index) => [
-      message.id,
-      encodeNcpAgentSessionMessageCursor(startOrdinal + index + 1),
-    ]));
-    if (includeTail) {
-      messages.push(...additionalTailMessages);
-    }
-    const cursorOrdinal = stableMessages.length > 0 ? startOrdinal : meta.total + 1;
-    return {
-      messages,
-      messageDetailCursors,
-      total: meta.total + additionalTailMessages.length,
-      pageInfo: {
-        startCursor: messages.length > 0 ? encodeNcpAgentSessionMessageCursor(cursorOrdinal) : null,
-        hasPreviousPage: cursorOrdinal > 1
+import type { NcpAgentSessionJournalReplayEvent } from "@kernel/utils/ncp-agent-session-journal.utils.js";
+import { NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION, type NcpAgentSessionMessageProjectionMeta } from "@kernel/utils/ncp-agent-session-message-projection.utils.js";
+import { canCoalesceSessionJournalDeltas, coalesceSessionJournalDeltas, isSessionJournalDelta } from "@kernel/utils/session-journal-delta-coalescer.utils.js";
+import { SessionEventProjectionStore } from "./session-event-projection.store.js";
+import { SessionMessageSqlProjectionStore, type MessageRow } from "./session-message-sql-projection.store.js";
+import { openSqliteDatabase } from "./sqlite-database.store.js";
+export type { ReadProjectionPageParams, ReadProjectionMessagesResult } from "./session-message-sql-projection.store.js";
+
+const projectionPath = (directory: string, id: string) => join(directory, ".message-projections", safeNcpSessionFilename(id));
+const journalPath = (directory: string, id: string) => join(directory, `${safeNcpSessionFilename(id)}.jsonl`);
+
+/** Local file/SQLite adapter; shared projection semantics live in SessionMessageSqlProjectionStore. */
+export class NcpAgentSessionMessageProjectionPersistenceStore extends SessionMessageSqlProjectionStore {
+  constructor(private readonly journalDir: string) {
+    super({
+      database: async (sessionId, create) => {
+        const path = projectionPath(journalDir, sessionId);
+        if (create) await mkdir(path, { recursive: true });
+        else if (!await stat(join(path, "messages.sqlite")).catch(() => null)) return null;
+        const database = await openSqliteDatabase(join(path, "messages.sqlite"), { incremental: true });
+        database.exec("PRAGMA busy_timeout=50; PRAGMA cache_size=-2048; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;");
+        return database;
       },
-      contextWindow: meta.contextWindow ? structuredClone(meta.contextWindow) : null
+      journalBytes: async id => (await stat(journalPath(journalDir, id)).catch(() => null))?.size ?? null,
+      journalIdentity: async id => { const value = await stat(journalPath(journalDir, id)).catch(() => null); return value ? `${value.dev}:${value.ino}:${value.birthtimeMs}` : null; },
+      delete: id => rm(projectionPath(journalDir, id), { recursive: true, force: true }),
+      transaction: async () => { throw new Error("Local journal preparation uses the native file transaction adapter."); },
+    });
+  }
+  prepare = async (sessionId: string, signal?: AbortSignal, onProgress?: (bytes: number, total: number) => void): Promise<void> => {
+    const { stat } = await import("node:fs/promises");
+    const { scanBoundedSessionJournal } = await import("@kernel/utils/session-journal-stream.utils.js");
+    const { recoverSessionJournalTornTail } = await import("./session-journal-maintenance.store.js");
+    await recoverSessionJournalTornTail(this.journalPath(sessionId), signal);
+    const journalBytes = (await stat(this.journalPath(sessionId))).size;
+    const journalIdentity = (await this.journalIdentity(sessionId))!;
+    const database = (await this.database(sessionId, true))!;
+    let meta = this.meta(database, sessionId, true);
+    if (!meta || meta.projectedJournalOffset > journalBytes || meta.journalIdentity !== journalIdentity) {
+      database.exec("DELETE FROM messages; DELETE FROM tool_owners; DELETE FROM part_fields; DELETE FROM part_chunks; DELETE FROM part_previews; DELETE FROM settled_tools; DELETE FROM session_questions; DELETE FROM session_interruptions; DELETE FROM interruption_fields; DELETE FROM interruption_chunks;");
+      meta = {
+      version: NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION, sessionId, total: 0,
+      dataBytes: 0, projectedJournalOffset: 0, nextSeq: 1, contextWindow: null,
+      activeMessageId: null, pendingCompactionMessageIds: [],
+      journalIdentity,
+      };
+    }
+    const projector = new SessionEventProjectionStore(database, meta);
+    projector.parts.omitSmallDeltaStaging = true;
+    let pendingDelta: { event: Parameters<typeof coalesceSessionJournalDeltas>[0]; boundary: number; nextSeq: number; timestamp?: string } | null = null;
+    const flushDelta = async (): Promise<void> => {
+      if (!pendingDelta) return;
+      await projector.apply(pendingDelta.event, false, signal, true, pendingDelta.timestamp);
+      meta!.projectedJournalOffset = pendingDelta.boundary;
+      meta!.nextSeq = Math.max(meta!.nextSeq ?? 1, pendingDelta.nextSeq);
+      pendingDelta = null;
     };
-  };
-  private readJournalTailMessages = async (
-    sessionId: string,
-    meta: NcpAgentSessionMessageProjectionMeta,
-  ): Promise<NcpMessage[]> => readNcpAgentSessionProjectionTail(
-    this.journalPath(sessionId),
-    meta,
-    (messageId) => this.readMessageById(sessionId, meta, messageId),
-  );
-  delete = async (sessionId: string): Promise<void> => {
-    this.messageOrdinals.delete(sessionId);
-    await rm(this.projectionPath(sessionId), { recursive: true, force: true });
-  };
-  private readMessageOrdinals = async (
-    sessionId: string,
-    meta: NcpAgentSessionMessageProjectionMeta,
-  ): Promise<Map<string, number>> => {
-    const cached = this.messageOrdinals.get(sessionId);
-    if (cached) {
-      return cached;
-    }
-    const ordinals = new Map<string, number>();
-    for (let ordinal = 1; ordinal <= meta.total; ordinal += 1) {
-      const message = (await this.readMessages(sessionId, ordinal, ordinal))[0];
-      if (message) ordinals.set(message.id, ordinal);
-    }
-    this.messageOrdinals.set(sessionId, ordinals);
-    return ordinals;
-  };
-  private readMessages = async (sessionId: string, startOrdinal: number, endOrdinal: number): Promise<NcpMessage[]> => {
-    const count = endOrdinal - startOrdinal + 1;
-    const indexBuffer = Buffer.alloc(count * MESSAGE_PROJECTION_OFFSET_RECORD_BYTES);
-    const offsetsFile = await open(this.offsetsPath(sessionId), "r");
-    const dataFile = await open(this.dataPath(sessionId), "r");
+    let transaction = false;
+    let lastCommit = performance.now();
+    const commitIfDue = async (): Promise<void> => {
+      if (performance.now() - lastCommit < 50) return;
+      await flushDelta();
+      this.writeMeta(database, meta!); database.exec("COMMIT"); transaction = false;
+      signal?.throwIfAborted();
+      await new Promise<void>(resolve => setImmediate(resolve));
+      database.exec("BEGIN IMMEDIATE"); transaction = true; lastCommit = performance.now();
+    };
     try {
-      const indexRead = await offsetsFile.read(
-        indexBuffer,
-        0,
-        indexBuffer.length,
-        (startOrdinal - 1) * MESSAGE_PROJECTION_OFFSET_RECORD_BYTES
-      );
-      if (indexRead.bytesRead !== indexBuffer.length) {
-        throw new Error("Session message projection ended before the requested page.");
-      }
-      const messages: NcpMessage[] = [];
-      for (let index = 0; index < count; index += 1) {
-        const recordStart = index * MESSAGE_PROJECTION_OFFSET_RECORD_BYTES;
-        const location = parseNcpAgentSessionMessageLocation(
-          indexBuffer.subarray(recordStart, recordStart + MESSAGE_PROJECTION_OFFSET_RECORD_BYTES).toString("utf-8")
-        );
-        const messageBuffer = Buffer.alloc(location.length);
-        const messageRead = await dataFile.read(messageBuffer, 0, location.length, location.offset);
-        if (messageRead.bytesRead !== location.length) {
-          throw new Error("Session message projection contains a truncated message.");
-        }
-        messages.push(JSON.parse(messageBuffer.toString("utf-8")) as NcpMessage);
-      }
-      return messages;
-    } finally {
-      await Promise.all([offsetsFile.close(), dataFile.close()]);
-    }
-  };
-  private readMessageById = async (
-    sessionId: string,
-    meta: NcpAgentSessionMessageProjectionMeta,
-    messageId: string,
-  ): Promise<NcpMessage | null> => {
-    const ordinal = (await this.readMessageOrdinals(sessionId, meta)).get(messageId);
-    if (!ordinal) {
-      return null;
-    }
-    return (await this.readMessages(sessionId, ordinal, ordinal))[0] ?? null;
-  };
-  private writeMeta = async (meta: NcpAgentSessionMessageProjectionMeta): Promise<void> => {
-    const path = this.metaPath(meta.sessionId);
-    const temporaryPath = `${path}.${process.pid}.${randomUUID()}.tmp`;
-    await writeFile(temporaryPath, `${JSON.stringify(meta)}\n`, "utf-8");
-    let attempts = 0;
-    try {
-      for (;;) {
-        attempts += 1;
-        try {
-          await this.renameMeta(temporaryPath, path);
-          return;
-        } catch (error) {
-          if (this.shouldStopMetaRenameRetry(error, attempts)) {
-            throw this.withMetaRenameAttempts(error, attempts);
+      meta.preparation = { status: "preparing", journalBytes };
+      this.writeMeta(database, meta);
+      database.exec("BEGIN IMMEDIATE"); transaction = true;
+      projector.parts.clearStaging();
+      await scanBoundedSessionJournal({
+        path: this.journalPath(sessionId), startOffset: meta.projectedJournalOffset, endOffset: journalBytes, signal,
+        onToken: (token, path) => projector.parts.captureToken(token, path),
+        onProgress: bytes => onProgress?.(Math.min(bytes, journalBytes), journalBytes),
+        onEntry: async (entry, boundary, _index, truncated) => {
+          this.assertSupportedEntry(entry);
+          if (entry._type === "metadata") meta!.legacyMetadata = {
+            metadata: entry.metadata && typeof entry.metadata === "object" && !Array.isArray(entry.metadata) ? entry.metadata as Record<string, unknown> : {},
+            ...(typeof entry.agent_id === "string" ? { agentId: entry.agent_id } : {}),
+            createdAt: typeof entry.created_at === "string" ? entry.created_at : new Date(0).toISOString(),
+            updatedAt: typeof entry.updated_at === "string" ? entry.updated_at : new Date(0).toISOString(),
+          };
+          const event = entry.event as NcpAgentSessionJournalReplayEvent | undefined;
+          const endpoint = event as NcpEndpointEvent | undefined;
+          if (!truncated && endpoint && isSessionJournalDelta(endpoint) && Buffer.byteLength(endpoint.payload.delta) <= 2_048) {
+            if (pendingDelta && (!canCoalesceSessionJournalDeltas(pendingDelta.event, endpoint)
+              || Buffer.byteLength(pendingDelta.event.payload.delta) + Buffer.byteLength(endpoint.payload.delta) > 16 * 1024)) await flushDelta();
+            pendingDelta = { event: pendingDelta ? coalesceSessionJournalDeltas(pendingDelta.event, endpoint) : endpoint,
+              boundary, nextSeq: Math.max(pendingDelta?.nextSeq ?? 1, Number(entry.seq ?? 0) + 1),
+              timestamp: pendingDelta?.timestamp ?? (typeof entry.timestamp === "string" ? entry.timestamp : undefined) };
+            projector.parts.clearStaging();
+            onProgress?.(boundary, journalBytes);
+            await commitIfDue();
+            return;
           }
-          await this.waitForMetaRenameRetry(META_RENAME_RETRY_DELAYS_MS[attempts - 1]);
-        }
-      }
-    } finally {
-      await rm(temporaryPath, { force: true }).catch(() => undefined);
-    }
+          await flushDelta();
+          if (entry._type === "event" && event?.type) {
+            await projector.apply(event, true, signal, false, typeof entry.timestamp === "string" ? entry.timestamp : undefined);
+            meta.nextSeq = Math.max(meta.nextSeq ?? 1, Number(entry.seq ?? 0) + 1);
+          }
+          await projector.parts.clearStagingBounded(signal);
+          meta.projectedJournalOffset = boundary;
+          onProgress?.(boundary, journalBytes);
+          await commitIfDue();
+        },
+      });
+      await flushDelta();
+      signal?.throwIfAborted();
+      meta.preparation = { status: "ready", journalBytes };
+      meta.projectedJournalOffset = journalBytes;
+      this.writeMeta(database, meta);
+      database.exec("COMMIT"); transaction = false;
+    } catch (error) {
+      if (transaction) database.exec("ROLLBACK");
+      throw error;
+    } finally { database.close(); }
   };
 
-  private renameMeta = async (from: string, to: string): Promise<void> => {
-    await rename(from, to);
+  protected override readJournalTailMessages = async (sessionId: string, meta: NcpAgentSessionMessageProjectionMeta): Promise<NcpMessage[]> => {
+    const { readNcpAgentSessionProjectionTail } = await import("./ncp-agent-session-message-projection-tail.store.js");
+    return readNcpAgentSessionProjectionTail(this.journalPath(sessionId), meta,
+      async messageId => {
+        const database = await this.database(sessionId);
+        if (!database) return null;
+        try {
+          const row = database.prepare("SELECT ordinal,id,descriptor,revision,bytes FROM messages WHERE id=?").get(messageId) as MessageRow | undefined;
+          return row ? this.assemble(database, row) : null;
+        } finally { database.close(); }
+      }, async callId => {
+        const database = await this.database(sessionId);
+        if (!database) return null;
+        try { return (database.prepare("SELECT message_id FROM tool_owners WHERE call_id=?").get(callId) as { message_id: string } | undefined)?.message_id ?? null; }
+        finally { database.close(); }
+      });
   };
 
-  private waitForMetaRenameRetry = async (delayMs: number): Promise<void> => {
-    await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
-  };
-
-  private shouldStopMetaRenameRetry = (error: unknown, attempts: number): boolean =>
-    !this.isRetryableMetaRenameError(error) || attempts > META_RENAME_RETRY_DELAYS_MS.length;
-
-  private withMetaRenameAttempts = (error: unknown, attempts: number): unknown => {
-    if (error instanceof Error) {
-      (error as FileSystemError).projectionRenameAttempts = attempts;
-    }
-    return error;
-  };
-
-  private isRetryableMetaRenameError = (error: unknown): error is FileSystemError =>
-    error instanceof Error && RETRYABLE_META_RENAME_CODES.has((error as FileSystemError).code ?? "");
-
-  private projectionPath = (sessionId: string): string =>
-    join(this.journalDir, PROJECTION_ROOT_DIRECTORY, safeNcpSessionFilename(sessionId));
-  private journalPath = (sessionId: string): string =>
-    join(this.journalDir, `${safeNcpSessionFilename(sessionId)}.jsonl`);
-  private metaPath = (sessionId: string): string => join(this.projectionPath(sessionId), "meta.json");
-  private dataPath = (sessionId: string): string => join(this.projectionPath(sessionId), "messages.jsonl");
-  private offsetsPath = (sessionId: string): string => join(this.projectionPath(sessionId), "offsets.idx");
+  private journalPath = (sessionId: string) => journalPath(this.journalDir, sessionId);
 }

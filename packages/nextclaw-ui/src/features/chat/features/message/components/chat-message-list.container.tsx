@@ -56,6 +56,7 @@ import {
   normalizeSessionType,
 } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
 import { useI18n } from "@/app/components/i18n-provider";
+import { SessionMessageSource } from "./session-message-source";
 import { useChatMessageVirtualizer } from "@/features/chat/features/message/hooks/use-chat-message-virtualizer";
 import {
   buildChatMessageTimelineItems,
@@ -175,6 +176,11 @@ class ChatMessageViewModelAdapter {
       const viewModel = adaptChatMessage(sourceMessage, {
         formatTimestamp: (value) => formatDateTime(value, language),
         texts,
+      });
+      const source = message.metadata?.nextclaw_source as { revision?: string; partCount?: number } | undefined;
+      if (source && Number.isSafeInteger(source.partCount) && source.partCount! > 0) viewModel.parts.push({
+        type: "custom", id: `${message.id}:source:${source.revision ?? ""}`, customType: "nextclaw.history-source",
+        data: { messageId: message.id, revision: source.revision, partCount: source.partCount },
       });
 
       this.cache.set(message, {
@@ -410,6 +416,10 @@ export function ChatMessageListContainer({
   }, []);
   const renderCustomPart = useCallback(
     (part: Extract<ChatMessageViewModel["parts"][number], { type: "custom" }>) => {
+      if (part.customType === "nextclaw.history-source" && sessionKey) {
+        const data = part.data as { messageId: string; partCount: number; revision?: string };
+        return <SessionMessageSource key={`${data.messageId}:${data.revision}`} sessionId={sessionKey} messageId={data.messageId} partCount={data.partCount} />;
+      }
       if (part.customType === "nextclaw.user-question") {
         return <UserQuestionInlineQuestions data={part.data} />;
       }
@@ -429,7 +439,7 @@ export function ChatMessageListContainer({
         />
       );
     },
-    [],
+    [sessionKey],
   );
   return (
     <ChatTextSelectionAction

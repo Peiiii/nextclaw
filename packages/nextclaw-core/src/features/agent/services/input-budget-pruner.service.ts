@@ -115,7 +115,10 @@ export class InputBudgetPruner {
     } = params;
     const contextTokens = this.resolveContextTokens(params.contextTokens);
     return {
-      work: messages.map((message) => structuredClone(message)),
+      // Protocol strings are immutable. Cloning a whole message also copies megabytes of
+      // string storage; isolate mutable values without allocating another copy of prose.
+      work: messages.map((message) => Object.fromEntries(Object.entries(message).map(([key, value]) => [key,
+        value !== null && (typeof value === "object" || typeof value === "function") ? structuredClone(value) : value]))),
       contextTokens,
       budgetTokens: this.resolveBudgetTokens(params),
       fixedInputTokens: resolveFixedInputTokens(params.fixedInputTokens),

@@ -10,6 +10,10 @@ When the catalog is large, the sidebar places pinned sessions first, then orders
 
 Switch to Scheduled view to see conversations created by scheduled tasks. Filtering happens before pagination, and search and pins remain available. Tasks bound to an existing ordinary conversation keep its original classification. See [Tasks and sessions](/en/guide/chat) for the complete workflow.
 
+Large histories load a bounded page rather than the entire conversation. If a history index needs rebuilding, the conversation shows preparation progress. You can stop preparation and retry later; the original journal stays available. Large messages show a preview with an option to read their original content one fragment at a time.
+
+Context summaries can fail or end early. When the existing context still fits, NextClaw defers compaction. When it must reduce context, it saves a recovery checkpoint and keeps the original history. During recovery, the agent can read this conversation's history and ask for missing business conditions. It cannot run other tools until you explicitly confirm those conditions. For a channel conversation, answer the pending clarification with `确认续做：` followed by the concrete conditions; an ordinary message or the agent claiming completion does not clear recovery.
+
 You may also need:
 
 - [Create your first task](/en/guide/create-task)

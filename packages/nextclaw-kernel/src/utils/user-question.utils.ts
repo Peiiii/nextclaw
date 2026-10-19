@@ -1,6 +1,7 @@
 import type { NcpMessage } from "@nextclaw/ncp";
 
 export const USER_QUESTION_EXTENSION_TYPE = "nextclaw.user-question";
+export const CONTEXT_RECOVERY_CHANNEL_CONFIRMATION_PREFIX = "确认续做：";
 export type UserQuestionPrompt = {
   title: string;
   options?: string[];
@@ -14,6 +15,7 @@ export type UserQuestionView = UserQuestionPrompt & {
   status: "pending" | "answered" | "dismissed";
   answer?: string;
   answerMessageId?: string;
+  recoveryCheckpointId?: string;
 };
 
 export function createQuestionMessage(sessionId: string, prompts: readonly UserQuestionPrompt[]): { message: NcpMessage; questionIds: string[] } {
@@ -61,7 +63,8 @@ export function projectUserQuestions(messages: readonly NcpMessage[]): UserQuest
             ? { optionDescriptions: Object.fromEntries(Object.entries(optionDescriptions).filter(([option, description]) =>
               validOptions.includes(option) && typeof description === "string" && description.trim())) as Record<string, string> }
             : {}),
-          messageId: message.id, askedAt: message.timestamp, status: "pending" });
+          messageId: message.id, askedAt: message.timestamp, status: "pending",
+          ...(typeof message.metadata?.nextclaw_context_recovery_checkpoint === "string" ? { recoveryCheckpointId: message.metadata.nextclaw_context_recovery_checkpoint } : {}) });
       }
     }
   }
@@ -97,6 +100,7 @@ export function createQuestionResolutionMessage(sessionId: string, question: Use
       nextclaw_user_question_title: question.title,
       nextclaw_user_question_message_id: question.messageId,
       ...(status === "answered" ? { nextclaw_user_question_answer: normalized } : {}),
+      ...(status === "answered" && question.recoveryCheckpointId ? { nextclaw_context_recovery_ack: question.recoveryCheckpointId } : {}),
     },
   };
 }

@@ -8,7 +8,7 @@ import { createPortableRequestUserInputAsyncTool } from "@kernel/tools/user-ques
 /** Common session tools and disclosure policy, shared by every platform. */
 export class SessionConversationToolProvider implements ToolProvider {
   constructor(private readonly sessions: Pick<SessionManager,
-    "getSession" | "listSessions" | "listSessionMessages" | "getAgentRunSession">,
+    "getSession" | "listSessions" | "listSessionMessages" | "listSessionMessagePage" | "readSessionMessagePart" | "getAgentRunSession">,
     private readonly questions: Pick<UserQuestionManager, "ask">) {}
 
   provide = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {

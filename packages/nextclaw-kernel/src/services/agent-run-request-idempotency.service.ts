@@ -1,15 +1,16 @@
 import type { AgentRunSessionHost, AgentRunSessionRunHost } from "@kernel/types/agent-run-host.types.js";
 import type { NcpMessage } from "@nextclaw/ncp";
+import { createHash } from "node:crypto";
+import { sessionJsonFragments } from "@kernel/utils/session-message-chunks.utils.js";
 import type {
   AgentRunAccepted,
   AgentRunRequest,
 } from "@kernel/types/agent-run.types.js";
 
 function messageContent(message: NcpMessage): string {
-  return JSON.stringify({ role: message.role, parts: message.parts }, (_key, value: unknown) =>
-    value && typeof value === "object" && !Array.isArray(value)
-      ? Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)))
-      : value);
+  const hash = createHash("sha256");
+  for (const fragment of sessionJsonFragments({ role: message.role, parts: message.parts }, true)) hash.update(fragment);
+  return hash.digest("hex");
 }
 
 export class AgentRunRequestIdempotencyService {
@@ -112,11 +113,7 @@ export class AgentRunRequestIdempotencyService {
           delivery: pending.placement === "steering" ? "steered" : "queued",
         };
       }
-      const record = await this.sessionManager.getSessionRecord(sessionId);
-      const materialized = record?.messages.find(
-        (message) =>
-          message.metadata?.nextclaw_ingress_idempotency_key === idempotencyKey,
-      );
+      const materialized = await this.sessionManager.findSessionMessageByIngressKey(sessionId, idempotencyKey);
       if (materialized) {
         this.assertSameMessage(
           materialized,
@@ -140,6 +137,7 @@ export class AgentRunRequestIdempotencyService {
         metadata: {
           ...request.message.metadata,
           nextclaw_ingress_idempotency_key: idempotencyKey,
+          nextclaw_ingress_content_digest: messageContent(request.message),
         },
       },
     });
@@ -150,7 +148,8 @@ export class AgentRunRequestIdempotencyService {
     requestedMessage: NcpMessage,
     idempotencyKey: string,
   ): void => {
-    if (existingMessage.id !== requestedMessage.id || messageContent(existingMessage) !== messageContent(requestedMessage)) {
+    const recorded = existingMessage.metadata?.nextclaw_ingress_content_digest;
+    if (existingMessage.id !== requestedMessage.id || (typeof recorded === "string" ? recorded : messageContent(existingMessage)) !== messageContent(requestedMessage)) {
       throw new Error(
         `Agent run idempotency key was reused with a different message: ${idempotencyKey}`,
       );

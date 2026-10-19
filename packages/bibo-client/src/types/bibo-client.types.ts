@@ -13,7 +13,9 @@ export type BiboQuestion = {
 };
 export type BiboQuestionReference = { id: string; title: string; action: "answered" | "dismissed" };
 export type BiboMessageContent = { type: "text"; text: string } | { type: "questions"; ids: string[] };
-export type BiboMessage = { role: "user" | "assistant"; text: string; at: string; content?: BiboMessageContent[]; questions?: BiboQuestion[]; replyToQuestion?: BiboQuestionReference };
+export type BiboMessage = { role: "user" | "assistant"; text: string; at: string; content?: BiboMessageContent[]; questions?: BiboQuestion[]; replyToQuestion?: BiboQuestionReference; sources?: { messageId: string; partCount: number }[] };
+export type BiboHistoryPage = { messages: BiboMessage[]; previousCursor: string | null;
+  preparation: { status: "queued" | "preparing" | "ready" | "cancelled" | "failed"; processedBytes: number; totalBytes: number; error?: string } | null };
 export type BiboSession = { id: string; title: string; createdAt: string; updatedAt: string; messageCount?: number };
 
 export type BiboShowContent = {
@@ -41,6 +43,6 @@ export type BiboChatEvent =
   | { name: "accepted"; value: { runId: string } }
   | { name: "delta"; value: { text: string; blockId?: string } }
   | { name: "saving"; value: Record<string, never> }
-  | { name: "committed"; value: { messages: BiboMessage[]; text: string; session: BiboSession | null } };
+  | { name: "committed"; value: { messages: BiboMessage[]; text: string; session: BiboSession | null; previousCursor?: string | null } };
 
 export type BiboClientOptions = { fetch?: typeof fetch };

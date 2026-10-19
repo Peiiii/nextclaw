@@ -6,6 +6,7 @@ import type {
   ListMessagesOptions,
   ListSessionsOptions,
   NcpMessage,
+  NcpEndpointEvent,
   NcpSessionApi,
   NcpSessionPatch,
   NcpSessionSummary,
@@ -22,6 +23,7 @@ import type {
   SessionTokenUsageSummary,
 } from "@kernel/types/session.types.js";
 import { type NcpAgentSessionJournalReplayEvent } from "@kernel/utils/ncp-agent-session-journal.utils.js";
+import { SessionMessageCursorError } from "@kernel/types/session.types.js";
 import { createAgentPeerSessionIdentity } from "@kernel/utils/agent-peer-session.utils.js";
 import {
   applyLimit,
@@ -85,7 +87,7 @@ export class SessionManager implements NcpSessionApi {
     this.titles = options.providerManager ? new SessionTitleService(this, options.providerManager) : undefined;
     this.sessionEvents = new SessionEventCoordinatorService({
       appendSessionEvent: this.appendSessionEvent,
-      getSessionRecord: this.getSessionRecord,
+      getSessionRecord: this.getSessionPreviewRecord,
       listUnfinishedRuns: () => this.options.journalStore.listUnfinishedRuns(),
       eventBus: this.options.eventBus,
       journalStore: this.options.journalStore,
@@ -98,7 +100,7 @@ export class SessionManager implements NcpSessionApi {
     this.summaryProjection = new SessionSummaryProjectionService({
       agentContextWindowManager: options.agentContextWindowManager,
       eventBus: options.eventBus,
-      getSessionRecord: this.getSessionRecord,
+      getSessionRecord: this.getSessionContextRecord,
       journalStore: options.journalStore,
       sessionSearch: options.sessionSearch,
       workingDirResolver: this.workingDirResolver,
@@ -119,8 +121,21 @@ export class SessionManager implements NcpSessionApi {
 
   publishSessionEvent = async (params: PublishSessionEventParams): Promise<void> =>
     await this.sessionEvents.publish(params);
+  persistSessionEvent = (event: NcpEndpointEvent, signal?: AbortSignal): Promise<void> => this.sessionEvents.persist(event, signal);
+  captureCompactionSource = async (sessionId: string, messageIds: readonly string[]) => {
+    await this.sessionEvents.flushSession(sessionId);
+    if (!this.options.journalStore.captureCompactionSource) throw new Error("Session host does not support verifiable compaction sources.");
+    return this.options.journalStore.captureCompactionSource(sessionId, messageIds);
+  };
 
   flushSessionEvents = async (): Promise<void> => await this.sessionEvents.flush();
+  findSessionMessageByIngressKey = async (sessionId: string, key: string): Promise<NcpMessage | null> => {
+    await this.sessionEvents.flushSession(sessionId);
+    const store = this.options.journalStore;
+    if (!store.findSessionMessageByIngressKey) throw new Error("Session host does not support indexed ingress verification.");
+    await store.prepareSessionHistory?.(sessionId, { wait: true });
+    return store.findSessionMessageByIngressKey(sessionId, key);
+  };
   flushSession = async (sessionId: string): Promise<void> => await this.sessionEvents.flushSession(sessionId);
 
   createSession = async (
@@ -223,6 +238,7 @@ export class SessionManager implements NcpSessionApi {
   appendSessionEvent = async (params: {
     sessionId: string;
     event: NcpAgentSessionJournalReplayEvent;
+    signal?: AbortSignal;
   }): Promise<void> => {
     const { event } = params;
     const sessionId = normalizeSessionId(params.sessionId);
@@ -232,6 +248,7 @@ export class SessionManager implements NcpSessionApi {
     await this.options.journalStore.appendSessionEvent({
       event,
       sessionId,
+      signal: params.signal,
     });
     if (isSessionSummaryRefreshEvent(event)) {
       await this.publishSessionChange(sessionId);
@@ -319,6 +336,22 @@ export class SessionManager implements NcpSessionApi {
     }
     return await this.options.journalStore.getSession(normalizedSessionId);
   };
+
+  getSessionPreviewRecord = async (sessionId: string): Promise<AgentSessionRecord | null> => {
+    const summary = await this.options.journalStore.getSessionSummary(sessionId);
+    if (!summary) return null;
+    const page = await this.options.journalStore.listSessionMessagePage({ sessionId, limit: 4 });
+    return { sessionId, agentId: summary.agentId, createdAt: summary.createdAt, updatedAt: summary.updatedAt,
+      metadata: summary.metadata ?? {}, messages: page?.messages ?? [] };
+  };
+
+  getSessionContextRecord = async (sessionId: string): Promise<(AgentSessionRecord & { totalMessageCount: number }) | null> => {
+    const summary = await this.options.journalStore.getSessionSummary(sessionId);
+    if (!summary) return null;
+    if (!this.options.journalStore.loadSessionRunSeed) throw new Error("Session host does not support bounded context views.");
+    return { sessionId, agentId: summary.agentId, createdAt: summary.createdAt, updatedAt: summary.updatedAt,
+      metadata: summary.metadata ?? {}, messages: await this.options.journalStore.loadSessionRunSeed(sessionId), totalMessageCount: summary.messageCount };
+  };
   listSessions = async (options?: ListSessionsOptions): Promise<NcpSessionSummary[]> => {
     const { limit, peerId: rawPeerId } = options ?? {};
     const { journalStore } = this.options;
@@ -380,11 +413,32 @@ export class SessionManager implements NcpSessionApi {
     if (!normalizedSessionId) {
       return null;
     }
+    const preparation = await this.options.journalStore.prepareSessionHistory?.(normalizedSessionId);
+    if (preparation && preparation.status !== "ready") return {
+      messages: [], messageDetailCursors: {}, total: 0, pageInfo: { startCursor: null, hasPreviousPage: false }, contextWindow: null, preparation,
+    };
     return await this.options.journalStore.listSessionMessagePage({
       sessionId: normalizedSessionId,
       limit,
       ...(cursor ? { cursor } : {}),
     });
+  };
+
+  prepareSessionHistory = (sessionId: string, retry = false) => this.options.journalStore.prepareSessionHistory?.(sessionId, { retry }) ?? Promise.resolve(null);
+  cancelSessionHistoryPreparation = (sessionId: string): boolean => this.options.journalStore.cancelSessionHistoryPreparation?.(sessionId) ?? false;
+  listSessionQuestionMessages = (sessionId: string, questionId?: string): Promise<NcpMessage[]> => this.options.journalStore.listSessionQuestionMessages
+    ? this.options.journalStore.listSessionQuestionMessages(sessionId, questionId) : this.listSessionMessages(sessionId, { limit: 64 });
+
+  readSessionMessagePart = async (params: { sessionId: string; messageId: string; part: number; cursor?: string }) => {
+    if (!Number.isSafeInteger(params.part) || params.part < 0) throw new SessionMessageCursorError("Invalid message part index.");
+    if (!this.options.journalStore.readSessionMessagePart) throw new Error("This session host does not support exact history reads.");
+    return this.options.journalStore.readSessionMessagePart(params);
+  };
+
+  loadSessionRunSeed = async (sessionId: string): Promise<NcpMessage[]> => {
+    if (!this.options.journalStore.loadSessionRunSeed) throw new Error("This session host does not support bounded run loading.");
+    await this.sessionEvents.flushSession(sessionId);
+    return this.options.journalStore.loadSessionRunSeed(sessionId);
   };
 
   getSession = async (sessionId: string): Promise<NcpSessionSummary | null> => {
@@ -415,6 +469,7 @@ export class SessionManager implements NcpSessionApi {
   };
 
   getAgentRunSession = async (sessionId: string): Promise<AgentRunSession> => {
+    await this.options.journalStore.prepareSessionHistory?.(sessionId, { wait: true });
     const summary =
       await this.options.journalStore.getSessionSummary(sessionId);
     if (!summary) {

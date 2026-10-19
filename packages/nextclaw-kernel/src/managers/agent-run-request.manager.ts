@@ -34,6 +34,7 @@ import type {
 import { AgentRunInputDeliveryService } from "@kernel/services/agent-run-input-delivery.service.js";
 import { AgentRunAdmissionService } from "@kernel/services/agent-run-admission.service.js";
 import { AgentRunRequestIdempotencyService } from "@kernel/services/agent-run-request-idempotency.service.js";
+import { CONTEXT_RECOVERY_CHANNEL_CONFIRMATION_PREFIX, createQuestionResolutionMessage, projectUserQuestions } from "@kernel/utils/user-question.utils.js";
 import { AgentRuntimeRunObserverService } from "@kernel/services/agent-runtime-run-observer.service.js";
 import type {
   AgentRunAbortRequest,
@@ -62,7 +63,7 @@ import {
 
 export class AgentRunRequestManager {
   readonly cleanups: Array<() => void> = [];
-  private readonly observedSessionRuns = new Set<SessionRun>();
+  private readonly observedSessionRuns = new WeakSet<SessionRun>();
   private readonly sessionCommandManager: AgentRunSessionCommandManager;
   private readonly idempotency: AgentRunRequestIdempotencyService;
   private readonly runtimeRuns: AgentRuntimeRunObserverService;
@@ -145,7 +146,6 @@ export class AgentRunRequestManager {
     while (this.cleanups.length > 0) {
       this.cleanups.pop()?.();
     }
-    this.observedSessionRuns.clear();
     this.idempotency.dispose();
     this.sessionCommandManager.dispose();
     this.admissions.resume();
@@ -242,6 +242,16 @@ export class AgentRunRequestManager {
       ...request.message,
       sessionId: session.sessionId,
     };
+    if (request.channel && request.trigger?.actor === "human" && baseMessage.role === "user") {
+      const text = baseMessage.parts.flatMap(part => part.type === "text" ? [part.text] : []).join("\n").trim();
+      const recovery = sessionRun.getContextRecoveryState();
+      const question = recovery.required && recovery.checkpointId ? projectUserQuestions(sessionRun.getSnapshot().messages)
+        .filter(item => item.status === "pending" && item.recoveryCheckpointId === recovery.checkpointId).at(-1) : undefined;
+      if (question && text.startsWith(CONTEXT_RECOVERY_CHANNEL_CONFIRMATION_PREFIX) && text.slice(CONTEXT_RECOVERY_CHANNEL_CONFIRMATION_PREFIX.length).trim()) {
+        const resolution = createQuestionResolutionMessage(session.sessionId, question, "answer", text);
+        baseMessage.metadata = { ...baseMessage.metadata, ...resolution.metadata };
+      }
+    }
     const normalizedRequest: AgentRunRequest = {
       ...request,
       sessionId: session.sessionId,
@@ -301,11 +311,8 @@ export class AgentRunRequestManager {
       spec,
       startedAt: requestRunStartedAt,
     });
-    const executionClaim = await this.claimSessionExecutionOrFail({
-      requestRunStartedAt,
-      sessionRun,
-      spec,
-    });
+    let executionClaim: SessionExecutionClaim | undefined;
+    let releaseCapacity: (() => void) | undefined;
     const message = attachRunSpecMetadata({
       message: {
         ...request.message,
@@ -354,6 +361,9 @@ export class AgentRunRequestManager {
       trigger,
     });
     try {
+      releaseCapacity = await this.admissions.acquireExecution(activeRequest.signal);
+      executionClaim = await this.claimSessionExecutionOrFail({ requestRunStartedAt, sessionRun, spec });
+      activeRequest.signal.throwIfAborted();
       await sessionRun.applyEvents([messageSentEvent, triggerEvent]);
       this.publishNcpEvent(messageSentEvent);
       this.publishNcpEvent(triggerEvent);
@@ -378,9 +388,11 @@ export class AgentRunRequestManager {
         spec,
         parentCorrelationId,
         executionClaim,
+        releaseCapacity,
       });
     } catch (error) {
       executionClaim?.release();
+      releaseCapacity?.();
       const classification = classifyDiagnosticError(
         error,
         activeRequest.signal,
@@ -433,7 +445,7 @@ export class AgentRunRequestManager {
     sessionRun: SessionRun;
     spec: AgentRunSpec;
   }): Promise<SessionExecutionClaim | undefined> => {
-    const { requestRunStartedAt, sessionRun, spec } = params;
+    const { sessionRun } = params;
     const acquired = this.executionClaims?.tryAcquire(
       `session:${sessionRun.sessionId}`,
     );
@@ -443,13 +455,6 @@ export class AgentRunRequestManager {
     const error = new Error(
       `Session already has an active run owned by another NextClaw process: ${sessionRun.sessionId}`,
     );
-    await this.publishRunStartupFailure({
-      error,
-      requestRunStartedAt,
-      sessionRun,
-      spec,
-    });
-    this.startNextQueuedRun(sessionRun);
     throw error;
   };
 
@@ -457,13 +462,14 @@ export class AgentRunRequestManager {
     params: Omit<
       Parameters<AgentRuntimeRunObserverService["start"]>[0],
       "onSettled"
-    > & { executionClaim?: SessionExecutionClaim },
+    > & { executionClaim?: SessionExecutionClaim; releaseCapacity?: () => void },
   ): void => {
-    const { executionClaim, ...runtimeParams } = params;
+    const { executionClaim, releaseCapacity, ...runtimeParams } = params;
     this.runtimeRuns.start({
       ...runtimeParams,
       onSettled: (sessionRun) => {
         executionClaim?.release();
+        releaseCapacity?.();
         this.startNextQueuedRun(sessionRun);
       },
     });
@@ -506,7 +512,8 @@ export class AgentRunRequestManager {
       return;
     }
     this.observedSessionRuns.add(sessionRun);
-    const stop = sessionRun.onStatusChange((status) => {
+    sessionRun.onStatusChange((status) => {
+      if (!this.started) return;
       this.eventBus.emit(
         eventKeys.sessionRunStatus,
         {
@@ -518,10 +525,6 @@ export class AgentRunRequestManager {
           source: "agent-run-request",
         },
       );
-    });
-    this.cleanups.push(() => {
-      stop();
-      this.observedSessionRuns.delete(sessionRun);
     });
   };
 

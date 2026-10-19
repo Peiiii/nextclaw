@@ -281,7 +281,25 @@ UI 读描述，运行入口读取已安装 checkpoint 所选区间和受限 tail
 
 原设计只加本补充方案链接，当前运行事实不改写。本轮不增加 changeset、NPM/Desktop/runtime release，也不声称客户故障已上线解决。
 
+## 实施细化：Node 20 的局部 SQLite 与旧事件解析
+
+用户于 2026-10-19 授权完整实施验证与正式产品 patch 发布；前文“研究、非运行版本”描述研究时状态，当前实施进度由 [执行现场](../work/2026-10-19-context-compaction-resilience/current-state.md) 拥有。
+
+Node 20 支持保持：大型消息投影复用 SQLite opener 的合同，显式选择局部文件驱动；Node 22 使用 node:sqlite，Node 20 使用 libsql 的本地同步 SQLite 兼容接口，禁止该投影落入 sql.js 整库 fallback。既有小元数据数据库的兼容行为不改变。libsql 自带平台原生包，实施须覆盖 Node 20/22 与发行产物的依赖闭包、缺二进制明确失败；不能以本机加载成功代替发布安装验证。无运行时远程数据库或新服务。
+
+旧 JSONL 巨型记录的维修使用流式 JSON token 解析器，字符串与数组不得先完整组装；有界事件骨架和原文片段进入原派生投影事务，再按既有 replay owner 处理事件语义。大工具结果的 args/result 等结构使用片段引用，不能伪装成完整结果供模型盲用。原始 journal 格式保持不变。
+
+正文分片进一步按 NcpPart 的顶层字段归一化：字符串使用原文片段，args/result 等结构字段使用 JSON token 片段。text/reasoning/args delta 只追加相应字段，result 只替换对应字段；不能为一次 delta 重新序列化累计巨型 part。精确 part 读取按字段顺序输出可拼接的 JSON 片段，cursor 同时绑定字段/分片位置与消息 revision；字段存储不引入另一套消息或执行语义。维修以现有 replayer 求解有界事件骨架，源字段由 token 流直接物化，不能用骨架覆盖未改变的完整字段。该细化保持前述 owner、完整性和性能合同，审查需特别验证旧工具 late-result、跨分片 Unicode 和重建恢复点。
+
+有界运行态不可把预览写回完整 assistant 快照。派生 seed 对确实缺正文/早期 parts 的 assistant 明确标记 `nextclaw_partial_projection` 并携带物理 part 索引；这些运行态生成的 MessageSent/MessageCompleted 仍保留在原 v1 journal envelope，但其新投影元数据明确声明只更新生命周期/头部，正文由此前已持久化的原始快照与增量拥有。完整重放与增量投影必须在同一 replay owner 识别此标记，保留原 parts，不把预览当作全文；显式用户编辑不携带这一内部运行态标记。未建立原始消息的 partial 帧须拒绝，不能悄悄当作全文。普通完整快照和旧 journal 不改变语义。
+
+此路径只在 v2 检查点之后启用；不宣称旧二进制能够理解 v2/partial 语义。受控降级须通过当前 reader 的完整 journal 恢复/导出入口产生已验证完整旧格式快照，不能直接让旧 reader 忽略新标记继续运行。实施必须对照完整原始重放、冷重启、跨多个压缩 epoch、晚到工具结果和完整导出，证明没有删去已有正文；这些 Required 未证明前不启用或发布。
+
+`design-review: passed`（此细化）：驱动仅隔离 Node 缺内建 SQLite 这一真实变化点；SQL schema 和读写合同相同。解析器不拥有消息或工具状态。必须用节点版本、巨型字符串、故障和分片重组验证，不以依赖 API 的可用性推断预算已经通过。
+
 ## 本轮方案审查结论
+
+实施期细化（2026-10-20）：每次新压缩生成独立 UUID，继承未解决缺口时仍保留原恢复边界；摘要来源被裁剪即降级，正常 stop 不能证明来源完整。分页使用 covering identity index 后逐条取 descriptor，源数据读取累计2.5MiB后结束本页，单检查点metadata上限1MiB；页面只投影状态，完整检查点留在原记录。维修解析完整保留预算内的checkpoint，超预算显式失败，不能悄悄截短再当作完整摘要。显式全记录导出/编辑仍允许全量读取并从journal重放，不能消费展示预览作为原文。DO事务使用microtask yield，避免input gate等待timer的死锁；Node维修继续定时让出事件循环。上述细化保持原复杂度与预算；连续大检查点、源保真、实际DO和冷恢复反例必须证明。
 
 `design-review: passed`，范围仅限本文架构与后续验收合同，不表示新实现已通过运行验证。审查过的反例及已落实的设计修正：
 

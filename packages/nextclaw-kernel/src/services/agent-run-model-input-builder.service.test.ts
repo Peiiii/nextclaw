@@ -190,14 +190,14 @@ describe("AgentRunModelInputBuilder", () => {
     expect(systemMessages[0]?.content).not.toContain("You just woke up");
     expect(systemMessages[0]?.content).not.toContain("IDENTITY.md");
     expect(systemMessages[0]?.content).toContain(
-      "Authoritative compressed prior conversation context",
+      "Compressed working context for this session",
     );
     expect(systemMessages[0]?.content).toContain(
       "Continue 《天脊书》 instead of restarting onboarding",
     );
     expect(
       String(systemMessages[0]?.content).indexOf(
-        "Authoritative compressed prior conversation context",
+        "Compressed working context for this session",
       ),
     ).toBeLessThan(
       String(systemMessages[0]?.content).indexOf("Durable project rules."),
@@ -310,7 +310,7 @@ describe("AgentRunModelInputBuilder mid-run continuation", () => {
 });
 
 describe("AgentRunModelInputBuilder budget pruning", () => {
-  it("keeps compressed context ahead of oversized bootstrap context when real pruning runs", async () => {
+  it("preserves fixed rules and the compressed prefix while removing completed onboarding", async () => {
     const checkpoint = createCheckpoint();
     const sourceMessages = [
       createTimelineMessage(checkpoint),
@@ -326,7 +326,7 @@ describe("AgentRunModelInputBuilder budget pruning", () => {
     } as unknown as AgentRunMessageProjector;
     const agentManager = {
       resolveAgentProfile: () => ({
-        contextTokens: 2_000,
+        contextTokens: 20_000,
         reservedContextTokens: 0,
       }),
     } as AgentManager;
@@ -364,7 +364,7 @@ describe("AgentRunModelInputBuilder budget pruning", () => {
         "",
     );
     expect(systemContent).toContain(
-      "Authoritative compressed prior conversation context",
+      "Compressed working context for this session",
     );
     expect(systemContent).toContain(
       "Continue 《天脊书》 instead of restarting onboarding",
@@ -523,7 +523,7 @@ describe("AgentRunModelInputBuilder budget pruning", () => {
 });
 
 describe("AgentRunModelInputBuilder deterministic compaction integration", () => {
-  it("fits an oversized optional tail and builds the continuation-safe final provider input", async () => {
+  it("builds continuation-safe final input from one bounded summary and complete fixed rules", async () => {
     const contextBlocks = [
       [
         "# Agent Bootstrap Context",
@@ -540,7 +540,7 @@ describe("AgentRunModelInputBuilder deterministic compaction integration", () =>
         "",
         "## AGENTS.md",
         "",
-        `Durable project rules. ${"static context ".repeat(6_800)}`,
+        `Durable project rules. ${"static context ".repeat(4_800)}`,
       ].join("\n"),
     ];
     const sessionMessages = [
@@ -572,22 +572,13 @@ describe("AgentRunModelInputBuilder deterministic compaction integration", () =>
           targetSummaryTokens = Number(
             prompt.match(/within (\d+) tokens/)?.[1] ?? 0,
           );
-          let content = [
+          const content = [
             "# Compressed Working Context",
             "## Active Request\n\nContinue 《天脊书》 from the current task.",
             "## Current Work State\n\nThe first eight chapters are complete.",
             "## Safety and User Constraints\n\nDo not restart onboarding.",
             "## Continuation Contract\n\nWhen the user says 你好, continue 《天脊书》 and ask whether to write Chapter 9 or Volume 2.\n<!-- nextclaw-essential-context-complete -->",
-            "## Critical Technical Context\n\nPreserved working context.",
           ].join("\n\n");
-          while (
-            estimateInputTokens(content) <=
-            Math.floor(targetSummaryTokens * 1.2)
-          ) {
-            content += "\nPreserved working context.";
-          }
-          content +=
-            "\n<!-- nextclaw-section-complete:critical-technical-context -->";
           return {
             content,
             finishReason: "stop",
@@ -648,7 +639,7 @@ describe("AgentRunModelInputBuilder deterministic compaction integration", () =>
         ?.content ?? "",
     );
     expect(systemContent).toContain(
-      "Authoritative compressed prior conversation context",
+      "Compressed working context for this session",
     );
     expect(systemContent).toContain(
       "When the user says 你好, continue 《天脊书》",

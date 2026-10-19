@@ -213,7 +213,7 @@ export class NcpSessionRoutesController {
     const compactHistoryPayload = useSummaryPayload &&
       !c.req.query("cursor") &&
       c.req.query("initialPayload") === "compact"
-      ? compactSessionMessageHistoryPayloadView({ view: historyPayload })
+      ? compactSessionMessageHistoryPayloadView({ view: historyPayload, budgetBytes: 22 * 1024 })
       : { ...historyPayload, startIndex: 0 };
     const compactStartCursor = compactHistoryPayload.startIndex > 0
       ? page.messageDetailCursors[page.messages[compactHistoryPayload.startIndex - 1]?.id ?? ""]
@@ -228,12 +228,42 @@ export class NcpSessionRoutesController {
         : {}),
       ...(page.contextWindow ? { contextWindow: page.contextWindow } : {}),
       total: page.total,
+      ...(page.preparation ? { preparation: page.preparation } : {}),
       pageInfo: {
         startCursor: compactStartCursor,
         hasPreviousPage: page.pageInfo.hasPreviousPage || compactHistoryPayload.startIndex > 0,
       }
     };
     return c.json(ok(payload));
+  };
+
+  readonly readSessionMessagePart = async (c: Context) => {
+    const sessionId = c.req.param("sessionId");
+    const messageId = c.req.param("messageId");
+    const part = Number(c.req.param("part"));
+    if (!Number.isSafeInteger(part) || part < 0) return c.json(err("INVALID_PART", "Invalid message part index"), 400);
+    const cursor = c.req.query("cursor");
+    if (cursor && cursor.length > 32_768) return c.json(err("INVALID_CURSOR", "History cursor is too large"), 400);
+    try {
+      const preparation = await this.options.kernel.sessionManager.prepareSessionHistory(sessionId);
+      if (preparation && preparation.status !== "ready") return c.json({ ...err("HISTORY_PREPARING", "Session history is preparing. Retry after preparation completes."), preparation }, 409);
+      const result = await this.options.kernel.sessionManager.readSessionMessagePart({ sessionId, messageId, part, cursor });
+      return result ? c.json(ok(result)) : c.json(err("NOT_FOUND", "Session message part not found"), 404);
+    } catch (error) {
+      if (isSessionMessageCursorError(error)) return c.json(err("INVALID_CURSOR", error.message), 400);
+      throw error;
+    }
+  };
+
+  readonly prepareSessionHistory = async (c: Context) => {
+    const sessionId = c.req.param("sessionId");
+    const result = await this.options.kernel.sessionManager.prepareSessionHistory(sessionId, true);
+    return result ? c.json(ok(result)) : c.json(err("NOT_FOUND", "Session not found"), 404);
+  };
+
+  readonly cancelSessionHistoryPreparation = async (c: Context) => {
+    const sessionId = c.req.param("sessionId");
+    return c.json(ok({ cancelled: this.options.kernel.sessionManager.cancelSessionHistoryPreparation(sessionId) }));
   };
 
   readonly getSessionTokenUsage = async (c: Context) => {

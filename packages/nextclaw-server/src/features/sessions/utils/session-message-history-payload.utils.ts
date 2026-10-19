@@ -1,4 +1,5 @@
 import type { NcpMessage } from "@nextclaw/ncp";
+import { projectContextCompactionStatus } from "@nextclaw/core";
 
 export const SESSION_HISTORY_MESSAGE_TOOL_PAYLOAD_BUDGET_BYTES = 256 * 1024;
 export const SESSION_HISTORY_PAGE_TOOL_PAYLOAD_BUDGET_BYTES = 2 * 1024 * 1024;
@@ -101,11 +102,7 @@ function sanitizeContextCompactionHistoryMessage(message: NcpMessage): NcpMessag
   if (!checkpoint || typeof checkpoint !== "object" || Array.isArray(checkpoint)) {
     return message;
   }
-  const {
-    summary: _summary,
-    summaryDiagnostics: _summaryDiagnostics,
-    ...uiCheckpoint
-  } = checkpoint as Record<string, unknown>;
+  const uiCheckpoint = projectContextCompactionStatus(checkpoint);
   return {
     ...message,
     metadata: {
@@ -221,6 +218,10 @@ export function compactSessionMessageHistoryPayloadView(params: {
   let bytes = view.messages
     .slice(startIndex)
     .reduce((total, message) => total + serializedBytes(message), 0);
+  // The preferred conversation count cannot override the network byte budget.
+  while (bytes > budgetBytes && startIndex < view.messages.length - 1) {
+    bytes -= serializedBytes(view.messages[startIndex]!); startIndex++;
+  }
   while (startIndex > 0) {
     const previousBytes = serializedBytes(view.messages[startIndex - 1]);
     if (bytes + previousBytes > budgetBytes) break;

@@ -86,7 +86,7 @@ export class SessionReplaySupersessionTracker {
     .map(({ index }) => index));
 }
 
-function isReplayContinuationEvent(event: NcpAgentSessionJournalReplayEvent): boolean {
+export function isReplayContinuationEvent(event: NcpAgentSessionJournalReplayEvent): boolean {
   if (isJournalOnlyEvent(event)) {
     return false;
   }

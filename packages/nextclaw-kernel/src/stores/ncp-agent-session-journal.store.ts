@@ -1,4 +1,5 @@
-import { appendFile, mkdir, stat, unlink, writeFile } from "node:fs/promises";
+import { copyFile, link, mkdir, open, rename, rm, stat, unlink } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { type NcpMessage, type NcpSessionSummary } from "@nextclaw/ncp";
@@ -15,10 +16,6 @@ import {
 import { loadNcpAgentSessionSummary } from "./ncp-agent-session-journal-summary-recovery.store.js";
 import { isNcpAgentRunLifecycleEvent, type UnfinishedNcpAgentRun } from "@kernel/utils/ncp-agent-unfinished-run.utils.js";
 import { NcpAgentUnfinishedRunStore } from "@kernel/stores/ncp-agent-unfinished-run.store.js";
-import {
-  isNcpAgentSessionMessageProjectionBoundaryEvent,
-  serializeNcpAgentSessionJournalEntry
-} from "@kernel/utils/ncp-agent-session-journal-entry.utils.js";
 import { NcpAgentSessionMetadataStore } from "./ncp-agent-session-metadata.store.js";
 import { NcpAgentSessionMessageProjectionStore } from "./ncp-agent-session-message-projection.store.js";
 import { SessionJournalLoaderStore } from "./session-journal-loader.store.js";
@@ -26,8 +23,10 @@ import { NcpAgentSessionSummaryIndexStore } from "./ncp-agent-session-summary-in
 import { NcpAgentSessionSummaryReadStore } from "./ncp-agent-session-summary-read.store.js";
 import { assertSessionJournalTailComplete, recoverSessionJournalMaintenance } from "./session-journal-maintenance.store.js";
 import type { SessionListPageOptions, SessionMessagePage, SessionMetadataUpdate, SessionPersistence } from "@kernel/types/session.types.js";
+import { sessionJsonChunks } from "@kernel/utils/session-message-chunks.utils.js";
+import { NcpEventType } from "@nextclaw/ncp";
+import type { ContextCompactionCheckpoint } from "@nextclaw/core/context-compaction";
 export class NcpAgentSessionJournalStore implements SessionPersistence {
-  private readonly sessions = new Map<string, LoadedNcpAgentJournalSession>();
   private readonly nextSeqBySession = new Map<string, number>();
   private readonly writeChains = new Map<string, Promise<void>>();
   private readonly metadataStore: NcpAgentSessionMetadataStore;
@@ -38,19 +37,8 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
   private readonly summaryReadStore: NcpAgentSessionSummaryReadStore;
   constructor(private readonly journalDir: string) {
     this.metadataStore = new NcpAgentSessionMetadataStore(journalDir);
-    this.messageProjectionStore = new NcpAgentSessionMessageProjectionStore(journalDir, {
-      loadSession: async (sessionId) => {
-        const loaded = this.sessions.get(sessionId) ?? (await this.loadSession(sessionId));
-        if (loaded) {
-          this.sessions.set(sessionId, loaded);
-        }
-        return loaded;
-      }
-    });
-    this.journalLoaderStore = new SessionJournalLoaderStore(
-      this.metadataStore,
-      this.messageProjectionStore,
-    );
+    this.messageProjectionStore = new NcpAgentSessionMessageProjectionStore(journalDir);
+    this.journalLoaderStore = new SessionJournalLoaderStore(this.metadataStore);
     this.summaryIndexStore = new NcpAgentSessionSummaryIndexStore(
       journalDir,
       async (sessionId) => this.loadSession(sessionId),
@@ -83,23 +71,18 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
   appendSessionEvent = async (params: {
     sessionId: string;
     event: NcpAgentSessionJournalReplayEvent;
+    signal?: AbortSignal;
   }): Promise<void> => {
     const sessionId = normalizeNcpSessionId(params.sessionId);
     if (!sessionId) {
       return;
     }
-    const previous = this.writeChains.get(sessionId) ?? Promise.resolve();
-    const next = previous.then(() =>
+    return this.enqueueWrite(sessionId, () =>
       this.appendSessionEventNow({
         ...params,
         sessionId
       })
     );
-    this.writeChains.set(
-      sessionId,
-      next.catch(() => undefined)
-    );
-    await next;
   };
   synchronizeSessionMessageProjection = (sessionId: string) => this.messageProjectionStore.synchronizeSource(normalizeNcpSessionId(sessionId));
   getSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {
@@ -107,16 +90,12 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
     if (!normalizedSessionId) {
       return null;
     }
-    const cached = this.sessions.get(normalizedSessionId);
-    if (cached) {
-      return structuredClone(cached.record);
-    }
+    await this.writeChains.get(normalizedSessionId);
     const loaded = await this.loadSession(normalizedSessionId);
     if (!loaded) {
       return null;
     }
-    this.sessions.set(normalizedSessionId, loaded);
-    return structuredClone(loaded.record);
+    return loaded.record;
   };
   listSessionSummaries = async (options?: { limit?: number }): Promise<NcpSessionSummary[]> => {
     return await this.summaryReadStore.list(options?.limit);
@@ -127,7 +106,13 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
     if (!normalizedSessionId) {
       return null;
     }
-    return await this.summaryReadStore.get(normalizedSessionId);
+    const summary = await this.summaryReadStore.get(normalizedSessionId);
+    const meta = await this.messageProjectionStore.readMeta(normalizedSessionId);
+    if (!summary || !meta) return summary;
+    const header = meta.legacyMetadata;
+    if (!header) return { ...summary, messageCount: meta.total };
+    const current = await this.metadataStore.read(normalizedSessionId, header);
+    return { ...summary, ...current, messageCount: meta.total };
   };
   listUnfinishedRuns = (): Promise<UnfinishedNcpAgentRun[]> =>
     this.unfinishedRunStore.list();
@@ -135,6 +120,33 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
     const session = await this.getSession(sessionId);
     return session ? session.messages.map((message) => structuredClone(message)) : [];
   };
+  readSessionMessagePart: NonNullable<SessionPersistence["readSessionMessagePart"]> = async params =>
+    this.messageProjectionStore.readPart(normalizeNcpSessionId(params.sessionId), params.messageId, params.part, params.cursor);
+  loadSessionRunSeed = async (sessionId: string): Promise<NcpMessage[]> => {
+    await this.messageProjectionStore.prepare(normalizeNcpSessionId(sessionId), { wait: true });
+    const window = await this.messageProjectionStore.readRunWindow(normalizeNcpSessionId(sessionId));
+    if (!window) throw new Error("Session history index is preparing; retry when preparation completes.");
+    return window.messages;
+  };
+  prepareSessionHistory: NonNullable<SessionPersistence["prepareSessionHistory"]> = async (sessionId, options) => {
+    const id = normalizeNcpSessionId(sessionId);
+    const write = this.writeChains.get(id);
+    if (write && !options?.wait) return { status: "queued", processedBytes: 0, totalBytes: 0 };
+    if (write) await write;
+    const state = await this.messageProjectionStore.prepare(id, options);
+    if (state?.status === "ready") {
+      const previous = await this.summaryIndexStore.get(id);
+      const meta = await this.messageProjectionStore.readMeta(id);
+      if (previous && meta && previous.messageCount !== meta.total) {
+        await this.summaryIndexStore.upsert({ ...previous, messageCount: meta.total });
+      }
+    }
+    return state;
+  };
+  cancelSessionHistoryPreparation = (sessionId: string) => this.messageProjectionStore.cancelPreparation(normalizeNcpSessionId(sessionId));
+  listSessionQuestionMessages = (sessionId: string, questionId?: string) => this.messageProjectionStore.readQuestionMessages(normalizeNcpSessionId(sessionId), questionId);
+  findSessionMessageByIngressKey = (sessionId: string, key: string) => this.messageProjectionStore.findIngressMessage(normalizeNcpSessionId(sessionId), key);
+  captureCompactionSource = (sessionId: string, messageIds: readonly string[]) => this.messageProjectionStore.captureSource(normalizeNcpSessionId(sessionId), messageIds);
   listSessionMessagePage = async (params: {
     sessionId: string;
     limit: number;
@@ -175,42 +187,24 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
     if (!sessionId) {
       return false;
     }
-    const previous = this.writeChains.get(sessionId) ?? Promise.resolve();
-    const next = previous.then(() =>
+    return this.enqueueWrite(sessionId, () =>
       this.setSessionMetadataNow({
         ...params,
         sessionId
       })
     );
-    this.writeChains.set(
-      sessionId,
-      next.then(
-        () => undefined,
-        () => undefined
-      )
-    );
-    return await next;
   };
   updateSessionMetadata = async (params: SessionMetadataUpdate): Promise<boolean> => {
     const sessionId = normalizeNcpSessionId(params.sessionId);
     if (!sessionId) {
       return false;
     }
-    const previous = this.writeChains.get(sessionId) ?? Promise.resolve();
-    const next = previous.then(() =>
+    return this.enqueueWrite(sessionId, () =>
       this.updateSessionMetadataNow({
         ...params,
         sessionId
       })
     );
-    this.writeChains.set(
-      sessionId,
-      next.then(
-        () => undefined,
-        () => undefined
-      )
-    );
-    return await next;
   };
   private setSessionMetadataNow = async (params: {
     sessionId: string;
@@ -223,12 +217,11 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
     } catch {
       return false;
     }
-    const cached = this.sessions.get(sessionId);
     const summary = await this.summaryReadStore.get(sessionId);
     const activity = await this.metadataStore.read(sessionId, {
       metadata: {},
-      createdAt: cached?.record.createdAt ?? summary?.createdAt ?? journalStat.birthtime.toISOString(),
-      updatedAt: cached?.record.updatedAt ?? summary?.updatedAt ?? journalStat.mtime.toISOString(),
+      createdAt: summary?.createdAt ?? journalStat.birthtime.toISOString(),
+      updatedAt: summary?.updatedAt ?? journalStat.mtime.toISOString(),
     });
     const nextRecord: AgentSessionRecord = {
       sessionId,
@@ -239,10 +232,6 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
       metadata: structuredClone(metadata)
     };
     await this.metadataStore.write(nextRecord);
-    if (cached) {
-      const record = { ...cached.record, metadata: structuredClone(metadata) };
-      this.sessions.set(sessionId, { ...cached, record });
-    }
     await this.summaryIndexStore.upsert(summary
       ? { ...summary, metadata: structuredClone(metadata) }
       : createNcpAgentSessionSummary(nextRecord));
@@ -256,12 +245,11 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
     } catch {
       return false;
     }
-    const cached = this.sessions.get(sessionId);
     const summary = await this.summaryReadStore.get(sessionId);
     const activity = await this.metadataStore.read(sessionId, {
       metadata: {},
-      createdAt: cached?.record.createdAt ?? summary?.createdAt ?? journalStat.birthtime.toISOString(),
-      updatedAt: cached?.record.updatedAt ?? summary?.updatedAt ?? journalStat.mtime.toISOString(),
+      createdAt: summary?.createdAt ?? journalStat.birthtime.toISOString(),
+      updatedAt: summary?.updatedAt ?? journalStat.mtime.toISOString(),
     });
     if (expectedMetadata && Object.entries(expectedMetadata).some(
       ([key, value]) => activity.metadata?.[key] !== value,
@@ -274,16 +262,28 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
       }
     });
   };
-  importSessionSnapshot = async (record: AgentSessionRecord): Promise<void> => {
+  importSessionSnapshot = (record: AgentSessionRecord): Promise<void> => this.enqueueWrite(normalizeNcpSessionId(record.sessionId), () => this.importSessionSnapshotNow(record));
+  private importSessionSnapshotNow = async (record: AgentSessionRecord): Promise<void> => {
     const sessionId = normalizeNcpSessionId(record.sessionId);
     if (!sessionId) {
       return;
     }
     await this.ensureJournalDir();
-    const nextRecord = structuredClone({ ...record, sessionId });
-    await this.metadataStore.write(nextRecord);
-    const entries = nextRecord.messages.map(
-      (message, index): NcpAgentSessionJournalEventEntry => ({
+    const nextRecord = { ...record, sessionId, metadata: structuredClone(record.metadata ?? {}) };
+    const path = this.sessionPath(sessionId);
+    const staged = `${path}.import-${randomUUID()}.tmp`;
+    const backup = `${path}.import-backup`;
+    const marker = `${path}.import-maintenance`;
+    if (await stat(marker).catch(() => null)) throw new Error("An interrupted session import requires startup recovery before another import.");
+    const previousStat = await stat(path).catch(() => null);
+    const previousSummary = await this.summaryReadStore.get(sessionId);
+    const previousMetadata = await this.metadataStore.read(sessionId, { metadata: previousSummary?.metadata ?? {},
+      createdAt: previousSummary?.createdAt ?? new Date(0).toISOString(), updatedAt: previousSummary?.updatedAt ?? new Date(0).toISOString() });
+    let activated = false;
+    const output = await open(staged, "wx");
+    try {
+    for (const [index, message] of nextRecord.messages.entries()) {
+      const entry: NcpAgentSessionJournalEventEntry = {
         _type: "event",
         version: NCP_AGENT_SESSION_JOURNAL_ENTRY_VERSION,
         seq: index + 1,
@@ -292,31 +292,55 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
           type: NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE,
           payload: {
             sessionId,
-            message: structuredClone(message)
+            message,
           }
         }
-      })
-    );
-    await writeFile(
-      this.sessionPath(sessionId),
-      entries.length > 0 ? `${entries.map(serializeNcpAgentSessionJournalEntry).join("\n")}\n` : "",
-      "utf-8"
-    );
+      };
+      for (const chunk of sessionJsonChunks(entry)) await output.writeFile(chunk);
+      await output.writeFile("\n");
+    }
+    await output.sync(); await output.close();
+    await rm(backup, { force: true });
+    if (previousStat) await link(path, backup);
+    const intent = await open(marker, "wx");
+    try { await intent.writeFile(JSON.stringify({ sessionId, snapshot: { hadSource: Boolean(previousStat), metadata: previousMetadata } })); await intent.sync(); }
+    finally { await intent.close(); }
+    const preparedDirectory = await open(this.journalDir, "r");
+    try { await preparedDirectory.sync(); } finally { await preparedDirectory.close(); }
+    await rename(staged, path); activated = true;
     const nextSeq = nextRecord.messages.length + 1;
-    const journalStat = await stat(this.sessionPath(sessionId));
-    this.sessions.set(sessionId, {
-      record: nextRecord,
-      nextSeq,
-      journalOffset: journalStat.size,
-      projectedJournalOffset: journalStat.size
-    });
+    const journalStat = await stat(path);
     this.nextSeqBySession.set(sessionId, nextSeq);
     await this.messageProjectionStore.rebuild({
       sessionId,
       messages: nextRecord.messages,
-      projectedJournalOffset: journalStat.size
+      projectedJournalOffset: journalStat.size,
+      nextSeq,
     });
+    await this.metadataStore.write(nextRecord);
     await this.summaryIndexStore.upsert(createNcpAgentSessionSummary(nextRecord));
+    const directory = await open(this.journalDir, "r");
+    try { await directory.sync(); await rm(marker); await directory.sync(); } finally { await directory.close(); }
+    await rm(backup, { force: true });
+    } catch (error) {
+      await output.close().catch(() => undefined);
+      if (activated) {
+        if (previousStat) {
+          await copyFile(backup, staged);
+          const restored = await open(staged, "r"); try { await restored.sync(); } finally { await restored.close(); }
+          await rename(staged, path);
+        } else await rm(path, { force: true });
+        await this.messageProjectionStore.delete(sessionId);
+        if (previousStat) {
+          await this.metadataStore.write({ sessionId, ...previousMetadata });
+          if (previousSummary) await this.summaryIndexStore.upsert(previousSummary);
+        } else { await this.metadataStore.delete(sessionId); await this.summaryIndexStore.remove(sessionId); }
+      }
+      this.nextSeqBySession.delete(sessionId);
+      await rm(marker, { force: true });
+      const directory = await open(this.journalDir, "r"); try { await directory.sync(); } finally { await directory.close(); }
+      throw error;
+    } finally { await rm(staged, { force: true }); }
   };
   deleteSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {
     const normalizedSessionId = normalizeNcpSessionId(sessionId);
@@ -324,7 +348,6 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
       return null;
     }
     const existing = await this.getSession(normalizedSessionId);
-    this.sessions.delete(normalizedSessionId);
     this.nextSeqBySession.delete(normalizedSessionId);
     try {
       await unlink(this.sessionPath(normalizedSessionId));
@@ -332,6 +355,7 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
       // The journal may already be absent when deleting a legacy-only session.
     }
     await this.metadataStore.delete(normalizedSessionId);
+    await rm(`${this.sessionPath(normalizedSessionId)}.import-backup`, { force: true });
     await this.messageProjectionStore.delete(normalizedSessionId);
     await this.summaryIndexStore.remove(normalizedSessionId);
     return existing;
@@ -346,34 +370,45 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
   private appendSessionEventNow = async (params: {
     sessionId: string;
     event: NcpAgentSessionJournalReplayEvent;
+    signal?: AbortSignal;
   }): Promise<void> => {
     const { event, sessionId } = params;
     const updatedAt = new Date().toISOString();
     await this.ensureJournalDir();
-    const existing =
-      this.sessions.get(sessionId) ?? (this.nextSeqBySession.has(sessionId) ? null : await this.loadSession(sessionId));
-    const nextSeq = this.nextSeqBySession.get(sessionId) ?? existing?.nextSeq ?? 1;
     const path = this.sessionPath(sessionId);
+    if (!this.nextSeqBySession.has(sessionId)) {
+      const journalBytes = (await stat(path).catch(() => null))?.size ?? 0;
+      let meta = await this.messageProjectionStore.readMeta(sessionId);
+      if (!meta && journalBytes === 0) {
+        await this.messageProjectionStore.rebuild({ sessionId, messages: [], projectedJournalOffset: 0, nextSeq: 1 });
+        meta = await this.messageProjectionStore.readMeta(sessionId);
+      } else if (!meta || meta.projectedJournalOffset !== journalBytes) {
+        await this.messageProjectionStore.prepare(sessionId, { wait: true });
+        meta = await this.messageProjectionStore.readMeta(sessionId);
+      }
+      this.nextSeqBySession.set(sessionId, meta?.nextSeq ?? 1);
+    }
+    const nextSeq = this.nextSeqBySession.get(sessionId)!;
+    if (event.type === NcpEventType.MessageSent && event.payload.message.metadata?.nextclaw_timeline_kind === "context_compaction") {
+      const checkpoint = event.payload.message.metadata.checkpoint as ContextCompactionCheckpoint;
+      if (checkpoint.status === "compressed" && checkpoint.source && !await this.messageProjectionStore.validateSource(sessionId, checkpoint.source)) {
+        throw Object.assign(new Error("Compaction source changed before durable installation."), { code: "CONTEXT_COMPACTION_STALE", journalCommitRejected: true });
+      }
+    }
     const entry: NcpAgentSessionJournalEventEntry = {
       _type: "event",
       version: NCP_AGENT_SESSION_JOURNAL_ENTRY_VERSION,
       seq: nextSeq,
       timestamp: updatedAt,
-      event: structuredClone(event)
+      event,
     };
-    await this.appendJournalEntry(path, entry);
+    const written = await this.appendJournalEntry(path, entry, params.signal);
     this.nextSeqBySession.set(sessionId, nextSeq + 1);
-    this.sessions.delete(sessionId);
-    let journalOffset: number | null = null;
-    if (isNcpAgentSessionMessageProjectionBoundaryEvent(event)) {
-      const journalStat = await stat(path);
-      journalOffset = journalStat.size;
-      await this.messageProjectionStore.synchronizeJournalTail({
-        sessionId,
-        journalOffset,
-      });
-    }
-    await this.summaryIndexStore.upsertForEvent({ sessionId, event, updatedAt });
+    const journalOffset = written.offset;
+    try { await this.messageProjectionStore.appendEvent(sessionId, event, journalOffset, nextSeq + 1, written.previousOffset, updatedAt); }
+    catch (error) { console.warn("Session message index requires repair after a durable append", { sessionId, error: error instanceof Error ? error.message : String(error) }); }
+    const projection = await this.messageProjectionStore.readMeta(sessionId);
+    await this.summaryIndexStore.upsertForEvent({ sessionId, event, updatedAt, projectedMessageCount: projection?.total });
     if (isNcpAgentRunLifecycleEvent(event)) await this.summaryIndexStore.recordRunRecoveryEvent({ sessionId, event, journalOffset: journalOffset ?? (await stat(path)).size });
   };
 
@@ -382,12 +417,52 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
     if (loaded) this.nextSeqBySession.set(sessionId, loaded.nextSeq);
     return loaded;
   };
-  private appendJournalEntry = async (path: string, entry: NcpAgentSessionJournalEventEntry): Promise<void> => {
+  private appendJournalEntry = async (path: string, entry: NcpAgentSessionJournalEventEntry, signal?: AbortSignal): Promise<{ previousOffset: number; offset: number }> => {
+    if (signal?.aborted) throw Object.assign(signal.reason instanceof Error ? signal.reason : new DOMException("Cancelled", "AbortError"), { journalCommitRejected: true });
     await assertSessionJournalTailComplete(path);
-    await appendFile(path, `${serializeNcpAgentSessionJournalEntry(entry)}\n`, "utf-8");
+    const file = await open(path, "a");
+    const previousOffset = (await file.stat()).size;
+    let completed = false;
+    try {
+      let offset = previousOffset;
+      const write = async (text: string) => {
+        const buffer = Buffer.from(text);
+        let position = 0;
+        while (position < buffer.length) {
+          const result = await file.write(buffer, position, buffer.length - position, null);
+          if (!result.bytesWritten) throw new Error("Session journal append made no progress.");
+          position += result.bytesWritten; offset += result.bytesWritten;
+        }
+      };
+      for (const chunk of sessionJsonChunks(entry)) await write(chunk);
+      await write("\n");
+      if (signal?.aborted) {
+        await file.truncate(previousOffset); await file.sync();
+        throw Object.assign(signal.reason instanceof Error ? signal.reason : new DOMException("Cancelled", "AbortError"), { journalCommitRejected: true });
+      }
+      const event = entry.event;
+      if (event.type === NcpEventType.MessageSent && event.payload.message.metadata?.nextclaw_timeline_kind === "context_compaction"
+        && (event.payload.message.metadata.checkpoint as { status?: string } | undefined)?.status === "compressed") await file.sync();
+      completed = true;
+      return { previousOffset, offset };
+    } catch (error) {
+      if (!completed) {
+        await file.truncate(previousOffset); await file.sync();
+        if (error instanceof Error) Object.assign(error, { journalCommitRejected: true });
+      }
+      throw error;
+    } finally { await file.close(); }
   };
   private ensureJournalDir = async (): Promise<void> => {
     await mkdir(this.journalDir, { recursive: true });
+  };
+
+  private enqueueWrite = <T>(sessionId: string, operation: () => Promise<T>): Promise<T> => {
+    const next = (this.writeChains.get(sessionId) ?? Promise.resolve()).then(operation);
+    const settled = next.then(() => undefined, () => undefined);
+    this.writeChains.set(sessionId, settled);
+    void settled.finally(() => { if (this.writeChains.get(sessionId) === settled) this.writeChains.delete(sessionId); });
+    return next;
   };
 
   private sessionPath = (sessionId: string): string => {

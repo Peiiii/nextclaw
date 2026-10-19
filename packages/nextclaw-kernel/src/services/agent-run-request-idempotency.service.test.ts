@@ -23,7 +23,7 @@ function createRequest(sessionId: string, messageId: string): AgentRunRequest {
 describe("AgentRunRequestIdempotencyService", () => {
   it("rejects changed content under the same message ID while admission is in flight", async () => {
     const service = new AgentRunRequestIdempotencyService(
-      { getSessionRecord: vi.fn(async () => null) } as never,
+      { findSessionMessageByIngressKey: vi.fn(async () => null) } as never,
       { getSessionRun: vi.fn(() => undefined) } as never,
     );
     let complete!: (value: AgentRunAccepted) => void;
@@ -48,7 +48,7 @@ describe("AgentRunRequestIdempotencyService", () => {
         ? [{ request: original, placement: "queued" }] : [],
     };
     const service = new AgentRunRequestIdempotencyService(
-      { getSessionRecord: async () => ({ messages: location === "persisted" ? [original.message] : [] }) } as never,
+      { findSessionMessageByIngressKey: async () => location === "persisted" ? original.message : null } as never,
       { getSessionRun: () => location === "persisted" ? undefined : run } as never,
     );
     const acceptOnce = vi.fn();
@@ -63,7 +63,7 @@ describe("AgentRunRequestIdempotencyService", () => {
 
   it("scopes concurrent in-flight keys by session", async () => {
     const service = new AgentRunRequestIdempotencyService(
-      { getSessionRecord: vi.fn(async () => null) } as never,
+      { findSessionMessageByIngressKey: vi.fn(async () => null) } as never,
       { getSessionRun: vi.fn(() => undefined) } as never,
     );
     const resolvers = new Map<string, (accepted: AgentRunAccepted) => void>();

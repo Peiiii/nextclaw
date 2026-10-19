@@ -164,16 +164,13 @@ describe("NcpAgentSessionMessageProjectionStore", () => {
     const persistence = (restartedStore as unknown as {
       persistence: NcpAgentSessionMessageProjectionPersistenceStore;
     }).persistence;
-    const readMessageOrdinals = vi.spyOn(
-      persistence as unknown as { readMessageOrdinals: (...args: unknown[]) => Promise<Map<string, number>> },
-      "readMessageOrdinals",
-    );
+    const readAll = vi.spyOn(persistence, "readAll");
 
     await expect(restartedStore.readPage({ sessionId, limit: 2 })).resolves.toMatchObject({
       messages: [{ id: "message-4" }, { id: "message-5" }],
       total: 5,
     });
-    expect(readMessageOrdinals).not.toHaveBeenCalled();
+    expect(readAll).not.toHaveBeenCalled();
   });
 
   it("updates the latest snapshot and appends new messages without inflating total", async () => {
@@ -294,7 +291,7 @@ describe("NcpAgentSessionMessageProjectionStore", () => {
     ).rejects.toBeInstanceOf(SessionMessageCursorError);
   });
 
-  it("invalidates a projection whose data file no longer matches metadata", async () => {
+  it("does not treat a missing SQLite index as a healthy projection", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-message-projection-"));
     const store = new NcpAgentSessionMessageProjectionStore(tempDir);
     await store.rebuild({
@@ -302,11 +299,7 @@ describe("NcpAgentSessionMessageProjectionStore", () => {
       messages: [message(1)],
       projectedJournalOffset: 100,
     });
-    await appendFile(
-      join(tempDir, ".message-projections", sessionId, "messages.jsonl"),
-      "orphan",
-      "utf-8",
-    );
+    await rm(join(tempDir, ".message-projections", sessionId, "messages.sqlite"));
 
     await expect(store.readMeta(sessionId)).resolves.toBeNull();
   });

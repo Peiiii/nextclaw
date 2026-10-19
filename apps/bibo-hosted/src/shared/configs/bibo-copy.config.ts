@@ -1,6 +1,8 @@
 export const biboSelfHosted = import.meta.env?.VITE_BIBO_SELF_HOSTED === "true";
 
 export const biboCopy = {
+  historyPrevious: "查看更早消息", historyLatest: "返回最新消息", historyRetry: "刷新历史准备状态",
+  historyPreparing: "正在准备历史索引，完成后可刷新查看。", historySource: "分片查看原文",
   selfHostedAuthNote: "使用部署时设置的邮箱和密码，登录你的私有空间。",
   resourceLoading: "正在打开详情",
   runIdle: "Bibo · 空闲", runWorking: "Bibo · 正在工作", runSaving: "Bibo · 正在保存结果",

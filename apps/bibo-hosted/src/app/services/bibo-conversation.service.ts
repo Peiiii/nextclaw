@@ -129,7 +129,7 @@ export class BiboConversationService {
     onActivity?: (toolName?: string) => void;
   }): Promise<BiboEdgeRunResult> => {
     await this.harness.start();
-    const record = await this.platform.sessions.getSession(input.sessionId);
+    const record = await this.platform.sessions.getBoundedSession(input.sessionId);
     const saved: BiboEdgeSession | null = record ? { version: 1, messages: record.messages, metadata: record.metadata ?? {} } : null;
     const contextBlocks = [biboQuestionUsage, ...input.contextBlocks ?? []];
     const events: NcpEndpointEvent[] = [];
@@ -187,7 +187,7 @@ export class BiboConversationService {
       } else {
         await this.harness.runTask({ sessionId: input.sessionId, input: input.message, channel: "ui", ...callbacks });
       }
-      const completed = await this.platform.sessions.getSession(input.sessionId);
+      const completed = await this.platform.sessions.getBoundedSession(input.sessionId);
       if (!completed) throw new Error("Completed session was not persisted");
       return finalizeRun({ version: 1, messages: completed.messages, metadata: completed.metadata ?? {} }, saved,
         events, displayEvents, tools,

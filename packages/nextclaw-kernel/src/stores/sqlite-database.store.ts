@@ -10,6 +10,8 @@ export type SqliteStatement = {
 };
 
 export type SqliteDatabase = {
+  /** Hosts whose atomic transaction blocks timers can supply a microtask yield. */
+  transactionYield?: () => Promise<void>;
   close: () => void;
   exec: (sql: string) => void;
   prepare: (sql: string) => SqliteStatement;
@@ -20,6 +22,7 @@ const portableDatabases = new Map<string, Promise<PortableSqliteDatabase>>();
 
 export async function openSqliteDatabase(
   databasePath: string,
+  options: { incremental?: boolean } = {},
 ): Promise<SqliteDatabase> {
   try {
     const native = require("node:sqlite") as {
@@ -28,6 +31,10 @@ export async function openSqliteDatabase(
     return new native.DatabaseSync(databasePath);
   } catch (error) {
     if (!isMissingNodeSqlite(error)) throw error;
+    if (options.incremental) {
+      const { default: Database } = await import("libsql");
+      return new Database(databasePath) as unknown as SqliteDatabase;
+    }
     return await openPortableDatabase(databasePath);
   }
 }

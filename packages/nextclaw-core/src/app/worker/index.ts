@@ -20,7 +20,7 @@ export {
 export { ContextWindowBudgetService } from "../../features/runtime-context/services/context-window-budget.service.js";
 export { ConfigSchema } from "../../features/config/configs/config-value-schema.config.js";
 export { insertConfiguredAgentProfile, removeConfiguredAgentProfile, applyAgentProfileTextUpdate, applyAgentProfileSettingsUpdate, ensureAgentProfileUpdateInput, assertCreatableAgentId } from "../../features/config/utils/agent-profile-mutation.utils.js";
-export { CONTEXT_COMPACTION_METADATA_KEY, readCompressedContextCompactionCheckpoint } from "../../features/runtime-context/services/context-compaction.service.js";
+export { CONTEXT_COMPACTION_METADATA_KEY, readCompressedContextCompactionCheckpoint, projectContextCompactionStatus } from "../../features/runtime-context/services/context-compaction.service.js";
 export { resolveThinkingLevel } from "../../features/agent/features/thinking/thinking.utils.js";
 export { buildToolCatalogEntries } from "../../features/agent/utils/tool-catalog.utils.js";
 export { renderMemoryContext } from "../../features/agent/features/memory/utils/memory-context.utils.js";

@@ -1,8 +1,8 @@
-import { InputBudgetPruner, estimateInputTokens } from "@core/features/agent/index.js";
+import { InputBudgetPruner, estimateInputTokens } from "@core/features/agent/services/input-budget-pruner.service.js";
 import { stripToModelInputMessage } from "./context-window-budget.service.js";
 import type { ContextCompactionCheckpoint } from "@core/features/runtime-context/utils/context-compaction-checkpoint.utils.js";
 
-export { readCompressedContextCompactionCheckpoint } from "@core/features/runtime-context/utils/context-compaction-checkpoint.utils.js";
+export { readCompressedContextCompactionCheckpoint, projectContextCompactionStatus } from "@core/features/runtime-context/utils/context-compaction-checkpoint.utils.js";
 export type { ContextCompactionCheckpoint, ContextCompactionPhase } from "@core/features/runtime-context/utils/context-compaction-checkpoint.utils.js";
 export { ContextWindowBudgetService } from "./context-window-budget.service.js";
 export type { ContextWindowBudgetEvaluation } from "./context-window-budget.service.js";
@@ -73,6 +73,7 @@ function readMessageId(message: RuntimeMessage): string | null {
 function recentTailStart(messages: RuntimeMessage[], tokenLimit: number): number {
   let start = messages.length;
   while (start > 0) {
+    if (messages.length - start >= 64) break;
     let candidate = start - 1;
     const last = messages[candidate]!;
     const id = readMessageId(last);
@@ -93,7 +94,7 @@ function recentTailStart(messages: RuntimeMessage[], tokenLimit: number): number
 function toPreservedUserMessage(message: RuntimeMessage, content = message.content): RuntimeMessage {
   return {
     role: "user",
-    content: structuredClone(content),
+    content: content !== null && typeof content === "object" ? structuredClone(content) : content,
     ncp_message_id: readMessageId(message),
   };
 }
@@ -284,6 +285,7 @@ export class ContextCompactionService {
       );
     }
     const checkpoint: ContextCompactionCheckpoint = {
+      // The persistence owner promotes this provisional result to v2 with a verified source manifest.
       version: 1,
       id: createCheckpointId(createdAt, coveredMessages.length),
       status: "compressed",
@@ -339,6 +341,7 @@ export class ContextCompactionService {
     let remainingTokens = tokenLimit;
     let truncatedMessage: { messageId: string; text: string } | undefined;
     for (let index = messages.length - 1; index >= 0; index -= 1) {
+      if (selectedMessages.length >= 64) break;
       const message = messages[index];
       if (!message) {
         continue;

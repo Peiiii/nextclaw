@@ -16,7 +16,8 @@ function extensionQuestions(part: NcpMessage["parts"][number]): Array<{ id: stri
   if (part.type !== "extension" || part.extensionType !== "nextclaw.user-question") return [];
   const entries = part.data && typeof part.data === "object" && "questions" in part.data ? part.data.questions : null;
   return Array.isArray(entries) ? entries.filter((entry): entry is { id: string; title: string; options?: string[] } =>
-    Boolean(entry && typeof entry.id === "string" && typeof entry.title === "string")) : [];
+    Boolean(entry && typeof entry.id === "string" && typeof entry.title === "string"))
+    .map(entry => ({ ...entry, options: Array.isArray(entry.options) ? entry.options.filter(option => typeof option === "string") : undefined })) : [];
 }
 
 export function projectBiboRunContent(before: readonly NcpMessage[], after: readonly NcpMessage[]): { text: string; content: BiboMessageContent[] } {
@@ -52,12 +53,17 @@ export function projectBiboConversation(messages: readonly NcpMessage[]): BiboMe
   const questions = projectUserQuestions(visible);
   const result: BiboMessage[] = [];
   let assistant: NcpMessage[] = [];
+  const sources = (entries: readonly NcpMessage[]) => entries.flatMap(message => {
+    const source = message.metadata?.nextclaw_source as { partCount?: number } | undefined;
+    return source?.partCount ? [{ messageId: message.id, partCount: source.partCount }] : [];
+  });
   const flushAssistant = () => {
     if (!assistant.length) return;
     const { text, content } = projectBiboRunContent([], assistant);
     const ids = new Set(content.flatMap((part) => part.type === "questions" ? part.ids : []));
     if (text || ids.size) result.push({ role: "assistant", text, content,
-      at: assistant.at(-1)!.timestamp, ...(ids.size ? { questions: questions.filter((question) => ids.has(question.id)) } : {}) });
+      at: assistant.at(-1)!.timestamp, ...(ids.size ? { questions: questions.filter((question) => ids.has(question.id)) } : {}),
+      ...(sources(assistant).length ? { sources: sources(assistant) } : {}) });
     assistant = [];
   };
   for (const message of visible) {
@@ -71,7 +77,8 @@ export function projectBiboConversation(messages: readonly NcpMessage[]): BiboMe
       ? { id: questionId, title: String(metadata.nextclaw_user_question_title ?? ""), action } : undefined;
     const text = reply ? reply.action === "dismissed" ? "跳过" : String(metadata.nextclaw_user_question_answer ?? "")
       : message.parts.flatMap((part) => part.type === "text" || part.type === "rich-text" ? [part.text] : []).join("\n");
-    result.push({ role: "user", text, at: message.timestamp, ...(reply ? { replyToQuestion: reply } : {}) });
+    result.push({ role: "user", text, at: message.timestamp, ...(reply ? { replyToQuestion: reply } : {}),
+      ...(sources([message]).length ? { sources: sources([message]) } : {}) });
   }
   flushAssistant();
   return result;

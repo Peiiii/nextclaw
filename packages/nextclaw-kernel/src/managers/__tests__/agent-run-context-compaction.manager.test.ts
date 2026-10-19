@@ -256,7 +256,7 @@ describe("AgentRunContextCompactionManager", () => {
     const cancelledPromise = events.next();
 
     await vi.waitFor(() => expect(providerManager.chat).toHaveBeenCalledWith(expect.objectContaining({
-      signal: controller.signal,
+      signal: expect.any(AbortSignal),
     })));
     controller.abort();
     const cancelled = await cancelledPromise;
@@ -302,7 +302,7 @@ describe("AgentRunContextCompactionManager", () => {
         throw new Error("provider failed");
       }),
     };
-    const manager = createManager(providerManager);
+    const manager = createManager(providerManager, 4_000);
     const messages = [
       buildContextCompactionTimelineNcpMessage({
         checkpoint,
@@ -312,7 +312,7 @@ describe("AgentRunContextCompactionManager", () => {
       ...Array.from({ length: 16 }, (_, index) => createMessage({
         id: `message-after-${index}`,
         role: "user",
-        text: `after checkpoint ${index} ${"x".repeat(480)}`,
+        text: `after checkpoint ${index} ${"x".repeat(1_000)}`,
         timestamp: `2026-07-16T01:${String(index + 2).padStart(2, "0")}:00.000Z`,
       })),
     ];

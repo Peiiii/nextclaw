@@ -1,14 +1,9 @@
 import { estimateInputTokens } from "@nextclaw/core/model-input-budget";
 import type { ContextCompactionCheckpoint } from "@nextclaw/core/context-compaction";
 import {
-  buildContextCompactionEmergencySummary,
   fitContextCompactionSummaryInput,
-  fitContextCompactionSummaryOutput,
   normalizeContextCompactionSummary,
-  selectContextCompactionAttemptMessages,
-  validateContextCompactionSummary,
 } from "@kernel/utils/context-compaction-summary-input.utils.js";
-import { splitCompactionSource } from "@kernel/utils/context-compaction-summary-source.utils.js";
 
 export type GeneratedCompactionSummary = {
   diagnostics: NonNullable<ContextCompactionCheckpoint["summaryDiagnostics"]>;
@@ -24,21 +19,8 @@ export type CompactionSummaryProvider = {
     sessionId: string;
     signal?: AbortSignal;
     thinkingLevel: "off";
-  }): Promise<{ content: string | null; finishReason: string; usage: Record<string, number> }>;
+  }): Promise<{ content: string | null; finishReason: string; usage: Record<string, number>; toolCalls?: readonly unknown[] }>;
 };
-
-const TRUNCATED_SUMMARY_FINISH_REASONS = new Set([
-  "incomplete",
-  "length",
-  "max_output_tokens",
-  "max_tokens",
-]);
-const NATURAL_SUMMARY_FINISH_REASONS = new Set([
-  "completed",
-  "end_turn",
-  "stop",
-]);
-const SUMMARY_ATTEMPT_SOURCE_MAX_CHARS = [120_000, 60_000, 30_000] as const;
 
 type SummaryGenerationRequest = {
   maxInputTokens: number;
@@ -52,268 +34,93 @@ type SummaryGenerationRequest = {
   targetSummaryTokens: number;
 };
 
-type SummaryAttemptResult = {
-  calledProvider: boolean;
-  degraded: boolean;
-  failure: string;
-  finishReason: string;
-  inputTokens: number;
-  providerUsage: Record<string, number>;
-  rawSummaryTokens: number;
-  summary: string | null;
-};
-
-function mergeProviderUsage(
-  total: Record<string, number>,
-  usage: Readonly<Record<string, number>>,
-): void {
-  for (const [key, value] of Object.entries(usage)) {
-    if (Number.isFinite(value)) {
-      total[key] = (total[key] ?? 0) + value;
-    }
-  }
-}
+const NATURAL_FINISH_REASONS = new Set(["completed", "end_turn", "stop"]);
+const SUMMARY_TIMEOUT_MS = 60_000;
+class UnusableCompactionSummary extends Error {}
+// Code owns this notice. It never claims that omitted history was summarized.
+export const COMPACTION_RECOVERY_NOTICE = [
+  "Earlier conversation is archived, not reliably summarized. Its constraints and action outcomes remain unresolved.",
+  "Read the original session history before relying on old facts. Do not repeat actions or infer completion.",
+  "Only read-only recovery is permitted. If required business conditions cannot be verified, ask a specific clarification.",
+].join("\n");
 
 export class ContextCompactionSummaryGenerationService {
   constructor(private readonly providerManager?: CompactionSummaryProvider) {}
 
   generate = async (params: SummaryGenerationRequest): Promise<GeneratedCompactionSummary> => {
-    const { maxInputTokens, targetSummaryTokens, messages: sourceMessages, signal } = params;
-    const sourceChars = Math.max(512, Math.min(60_000,
-      (maxInputTokens - targetSummaryTokens - 1_024) * 3));
-    const batches = splitCompactionSource(sourceMessages, sourceChars);
-    let generated: GeneratedCompactionSummary | undefined;
-    const usage: Record<string, number> = {};
+    params.signal?.throwIfAborted();
+    let inputTokens = 0;
     let attemptCount = 0;
-    let degraded = false;
-    for (const [index, messages] of batches.entries()) {
-      const previous = generated;
-      generated = await this.generateBatch({ ...params, messages: previous
-        ? [{ role: "system", content: previous.summary }, ...messages] : messages });
-      if (batches.length > 1 && generated.diagnostics.recovery !== "provider-summary") {
-        throw new Error("Context compaction batch failed; refusing to install a partial-history checkpoint. The previous checkpoint was kept unchanged.");
-      }
-      mergeProviderUsage(usage, generated.diagnostics.providerUsage);
-      attemptCount += generated.diagnostics.attemptCount;
-      degraded ||= generated.diagnostics.degraded;
-      if (signal?.aborted) throw new DOMException("Context compaction summary generation was cancelled", "AbortError");
-      generated.diagnostics = { ...generated.diagnostics, attemptCount, degraded,
-        providerUsage: { ...usage }, sourceBatchCount: index + 1 };
-    }
-    return generated!;
-  };
-
-  private generateBatch = async (params: SummaryGenerationRequest): Promise<GeneratedCompactionSummary> => {
-    if (!this.providerManager) {
-      throw new Error("context compaction summary generation requires a provider manager");
-    }
-    let lastFailure = "unknown summary failure";
-    let lastFinishReason = "unknown";
-    let lastInputTokens = 0;
-    let lastRawSummaryTokens = 0;
-    let previousInputTokens = Number.POSITIVE_INFINITY;
-    let providerCallCount = 0;
-    const providerUsage: Record<string, number> = {};
-
-    for (let attempt = 1; attempt <= SUMMARY_ATTEMPT_SOURCE_MAX_CHARS.length; attempt += 1) {
-      const result = await this.runAttempt({ attempt, params, previousInputTokens });
-      if (!result.calledProvider) {
-        lastFailure = result.failure;
-        break;
-      }
-      previousInputTokens = result.inputTokens;
-      lastInputTokens = result.inputTokens;
-      lastFinishReason = result.finishReason;
-      lastRawSummaryTokens = result.rawSummaryTokens;
-      providerCallCount += 1;
-      mergeProviderUsage(providerUsage, result.providerUsage);
-      if (result.summary) {
-        return this.buildGeneratedSummary({
-          attemptCount: providerCallCount,
-          degraded: result.degraded,
-          finishReason: result.finishReason,
-          inputTokens: result.inputTokens,
-          providerUsage,
-          rawSummaryTokens: result.rawSummaryTokens,
-          recovery: "provider-summary",
-          request: params,
-          summary: result.summary,
-        });
-      }
-      lastFailure = result.failure;
-    }
-
-    const emergencySummary = buildContextCompactionEmergencySummary({
-      maxInstallableSummaryTokens: params.maxInstallableSummaryTokens,
-      messages: selectContextCompactionAttemptMessages(
-        params.messages,
-        SUMMARY_ATTEMPT_SOURCE_MAX_CHARS.length,
-      ),
-    });
-    if (!emergencySummary) {
-      throw new Error(
-        `Context compaction summary failed after ${providerCallCount} provider calls: ${lastFailure}. The previous checkpoint was kept unchanged.`,
-      );
-    }
-    return this.buildGeneratedSummary({
-      attemptCount: providerCallCount,
-      degraded: true,
-      finishReason: lastFinishReason,
-      inputTokens: lastInputTokens,
-      providerUsage,
-      rawSummaryTokens: lastRawSummaryTokens,
-      recovery: "deterministic-recent-context",
-      request: params,
-      summary: emergencySummary,
-    });
-  };
-
-  private runAttempt = async (input: {
-    attempt: number;
-    params: SummaryGenerationRequest;
-    previousInputTokens: number;
-  }): Promise<SummaryAttemptResult> => {
-    const { attempt, params, previousInputTokens } = input;
-    if (params.signal?.aborted) {
-      throw new DOMException("Context compaction summary generation was cancelled", "AbortError");
-    }
-    let providerMessages: Record<string, unknown>[];
+    let finishReason = "not-called";
+    let rawSummaryTokens = 0;
+    let providerUsage: Record<string, number> = {};
+    let summary = "";
+    let failure: string | undefined;
+    let sourceTruncated = false;
+    const controller = new AbortController();
+    const abort = () => controller.abort(params.signal?.reason);
+    params.signal?.addEventListener("abort", abort, { once: true });
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      providerMessages = fitContextCompactionSummaryInput({
-        essentialOnly: attempt === SUMMARY_ATTEMPT_SOURCE_MAX_CHARS.length,
-        maxInputTokens: Math.min(params.maxInputTokens, Number.isFinite(previousInputTokens)
-          ? Math.floor(previousInputTokens * 0.7) : params.maxInputTokens),
-        messages: selectContextCompactionAttemptMessages(params.messages, attempt),
-        sourceMaxChars: SUMMARY_ATTEMPT_SOURCE_MAX_CHARS[attempt - 1],
+      if (!this.providerManager) throw new Error("Summary provider unavailable");
+      let messages: Record<string, unknown>[];
+      try { const fitted = fitContextCompactionSummaryInput({
+        maxInputTokens: params.maxInputTokens, messages: params.messages,
+        sourceMaxChars: Math.min(512 * 1024, params.maxInputTokens * 3),
         targetSummaryTokens: params.targetSummaryTokens,
+      }); messages = fitted.messages; sourceTruncated = fitted.sourceTruncated;
+      } catch (error) { throw new UnusableCompactionSummary(error instanceof Error ? error.message : String(error)); }
+      inputTokens = estimateInputTokens(messages);
+      attemptCount = 1;
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          const error = new UnusableCompactionSummary("Compaction summary deadline exceeded");
+          controller.abort(error);
+          reject(error);
+        }, SUMMARY_TIMEOUT_MS);
       });
-    } catch (error) {
-      if (attempt === 1) throw error;
-      return this.failedAttempt({ calledProvider: false, inputTokens: 0,
-        failure: error instanceof Error ? error.message : String(error) });
-    }
-    const inputTokens = estimateInputTokens(providerMessages);
-    if (inputTokens >= previousInputTokens) {
-      return this.failedAttempt({
-        calledProvider: false,
-        failure: `semantic retry input did not shrink: ${inputTokens} tokens is not below ${previousInputTokens}`,
-        inputTokens,
+      const cancelled = new Promise<never>((_, reject) => {
+        controller.signal.addEventListener("abort", () => reject(controller.signal.reason), { once: true });
       });
-    }
-    const response = await this.requestProvider({
-      attempt,
-      messages: providerMessages,
-      params,
-    });
-    const finishReason = response.finishReason.trim().toLowerCase();
-    const summary = response.content ? normalizeContextCompactionSummary(response.content) : "";
-    const base = {
-      calledProvider: true,
-      finishReason: response.finishReason,
-      inputTokens,
-      providerUsage: response.usage,
-      rawSummaryTokens: summary ? estimateInputTokens(summary) : 0,
-    };
-    if (!NATURAL_SUMMARY_FINISH_REASONS.has(finishReason)
-      && !TRUNCATED_SUMMARY_FINISH_REASONS.has(finishReason)) {
-      return this.failedAttempt({ ...base, failure: `unsupported finishReason=${response.finishReason}` });
-    }
-    if (!summary) {
-      return this.failedAttempt({ ...base, failure: `empty summary: finishReason=${response.finishReason}` });
-    }
-    const validation = validateContextCompactionSummary({ summary });
-    if (!validation.summary) {
-      return this.failedAttempt({
-        ...base,
-        failure: `${TRUNCATED_SUMMARY_FINISH_REASONS.has(finishReason) ? "truncated" : "incomplete"} summary; missing essential sections: ${validation.missingEssentialSections.join(", ")}`,
-      });
-    }
-    const installableSummary = fitContextCompactionSummaryOutput({
-      maxInstallableSummaryTokens: params.maxInstallableSummaryTokens,
-      summary: validation.summary,
-    });
-    if (!installableSummary) {
-      return this.failedAttempt({
-        ...base,
-        failure: `complete essential prefix exceeds hard installable budget ${params.maxInstallableSummaryTokens}`,
-      });
-    }
-    return {
-      ...base,
-      degraded: TRUNCATED_SUMMARY_FINISH_REASONS.has(finishReason)
-        || validation.summary !== summary
-        || installableSummary !== validation.summary,
-      failure: "",
-      summary: installableSummary,
-    };
-  };
-
-  private requestProvider = async (input: {
-    attempt: number;
-    messages: Record<string, unknown>[];
-    params: SummaryGenerationRequest;
-  }): Promise<Awaited<ReturnType<CompactionSummaryProvider["chat"]>>> => {
-    try {
-      return await this.providerManager!.chat({
-        model: input.params.model,
-        maxTokens: input.params.maxTokens,
-        messages: input.messages,
-        requestId: input.params.requestId,
-        sessionId: input.params.sessionId,
-        signal: input.params.signal,
-        thinkingLevel: "off",
-      });
-    } catch (error) {
-      if (input.params.signal?.aborted
-        || (error instanceof DOMException && error.name === "AbortError")) {
-        throw error;
+      const response = await Promise.race([
+        this.providerManager.chat({
+          model: params.model, maxTokens: params.maxTokens, messages,
+          requestId: params.requestId, sessionId: params.sessionId,
+          signal: controller.signal, thinkingLevel: "off",
+        }), timeout, cancelled,
+      ]);
+      providerUsage = response.usage;
+      finishReason = response.finishReason;
+      summary = response.content ? normalizeContextCompactionSummary(response.content) : "";
+      rawSummaryTokens = summary ? estimateInputTokens(summary) : 0;
+      if (response.toolCalls?.length) throw new UnusableCompactionSummary("Unexpected summary tool calls");
+      if (!NATURAL_FINISH_REASONS.has(finishReason.trim().toLowerCase())) {
+        throw new UnusableCompactionSummary(`Incomplete summary: finishReason=${finishReason}`);
       }
-      const detail = error instanceof Error ? error.message : String(error);
-      throw new Error(
-        `Context compaction summary provider failed on call ${input.attempt}: ${detail}. The previous checkpoint was kept unchanged.`,
-        { cause: error },
-      );
+      if (!summary) throw new UnusableCompactionSummary("Empty visible summary");
+      if (rawSummaryTokens > Math.min(params.targetSummaryTokens, params.maxInstallableSummaryTokens)) {
+        throw new UnusableCompactionSummary("Summary exceeds the installable budget");
+      }
+    } catch (error) {
+      params.signal?.throwIfAborted();
+      if (!(error instanceof UnusableCompactionSummary)) throw error;
+      failure = error instanceof Error ? error.message : String(error);
+      summary = COMPACTION_RECOVERY_NOTICE;
+      if (estimateInputTokens(summary) > params.maxInstallableSummaryTokens) {
+        throw new Error(`Recovery notice cannot fit the model input budget: ${failure}`);
+      }
+    } finally {
+      if (timer) clearTimeout(timer);
+      params.signal?.removeEventListener("abort", abort);
     }
+    params.signal?.throwIfAborted();
+    return { summary, diagnostics: {
+      attemptCount, degraded: failure !== undefined || sourceTruncated, finishReason, sourceTruncated,
+      installedSummaryTokens: estimateInputTokens(summary), providerInputTokens: inputTokens,
+      providerMaxOutputTokens: params.maxTokens, providerUsage, rawSummaryTokens,
+      recovery: failure ? "deterministic-recent-context" : "provider-summary",
+      targetSummaryTokens: params.targetSummaryTokens, sourceBatchCount: 1,
+      ...(failure ? { failure } : {}),
+    } };
   };
-
-  private failedAttempt = (input: Partial<SummaryAttemptResult> & {
-    calledProvider: boolean;
-    failure: string;
-    inputTokens: number;
-  }): SummaryAttemptResult => ({
-    calledProvider: input.calledProvider,
-    degraded: false,
-    failure: input.failure,
-    finishReason: input.finishReason ?? "unknown",
-    inputTokens: input.inputTokens,
-    providerUsage: input.providerUsage ?? {},
-    rawSummaryTokens: input.rawSummaryTokens ?? 0,
-    summary: null,
-  });
-
-  private buildGeneratedSummary = (input: {
-    attemptCount: number;
-    degraded: boolean;
-    finishReason: string;
-    inputTokens: number;
-    providerUsage: Record<string, number>;
-    rawSummaryTokens: number;
-    recovery: NonNullable<ContextCompactionCheckpoint["summaryDiagnostics"]>["recovery"];
-    request: SummaryGenerationRequest;
-    summary: string;
-  }): GeneratedCompactionSummary => ({
-    diagnostics: {
-      attemptCount: input.attemptCount,
-      degraded: input.degraded,
-      finishReason: input.finishReason,
-      installedSummaryTokens: estimateInputTokens(input.summary),
-      providerInputTokens: input.inputTokens,
-      providerMaxOutputTokens: input.request.maxTokens,
-      providerUsage: structuredClone(input.providerUsage),
-      rawSummaryTokens: input.rawSummaryTokens,
-      recovery: input.recovery,
-      targetSummaryTokens: input.request.targetSummaryTokens,
-    },
-    summary: input.summary,
-  });
 }

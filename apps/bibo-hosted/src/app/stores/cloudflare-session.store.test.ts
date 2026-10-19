@@ -3,6 +3,7 @@ import test from "node:test";
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import { CloudflareSessionStore } from "./cloudflare-session.store";
 import { applyBiboStorageChanges } from "@/app/utils/bibo-storage.utils";
+import { attachDurableObjectSql } from "../testing/durable-object-sql.fixture";
 
 class Storage {
   values = new Map<string, unknown>();
@@ -26,7 +27,7 @@ class Storage {
     this.values = next;
     return result;
   };
-  asStorage = () => this as unknown as DurableObjectStorage;
+  asStorage = () => attachDurableObjectSql(this) as unknown as DurableObjectStorage;
 }
 const message = (id: string, text = id): NcpMessage => ({ id, sessionId: "s", role: "user", status: "final",
   timestamp: new Date(0).toISOString(), parts: [{ type: "text", text }] });
@@ -90,7 +91,15 @@ test("chunked large event, stable backwards paging, metadata compare and full de
   const restarted = new CloudflareSessionStore(storage.asStorage());
   const last = await restarted.listSessionMessagePage({ sessionId: "s", limit: 2 });
   assert.deepEqual(last?.messages.map((item) => item.id), ["two", "three"]);
-  assert.equal(JSON.stringify(last?.messages[0]?.parts).includes(large), true);
+  assert.equal(JSON.stringify(last?.messages[0]?.parts).includes(large), false);
+  let cursor: string | undefined;
+  const fragments: string[] = [];
+  do {
+    const fragment = await restarted.readSessionMessagePart({ sessionId: "s", messageId: "two", part: 0, cursor });
+    assert.ok(fragment); assert.ok(Buffer.byteLength(fragment.content) <= 32 * 1024);
+    fragments.push(fragment.content); cursor = fragment.nextCursor ?? undefined;
+  } while (cursor);
+  assert.deepEqual(JSON.parse(fragments.join("")), { type: "text", text: large });
   const first = await restarted.listSessionMessagePage({ sessionId: "s", limit: 2, cursor: last?.pageInfo.startCursor ?? undefined });
   assert.deepEqual(first?.messages.map((item) => item.id), ["one"]);
   await assert.rejects(restarted.listSessionMessagePage({ sessionId: "s", limit: 2, cursor: "bad" }), /cursor/i);

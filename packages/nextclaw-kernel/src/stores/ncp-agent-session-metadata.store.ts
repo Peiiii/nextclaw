@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentSessionEventRecord } from "@nextclaw/ncp-toolkit";
 import {
@@ -25,7 +25,9 @@ export class NcpAgentSessionMetadataStore {
     const targetPath = this.metadataPath(record.sessionId);
     const tempPath = `${targetPath}.${process.pid}.${randomUUID()}.tmp`;
     try {
-      await writeFile(tempPath, `${JSON.stringify(createNcpAgentSessionJournalMetadataEntry(record))}\n`, "utf-8");
+      const output = await open(tempPath, "wx");
+      try { await output.writeFile(`${JSON.stringify(createNcpAgentSessionJournalMetadataEntry(record))}\n`, "utf-8"); await output.sync(); }
+      finally { await output.close(); }
       await rename(tempPath, targetPath);
     } catch (error) {
       await rm(tempPath, { force: true });

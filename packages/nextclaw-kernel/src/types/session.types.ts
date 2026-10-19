@@ -4,6 +4,7 @@ import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import type { NcpAgentSessionJournalReplayEvent } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import type { UnfinishedNcpAgentRun } from "@kernel/utils/ncp-agent-unfinished-run.utils.js";
 import type { ThinkingEffort } from "@kernel/types/agent-run.types.js";
+import type { ContextCompactionCheckpoint } from "@nextclaw/core/context-compaction";
 
 export type SessionMetadataUpdate = {
   sessionId: string;
@@ -27,6 +28,7 @@ export interface SessionPersistence {
   appendSessionEvent(params: {
     sessionId: string;
     event: NcpAgentSessionJournalReplayEvent;
+    signal?: AbortSignal;
   }): Promise<void>;
   importSessionSnapshot(record: AgentSessionRecord): Promise<void>;
   getSession(sessionId: string): Promise<AgentSessionRecord | null>;
@@ -35,6 +37,13 @@ export interface SessionPersistence {
   listSessionSummaries(options?: { limit?: number }): Promise<NcpSessionSummary[]>;
   listSessionSummaryPage(options: SessionListPageOptions): Promise<{ sessions: NcpSessionSummary[]; total: number }>;
   listSessionMessages(sessionId: string): Promise<NcpMessage[]>;
+  findSessionMessageByIngressKey?(sessionId: string, key: string): Promise<NcpMessage | null>;
+  loadSessionRunSeed?(sessionId: string): Promise<NcpMessage[]>;
+  prepareSessionHistory?(sessionId: string, options?: { retry?: boolean; wait?: boolean }): Promise<SessionHistoryPreparation | null>;
+  cancelSessionHistoryPreparation?(sessionId: string): boolean;
+  listSessionQuestionMessages?(sessionId: string, questionId?: string): Promise<NcpMessage[]>;
+  captureCompactionSource?(sessionId: string, messageIds: readonly string[]): Promise<NonNullable<ContextCompactionCheckpoint["source"]>>;
+  readSessionMessagePart?(params: { sessionId: string; messageId: string; part: number; cursor?: string }): Promise<SessionMessagePart | null>;
   listSessionMessagePage(params: {
     sessionId: string;
     limit: number;
@@ -60,6 +69,17 @@ export type SessionMessagePage = {
   total: number;
   pageInfo: NcpSessionMessagePageInfo;
   contextWindow: Record<string, unknown> | null;
+  preparation?: SessionHistoryPreparation;
+};
+
+export type SessionHistoryPreparation = {
+  status: "queued" | "preparing" | "ready" | "failed" | "cancelled";
+  processedBytes: number; totalBytes: number; error?: string;
+};
+
+export type SessionMessagePart = {
+  sessionId: string; messageId: string; part: number; revision: string; chunk: number;
+  format: "json-fragment"; content: string; nextCursor: string | null;
 };
 
 export type SessionTokenUsageStatus = "reported" | "partial" | "unavailable";

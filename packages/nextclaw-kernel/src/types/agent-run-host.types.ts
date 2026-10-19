@@ -12,7 +12,7 @@ export type AgentRunSurfaceHost = Pick<AgentContextWindowManager, "resolveRunSur
 export type AgentRunRuntimeHost = Pick<AgentRuntimeManager, "getOrCreate" | "disposeRuntime">;
 export type AgentRunSessionHost = Pick<SessionManager,
   "getOrCreateAgentRunSession" | "getAgentRunSession" | "getSessionRecord" |
-  "rewindSessionBeforeMessage" | "listSessionMessages">;
+  "rewindSessionBeforeMessage" | "listSessionMessages" | "findSessionMessageByIngressKey" | "loadSessionRunSeed">;
 export type AgentRunSessionRunHost = Pick<SessionRunManager,
   "getSessionRun" | "getOrCreateSessionRun" | "isSessionRunning">;
 

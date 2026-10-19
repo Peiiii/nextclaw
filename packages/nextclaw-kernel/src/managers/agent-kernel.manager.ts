@@ -95,7 +95,7 @@ export class AgentKernel {
         platform.profiles, { resolve: platform.resolveProjectContext });
       this.toolProviderManager.register(new McpToolProvider(context, platform.mcp));
     }
-    this.contextCompactionManager = new AgentRunContextCompactionManager(this.agents, platform.summaries, platform.assets);
+    this.contextCompactionManager = new AgentRunContextCompactionManager(this.agents, platform.summaries, platform.assets, this.sessionManager);
     this.agentRuntimeManager.applyEntries(resolveAgentRuntimeEntries({ config: this.configManager.config }).entries);
     this.agentRuntimeManager.register(createNativeAgentRuntimeRegistration({
       models: platform.models, agents: this.agents, config, sessions: this.sessionManager,

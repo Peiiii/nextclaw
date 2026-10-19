@@ -92,6 +92,43 @@ export async function assertSessionJournalTailComplete(source: string): Promise<
   } finally { await handle.close(); }
 }
 
+/** Maintenance only: preserve a crash-torn suffix before restoring the last committed newline. */
+export async function recoverSessionJournalTornTail(source: string, signal?: AbortSignal): Promise<void> {
+  const file = await open(source, "r+");
+  try {
+    const original = await file.stat();
+    if (!original.size) return;
+    const buffer = Buffer.alloc(64 * 1024);
+    await file.read(buffer, 0, 1, original.size - 1);
+    if (buffer[0] === 10) return;
+    let boundary = 0;
+    for (let end = original.size; end > 0;) {
+      signal?.throwIfAborted();
+      const start = Math.max(0, end - buffer.length);
+      const { bytesRead } = await file.read(buffer, 0, end - start, start);
+      const newline = buffer.subarray(0, bytesRead).lastIndexOf(10);
+      if (newline >= 0) { boundary = start + newline + 1; break; }
+      end = start;
+      await new Promise<void>(resolve => setImmediate(resolve));
+    }
+    const quarantine = await open(`${source}.torn-${original.size}-${Math.floor(original.mtimeMs)}`, "w");
+    try {
+      for (let offset = boundary; offset < original.size;) {
+        signal?.throwIfAborted();
+        const { bytesRead } = await file.read(buffer, 0, Math.min(buffer.length, original.size - offset), offset);
+        if (!bytesRead) throw new Error("Torn journal preservation made no progress.");
+        await quarantine.writeFile(buffer.subarray(0, bytesRead));
+        offset += bytesRead;
+      }
+      await quarantine.sync();
+    } finally { await quarantine.close(); }
+    signal?.throwIfAborted();
+    await assertSourceUnchanged(source, original);
+    await file.truncate(boundary);
+    await file.sync();
+  } finally { await file.close(); }
+}
+
 async function invalidateDerivedState(journalDir: string, sessionId: string, projection: string): Promise<void> {
   await rm(projection, { recursive: true, force: true });
   const catalogPath = join(journalDir, CATALOG_FILE);
@@ -118,29 +155,37 @@ export async function recoverSessionJournalMaintenance(journalDir: string): Prom
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
     throw error;
   }
-  for (const name of names.filter((item) => item.endsWith(".jsonl.maintenance"))) {
-    const marker = JSON.parse(await readFile(join(journalDir, name), "utf8")) as { sessionId?: string };
+  for (const name of names.filter((item) => item.endsWith(".jsonl.maintenance") || item.endsWith(".jsonl.import-maintenance"))) {
+    const marker = JSON.parse(await readFile(join(journalDir, name), "utf8")) as { sessionId?: string; snapshot?: {
+      hadSource: boolean; metadata: Parameters<NcpAgentSessionMetadataStore["write"]>[0];
+    } };
     const sessionId = normalizeNcpSessionId(marker.sessionId ?? "");
-    if (!sessionId || `${safeNcpSessionFilename(sessionId.replace(/:/g, "_"))}.jsonl.maintenance` !== name)
+    const suffix = name.endsWith(".import-maintenance") ? ".import-maintenance" : ".maintenance";
+    if (!sessionId || `${safeNcpSessionFilename(sessionId.replace(/:/g, "_"))}.jsonl${suffix}` !== name
+      || (suffix === ".import-maintenance" && !marker.snapshot))
       throw new Error(`Invalid journal maintenance marker: ${name}`);
-    const source = join(journalDir, name.slice(0, -".maintenance".length));
-    const backup = `${source}.backup`;
+    const source = join(journalDir, name.slice(0, -suffix.length));
+    const backup = `${source}${marker.snapshot ? ".import-backup" : ".backup"}`;
     const restore = `${source}.restore`;
-    await copyFile(backup, restore);
-    await syncFile(restore);
-    await rename(restore, source);
-    const basename = name.slice(0, -".jsonl.maintenance".length);
+    if (marker.snapshot?.hadSource === false) await rm(source, { force: true });
+    else { await copyFile(backup, restore); await syncFile(restore); await rename(restore, source); }
+    if (marker.snapshot) {
+      const metadataStore = new NcpAgentSessionMetadataStore(journalDir);
+      if (marker.snapshot.hadSource) await metadataStore.write({ ...marker.snapshot.metadata, sessionId });
+      else await metadataStore.delete(sessionId);
+    }
+    const basename = name.slice(0, -(".jsonl" + suffix).length);
     await invalidateDerivedState(journalDir, sessionId, join(journalDir, ".message-projections", basename));
     await rm(`${source}.pending`, { force: true });
     await rm(join(journalDir, name));
     await syncDirectory(journalDir);
+    if (marker.snapshot) await rm(backup, { force: true });
   }
 }
 
 async function validateColdReplay(journalDir: string, sessionId: string, source: string, candidate: string): Promise<void> {
   const loader = new SessionJournalLoaderStore(
     new NcpAgentSessionMetadataStore(journalDir),
-    { readAllSnapshot: async () => null },
   );
   const original = await loader.load(sessionId, source);
   const compacted = await loader.load(sessionId, candidate);

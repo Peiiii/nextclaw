@@ -3,7 +3,7 @@ import { ingressKeys, type AgentRunSendIngressPayload, type Ingress } from "@nex
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import type { AgentRunClient, AgentRunReplyOptions } from "@kernel/services/agent-run-client.service.js";
-import { createQuestionMessage, createQuestionResolutionMessage, projectUserQuestions } from "@kernel/utils/user-question.utils.js";
+import { CONTEXT_RECOVERY_CHANNEL_CONFIRMATION_PREFIX, createQuestionMessage, createQuestionResolutionMessage, projectUserQuestions } from "@kernel/utils/user-question.utils.js";
 import type { UserQuestionPrompt, UserQuestionView } from "@kernel/utils/user-question.utils.js";
 export { USER_QUESTION_EXTENSION_TYPE } from "@kernel/utils/user-question.utils.js";
 export type { UserQuestionPrompt, UserQuestionView } from "@kernel/utils/user-question.utils.js";
@@ -37,6 +37,11 @@ export class UserQuestionManager {
     try { created = createQuestionMessage(sessionId, prompts); }
     catch (error) { throw new UserQuestionError("INVALID_ANSWER", error instanceof Error ? error.message : "Invalid question"); }
     const { message } = created;
+    const recovery = this.runs.getSessionRun(sessionId)?.getContextRecoveryState();
+    if (recovery?.required) {
+      message.metadata = { ...message.metadata, nextclaw_context_recovery_checkpoint: recovery.checkpointId };
+      message.parts.push({ type: "text", text: `此前部分上下文尚未核实。请确认本次继续任务的具体条件；旧操作的结果仍须核实，不能直接重做。通过聊天回复时，请使用“${CONTEXT_RECOVERY_CHANNEL_CONFIRMATION_PREFIX}”开头，并写明任务范围和条件。` });
+    }
     const event = {
       type: NcpEventType.MessageSent as const,
       occurredAt: message.timestamp,
@@ -53,12 +58,12 @@ export class UserQuestionManager {
     return { accepted: true, questionIds: created.questionIds };
   };
 
-  list = async (sessionId: string): Promise<UserQuestionView[]> => {
+  list = async (sessionId: string, questionId?: string): Promise<UserQuestionView[]> => {
     const session = await this.sessions.getSession(sessionId);
     if (!session) throw new UserQuestionError("NOT_FOUND", "Session not found.");
     const runSession = await this.sessions.getAgentRunSession(sessionId);
     if (runSession.agentRuntimeId !== "native") return [];
-    const durable = await this.sessions.listSessionMessages(sessionId);
+    const durable = await this.sessions.listSessionQuestionMessages(sessionId, questionId);
     const run = this.runs.getSessionRun(sessionId);
     const messages = new Map(durable.map((message) => [message.id, message]));
     for (const message of run?.getSnapshot().messages ?? []) messages.set(message.id, message);
@@ -95,7 +100,7 @@ export class UserQuestionManager {
     const prepared = await this.prepareResolution(input);
     if (!prepared.payload) return { question: prepared.question, handle: null, text: null };
     const reply = await client.sendAndWaitForReply(prepared.payload, options);
-    const question = (await this.list(input.sessionId)).find(({ id }) => id === input.questionId);
+    const question = (await this.list(input.sessionId, input.questionId)).find(({ id }) => id === input.questionId);
     return { question: question ?? prepared.question, handle: reply.handle, text: reply.text };
   };
 
@@ -106,7 +111,7 @@ export class UserQuestionManager {
       type: ingressKeys.agentRun.send,
       payload: prepared.payload,
     }, { source: "user-question" });
-    const updated = (await this.list(input.sessionId)).find(({ id }) => id === prepared.question.id);
+    const updated = (await this.list(input.sessionId, prepared.question.id)).find(({ id }) => id === prepared.question.id);
     return { question: updated ?? prepared.question, handle };
   };
 
@@ -116,7 +121,7 @@ export class UserQuestionManager {
     if (input.action === "answer" && !answer) {
       throw new UserQuestionError("INVALID_ANSWER", "Answer must be non-empty.");
     }
-    const question = (await this.list(input.sessionId)).find(({ id }) => id === input.questionId);
+    const question = (await this.list(input.sessionId, input.questionId)).find(({ id }) => id === input.questionId);
     if (!question) throw new UserQuestionError("NOT_FOUND", "Question not found in this session.");
     if (question.status !== "pending") {
       if (question.status !== (input.action === "answer" ? "answered" : "dismissed") ||

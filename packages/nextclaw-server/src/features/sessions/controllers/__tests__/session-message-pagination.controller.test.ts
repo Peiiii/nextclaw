@@ -4,7 +4,7 @@ import { SessionMessageCursorError } from "@nextclaw/kernel";
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 import { NcpSessionRoutesController } from "@nextclaw-server/features/sessions/controllers/sessions.controller.js";
 
-function createMessagePageApp(listSessionMessagePage: (...args: unknown[]) => unknown) {
+function createMessagePageApp(listSessionMessagePage: (...args: unknown[]) => unknown, sourceMethods: Record<string, unknown> = {}) {
   const controller = new NcpSessionRoutesController({
     configPath: "/tmp/nextclaw-session-message-pagination-test.json",
     appEventBus: {
@@ -13,15 +13,33 @@ function createMessagePageApp(listSessionMessagePage: (...args: unknown[]) => un
     },
     kernel: {
       isSessionRunning: () => false,
-      sessionManager: { listSessionMessagePage }
+      sessionManager: { listSessionMessagePage, ...sourceMethods }
     }
   } as unknown as UiRouterOptions);
   const app = new Hono();
   app.get("/api/ncp/sessions/:sessionId/messages", controller.listSessionMessages);
+  app.get("/api/ncp/sessions/:sessionId/messages/:messageId/parts/:part", controller.readSessionMessagePart);
   return app;
 }
 
 describe("NcpSessionRoutesController message pagination", () => {
+  it("returns visible preparation instead of waiting on source repair, then accepts bounded long source cursors", async () => {
+    const prepareSessionHistory = vi.fn(async () => ({ status: "preparing" }));
+    const readSessionMessagePart = vi.fn(async () => ({ content: "fragment", nextCursor: null }));
+    const app = createMessagePageApp(vi.fn(), { prepareSessionHistory, readSessionMessagePart });
+    const path = "http://localhost/api/ncp/sessions/s/messages/m/parts/0";
+    expect((await app.request(path)).status).toBe(409);
+    expect(readSessionMessagePart).not.toHaveBeenCalled();
+    prepareSessionHistory.mockResolvedValue({ status: "ready" });
+    expect((await app.request(path + "?cursor=" + "x".repeat(4096))).status).toBe(200);
+    readSessionMessagePart.mockRejectedValueOnce(new SessionMessageCursorError());
+    expect((await app.request(path + "?cursor=stale")).status).toBe(400);
+    expect((await app.request(path + "?cursor=" + "x".repeat(32769))).status).toBe(400);
+    expect((await app.request(path.replace("parts/0", "parts/-1"))).status).toBe(400);
+    const literalId = "m%2F汉字";
+    expect((await app.request(path.replace("/m/parts", `/${encodeURIComponent(literalId)}/parts`))).status).toBe(200);
+    expect(readSessionMessagePart).toHaveBeenLastCalledWith({ sessionId: "s", messageId: literalId, part: 0, cursor: undefined });
+  });
   it("uses bounded cursor pages and returns their page metadata", async () => {
     const listSessionMessagePage = vi.fn(async () => ({
       messages: [{ id: "message-1" }],
@@ -143,13 +161,14 @@ describe("NcpSessionRoutesController message pagination", () => {
 
     expect(payload).toMatchObject({
       data: {
-        messages: messages.slice(3),
+        messages: messages.slice(6),
         total: 8,
         pageInfo: {
-          startCursor: "cursor-after-2",
+          startCursor: "cursor-after-5",
           hasPreviousPage: true,
         },
       },
     });
+    expect(Buffer.byteLength(JSON.stringify(payload))).toBeLessThanOrEqual(24 * 1024);
   });
 });

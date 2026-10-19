@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { attachDurableObjectSql } from "../testing/durable-object-sql.fixture";
 import test from "node:test";
 import type { NcpLLMApi, NcpMessage } from "@nextclaw/ncp";
 import { createQuestionMessage, createQuestionResolutionMessage, projectUserQuestions } from "@nextclaw/kernel";
@@ -6,7 +7,6 @@ import { projectBiboConversation } from "@/app/utils/bibo-session.utils";
 import { BiboSpaceStateStore } from "@/app/bibo-space-state.service";
 import { BiboConversationService } from "./bibo-conversation.service";
 import { BiboSpaceActionService } from "./bibo-edge-space.service";
-import { BiboEdgeSessionStore } from "@/app/stores/bibo-edge-session.store";
 import { CloudflareSessionStore } from "@/app/stores/cloudflare-session.store";
 import { BiboExecutionService } from "./bibo-execution.service";
 import type { getSandbox, Sandbox } from "@cloudflare/sandbox";
@@ -80,6 +80,7 @@ function createConversation(storage: DurableObjectStorage, state: BiboSpaceState
 }
 
 class MemoryStorage {
+  constructor() { attachDurableObjectSql(this); }
   values = new Map<string, unknown>();
   reads: string[] = [];
   private transactions: Promise<void> = Promise.resolve();
@@ -98,14 +99,15 @@ class MemoryStorage {
   };
   private transact = async <T>(run: (transaction: unknown) => Promise<T>): Promise<T> => {
     const next = new Map(this.values);
+    const touched = new Set<string>();
     const result = await run({
       get: async (key: string | string[]) => Array.isArray(key)
         ? new Map(key.filter((id) => next.has(id)).map((id) => [id, structuredClone(next.get(id))])) : structuredClone(next.get(key)),
       list: async ({ prefix = "" } = {}) => new Map([...next].filter(([key]) => key.startsWith(prefix)).sort(([a], [b]) => a.localeCompare(b))),
-      put: async (entries: Record<string, unknown>) => { for (const [key, value] of Object.entries(entries)) next.set(key, structuredClone(value)); },
-      delete: async (keys: string[]) => { for (const key of keys) next.delete(key); },
+      put: async (entries: Record<string, unknown>) => { for (const [key, value] of Object.entries(entries)) { touched.add(key); next.set(key, structuredClone(value)); } },
+      delete: async (keys: string[]) => { for (const key of keys) { touched.add(key); next.delete(key); } },
     });
-    this.values = next;
+    for (const key of touched) { if (next.has(key)) this.values.set(key, next.get(key)); else this.values.delete(key); }
     return result;
   };
 }
@@ -324,7 +326,7 @@ test("tool success persists its file before the conversation is published", asyn
   assert.equal(storage.values.has("sessions"), false, "UI success remains uncommitted");
   assert.equal(result.ncpSession.messages.length, 2);
   await edge.commit("session-1", { sessions: [{ id: "session-1" }] });
-  assert.equal((await new BiboEdgeSessionStore(storage as unknown as DurableObjectStorage).load("session-1"))?.messages.length, 2);
+  assert.equal((await new CloudflareSessionStore(storage as unknown as DurableObjectStorage).getBoundedSession("session-1"))?.messages.length, 2);
   assert.equal(storage.values.has("sessions"), true);
   assert.equal([...storage.values.keys()].some((key) => key.startsWith("spaceFile:")), true);
 });
@@ -474,5 +476,5 @@ test("edge questions use the same NCP extension and resolution metadata across t
   assert.equal(second.questions[0]?.answer, "DOCX");
   assert.equal(second.ncpSession.messages.some((message) => message.metadata?.nextclaw_user_question_id === first.questions[0]?.id), true);
   await edge.commit("question-session", {});
-  assert.equal((await new BiboEdgeSessionStore(storage as unknown as DurableObjectStorage).load("question-session"))?.messages.length, second.ncpSession.messages.length);
+  assert.equal((await new CloudflareSessionStore(storage as unknown as DurableObjectStorage).getBoundedSession("question-session"))?.messages.length, second.ncpSession.messages.length);
 });

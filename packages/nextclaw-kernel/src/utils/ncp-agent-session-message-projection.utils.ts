@@ -3,7 +3,7 @@ import { SessionMessageCursorError } from "@kernel/types/session.types.js";
 
 const OFFSET_FIELD_WIDTH = 20;
 
-export const NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION = 8;
+export const NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION = 12;
 export const MESSAGE_PROJECTION_OFFSET_RECORD_BYTES = OFFSET_FIELD_WIDTH * 2 + 2;
 
 export type NcpAgentSessionMessageProjectionMeta = {
@@ -15,6 +15,14 @@ export type NcpAgentSessionMessageProjectionMeta = {
   contextWindow: Record<string, unknown> | null;
   activeMessageId: string | null;
   pendingCompactionMessageIds: string[];
+  latestCheckpointMessageId?: string;
+  nextSeq?: number;
+  preparation?: { status: "preparing" | "ready" | "failed"; journalBytes: number; error?: string };
+  latestRecoveryAcknowledgementMessageId?: string;
+  semanticRevision?: number;
+  activeRunId?: string | null;
+  journalIdentity?: string;
+  legacyMetadata?: { metadata: Record<string, unknown>; agentId?: string; createdAt: string; updatedAt: string };
 };
 
 export type NcpAgentSessionMessageLocation = {

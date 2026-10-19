@@ -20,3 +20,8 @@ export { composeAgentToolCatalog } from "../../tools/tool-schema.tools.js";
 export { createQuestionMessage, createQuestionResolutionMessage, projectUserQuestions } from "../../utils/user-question.utils.js";
 export type { CompactionSummaryProvider } from "../../features/context-compaction/services/context-compaction-preflight.service.js";
 export { appendCurrentTimeContextTail, serializeModelInputTail } from "../../services/agent-run-model-input-builder.service.js";
+export { SessionMessageSqlProjectionStore } from "../../stores/session-message-sql-projection.store.js";
+export { SessionMessagePreparationStore } from "../../stores/session-message-preparation.store.js";
+export { sessionJsonChunks } from "../../utils/session-message-chunks.utils.js";
+export type { SqliteDatabase } from "../../stores/sqlite-database.store.js";
+export type { SessionHistoryPreparation, SessionMessagePart } from "../../types/session.types.js";

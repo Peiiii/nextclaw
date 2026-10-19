@@ -6,6 +6,7 @@ import {
 import type { NcpMessage } from "@nextclaw/ncp";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import { ContextCompactionPreflightService } from "./context-compaction-preflight.service.js";
+import { COMPACTION_RECOVERY_NOTICE } from "./context-compaction-summary-generation.service.js";
 
 const SESSION_ID = "session-summary-budget";
 
@@ -112,7 +113,7 @@ describe("ContextCompactionPreflightService summary budget", () => {
     expect(finishResult.contextWindow.usedContextTokens).toBeLessThanOrEqual(28_000);
   });
 
-  it("fits a complete provider summary above the hard budget without another model call", async () => {
+  it("discards an oversized provider summary without making another model call", async () => {
     const providerManager = {
       chat: vi.fn(async () => createSummaryResponse(protocolSummary(
         "Continue the same run after installing this checkpoint.",
@@ -125,13 +126,13 @@ describe("ContextCompactionPreflightService summary budget", () => {
 
     expect(providerManager.chat).toHaveBeenCalledTimes(1);
     expect(checkpoint).toMatchObject({ status: "compressed" });
-    expect(checkpoint.summary).toMatch(/^# Compressed Working Context/);
-    expect(checkpoint.summary).toContain("Continuation Contract");
+    expect(checkpoint.summary).toBe(COMPACTION_RECOVERY_NOTICE);
+    expect(checkpoint.recovery?.required).toBe(true);
     expect(checkpoint.summary).not.toContain("omitted to fit the checkpoint budget");
     expect(finishResult.contextWindow.usedContextTokens).toBeLessThanOrEqual(28_000);
   });
 
-  it("installs a structurally complete truncated summary after fitting it to the hard budget", async () => {
+  it("discards a truncated summary even when it has all expected headings", async () => {
     const providerManager = {
       chat: vi.fn(async () => createSummaryResponse(protocolSummary(
         "Continue the task without restarting the session.",
@@ -144,8 +145,8 @@ describe("ContextCompactionPreflightService summary budget", () => {
 
     expect(providerManager.chat).toHaveBeenCalledTimes(1);
     expect(checkpoint).toMatchObject({ status: "compressed" });
-    expect(checkpoint.summary).toMatch(/^# Compressed Working Context/);
-    expect(checkpoint.summary).toContain("Continuation Contract");
+    expect(checkpoint.summary).toBe(COMPACTION_RECOVERY_NOTICE);
+    expect(checkpoint.recovery?.required).toBe(true);
     expect(checkpoint.summary).not.toContain("omitted to fit the checkpoint budget");
     expect(finishResult.contextWindow.usedContextTokens).toBeLessThanOrEqual(28_000);
   });

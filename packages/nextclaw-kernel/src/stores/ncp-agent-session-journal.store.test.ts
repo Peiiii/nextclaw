@@ -6,6 +6,9 @@ import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import { NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import { NcpAgentSessionJournalStore } from "./ncp-agent-session-journal.store.js";
 import type { NcpAgentSessionMessageProjectionPersistenceStore } from "./ncp-agent-session-message-projection-persistence.store.js";
+import * as sessionChunks from "@kernel/utils/session-message-chunks.utils.js";
+import { SessionRun } from "@kernel/managers/session-run.manager.js";
+import { buildContextCompactionTimelineNcpMessage } from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
 
 const sessionId = "session-1";
 const userMessage: NcpMessage = {
@@ -33,8 +36,7 @@ type RawJournalLine = {
 };
 
 type ProjectionPersistenceInternals = {
-  renameMeta: (from: string, to: string) => Promise<void>;
-  waitForMetaRenameRetry: (delayMs: number) => Promise<void>;
+  writeMeta: (...args: unknown[]) => void;
 };
 
 function fileSystemError(code: "EPERM"): Error & { code: string } {
@@ -71,6 +73,82 @@ afterEach(async () => {
 });
 
 describe("NcpAgentSessionJournalStore", () => {
+  it.each([true, false])("recovers a process interruption during snapshot import (previous source: %s)", async hadSource => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-import-crash-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    const before = createRecord([userMessage]);
+    if (hadSource) await store.importSessionSnapshot(before);
+    const path = join(tempDir, `${sessionId}.jsonl`);
+    const original = hadSource ? await readFile(path, "utf8") : "";
+    store.close();
+    if (hadSource) await writeFile(`${path}.import-backup`, original);
+    await writeFile(`${path}.import-maintenance`, JSON.stringify({ sessionId, snapshot: { hadSource, metadata: before } }));
+    await writeFile(path, JSON.stringify({ _type: "event", version: 1, seq: 1, timestamp: assistantMessage.timestamp,
+      event: { type: NcpEventType.MessageSent, payload: { sessionId, message: assistantMessage } } }) + "\n");
+    await writeFile(join(tempDir, `${sessionId}.metadata.json`), JSON.stringify({ _type: "metadata", metadata: { label: "interrupted import" }, created_at: before.createdAt, updated_at: before.updatedAt }));
+    const recovered = new NcpAgentSessionJournalStore(tempDir); await recovered.initialize();
+    const record = await recovered.getSession(sessionId);
+    expect(record?.messages ?? []).toEqual(hadSource ? [userMessage] : []);
+    if (hadSource) expect(record?.metadata).toEqual(before.metadata);
+    await expect(readFile(`${path}.import-maintenance`)).rejects.toMatchObject({ code: "ENOENT" });
+    recovered.close();
+  });
+  it.each(["before-write", "during-write", "after-commit"])("keeps checkpoint installation atomic when cancellation arrives %s", async boundary => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-checkpoint-cancel-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    await store.importSessionSnapshot(createRecord([userMessage]));
+    const controller = new AbortController();
+    const source = await store.captureCompactionSource(sessionId, [userMessage.id]);
+    const marker = buildContextCompactionTimelineNcpMessage({ sessionId, messageId: "atomic-checkpoint", checkpoint: {
+      version: 2, id: "atomic-checkpoint", status: "compressed", phase: "pre-run", summary: "Verified bounded context.", source,
+      coveredMessageCount: 1, coveredSessionMessageCount: 1, retainedMessageIds: [userMessage.id],
+      originalEstimatedTokens: 100, projectedEstimatedTokens: 20, createdAt: userMessage.timestamp, updatedAt: userMessage.timestamp,
+    } });
+    const path = join(tempDir, `${sessionId}.jsonl`); const before = await readFile(path);
+    const run = new SessionRun({ sessionId, messages: [userMessage] }, undefined, undefined,
+      (event, signal) => store.appendSessionEvent({ sessionId, event, signal }));
+    let restore = () => {};
+    if (boundary === "before-write") controller.abort();
+    if (boundary === "during-write") {
+      const original = sessionChunks.sessionJsonChunks;
+      const spy = vi.spyOn(sessionChunks, "sessionJsonChunks").mockImplementation(function* (value) {
+        let first = true;
+        for (const chunk of original(value)) { yield chunk; if (first) { first = false; controller.abort(); } }
+      }); restore = () => spy.mockRestore();
+    }
+    if (boundary === "after-commit") {
+      const internals = store as unknown as { appendJournalEntry: (...args: unknown[]) => Promise<unknown> };
+      const original = internals.appendJournalEntry;
+      const spy = vi.spyOn(internals, "appendJournalEntry").mockImplementation(async (...args) => { const value = await original(...args); controller.abort(); return value; });
+      restore = () => spy.mockRestore();
+    }
+    try {
+      const install = run.applyEvents([{ type: NcpEventType.MessageSent, payload: { sessionId, message: marker } }], { signal: controller.signal });
+      if (boundary === "after-commit") {
+        await install;
+        expect(run.getSnapshot().messages.some(value => value.id === marker.id)).toBe(true);
+        const reopened = new NcpAgentSessionJournalStore(tempDir);
+        expect((await reopened.loadSessionRunSeed(sessionId)).some(value => value.id === marker.id)).toBe(true);
+      } else {
+        await expect(install).rejects.toMatchObject({ name: "AbortError" });
+        expect(await readFile(path)).toEqual(before);
+        expect(run.getSnapshot().messages.map(value => value.id)).toEqual([userMessage.id]);
+      }
+    } finally { restore(); run.dispose(); }
+  });
+  it("restores the prior source and metadata when an activated replacement cannot finish its projection", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-import-rollback-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    await store.importSessionSnapshot(createRecord([userMessage]));
+    const original = await readFile(join(tempDir, `${sessionId}.jsonl`));
+    const projection = (store as unknown as { messageProjectionStore: { rebuild: (...args: unknown[]) => Promise<void> } }).messageProjectionStore;
+    vi.spyOn(projection, "rebuild").mockRejectedValueOnce(new Error("injected projection commit failure"));
+    await expect(store.importSessionSnapshot({ ...createRecord([assistantMessage]), metadata: { label: "must not commit" } })).rejects.toThrow("injected");
+    expect(await readFile(join(tempDir, `${sessionId}.jsonl`))).toEqual(original);
+    const reopened = new NcpAgentSessionJournalStore(tempDir);
+    expect((await reopened.getSession(sessionId))?.messages.map(value => value.id)).toEqual([userMessage.id]);
+    expect((await reopened.getSessionSummary(sessionId))?.metadata?.label).toBe("Journal test");
+  });
   it("returns distinct numbered session pages with the full total", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);
@@ -204,8 +282,7 @@ describe("NcpAgentSessionJournalStore", () => {
     const projectionStore = (store as unknown as {
       messageProjectionStore: { persistence: NcpAgentSessionMessageProjectionPersistenceStore };
     }).messageProjectionStore.persistence as unknown as ProjectionPersistenceInternals;
-    vi.spyOn(projectionStore, "renameMeta").mockRejectedValue(fileSystemError("EPERM"));
-    vi.spyOn(projectionStore, "waitForMetaRenameRetry").mockResolvedValue();
+    vi.spyOn(projectionStore, "writeMeta").mockImplementationOnce(() => { throw fileSystemError("EPERM"); });
 
     await expect(store.appendSessionEvent({
       sessionId,
@@ -219,6 +296,7 @@ describe("NcpAgentSessionJournalStore", () => {
       { id: "user-1" },
       { id: "assistant-1", parts: [{ text: "hi" }] },
     ]);
+    await store.prepareSessionHistory(sessionId, { retry: true, wait: true });
     await expect(store.listSessionMessagePage({ sessionId, limit: 10 })).resolves.toMatchObject({
       total: 2,
       messages: [{ id: "user-1" }, { id: "assistant-1" }],

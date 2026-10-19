@@ -23,6 +23,9 @@ class BiboChatOwner {
   failedMessages: Record<string, string[]> = {};
   replyErrors: Record<string, string> = {};
   sessionLoading = false;
+  historyPreviousCursor: string | null = null;
+  historyOlderPage = false;
+  historyPreparing = false;
   private selectionRequest = 0;
   private readonly historyVersions = new Map<string, number>();
   openQuestionId: string | null = null;
@@ -63,7 +66,8 @@ class BiboChatOwner {
   private onCommitted = (result: Extract<BiboChatEvent, { name: "committed" }>["value"], sessionId: string, ids: [string, string] | null, message: string): void => {
     this.historyVersions.set(sessionId, (this.historyVersions.get(sessionId) ?? 0) + 1);
     this.set((state) => ({
-      ...(state.activeSessionId === sessionId ? { messages: identifyMessages(result.messages, state.messages, ids), status: "", failedQuestionInput: null } : {}),
+      ...(state.activeSessionId === sessionId ? { messages: identifyMessages(result.messages, state.messages, ids), status: "", failedQuestionInput: null, historyOlderPage: false, historyPreparing: false,
+        ...(result.previousCursor !== undefined ? { historyPreviousCursor: result.previousCursor } : {}) } : {}),
       ...(state.drafts[sessionId] === message ? { drafts: { ...state.drafts, [sessionId]: "" }, ...(state.activeSessionId === sessionId ? { draft: "" } : {}) } : {}),
       sessions: result.session ? [result.session, ...state.sessions.filter((item) => item.id !== result.session?.id)] : state.sessions,
     }));
@@ -118,7 +122,7 @@ class BiboChatOwner {
       return;
     }
     this.selectionRequest += 1;
-    this.set({ activeSessionId: null, messages: [], draft: this.get().drafts.new ?? "", status: "", following: true, sessionLoading: false, openQuestionId: null, failedQuestionInput: null });
+    this.set({ activeSessionId: null, messages: [], historyPreviousCursor: null, historyOlderPage: false, historyPreparing: false, draft: this.get().drafts.new ?? "", status: "", following: true, sessionLoading: false, openQuestionId: null, failedQuestionInput: null });
   };
 
   selectSession = async (id: string, fromRoute = false): Promise<void> => {
@@ -134,13 +138,32 @@ class BiboChatOwner {
     const historyVersion = this.historyVersions.get(id);
     this.set({ activeSessionId: id, messages: [], draft: this.get().drafts[id] ?? "", sessionLoading: true, status: "" });
     try {
-      const history = await biboClient.history(id);
+      const page = await biboClient.historyPage(id);
+      const history = page.messages;
       if (request !== this.selectionRequest || this.get().user?.id !== userId) return;
       if (this.historyVersions.get(id) !== historyVersion) return;
-      this.set({ activeSessionId: id, messages: identifyMessages(history, this.get().messages), draft: this.get().drafts[id] ?? "", status: "", following: true, menuOpen: false, openQuestionId: null, failedQuestionInput: null });
+      this.set({ activeSessionId: id, messages: identifyMessages(history, this.get().messages), draft: this.get().drafts[id] ?? "",
+        historyPreviousCursor: page.previousCursor, historyOlderPage: false, historyPreparing: Boolean(page.preparation && page.preparation.status !== "ready"),
+        status: page.preparation && page.preparation.status !== "ready" ? page.preparation.error ?? biboCopy.historyPreparing : "", following: true, menuOpen: false, openQuestionId: null, failedQuestionInput: null });
       this.openFirstUnseenQuestion(history);
     } catch (error) { if (request === this.selectionRequest) this.set({ status: errorText(error) }); }
     finally { if (request === this.selectionRequest) { this.set({ sessionLoading: false }); void this.conversation.connect(id); } }
+  };
+
+  loadHistoryPage = async (previous = false): Promise<void> => {
+    const { activeSessionId: id, historyPreviousCursor: cursor } = this.get();
+    if (!id || this.get().sessionLoading || (previous && !cursor)) return;
+    const request = ++this.selectionRequest; const userId = this.get().user?.id;
+    const version = this.historyVersions.get(id);
+    this.set({ sessionLoading: true });
+    try {
+      const page = await biboClient.historyPage(id, previous ? cursor! : undefined);
+      if (request !== this.selectionRequest || this.get().activeSessionId !== id || this.get().user?.id !== userId || this.historyVersions.get(id) !== version) return;
+      this.set({ messages: identifyMessages(page.messages, []), historyPreviousCursor: page.previousCursor, historyOlderPage: previous,
+        historyPreparing: Boolean(page.preparation && page.preparation.status !== "ready"),
+        status: page.preparation && page.preparation.status !== "ready" ? page.preparation.error ?? biboCopy.historyPreparing : "" });
+    } catch (error) { if (request === this.selectionRequest) this.set({ status: errorText(error) }); }
+    finally { if (request === this.selectionRequest) this.set({ sessionLoading: false }); }
   };
 
   renameSession = async (id: string, title: string): Promise<boolean> => {
@@ -190,11 +213,14 @@ class BiboChatOwner {
       const activeSessionId = blankChat || missingSession ? null : requestedSession
         ? requestedSession
         : this.get().activeSessionId && sessions.some((session) => session.id === this.get().activeSessionId) ? this.get().activeSessionId : sessions[0]?.id ?? null;
-      const messages = activeSessionId ? await biboClient.history(activeSessionId) : [];
+      const page = activeSessionId ? await biboClient.historyPage(activeSessionId) : null;
+      const messages = page?.messages ?? [];
       if (request !== this.selectionRequest) return;
       const currentRoute = readWorkspaceRoute();
       if (currentRoute.view !== view || currentRoute.sessionId !== requestedSession) return;
-      this.set({ sessions, activeSessionId, messages: identifyMessages(messages, this.get().messages), draft: this.get().drafts[activeSessionId ?? "new"] ?? "", status: missingSession ? biboCopy.sessionMissing : "" });
+      this.set({ sessions, activeSessionId, messages: identifyMessages(messages, this.get().messages), draft: this.get().drafts[activeSessionId ?? "new"] ?? "",
+        historyPreviousCursor: page?.previousCursor ?? null, historyOlderPage: false, historyPreparing: Boolean(page?.preparation && page.preparation.status !== "ready"),
+        status: missingSession ? biboCopy.sessionMissing : page?.preparation && page.preparation.status !== "ready" ? page.preparation.error ?? biboCopy.historyPreparing : "" });
       this.openFirstUnseenQuestion(messages);
       if (!missingSession) replaceConversationContext(activeSessionId);
       await this.conversation.connect(activeSessionId ?? undefined);

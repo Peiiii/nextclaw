@@ -17,6 +17,7 @@ import { parseBiboSpaceRequest } from "./utils/bibo-space-request.utils";
 import { prepareBiboSessionRun, type BiboSession } from "./utils/bibo-session.utils";
 import { prepareBiboRun, type PreparedBiboRun } from "./utils/bibo-run-preparation.utils";
 import { BiboRunService, type BiboActiveRun } from "./services/bibo-run.service";
+import { CloudflareSessionStore } from "./stores/cloudflare-session.store";
 export { BiboModelBudget } from "./bibo-model-gateway.service";
 export { ContainerProxy } from "@cloudflare/sandbox";
 
@@ -142,7 +143,7 @@ export class BiboUserContainer extends DurableObject<Env> {
       catch (error) { return publicError(error instanceof Error ? error.message : "文件暂时无法下载。",
         error instanceof BiboSpaceError ? error.status : 500); }
     }
-    if (route.startsWith("/sessions") || route === "/history") {
+    if (route.startsWith("/sessions") || route === "/history" || route === "/history/source") {
       const mutation = request.method === "POST";
       if (mutation && (this.maintenance || (route !== "/sessions/new" && this.runs.size))) {
         return publicError("Bibo 正在处理另一项操作，请稍后再试。", 429);
@@ -187,8 +188,11 @@ export class BiboUserContainer extends DurableObject<Env> {
 
   private persistEdgeRun = (payload: PreparedRun, result: BiboEdgeRunResult, edge: BiboConversationService): Promise<Response> => this.queueSessionChange(async () => {
     const sessions = await this.ctx.storage.get<Session[]>("sessions") ?? [];
+    const page = await new CloudflareSessionStore(this.ctx.storage).listSessionMessagePage({ sessionId: payload.session.id, limit: 40 });
+    if (!page || page.preparation && page.preparation.status !== "ready") throw new Error("Completed session page is not available");
     const prepared = prepareBiboSessionRun(sessions, payload, { text: result.text, content: result.content, sessionId: payload.session.id,
-      displayEvents: result.displayEvents, questions: result.questions }, result.ncpSession.messages);
+      displayEvents: result.displayEvents, questions: result.questions }, page.messages);
+    prepared.response.previousCursor = page.pageInfo.hasPreviousPage ? page.pageInfo.startCursor : null;
     const edgeRunCount = await this.ctx.storage.get<number>("edgeRunCount") ?? 0;
     await edge.commit(payload.session.id, { sessions: prepared.sessions, edgeRunCount: edgeRunCount + 1,
       ...(payload.clientRequestId ? { [`edgeRunReceipt:${payload.clientRequestId}`]: { sessionId: payload.session.id } } : {}) });

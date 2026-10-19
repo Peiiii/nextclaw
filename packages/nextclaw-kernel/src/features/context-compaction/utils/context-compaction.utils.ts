@@ -5,6 +5,7 @@ import {
 } from "@nextclaw/ncp";
 import { readCompressedContextCompactionCheckpoint, type ContextCompactionCheckpoint } from "@nextclaw/core/context-compaction-checkpoint";
 import { MODEL_ROUND_PART_OFFSETS } from "@nextclaw/ncp-agent-runtime";
+import { COMPACTION_RECOVERY_NOTICE } from "../services/context-compaction-summary-generation.service.js";
 
 export const NEXTCLAW_TIMELINE_KIND_METADATA_KEY = "nextclaw_timeline_kind";
 export const CONTEXT_COMPACTION_TIMELINE_KIND = "context_compaction";
@@ -13,9 +14,10 @@ export const CONTEXT_COMPACTION_PROJECTION_KIND = "compressed_context";
 export const CONTEXT_COMPACTION_PART_START = "nextclaw_compaction_part_start";
 export const CONTEXT_COMPACTION_CONTINUATION_TEXT = "Continue the active run from the compressed working context. Do not repeat completed tool calls; proceed with the next required action.";
 export const CONTEXT_COMPACTION_SYSTEM_PREAMBLE = [
-  "Authoritative compressed prior conversation context for this session.",
+  "Compressed working context for this session. Original messages and recorded tool outcomes remain authoritative; verify uncertain constraints and effects using session history.",
   "Continue from this context and any following messages. Do not restart onboarding or treat missing profile fields as a new-session trigger unless the compressed context says onboarding is the active user task.",
 ].join("\n");
+export const CONTEXT_COMPACTION_RECOVERY_PREAMBLE = "Unresolved archived history: read original session history to verify old constraints and action outcomes. Only read-only recovery is permitted; ask a specific business clarification if required facts remain unknown.";
 
 export type ContextCompactionTimelineCheckpoint = ContextCompactionCheckpoint;
 
@@ -32,8 +34,24 @@ function buildCompressedContextSystemText(checkpoint: ContextCompactionCheckpoin
   return [
     CONTEXT_COMPACTION_SYSTEM_PREAMBLE,
     "",
-    checkpoint.summary,
+    !checkpoint.recovery && checkpoint.summary === COMPACTION_RECOVERY_NOTICE
+      ? "Earlier conversation remains archived. Follow the latest human-confirmed task conditions and read original history for any older facts needed."
+      : checkpoint.summary,
+    ...(checkpoint.recovery ? [
+      CONTEXT_COMPACTION_RECOVERY_PREAMBLE,
+    ] : []),
   ].join("\n");
+}
+
+export function readContextRecoveryState(messages: readonly NcpMessage[], fallback?: ContextCompactionCheckpoint | null): { required: boolean; checkpointId?: string; unresolvedArchive: boolean } {
+  const checkpoint = readLatestContextCompactionCheckpoint(messages) ?? fallback;
+  const unresolvedArchive = messages.some(message => message.metadata?.nextclaw_archived_body === true
+    && (!checkpoint?.recovery || Date.parse(message.timestamp) > Date.parse(checkpoint.recovery.archiveThrough)));
+  if (!checkpoint?.recovery) return { required: unresolvedArchive, unresolvedArchive };
+  const checkpointId = checkpoint.recovery.checkpointId ?? checkpoint.id;
+  const acknowledged = messages.some(message => message.role === "user"
+    && message.metadata?.nextclaw_context_recovery_ack === checkpointId);
+  return { required: !acknowledged || unresolvedArchive, checkpointId, unresolvedArchive };
 }
 
 export function readContextCompactionCheckpoint(message: NcpMessage): ContextCompactionCheckpoint | null {
@@ -66,6 +84,7 @@ function buildContextCompactionSummaryMessage(params: {
     parts: [{ type: "text", text: buildCompressedContextSystemText(checkpoint) }],
     metadata: {
       [CONTEXT_COMPACTION_PROJECTION_METADATA_KEY]: CONTEXT_COMPACTION_PROJECTION_KIND,
+      ...(checkpoint.recovery ? { nextclaw_context_recovery: checkpoint.recovery } : {}),
     },
   };
 }
@@ -88,17 +107,22 @@ function buildMidRunContinuationMessage(params: {
   };
 }
 
-function sliceMessageParts(message: NcpMessage, start: number, end = message.parts.length): NcpMessage {
-  if (!Number.isInteger(start) || start < 0 || start > end || !Number.isInteger(end) || end > message.parts.length) {
+function sliceMessageParts(message: NcpMessage, start: number, end?: number): NcpMessage {
+  const base = Number(message.metadata?.[CONTEXT_COMPACTION_PART_START] ?? 0);
+  const physicalEnd = base + message.parts.length;
+  end ??= physicalEnd;
+  if (!Number.isInteger(start) || start < 0 || start > end || !Number.isInteger(end)) {
     throw new Error("Invalid compacted message part boundary");
   }
-  const projected = structuredClone(message);
-  projected.parts = projected.parts.slice(start, end);
+  if (!message.metadata?.nextclaw_partial_projection && (start < base || end > physicalEnd)) throw new Error("Invalid compacted message part boundary");
+  const localStart = Math.max(0, start - base);
+  const localEnd = Math.min(message.parts.length, end - base);
+  const projected = { ...message, parts: message.parts.slice(localStart, Math.max(localStart, localEnd)).map(part => structuredClone(part)), metadata: structuredClone(message.metadata ?? {}) };
   projected.metadata = { ...projected.metadata, [CONTEXT_COMPACTION_PART_START]: start };
   const offsets = projected.metadata?.[MODEL_ROUND_PART_OFFSETS];
   if (Array.isArray(offsets)) {
     projected.metadata = { ...projected.metadata, [MODEL_ROUND_PART_OFFSETS]:
-      offsets.filter((offset) => offset > start && offset < end).map((offset) => offset - start) };
+      offsets.filter((offset) => offset > localStart && offset < localEnd).map((offset) => offset - localStart) };
   }
   return projected;
 }
@@ -108,8 +132,9 @@ function projectMessageAfterCheckpoint(
   checkpoint: ContextCompactionCheckpoint,
 ): NcpMessage | null {
   const retainedEnd = checkpoint.retainedMessagePartEnds?.[message.id];
+  const physicalEnd = Number(message.metadata?.[CONTEXT_COMPACTION_PART_START] ?? 0) + message.parts.length;
   if (typeof retainedEnd === "number") {
-    return message.parts.length > retainedEnd ? sliceMessageParts(message, retainedEnd) : null;
+    return physicalEnd > retainedEnd ? sliceMessageParts(message, retainedEnd) : null;
   }
   const coveredPartCount = checkpoint.continuationMessageCoveredPartCount;
   if (
@@ -118,8 +143,7 @@ function projectMessageAfterCheckpoint(
     Number.isInteger(coveredPartCount) &&
     coveredPartCount >= 0
   ) {
-    const parts = message.parts.slice(coveredPartCount);
-    return parts.length > 0
+    return physicalEnd > coveredPartCount
       ? sliceMessageParts(message, coveredPartCount)
       : null;
   }
@@ -215,7 +239,8 @@ export function buildContextCompactionModelProjection(params: {
       stablePrefixMessageCount: 0,
     };
   }
-  const { checkpoint } = marker;
+  const { checkpoint: storedCheckpoint } = marker;
+  const checkpoint = readContextRecoveryState(sessionMessages).required ? storedCheckpoint : { ...storedCheckpoint, recovery: undefined };
   const preservedUserMessageIds = readCheckpointMessageIds(checkpoint.preservedUserMessageIds);
   const retainedMessageIds = readCheckpointMessageIds(checkpoint.retainedMessageIds);
   const preservedUserMessages = regularMessages
@@ -224,8 +249,8 @@ export function buildContextCompactionModelProjection(params: {
     .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
   const retainedMessages = regularMessages
     .filter((message) => retainedMessageIds.has(message.id))
-    .map((message) => sliceMessageParts(message, checkpoint.retainedMessagePartStarts?.[message.id] ?? 0,
-      checkpoint.retainedMessagePartEnds?.[message.id] ?? message.parts.length))
+    .map((message) => sliceMessageParts(message, checkpoint.retainedMessagePartStarts?.[message.id] ?? Number(message.metadata?.[CONTEXT_COMPACTION_PART_START] ?? 0),
+      checkpoint.retainedMessagePartEnds?.[message.id] ?? Number(message.metadata?.[CONTEXT_COMPACTION_PART_START] ?? 0) + message.parts.length))
     .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
   const projectedRegularMessages = regularMessages
     .filter((message) =>

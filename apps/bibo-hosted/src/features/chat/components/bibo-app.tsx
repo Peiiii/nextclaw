@@ -24,7 +24,7 @@ const suggestions = [
   { icon: Folder, label: "梳理一个项目", text: "我正在做一个项目，想和你一起理清现状、目标和下一步。请先问我必要的问题。" },
   { icon: CalendarDays, label: "整理今天", text: "今天我有不少事要做。请帮我根据重要性和精力安排一个现实可执行的计划，先问我需要的信息。" },
 ];
-const MessageRow = memo(function MessageRow({ message, time, onOpenQuestion, submittingQuestionId }: { message: BiboDisplayMessage; time: string | null; onOpenQuestion: (id: string) => void; submittingQuestionId?: string }) {
+const MessageRow = memo(function MessageRow({ message, time, onOpenQuestion, submittingQuestionId, sessionId }: { message: BiboDisplayMessage; time: string | null; onOpenQuestion: (id: string) => void; submittingQuestionId?: string; sessionId: string | null }) {
   const questionById = new Map(message.questions?.map((question) => [question.id, question]));
   const content = message.content ?? [
     ...(message.text ? [{ type: "text" as const, text: message.text }] : []),
@@ -43,6 +43,8 @@ const MessageRow = memo(function MessageRow({ message, time, onOpenQuestion, sub
     {time && <time className="bibo-message-time" dateTime={message.at}>{time}</time>}
     {message.replyToQuestion && <QuestionReference reference={message.replyToQuestion} />}
     {cards ? <div className="bibo-ordered-content">{cards}</div> : <Message role="user" text={message.text} pending={message.pending} label={copy.you} resolveResourceHref={workspaceResources.href} />}
+    {sessionId && message.sources?.map((source, index) => <a key={source.messageId} target="_blank" rel="noopener noreferrer"
+      href={`/api/history/source?${new URLSearchParams({ id: sessionId, message: source.messageId, part: "0", parts: String(source.partCount) })}`}>{copy.historySource}{message.sources!.length > 1 ? ` ${index + 1}` : ""}</a>)}
   </div>;
 });
 const navigation: { view: BiboView; label: string; icon: LucideIcon }[] = [
@@ -213,6 +215,10 @@ export function ChatPage() {
     if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
   };
   return <div className="bibo-chat-layout"><div className="bibo-chat-column"><section className="bibo-conversation" aria-label="与 Bibo 对话">
+        {store.activeSessionId && <div>
+          {store.historyPreviousCursor && <Button tone="text" disabled={store.sessionLoading} onClick={() => void store.loadHistoryPage(true)}>{copy.historyPrevious}</Button>}
+          {(store.historyOlderPage || store.historyPreparing) && <Button tone="text" disabled={store.sessionLoading} onClick={() => void store.loadHistoryPage()}>{store.historyPreparing ? copy.historyRetry : copy.historyLatest}</Button>}
+        </div>}
         {!hasMessages && <div className="bibo-welcome">
           <BiboCompanion className="bibo-welcome-companion" />
           <h1>{copy.greeting}</h1>
@@ -221,7 +227,7 @@ export function ChatPage() {
         </div>}
         {hasMessages && <div className="bibo-messages" ref={listRef} onScroll={onScroll} role="log" aria-live="polite" aria-relevant="additions text">
           <div className="bibo-message-content">{messages.map((message, index) => <MessageRow key={message.id} message={message} time={messageTime(message.at, messages[index - 1]?.at)}
-            onOpenQuestion={store.openQuestion} submittingQuestionId={submittingQuestionId} />)}</div>
+            onOpenQuestion={store.openQuestion} submittingQuestionId={submittingQuestionId} sessionId={store.activeSessionId} />)}</div>
         </div>}
         {hasMessages && !store.following && <IconButton className="bibo-jump" label={copy.backToLatest} icon={<ArrowDown size={18} />} feedback="filled" tooltipSide="top" onClick={jumpToLatest} />}
       </section>

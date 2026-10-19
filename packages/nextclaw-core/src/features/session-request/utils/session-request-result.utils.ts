@@ -1,4 +1,4 @@
-import { CHILD_SESSION_PARENT_METADATA_KEY } from "@core/features/session/index.js";
+import { CHILD_SESSION_PARENT_METADATA_KEY } from "@core/features/session/types/session.types.js";
 import type {
   SessionRequestRecord,
   SessionRequestToolResult,

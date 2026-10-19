@@ -12,7 +12,8 @@ function fixture(metadata: Record<string, unknown> = { label: '你好，帮我�
   const chat = vi.fn().mockResolvedValue({ content: '{"title":"杭州天气查询"}' });
   const applyGeneratedTitle = vi.fn().mockResolvedValue(true);
   const getSessionRecord = vi.fn().mockResolvedValue(record);
-  const service = new SessionTitleService({ getSessionRecord, applyGeneratedTitle } as never, { chat } as never);
+  const service = new SessionTitleService({ getSessionPreviewRecord: getSessionRecord,
+    getSession: async () => ({ metadata: record.metadata }), applyGeneratedTitle } as never, { chat } as never);
   return { service, record, chat, applyGeneratedTitle, getSessionRecord };
 }
 
