@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-10-19T07:43:02.108Z",
+  "generatedAt": "2026-10-20T07:28:54.146Z",
   "hero": {
-    "currentLoc": 322285,
-    "testLoc": 138723,
-    "trackedFiles": 3493,
-    "recentCommitCount": 505,
-    "activeDays30": 29,
+    "currentLoc": 323981,
+    "testLoc": 139408,
+    "trackedFiles": 3513,
+    "recentCommitCount": 526,
+    "activeDays30": 30,
     "recentReleaseCount": 44,
-    "latestReleaseDate": "2026-10-09",
-    "latestNoteDate": "2026-10-09",
+    "latestReleaseDate": "2026-10-19",
+    "latestNoteDate": "2026-10-20",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 3745057,
-    "basePercentOfBenchmark": 8.61,
-    "lighterByPercent": 91.39
+    "benchmarkCodeLines": 3743076,
+    "basePercentOfBenchmark": 8.66,
+    "lighterByPercent": 91.34
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-06-22",
-        "label": "06-22",
-        "value": 191212
-      },
       {
         "key": "2026-06-23",
         "label": "06-23",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-10-19",
         "label": "10-19",
         "value": 322285
+      },
+      {
+        "key": "2026-10-20",
+        "label": "10-20",
+        "value": 323981
       }
     ],
     "testLocDaily": [
@@ -1427,14 +1427,14 @@ export default {
         "key": "2026-10-19",
         "label": "10-19",
         "value": 138723
+      },
+      {
+        "key": "2026-10-20",
+        "label": "10-20",
+        "value": 139408
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-09-20",
-        "label": "09-20",
-        "value": 1
-      },
       {
         "key": "2026-09-21",
         "label": "09-21",
@@ -1578,7 +1578,12 @@ export default {
       {
         "key": "2026-10-19",
         "label": "10-19",
-        "value": 0
+        "value": 8
+      },
+      {
+        "key": "2026-10-20",
+        "label": "10-20",
+        "value": 14
       }
     ],
     "commitWeekly": [
@@ -1640,7 +1645,7 @@ export default {
       {
         "key": "2026-10-19",
         "label": "10-19",
-        "value": 0
+        "value": 22
       }
     ],
     "releaseMonthly": [
@@ -1702,7 +1707,7 @@ export default {
       {
         "key": "2026-10",
         "label": "10/26",
-        "value": 3
+        "value": 4
       }
     ]
   },
@@ -1710,17 +1715,17 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 76699,
-        "testCodeLines": 42916,
-        "files": 939,
-        "sharePercent": 23.8
+        "codeLines": 76806,
+        "testCodeLines": 42954,
+        "files": 942,
+        "sharePercent": 23.7
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 50897,
-        "testCodeLines": 27468,
-        "files": 505,
-        "sharePercent": 15.8
+        "codeLines": 52061,
+        "testCodeLines": 27906,
+        "files": 518,
+        "sharePercent": 16.1
       },
       {
         "name": "packages/nextclaw-service",
@@ -1731,7 +1736,7 @@ export default {
       },
       {
         "name": "packages/nextclaw-core",
-        "codeLines": 16835,
+        "codeLines": 16883,
         "testCodeLines": 6994,
         "files": 186,
         "sharePercent": 5.2
@@ -1752,8 +1757,8 @@ export default {
       },
       {
         "name": "packages/nextclaw-server",
-        "codeLines": 13697,
-        "testCodeLines": 11040,
+        "codeLines": 13729,
+        "testCodeLines": 11066,
         "files": 162,
         "sharePercent": 4.2
       },
@@ -1767,11 +1772,20 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 3745057,
-      "basePercentOfBenchmark": 8.61,
-      "lighterByPercent": 91.39
+      "benchmarkCodeLines": 3743076,
+      "basePercentOfBenchmark": 8.66,
+      "lighterByPercent": 91.34
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-10-19",
+        "tagCount": 32,
+        "sampleTags": [
+          "@nextclaw/channel-extension-dingtalk@0.2.57",
+          "@nextclaw/channel-extension-discord@0.2.57",
+          "@nextclaw/channel-extension-email@0.2.57"
+        ]
+      },
       {
         "date": "2026-10-09",
         "tagCount": 23,
@@ -1816,20 +1830,41 @@ export default {
           "@nextclaw/companion@0.2.71-beta.0",
           "@nextclaw/harness@0.2.28-beta.0"
         ]
-      },
-      {
-        "date": "2026-09-28",
-        "tagCount": 46,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.12.3",
-          "@nextclaw/app-runtime@0.16.11",
-          "@nextclaw/channel-extension-dingtalk@0.2.54"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-10-20-nextclaw-v0-59-3",
+        "date": "2026-10-20",
+        "tags": [],
+        "en": {
+          "title": "2026-10-20 · NextClaw v0.59.3",
+          "description": "Recover long conversations, load large histories on demand, and fix Windows session imports.",
+          "href": "/en/notes/2026-10-20-nextclaw-v0-59-3"
+        },
+        "zh": {
+          "title": "2026-10-20 · NextClaw v0.59.3",
+          "description": "长会话压缩恢复、大历史按需加载及 Windows 会话兼容修复。",
+          "href": "/zh/notes/2026-10-20-nextclaw-v0-59-3"
+        }
+      },
+      {
+        "slug": "2026-10-20-nextclaw-v0-59-2",
+        "date": "2026-10-20",
+        "tags": [],
+        "en": {
+          "title": "2026-10-20 · NextClaw v0.59.2",
+          "description": "Recover safely from incomplete summaries and load large histories on demand.",
+          "href": "/en/notes/2026-10-20-nextclaw-v0-59-2"
+        },
+        "zh": {
+          "title": "2026-10-20 · NextClaw v0.59.2",
+          "description": "摘要失败时保留可恢复的上下文，大历史和超大消息按需加载。",
+          "href": "/zh/notes/2026-10-20-nextclaw-v0-59-2"
+        }
+      },
       {
         "slug": "2026-10-09-nextclaw-v0-59-1",
         "date": "2026-10-09",
@@ -3319,9 +3354,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-10-19T07:42:59.711Z",
+    "locGeneratedAt": "2026-10-20T07:28:51.816Z",
     "sourceCount": {
-      "notes": 76,
+      "notes": 78,
       "scopes": 8
     }
   }
