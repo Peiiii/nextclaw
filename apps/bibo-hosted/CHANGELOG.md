@@ -1,5 +1,23 @@
 # @nextclaw/bibo-hosted
 
+## 0.3.3
+
+### Patch Changes
+
+- Updated dependencies [373421c]
+  - @nextclaw/kernel@0.19.5
+  - @nextclaw/harness@0.2.31
+
+## 0.3.2
+
+### Patch Changes
+
+- Updated dependencies [6e7a43a]
+  - @nextclaw/core@0.18.8
+  - @nextclaw/kernel@0.19.4
+  - @nextclaw/ncp-agent-runtime-next@0.1.31
+  - @nextclaw/harness@0.2.30
+
 ## 0.3.1
 
 ### Patch Changes

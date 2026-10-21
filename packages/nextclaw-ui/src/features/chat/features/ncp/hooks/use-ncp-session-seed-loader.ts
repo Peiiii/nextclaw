@@ -14,6 +14,7 @@ export type NcpConversationSeedWithContextWindow = NcpConversationSeed & {
   deferredToolPayloads: Record<string, { cursor: string }>;
   total: number;
   pageInfo: NcpSessionMessagePageInfo;
+  preparation?: NcpSessionMessagesView["preparation"];
 };
 
 function isMissingNcpSessionError(error: unknown): boolean {
@@ -72,18 +73,30 @@ export async function fetchNcpSessionConversationSeed(
   signal: AbortSignal,
   messageLimit = DEFAULT_NCP_SESSION_MESSAGE_LIMIT,
   payloadMode: "compact" | "standard" = "compact",
+  onPreparation?: (preparation: NonNullable<NcpSessionMessagesView["preparation"]>) => void,
 ): Promise<NcpConversationSeedWithContextWindow> {
   signal.throwIfAborted();
   try {
     const prefetchedResponse = payloadMode === "compact"
       ? await takeInitialSessionMessagesPrefetch({ sessionId, messageLimit, signal })
       : null;
-    const response = prefetchedResponse ?? await fetchNcpSessionMessages(sessionId, {
+    let response = prefetchedResponse ?? await fetchNcpSessionMessages(sessionId, {
       limit: messageLimit,
       toolPayload: "summary",
       initialPayload: payloadMode === "compact" ? "compact" : undefined,
       signal,
     });
+    while (response.preparation && response.preparation.status !== "ready") {
+      signal.throwIfAborted();
+      onPreparation?.(response.preparation);
+      if (["failed", "cancelled"].includes(response.preparation.status)) throw new Error(response.preparation.error ?? "Session history preparation cancelled");
+      await new Promise<void>((resolve, reject) => {
+        const abort = () => { clearTimeout(timer); reject(signal.reason); };
+        const timer = setTimeout(() => { signal.removeEventListener("abort", abort); resolve(); }, 500);
+        signal.addEventListener("abort", abort, { once: true });
+      });
+      response = await fetchNcpSessionMessages(sessionId, { limit: messageLimit, toolPayload: "summary", initialPayload: payloadMode === "compact" ? "compact" : undefined, signal });
+    }
     signal.throwIfAborted();
     return {
       messages: response.messages,
@@ -124,6 +137,7 @@ export function useNcpSessionSeedLoader(params: {
       signal,
       messageLimit,
       payloadMode,
+      preparation => onSeedLoaded(sessionId, { messages: [], status: "idle", total: 0, pageInfo: { startCursor: null, hasPreviousPage: false }, deferredToolPayloads: {}, preparation }),
     );
     if (!signal.aborted) {
       hydratedSessionsRef.current.add(sessionId);

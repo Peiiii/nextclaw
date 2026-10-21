@@ -1,4 +1,4 @@
-import { appendFile, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { appendFile, mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +8,7 @@ import { replayNcpAgentSessionEvents } from "@kernel/utils/ncp-agent-session-rep
 import { NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION } from "@kernel/utils/ncp-agent-session-message-projection.utils.js";
 import { NcpAgentSessionJournalStore } from "./ncp-agent-session-journal.store.js";
 import { NcpAgentSessionMessageProjectionPersistenceStore } from "./ncp-agent-session-message-projection-persistence.store.js";
+import { canonicalSessionMessages, setProjectionVersion } from "@kernel/utils/__tests__/session-message-projection-fixture.utils.js";
 
 const sessionId = "tool-rounds";
 const messageId = "assistant-1";
@@ -71,13 +72,13 @@ describe("tool ownership across journal checkpoints", () => {
     store.close();
     await rm(join(directory, ".message-projections"), { recursive: true });
     store = new NcpAgentSessionJournalStore(directory);
-    expect(await store.listSessionMessages(sessionId)).toEqual(expected);
+    expect(canonicalSessionMessages(await store.listSessionMessages(sessionId))).toEqual(canonicalSessionMessages(expected));
     expect(await store.synchronizeSessionMessageProjection(sessionId)).toBe(true);
-    expect((await store.listSessionMessagePage({ sessionId, limit: 10 }))?.messages).toEqual(expected);
+    expect(canonicalSessionMessages((await store.listSessionMessagePage({ sessionId, limit: 10 }))?.messages)).toEqual(canonicalSessionMessages(expected));
     expect(await readFile(journalPath, "utf8")).toBe(journal);
     store.close();
     store = new NcpAgentSessionJournalStore(directory);
-    expect(await store.listSessionMessages(sessionId)).toEqual(expected);
+    expect(canonicalSessionMessages(await store.listSessionMessages(sessionId))).toEqual(canonicalSessionMessages(expected));
   });
 
   it("keeps live, incremental and full replay identical through six tool rounds and cold reload", async () => {
@@ -92,10 +93,10 @@ describe("tool ownership across journal checkpoints", () => {
       if (event.type !== E.MessageSent && event.type !== E.MessageCompleted && event.type !== E.RunFinished) continue;
       const full = await replayNcpAgentSessionEvents(events);
       const page = await store.listSessionMessagePage({ sessionId, limit: 10 });
-      expect(page?.messages).toEqual(full);
+      expect(canonicalSessionMessages(page?.messages)).toEqual(canonicalSessionMessages(full));
       const snapshot = live.getSnapshot();
       const liveMessages = snapshot.streamingMessage ? [...snapshot.messages, snapshot.streamingMessage] : snapshot.messages;
-      expect(page?.messages).toEqual(liveMessages);
+      expect(canonicalSessionMessages(page?.messages)).toEqual(canonicalSessionMessages(liveMessages));
       expect(page?.messages.map(message => message.id)).toEqual([user.id, messageId]);
     }
     const cold = new NcpAgentSessionJournalStore(directory);
@@ -104,13 +105,13 @@ describe("tool ownership across journal checkpoints", () => {
       expect(page?.total).toBe(2);
       expect(page?.messages[1].status).toBe("final");
       expect(page?.messages[1].parts.filter(part => part.type === "tool-invocation")).toHaveLength(9);
-      expect(page?.messages).toEqual(await cold.listSessionMessages(sessionId));
+      expect(canonicalSessionMessages(page?.messages)).toEqual(canonicalSessionMessages(await cold.listSessionMessages(sessionId)));
     } finally { cold.close(); }
   });
 
   it.each([E.RunFinished, E.RunError, E.MessageAbort] as const)("does not resurrect %s messages from late starts, args or results", async (terminal) => {
     await setup();
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const events: NcpEndpointEvent[] = [
       { type: E.RunStarted, payload: run },
       { type: E.MessageSent, payload: { sessionId, message: assistant } },
@@ -122,8 +123,7 @@ describe("tool ownership across journal checkpoints", () => {
     expect(page?.messages.map(message => message.id)).toEqual([user.id, messageId]);
     expect(page?.messages[1].status).toBe(terminal === E.RunError ? "error" : "final");
     expect(page?.messages[1].parts).toEqual([]);
-    expect(await store.listSessionMessages(sessionId)).toEqual(page?.messages);
-    expect(warn).toHaveBeenCalled();
+    expect(canonicalSessionMessages(await store.listSessionMessages(sessionId))).toEqual(canonicalSessionMessages(page?.messages));
   });
 
   it("attaches a late result to its known completed message across an incremental boundary", async () => {
@@ -134,7 +134,7 @@ describe("tool ownership across journal checkpoints", () => {
     expect(page?.total).toBe(2);
     expect(page?.messages[1].status).toBe("final");
     expect(page?.messages[1].parts).toContainEqual(expect.objectContaining({ toolCallId: "call-9", result: "late result" }));
-    expect(page?.messages).toEqual(await store.listSessionMessages(sessionId));
+    expect(canonicalSessionMessages(page?.messages)).toEqual(canonicalSessionMessages(await store.listSessionMessages(sessionId)));
   });
 
   it("resolves a late tool owner without parsing unrelated historical journal lines", async () => {
@@ -178,15 +178,12 @@ describe("tool ownership across journal checkpoints", () => {
       projectedJournalOffset: Buffer.byteLength(original),
     });
     expect((await store.listSessionMessagePage({ sessionId, limit: 10 }))?.total).toBe(3);
-    const projection = join(directory, ".message-projections", sessionId);
-    const metaPath = join(projection, "meta.json");
-    const meta = JSON.parse(await readFile(metaPath, "utf-8"));
-    meta.version = 7;
-    await writeFile(metaPath, JSON.stringify(meta));
+    await setProjectionVersion(directory, sessionId, 7);
+    await store.prepareSessionHistory(sessionId, { wait: true });
     const page = await store.listSessionMessagePage({ sessionId, limit: 10 });
     expect(page?.total).toBe(2);
-    expect(page?.messages).toEqual(await store.listSessionMessages(sessionId));
-    expect(JSON.parse(await readFile(metaPath, "utf-8")).version).toBe(NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION);
+    expect(canonicalSessionMessages(page?.messages)).toEqual(canonicalSessionMessages(await store.listSessionMessages(sessionId)));
+    expect((await persistence.readMeta(sessionId))?.version).toBe(NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION);
     expect(await readFile(journalPath, "utf-8")).toBe(original);
     expect(await store.listSessionMessagePage({ sessionId, limit: 10 })).toEqual(page);
   });

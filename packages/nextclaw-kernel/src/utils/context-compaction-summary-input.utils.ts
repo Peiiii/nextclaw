@@ -20,10 +20,10 @@ const SUMMARY_OPTIONAL_SECTIONS = [
 ] as const;
 const SUMMARY_SYSTEM_PROMPT = [
   "Summarize facts as Markdown starting '# Compressed Working Context'.",
-  "Required nonempty headings, in order: Active Request; Current Work State; Safety and User Constraints; Continuation Contract. Close the last body with <!-- nextclaw-essential-context-complete -->.",
+  "Describe Active Request, Current Work State, Safety and User Constraints, and Continuation Contract. These are content priorities, not a machine-readable protocol.",
   "Include latest intent, decisions, constraints, changed files, evidence and next step. Distinguish Done/In Progress/Blocked/Failed; keep command/file identities and outcomes. Attempted calls alone are not completion.",
   "Update any previous summary: carry completed work and constraints forward, replace stale next steps. Completed requests are history. Repeat reads only for freshness/verification; recover uncertain side-effect status before repeating. A greeting does not erase the prior task or restart onboarding.",
-  "Optional headings follow in order: Critical Technical Context; Evidence and Verification; Recent High-Fidelity Context; Older Relevant Context. Close each body with <!-- nextclaw-section-complete:SLUG -->, using critical-technical-context, evidence-and-verification, recent-high-fidelity-context, older-relevant-context respectively. Omit sections you cannot close.",
+  "Include technical context and verification evidence when relevant. State uncertainty explicitly; never invent completion or missing constraints. Finish naturally within the output budget.",
 ].join("\n");
 
 function buildSummaryProviderMessages(params: {
@@ -31,9 +31,11 @@ function buildSummaryProviderMessages(params: {
   messages: readonly Record<string, unknown>[];
   sourceMaxChars: number;
   targetSummaryTokens: number;
-}): Record<string, unknown>[] {
+}): { messages: Record<string, unknown>[]; sourceTruncated: boolean } {
   const { essentialOnly, messages, sourceMaxChars, targetSummaryTokens } = params;
-  return [
+  let sourceTruncated = false;
+  const source = stringifyCompactionSource(messages, sourceMaxChars, truncated => { sourceTruncated = truncated; });
+  return { sourceTruncated, messages: [
     {
       role: "system",
       content: essentialOnly
@@ -47,13 +49,13 @@ function buildSummaryProviderMessages(params: {
         `Keep the visible Markdown summary within ${targetSummaryTokens} tokens. Use the output budget for the summary, not for hidden reasoning.`,
         essentialOnly
           ? "Output the four essential sections only, then stop after the essential completion marker."
-          : "Complete the essential prefix first; add only optional sections you can close.",
+          : "Prioritize the active task, constraints, verified outcomes and next step. Finish naturally.",
         "",
         "Messages JSON:",
-        stringifyCompactionSource(messages, sourceMaxChars),
+        source,
       ].join("\n"),
     },
-  ];
+  ] };
 }
 
 export function fitContextCompactionSummaryInput(params: {
@@ -62,7 +64,7 @@ export function fitContextCompactionSummaryInput(params: {
   messages: readonly Record<string, unknown>[];
   targetSummaryTokens: number;
   sourceMaxChars?: number;
-}): Record<string, unknown>[] {
+}): { messages: Record<string, unknown>[]; sourceTruncated: boolean } {
   const {
     essentialOnly = false,
     maxInputTokens,
@@ -70,40 +72,23 @@ export function fitContextCompactionSummaryInput(params: {
     sourceMaxChars = SUMMARY_SOURCE_MAX_CHARS,
     targetSummaryTokens,
   } = params;
-  let lower = 0;
-  let upper = Math.max(0, sourceMaxChars);
-  let sourceFitted = messages.length === 0;
-  let fitted = buildSummaryProviderMessages({
+  const empty = buildSummaryProviderMessages({
     essentialOnly,
     messages: [],
     sourceMaxChars: 0,
     targetSummaryTokens,
   });
-  if (estimateInputTokens(fitted) > maxInputTokens) {
+  const fixedTokens = estimateInputTokens(empty.messages);
+  if (fixedTokens > maxInputTokens) {
     throw new Error(
       `Context compaction summary prompt needs more than ${maxInputTokens} input tokens. Increase the agent contextTokens setting.`,
     );
   }
-  while (lower <= upper) {
-    const sourceMaxChars = Math.floor((lower + upper) / 2);
-    let candidate: Record<string, unknown>[];
-    try {
-      candidate = buildSummaryProviderMessages({ essentialOnly, messages, sourceMaxChars, targetSummaryTokens });
-    } catch {
-      lower = sourceMaxChars + 1;
-      continue;
-    }
-    if (estimateInputTokens(candidate) <= maxInputTokens) {
-      fitted = candidate;
-      sourceFitted = true;
-      lower = sourceMaxChars + 1;
-    } else {
-      upper = sourceMaxChars - 1;
-    }
-  }
-  if (!sourceFitted) {
-    throw new Error("Compaction source cannot fit without dropping message identities.");
-  }
+  // Allocate conservatively once. The source owner already fits strings; a second
+  // binary search around it repeatedly serialized the same working window.
+  const fitted = buildSummaryProviderMessages({ essentialOnly, messages, targetSummaryTokens,
+    sourceMaxChars: Math.min(sourceMaxChars, Math.max(0, (maxInputTokens - fixedTokens - 8) * 3)) });
+  if (estimateInputTokens(fitted.messages) > maxInputTokens) throw new Error("Compaction source cannot fit without dropping message identities.");
   return fitted;
 }
 

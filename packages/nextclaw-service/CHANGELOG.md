@@ -1,5 +1,39 @@
 # @nextclaw/service
 
+## 0.7.11
+
+### Patch Changes
+
+- Updated dependencies [373421c]
+  - @nextclaw/kernel@0.19.5
+  - @nextclaw/harness@0.2.31
+  - @nextclaw/remote@0.3.74
+  - @nextclaw/server@0.23.17
+  - @nextclaw/client-sdk@0.12.17
+
+## 0.7.10
+
+### Patch Changes
+
+- Updated dependencies [6e7a43a]
+  - @nextclaw/core@0.18.8
+  - @nextclaw/kernel@0.19.4
+  - @nextclaw/server@0.23.16
+  - @nextclaw/client-sdk@0.12.16
+  - @nextclaw/channel-extension-dingtalk@0.2.57
+  - @nextclaw/channel-extension-discord@0.2.57
+  - @nextclaw/channel-extension-email@0.2.57
+  - @nextclaw/channel-extension-slack@0.2.57
+  - @nextclaw/channel-extension-telegram@0.2.57
+  - @nextclaw/channel-extension-wecom@0.2.57
+  - @nextclaw/channel-extension-whatsapp@0.2.57
+  - @nextclaw/mcp@0.3.58
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.58
+  - @nextclaw/remote@0.3.73
+  - @nextclaw/runtime@0.4.57
+  - @nextclaw/harness@0.2.30
+  - @nextclaw/ncp-mcp@0.2.58
+
 ## 0.7.9
 
 ### Patch Changes

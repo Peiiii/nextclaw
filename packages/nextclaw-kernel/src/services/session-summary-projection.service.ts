@@ -10,7 +10,7 @@ import { eventKeys, type EventBus } from "@nextclaw/shared";
 export type SessionSummaryProjectionServiceOptions = {
   agentContextWindowManager: Pick<AgentContextWindowManager, "previewSession">;
   eventBus: EventBus;
-  getSessionRecord: (sessionId: string) => Promise<AgentSessionRecord | null>;
+  getSessionRecord: (sessionId: string) => Promise<(AgentSessionRecord & { totalMessageCount?: number }) | null>;
   journalStore: Pick<SessionPersistence, "updateSessionMessageProjectionContextWindow">;
   sessionSearch: Pick<SessionSearchService, "handleSessionUpdated">;
   workingDirResolver: SessionWorkingDirResolver;
@@ -56,6 +56,7 @@ export class SessionSummaryProjectionService {
       return;
     }
     const summary = await this.createWithContextWindow(record);
+    if (record.totalMessageCount !== undefined) summary.messageCount = record.totalMessageCount;
     await this.options.journalStore.updateSessionMessageProjectionContextWindow(
       sessionKey,
       summary.contextWindow ?? null,

@@ -115,6 +115,7 @@ function UserQuestionPanel({ question, pending, state }: { question: Question; p
           className="shrink-0 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-[current=true]:bg-[var(--interaction-selection)] aria-[current=true]:text-foreground">{item.title}</button>)}
       </nav> : null}
       <h2 className="mt-3 text-base font-semibold leading-6">{question.title}</h2>
+      {question.recoveryCheckpointId ? <p className="mt-2 text-sm text-muted-foreground">{t("chatRecoveryQuestionNotice")}</p> : null}
       <TooltipProvider delayDuration={180}>
         <div className="mt-2 space-y-0.5">
           {question.options?.map((option, index) => {

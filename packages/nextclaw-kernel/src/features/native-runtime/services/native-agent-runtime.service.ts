@@ -33,6 +33,7 @@ export function createNativeAgentRuntimeRegistration(resources: NativeAgentRunti
       agentId: spec.agentId, contextBlocks, messages: sessionRun.getSnapshot().messages,
       metadata: session.metadata, model: spec.model, phase, signal,
       sessionId: sessionRun.sessionId, tools,
+      overflow: input.overflow, maxOutputTokens: spec.maxTokens,
     });
   };
   return {

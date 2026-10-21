@@ -94,6 +94,25 @@ export function resolvePublishedRuntimeAsset(version, platform, arch) {
   };
 }
 
+/** A published NPM version can precede a failed or intentionally omitted Runtime promotion. */
+export function resolvePreviousPublishedRuntimeAsset(releases, maximumVersion, platform, arch) {
+  assert(/^\d+\.\d+\.\d+$/.test(maximumVersion), "previous package version must be stable");
+  const compare = (left, right) => {
+    const a = left.split(".").map(Number), b = right.split(".").map(Number);
+    return a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+  };
+  const candidates = releases.flatMap(release => {
+    const version = /^nextclaw@(\d+\.\d+\.\d+)$/.exec(release.tag_name ?? "")?.[1];
+    if (!version || release.draft || release.prerelease || compare(version, maximumVersion) > 0) return [];
+    const names = new Set((release.assets ?? []).map(asset => asset.name));
+    const complete = ["darwin-arm64", "darwin-x64", "linux-x64", "win32-x64"]
+      .every(target => names.has(`nextclaw-runtime-${target}-${version}.zip`));
+    return complete ? [version] : [];
+  }).sort((left, right) => compare(right, left));
+  assert(candidates.length, `No complete official stable Runtime exists at or before ${maximumVersion}`);
+  return { version: candidates[0], ...resolvePublishedRuntimeAsset(candidates[0], platform, arch) };
+}
+
 function sleep(ms) {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
@@ -178,14 +197,23 @@ async function verifyPreviousStableUpdate(previousVersion, expectedVersion) {
     previousVersion !== expectedVersion,
     "--previous-version must differ from --expected-version",
   );
-  const fixture = await createPublishedInstallFixture(
-    resolveStablePackageTarball(previousVersion),
-    `stable-upgrade-${previousVersion}`,
-  );
-  try {
-    verifyPublishedStableUpdate(fixture, previousVersion, expectedVersion);
-  } finally {
-    await removeFixture(fixture.tempRoot);
+  const releases = JSON.parse(run("gh", ["api", `repos/${REPO}/releases?per_page=100`]).stdout);
+  const previousRuntime = resolvePreviousPublishedRuntimeAsset(releases, previousVersion, process.platform, process.arch);
+  for (const packageVersion of new Set([previousRuntime.version, previousVersion])) {
+    const fixture = await createPublishedInstallFixture(
+      resolveStablePackageTarball(packageVersion),
+      `stable-upgrade-${packageVersion}`,
+    );
+    try {
+      verifyPublishedPackagePayload(fixture, packageVersion);
+      if (packageVersion === previousRuntime.version) {
+        verifyPublishedStableUpdate(fixture, previousRuntime, expectedVersion);
+      } else {
+        verifyPublishedBootstrapUpdate(fixture, packageVersion, previousRuntime, expectedVersion);
+      }
+    } finally {
+      await removeFixture(fixture.tempRoot);
+    }
   }
 }
 
@@ -356,12 +384,8 @@ function parsePublishedLauncherJson(fixture, args) {
   }
 }
 
-function seedPreviousPublishedRuntime(fixture, previousVersion) {
-  const asset = resolvePublishedRuntimeAsset(
-    previousVersion,
-    process.platform,
-    process.arch,
-  );
+function seedPreviousPublishedRuntime(fixture, asset) {
+  const previousVersion = asset.version;
   const downloadPath = join(fixture.tempRoot, asset.assetName);
   const extractPath = join(fixture.tempRoot, "previous-runtime");
   run("curl", ["--fail", "--location", "--output", downloadPath, asset.url], {
@@ -398,14 +422,16 @@ function seedPreviousPublishedRuntime(fixture, previousVersion) {
     "current.json",
   );
   writeFileSync(pointerPath, `${JSON.stringify({ version: previousVersion }, null, 2)}\n`);
+  return previousVersion;
 }
 
 function verifyPublishedStableUpdate(
   fixture,
-  previousVersion,
+  previousRuntime,
   expectedVersion,
 ) {
-  seedPreviousPublishedRuntime(fixture, previousVersion);
+  const previousVersion = previousRuntime.version;
+  const previousRuntimeVersion = seedPreviousPublishedRuntime(fixture, previousRuntime);
   const checkSnapshot = parsePublishedLauncherJson(fixture, [
     "update",
     "--channel",
@@ -441,7 +467,7 @@ function verifyPublishedStableUpdate(
   );
   const pointerBeforeApply = JSON.parse(readFileSync(currentPointerPath, "utf8"));
   assert(
-    pointerBeforeApply.version === previousVersion,
+    pointerBeforeApply.version === previousRuntimeVersion,
     "download-only unexpectedly switched the current runtime pointer",
   );
 
@@ -521,6 +547,7 @@ function verifyPublishedStableUpdate(
 [validation:npm-update --published-stable] Published stable update verified.
 
 - previous package: ${previousVersion}
+- previous Runtime: ${previousRuntimeVersion}
 - available version: ${checkSnapshot.availableVersion}
 - download-only: did not switch current pointer
 - apply: ${appliedSnapshot.status}
@@ -528,4 +555,21 @@ function verifyPublishedStableUpdate(
 - Portable Service App runner: executable
 - Portable Service App call: ${callResult.actionId}
 `);
+}
+
+function verifyPublishedBootstrapUpdate(fixture, packageVersion, previousRuntime, expectedVersion) {
+  seedPreviousPublishedRuntime(fixture, previousRuntime);
+  // A newer launcher may bootstrap before dispatching the user command. Verify
+  // the normal one-step command separately from the coherent stable fixture.
+  const snapshot = parsePublishedLauncherJson(fixture, ["update", "--channel", "stable", "--json"]);
+  assert(["restart-required", "up-to-date"].includes(snapshot.status), `bootstrap update failed: ${JSON.stringify(snapshot)}`);
+  const pointer = JSON.parse(readFileSync(join(fixture.nextclawHome, "launcher", "runtime-bundles", "current.json"), "utf8"));
+  assert(pointer.version === expectedVersion, `bootstrap pointer is ${pointer.version}, expected ${expectedVersion}`);
+  const version = readVersionOutput(run(fixture.binaryPath, ["--version"], {
+    cwd: fixture.packageDirectory,
+    env: { NEXTCLAW_HOME: fixture.nextclawHome, PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}` },
+    timeout: 300000,
+  }).stdout, "bootstrapped runtime");
+  assert(version === expectedVersion, `bootstrap new process is ${version}, expected ${expectedVersion}`);
+  console.log(`[validation:npm-update --published-stable] Bootstrap upgrade verified: package ${packageVersion}, Runtime ${previousRuntime.version} -> ${version}, status ${snapshot.status}.`);
 }

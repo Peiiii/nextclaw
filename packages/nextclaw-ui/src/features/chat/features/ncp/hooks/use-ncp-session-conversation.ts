@@ -224,6 +224,12 @@ export function useNcpSessionConversation(
       loadMessageDetails,
       messageDetailStates: visibleHistoryState.messageDetailStates,
       messageTotal: visibleHistoryState.total,
+      historyPreparation: visibleHistoryState.preparation,
+      cancelHistoryPreparation: () => sessionId ? nextclawClient.sessions.cancelHistoryPreparation(sessionId) : Promise.resolve({ cancelled: false }),
+      retryHistoryPreparation: () => sessionId ? nextclawClient.sessions.prepareHistory(sessionId).then(
+        () => setHydrationRetryVersion(version => version + 1),
+        () => setHydrationRetryVersion(version => version + 1),
+      ) : Promise.resolve(),
     }),
     [
       agent,

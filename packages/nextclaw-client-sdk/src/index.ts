@@ -218,6 +218,7 @@ export type {
   UiNcpAssetPutView as NcpAssetPutView,
   UiNcpSessionListView,
   UiNcpSessionMessagesView,
+  UiNcpSessionMessagePartView,
   UiNcpSessionQueuedInputView,
   UiNcpSessionQueuedInputsView,
   UiNcpSessionPendingInputView,

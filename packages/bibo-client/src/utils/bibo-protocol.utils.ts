@@ -140,7 +140,9 @@ export function readMessages(value: unknown): BiboMessage[] {
   return value.map((item) => ({ role: item.role, text: item.text, at: item.at,
     ...(item.content === undefined ? {} : { content: readMessageContent(item.content) }),
     ...(item.questions === undefined ? {} : { questions: readQuestions(item.questions) }),
-    ...(item.replyToQuestion === undefined ? {} : { replyToQuestion: readQuestionReference(item.replyToQuestion) }) }));
+    ...(item.replyToQuestion === undefined ? {} : { replyToQuestion: readQuestionReference(item.replyToQuestion) }),
+    ...(Array.isArray(item.sources) ? { sources: item.sources.filter((source: unknown): source is { messageId: string; partCount: number } => isRecord(source)
+      && typeof source.messageId === "string" && Number.isSafeInteger(source.partCount) && Number(source.partCount) > 0).slice(0, 40) } : {}) }));
 }
 
 export function readSession(value: unknown): BiboSession {
@@ -156,7 +158,8 @@ export function readCommitted(value: unknown): Extract<BiboChatEvent, { name: "c
   if (!isRecord(value) || typeof value.text !== "string") {
     throw new BiboClientError("回答没有保存，请重试。");
   }
-  return { name: "committed", value: { text: value.text, messages: readMessages(value.messages), session: value.session === undefined || value.session === null ? null : readSession(value.session) } };
+  return { name: "committed", value: { text: value.text, messages: readMessages(value.messages), session: value.session === undefined || value.session === null ? null : readSession(value.session),
+    ...(value.previousCursor === null || typeof value.previousCursor === "string" ? { previousCursor: value.previousCursor } : {}) } };
 }
 
 function readFrame(frame: string): BiboChatEvent | null {

@@ -37,10 +37,12 @@ import {
   CONTEXT_COMPACTION_CONTINUATION_TEXT,
   CONTEXT_COMPACTION_PART_START,
   CONTEXT_COMPACTION_SYSTEM_PREAMBLE,
+  CONTEXT_COMPACTION_RECOVERY_PREAMBLE,
   createContextCompactionMessageId,
   isContextCompactionProjectionMessage,
   isContextCompactionTimelineMessage,
   readLatestContextCompactionCheckpoint,
+  readContextRecoveryState,
 } from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
 
 export type ContextCompactionPreflightResult = {
@@ -63,6 +65,9 @@ type ContinuationMessageBoundary = {
 };
 
 type ContextCompactionPendingWork = {
+  overflow: boolean;
+  originalBudget: ContextWindowBudgetEvaluation;
+  priorCheckpoint: ContextCompactionCheckpoint | null;
   checkpoint: ReturnType<typeof buildCompressingCompactionCheckpoint>;
   contextBlockMessages: Record<string, unknown>[];
   continuationMessageBoundary: ContinuationMessageBoundary | null;
@@ -102,7 +107,7 @@ function estimateCompactionProjectionOverhead(phase: ContextCompactionPhase): nu
   const summaryPlanOverhead = estimateInputTokens({ role: "user", content: "" });
   const summaryProjectionOverhead = estimateInputTokens({
     role: "system",
-    content: `${CONTEXT_COMPACTION_SYSTEM_PREAMBLE}\n\n`,
+    content: `${CONTEXT_COMPACTION_SYSTEM_PREAMBLE}\n\n${CONTEXT_COMPACTION_RECOVERY_PREAMBLE}\n\n`,
   });
   const continuationTokens = phase === "mid-run"
     ? estimateInputTokens({ role: "user", content: CONTEXT_COMPACTION_CONTINUATION_TEXT })
@@ -136,7 +141,7 @@ function readContinuationMessageBoundary(
     ) {
       return {
         messageId: message.id,
-        coveredPartCount: message.parts.length,
+        coveredPartCount: Number(message.metadata?.[CONTEXT_COMPACTION_PART_START] ?? 0) + message.parts.length,
       };
     }
   }
@@ -156,7 +161,7 @@ function readPreRunContinuationBoundary(
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const target = messages[index];
     if (target?.id === targetMessageId && target.role === "assistant") {
-      return { messageId: target.id, coveredPartCount: target.parts.length };
+      return { messageId: target.id, coveredPartCount: Number(target.metadata?.[CONTEXT_COMPACTION_PART_START] ?? 0) + target.parts.length };
     }
   }
   return null;
@@ -196,6 +201,7 @@ function buildContextWindowSnapshotFromBudget(params: {
 }
 
 export class ContextCompactionPreflightService {
+  private readonly deferredAttempts = new Map<string, { model: string; tokens: number }>();
   private readonly compactionService = new ContextCompactionService();
   private readonly contextWindowBudgetService = new ContextWindowBudgetService();
   private readonly summaryGenerationService: ContextCompactionSummaryGenerationService;
@@ -281,6 +287,8 @@ export class ContextCompactionPreflightService {
     storedMetadata: Record<string, unknown>;
     tools?: readonly NcpTool[];
     trigger?: ContextCompactionTrigger;
+    overflow?: boolean;
+    maxOutputTokens?: number;
   }): ContextCompactionPreflightBeginResult => {
     const {
       contextBlocks = [],
@@ -299,7 +307,8 @@ export class ContextCompactionPreflightService {
       requestMetadata,
       storedAgentId,
     });
-    const { contextTokens, reservedContextTokens } = profile;
+    const contextTokens = profile.contextTokens;
+    const reservedContextTokens = Math.max(profile.reservedContextTokens, params.maxOutputTokens ?? 0);
     const ncpMessages = mergeInputMessages({
       inputMessages,
       sessionMessages,
@@ -332,7 +341,14 @@ export class ContextCompactionPreflightService {
       fixedInputTokens,
       reservedContextTokens,
     });
-    const plan = trigger === "automatic" && !budget.shouldCompact
+    const hardInputLimit = contextTokens - reservedContextTokens;
+    const archivePressure = readContextRecoveryState(ncpMessages, existingCheckpoint).unresolvedArchive;
+    const structuralPressure = archivePressure || ncpMessages.length > 256 || ncpMessages.reduce((count, message) => count + message.parts.length, 0) > 1_024;
+    const deferred = this.deferredAttempts.get(sessionId);
+    const retryGrowth = Math.max(1, Math.floor((hardInputLimit - budget.triggerTokens) / 2));
+    const throttled = !params.overflow && trigger === "automatic" && budget.estimatedTokens <= hardInputLimit
+      && deferred?.model === model && budget.estimatedTokens < deferred.tokens + retryGrowth;
+    const plan = trigger === "automatic" && ((!budget.shouldCompact && !params.overflow && !structuralPressure) || (throttled && !structuralPressure))
       ? null
       : this.compactionService.prepareForModelInput({
           messages,
@@ -340,10 +356,11 @@ export class ContextCompactionPreflightService {
             contextBlockMessages.length === 0
             && isContextCompactionProjectionMessage(projectedMessages[0]),
           contextTokens,
-          compactionThresholdTokens: trigger === "manual" ? 0 : budget.triggerTokens,
+          compactionThresholdTokens: trigger === "manual" || params.overflow || structuralPressure ? 0 : budget.triggerTokens,
           fixedInputTokens,
           preservableUserMessageIds,
-          projectedTokenLimit: Math.max(1, budget.triggerTokens - (
+          projectedTokenLimit: Math.max(1, Math.min(hardInputLimit,
+            params.overflow ? Math.floor(budget.estimatedTokens * 0.7) : Math.max(budget.triggerTokens, snapshotFixedInputTokens + 1_024)) - (
             estimateCompactionProjectionOverhead(phase)
           )),
           retainLatestMessage: phase === "pre-run",
@@ -382,6 +399,9 @@ export class ContextCompactionPreflightService {
       sessionMessages: ncpMessages,
       pendingCompaction: plan && checkpoint
         ? {
+            originalBudget: budget,
+            overflow: params.overflow === true,
+            priorCheckpoint: existingCheckpoint,
             checkpoint,
             contextBlockMessages,
             continuationMessageBoundary,
@@ -433,6 +453,28 @@ export class ContextCompactionPreflightService {
     if (!generatedCheckpoint) {
       throw new Error("context compaction pending work did not produce a checkpoint");
     }
+    signal?.throwIfAborted();
+    if ((summaryDiagnostics?.recovery === "deterministic-recent-context" || summaryDiagnostics?.sourceTruncated)
+      && !pending.overflow && !pending.sessionMessages.some(message => message.metadata?.nextclaw_archived_body)
+      && pending.originalBudget.estimatedTokens <= pending.contextTokens - pending.reservedContextTokens) {
+      // Discard the candidate; nothing from an unsuccessful summary replaces the old view.
+      this.deferredAttempts.delete(pending.sessionId);
+      this.deferredAttempts.set(pending.sessionId, { model: pending.model, tokens: pending.originalBudget.estimatedTokens });
+      if (this.deferredAttempts.size > 512) this.deferredAttempts.delete(this.deferredAttempts.keys().next().value!);
+      return {
+        contextWindow: buildContextWindowSnapshotFromBudget({
+          budget: pending.originalBudget, checkpoint: pending.priorCheckpoint,
+          completeInputBudget: true, fixedInputTokens: pending.snapshotFixedInputTokens,
+          reservedContextTokens: pending.reservedContextTokens, totalContextTokens: pending.contextTokens,
+        }),
+        sessionMessages: pending.sessionMessages,
+        timelineMessage: buildContextCompactionTimelineNcpMessage({
+          messageId: pending.serviceMessageId, sessionId: pending.sessionId,
+          checkpoint: { ...pending.checkpoint, status: "failed", summaryDiagnostics, updatedAt: new Date().toISOString() },
+        }),
+      };
+    }
+    this.deferredAttempts.delete(pending.sessionId);
     const checkpoint: ContextCompactionCheckpoint = {
       ...generatedCheckpoint,
       id: pending.checkpoint.id,
@@ -445,6 +487,17 @@ export class ContextCompactionPreflightService {
       coveredSessionMessageCount: pending.checkpoint.coveredSessionMessageCount,
       summaryDiagnostics: summaryDiagnostics!,
       status: "compressed" as const,
+      ...(summaryDiagnostics?.recovery === "deterministic-recent-context" || summaryDiagnostics?.sourceTruncated || readContextRecoveryState(pending.sessionMessages, pending.priorCheckpoint).required
+        ? { recovery: {
+          required: true as const,
+          reason: summaryDiagnostics?.recovery === "deterministic-recent-context"
+            ? "summary-unavailable" as const : "unresolved-archive" as const,
+          archiveThrough: pending.sessionMessages.reduce((latest, message) => Date.parse(message.timestamp) > Date.parse(latest) ? message.timestamp : latest,
+            generatedCheckpoint.coveredUntil ?? generatedCheckpoint.updatedAt),
+          checkpointId: summaryDiagnostics?.recovery === "deterministic-recent-context" || summaryDiagnostics?.sourceTruncated
+            || readContextRecoveryState(pending.sessionMessages, pending.priorCheckpoint).unresolvedArchive ? pending.checkpoint.id
+            : pending.priorCheckpoint?.recovery?.checkpointId ?? pending.priorCheckpoint?.id ?? pending.checkpoint.id,
+        } } : {}),
     };
     const timelineMessage = buildContextCompactionTimelineNcpMessage({
       messageId: pending.serviceMessageId,
@@ -464,7 +517,7 @@ export class ContextCompactionPreflightService {
       fixedInputTokens: pending.plan.fixedInputTokens,
       reservedContextTokens: pending.reservedContextTokens,
     });
-    if (budget.estimatedTokens > budget.triggerTokens) {
+    if (budget.estimatedTokens > pending.contextTokens - pending.reservedContextTokens) {
       throw new Error(
         `Context compaction checkpoint does not fit the final provider input surface: ${budget.estimatedTokens} estimated tokens exceeds ${budget.triggerTokens}. The previous checkpoint was kept unchanged.`,
       );

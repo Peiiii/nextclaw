@@ -7,7 +7,7 @@ export function identifyMessages(messages: BiboMessage[], previous: BiboDisplayM
   return messages.map((message, index) => {
     const previous = existing.get(`${message.role}:${message.at}`);
     if (previous?.text === message.text && JSON.stringify(previous.content) === JSON.stringify(message.content) && JSON.stringify(previous.questions) === JSON.stringify(message.questions) &&
-      JSON.stringify(previous.replyToQuestion) === JSON.stringify(message.replyToQuestion)) return previous;
+      JSON.stringify(previous.replyToQuestion) === JSON.stringify(message.replyToQuestion) && JSON.stringify(previous.sources) === JSON.stringify(message.sources)) return previous;
     const pendingId = pendingIds && index >= messages.length - 2 ? pendingIds[index - (messages.length - 2)] : undefined;
     return { ...message, id: previous?.id ?? pendingId ?? crypto.randomUUID() };
   });

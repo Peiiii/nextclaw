@@ -38,6 +38,8 @@ export type RuntimeModelRoundRecoveryManagerInput = {
     toolCall: CollectedToolCall,
     publishToolResult: (event: NcpEndpointEvent) => Promise<void>,
   ) => Promise<NcpEndpointEvent>;
+  hasAttemptedTool?: () => boolean;
+  recoverContextOverflow?: () => AsyncGenerator<NcpEndpointEvent, RuntimeModelRoundRecoveryManagerInput["modelInput"]>;
   supportsParallelToolCalls: (toolCall: CollectedToolCall) => boolean;
   executionManager: AgentRunExecutionManager;
   llmApi: NcpLLMApi;
@@ -55,6 +57,8 @@ export type RuntimeModelRoundRecoveryManagerInput = {
 export async function* runModelRoundWithRecovery(
   input: RuntimeModelRoundRecoveryManagerInput,
 ): AsyncGenerator<NcpEndpointEvent, RuntimeToolCallExecutor> {
+  let modelInput = input.modelInput;
+  let overflowRetried = false;
   for (let attempt = 1; ; attempt += 1) {
     let attemptState: NcpRuntimeStreamAttemptState = {
       ...createNcpRuntimeStreamAttemptState(),
@@ -70,7 +74,7 @@ export async function* runModelRoundWithRecovery(
       const encoded = input.streamEncoder.encode(
         abortableRuntimeStream(
           input.executionManager.observeModelCall(
-            input.llmApi.generate(input.modelInput, {
+            input.llmApi.generate(modelInput, {
               signal: input.signal,
               sessionId: input.sessionId,
               requestId: input.messageId,
@@ -91,8 +95,25 @@ export async function* runModelRoundWithRecovery(
       }
       return toolExecutor;
     } catch (error) {
+      if (!overflowRetried && !input.hasAttemptedTool?.() && input.recoverContextOverflow && isContextOverflow(error)) {
+        overflowRetried = true;
+        const previousBytes = JSON.stringify(modelInput).length;
+        let installed = false;
+        const recovery = input.recoverContextOverflow();
+        let next = await recovery.next();
+        while (!next.done) {
+          const event = next.value;
+          if (event.type === "message.sent" && event.payload.message.metadata?.nextclaw_timeline_kind === "context_compaction"
+            && (event.payload.message.metadata.checkpoint as { status?: string } | undefined)?.status === "compressed") installed = true;
+          yield event;
+          next = await recovery.next();
+        }
+        if (!installed || JSON.stringify(next.value).length >= previousBytes) throw error;
+        modelInput = next.value;
+        continue;
+      }
       const failure = { events: [], error };
-      if (!shouldRetryNcpRuntimeStreamAttempt({
+      if (attempt >= 3 || input.hasAttemptedTool?.() || !shouldRetryNcpRuntimeStreamAttempt({
         failure,
         signal: input.signal,
       })) {
@@ -114,6 +135,12 @@ export async function* runModelRoundWithRecovery(
       }
     }
   }
+}
+
+function isContextOverflow(error: unknown): boolean {
+  const value = error as { code?: unknown; message?: unknown } | null;
+  return value?.code === "context_length_exceeded" || value?.code === "MODEL_INPUT_OVERFLOW"
+    || (typeof value?.message === "string" && /maximum context length|context(?:_|\s)*(?:length|window).*(?:exceed|overflow)|too many tokens/i.test(value.message));
 }
 
 function sleep(delayMs: number, signal?: AbortSignal): Promise<void> {

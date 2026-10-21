@@ -1,9 +1,10 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import { NcpAgentSessionJournalStore } from "./ncp-agent-session-journal.store.js";
+import { canonicalSessionMessages, setProjectionVersion } from "@kernel/utils/__tests__/session-message-projection-fixture.utils.js";
 
 const sessionId = "session-1";
 const userMessage: NcpMessage = {
@@ -106,8 +107,8 @@ describe("NCP agent session timeline recovery", () => {
     const reloadedPage = await new NcpAgentSessionJournalStore(tempDir)
       .listSessionMessagePage({ sessionId, limit: 10 });
 
-    expect(reloadedPage?.messages).toEqual(
-      JSON.parse(JSON.stringify(canonicalMessages)) as NcpMessage[],
+    expect(canonicalSessionMessages(reloadedPage?.messages)).toEqual(
+      canonicalSessionMessages(canonicalMessages),
     );
     expect(reloadedPage?.messages.find(({ id }) => id === "assistant-rolling"))
       .toMatchObject({
@@ -177,16 +178,15 @@ describe("NCP agent session timeline recovery", () => {
       updatedAt: assistantMessage.timestamp,
       metadata: {}
     });
-    const metaPath = join(tempDir, ".message-projections", sessionId, "meta.json");
-    const legacyMeta = JSON.parse(await readFile(metaPath, "utf-8")) as Record<string, unknown>;
-    await writeFile(metaPath, `${JSON.stringify({ ...legacyMeta, version: 2 })}\n`, "utf-8");
+    await setProjectionVersion(tempDir, sessionId, 2);
 
     const reloaded = new NcpAgentSessionJournalStore(tempDir);
+    await reloaded.prepareSessionHistory(sessionId, { wait: true });
     expect(await reloaded.listSessionMessagePage({ sessionId, limit: 10 })).toMatchObject({
       total: 2,
       messages: [{ id: "user-1" }, { id: "assistant-1" }]
     });
-    expect(JSON.parse(await readFile(metaPath, "utf-8"))).toMatchObject({ version: 8 });
+    expect((await reloaded.prepareSessionHistory(sessionId))?.status).toBe("ready");
   });
 
   it("preserves an orphaned assistant when a different run starts after restart", async () => {

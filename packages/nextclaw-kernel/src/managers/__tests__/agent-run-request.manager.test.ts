@@ -19,6 +19,40 @@ import {
 } from "@nextclaw/ncp";
 import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
 import { SessionRun } from "@kernel/managers/session-run.manager.js";
+import { createQuestionMessage } from "@kernel/utils/user-question.utils.js";
+import { buildContextCompactionTimelineNcpMessage } from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
+
+describe("channel recovery confirmation", () => {
+  it.each(["confirmed-human", "ordinary-human", "cron", "agent"])("requires explicit business conditions from a human: %s", async kind => {
+    const sessionId = "channel-recovery"; const timestamp = new Date().toISOString();
+    const question = createQuestionMessage(sessionId, [{ title: "Which task conditions apply now?" }]).message;
+    question.metadata = { nextclaw_context_recovery_checkpoint: "recovery-1" };
+    const marker = buildContextCompactionTimelineNcpMessage({ sessionId, messageId: "recovery-marker", checkpoint: {
+      version: 1, id: "recovery-1", status: "compressed", phase: "pre-run", summary: "Earlier constraints are unresolved.",
+      coveredMessageCount: 1, coveredSessionMessageCount: 1, originalEstimatedTokens: 1000, projectedEstimatedTokens: 100,
+      createdAt: timestamp, updatedAt: timestamp, recovery: { required: true, reason: "unresolved-archive", archiveThrough: timestamp },
+    } });
+    const run = new SessionRun({ sessionId, messages: [marker, question] });
+    const enqueue = vi.spyOn(run, "enqueueRequest"); const ingress = new Ingress();
+    const manager = new AgentRunRequestManager({ getOrCreate: () => ({ run: async function* () {} }) } as never,
+      { getDefaultAgentId: () => "main" } as never,
+      { getDefaultModel: () => "test-model", getModelMaxTokens: () => 512, loadConfig: () => ({}) } as never,
+      { resolveRunSurface: async () => ({ contextBlocks: [], tools: [] }) } as never, new EventBus(), ingress,
+      { getOrCreateAgentRunSession: async () => ({ sessionId, agentId: "main", agentRuntimeId: "native", metadata: {}, model: "test-model" }) } as never,
+      { getOrCreateSessionRun: async () => run } as never);
+    manager.start();
+    const message = { id: `reply-${kind}`, sessionId, role: "user" as const, status: "final" as const, timestamp,
+      parts: [{ type: "text" as const, text: kind === "ordinary-human" ? "hello" : "确认续做：只生成本地报告，核实旧结果，不重做任何写入。" }] };
+    if (kind === "agent") await ingress.handle({ type: ingressKeys.agentRun.sessionMessageRequest, payload: { sessionId, message,
+      requestId: "agent-request", trigger: { actor: "agent", source: "sessions_send", triggeredAt: timestamp } } }, { source: "agent-tool" });
+    else await ingress.handle({ type: ingressKeys.agentRun.send, payload: { sessionId, message,
+      metadata: { channel: "feishu", ...(kind === "cron" ? { session_origin: "cron" } : {}) } } }, { source: "channel:feishu" });
+    const accepted = enqueue.mock.calls[0]![0].message;
+    expect(accepted.metadata?.nextclaw_context_recovery_ack).toBe(kind === "confirmed-human" ? "recovery-1" : undefined);
+    expect(run.getContextRecoveryState().required).toBe(kind !== "confirmed-human");
+    manager.dispose();
+  });
+});
 
 describe("AgentRunRequestManager cross-process ownership", () => {
   it("fails before model startup while another process owns the session", async () => {

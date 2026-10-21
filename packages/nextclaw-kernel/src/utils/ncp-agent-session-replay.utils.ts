@@ -26,6 +26,23 @@ import {
   type NcpAgentSessionReplayableEvent,
 } from "./ncp-agent-session-replay-event.utils.js";
 import { seedReplayToolOwners, readReplayToolOwners } from "./ncp-agent-session-replay-tool-ownership.utils.js";
+import { MODEL_ROUND_PART_OFFSETS } from "@nextclaw/ncp-agent-runtime";
+
+export function mergePartialSessionMessage(message: NcpMessage, original: NcpMessage | null): NcpMessage {
+  if (message.role !== "assistant" || message.metadata?.nextclaw_partial_projection !== true) return message;
+  if (!original) throw new Error("Partial session projection has no original message to preserve.");
+  const source = message.metadata.nextclaw_source as { partIndices?: number[]; partCount?: number } | undefined;
+  const indices = source?.partIndices ?? [];
+  const incoming = message.metadata[MODEL_ROUND_PART_OFFSETS];
+  const old = original.metadata?.[MODEL_ROUND_PART_OFFSETS];
+  const mapped = Array.isArray(incoming) ? incoming.filter(Number.isInteger).map(offset =>
+    indices[offset] ?? (source?.partCount ?? original.parts.length) + offset - indices.length) : [];
+  const metadata: Record<string, unknown> = { ...original.metadata, ...message.metadata,
+    [MODEL_ROUND_PART_OFFSETS]: [...new Set([...(Array.isArray(old) ? old.filter(Number.isInteger) : []), ...mapped])].sort((left, right) => left - right) };
+  delete metadata.nextclaw_partial_projection; delete metadata.nextclaw_source;
+  delete metadata.nextclaw_compaction_part_start; delete metadata.nextclaw_archived_body;
+  return { ...message, parts: original.parts, metadata };
+}
 
 type NcpToolCallResultReplayPayload = Extract<
   NcpEndpointEvent,
@@ -95,7 +112,15 @@ export class SessionEventReplayer {
     supersededSyntheticRecoveryIndexes: ReadonlySet<number>,
   ): Promise<void> => {
     if (isJournalOnlyEvent(event)) return;
-    const replayEvent = createReplayEvent(event, this.context.toolResultsByCallId);
+    let sourceEvent = event;
+    const snapshot = readMessageFromSummaryEvent(event);
+    if (snapshot?.metadata?.nextclaw_partial_projection === true) {
+      const state = this.context.stateManager.getSnapshot();
+      const original = state.streamingMessage?.id === snapshot.id ? state.streamingMessage : state.messages.find(message => message.id === snapshot.id) ?? null;
+      sourceEvent = { ...event, payload: { ...(event as { payload: Record<string, unknown> }).payload,
+        message: mergePartialSessionMessage(snapshot, original) } } as NcpAgentSessionReplayableEvent;
+    }
+    const replayEvent = createReplayEvent(sourceEvent, this.context.toolResultsByCallId);
     updateActiveTailRunIds(this.context.activeTailRunIds, replayEvent, eventIndex);
     if (supersededSyntheticRecoveryIndexes.has(eventIndex)) return;
     await replayJournalEvent(this.context, replayEvent, this.allowUnknownStreamingBootstrap);

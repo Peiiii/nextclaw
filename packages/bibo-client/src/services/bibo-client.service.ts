@@ -1,4 +1,4 @@
-import type { BiboChatEvent, BiboClientOptions, BiboFileReadInput, BiboMessage, BiboRunState, BiboSession, BiboUser } from "../types/bibo-client.types";
+import type { BiboChatEvent, BiboClientOptions, BiboFileReadInput, BiboMessage, BiboHistoryPage, BiboRunState, BiboSession, BiboUser } from "../types/bibo-client.types";
 import type { BiboFileDetail } from "../types/bibo-space.types";
 import { readFileDetail, readRunState, readShowContent } from "../utils/bibo-protocol.utils";
 import { BiboClientError, isRecord, readBiboStream, readCommitted, readMessages, readSession, readUser } from "../utils/bibo-protocol.utils";
@@ -41,8 +41,18 @@ export class BiboClient {
   };
 
   history = async (sessionId?: string): Promise<BiboMessage[]> => {
-    const value = await this.request(`history${sessionId ? `?id=${encodeURIComponent(sessionId)}` : ""}`);
-    return readMessages(isRecord(value) ? value.messages : null);
+    return (await this.historyPage(sessionId)).messages;
+  };
+
+  historyPage = async (sessionId?: string, cursor?: string): Promise<BiboHistoryPage> => {
+    const params = new URLSearchParams(); if (sessionId) params.set("id", sessionId); if (cursor) params.set("cursor", cursor);
+    const value = await this.request(`history${params.size ? `?${params}` : ""}`);
+    if (!isRecord(value)) throw new BiboClientError("对话记录格式不正确。");
+    const preparation = value.preparation;
+    if (preparation != null && (!isRecord(preparation) || !["queued", "preparing", "ready", "cancelled", "failed"].includes(String(preparation.status))
+      || !Number.isFinite(preparation.processedBytes) || !Number.isFinite(preparation.totalBytes))) throw new BiboClientError("历史准备状态不正确。");
+    return { messages: readMessages(value.messages), previousCursor: typeof value.previousCursor === "string" ? value.previousCursor : null,
+      preparation: (preparation ?? null) as BiboHistoryPage["preparation"] };
   };
 
   runState = async (sessionId?: string): Promise<BiboRunState> => {

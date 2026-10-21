@@ -271,7 +271,7 @@ describe("buildSessionMessageHistoryPayloadView", () => {
 });
 
 describe("compactSessionMessageHistoryPayloadView", () => {
-  it("keeps a minimum recent window and filters deferred cursors with it", () => {
+  it("keeps the preferred recent window when it fits and filters deferred cursors with it", () => {
     const messages = Array.from({ length: 8 }, (_, index) =>
       assistantMessage(`message-${index}`, "small"));
     const view = compactSessionMessageHistoryPayloadView({
@@ -281,7 +281,7 @@ describe("compactSessionMessageHistoryPayloadView", () => {
           messages.map((message) => [message.id, { cursor: `cursor-${message.id}` }]),
         ),
       },
-      budgetBytes: 1,
+      budgetBytes: 2_000,
       minimumMessages: 5,
     });
 
@@ -328,12 +328,12 @@ describe("compactSessionMessageHistoryPayloadView", () => {
     messages[6] = { ...messages[6]!, role: "user" };
 
     const view = compactSessionMessageHistoryPayloadView({
-      view: { messages, deferredToolPayloads: {} },
-      budgetBytes: 1,
+      view: buildSessionMessageHistoryPayloadView({ messages, messageDetailCursors: {} }),
+      budgetBytes: 2_500,
       minimumMessages: 5,
     });
 
-    expect(view.messages.map((message) => message.id)).toEqual([
+    expect(view.messages.slice(-6).map((message) => message.id)).toEqual([
       "assistant-2",
       "user-3",
       "assistant-3",
@@ -341,5 +341,12 @@ describe("compactSessionMessageHistoryPayloadView", () => {
       "assistant-4",
       "marker-1",
     ]);
+  });
+  it("enforces the byte budget ahead of the preferred message count", () => {
+    const messages = Array.from({ length: 8 }, (_, index) => assistantMessage(`large-${index}`, "x".repeat(7_000)));
+    const view = compactSessionMessageHistoryPayloadView({ view: { messages, deferredToolPayloads: {} }, budgetBytes: 16_000, minimumMessages: 5 });
+    expect(view.messages.map(message => message.id)).toEqual(["large-7"]);
+    expect(Buffer.byteLength(JSON.stringify(view))).toBeLessThan(16_000);
+    expect(view.startIndex).toBe(7);
   });
 });

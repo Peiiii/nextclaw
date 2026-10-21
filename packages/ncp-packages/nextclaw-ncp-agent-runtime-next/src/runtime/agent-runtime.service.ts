@@ -35,7 +35,8 @@ export type AgentRuntimeSessionStateSnapshot = {
 export type AgentRuntimeSessionState = {
   readonly sessionId: string;
   getSnapshot(): AgentRuntimeSessionStateSnapshot;
-  applyEvents(events: readonly NcpEndpointEvent[]): Promise<void>;
+  getContextRecoveryState?(): { required: boolean; checkpointId?: string };
+  applyEvents(events: readonly NcpEndpointEvent[], options?: { signal?: AbortSignal }): Promise<void>;
   claimNextStepRequests?(runId: string): readonly {
     id: string;
     request: { message: NcpMessage };
@@ -56,6 +57,7 @@ export type DefaultNcpAgentRuntimeRunOptions = {
 export type AgentRunPreflight = (input: {
   contextBlocks: readonly string[];
   phase: AgentRunPreflightPhase;
+  overflow?: boolean;
   signal?: AbortSignal;
   spec: DefaultNcpAgentRunSpec;
   sessionRun: AgentRuntimeSessionState;
@@ -209,6 +211,7 @@ export class DefaultNcpAgentRuntime {
       messageId,
     });
     let runStartedAt: string | undefined;
+    const recovery = { required: false, readCount: 0, cursors: new Set<string>() };
 
     try {
       for (const event of this.toMessageSentEvents(
@@ -242,12 +245,20 @@ export class DefaultNcpAgentRuntime {
         }
 
         const roundMessageId = messageId;
+        let attemptedTool = false;
         const toolExecutor = yield* runModelRoundWithRecovery({
+          hasAttemptedTool: () => attemptedTool,
+          recoverContextOverflow: async function* (this: DefaultNcpAgentRuntime) {
+            yield* this.runPreflightPhase({ contextBlocks, phase: "mid-run", sessionRun, spec, tools, overflow: true }, signal);
+            return await this.modelInputBuilder.build({ spec, sessionId, messages: sessionRun.getSnapshot().messages, contextBlocks, tools, signal });
+          }.bind(this),
           applyEvent: this.applyEvent,
           drainRuntimeEvents: (encoded, toolExecutor) =>
             this.drainRuntimeEvents(sessionRun, encoded, toolExecutor, signal),
-          executeToolCall: (toolCall, publishToolEvent) =>
-            this.toolCallExecution.execute({
+          executeToolCall: (toolCall, publishToolEvent) => {
+            attemptedTool = true;
+            return this.toolCallExecution.execute({
+              recovery: Object.assign(recovery, { required: sessionRun.getContextRecoveryState?.().required ?? false }),
               tools,
               sessionId,
               messageId: roundMessageId,
@@ -255,7 +266,8 @@ export class DefaultNcpAgentRuntime {
               toolCall,
               publishToolEvent,
               signal,
-            }),
+            });
+          },
           supportsParallelToolCalls: (toolCall) =>
             tools.find((tool) => tool.name === toolCall.toolName)
               ?.supportsParallelToolCalls === true,
@@ -371,8 +383,16 @@ export class DefaultNcpAgentRuntime {
     if (!this.runPreflight) {
       return;
     }
-    for await (const event of this.runPreflight({ ...input, signal })) {
-      yield await this.applyEvent(input.sessionRun, event);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        for await (const event of this.runPreflight({ ...input, signal })) {
+          await input.sessionRun.applyEvents([event], { signal });
+          yield event;
+        }
+        return;
+      } catch (error) {
+        if (attempt === 1 || !(error && typeof error === "object" && "code" in error && error.code === "CONTEXT_COMPACTION_STALE")) throw error;
+      }
     }
   }
 
@@ -554,9 +574,13 @@ export class DefaultNcpAgentRuntime {
         }));
       }
     }
-    return await this.modelInputBuilder.build({
-      spec, sessionId, messages: sessionRun.getSnapshot().messages, contextBlocks, tools, signal,
-    });
+    try {
+      return await this.modelInputBuilder.build({ spec, sessionId, messages: sessionRun.getSnapshot().messages, contextBlocks, tools, signal });
+    } catch (error) {
+      if (!(error && typeof error === "object" && "code" in error && error.code === "MODEL_INPUT_OVERFLOW")) throw error;
+      yield* this.runPreflightPhase({ contextBlocks, phase: "mid-run", sessionRun, spec, tools, overflow: true }, signal);
+      return await this.modelInputBuilder.build({ spec, sessionId, messages: sessionRun.getSnapshot().messages, contextBlocks, tools, signal });
+    }
   }
 
   private completeAssistantStep = async (

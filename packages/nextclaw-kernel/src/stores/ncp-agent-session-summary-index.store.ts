@@ -134,6 +134,7 @@ export class NcpAgentSessionSummaryIndexStore {
     sessionId: string;
     event: NcpAgentSessionJournalReplayEvent;
     updatedAt: string;
+    projectedMessageCount?: number;
   }): Promise<void> => {
     const sessionId = normalizeNcpSessionId(params.sessionId);
     const now = Date.now();
@@ -155,7 +156,7 @@ export class NcpAgentSessionSummaryIndexStore {
     });
     const row = summaryToRow({
       ...summary,
-      messageCount: readEventMessage(event) ? 1 : 0,
+      messageCount: params.projectedMessageCount ?? (readEventMessage(event) ? 1 : 0),
     });
     // node:sqlite rejects named parameters that are not declared by the statement.
     const { deleted_at: _deletedAt, ...upsertParams } = row;
@@ -178,7 +179,7 @@ export class NcpAgentSessionSummaryIndexStore {
            WHEN excluded.last_message_at > sessions.last_message_at THEN excluded.last_message_at
            ELSE sessions.last_message_at
          END,
-         message_count = sessions.message_count + excluded.message_count,
+         message_count = ${params.projectedMessageCount === undefined ? "sessions.message_count + excluded.message_count" : "excluded.message_count"},
          status = excluded.status
        WHERE sessions.deleted_at IS NULL`,
     ).run(upsertParams);

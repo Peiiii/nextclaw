@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
+import { defaultToolResultContentManager } from "@nextclaw/ncp-agent-runtime";
+import { RuntimeToolCallExecutionService } from "./runtime-tool-call-execution.service.js";
 import {
   RuntimeToolCallExecutor,
   RuntimeToolCallBudget,
@@ -12,6 +14,34 @@ function deferred() {
   });
   return { promise, resolve };
 }
+
+describe("actual recovery tool dispatch", () => {
+  it("blocks side effects, foreign sessions, repeated reads and the ninth progressing read before dispatch", async () => {
+    const service = new RuntimeToolCallExecutionService(defaultToolResultContentManager);
+    const executed: string[] = [];
+    const recovery = { required: true, readCount: 0, cursors: new Set<string>() };
+    const invoke = async (name: string, args: Record<string, unknown>) => service.execute({
+      sessionId: "s", messageId: "m", spec: { agentId: "main", model: "test", requestedModel: null, runId: "r", runtimeId: "native" },
+      toolCall: { toolCallId: crypto.randomUUID(), toolName: name, args: JSON.stringify(args) }, recovery,
+      tools: ["exec", "sessions_history", "request_user_input_async"].map(toolName => ({ name: toolName, execute: async () => { executed.push(toolName); return { ok: true }; } })),
+      publishToolEvent: async () => {},
+    });
+    await invoke("exec", { command: "side effect" });
+    await invoke("sessions_history", { sessionKey: "foreign", cursor: "0" });
+    expect(executed).toEqual([]);
+    await invoke("sessions_history", { sessionKey: "s", cursor: "0" });
+    await invoke("sessions_history", { sessionKey: "s", cursor: "0" });
+    expect(executed).toEqual(["sessions_history"]);
+    for (let index = 1; index < 8; index++) await invoke("sessions_history", { sessionKey: "s", cursor: String(index) });
+    await invoke("sessions_history", { sessionKey: "s", cursor: "8" });
+    expect(executed).toHaveLength(8);
+    await invoke("request_user_input_async", { questions: [{ title: "Which current task conditions should apply?" }] });
+    expect(executed.at(-1)).toBe("request_user_input_async");
+    recovery.required = false;
+    await invoke("exec", { command: "human-confirmed operation" });
+    expect(executed.at(-1)).toBe("exec");
+  });
+});
 
 function resultEvent(toolCallId: string): NcpEndpointEvent {
   return {

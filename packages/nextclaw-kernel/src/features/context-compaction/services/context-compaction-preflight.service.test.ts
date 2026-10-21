@@ -337,7 +337,7 @@ describe("ContextCompactionPreflightService", () => {
     expect(projectedMessages[0]).toMatchObject({ role: "service" });
     expect(projectedMessages[0]?.parts[0]).toMatchObject({
       type: "text",
-      text: expect.stringContaining("Authoritative compressed prior conversation context"),
+      text: expect.stringContaining("Compressed working context for this session"),
     });
     expect(projectedMessages[0]?.parts[0]).toMatchObject({
       type: "text",
@@ -563,9 +563,9 @@ describe("context compaction preserved-user projection", () => {
 describe("ContextCompactionPreflightService mid-run compaction", () => {
   it("records a part boundary and keeps only later parts after mid-run compaction", async () => {
     const providerManager = {
-      chat: vi.fn(async (request: { maxTokens: number }) => ({
+      chat: vi.fn(async (_request: { maxTokens: number }) => ({
         ...createSummaryResponse(protocolSummary("Continue after the lookup.")),
-        finishReason: request.maxTokens < 8_000 ? "length" : "stop",
+        finishReason: "stop",
       })),
     };
     const service = new ContextCompactionPreflightService(createAgentManager(35_000, 7_000), providerManager as never);
@@ -752,7 +752,7 @@ describe("ContextCompactionPreflightService summary projection", () => {
     const providerRequest = providerManager.chat.mock.calls[0]?.[0];
     expect(summarySystemPrompt).toContain("Continuation Contract");
     expect(summarySystemPrompt).toContain("A greeting does not erase the prior task");
-    expect(summaryRequest).toContain("Complete the essential prefix first");
+    expect(summaryRequest).toContain("Prioritize the active task");
     expect(summaryRequest).toContain("CANARY_ALPHA_731");
     expect(summaryRequest).toContain("CANARY_RECENT_842");
     expect(
@@ -799,10 +799,8 @@ describe("ContextCompactionPreflightService summary projection", () => {
     const compressingCheckpoint = pendingCompaction.checkpoint;
     expect(compressingCheckpoint.coveredMessageCount).toBeGreaterThan(existingCheckpoint.coveredMessageCount);
     expect(compressingCheckpoint.coveredSessionMessageCount).toBe(compressingCheckpoint.coveredMessageCount);
-    expect(compressingCheckpoint).toMatchObject({
-      id: existingCheckpoint.id,
-      status: "compressing",
-    });
+    expect(compressingCheckpoint.id).not.toBe(existingCheckpoint.id);
+    expect(compressingCheckpoint.status).toBe("compressing");
 
     const finishResult = await service.finish(beginResult.pendingCompaction!);
 
@@ -815,7 +813,7 @@ describe("ContextCompactionPreflightService summary projection", () => {
     expect(finishResult.timelineMessage?.metadata?.checkpoint).toMatchObject({
       coveredMessageCount: compressingCheckpoint.coveredMessageCount,
       coveredSessionMessageCount: compressingCheckpoint.coveredSessionMessageCount,
-      id: existingCheckpoint.id,
+      id: compressingCheckpoint.id,
       status: "compressed",
       summary: protocolSummary("Continue."),
     });

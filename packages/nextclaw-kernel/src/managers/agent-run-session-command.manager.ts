@@ -143,16 +143,18 @@ export class AgentRunSessionCommandManager {
     if (sessionRun.isBusy()) {
       throw new Error("Cannot edit a message while the session is running.");
     }
-    const rewoundRecord = await this.sessionManager.rewindSessionBeforeMessage(
+    await this.sessionManager.rewindSessionBeforeMessage(
       request.sessionId,
       request.messageId,
     );
-    sessionRun.replaceMessages(rewoundRecord.messages);
+    sessionRun.replaceMessages(await this.sessionManager.loadSessionRunSeed(request.sessionId));
+    const edited = structuredClone(request.message);
+    if (edited.metadata) for (const key of ["nextclaw_partial_projection", "nextclaw_source", "nextclaw_archived_body", "nextclaw_context_recovery_ack", "nextclaw_ingress_content_digest"]) delete edited.metadata[key];
     return await this.send({
       correlationId: request.correlationId,
       sessionId: request.sessionId,
       message: {
-        ...structuredClone(request.message),
+        ...edited,
         sessionId: request.sessionId,
         role: "user",
         status: "final",

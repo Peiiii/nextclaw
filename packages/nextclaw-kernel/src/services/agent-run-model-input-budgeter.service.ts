@@ -40,11 +40,19 @@ export class AgentRunModelInputBudgeter {
       spec,
     } = params;
     const profile = this.agentManager.resolveAgentProfile(spec.agentId);
+    const reserveTokens = Math.max(profile.reservedContextTokens, spec.maxTokens ?? 0);
+    const estimate = this.inputBudgetPruner.estimate({ messages: [...messages], contextTokens: profile.contextTokens,
+      fixedInputTokens, reserveTokensFloor: reserveTokens, softThresholdTokens: 0 });
+    if (estimate.estimatedTokens > estimate.budgetTokens) throw Object.assign(new Error(
+      (protectedPrefixMessageCount ?? 0) > 0
+        ? `Model input cannot fit without mutating the compressed-context stable prefix: ${estimate.estimatedTokens} > ${estimate.budgetTokens}.`
+        : `Model input cannot fit the configured context window: ${estimate.estimatedTokens} > ${estimate.budgetTokens}.`,
+    ), { code: "MODEL_INPUT_OVERFLOW" });
     const pruned = this.inputBudgetPruner.prune({
       messages: messages.map((message) => ({ ...message })),
       contextTokens: profile.contextTokens,
       fixedInputTokens,
-      reserveTokensFloor: profile.reservedContextTokens,
+      reserveTokensFloor: reserveTokens,
       softThresholdTokens: 0,
       protectedPrefixMessageCount,
       protectedSystemContentChars,
@@ -56,6 +64,9 @@ export class AgentRunModelInputBudgeter {
       throw new Error(
         `Model input cannot fit the configured context window: ${pruned.estimatedTokens} estimated tokens exceeds ${pruned.budgetTokens}. Increase the agent contextTokens setting or reduce its fixed context and tools.`,
       );
+    }
+    if (pruned.droppedHistoryCount || pruned.truncatedToolResultCount || pruned.truncatedSystemPrompt || pruned.truncatedUserMessage) {
+      throw Object.assign(new Error("Model input requires a durable context reduction before it can be sent."), { code: "MODEL_INPUT_OVERFLOW" });
     }
 
     return {

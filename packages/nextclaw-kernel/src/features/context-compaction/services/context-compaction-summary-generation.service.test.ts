@@ -1,174 +1,70 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { estimateInputTokens } from "@nextclaw/core";
-import { ContextCompactionSummaryGenerationService } from "./context-compaction-summary-generation.service.js";
+import { COMPACTION_RECOVERY_NOTICE, ContextCompactionSummaryGenerationService } from "./context-compaction-summary-generation.service.js";
 
-function protocolSummary(detail = "Continue the active task."): string {
-  return [
-    "# Compressed Working Context",
-    "## Active Request\n\nPreserve the active request.",
-    "## Current Work State\n\nThe current work is in progress.",
-    "## Safety and User Constraints\n\nKeep the user's constraints.",
-    `## Continuation Contract\n\n${detail}\n<!-- nextclaw-essential-context-complete -->`,
-  ].join("\n\n");
-}
-
-function response(content: string | null, finishReason = "stop") {
-  return {
-    content,
-    finishReason,
-    reasoningContent: null,
-    toolCalls: [],
-    usage: { input_tokens: 100, output_tokens: 50 },
-  };
-}
-
-function largeMessages(): Record<string, unknown>[] {
-  return Array.from({ length: 12 }, (_, index) => ({
-    role: index % 2 === 0 ? "user" : "assistant",
-    content: `history ${index} ${"x".repeat(18_000)}`,
-    ncp_message_id: `message-${index}`,
-  }));
-}
-
-const generationParams = {
-  maxInputTokens: 15_000,
-  maxInstallableSummaryTokens: 4_000,
-  maxTokens: 4_400,
-  messages: largeMessages(),
-  model: "run-selected-model",
-  requestId: "compaction-message-1",
-  sessionId: "session-1",
-  targetSummaryTokens: 4_000,
+const params = {
+  maxInputTokens: 15_000, maxInstallableSummaryTokens: 4_000, maxTokens: 4_400,
+  messages: Array.from({ length: 12 }, (_, index) => ({ role: "user", content: `source ${index} ${"x".repeat(18_000)}`, ncp_message_id: `message-${index}` })),
+  model: "selected-model", requestId: "request-1", sessionId: "session-1", targetSummaryTokens: 4_000,
 };
+const response = (content: string | null, finishReason = "stop") => ({ content, finishReason, usage: { input_tokens: 100, output_tokens: 50 } });
+afterEach(() => vi.useRealTimers());
 
-describe("ContextCompactionSummaryGenerationService", () => {
-  it("accepts a length response after the essential prefix and drops an unclosed optional tail", async () => {
-    const providerManager = {
-      chat: vi.fn(async () => response([
-        protocolSummary("Continue after the checkpoint."),
-        "## Critical Technical Context\n\nKeep the API contract.\n<!-- nextclaw-section-complete:critical-technical-context -->",
-        "## Evidence and Verification\n\nThis section was cut off",
-      ].join("\n\n"), "length")),
-    };
-    const service = new ContextCompactionSummaryGenerationService(providerManager as never);
-
-    const generated = await service.generate(generationParams);
-
-    expect(providerManager.chat).toHaveBeenCalledOnce();
-    expect(providerManager.chat).toHaveBeenCalledWith(expect.objectContaining({
-      requestId: "compaction-message-1",
-      sessionId: "session-1",
-    }));
-    expect(generated.summary).toContain("Critical Technical Context");
-    expect(generated.summary).not.toContain("Evidence and Verification");
-    expect(generated.diagnostics).toMatchObject({
-      attemptCount: 1,
-      degraded: true,
-      finishReason: "length",
-      recovery: "provider-summary",
-    });
+describe("optional incremental compaction summary", () => {
+  it.each(["Continue the task; preserve the verified constraints.", "# 摘要\n已完成读取，尚未执行付款。", "Summary without an HTML marker."])("accepts naturally completed visible text: %s", async text => {
+    const provider = { chat: vi.fn(async () => response(text)) };
+    const result = await new ContextCompactionSummaryGenerationService(provider).generate(params);
+    expect(result.summary).toBe(text);
+    expect(result.diagnostics.recovery).toBe("provider-summary");
+    expect(provider.chat).toHaveBeenCalledOnce();
+    expect(estimateInputTokens(provider.chat.mock.calls[0]![0].messages)).toBeLessThanOrEqual(params.maxInputTokens);
   });
 
   it.each([
-    {
-      name: "truncated non-empty content",
-      result: response("# Compressed Working Context\n\nPartial", "length"),
-    },
-    {
-      name: "structurally incomplete content",
-      result: response("# Compressed Working Context\n\nPartial"),
-    },
-    {
-      name: "reasoning-only content",
-      result: response(null),
-    },
-    {
-      name: "misplaced essential marker",
-      result: response(`${protocolSummary()}\n\nunfinished continuation text`, "length"),
-    },
-  ])("uses deterministic recent context after three $name results", async ({ result }) => {
-    const providerManager = { chat: vi.fn(async () => result) };
-    const service = new ContextCompactionSummaryGenerationService(providerManager as never);
-
-    const generated = await service.generate(generationParams);
-
-    expect(providerManager.chat).toHaveBeenCalledTimes(3);
-    expect(generated.summary).toContain("Exact retained recent source");
-    expect(generated.summary).not.toContain("unfinished continuation text");
-    expect(generated.diagnostics).toMatchObject({
-      attemptCount: 3,
-      degraded: true,
-      providerUsage: { input_tokens: 300, output_tokens: 150 },
-      recovery: "deterministic-recent-context",
-    });
+    response(null), response(""), response("<think>hidden reasoning only</think>"),
+    response("partial summary", "length"), response("unfinished", "incomplete"),
+    response("ignored", "tool_calls"), response("x".repeat(40_000)),
+    { ...response("Unexpected tool"), toolCalls: [{}] },
+  ])("discards unusable output with one bounded attempt", async value => {
+    const provider = { chat: vi.fn(async () => value) };
+    const result = await new ContextCompactionSummaryGenerationService(provider).generate(params);
+    expect(provider.chat).toHaveBeenCalledOnce();
+    expect(result.summary).toBe(COMPACTION_RECOVERY_NOTICE);
+    expect(result.diagnostics).toMatchObject({ attemptCount: 1, degraded: true, sourceBatchCount: 1 });
+    expect(result.diagnostics.failure).toBeTruthy();
   });
 
-  it("strictly shrinks provider input and makes the third call essential-only", async () => {
-    const providerManager = {
-      chat: vi.fn(async () => providerManager.chat.mock.calls.length < 3
-        ? response("# Compressed Working Context\n\n## Active Request\n\npartial", "length")
-        : response(protocolSummary("Continue after the reduced retry."))),
-    };
-    const service = new ContextCompactionSummaryGenerationService(providerManager as never);
-
-    const generated = await service.generate(generationParams);
-    const inputSizes = providerManager.chat.mock.calls.map((call) =>
-      estimateInputTokens(call[0]?.messages ?? []),
-    );
-
-    expect(providerManager.chat).toHaveBeenCalledTimes(3);
-    expect(inputSizes[0]).toBeGreaterThan(inputSizes[1] ?? 0);
-    expect(inputSizes[1]).toBeGreaterThan(inputSizes[2] ?? 0);
-    expect(providerManager.chat.mock.calls[2]?.[0].messages[0]?.content).toContain(
-      "final recovery attempt",
-    );
-    expect(providerManager.chat.mock.calls[2]?.[0].messages[1]?.content).toContain(
-      "four essential sections only",
-    );
-    expect(generated.diagnostics).toMatchObject({
-      attemptCount: 3,
-      providerUsage: { input_tokens: 300, output_tokens: 150 },
-      recovery: "provider-summary",
+  it("handles the original many-identities failure without partial batch installation", async () => {
+    const provider = { chat: vi.fn(async () => response(null)) };
+    const result = await new ContextCompactionSummaryGenerationService(provider).generate({ ...params,
+      maxInputTokens: 2_000,
+      messages: Array.from({ length: 1_500 }, (_, index) => ({ role: "user", content: "Do not repeat completed actions", ncp_message_id: `history-${index}` })),
     });
+    expect(provider.chat).not.toHaveBeenCalled();
+    expect(result.summary).toBe(COMPACTION_RECOVERY_NOTICE);
+    expect(result.diagnostics.recovery).toBe("deterministic-recent-context");
   });
 
-  it("does not spend semantic retries on provider transport or configuration errors", async () => {
-    const providerManager = {
-      chat: vi.fn(async () => {
-        throw new Error("provider failed");
-      }),
-    };
-    const service = new ContextCompactionSummaryGenerationService(providerManager as never);
-
-    await expect(service.generate(generationParams)).rejects.toThrow("provider failed");
-    expect(providerManager.chat).toHaveBeenCalledOnce();
+  it("preserves concrete provider configuration and transport errors", async () => {
+    const provider = { chat: vi.fn(async () => { throw new Error("provider authentication failed"); }) };
+    await expect(new ContextCompactionSummaryGenerationService(provider).generate(params)).rejects.toThrow("provider authentication failed");
+    expect(provider.chat).toHaveBeenCalledOnce();
   });
 
-  it("fits deterministic recovery into the minimum supported summary budget", async () => {
-    const providerManager = {
-      chat: vi.fn(async () => response("# Compressed Working Context\n\nPartial", "length")),
-    };
-    const service = new ContextCompactionSummaryGenerationService(providerManager as never);
-
-    const generated = await service.generate({
-      ...generationParams,
-      maxInstallableSummaryTokens: 256,
-      targetSummaryTokens: 256,
-    });
-
-    expect(generated.diagnostics.recovery).toBe("deterministic-recent-context");
-    expect(estimateInputTokens(generated.summary)).toBeLessThanOrEqual(256);
+  it("times out an uncooperative transport without waiting for it to honor abort", async () => {
+    vi.useFakeTimers();
+    const provider = { chat: vi.fn(() => new Promise<ReturnType<typeof response>>(() => {})) };
+    const pending = new ContextCompactionSummaryGenerationService(provider).generate(params);
+    await vi.advanceTimersByTimeAsync(60_001);
+    expect((await pending).diagnostics.failure).toContain("deadline");
+    expect(provider.chat).toHaveBeenCalledOnce();
   });
 
-  it("recovers safely when a shrinking retry cannot fit the minimum source", async () => {
-    const provider = { chat: vi.fn(async () => response("Partial", "length")) };
-    const generated = await new ContextCompactionSummaryGenerationService(provider).generate({
-      ...generationParams, maxInputTokens: 1_000, targetSummaryTokens: 256,
-      maxInstallableSummaryTokens: 256,
-      messages: [{ role: "tool", tool_call_id: "completed-once", content: "Operation completed." }],
-    });
-    expect(generated.diagnostics.recovery).toBe("deterministic-recent-context");
-    expect(generated.summary).toContain("recover evidence before repeating any side effect");
-    expect(estimateInputTokens(generated.summary)).toBeLessThanOrEqual(256);
+  it("cancels independently of the summary deadline and never produces a candidate", async () => {
+    const controller = new AbortController();
+    const provider = { chat: vi.fn(() => new Promise<ReturnType<typeof response>>(() => {})) };
+    const pending = new ContextCompactionSummaryGenerationService(provider).generate({ ...params, signal: controller.signal });
+    controller.abort(new DOMException("Cancelled", "AbortError"));
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
   });
 });

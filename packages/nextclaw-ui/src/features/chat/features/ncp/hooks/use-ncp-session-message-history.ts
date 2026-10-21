@@ -23,6 +23,7 @@ type SessionHistoryState = {
   deferredToolPayloads: Record<string, { cursor: string }>;
   messageDetails: Record<string, NcpMessage>;
   messageDetailStates: Record<string, SessionMessageToolPayloadState>;
+  preparation?: NcpConversationSeedWithContextWindow["preparation"];
 };
 
 const EMPTY_SESSION_HISTORY_STATE: SessionHistoryState = {
@@ -153,6 +154,7 @@ export function useNcpSessionMessageHistory(params: {
     updateHistoryState(targetSessionId, (current) => ({
       ...current,
       contextWindow: seed.contextWindow ?? null,
+      preparation: seed.preparation,
       deferredToolPayloads: seed.deferredToolPayloads,
       messageDetails: {},
       messageDetailStates: Object.fromEntries(

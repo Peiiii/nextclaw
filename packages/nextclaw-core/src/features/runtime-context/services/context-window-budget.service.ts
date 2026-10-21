@@ -68,7 +68,7 @@ export class ContextWindowBudgetService {
       reserveTokensFloor: reservedContextTokens,
       softThresholdTokens: 0,
     });
-    const triggerTokens = contextTokens - reservedContextTokens;
+    const triggerTokens = Math.max(1, Math.floor((contextTokens - reservedContextTokens) * 0.8));
     return {
       ...prepared,
       shouldCompact: prepared.estimatedTokens >= triggerTokens,
@@ -81,7 +81,8 @@ export function stripToModelInputMessage(message: RuntimeMessage): RuntimeMessag
   const modelMessage: RuntimeMessage = {};
   for (const field of MODEL_MESSAGE_FIELDS) {
     if (Object.prototype.hasOwnProperty.call(message, field)) {
-      modelMessage[field] = structuredClone(message[field]);
+      const value = message[field];
+      modelMessage[field] = value !== null && (typeof value === "object" || typeof value === "function") ? structuredClone(value) : value;
     }
   }
   return modelMessage;

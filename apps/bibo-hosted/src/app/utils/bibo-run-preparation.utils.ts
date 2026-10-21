@@ -23,7 +23,7 @@ export async function prepareBiboRun(request: Request, storage: DurableObjectSto
   let session = typeof payload.sessionId === "string" ? sessions.find((item) => item.id === payload.sessionId) : sessions[0];
   const sessionId = typeof payload.sessionId === "string" ? payload.sessionId : session?.id;
   if (sessionId) {
-    const canonical = await new CloudflareSessionStore(storage).getSession(sessionId);
+    const canonical = await new CloudflareSessionStore(storage).getBoundedSession(sessionId);
     if (canonical) session = { id: sessionId, title: String(canonical.metadata?.label ?? session?.title ?? "新对话"),
       createdAt: canonical.createdAt ?? canonical.updatedAt, updatedAt: canonical.updatedAt,
       messages: projectBiboConversation(canonical.messages) };

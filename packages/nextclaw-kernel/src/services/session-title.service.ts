@@ -51,7 +51,9 @@ export class SessionTitleService {
   };
 
   private generate = async (sessionId: string, scheduledMessageId: string | undefined, signal: AbortSignal): Promise<void> => {
-    const record = await this.sessions.getSessionRecord(sessionId);
+    const summary = await this.sessions.getSession(sessionId);
+    if (summary?.metadata?.label_source === 'manual' || summary?.metadata?.label_source === 'generated') return;
+    const record = await this.sessions.getSessionPreviewRecord(sessionId);
     if (!record || signal.aborted) return;
     const metadata = record.metadata ?? {};
     if (metadata.label_source === 'manual' || metadata.label_source === 'generated') return;
@@ -86,7 +88,7 @@ export class SessionTitleService {
     if (!result || typeof result !== 'object' || !('title' in result)) return;
     const title = result.title;
     if (typeof title !== 'string' || !title.trim() || /[\r\n]/.test(title) || Array.from(title).length > 40) return;
-    const currentRecord = await this.sessions.getSessionRecord(sessionId);
+    const currentRecord = await this.sessions.getSessionPreviewRecord(sessionId);
     if (!currentRecord || lastFinalUser(currentRecord.messages)?.id !== triggerMessage.id) return;
     await this.sessions.applyGeneratedTitle(sessionId, {
       label: metadata.label,

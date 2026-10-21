@@ -1,4 +1,3 @@
-import { performance } from "node:perf_hooks";
 import {
   executeCollectedToolCall,
   type CollectedToolCall,
@@ -20,6 +19,7 @@ type RuntimeToolCallExecutionInput = {
   toolCall: CollectedToolCall;
   publishToolEvent: (event: NcpEndpointEvent) => Promise<void>;
   signal?: AbortSignal;
+  recovery?: { required: boolean; readCount: number; cursors: Set<string> };
 };
 
 export class RuntimeToolCallExecutionService {
@@ -47,6 +47,21 @@ export class RuntimeToolCallExecutionService {
         execute: (availableTool, args) => {
           if (!availableTool) {
             throw new Error("Tool is not available in this run.");
+          }
+          if (input.recovery?.required) {
+            const parameters = typeof args === "object" && args !== null ? args as Record<string, unknown> : {};
+            const clarification = availableTool.name === "request_user_input_async";
+            if (!clarification && (availableTool.name !== "sessions_history" || parameters.sessionKey !== sessionId)) {
+              throw new Error("Unresolved archived context: only exact current-session history reads are permitted. Ask a specific business clarification before any action.");
+            }
+            const cursor = JSON.stringify([availableTool.name, parameters.messageId ?? null, parameters.part ?? null, parameters.cursor ?? null]);
+            if (!clarification && (input.recovery.readCount >= 8 || input.recovery.cursors.has(cursor))) {
+              throw new Error("History recovery has reached its progress budget. Ask a specific business clarification; do not repeat this read or any action.");
+            }
+            if (!clarification) {
+              input.recovery.readCount += 1;
+              input.recovery.cursors.add(cursor);
+            }
           }
           const reportExecutionStarted = (): void => {
             if (executionStartedAt) return;

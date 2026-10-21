@@ -92,7 +92,7 @@ export function buildCompressingCompactionCheckpoint(previousValue: unknown): Co
   const now = new Date().toISOString();
   return {
     version: 1,
-    id: typeof previous?.id === "string" ? previous.id : `ctx-${Date.now()}`,
+    id: `ctx-${crypto.randomUUID()}`,
     status: "compressing",
     summary:
       typeof previous?.summary === "string" && previous.summary.trim().length > 0
@@ -105,7 +105,7 @@ export function buildCompressingCompactionCheckpoint(previousValue: unknown): Co
       typeof previous?.originalEstimatedTokens === "number" ? previous.originalEstimatedTokens : 0,
     projectedEstimatedTokens:
       typeof previous?.projectedEstimatedTokens === "number" ? previous.projectedEstimatedTokens : 0,
-    createdAt: typeof previous?.createdAt === "string" ? previous.createdAt : now,
+    createdAt: now,
     updatedAt: now,
   };
 }

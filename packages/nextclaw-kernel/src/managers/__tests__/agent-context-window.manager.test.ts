@@ -173,7 +173,7 @@ describe("AgentContextWindowManager", () => {
     expect(cachedPreview).toMatchObject({
       totalContextTokens: 35_000,
       reservedContextTokens: 7_000,
-      triggerContextTokens: 28_000,
+      triggerContextTokens: 22_400,
     });
 
     manager.forgetSession(message.sessionId);
@@ -188,7 +188,7 @@ describe("AgentContextWindowManager", () => {
     expect(reconstructedPreview).toMatchObject({
       totalContextTokens: 35_000,
       reservedContextTokens: 7_000,
-      triggerContextTokens: 28_000,
+      triggerContextTokens: 22_400,
     });
     expect(buildContext).toHaveBeenLastCalledWith(expect.objectContaining({
       agentId: "researcher",
@@ -302,7 +302,7 @@ describe("AgentContextWindowManager", () => {
         completeInputBudget: true,
         totalContextTokens: 35_000,
         reservedContextTokens: 7_000,
-        triggerContextTokens: 28_000,
+        triggerContextTokens: 22_400,
       });
       expect(switchedAgentPreview?.fixedInputTokens).toBeGreaterThan(0);
       expect(switchedAgentPreview?.fixedInputTokens).toBeLessThan(28_000);

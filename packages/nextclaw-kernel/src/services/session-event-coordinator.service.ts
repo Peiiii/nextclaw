@@ -11,6 +11,7 @@ type SessionEventCoordinatorServiceOptions = {
   appendSessionEvent: (params: {
     sessionId: string;
     event: NcpAgentSessionJournalReplayEvent;
+    signal?: AbortSignal;
   }) => Promise<void>;
   eventBus: EventBus;
   getSessionRecord: (sessionId: string) => Promise<AgentSessionRecord | null>;
@@ -51,6 +52,7 @@ export class SessionEventCoordinatorService {
   dispose = (): void => this.ingestion.dispose();
   flushSession = async (sessionId: string): Promise<void> => await this.ingestion.flushSession(sessionId);
   flush = async (): Promise<void> => await this.ingestion.flush();
+  persist = (event: NcpEndpointEvent, signal?: AbortSignal): Promise<void> => this.ingestion.ingestEvent(event, signal);
 
   publish = async (params: PublishSessionEventParams): Promise<void> => {
     const { event, sessionId, source, synchronizeMessageProjection, persistFirst } = params;

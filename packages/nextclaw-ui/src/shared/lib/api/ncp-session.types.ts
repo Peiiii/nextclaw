@@ -4,7 +4,7 @@ import type {
   NcpSessionStatus,
   NcpSessionSummary,
 } from "@nextclaw/ncp";
-import type { UiNcpSessionTokenUsageView } from "@nextclaw/client-sdk";
+import type { UiNcpSessionTokenUsageView, UiNcpSessionMessagesView } from "@nextclaw/client-sdk";
 import type { ThinkingLevel } from "./types";
 
 export type SessionTypeIconView = {
@@ -115,6 +115,7 @@ export type NcpSessionMessagesView = {
   status: NcpSessionStatus;
   messages: NcpMessageView[];
   deferredToolPayloads?: Record<string, { cursor: string }>;
+  preparation?: UiNcpSessionMessagesView["preparation"];
   contextWindow?: SessionContextWindowView | null;
   total: number;
   pageInfo: NcpSessionMessagePageInfo;

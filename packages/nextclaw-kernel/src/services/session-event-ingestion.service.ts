@@ -23,6 +23,7 @@ type SessionEventIngestionServiceOptions = {
   appendSessionEvent: (params: {
     sessionId: string;
     event: NcpAgentSessionJournalReplayEvent;
+    signal?: AbortSignal;
   }) => Promise<void>;
   getSessionRecord: (sessionId: string) => Promise<AgentSessionRecord | null>;
   listUnfinishedRuns: () => Promise<UnfinishedNcpAgentRun[]>;
@@ -58,6 +59,7 @@ function readRuntimeSessionMetadataPatch(
 }
 
 export class SessionEventIngestionService {
+  private readonly acceptedEvents = new WeakMap<object, Promise<void>>();
   private readonly activityPreview: SessionActivityPreviewEventService;
   private readonly chains = new Map<string, Promise<void>>();
   private readonly failedWrites = new Map<string, unknown>();
@@ -104,7 +106,16 @@ export class SessionEventIngestionService {
     }
   };
 
-  ingestEvent = async (event: NcpEndpointEvent): Promise<void> => {
+  ingestEvent = (event: NcpEndpointEvent, signal?: AbortSignal): Promise<void> => {
+    const existing = this.acceptedEvents.get(event);
+    if (existing) return existing;
+    const operation = this.ingestEventOnce(event, signal);
+    this.acceptedEvents.set(event, operation);
+    void operation.catch(() => { this.acceptedEvents.delete(event); });
+    return operation;
+  };
+
+  private ingestEventOnce = async (event: NcpEndpointEvent, signal?: AbortSignal): Promise<void> => {
     const sessionId = readEventSessionId(event);
     if (!sessionId || !isDurableSessionEvent(event)) {
       return;
@@ -134,7 +145,7 @@ export class SessionEventIngestionService {
       return;
     }
     this.flushPendingDelta(sessionId);
-    await this.enqueue(sessionId, event);
+    await this.enqueue(sessionId, event, signal);
   };
 
   flushSession = async (sessionId: string): Promise<void> => {
@@ -171,13 +182,13 @@ export class SessionEventIngestionService {
     return next;
   };
 
-  private enqueue = (sessionId: string, event: NcpEndpointEvent): Promise<void> => {
+  private enqueue = (sessionId: string, event: NcpEndpointEvent, signal?: AbortSignal): Promise<void> => {
     const next = (this.chains.get(sessionId) ?? Promise.resolve()).then(() => {
       this.throwIfFailed(sessionId);
-      return this.handleDurableEvent(sessionId, event);
+      return this.handleDurableEvent(sessionId, event, signal);
     });
     this.chains.set(sessionId, next.catch((error: unknown) => {
-      this.failedWrites.set(sessionId, error);
+      if (!(error && typeof error === "object" && "journalCommitRejected" in error && error.journalCommitRejected === true)) this.failedWrites.set(sessionId, error);
     }));
     return next;
   };
@@ -193,6 +204,7 @@ export class SessionEventIngestionService {
   private handleDurableEvent = async (
     sessionId: string,
     event: NcpEndpointEvent,
+    signal?: AbortSignal,
   ): Promise<void> => {
     const preview = this.activityPreview.projectEvent(event, new Date().toISOString());
     const metadataPatch = readRuntimeSessionMetadataPatch(event);
@@ -203,6 +215,7 @@ export class SessionEventIngestionService {
     await this.options.appendSessionEvent({
       event: event as NcpAgentSessionJournalReplayEvent,
       sessionId,
+      signal,
     });
     if (event.type === NcpEventType.MessageSent) {
       const checkpoint = readContextCompactionCheckpoint(event.payload.message);

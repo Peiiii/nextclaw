@@ -10,6 +10,7 @@ describe("compaction execution evidence", () => {
       { role: "tool", tool_call_id: "migrate-1", content: "exit code 0" },
     ] });
     const source = JSON.stringify(input);
+    expect(input.sourceTruncated).toBe(false);
     expect(source).toContain("migrate-once.cjs");
     expect(source).toContain("migrate-1");
     expect(source).toContain("exec");
@@ -23,6 +24,7 @@ describe("compaction execution evidence", () => {
     }));
     const input = fitContextCompactionSummaryInput({ messages, maxInputTokens: 15_000, targetSummaryTokens: 4_000 });
     const source = JSON.stringify(input);
+    expect(input.sourceTruncated).toBe(true);
     expect(source).toContain("migration-completed");
     for (const message of messages) expect(source).toContain(message.ncp_message_id);
   });

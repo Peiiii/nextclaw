@@ -18,6 +18,7 @@ export async function readNcpAgentSessionProjectionTail(
   journalPath: string,
   meta: NcpAgentSessionMessageProjectionMeta,
   readMessage: (messageId: string) => Promise<NcpMessage | null>,
+  readToolOwner?: (toolCallId: string) => Promise<string | null>,
 ): Promise<NcpMessage[]> {
   const file = await open(journalPath, "r");
   try {
@@ -51,7 +52,12 @@ export async function readNcpAgentSessionProjectionTail(
     let seeds = (await Promise.all([...seedIds].map(readMessage)))
       .filter((message): message is NcpMessage => Boolean(message));
     if (missingToolCallIds.size > 0) {
-      const historicalOwners = await readHistoricalToolOwners(
+      const historicalOwners = readToolOwner
+        ? new Map((await Promise.all([...missingToolCallIds].map(async callId => {
+          const owner = await readToolOwner(callId);
+          return owner ? [callId, owner] as const : null;
+        }))).filter((item): item is readonly [string, string] => item !== null))
+        : await readHistoricalToolOwners(
         file,
         offset,
         missingToolCallIds,

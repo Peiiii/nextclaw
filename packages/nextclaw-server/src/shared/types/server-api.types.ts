@@ -1,5 +1,5 @@
 import type { Config, ThinkingLevel } from "@nextclaw/core";
-import type { SessionListPageOptions, SessionSettingsPatch, SessionTokenUsageSummary } from "@nextclaw/kernel";
+import type { SessionListPageOptions, SessionSettingsPatch, SessionTokenUsageSummary, SessionMessagePart } from "@nextclaw/kernel";
 import type { AgentProfileView } from "./server-api-agent.types.js";
 import type { AppEvent } from "@nextclaw/shared";
 import type {
@@ -675,9 +675,11 @@ export type UiNcpSessionMessagesView = {
   contextWindow?: NcpSessionSummary["contextWindow"];
   total: number;
   pageInfo: NcpSessionMessagePageInfo;
+  preparation?: { status: "queued" | "preparing" | "ready" | "failed" | "cancelled"; processedBytes: number; totalBytes: number; error?: string };
 };
 
 export type UiNcpSessionTokenUsageView = SessionTokenUsageSummary;
+export type UiNcpSessionMessagePartView = SessionMessagePart;
 
 export type SessionTypeDescribeParams = {
   describeMode?: "observation" | "probe";

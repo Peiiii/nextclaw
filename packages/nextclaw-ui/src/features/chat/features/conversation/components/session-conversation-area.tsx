@@ -20,6 +20,7 @@ import { ChatConversationWelcome } from "@/features/chat/features/welcome/compon
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useSystemStatus } from "@/features/system-status";
 import { t } from "@/shared/lib/i18n";
+import { Button } from "@/shared/components/ui/button";
 import type { SystemObjectResolvedReference } from "@nextclaw/shared";
 import { deriveChatComposerDraft } from "@/features/chat/features/input/utils/chat-composer-state.utils";
 import { appendSystemObjectReferenceToken } from "@/features/chat/features/input/utils/chat-system-object-reference.utils";
@@ -427,6 +428,21 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
       onResolved={async (handle: NcpRunHandle) => { await agent.acceptRun(handle); }}
     >
       <SessionConversationAlerts inputQuery={inputQuery} />
+      {agent.historyPreparation && ["queued", "preparing"].includes(agent.historyPreparation.status) && (
+        <div className="mx-4 flex items-center gap-3 rounded-lg border px-3 py-2 text-sm" role="status" aria-live="polite">
+          <div className="min-w-0 flex-1">
+            <p>{t("chatHistoryPreparing")}</p>
+            <progress className="mt-1 h-1 w-full" max={Math.max(1, agent.historyPreparation.totalBytes)} value={agent.historyPreparation.processedBytes} aria-label={t("chatHistoryPreparing")} />
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => { void agent.cancelHistoryPreparation(); }}>{t("chatHistoryPreparationCancel")}</Button>
+        </div>
+      )}
+      {agent.historyPreparation && ["failed", "cancelled"].includes(agent.historyPreparation.status) && (
+        <div className="mx-4 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm" role="alert">
+          <p>{t(agent.historyPreparation.status === "failed" ? "chatHistoryPreparationFailed" : "chatHistoryPreparationCancelled")}</p>
+          <Button variant="ghost" size="sm" onClick={() => { void agent.retryHistoryPreparation(); }}>{t("resourceRetry")}</Button>
+        </div>
+      )}
       <ChatConversationContent
         resourceWorkingDir={selectedSession?.workingDir ?? selectedSession?.projectRoot ?? null}
         hasPreviousMessages={agent.hasPreviousMessages}

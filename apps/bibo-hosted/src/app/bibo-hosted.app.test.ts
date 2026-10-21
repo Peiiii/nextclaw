@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { attachDurableObjectSql } from "./testing/durable-object-sql.fixture";
 import test, { after, beforeEach } from "node:test";
 import { mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -13,6 +14,7 @@ import { BiboRunService } from "./services/bibo-run.service";
 const bundle = await build({
   entryPoints: [new URL("./bibo-hosted.app.ts", import.meta.url).pathname],
   bundle: true, platform: "node", format: "esm", write: false, conditions: ["workerd"],
+  banner: { js: 'import { createRequire as createNodeRequire } from "node:module"; const require = createNodeRequire(import.meta.url);' },
   tsconfig: new URL("../../tsconfig.json", import.meta.url).pathname,
   plugins: [{
     name: "cloudflare-boundary",
@@ -178,6 +180,7 @@ class PersonalSpaceFixture {
 
   constructor(initial?: BiboSpaceState) {
     this.values = new Map((initial ? [["spaceState", { chunks: 1 }], ["spaceState:0", JSON.stringify(initial)]] : []) as Array<[string, unknown]>);
+    attachDurableObjectSql(this.storage);
     this.owner = this.instance();
   }
 
@@ -366,7 +369,7 @@ test("edge chat commits a reply without invoking the user container", async (t) 
   assert.match(stream, /event: committed/);
   assert.equal(fixture.calls(), 0);
   assert.equal(fixture.values.has("conversationMode"), false, "one conversation path needs no mode switch");
-  assert.equal(fixture.values.has(`ncpSession:${session.id}`), true);
+  assert.equal(fixture.values.has(`sessionHead:${session.id}`), true);
   const duplicate = await fixture.ownerFetch(new Request("https://bibo.internal/run", {
     method: "POST", body: JSON.stringify({ message: "早上好", token: "test-token", userId: "user-1",
       sessionId: session.id, clientRequestId: "same-send-1" }),
@@ -375,6 +378,9 @@ test("edge chat commits a reply without invoking the user container", async (t) 
   fixture.reopen();
   const history = await fixture.ownerFetch(new Request(`https://bibo.internal/history?id=${session.id}`));
   assert.deepEqual((await history.json() as { messages: Array<{ text: string }> }).messages.map((message) => message.text), ["早上好", "边缘回复。"]);
+  const partId = new URLSearchParams({ id: session.id, message: "unknown", part: "0" });
+  assert.equal((await fixture.ownerFetch(new Request(`https://bibo.internal/history/source?${partId}`))).status, 404);
+  assert.equal((await fixture.ownerFetch(new Request(`https://bibo.internal/history?id=${session.id}&cursor=broken`))).status, 400);
   const createdFile = await fixture.action("file.create", { path: "hello.md", kind: "note", content: "旧会话可读的新文件" });
   assert.equal(createdFile.status, 200);
   const file = await fixture.action("file.get", { path: "hello.md" });

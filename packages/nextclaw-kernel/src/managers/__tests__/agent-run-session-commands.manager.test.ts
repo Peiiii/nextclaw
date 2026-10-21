@@ -47,6 +47,7 @@ function createSessionCommandFixture(params: {
   });
   const materializationCalls: Array<Record<string, unknown>> = [];
   const rewindCalls: Array<{ messageId: string; sessionId: string }> = [];
+  let rewoundMessages = structuredClone(params.messages);
   const manager = new AgentRunRequestManager(
     {
       getOrCreate: () => ({
@@ -76,6 +77,7 @@ function createSessionCommandFixture(params: {
         rewindCalls.push({ messageId, sessionId });
         await params.beforeRewind?.();
         const anchorIndex = params.messages.findIndex((message) => message.id === messageId);
+        rewoundMessages = structuredClone(params.messages.slice(0, anchorIndex));
         return {
           sessionId,
           createdAt: '2026-08-08T10:00:00.000Z',
@@ -84,6 +86,7 @@ function createSessionCommandFixture(params: {
           metadata: structuredClone(params.metadata ?? {}),
         };
       },
+      loadSessionRunSeed: async () => rewoundMessages,
       getOrCreateAgentRunSession: async (input: Record<string, unknown>) => {
         materializationCalls.push(structuredClone(input));
         return {

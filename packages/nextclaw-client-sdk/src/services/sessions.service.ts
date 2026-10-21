@@ -6,6 +6,7 @@ import type {
   UiNcpAssetPutView,
   UiNcpSessionListView,
   UiNcpSessionMessagesView,
+  UiNcpSessionMessagePartView,
   UiNcpSessionQueuedInputView,
   UiNcpSessionQueuedInputsView,
   UiNcpSessionPendingInputView,
@@ -33,6 +34,14 @@ export class SessionsService {
     private readonly requestService: RequestService,
     private readonly eventBus: EventBus
   ) {}
+
+  readonly readMessagePart = (sessionId: string, messageId: string, part: number, cursor?: string, signal?: AbortSignal): Promise<UiNcpSessionMessagePartView> => {
+    const query = new URLSearchParams(cursor ? { cursor } : {});
+    return this.requestService.get(`/api/ncp/sessions/${encodeURIComponent(sessionId)}/messages/${encodeURIComponent(messageId)}/parts/${part}`, { query, signal });
+  };
+
+  readonly prepareHistory = (sessionId: string) => this.requestService.post<NonNullable<UiNcpSessionMessagesView["preparation"]>>(`/api/ncp/sessions/${encodeURIComponent(sessionId)}/history/prepare`);
+  readonly cancelHistoryPreparation = (sessionId: string) => this.requestService.delete<{ cancelled: boolean }>(`/api/ncp/sessions/${encodeURIComponent(sessionId)}/history/preparation`);
 
   readonly list = async (params?: SessionListQuery): Promise<UiNcpSessionListView> => {
     const { limit, page, pageSize, query: rawQuery, peerId: rawPeerId, scheduledOnly } = params ?? {};

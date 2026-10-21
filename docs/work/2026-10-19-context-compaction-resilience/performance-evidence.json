@@ -1,0 +1,499 @@
+{
+  "measuredAt": "2026-10-20T01:40:00+08:00",
+  "linuxEnvironment": {
+    "guest": "Linux x64, Node22.23.2",
+    "limits": "2 CPU / 2 GiB RAM / SSD Docker volume",
+    "host": "Apple M4, 16 GiB; x64 emulation, not a native x64 server",
+    "processCold": false,
+    "sqliteConnectionsCold": true,
+    "osPageCache": "warm"
+  },
+  "linux": [
+    {
+      "scenario": "256MiB-history",
+      "environment": {
+        "node": "v22.23.2",
+        "platform": "linux",
+        "arch": "x64",
+        "processCold": false,
+        "sqliteConnectionsCold": true,
+        "osPageCache": "warm"
+      },
+      "sourceBytes": 269518679,
+      "indexBytes": 305770496,
+      "repair": {
+        "ms": 24932.046886999997,
+        "heapGrowth": 11726728,
+        "rssGrowth": 15695872,
+        "eventLoopP95Ms": 14.286847,
+        "eventLoopMaxMs": 116.326399,
+        "ioBefore": {
+          "rchar": 13609339,
+          "wchar": 269912658,
+          "syscr": 43617,
+          "syscw": 82543,
+          "read_bytes": 0,
+          "write_bytes": 269524992,
+          "cancelled_write_bytes": 0
+        },
+        "ioAfter": {
+          "rchar": 652371994,
+          "wchar": 1002939263,
+          "syscr": 170567,
+          "syscw": 376156,
+          "read_bytes": 0,
+          "write_bytes": 1004855296,
+          "cancelled_write_bytes": 102400
+        }
+      },
+      "page": {
+        "samples": 30,
+        "ms": {
+          "p50": 2.352375000002212,
+          "p95": 8.076958999998169,
+          "max": 11.0659169999999
+        },
+        "logicalReadBytes": {
+          "p50": 113357,
+          "p95": 113357,
+          "max": 113357
+        },
+        "heapGrowth": {
+          "p50": 542176,
+          "p95": 552888,
+          "max": 602112
+        },
+        "responseBytes": {
+          "p50": 103536,
+          "p95": 103536,
+          "max": 103536
+        }
+      },
+      "part": {
+        "samples": 30,
+        "ms": {
+          "p50": 0.8202499999970314,
+          "p95": 1.4199579999985872,
+          "max": 1.5142909999995027
+        },
+        "logicalReadBytes": {
+          "p50": 32978,
+          "p95": 32978,
+          "max": 32978
+        },
+        "heapGrowth": {
+          "p50": 148552,
+          "p95": 167576,
+          "max": 167664
+        },
+        "responseBytes": {
+          "p50": 24684,
+          "p95": 24684,
+          "max": 24684
+        }
+      },
+      "window": {
+        "samples": 30,
+        "ms": {
+          "p50": 98.54258299999492,
+          "p95": 142.0084579999966,
+          "max": 155.2778330000001
+        },
+        "logicalReadBytes": {
+          "p50": 8734933,
+          "p95": 8734933,
+          "max": 8734933
+        },
+        "heapGrowth": {
+          "p50": 10254328,
+          "p95": 13930440,
+          "max": 14473248
+        },
+        "responseBytes": {
+          "p50": 0,
+          "p95": 0,
+          "max": 0
+        }
+      },
+      "planning": {
+        "samples": 30,
+        "ms": {
+          "p50": 5.001209000001836,
+          "p95": 7.984457999998995,
+          "max": 19.15612500000134
+        },
+        "logicalReadBytes": {
+          "p50": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "heapGrowth": {
+          "p50": 5848600,
+          "p95": 9074784,
+          "max": 9164912
+        },
+        "responseBytes": {
+          "p50": 0,
+          "p95": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "scenario": "64MiB-single-message",
+      "environment": {
+        "node": "v22.23.2",
+        "platform": "linux",
+        "arch": "x64",
+        "processCold": false,
+        "sqliteConnectionsCold": true,
+        "osPageCache": "warm"
+      },
+      "sourceBytes": 67109123,
+      "indexBytes": 143372288,
+      "repair": {
+        "ms": 4708.223210000004,
+        "heapGrowth": 2275768,
+        "rssGrowth": 393216,
+        "eventLoopP95Ms": 12.075007,
+        "eventLoopMaxMs": 243.662847,
+        "ioBefore": {
+          "rchar": 1989161734,
+          "wchar": 1070118660,
+          "syscr": 524929,
+          "syscw": 393715,
+          "read_bytes": 0,
+          "write_bytes": 1075900416,
+          "cancelled_write_bytes": 4034560
+        },
+        "ioAfter": {
+          "rchar": 2800197354,
+          "wchar": 1439870380,
+          "syscr": 715322,
+          "syscw": 576715,
+          "read_bytes": 0,
+          "write_bytes": 1364807680,
+          "cancelled_write_bytes": 4952064
+        }
+      },
+      "page": {
+        "samples": 30,
+        "ms": {
+          "p50": 0.36058300000149757,
+          "p95": 0.552958000000217,
+          "max": 1.0692500000004657
+        },
+        "logicalReadBytes": {
+          "p50": 3536,
+          "p95": 3536,
+          "max": 3536
+        },
+        "heapGrowth": {
+          "p50": 26272,
+          "p95": 26272,
+          "max": 32928
+        },
+        "responseBytes": {
+          "p50": 2699,
+          "p95": 2699,
+          "max": 2699
+        }
+      },
+      "part": {
+        "samples": 30,
+        "ms": {
+          "p50": 0.5155830000003334,
+          "p95": 0.7282080000004498,
+          "max": 1.2824579999942216
+        },
+        "logicalReadBytes": {
+          "p50": 32990,
+          "p95": 32990,
+          "max": 32990
+        },
+        "heapGrowth": {
+          "p50": 149664,
+          "p95": 163952,
+          "max": 164392
+        },
+        "responseBytes": {
+          "p50": 24684,
+          "p95": 24684,
+          "max": 24684
+        }
+      },
+      "window": {
+        "samples": 30,
+        "ms": {
+          "p50": 0.3634590000001481,
+          "p95": 0.5909580000006827,
+          "max": 1.020582999997714
+        },
+        "logicalReadBytes": {
+          "p50": 3248,
+          "p95": 3248,
+          "max": 3248
+        },
+        "heapGrowth": {
+          "p50": 89376,
+          "p95": 90784,
+          "max": 118472
+        },
+        "responseBytes": {
+          "p50": 0,
+          "p95": 0,
+          "max": 0
+        }
+      },
+      "planning": {
+        "samples": 30,
+        "ms": {
+          "p50": 0.06262500000593718,
+          "p95": 0.203125,
+          "max": 0.5012910000004922
+        },
+        "logicalReadBytes": {
+          "p50": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "heapGrowth": {
+          "p50": 18536,
+          "p95": 18616,
+          "max": 23160
+        },
+        "responseBytes": {
+          "p50": 0,
+          "p95": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "scenario": "million-tiny-deltas",
+      "environment": {
+        "node": "v22.23.2",
+        "platform": "linux",
+        "arch": "x64",
+        "processCold": false,
+        "sqliteConnectionsCold": true,
+        "osPageCache": "warm"
+      },
+      "sourceBytes": 134000268,
+      "indexBytes": 1212416,
+      "repair": {
+        "ms": 115556.677803,
+        "heapGrowth": 23599320,
+        "rssGrowth": 2359296,
+        "eventLoopP95Ms": 19.562495,
+        "eventLoopMaxMs": 62.291967,
+        "ioBefore": {
+          "rchar": 2835594494,
+          "wchar": 1573905391,
+          "syscr": 728711,
+          "syscw": 585546,
+          "read_bytes": 0,
+          "write_bytes": 1502740480,
+          "cancelled_write_bytes": 8884224
+        },
+        "ioAfter": {
+          "rchar": 2976935842,
+          "wchar": 1702662011,
+          "syscr": 762027,
+          "syscw": 663662,
+          "read_bytes": 0,
+          "write_bytes": 1640378368,
+          "cancelled_write_bytes": 8916992
+        }
+      },
+      "page": {
+        "samples": 30,
+        "ms": {
+          "p50": 0.7083330000168644,
+          "p95": 1.1300420000043232,
+          "max": 1.2472500000149012
+        },
+        "logicalReadBytes": {
+          "p50": 3558,
+          "p95": 3558,
+          "max": 3558
+        },
+        "heapGrowth": {
+          "p50": 26304,
+          "p95": 27408,
+          "max": 31528
+        },
+        "responseBytes": {
+          "p50": 2708,
+          "p95": 2708,
+          "max": 2708
+        }
+      },
+      "part": {
+        "samples": 30,
+        "ms": {
+          "p50": 0.5207079999963753,
+          "p95": 0.715583000011975,
+          "max": 1.5059579999942798
+        },
+        "logicalReadBytes": {
+          "p50": 31903,
+          "p95": 31903,
+          "max": 31903
+        },
+        "heapGrowth": {
+          "p50": 139464,
+          "p95": 147000,
+          "max": 147080
+        },
+        "responseBytes": {
+          "p50": 23743,
+          "p95": 23743,
+          "max": 23743
+        }
+      },
+      "window": {
+        "samples": 30,
+        "ms": {
+          "p50": 7.817167000001064,
+          "p95": 12.015875000011874,
+          "max": 12.868083999986993
+        },
+        "logicalReadBytes": {
+          "p50": 1004877,
+          "p95": 1004877,
+          "max": 1004877
+        },
+        "heapGrowth": {
+          "p50": 7282752,
+          "p95": 7286240,
+          "max": 7291152
+        },
+        "responseBytes": {
+          "p50": 0,
+          "p95": 0,
+          "max": 0
+        }
+      },
+      "planning": {
+        "samples": 30,
+        "ms": {
+          "p50": 0.5928750000020955,
+          "p95": 2.4304169999959413,
+          "max": 2.769957999989856
+        },
+        "logicalReadBytes": {
+          "p50": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "heapGrowth": {
+          "p50": 1017384,
+          "p95": 1026992,
+          "max": 1028992
+        },
+        "responseBytes": {
+          "p50": 0,
+          "p95": 0,
+          "max": 0
+        }
+      }
+    }
+  ],
+  "http": [
+    {
+      "scenario": "perf-history",
+      "environment": "Darwin arm64 Node22.23.2, TCP keepalive warm, SQLite connections fresh, OS cache warm, full product HTTP server",
+      "control": {
+        "samples": 439,
+        "p95": 10.397792000000209,
+        "max": 36.037042
+      },
+      "page": {
+        "samples": 30,
+        "p95": 8.264124999999694,
+        "max": 9.771250000000691,
+        "maxResponseBytes": 102892
+      },
+      "compact": {
+        "samples": 30,
+        "p95": 6.5734999999995125,
+        "max": 7.881875000000036,
+        "maxResponseBytes": 20700
+      },
+      "part": {
+        "samples": 30,
+        "p95": 8.377833999999893,
+        "max": 18.289749999999913,
+        "maxResponseBytes": 24757
+      }
+    },
+    {
+      "scenario": "perf-giant",
+      "environment": "Darwin arm64 Node22.23.2, TCP keepalive warm, SQLite connections fresh, OS cache warm, full product HTTP server",
+      "control": {
+        "samples": 30,
+        "p95": 7.840416999999434,
+        "max": 9.351916999999958
+      },
+      "page": {
+        "samples": 30,
+        "p95": 10.178458999998838,
+        "max": 12.446583999999348,
+        "maxResponseBytes": 2699
+      },
+      "compact": {
+        "samples": 30,
+        "p95": 16.060083000000304,
+        "max": 19.284207999999126,
+        "maxResponseBytes": 2699
+      },
+      "part": {
+        "samples": 30,
+        "p95": 5.150541999999405,
+        "max": 11.022499999999127,
+        "maxResponseBytes": 24757
+      }
+    }
+  ],
+  "browser": [
+    {
+      "scenario": "perf-history",
+      "browser": "155.0.8059.80",
+      "headless": true,
+      "diagnostic": false,
+      "network": {
+        "roundTripLatencyMs": 50,
+        "bytesPerSecond": 1250000
+      },
+      "assetCache": "warm",
+      "conversationData": "not delivered until after the click; fresh document/JS state each sample",
+      "samples": 30,
+      "p95": 188.62316699999792,
+      "max": 191.91304200000013,
+      "maxJsHeapGrowth": 7774772
+    },
+    {
+      "scenario": "perf-giant",
+      "browser": "155.0.8059.80",
+      "headless": true,
+      "diagnostic": false,
+      "network": {
+        "roundTripLatencyMs": 50,
+        "bytesPerSecond": 1250000
+      },
+      "assetCache": "warm",
+      "conversationData": "not delivered until after the click; fresh document/JS state each sample",
+      "samples": 30,
+      "p95": 135.04241700000057,
+      "max": 135.9996659999997,
+      "maxJsHeapGrowth": 5325444
+    }
+  ],
+  "limits": [
+    "Synthetic workload results do not establish the exact customer failure cause.",
+    "Full export and explicit rewind still read the requested complete record.",
+    "Index maintenance is explicit, visible and potentially takes seconds; p95 page latency applies after readiness.",
+    "Real model continuation was measured before the independent fresh-checkpoint-ID correction; the ID correction has a separate cold-state regression."
+  ]
+}

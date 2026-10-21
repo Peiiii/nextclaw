@@ -19,19 +19,24 @@ function sourceMessages(messages: readonly RuntimeMessage[]): RuntimeMessage[] {
     .map((field) => [field, message[field]])));
 }
 
-function serializeSource(messages: readonly RuntimeMessage[], textChars: number): string {
+function serializeSource(messages: readonly RuntimeMessage[], textChars: number): { text: string; truncated: boolean } {
   const summaries = new Set(messages.filter((message) =>
     (message.role === "system" || message.role === "service") && typeof message.content === "string"
-      && message.content.includes("# Compressed Working Context")).map((message) => message.content));
-  return JSON.stringify(sourceMessages(messages), (key, value) =>
-    IDENTITY_FIELDS.has(key) || summaries.has(value) ? value : truncateSummarySourceString(value, textChars));
+    ).map((message) => message.content));
+  let truncated = false;
+  const text = JSON.stringify(sourceMessages(messages), (key, value) => {
+    const fitted = IDENTITY_FIELDS.has(key) || summaries.has(value) ? value : truncateSummarySourceString(value, textChars);
+    if (fitted !== value) truncated = true;
+    return fitted;
+  });
+  return { text, truncated };
 }
 
 /** Shrink verbose fields, never discard a message or break the outer JSON. */
-export function stringifyCompactionSource(messages: readonly RuntimeMessage[], maxChars: number): string {
+export function stringifyCompactionSource(messages: readonly RuntimeMessage[], maxChars: number, report?: (truncated: boolean) => void): string {
   if (messages.length === 0) return "[]";
   const minimal = serializeSource(messages, MIN_SOURCE_TEXT_CHARS);
-  if (minimal.length > maxChars) {
+  if (minimal.text.length > maxChars) {
     throw new Error("Compaction source identities exceed the input budget; split the source before summarizing.");
   }
   let fitted = minimal;
@@ -40,10 +45,11 @@ export function stringifyCompactionSource(messages: readonly RuntimeMessage[], m
   while (lower <= upper) {
     const limit = Math.floor((lower + upper) / 2);
     const candidate = serializeSource(messages, limit);
-    if (candidate.length <= maxChars) { fitted = candidate; lower = limit + 1; }
+    if (candidate.text.length <= maxChars) { fitted = candidate; lower = limit + 1; }
     else upper = limit - 1;
   }
-  return fitted;
+  report?.(fitted.truncated);
+  return fitted.text;
 }
 
 /** Bound identity overhead before fitting text; every source record belongs to one batch. */
@@ -52,7 +58,7 @@ export function splitCompactionSource(messages: readonly RuntimeMessage[], maxCh
   let batch: RuntimeMessage[] = [];
   let size = 2;
   for (const message of messages) {
-    const messageSize = serializeSource([message], MIN_SOURCE_TEXT_CHARS).length;
+    const messageSize = serializeSource([message], MIN_SOURCE_TEXT_CHARS).text.length;
     if (messageSize > maxChars) throw new Error("A compaction source record exceeds the minimum safe input budget.");
     if (batch.length > 0 && size + messageSize > maxChars) {
       batches.push(batch); batch = []; size = 2;

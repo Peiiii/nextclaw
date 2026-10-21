@@ -1,10 +1,11 @@
-import { copyFile, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { NcpEventType } from "@nextclaw/ncp";
 import { NcpAgentSessionJournalStore } from "./ncp-agent-session-journal.store.js";
 import { compactSessionJournal, restoreSessionJournalBackup } from "./session-journal-maintenance.store.js";
+import { canonicalSessionMessages } from "@kernel/utils/__tests__/session-message-projection-fixture.utils.js";
 
 const sessionId = "session-maintenance";
 let journalDir: string | null = null;
@@ -78,7 +79,8 @@ describe("offline session journal maintenance", () => {
     expect(await readFile(`${source}.backup`)).toEqual(original);
     const cold = new NcpAgentSessionJournalStore(journalDir);
     await cold.initialize();
-    expect((await cold.getSession(sessionId))?.messages).toEqual(baseline?.messages);
+    expect(canonicalSessionMessages((await cold.getSession(sessionId))?.messages)).toEqual(canonicalSessionMessages(baseline?.messages));
+    await cold.prepareSessionHistory(sessionId, { wait: true });
     expect(await cold.listSessionMessagePage({ sessionId, limit: 10 })).toMatchObject({ total: 1 });
     expect((await cold.listSessionSummaries()).map(({ sessionId: id }) => id)).not.toContain("deleted-session");
     cold.close();
@@ -88,7 +90,7 @@ describe("offline session journal maintenance", () => {
     expect(await readFile(source)).toEqual(original);
     const restored = new NcpAgentSessionJournalStore(journalDir);
     await restored.initialize();
-    expect((await restored.getSession(sessionId))?.messages).toEqual(baseline?.messages);
+    expect(canonicalSessionMessages((await restored.getSession(sessionId))?.messages)).toEqual(canonicalSessionMessages(baseline?.messages));
     restored.close();
   });
 
@@ -142,7 +144,7 @@ describe("offline session journal maintenance", () => {
     await expect(stat(`${source}.maintenance`)).rejects.toMatchObject({ code: "ENOENT" });
   });
 
-  it("refuses to append after a torn journal tail across restart", async () => {
+  it("preserves a torn suffix and safely resumes after explicit preparation across restart", async () => {
     journalDir = await mkdtemp(join(tmpdir(), "nextclaw-journal-maintenance-"));
     await seedClosedJournal(journalDir);
     const journalPath = join(journalDir, `${sessionId}.jsonl`);
@@ -154,8 +156,11 @@ describe("offline session journal maintenance", () => {
     await expect(restarted.appendSessionEvent({
       sessionId,
       event: { type: NcpEventType.MessageTextDelta, payload: { sessionId, messageId: "assistant-1", delta: "x" } },
-    })).rejects.toThrow("incomplete tail line");
-    expect(await readFile(journalPath, "utf8")).toBe(torn);
+    })).resolves.toBeUndefined();
+    const quarantined = (await readdir(journalDir)).find(name => name.includes(".jsonl.torn-"));
+    expect(quarantined).toBeTruthy();
+    expect(await readFile(join(journalDir, quarantined!), "utf8")).toBe('{"_type":"event"');
+    expect((await readFile(journalPath, "utf8")).startsWith(torn.slice(0, torn.lastIndexOf("\n") + 1))).toBe(true);
     restarted.close();
   });
 });
