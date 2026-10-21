@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { FeishuConfigSchema as NextClawFeishuConfigSchema } from "@nextclaw/feishu-core";
 import { DEFAULT_WORKSPACE_PATH } from "./brand.config.js";
-import type { ConfigUiHints } from "../utils/config-schema-hints.utils.js";
-import type { ConfigActionManifest } from "../utils/config-actions.utils.js";
+import type { ConfigUiHints } from "@core/features/config/utils/config-schema-hints.utils.js";
+import type { ConfigActionManifest } from "@core/features/config/utils/config-actions.utils.js";
 
 const allowFrom = z.array(z.string()).default([]);
 const groupPolicySchema = z.enum(["open", "allowlist", "disabled"]);
@@ -256,7 +256,9 @@ export const ContextBootstrapSchema = z.object({
     ]),
   minimalFiles: z.array(z.string()).default(["AGENTS.md", "SOUL.md", "TOOLS.md", "IDENTITY.md"]),
   perFileChars: z.number().int().default(4000),
-  totalChars: z.number().int().default(12000)
+  totalChars: z.number().int().default(12000),
+  /** 用户固定事实文件：最高优先、贴近决策尾部注入，不被记忆压缩裁剪 */
+  pinnedFile: z.string().default("pinned.md")
 });
 
 export const ContextMemorySchema = z.object({
