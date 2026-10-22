@@ -13,7 +13,7 @@ import {
   loadPlatformAuthSession,
   renderMissingSessionPage,
 } from "@/services/auth-browser-session.service.js";
-import { sendPlatformEmailAuthCode, verifyPlatformEmailAuthCode } from "@/services/platform-email-otp.service";
+import { sendPlatformEmailAuthCode, verifyPlatformEmailAuthCode } from "@/utils/platform-email-otp.utils";
 import {
   authenticatePlatformUser,
   isPlatformAuthServiceError,

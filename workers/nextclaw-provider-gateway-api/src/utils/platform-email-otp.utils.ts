@@ -1,7 +1,8 @@
 import { getUserByEmail } from "@/repositories/platform.repository";
-import { PlatformAuthServiceError } from "./platform-auth.service";
+import { PlatformAuthServiceError } from "@/services/platform-auth.service";
 import type { Env } from "@/types/platform";
 import { isValidEmail, normalizeEmail } from "@/utils/platform.utils";
+import { EmailDeliveryError, sendTransactionalEmail } from "@/utils/transactional-email.utils";
 
 export type EmailCodePurpose = "register" | "password_reset";
 
@@ -254,15 +255,6 @@ async function deliverResendEmail(params: {
   expiresAt: string;
 }): Promise<void> {
   const { env, email, code, purpose, expiresAt: rawExpiresAt } = params;
-  const apiKey = env.RESEND_API_KEY?.trim();
-  const from = env.PLATFORM_AUTH_EMAIL_FROM?.trim();
-  if (!apiKey || !from) {
-    throw new PlatformAuthServiceError(
-      503,
-      "EMAIL_PROVIDER_NOT_CONFIGURED",
-      "Resend email provider is not fully configured.",
-    );
-  }
   const expiresAt = new Date(rawExpiresAt).toLocaleString("en-US");
   const subject = purpose === "register"
     ? "Verify your NextClaw email"
@@ -282,29 +274,11 @@ async function deliverResendEmail(params: {
     </div>
   `;
   const text = `${subject}\n\n${intro}\n\nCode: ${code}\nExpires at: ${expiresAt}\n`;
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [email],
-      subject,
-      html,
-      text,
-    }),
-  });
-  if (response.ok) {
-    return;
+  try { await sendTransactionalEmail(env, { to: email, subject, html, text }); }
+  catch (error) {
+    if (error instanceof EmailDeliveryError) throw new PlatformAuthServiceError(error.status, error.code, error.message);
+    throw new PlatformAuthServiceError(502, "EMAIL_DELIVERY_FAILED", "Email delivery is temporarily unavailable.");
   }
-  const raw = await response.text();
-  throw new PlatformAuthServiceError(
-    502,
-    "EMAIL_DELIVERY_FAILED",
-    raw || `Email delivery failed (${response.status}).`,
-  );
 }
 
 async function deliverEmailCode(params: {

@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { sendPlatformEmailAuthCode, verifyPlatformEmailAuthCode } from "@/services/platform-email-otp.service";
+import { sendPlatformEmailAuthCode, verifyPlatformEmailAuthCode } from "@/utils/platform-email-otp.utils";
 import { ensurePlatformBootstrap } from "@/services/platform.service";
 import {
   issuePlatformTokenResult,
