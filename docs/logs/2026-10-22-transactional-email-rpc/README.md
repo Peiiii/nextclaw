@@ -6,3 +6,6 @@
 - 验证：定向Worker tsc/build、2项传输测试、触达文件eslint、Worker dry-run、new-code governance及backlog ratchet通过。证据为/tmp/bibo-mail-final-{build,tests,lint,dryrun}.log与/tmp/bibo-mail-{governance,ratchet}.log。
 - Review：diff-only检查0 error；既有OTP模块412行接近预算的warning，搬至utils符合既有函数模块角色，较原438行减少。人工复核确认原OTP模板/状态链不变，provider请求归共享owner，私有命名entrypoint未加入公网路由，密钥不迁出。implementation-review: passed。
 - 发布范围：仅provider gateway Worker，不发布NPM/runtime/desktop/NextClaw文档站，无DB迁移；Bibo账号与文档在自身仓交付。生产部署及Bibo集成证据待后续追加，不预报成功。
+- 生产结果：冻结e32bee76582261ffd2aefc100b5b29c2e575edda已推送远程master，部署gateway版本c795346e-a907-4945-ba6f-cc59318943e4（/tmp/bibo-mail-production-deploy.log）。Bibo绑定同名entrypoint并部署后，真实验证码邮件抵达专用测试邮箱，发件显示Bibo，SPF/DKIM通过；未迁移或回显Resend key。
+- Bibo账号/CLI源码16194f8归独立仓库；140个身份迁移、旧密码/旧会话/空间与PAT生产连续性均已验证。该库不拥有Bibo的账号事实与验收终态，详见[独立交付记录](https://github.com/Peiiii/bibo/blob/main/docs/logs/2026-10-22-bibo-open-api/README.md)。
+- pnpm release:reconcile:mainline已执行，返回LOCAL_WORKTREE_RETRYING：原master有七个无关WIP，retry worker接管。未rebase/stash/reset或覆盖这些改动，不宣称本地主线已同步。AUTOMATION_INTERVENTIONS: 0。
