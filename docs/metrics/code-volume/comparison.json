@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T07:30:44.610Z",
+  "generatedAt": "2026-10-23T07:25:40.128Z",
   "base": {
     "name": "nextclaw",
     "projectRoot": "/home/runner/work/nextclaw/nextclaw",
@@ -7,7 +7,6 @@
       "profile": "source",
       "title": "Source LOC",
       "includePaths": [
-        "apps/bibo-hosted/src",
         "apps/companion/src",
         "apps/competitive-leaderboard/src",
         "apps/desktop/src",
@@ -21,7 +20,6 @@
         "apps/public-roadmap-feedback-portal/src",
         "bridge/src",
         "packages/aigen/src",
-        "packages/bibo-client/src",
         "packages/browser-connector/src",
         "packages/extensions/nextclaw-channel-extension-dingtalk/src",
         "packages/extensions/nextclaw-channel-extension-discord/src",
@@ -74,7 +72,6 @@
         "packages/nextclaw-ui/src",
         "packages/nextclaw/bridge/src",
         "packages/nextclaw/src",
-        "packages/personal-agent-ui/src",
         "workers/marketplace-api/src",
         "workers/nextclaw-provider-gateway-api/src"
       ],
@@ -103,12 +100,12 @@
       ]
     },
     "totals": {
-      "files": 3513,
-      "totalLines": 506989,
-      "blankLines": 42304,
-      "commentLines": 1296,
-      "codeLines": 323981,
-      "testCodeLines": 139408
+      "files": 3345,
+      "totalLines": 489088,
+      "blankLines": 41259,
+      "commentLines": 1206,
+      "codeLines": 311755,
+      "testCodeLines": 134868
     }
   },
   "benchmark": {
@@ -145,18 +142,18 @@
       ]
     },
     "totals": {
-      "files": 38698,
-      "totalLines": 8646952,
-      "blankLines": 469523,
-      "commentLines": 149248,
-      "codeLines": 3766008,
-      "testCodeLines": 4262173
+      "files": 38443,
+      "totalLines": 8630027,
+      "blankLines": 466104,
+      "commentLines": 149862,
+      "codeLines": 3762542,
+      "testCodeLines": 4251519
     }
   },
   "comparison": {
-    "baseMinusBenchmarkLines": -3442027,
-    "basePercentOfBenchmark": 8.6,
-    "benchmarkMultipleOfBase": 11.62,
-    "baseIsLighterByPercent": 91.4
+    "baseMinusBenchmarkLines": -3450787,
+    "basePercentOfBenchmark": 8.29,
+    "benchmarkMultipleOfBase": 12.07,
+    "baseIsLighterByPercent": 91.71
   }
 }
