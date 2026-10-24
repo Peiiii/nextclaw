@@ -37,6 +37,7 @@ import {
   type DesktopHost,
 } from "@kernel/features/desktop-host/index.js";
 import { FeatureControlsService } from "@kernel/features/feature-controls/index.js";
+import { CoreHealthCheckService } from "@kernel/features/core-health/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import type { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
@@ -57,6 +58,7 @@ import {
   resolveKernelVerificationRecordStorePath,
   resolveKernelPreferenceStorePath,
   resolveKernelPlannedRestartRecoveryPath,
+  resolveKernelSessionsDir,
 } from "@kernel/app/kernel-storage-paths.js";
 import {
   createKernelContributions,
@@ -162,6 +164,7 @@ export class NextclawKernel {
   readonly observations: ObservationManager;
   readonly capabilityGrants: CapabilityGrantManager;
   readonly featureControls: FeatureControlsService;
+  readonly coreHealth: CoreHealthCheckService;
   readonly verificationRecords: VerificationRecordService;
   readonly portableRuntimeAcceptance: PortableRuntimeAcceptanceManager;
   readonly plannedRestartRecovery: PlannedRestartRecoveryManager;
@@ -182,6 +185,11 @@ export class NextclawKernel {
     ({ verificationRecords: this.verificationRecords, portableRuntimeAcceptance: this.portableRuntimeAcceptance } =
       createPortableRuntimeAcceptanceServices({ ...options, verificationRecordStorePath: resolveKernelVerificationRecordStorePath(options) }));
     this.featureControls = new FeatureControlsService(desktopHost);
+    this.coreHealth = new CoreHealthCheckService({
+      getConfig: () => this.configManager.config,
+      getWorkspacePath: () => getWorkspacePath(this.configManager.config.agents.defaults.workspace),
+      sessionsDir: resolveKernelSessionsDir({ homeDir: options.homeDir }),
+    });
     this.control = new NextclawKernelControlManager<unknown, unknown, unknown>();
     this.accessManager = new AccessManager({ configManager: this.configManager, homeDir: options.homeDir });
     this.capabilityGrantLegacyMigration = this.createCapabilityGrantLegacyMigration(options);
