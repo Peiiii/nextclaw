@@ -47,6 +47,7 @@ export class ToolProviderContribution extends Contribution {
       new DesktopToolProvider(
         runContextService,
         this.kernel.extensions.getDesktopHost(),
+        this.kernel.featureControls,
       ),
       new CoreToolProvider(runContextService, this.kernel.getGatewayController, this.kernel.execRunner),
       new MessagingToolProvider(
@@ -77,6 +78,7 @@ export class ToolProviderContribution extends Contribution {
       ),
       new ServiceAppAiCapabilityToolProvider(this.kernel.serviceAppManager),
       new AppPackageDependencyToolProvider(this.kernel.appPackageManager),
+      new McpToolProvider(runContextService, this.kernel.mcpManager, this.kernel.featureControls),
     ];
   };
 }

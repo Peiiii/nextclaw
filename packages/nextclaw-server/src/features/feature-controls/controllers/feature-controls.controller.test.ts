@@ -4,7 +4,11 @@ import { FeatureControlsRoutesController } from "./feature-controls.controller.j
 
 describe("FeatureControlsRoutesController", () => {
   it("returns the shared backend feature-controls object", async () => {
-    const get = vi.fn(async () => ({ desktopAutomation: { available: false } }));
+    const get = vi.fn(async () => ({
+      desktopAutomation: { available: false, active: true },
+      mcp: { available: false, active: true },
+      core: { healthy: true, autoDegrade: false, failedCheckIds: [] },
+    }));
     const app = new Hono();
     app.get("/api/feature-controls", new FeatureControlsRoutesController({ get }).get);
 
@@ -14,7 +18,11 @@ describe("FeatureControlsRoutesController", () => {
     expect(get).toHaveBeenCalledOnce();
     await expect(response.json()).resolves.toEqual({
       ok: true,
-      data: { desktopAutomation: { available: false } },
+      data: {
+        desktopAutomation: { available: false, active: true },
+        mcp: { available: false, active: true },
+        core: { healthy: true, autoDegrade: false, failedCheckIds: [] },
+      },
     });
   });
 });
