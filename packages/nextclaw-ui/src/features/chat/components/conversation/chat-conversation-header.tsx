@@ -63,7 +63,7 @@ export function ChatConversationHeader({
       data-testid="chat-conversation-header"
       data-theme-surface="header"
       className={cn(
-        "bg-background/80 backdrop-blur-sm flex items-center justify-between gap-2 shrink-0 overflow-hidden transition-colors duration-200",
+        "desktop-window-drag bg-background/80 backdrop-blur-sm flex items-center justify-between gap-2 shrink-0 overflow-hidden transition-colors duration-200",
         isMobileLayout ? "px-3 sm:px-3" : "px-4 sm:px-5",
         shouldShow ? "opacity-100" : "h-0 py-0 opacity-0",
         shouldShow && (isMobileLayout ? "min-h-[var(--mobile-header-height)] pb-0.5 pt-0.5" : "h-[52px]"),
@@ -74,7 +74,7 @@ export function ChatConversationHeader({
           : undefined
       }
     >
-      <div className="min-w-0 flex-1 flex items-center gap-2 max-md:gap-0">
+      <div className="desktop-window-no-drag min-w-0 flex-1 flex items-center gap-2 max-md:gap-0">
         {isMobileLayout && onBackToList ? (
           <IconActionButton
             icon={<ArrowLeft className="h-4 w-4" />}
