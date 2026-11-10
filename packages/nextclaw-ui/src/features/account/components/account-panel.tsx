@@ -13,6 +13,7 @@ import { useRemoteStatus } from "@/features/remote";
 import { formatDateTime, t } from "@/shared/lib/i18n";
 import { getAppPresenter } from "@/app/presenters/app.presenter";
 import { useAccountStore } from "@/features/account/stores/account.store";
+import { useAccountLoginEnabled } from "@/features/account/hooks/use-account-login-enabled";
 import { KeyRound, LogOut, SquareArrowOutUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -184,6 +185,7 @@ export function AccountPanel() {
   );
   const authExpiresAt = useAccountStore((state) => state.authExpiresAt);
   const authStatusMessage = useAccountStore((state) => state.authStatusMessage);
+  const { enabled: accountLoginEnabled } = useAccountLoginEnabled();
   const status = remoteStatus.data;
   const [usernameDraft, setUsernameDraft] = useState("");
   const [savingUsername, setSavingUsername] = useState(false);
@@ -235,7 +237,7 @@ export function AccountPanel() {
             onOpenDeviceList={() => presenter.accountManager.openNextClawWeb('/account')}
             onLogout={() => presenter.accountManager.logout()}
           />
-        ) : (
+        ) : accountLoginEnabled ? (
           <SignedOutAccountSection
             authSessionId={authSessionId}
             authExpiresAt={authExpiresAt}
@@ -248,6 +250,16 @@ export function AccountPanel() {
               presenter.accountManager.resumeBrowserSignIn()
             }
           />
+        ) : (
+          <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+            <KeyRound className="h-6 w-6 text-muted-foreground/45" />
+            <p className="text-sm font-medium text-foreground">
+              {t("accountLoginDisabledTitle")}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("accountLoginDisabledDescription")}
+            </p>
+          </div>
         )}
       </DialogContent>
     </Dialog>
