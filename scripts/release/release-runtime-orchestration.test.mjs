@@ -154,7 +154,6 @@ test("published runtime identity distinguishes persistent unavailability from a 
 test("release workflows bind dispatch identity and immutable source commits", () => {
   const preflight = readFileSync(new URL("../../.github/workflows/desktop-release-preflight.yml", import.meta.url), "utf8");
   const runtime = readFileSync(new URL("../../.github/workflows/npm-runtime-update-release.yml", import.meta.url), "utf8");
-  const prepare = readFileSync(new URL("../../.github/workflows/npm-release-prepare.yml", import.meta.url), "utf8");
   const release = readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
   const beta = readFileSync(new URL("./release-beta.mjs", import.meta.url), "utf8");
 
@@ -163,15 +162,6 @@ test("release workflows bind dispatch identity and immutable source commits", ()
   assert.match(preflight, /node-version: \$\{\{ inputs\.node_version \}\}/);
   assert.match(runtime, /run-name: .*target=\$\{\{ inputs\.release_target \}\} dispatch=\$\{\{ inputs\.dispatch_id \}\}/);
   assert.equal(runtime.match(/ref: \$\{\{ inputs\.release_target \}\}/g)?.length, 2);
-  assert.match(prepare, /group: npm-release-prepare-\$\{\{ inputs\.source_sha \|\| github\.sha \}\}/);
-  assert.match(prepare, /cancel-in-progress: false/);
-  assert.match(prepare, /name: npm-release-prepared-\$\{\{ env\.NPM_RELEASE_SOURCE_SHA \}\}/);
-  assert.match(prepare, /Find an existing immutable NPM artifact[\s\S]*?name=npm-release-prepared-\$NPM_RELEASE_SOURCE_SHA/);
-  assert.match(prepare, /Verify and restore the immutable NPM tree[\s\S]*?importPreparedNpmReleaseArtifact/);
-  assert.match(prepare, /name: Prepare immutable release tree and tarballs\s+if: \$\{\{ steps\.release-batch\.outputs\.ready == 'true' && steps\.existing-artifact\.outputs\.run_id == '' \}\}/);
-  assert.match(prepare, /uses: \.\/\.github\/workflows\/npm-runtime-update-release\.yml/);
-  assert.match(prepare, /publish: false/);
-  assert.match(prepare, /prepare-runtime:[\s\S]*permissions:[\s\S]*contents: write/);
   assert.match(runtime, /prepared_run_id:/);
   assert.match(runtime, /run-id: \$\{\{ inputs\.prepared_run_id \}\}/);
   assert.match(runtime, /Verify prepared Runtime identity and completeness/);
@@ -189,8 +179,17 @@ test("release workflows bind dispatch identity and immutable source commits", ()
   assert.match(beta, /displayTitle.*dispatch=\$\{dispatchId\}/);
 });
 
-test("Runtime preparation grants permissions required by the nested Pages deployment", () => {
+test("Runtime preparation preserves immutable recovery and nested deployment permissions", () => {
   const prepare = readFileSync(new URL("../../.github/workflows/npm-release-prepare.yml", import.meta.url), "utf8");
+  assert.match(prepare, /group: npm-release-prepare-\$\{\{ inputs\.source_sha \|\| github\.sha \}\}/);
+  assert.match(prepare, /cancel-in-progress: false/);
+  assert.match(prepare, /name: npm-release-prepared-\$\{\{ env\.NPM_RELEASE_SOURCE_SHA \}\}/);
+  assert.match(prepare, /Find an existing immutable NPM artifact[\s\S]*?name=npm-release-prepared-\$NPM_RELEASE_SOURCE_SHA/);
+  assert.match(prepare, /Verify and restore the immutable NPM tree[\s\S]*?importPreparedNpmReleaseArtifact/);
+  assert.match(prepare, /name: Prepare immutable release tree and tarballs\s+if: \$\{\{ steps\.release-batch\.outputs\.ready == 'true' && steps\.existing-artifact\.outputs\.run_id == '' \}\}/);
+  assert.match(prepare, /uses: \.\/\.github\/workflows\/npm-runtime-update-release\.yml/);
+  assert.match(prepare, /publish: false/);
+  assert.match(prepare, /prepare-runtime:[\s\S]*permissions:[\s\S]*contents: write/);
   assert.match(prepare, /prepare-runtime:[\s\S]*permissions:[\s\S]*pages: write[\s\S]*id-token: write/);
 });
 
