@@ -359,7 +359,7 @@ test("stable release exposes only the business target and infers recovery checkp
 
 test("stable identity promotes an exited beta and preserves published Desktop recovery", () => {
   const workflow = readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
-  const source = workflow.match(/node - \.changeset-status\.json <<'NODE'[^\n]*\n([\s\S]*?)\n          NODE/)?.[1];
+  const source = workflow.match(/node - \.changeset-status\.json <<'NODE'[^\n]*\n([\s\S]*?)\n {10}NODE/)?.[1];
   assert.ok(source, "the dispatched identity resolver must exist");
   const exited = { preState: { mode: "exit" }, releases: [{ name: "nextclaw", newVersion: "0.59.0" }] };
   function resolve(status, version, draft = false) {
