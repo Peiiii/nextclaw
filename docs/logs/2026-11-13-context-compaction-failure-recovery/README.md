@@ -43,8 +43,16 @@ diff-only 自动维护性检查有 1 个 error 预算信号、2 个 warning，�
 
 ### 0.59.4 发布执行与恢复
 
+第二个独立恢复根因：43266715710在准备阶段明确失败，`remote-only=4, local-only=0`；原流程把已发布身份的旧源码恢复送入“新发布必须同步master”的门。未放宽该门。改原prepare workflow按精确artifact名称找未过期原包，调用原import验证与恢复版本树，再准备Runtime；无同源产物时仍走原新发布路径，错误产物明确失败。新增真实Git反例在远程主线已前进时导入旧SHA原artifact，并复验原source/版本/正文/包校验；不再重新打包已发布NPM。`AUTOMATION_INTERVENTIONS=2`，此为第二个根因的原owner修复，等待同一0.59.4恢复验证。
+
 `EXISTING_RELEASE_PATH`：release.yml target=product，npm-production/NPM_TOKEN，最近成功 parent39306362156。当前 parent43262190699 于北京时间 00:45:49 单次 dispatch，冻结源码82c79ee8f2；prepare43262148717。NPM job131336674846 于00:46:45–01:01:05成功，860秒，time budget: missed；包含等待精确41包闭包产物与发布验证，不等同于纯registry上传耗时。NPM latest已实读0.59.4，core0.18.9/kernel0.19.6，release commit784f2009fa。内容提交022ec47a6及合并c97290f370已进入远程master。
 
 macOS ARM四个安装单元被runner调度直接cancelled，job131345771477的check annotation为`The configuration 'macos-14-arm64-us-default' is not supported`，不是产品测试失败。GitHub官方已退役此镜像；按原runner配置迁移15并恢复同一0.59.4。`AUTOMATION_INTERVENTIONS=1`，根因是外部runner生命周期，修回既有工作流与兼容矩阵，并以已取消ARM单元补恢复回归；不重发NPM、不跳过ARM、不降级验收。
+
+控制平面修复3ce342fcae已进入远程master：actionlint、36项发布合同、ESLint及局部维护性检查0error/0warning通过。原parent43262190699终态cancelled，12个非ARM实装成功；Runtime推广正确跳过。原prepare43262148717的ARM构建同样被调度取消，整体不可能成为可推广集合；在NPM已完成后请求取消其剩余非发布构建，释放同源concurrency锁。通过原npm-release-prepare入口单次恢复43266715710，control plane3ce342fcae、source_sha仍为82c79ee8f2，dispatch_id=ccf-0594-macos15-recovery。此准备不会上传NPM；待完整Runtime集合就绪后，原release入口按已发布0.59.4恢复，复用成功安装单元。以上动作均属同一runner退役根因，干预数仍为1。
+
+文档部署43265714701成功：国际/国内manifest均为c97290f370fca60d3d9a60a92320861d27a1bcbe，tree8890981a9591181796e275aa5fe7dcdf9c9f040074f29524dce6eaa3415595d4；两站中英文0.59.4页面及JSON均200，JSON逐字段等于源码，国际CORS=*。国内镜像没有CORS，非产品默认跨域读取入口，未冒充该项通过。原验证命令误传短SHA产生commit mismatch，改用实际完整SHA后原owner验证通过，未改站点或降低校验。
+
+主线协调器已返回LOCAL_WORKTREE_RETRYING并启动worker68897，原因是primary原有Bibo文档WIP；远程master已含本任务源码/版本/内容，无reset/stash/rebase或覆盖。当前仍待Runtime准备、ARM实装恢复、channel与旧版升级终态；retrospective_state=pending。
 
 旧本地三个无关历史tag与远程存在差异，普通fetch拒绝覆盖；本次0.59.4及依赖新tag成功取得，未强制更改无关tag。Runtime、macOS ARM安装与最终旧版升级仍pending，不能将NPM_READY写成整个任务完成。

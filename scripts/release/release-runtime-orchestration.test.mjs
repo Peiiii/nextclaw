@@ -166,6 +166,9 @@ test("release workflows bind dispatch identity and immutable source commits", ()
   assert.match(prepare, /group: npm-release-prepare-\$\{\{ inputs\.source_sha \|\| github\.sha \}\}/);
   assert.match(prepare, /cancel-in-progress: false/);
   assert.match(prepare, /name: npm-release-prepared-\$\{\{ env\.NPM_RELEASE_SOURCE_SHA \}\}/);
+  assert.match(prepare, /Find an existing immutable NPM artifact[\s\S]*?name=npm-release-prepared-\$NPM_RELEASE_SOURCE_SHA/);
+  assert.match(prepare, /Verify and restore the immutable NPM tree[\s\S]*?importPreparedNpmReleaseArtifact/);
+  assert.match(prepare, /name: Prepare immutable release tree and tarballs\s+if: \$\{\{ steps\.release-batch\.outputs\.ready == 'true' && steps\.existing-artifact\.outputs\.run_id == '' \}\}/);
   assert.match(prepare, /uses: \.\/\.github\/workflows\/npm-runtime-update-release\.yml/);
   assert.match(prepare, /publish: false/);
   assert.match(prepare, /prepare-runtime:[\s\S]*permissions:[\s\S]*contents: write/);

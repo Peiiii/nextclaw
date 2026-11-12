@@ -40,6 +40,8 @@ contract-id: CCF-20261113；flow: bugfix；风险 L3，发布 L4；scope-revisio
 
 ## 方案审查与执行
 
+恢复准备进一步复审：第一次 exact-source 恢复在 NPM 准备阶段因旧源码落后远程 master 被正常同步门拒绝，说明不能把已发布身份当作新发布重新准备。原 immutable NPM artifact 仍在；在原 prepare workflow 先按精确源码 artifact 名查找未过期产物，下载后调用原 importPreparedNpmReleaseArtifact 验证 HEAD/source、manifest、tree fingerprint、tarball 完整性并恢复版本树。存在有效原产物时跳过重新打包，继续原 Runtime 构建；不存在时保留正常新发布准备路径；验证失败明确停止。复用已验证 owner，不新增输入、发布器、版本特判或放宽 master 同步门。默认新源码没有同源产物，行为不变；旧控制平面退役后的恢复可复用原包。设计复审通过，以 artifact 导入真实测试、workflow 合同及同一0.59.4恢复验收。
+
 发布失败补充设计：GitHub 注释明确拒绝 `macos-14-arm64-us-default`，官方说明 macOS 14 runner 已于 2026-11-02 退役。将既有 ARM runner 标签迁移为仍受支持的 `macos-15`，保留 darwin/arm64 架构、Node 20/22/24/26 矩阵及不可变 0.59.4 身份；同步相同 runner owner 的 Runtime、Portable 与 Desktop 验证/构建入口，但不发布 Desktop。当前控制平面按原 owner 恢复已发布身份，复用已成功安装单元和已上传 NPM，不移动 tag。actionlint、既有发布合同测试及真实 ARM job 是验收。方案复审通过；不新增发布器、版本特判或治理脚本。官方依据：https://github.blog/changelog/2026-10-01-github-actions-macos-14-runner-image-retirement/ 。
 
 00:35 验收环境修正：DeepSeek 已真实返回自然完成、未裁剪的 provider 摘要（6241 输入、419 输出 token），后续调用返回 402 余额不足。原用户要求没有限定线上模型，因此将 CCF-05 的模型身份从错误固化的单一供应商改为当前已配置可用模型；原模型失败及已成功摘要证据仍保留，不声称原机验证通过。用户结果、失败分支与续跑标准不变，不绕过余额错误或更改账号配置。

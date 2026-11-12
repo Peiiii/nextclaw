@@ -66,7 +66,7 @@ function createCheckpoint() {
   };
 }
 
-test("exports and imports an exact prepared release tree", (context) => {
+test("imports an exact prepared tree after the published remote mainline advances", (context) => {
   const fixtureRoot = mkdtempSync(
     join(tmpdir(), "prepared-npm-artifact-test-"),
   );
@@ -106,6 +106,10 @@ test("exports and imports an exact prepared release tree", (context) => {
     stdio: "ignore",
   });
   assert.equal(git(importRoot, ["rev-parse", "HEAD"]), sourceCommit);
+  const publishedCommit = git(importRoot, ["-c", "user.name=Artifact Recovery", "-c", "user.email=artifact@example.test",
+    "commit-tree", `${sourceCommit}^{tree}`, "-p", sourceCommit, "-m", "published mainline advanced"]);
+  git(importRoot, ["update-ref", "refs/remotes/origin/master", publishedCommit]);
+  assert.equal(git(importRoot, ["rev-list", "--count", "HEAD..origin/master"]), "1");
   const importedRecord = importPreparedNpmReleaseArtifact({
     artifactDirectory,
     registry: "https://registry.example.test",

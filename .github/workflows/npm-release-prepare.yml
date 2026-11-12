@@ -64,10 +64,49 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
 
-      - name: Detect a releasable NPM batch
-        id: release-batch
+      - name: Find an existing immutable NPM artifact
+        id: existing-artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          set -euo pipefail
+          run_id="$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/artifacts" \
+            -f "name=npm-release-prepared-$NPM_RELEASE_SOURCE_SHA" -f per_page=100 \
+            --jq '[.artifacts[] | select(.expired == false and .workflow_run.id != null)] | sort_by(.created_at) | reverse | .[0].workflow_run.id // empty')"
+          [[ -z "$run_id" || "$run_id" =~ ^[0-9]+$ ]]
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+
+      - name: Download the existing exact-source NPM artifact
+        if: ${{ steps.existing-artifact.outputs.run_id != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.existing-artifact.outputs.run_id }}
+          name: npm-release-prepared-${{ env.NPM_RELEASE_SOURCE_SHA }}
+          path: ${{ runner.temp }}/npm-release-prepared
+
+      - name: Verify and restore the immutable NPM tree
+        if: ${{ steps.existing-artifact.outputs.run_id != '' }}
+        env:
+          PREPARED_NPM_ARTIFACT_DIR: ${{ runner.temp }}/npm-release-prepared
+        run: >-
+          node --input-type=module -e
+          "import { importPreparedNpmReleaseArtifact } from './scripts/release/prepared-npm-release-artifact.mjs';
+          importPreparedNpmReleaseArtifact({ artifactDirectory: process.env.PREPARED_NPM_ARTIFACT_DIR,
+          registry: 'https://registry.npmjs.org', rootDir: process.cwd(), targetBranch: 'master' });"
+
+      - name: Detect a releasable NPM batch
+        id: release-batch
+        env:
+          EXISTING_NPM_ARTIFACT_RUN_ID: ${{ steps.existing-artifact.outputs.run_id }}
+        shell: bash
+        run: |
+          if [ -n "$EXISTING_NPM_ARTIFACT_RUN_ID" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if pnpm release:auto:changeset --check; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
@@ -76,7 +115,7 @@ jobs:
           fi
 
       - name: Prepare immutable release tree and tarballs
-        if: steps.release-batch.outputs.ready == 'true'
+        if: ${{ steps.release-batch.outputs.ready == 'true' && steps.existing-artifact.outputs.run_id == '' }}
         run: >-
           pnpm release:npm:prepare --
           --branch master
