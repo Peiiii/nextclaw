@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.59.4",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-11-13",
+  "title": {
+    "zh-CN": "NextClaw v0.59.4",
+    "en-US": "NextClaw v0.59.4"
+  },
+  "summary": {
+    "zh-CN": "明确报告并保存压缩失败原因，让长会话的恢复检查点持续推进。",
+    "en-US": "Report and retain compaction failure causes, and keep long-conversation recovery checkpoints moving forward."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-11-13-nextclaw-v0-59-4",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-11-13-nextclaw-v0-59-4"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "压缩失败反馈",
+        "en-US": "Compaction failure feedback"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "保存原因并保留原检查点",
+            "en-US": "Save the cause and preserve the prior checkpoint"
+          },
+          "body": {
+            "zh-CN": "手动压缩未能安装检查点时明确返回错误，先保存失败及原因，刷新后仍可查看；修正供应商连接后可以重试。",
+            "en-US": "Manual compaction returns an error if no checkpoint is installed, saving the failure and its cause before returning. The record survives refresh, and compaction can be retried after fixing the provider connection."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "长会话恢复",
+        "en-US": "Long-conversation recovery"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "推进恢复，减少重复请求",
+            "en-US": "Advance recovery and reduce repeated requests"
+          },
+          "body": {
+            "zh-CN": "结构或硬预算压力下保存可验证的恢复检查点，已覆盖原文不再触发同样的结构压力。原始历史仍可读取，恢复期间的操作限制继续有效。",
+            "en-US": "Structural or hard-budget pressure can install a verifiable recovery checkpoint. Covered source history no longer triggers the same structural pressure. Original history remains readable, and recovery safeguards stay in effect."
+          }
+        }
+      ]
+    }
+  ]
+}
