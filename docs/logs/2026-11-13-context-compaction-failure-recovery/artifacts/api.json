@@ -1,0 +1,47 @@
+{
+  "path": "real preflight -> compaction manager -> native runtime -> session actor durable commit -> session compaction manager -> assembled HTTP route",
+  "results": [
+    {
+      "kind": "empty",
+      "failedStatus": 409,
+      "error": {
+        "ok": false,
+        "error": {
+          "code": "CONTEXT_COMPACTION_FAILED",
+          "message": "Empty visible summary"
+        }
+      },
+      "coldFailureReadable": true,
+      "retryStatus": 200,
+      "retry": {
+        "ok": true,
+        "data": {
+          "compacted": true,
+          "sessionId": "assembled-api-empty"
+        }
+      },
+      "providerCalls": 2
+    },
+    {
+      "kind": "transport",
+      "failedStatus": 409,
+      "error": {
+        "ok": false,
+        "error": {
+          "code": "CONTEXT_COMPACTION_FAILED",
+          "message": "provider authentication failed"
+        }
+      },
+      "coldFailureReadable": true,
+      "retryStatus": 200,
+      "retry": {
+        "ok": true,
+        "data": {
+          "compacted": true,
+          "sessionId": "assembled-api-transport"
+        }
+      },
+      "providerCalls": 2
+    }
+  ]
+}

@@ -154,6 +154,8 @@ Native Agents automatically compact earlier content when a long task approaches 
 
 A failed compaction preserves the last successful checkpoint. If summary generation falls back to recent records, the Agent receives an explicit warning that earlier execution status is incomplete and should recover operation results before repeating side effects.
 
+If manual `/compact` cannot install a checkpoint, it reports the failure and its cause; the failure record remains available after a refresh. Retry after fixing the provider connection. Under soft token pressure, an unusable summary is deferred to avoid repeated requests on every turn. When message count, content structure, or the hard input budget requires compaction, a verifiable recovery checkpoint preserves access to original history and requires original-history reads or explicit clarification of necessary conditions before further side effects.
+
 The context-window indicator separates system and tools, conversation content, output reserve, and the automatic compaction threshold. Its percentage estimates the complete model input, not only the visible chat messages.
 
 You can also use `/compact` to compact earlier context on demand. For both automatic and manual compaction, keep critical paths, final criteria, and non-editable boundaries explicit near the work that depends on them.

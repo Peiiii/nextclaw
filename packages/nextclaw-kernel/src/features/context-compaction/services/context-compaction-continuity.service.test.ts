@@ -14,6 +14,41 @@ const summary = (detail = "Previous operations completed.") => ["# Compressed Wo
 const response = (content: string) => ({ content, finishReason: "stop", usage: {} });
 
 describe("compaction continuity boundaries", () => {
+  it.each(["messages", "parts"] as const)("installs recovery under %s pressure instead of repeating failed soft compaction", async pressure => {
+    const chat = vi.fn(async () => ({ content: null, finishReason: "stop", usage: {} }));
+    const service = new ContextCompactionPreflightService({ resolveAgentProfileForRun: () => ({ contextTokens: 20000, reservedContextTokens: 2000 }) }, { chat });
+    const messages: NcpMessage[] = Array.from({ length: pressure === "messages" ? 257 : 32 }, (_, index) => ({ id: `short-${index}`, sessionId: "structural",
+      role: "assistant", status: "final", timestamp: new Date(Date.UTC(2026, 10, 12, 10, index)).toISOString(),
+      parts: Array.from({ length: pressure === "messages" ? 1 : 33 }, () => ({ type: "text" as const, text: pressure === "messages" ? "evidence ".repeat(10) : "ok" })) }));
+    const input = { inputMessages: [], model: "test", requestMetadata: {}, sessionId: "structural", sessionMessages: messages, storedMetadata: {} };
+    const first = service.begin(input);
+    const finished = await service.finish(first.pendingCompaction!);
+    expect(finished.timelineMessage?.metadata?.checkpoint).toMatchObject({ status: "compressed", recovery: { required: true } });
+    const installed = [...messages, finished.timelineMessage!];
+    expect(readContextRecoveryState(installed).required).toBe(true);
+    const attempts = chat.mock.calls.length;
+    expect(attempts).toBeLessThanOrEqual(1);
+    // Repeated boundary checks use the installed projection, not the old source.
+    expect(service.begin({ ...input, sessionMessages: installed }).pendingCompaction).toBeNull();
+    expect(chat).toHaveBeenCalledTimes(attempts);
+  });
+
+  it("defers soft failures until input grows, while allowing explicit retry and overflow recovery", async () => {
+    const chat = vi.fn(async () => ({ content: null, finishReason: "stop", usage: {} }));
+    const service = new ContextCompactionPreflightService({ resolveAgentProfileForRun: () => ({ contextTokens: 20000, reservedContextTokens: 2000 }) }, { chat });
+    const messages: NcpMessage[] = Array.from({ length: 40 }, (_, index) => ({ id: `soft-${index}`, sessionId: "soft",
+      role: "assistant", status: "final", timestamp: new Date(Date.UTC(2026, 10, 12, 10, index)).toISOString(), parts: [{ type: "text", text: "x".repeat(1600) }] }));
+    const input = { inputMessages: [], model: "test", requestMetadata: {}, sessionId: "soft", sessionMessages: messages, storedMetadata: {} };
+    const first = service.begin(input);
+    const finished = await service.finish(first.pendingCompaction!);
+    expect(finished.timelineMessage?.metadata?.checkpoint).toMatchObject({ status: "failed", summaryDiagnostics: { failure: "Empty visible summary" } });
+    expect(service.begin(input).pendingCompaction).toBeNull();
+    expect(service.begin({ ...input, trigger: "manual" }).pendingCompaction).not.toBeNull();
+    const grown = [...messages, { ...messages[0]!, id: "growth", parts: [{ type: "text" as const, text: "x".repeat(8000) }] }];
+    expect(service.begin({ ...input, sessionMessages: grown }).pendingCompaction).not.toBeNull();
+    const overflow = service.begin({ ...input, overflow: true });
+    expect((await service.finish(overflow.pendingCompaction!)).timelineMessage?.metadata?.checkpoint).toMatchObject({ status: "compressed", recovery: { required: true } });
+  });
   it("keeps recovery required when the provider stops normally but its source text was shortened", async () => {
     const chat = vi.fn(async () => response(summary("A partial but normally terminated summary.")));
     const service = new ContextCompactionPreflightService({ resolveAgentProfileForRun: () => ({ contextTokens: 8_000, reservedContextTokens: 1_000 }) }, { chat });

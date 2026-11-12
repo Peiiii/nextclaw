@@ -5,7 +5,7 @@ import {
 } from "@nextclaw/ncp";
 import { readCompressedContextCompactionCheckpoint, type ContextCompactionCheckpoint } from "@nextclaw/core/context-compaction-checkpoint";
 import { MODEL_ROUND_PART_OFFSETS } from "@nextclaw/ncp-agent-runtime";
-import { COMPACTION_RECOVERY_NOTICE } from "../services/context-compaction-summary-generation.service.js";
+import { COMPACTION_RECOVERY_NOTICE } from "@kernel/features/context-compaction/services/context-compaction-summary-generation.service.js";
 
 export const NEXTCLAW_TIMELINE_KIND_METADATA_KEY = "nextclaw_timeline_kind";
 export const CONTEXT_COMPACTION_TIMELINE_KIND = "context_compaction";
@@ -25,9 +25,9 @@ function readCheckpointTimelineText(checkpoint: ContextCompactionTimelineCheckpo
   if (checkpoint.status === "compressing") {
     return "Compressing earlier context";
   }
-  return checkpoint.status === "compressed"
-    ? "Earlier context was auto-compacted"
-    : "Context compaction failed";
+  if (checkpoint.status === "compressed") return "Earlier context was auto-compacted";
+  const failure = checkpoint.failure ?? checkpoint.summaryDiagnostics?.failure;
+  return failure ? `Context compaction failed: ${failure}` : "Context compaction failed";
 }
 
 function buildCompressedContextSystemText(checkpoint: ContextCompactionCheckpoint): string {

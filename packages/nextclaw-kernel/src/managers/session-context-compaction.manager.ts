@@ -1,11 +1,14 @@
 import type { EventBus } from "@nextclaw/shared";
 import { eventKeys } from "@nextclaw/shared";
+import type { ContextCompactionCheckpoint } from "@nextclaw/core";
+import { NcpEventType } from "@nextclaw/ncp";
 import type { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
 import type { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 
 export type SessionContextCompactionErrorCode =
   | "CONTEXT_COMPACTION_UNSUPPORTED"
+  | "CONTEXT_COMPACTION_FAILED"
   | "NOTHING_TO_COMPACT"
   | "SESSION_BUSY"
   | "SESSION_NOT_FOUND";
@@ -94,6 +97,17 @@ export class SessionContextCompactionManager {
           source: "session-context-compaction",
         });
       }
+    }
+    const terminal = [...result.events].reverse().find(event => event.type === NcpEventType.MessageSent
+      && event.payload.message.metadata?.nextclaw_timeline_kind === "context_compaction");
+    const checkpoint = terminal?.type === NcpEventType.MessageSent
+      ? terminal.payload.message.metadata?.checkpoint as ContextCompactionCheckpoint | undefined
+      : undefined;
+    if (checkpoint?.status === "failed" || checkpoint?.status === "cancelled") {
+      throw new SessionContextCompactionError(
+        "CONTEXT_COMPACTION_FAILED",
+        checkpoint.failure ?? checkpoint.summaryDiagnostics?.failure ?? "Context compaction did not install a checkpoint. The previous checkpoint was kept unchanged.",
+      );
     }
     return { compacted: true, sessionId };
   };

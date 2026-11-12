@@ -54,6 +54,7 @@ describe("POST /api/ncp/sessions/:sessionId/context/compact", () => {
     ["SESSION_NOT_FOUND", 404],
     ["SESSION_BUSY", 409],
     ["CONTEXT_COMPACTION_UNSUPPORTED", 409],
+    ["CONTEXT_COMPACTION_FAILED", 409],
     ["NOTHING_TO_COMPACT", 409],
   ] as const)("maps %s without returning a false success", async (code, status) => {
     const app = createApp(async () => {

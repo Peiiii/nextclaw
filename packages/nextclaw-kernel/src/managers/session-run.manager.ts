@@ -20,8 +20,7 @@ import {
 } from "@kernel/utils/product-activity.utils.js";
 import { AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY } from "@kernel/utils/agent-run-metadata.utils.js";
 import { resolveSteeringRunTriggerMetadata } from "@kernel/utils/agent-run-trigger.utils.js";
-import { buildContextCompactionTimelineNcpMessage, buildContextCompactionModelProjection, CONTEXT_COMPACTION_PART_START, readLatestContextCompactionCheckpoint, readContextRecoveryState } from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
-import { COMPACTION_RECOVERY_NOTICE } from "@kernel/features/context-compaction/services/context-compaction-summary-generation.service.js";
+import { buildContextCompactionTimelineNcpMessage, buildContextCompactionModelProjection, CONTEXT_COMPACTION_PART_START, readLatestContextCompactionCheckpoint, readContextRecoveryState, COMPACTION_RECOVERY_NOTICE } from "@kernel/features/context-compaction/index.js";
 import type { ContextCompactionCheckpoint } from "@nextclaw/core/context-compaction";
 import type { SessionManager } from "./session.manager.js";
 import { buildSessionMessageDescriptor, buildSessionValuePreview, sessionJsonFragments, SESSION_RUN_BYTES } from "@kernel/utils/session-message-chunks.utils.js";
@@ -228,8 +227,10 @@ export class SessionRun {
 
   private applyEventsNow = async (events: readonly NcpEndpointEvent[], signal?: AbortSignal): Promise<void> => {
     for (const event of events) {
-      if (event.type === NcpEventType.MessageSent && event.payload.message.metadata?.nextclaw_timeline_kind === "context_compaction"
-        && (event.payload.message.metadata.checkpoint as { status?: string } | undefined)?.status === "compressed") await this.persistCompaction?.(event, signal);
+      if (event.type === NcpEventType.MessageSent && event.payload.message.metadata?.nextclaw_timeline_kind === "context_compaction") {
+        const status = (event.payload.message.metadata.checkpoint as { status?: string } | undefined)?.status;
+        if (status === "compressed" || status === "failed" || status === "cancelled") await this.persistCompaction?.(event, signal);
+      }
     }
     this.applyRunEvents(events);
     let archived = false;

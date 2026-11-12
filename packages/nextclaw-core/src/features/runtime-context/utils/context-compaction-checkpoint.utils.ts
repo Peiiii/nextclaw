@@ -6,6 +6,7 @@ export type ContextCompactionCheckpoint = {
   status: "compressing" | "compressed" | "failed" | "cancelled";
   phase?: ContextCompactionPhase;
   summary: string;
+  failure?: string;
   source?: {
     journalWatermark: number;
     ranges: { from: number; to: number }[];

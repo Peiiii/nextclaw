@@ -2,13 +2,11 @@ import type { ContextCompactionPhase, ContextCompactionCheckpoint } from "@nextc
 import type { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
   buildContextCompactionTimelineNcpMessage,
-} from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
-import {
   ContextCompactionPreflightService,
   type CompactionProfileResolver,
   type CompactionSummaryProvider,
   type ContextCompactionPreflightResult,
-} from "@kernel/features/context-compaction/services/context-compaction-preflight.service.js";
+} from "@kernel/features/context-compaction/index.js";
 import {
   NcpEventType,
   type NcpEndpointEvent,
@@ -57,8 +55,17 @@ export class AgentRunContextCompactionManager {
     input: AgentRunContextCompactionInput,
   ): Promise<readonly NcpEndpointEvent[]> => {
     const events: NcpEndpointEvent[] = [];
-    for await (const event of this.run(input, "manual", "pre-run")) {
-      events.push(event);
+    try {
+      for await (const event of this.run(input, "manual", "pre-run")) {
+        events.push(event);
+      }
+    } catch (error) {
+      // The session owner must persist the terminal marker before reporting failure.
+      const terminal = events.at(-1);
+      if (terminal?.type !== NcpEventType.MessageSent
+        || (terminal.payload.message.metadata?.checkpoint as ContextCompactionCheckpoint | undefined)?.status !== "failed") {
+        throw error;
+      }
     }
     return events;
   };
@@ -119,6 +126,7 @@ export class AgentRunContextCompactionManager {
         checkpoint: {
           ...pending.checkpoint,
           status: input.signal?.aborted ? "cancelled" : "failed",
+          failure: error instanceof Error ? error.message : String(error),
           updatedAt: new Date().toISOString(),
         },
         messageId: pending.serviceMessageId,

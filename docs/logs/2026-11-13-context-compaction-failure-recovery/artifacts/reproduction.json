@@ -1,0 +1,293 @@
+{
+  "oldAndCurrentBaseline": {
+    "fixture": "Synthetic shape matched to feedback; no original journal or live provider",
+    "versions": {
+      "old": "nextclaw@0.59.1",
+      "current": "HEAD"
+    },
+    "results": [
+      {
+        "version": "old",
+        "scenario": "single-invalid",
+        "sourceMessages": 12,
+        "sourceChars": 33732,
+        "batchesAt60000": 1,
+        "providerCalls": 3,
+        "elapsedMs": 79,
+        "status": "returned",
+        "diagnostics": {
+          "attemptCount": 3,
+          "degraded": true,
+          "finishReason": "stop",
+          "installedSummaryTokens": 602,
+          "providerInputTokens": 2837,
+          "providerMaxOutputTokens": 4400,
+          "providerUsage": {
+            "prompt_tokens": 300,
+            "completion_tokens": 60
+          },
+          "rawSummaryTokens": 17,
+          "recovery": "deterministic-recent-context",
+          "targetSummaryTokens": 4000,
+          "sourceBatchCount": 1
+        },
+        "summaryChars": 2405
+      },
+      {
+        "version": "old",
+        "scenario": "multi-invalid",
+        "sourceMessages": 785,
+        "sourceChars": 2206608,
+        "batchesAt60000": 4,
+        "providerCalls": 2,
+        "elapsedMs": 370,
+        "status": "threw",
+        "error": "Context compaction batch failed; refusing to install a partial-history checkpoint. The previous checkpoint was kept unchanged."
+      },
+      {
+        "version": "old",
+        "scenario": "multi-empty",
+        "sourceMessages": 785,
+        "sourceChars": 2206608,
+        "batchesAt60000": 4,
+        "providerCalls": 2,
+        "elapsedMs": 306,
+        "status": "threw",
+        "error": "Context compaction batch failed; refusing to install a partial-history checkpoint. The previous checkpoint was kept unchanged."
+      },
+      {
+        "version": "old",
+        "scenario": "later-batch-empty",
+        "sourceMessages": 785,
+        "sourceChars": 2206608,
+        "batchesAt60000": 4,
+        "providerCalls": 3,
+        "elapsedMs": 519,
+        "status": "threw",
+        "error": "Context compaction batch failed; refusing to install a partial-history checkpoint. The previous checkpoint was kept unchanged."
+      },
+      {
+        "version": "current",
+        "scenario": "single-invalid",
+        "sourceMessages": 12,
+        "sourceChars": 33732,
+        "batchesAt60000": 1,
+        "providerCalls": 1,
+        "elapsedMs": 4,
+        "status": "returned",
+        "diagnostics": {
+          "attemptCount": 1,
+          "degraded": false,
+          "finishReason": "stop",
+          "sourceTruncated": false,
+          "installedSummaryTokens": 17,
+          "providerInputTokens": 9074,
+          "providerMaxOutputTokens": 4400,
+          "providerUsage": {
+            "prompt_tokens": 100,
+            "completion_tokens": 20
+          },
+          "rawSummaryTokens": 17,
+          "recovery": "provider-summary",
+          "targetSummaryTokens": 4000,
+          "sourceBatchCount": 1
+        },
+        "summaryChars": 66
+      },
+      {
+        "version": "current",
+        "scenario": "multi-invalid",
+        "sourceMessages": 785,
+        "sourceChars": 2206608,
+        "batchesAt60000": 4,
+        "providerCalls": 1,
+        "elapsedMs": 48,
+        "status": "returned",
+        "diagnostics": {
+          "attemptCount": 1,
+          "degraded": true,
+          "finishReason": "stop",
+          "sourceTruncated": true,
+          "installedSummaryTokens": 17,
+          "providerInputTokens": 131284,
+          "providerMaxOutputTokens": 4400,
+          "providerUsage": {
+            "prompt_tokens": 100,
+            "completion_tokens": 20
+          },
+          "rawSummaryTokens": 17,
+          "recovery": "provider-summary",
+          "targetSummaryTokens": 4000,
+          "sourceBatchCount": 1
+        },
+        "summaryChars": 66
+      },
+      {
+        "version": "current",
+        "scenario": "multi-empty",
+        "sourceMessages": 785,
+        "sourceChars": 2206608,
+        "batchesAt60000": 4,
+        "providerCalls": 1,
+        "elapsedMs": 46,
+        "status": "returned",
+        "diagnostics": {
+          "attemptCount": 1,
+          "degraded": true,
+          "finishReason": "stop",
+          "sourceTruncated": true,
+          "installedSummaryTokens": 85,
+          "providerInputTokens": 131284,
+          "providerMaxOutputTokens": 4400,
+          "providerUsage": {
+            "prompt_tokens": 100,
+            "completion_tokens": 20
+          },
+          "rawSummaryTokens": 0,
+          "recovery": "deterministic-recent-context",
+          "targetSummaryTokens": 4000,
+          "sourceBatchCount": 1,
+          "failure": "Empty visible summary"
+        },
+        "summaryChars": 339
+      },
+      {
+        "version": "current",
+        "scenario": "later-batch-empty",
+        "sourceMessages": 785,
+        "sourceChars": 2206608,
+        "batchesAt60000": 4,
+        "providerCalls": 1,
+        "elapsedMs": 42,
+        "status": "returned",
+        "diagnostics": {
+          "attemptCount": 1,
+          "degraded": true,
+          "finishReason": "stop",
+          "sourceTruncated": true,
+          "installedSummaryTokens": 60,
+          "providerInputTokens": 131284,
+          "providerMaxOutputTokens": 4400,
+          "providerUsage": {
+            "prompt_tokens": 100,
+            "completion_tokens": 20
+          },
+          "rawSummaryTokens": 60,
+          "recovery": "provider-summary",
+          "targetSummaryTokens": 4000,
+          "sourceBatchCount": 1
+        },
+        "summaryChars": 240
+      }
+    ]
+  },
+  "currentFailureBeforeFix": {
+    "manual": {
+      "result": {
+        "compacted": true,
+        "sessionId": "current-soft-failure"
+      },
+      "checkpointStatus": "failed",
+      "diagnostics": {
+        "attemptCount": 1,
+        "degraded": true,
+        "finishReason": "stop",
+        "sourceTruncated": true,
+        "installedSummaryTokens": 85,
+        "providerInputTokens": 11772,
+        "providerMaxOutputTokens": 4400,
+        "providerUsage": {},
+        "rawSummaryTokens": 0,
+        "recovery": "deterministic-recent-context",
+        "targetSummaryTokens": 4000,
+        "sourceBatchCount": 1,
+        "failure": "Empty visible summary"
+      },
+      "providerCalls": 1
+    },
+    "structural": [
+      {
+        "eventCount": 2,
+        "status": "failed",
+        "providerCalls": 2
+      },
+      {
+        "eventCount": 2,
+        "status": "failed",
+        "providerCalls": 3
+      }
+    ]
+  },
+  "twoCyclesAfterFix": {
+    "fixture": "Synthetic journal; real current manager, source capture, journal persistence and cold reopen; provider returns empty output",
+    "cycles": [
+      {
+        "round": 1,
+        "checkpointId": "ctx-d27c828a-cda1-43eb-8f02-f8026ddb1846",
+        "previousCoveredMessageCount": 1075,
+        "coveredMessageCount": 1832,
+        "coveredUntil": "2026-11-06T03:36:00.000Z",
+        "recovery": {
+          "required": true,
+          "reason": "unresolved-archive",
+          "archiveThrough": "2026-11-06T03:36:00.000Z",
+          "checkpointId": "ctx-d27c828a-cda1-43eb-8f02-f8026ddb1846"
+        },
+        "diagnostics": {
+          "attemptCount": 1,
+          "degraded": true,
+          "finishReason": "stop",
+          "sourceTruncated": true,
+          "installedSummaryTokens": 85,
+          "providerInputTokens": 131315,
+          "providerMaxOutputTokens": 4400,
+          "providerUsage": {
+            "prompt_tokens": 100
+          },
+          "rawSummaryTokens": 0,
+          "recovery": "deterministic-recent-context",
+          "targetSummaryTokens": 4000,
+          "sourceBatchCount": 1,
+          "failure": "Empty visible summary"
+        },
+        "coldReloadMatches": true,
+        "originalHistoryReadable": true,
+        "providerCalls": 1
+      },
+      {
+        "round": 2,
+        "checkpointId": "ctx-b58dc737-84a1-4c6d-a366-41e313cf97d1",
+        "previousCoveredMessageCount": 1832,
+        "coveredMessageCount": 1890,
+        "coveredUntil": "2026-11-12T16:42:00.128Z",
+        "recovery": {
+          "required": true,
+          "reason": "unresolved-archive",
+          "archiveThrough": "2026-11-12T16:42:00.128Z",
+          "checkpointId": "ctx-b58dc737-84a1-4c6d-a366-41e313cf97d1"
+        },
+        "diagnostics": {
+          "attemptCount": 1,
+          "degraded": true,
+          "finishReason": "stop",
+          "sourceTruncated": true,
+          "installedSummaryTokens": 85,
+          "providerInputTokens": 131387,
+          "providerMaxOutputTokens": 4400,
+          "providerUsage": {
+            "prompt_tokens": 100
+          },
+          "rawSummaryTokens": 0,
+          "recovery": "deterministic-recent-context",
+          "targetSummaryTokens": 4000,
+          "sourceBatchCount": 1,
+          "failure": "Empty visible summary"
+        },
+        "coldReloadMatches": true,
+        "originalHistoryReadable": true,
+        "providerCalls": 2
+      }
+    ],
+    "journalBytes": 3690651
+  }
+}

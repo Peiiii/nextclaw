@@ -66,6 +66,7 @@ type ContinuationMessageBoundary = {
 
 type ContextCompactionPendingWork = {
   overflow: boolean;
+  structuralPressure: boolean;
   originalBudget: ContextWindowBudgetEvaluation;
   priorCheckpoint: ContextCompactionCheckpoint | null;
   checkpoint: ReturnType<typeof buildCompressingCompactionCheckpoint>;
@@ -302,13 +303,15 @@ export class ContextCompactionPreflightService {
       storedMetadata,
       tools = [],
       trigger = "automatic",
+      overflow = false,
+      maxOutputTokens,
     } = params;
     const profile = this.resolveCompactionProfile({
       requestMetadata,
       storedAgentId,
     });
     const contextTokens = profile.contextTokens;
-    const reservedContextTokens = Math.max(profile.reservedContextTokens, params.maxOutputTokens ?? 0);
+    const reservedContextTokens = Math.max(profile.reservedContextTokens, maxOutputTokens ?? 0);
     const ncpMessages = mergeInputMessages({
       inputMessages,
       sessionMessages,
@@ -343,12 +346,12 @@ export class ContextCompactionPreflightService {
     });
     const hardInputLimit = contextTokens - reservedContextTokens;
     const archivePressure = readContextRecoveryState(ncpMessages, existingCheckpoint).unresolvedArchive;
-    const structuralPressure = archivePressure || ncpMessages.length > 256 || ncpMessages.reduce((count, message) => count + message.parts.length, 0) > 1_024;
+    const structuralPressure = archivePressure || projectedMessages.length > 256 || projectedMessages.reduce((count, message) => count + message.parts.length, 0) > 1_024;
     const deferred = this.deferredAttempts.get(sessionId);
     const retryGrowth = Math.max(1, Math.floor((hardInputLimit - budget.triggerTokens) / 2));
-    const throttled = !params.overflow && trigger === "automatic" && budget.estimatedTokens <= hardInputLimit
+    const throttled = !overflow && trigger === "automatic" && budget.estimatedTokens <= hardInputLimit
       && deferred?.model === model && budget.estimatedTokens < deferred.tokens + retryGrowth;
-    const plan = trigger === "automatic" && ((!budget.shouldCompact && !params.overflow && !structuralPressure) || (throttled && !structuralPressure))
+    const plan = trigger === "automatic" && ((!budget.shouldCompact && !overflow && !structuralPressure) || (throttled && !structuralPressure))
       ? null
       : this.compactionService.prepareForModelInput({
           messages,
@@ -356,11 +359,11 @@ export class ContextCompactionPreflightService {
             contextBlockMessages.length === 0
             && isContextCompactionProjectionMessage(projectedMessages[0]),
           contextTokens,
-          compactionThresholdTokens: trigger === "manual" || params.overflow || structuralPressure ? 0 : budget.triggerTokens,
+          compactionThresholdTokens: trigger === "manual" || overflow || structuralPressure ? 0 : budget.triggerTokens,
           fixedInputTokens,
           preservableUserMessageIds,
           projectedTokenLimit: Math.max(1, Math.min(hardInputLimit,
-            params.overflow ? Math.floor(budget.estimatedTokens * 0.7) : Math.max(budget.triggerTokens, snapshotFixedInputTokens + 1_024)) - (
+            overflow ? Math.floor(budget.estimatedTokens * 0.7) : Math.max(budget.triggerTokens, snapshotFixedInputTokens + 1_024)) - (
             estimateCompactionProjectionOverhead(phase)
           )),
           retainLatestMessage: phase === "pre-run",
@@ -400,7 +403,8 @@ export class ContextCompactionPreflightService {
       pendingCompaction: plan && checkpoint
         ? {
             originalBudget: budget,
-            overflow: params.overflow === true,
+            overflow,
+            structuralPressure,
             priorCheckpoint: existingCheckpoint,
             checkpoint,
             contextBlockMessages,
@@ -455,7 +459,7 @@ export class ContextCompactionPreflightService {
     }
     signal?.throwIfAborted();
     if ((summaryDiagnostics?.recovery === "deterministic-recent-context" || summaryDiagnostics?.sourceTruncated)
-      && !pending.overflow && !pending.sessionMessages.some(message => message.metadata?.nextclaw_archived_body)
+      && !pending.overflow && !pending.structuralPressure
       && pending.originalBudget.estimatedTokens <= pending.contextTokens - pending.reservedContextTokens) {
       // Discard the candidate; nothing from an unsuccessful summary replaces the old view.
       this.deferredAttempts.delete(pending.sessionId);
@@ -470,7 +474,9 @@ export class ContextCompactionPreflightService {
         sessionMessages: pending.sessionMessages,
         timelineMessage: buildContextCompactionTimelineNcpMessage({
           messageId: pending.serviceMessageId, sessionId: pending.sessionId,
-          checkpoint: { ...pending.checkpoint, status: "failed", summaryDiagnostics, updatedAt: new Date().toISOString() },
+          checkpoint: { ...pending.checkpoint, status: "failed", summaryDiagnostics,
+            failure: summaryDiagnostics?.failure ?? "Compaction source exceeded the complete summary input budget. The previous checkpoint was kept unchanged.",
+            updatedAt: new Date().toISOString() },
         }),
       };
     }
