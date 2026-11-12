@@ -12,13 +12,20 @@ export const NPM_COMPATIBILITY_MATRIX = platforms.flatMap(([platform, os]) =>
   nodeVersions.map((node) => ({ node, os, platform, reused: false })),
 );
 
-export function resolveNpmCompatibilityRecoveryMatrix({ isRecovery, jobs = [] }) {
+export function resolveNpmCompatibilityRecoveryMatrix({ isRecovery, jobs = [], sourceCommit, targetVersion }) {
   if (!isRecovery) return { include: NPM_COMPATIBILITY_MATRIX, reused: false };
+  if (!/^[a-f0-9]{40}$/.test(sourceCommit ?? "") || !/^\d+\.\d+\.\d+$/.test(targetVersion ?? "")) {
+    throw new Error("Compatibility recovery requires the immutable source commit and target version.");
+  }
 
   const conclusionByName = new Map();
   for (const job of jobs) {
-    if (job.conclusion === "success" || !conclusionByName.has(job.name)) {
-      conclusionByName.set(job.name, job.conclusion);
+    if (typeof job.name !== "string") continue;
+    const suffix = ` @${targetVersion}`;
+    const name = job.name.endsWith(suffix) ? job.name.slice(0, -suffix.length)
+      : job.sourceCommit === sourceCommit ? job.name : null;
+    if (name && (job.conclusion === "success" || !conclusionByName.has(name))) {
+      conclusionByName.set(name, job.conclusion);
     }
   }
   const unresolved = NPM_COMPATIBILITY_MATRIX.filter((entry) =>
@@ -43,7 +50,8 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
   const isRecovery = readArg("--is-recovery") === "true";
   const jobsFile = readArg("--jobs-file");
   const jobs = jobsFile ? parseJobs(readFileSync(jobsFile, "utf8")) : [];
-  process.stdout.write(`${JSON.stringify(resolveNpmCompatibilityRecoveryMatrix({ isRecovery, jobs }))}\n`);
+  process.stdout.write(`${JSON.stringify(resolveNpmCompatibilityRecoveryMatrix({ isRecovery, jobs,
+    sourceCommit: readArg("--source-commit"), targetVersion: readArg("--target-version") }))}\n`);
 }
 
 function parseJobs(raw) {

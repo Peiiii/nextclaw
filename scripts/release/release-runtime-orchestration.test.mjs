@@ -171,7 +171,8 @@ test("release workflows bind dispatch identity and immutable source commits", ()
   assert.match(release, /Automatic recovery requires existing structured release notes and a ready surface review/);
   assert.match(release, /node --input-type=module - "\$PREVIOUS_VERSION" "\$TARGET_VERSION"/);
   assert.doesNotMatch(release, /echo "content_ready=false"/);
-  assert.match(release, /git merge-base --is-ancestor "\$candidate_sha" "\$release_commit"/);
+  assert.match(release, /git merge-base --is-ancestor "\$release_commit" "\$candidate_sha"/);
+  assert.match(release, /--source-commit "\$compatibility_source_sha" --target-version "\$target_version"/);
   assert.match(release, /timeout-minutes: 45/);
   assert.match(release, /actions: write/);
   assert.match(beta, /`release_target=\$\{releaseTarget\}`/);

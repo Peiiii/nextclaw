@@ -43,6 +43,8 @@ diff-only 自动维护性检查有 1 个 error 预算信号、2 个 warning，�
 
 ### 0.59.4 发布执行与恢复
 
+第三个验收根因：恢复前审查确认旧ancestor筛选与未带版本的job名会将旧版实装success归入当前身份。先执行原resolver：16个prior-version-source旧格式success错误返回reused=true。修回原resolver/生产workflow，目标版本具名，旧格式仅精确初始SHA可复用，较旧祖先排除、当前release之后的正确版本恢复可复用；CLI缺目标身份明确失败。负例与producer合同一并回归。`AUTOMATION_INTERVENTIONS=3`；不以旧版矩阵代替本次ARM验收。
+
 第二个独立恢复根因：43266715710在准备阶段明确失败，`remote-only=4, local-only=0`；原流程把已发布身份的旧源码恢复送入“新发布必须同步master”的门。未放宽该门。改原prepare workflow按精确artifact名称找未过期原包，调用原import验证与恢复版本树，再准备Runtime；无同源产物时仍走原新发布路径，错误产物明确失败。新增真实Git反例在远程主线已前进时导入旧SHA原artifact，并复验原source/版本/正文/包校验；不再重新打包已发布NPM。`AUTOMATION_INTERVENTIONS=2`，此为第二个根因的原owner修复，等待同一0.59.4恢复验证。
 
 `EXISTING_RELEASE_PATH`：release.yml target=product，npm-production/NPM_TOKEN，最近成功 parent39306362156。当前 parent43262190699 于北京时间 00:45:49 单次 dispatch，冻结源码82c79ee8f2；prepare43262148717。NPM job131336674846 于00:46:45–01:01:05成功，860秒，time budget: missed；包含等待精确41包闭包产物与发布验证，不等同于纯registry上传耗时。NPM latest已实读0.59.4，core0.18.9/kernel0.19.6，release commit784f2009fa。内容提交022ec47a6及合并c97290f370已进入远程master。

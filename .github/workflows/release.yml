@@ -209,9 +209,11 @@ jobs:
             fi
           fi
           : > "$RUNNER_TEMP/previous-compatibility-jobs.ndjson"
+          compatibility_source_sha=""
           if [ "$is_recovery" = true ]; then
             git fetch origin "refs/tags/$tag:refs/tags/$tag"
             release_commit="$(git rev-list -n 1 "$tag")"
+            compatibility_source_sha="$(git rev-parse "$release_commit^")"
             while read -r candidate_run candidate_sha candidate_conclusion; do
               # A completed successful recovery can supply the missing cells from an
               # earlier failed run. Keep every actionable completed run, then let the
@@ -219,14 +221,15 @@ jobs:
               if [ -z "$candidate_conclusion" ] || [ "$candidate_conclusion" = "skipped" ]; then
                 continue
               fi
-              if git merge-base --is-ancestor "$candidate_sha" "$release_commit"; then
-                gh run view "$candidate_run" --json jobs --jq '.jobs[]' >> "$RUNNER_TEMP/previous-compatibility-jobs.ndjson"
+              if [ "$candidate_sha" = "$compatibility_source_sha" ] || git merge-base --is-ancestor "$release_commit" "$candidate_sha"; then
+                gh run view "$candidate_run" --json jobs --jq ".jobs[] | . + {sourceCommit: \"$candidate_sha\"}" >> "$RUNNER_TEMP/previous-compatibility-jobs.ndjson"
                 compatibility_source_run="${compatibility_source_run:+$compatibility_source_run,}$candidate_run"
               fi
             done < <(gh run list --workflow release.yml --status completed --limit 40 --json conclusion,databaseId,headSha --jq '.[] | "\(.databaseId) \(.headSha) \(.conclusion)"')
           fi
           compatibility_result="$(node scripts/release/npm-compatibility-recovery-matrix.mjs \
             --is-recovery "$is_recovery" \
+            --source-commit "$compatibility_source_sha" --target-version "$target_version" \
             --jobs-file "$RUNNER_TEMP/previous-compatibility-jobs.ndjson")"
           compatibility_matrix="$(node -e 'const result = JSON.parse(process.argv[1]); process.stdout.write(JSON.stringify({ include: result.include }))' "$compatibility_result")"
           compatibility_reused="$(node -e 'process.stdout.write(String(JSON.parse(process.argv[1]).reused))' "$compatibility_result")"
@@ -443,7 +446,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   verify-npm-node-compatibility:
-    name: verify NPM ${{ matrix.platform }} Node ${{ matrix.node }}
+    name: verify NPM ${{ matrix.platform }} Node ${{ matrix.node }} @${{ needs.publish-npm.outputs.target_version }}
     needs: publish-npm
     if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' }}
     strategy:
