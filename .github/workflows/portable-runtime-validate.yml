@@ -119,10 +119,10 @@ jobs:
           TARGET: ${{ inputs.target || 'all' }}
         run: |
           case "$TARGET" in
-            darwin-arm64) matrix='[{"os":"macos-14","platform":"darwin","arch":"arm64","target":"darwin-arm64","environment":"darwin-arm64","cargo_target":"aarch64-apple-darwin"}]' ;;
+            darwin-arm64) matrix='[{"os":"macos-15","platform":"darwin","arch":"arm64","target":"darwin-arm64","environment":"darwin-arm64","cargo_target":"aarch64-apple-darwin"}]' ;;
             linux-x64) matrix='[{"os":"ubuntu-22.04","platform":"linux","arch":"x64","target":"linux-x64","environment":"linux-x64","cargo_target":"x86_64-unknown-linux-musl"}]' ;;
             win32-x64) matrix='[{"os":"windows-latest","platform":"win32","arch":"x64","target":"win32-x64","environment":"windows-x64","cargo_target":"x86_64-pc-windows-msvc"}]' ;;
-            all) matrix='[{"os":"macos-14","platform":"darwin","arch":"arm64","target":"darwin-arm64","environment":"darwin-arm64","cargo_target":"aarch64-apple-darwin"},{"os":"ubuntu-22.04","platform":"linux","arch":"x64","target":"linux-x64","environment":"linux-x64","cargo_target":"x86_64-unknown-linux-musl"},{"os":"windows-latest","platform":"win32","arch":"x64","target":"win32-x64","environment":"windows-x64","cargo_target":"x86_64-pc-windows-msvc"}]' ;;
+            all) matrix='[{"os":"macos-15","platform":"darwin","arch":"arm64","target":"darwin-arm64","environment":"darwin-arm64","cargo_target":"aarch64-apple-darwin"},{"os":"ubuntu-22.04","platform":"linux","arch":"x64","target":"linux-x64","environment":"linux-x64","cargo_target":"x86_64-unknown-linux-musl"},{"os":"windows-latest","platform":"win32","arch":"x64","target":"win32-x64","environment":"windows-x64","cargo_target":"x86_64-pc-windows-msvc"}]' ;;
             *) echo "Unsupported target: $TARGET" >&2; exit 2 ;;
           esac
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"

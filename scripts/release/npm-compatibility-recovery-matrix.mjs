@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 const platforms = [
   ["linux-x64", "ubuntu-22.04"],
   ["windows-x64", "windows-latest"],
-  ["darwin-arm64", "macos-14"],
+  ["darwin-arm64", "macos-15"],
   ["darwin-x64", "macos-15-intel"],
 ];
 const nodeVersions = ["20.19.0", "22.19.0", "24", "26"];

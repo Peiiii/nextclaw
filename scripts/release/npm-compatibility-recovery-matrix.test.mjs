@@ -13,15 +13,17 @@ test("uses the full compatibility matrix for a new immutable package identity", 
 });
 
 test("reruns only failed or cancelled compatibility jobs for a stable recovery", () => {
-  const jobs = NPM_COMPATIBILITY_MATRIX.map((entry) => ({
-    name: `verify NPM ${entry.platform} Node ${entry.node}`,
-    conclusion: entry.platform === "windows-x64" ? "failure" : "success",
-  }));
-  const result = resolveNpmCompatibilityRecoveryMatrix({ isRecovery: true, jobs });
-  assert.equal(result.reused, false);
-  assert.deepEqual(result.include.map((entry) => entry.platform), [
-    "windows-x64", "windows-x64", "windows-x64", "windows-x64",
-  ]);
+  for (const [platform, conclusion] of [["windows-x64", "failure"], ["darwin-arm64", "cancelled"]]) {
+    const jobs = NPM_COMPATIBILITY_MATRIX.map((entry) => ({
+      name: `verify NPM ${entry.platform} Node ${entry.node}`,
+      conclusion: entry.platform === platform ? conclusion : "success",
+    }));
+    const result = resolveNpmCompatibilityRecoveryMatrix({ isRecovery: true, jobs });
+    assert.equal(result.reused, false);
+    assert.deepEqual(result.include.map((entry) => entry.platform), [
+      platform, platform, platform, platform,
+    ]);
+  }
 });
 
 test("reuses a successful cell from an earlier run of the same immutable identity", () => {

@@ -179,7 +179,7 @@ jobs:
   desktop-macos-dmg-install-smoke:
     if: ${{ inputs.target == '' || inputs.target == 'all' || inputs.target == 'macos-dmg' }}
     name: desktop-macos-dmg-install-smoke
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - name: Checkout

@@ -40,6 +40,8 @@ contract-id: CCF-20261113；flow: bugfix；风险 L3，发布 L4；scope-revisio
 
 ## 方案审查与执行
 
+发布失败补充设计：GitHub 注释明确拒绝 `macos-14-arm64-us-default`，官方说明 macOS 14 runner 已于 2026-11-02 退役。将既有 ARM runner 标签迁移为仍受支持的 `macos-15`，保留 darwin/arm64 架构、Node 20/22/24/26 矩阵及不可变 0.59.4 身份；同步相同 runner owner 的 Runtime、Portable 与 Desktop 验证/构建入口，但不发布 Desktop。当前控制平面按原 owner 恢复已发布身份，复用已成功安装单元和已上传 NPM，不移动 tag。actionlint、既有发布合同测试及真实 ARM job 是验收。方案复审通过；不新增发布器、版本特判或治理脚本。官方依据：https://github.blog/changelog/2026-10-01-github-actions-macos-14-runner-image-retirement/ 。
+
 00:35 验收环境修正：DeepSeek 已真实返回自然完成、未裁剪的 provider 摘要（6241 输入、419 输出 token），后续调用返回 402 余额不足。原用户要求没有限定线上模型，因此将 CCF-05 的模型身份从错误固化的单一供应商改为当前已配置可用模型；原模型失败及已成功摘要证据仍保留，不声称原机验证通过。用户结果、失败分支与续跑标准不变，不绕过余额错误或更改账号配置。
 
 design-document: required；plan: not-required（同批实现与原发布 owner 可直接闭环，执行状态写迭代日志）。
