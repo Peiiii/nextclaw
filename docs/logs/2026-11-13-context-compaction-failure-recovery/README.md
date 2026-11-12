@@ -2,7 +2,7 @@
 
 ## 迭代完成说明
 
-实现及 AI 验收完成，正在交付发布。目标及 active contract 见[设计](../../designs/2026-11-13-context-compaction-failure-recovery.design.md)。用户明确要求先复现，完成验收后直接发布。flow=bugfix；task-id=dt-09b8e34a；retrospective_state=pending。
+**NextClaw 0.59.4 已完整发布，全部 Required 验收通过。** 目标及 active contract 见[设计](../../designs/2026-11-13-context-compaction-failure-recovery.design.md)。用户明确要求先复现，完成验收后直接发布。flow=bugfix；task-id=dt-09b8e34a；retrospective_state=completed；parent_status=ready-for-completion-check。
 
 本次确认并修复：manual 收集器在异常时丢失失败事件、session manager 以有事件误判成功、soft 分支丢弃结构压力下的恢复候选、结构触发继续计入已覆盖原文。真实 actor 原本只同步提交 compressed，现将 failed/cancelled 一并在 actor 可见前持久提交。失败原因由原 checkpoint owner 保存，API 返回明确错误，正常供应商恢复后可重试成功。
 
@@ -12,7 +12,7 @@
 
 ## 测试/验证/验收方式
 
-当前 active ledger：CCF-01–05 passed；CCF-06 的本地验证与 Review passed，正式发布 pending。Required IDs 与定义沿设计原文，不重编号。
+当前 active ledger：CCF-01–06 全部 current passed，正式发布证据见下文和[官方终态 proof](artifacts/release.json)。Required IDs 与定义沿设计原文，不重编号。
 
 - [复现与修后两轮持久化](artifacts/reproduction.json)：785 条合成历史；旧版固定错误；当前假成功与重复失败修前基线；修后 coveredMessageCount 1075→1832→1890，每轮冷重载一致、原文可读、每轮一次 provider 调用。
 - [组装 API](artifacts/api.json)：真实 preflight→manual manager→native runtime→SessionRun 持久提交→session manager→HTTP controller。空输出与 transport 异常均返回 409/CONTEXT_COMPACTION_FAILED，返回时冷加载已能读取原因；恢复 provider 后同入口返回 200。
@@ -23,11 +23,11 @@
 
 ## 发布/部署方式
 
-验收后沿现有 `release.yml target=product` 单次 dispatch，覆盖 NPM、stable Runtime、旧版升级与内容闭环；未请求 desktop installer，不扩展为全平台安装包发布。
+已沿现有 `release.yml target=product` 完成 NPM、stable Runtime、旧版升级与内容闭环；按同一0.59.4 checkpoint恢复，没有重复发布NPM。未请求Desktop installer，未发布新的桌面安装包。
 
 ## 用户/产品视角的验收步骤
 
-在已有长会话运行 `/compact`：失败应显示具体原因并保留旧检查点；修正 provider 后再次执行应成功。结构/硬预算压力下应进入可验证恢复，读取原历史后继续当前任务。
+通过 stable Runtime 更新通道或 `npm install -g nextclaw@latest` 升级至0.59.4，在已有长会话运行 `/compact`：失败应显示具体原因并保留旧检查点；修正 provider 后再次执行应成功。结构/硬预算压力下应进入可验证恢复，读取原历史后继续当前任务。参见[更新说明](https://docs.nextclaw.io/zh/notes/2026-11-13-nextclaw-v0-59-4)。
 
 ## 可维护性总结汇总
 
@@ -39,15 +39,28 @@ diff-only 自动维护性检查有 1 个 error 预算信号、2 个 warning，�
 
 ## NPM 包发布记录
 
-尚未发布，版本由原发布 owner 根据冻结 changeset 确定。
+已发布 nextclaw@0.59.4 / latest；core@0.18.9、kernel@0.19.6 随同依赖闭包交付。没有重复上传 NPM、移动已发布 tag 或另起产品版本掩盖恢复问题。
 
-### 0.59.4 发布执行与恢复
+### 最终终态与复盘
+
+- **NEXTCLAW_STABLE_READY 0.59.4**：[parent43274017032 attempt2](https://github.com/Peiiii/nextclaw/actions/runs/43274017032)于北京时间02:22:06全部成功；00:45:49首次正式发布dispatch至终态共5777秒，主要等待冷构建、runner退役恢复与ARM排队。恢复parent本身01:52:42–02:22:06共1764秒；最初860秒NPM job含精确产物准备等待，明确time budget: missed。恢复NPM checkpoint job仅44秒；未再次上传包。
+- 官方终态artifact已下载并逐字段验证：version0.59.4、sha784f2009faac5b482f2ac1e4131ccb0af5af0897、target product、runId43274017032。不可变产品初始源码82c79ee8f2；最终publisher控制平面8ab4df1177；Runtime准备control plane35d5d9222e，两者均明确消费原源码产物。
+- 实装证据16组闭合：初始parent的Linux/macOS Intel/Windows共12组，恢复parent真实完成4组带`@0.59.4`身份的macOS ARM。Node24于02:16:56获runner，02:17:54通过。Node22在原attempt于02:04:26获runner并02:05:26完成，早于取消请求；不能把它的成功归因于重排。第四项干预的调度根因未确认，不新增猜测性的runner fallback或无限重试。
+- Runtime推广与公开验证02:18:42–02:20:14共92秒，在120秒目标内；真实上一稳定版升级验证02:20:14–02:21:48共94秒通过。四平台公开manifest均实读200/0.59.4/hostKind=npm-runtime-bundle/floor0.18.11，releaseNotesUrl指向同一GitHub Release，四个zip资产完整。没有把整个job234秒冒充promotion耗时。
+- [GitHub Release](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw@0.59.4)已由原owner发布四平台资产，双语正文用准备好的notes文件更新并完整回读一致；不含内部测试/治理噪音。双语文档页与JSON的国际/国内部署证据见本日志。此为常规product发布，无Desktop安装包、Bibo部署或社交发布；没有触达需要migration的新持久schema，也没有改变自管理CLI命令/USAGE资源。
+- branch closure检查通过：远程master包含功能、已发布版本和后补内容，无release-only功能源码；主工作区原Bibo文档WIP保持，LOCAL_WORKTREE_RETRYING由原协调器worker接管。临时验证不写原用户会话；本任务产物全部在隔离worktree及对应提交内，最终记录同批提交推送后清理owned worktree。
+- `retrospective_decision=updated-existing-owners`：产品错误落实为真实actor持久化/HTTP回归及结构边界测试；runner生命周期修回现有配置；已发布身份的准备复用原artifact验证owner；兼容证据绑定版本与精确源码。方法本身已有先复现和整体完成门，最初停在核验属于执行不足，不再堆新的全局提示词。CI合同测试增加后触发的statement预算已按“来源绑定/准备恢复”拆回原内聚测试，未放宽阈值；最终相关37项、ESLint、actionlint与局部维护性0error/0warning。产品SessionRun既有超预算文件净增1行的人工接受仍如实保留，不改称脚本通过。
+- `AUTOMATION_INTERVENTIONS=4`：退役runner、旧源码准备复用、跨版本证据隔离、队列有界重排；前三项有原owner修复和回归，第四项使用原恢复入口，未把第三方未知原因固化为产品规则。整体无开放Required缺口；原反馈机器未接入，不能声称已直接验证该原机会话。
+
+### 恢复过程（历史）
+
+当时的恢复现场：prepare43268581572（control plane35d5d9222e，冻结source82c79ee8f2）已整体成功，原NPM artifact复用/完整性恢复及四平台Runtime均通过；Mac Intel最后完成的是Rust缓存post步骤。identity修复b19c0d295a与等义正则lint修正8ab4df1177通过actionlint、37项回归、ESLint和局部维护性0error/0warning。恢复parent43274017032于01:52:42从8ab4df1177 dispatch，正确只补4个`@0.59.4` ARM单元；Node20/26已通过，Node22/24长期queued，项目没有其它in_progress run，check无失败注释，GitHub公共状态正常，不能宣称第三方调度根因已知。使用原failed-only入口有界重排一次，保留14个有效实装结果与NPM checkpoint；同run attempt2，仍待终态。`AUTOMATION_INTERVENTIONS=4`，第四项是队列停滞的安全重排，未改平台、版本或验收标准。flow=bugfix，phase=delivery，retrospective_state=pending，CCF-06 pending。
 
 第三个验收根因：恢复前审查确认旧ancestor筛选与未带版本的job名会将旧版实装success归入当前身份。先执行原resolver：16个prior-version-source旧格式success错误返回reused=true。修回原resolver/生产workflow，目标版本具名，旧格式仅精确初始SHA可复用，较旧祖先排除、当前release之后的正确版本恢复可复用；CLI缺目标身份明确失败。负例与producer合同一并回归。`AUTOMATION_INTERVENTIONS=3`；不以旧版矩阵代替本次ARM验收。
 
 第二个独立恢复根因：43266715710在准备阶段明确失败，`remote-only=4, local-only=0`；原流程把已发布身份的旧源码恢复送入“新发布必须同步master”的门。未放宽该门。改原prepare workflow按精确artifact名称找未过期原包，调用原import验证与恢复版本树，再准备Runtime；无同源产物时仍走原新发布路径，错误产物明确失败。新增真实Git反例在远程主线已前进时导入旧SHA原artifact，并复验原source/版本/正文/包校验；不再重新打包已发布NPM。`AUTOMATION_INTERVENTIONS=2`，此为第二个根因的原owner修复，等待同一0.59.4恢复验证。
 
-`EXISTING_RELEASE_PATH`：release.yml target=product，npm-production/NPM_TOKEN，最近成功 parent39306362156。当前 parent43262190699 于北京时间 00:45:49 单次 dispatch，冻结源码82c79ee8f2；prepare43262148717。NPM job131336674846 于00:46:45–01:01:05成功，860秒，time budget: missed；包含等待精确41包闭包产物与发布验证，不等同于纯registry上传耗时。NPM latest已实读0.59.4，core0.18.9/kernel0.19.6，release commit784f2009fa。内容提交022ec47a6及合并c97290f370已进入远程master。
+`EXISTING_RELEASE_PATH`：release.yml target=product，npm-production/NPM_TOKEN，最近成功 parent39306362156。最初 parent43262190699 于北京时间 00:45:49 单次 dispatch，冻结源码82c79ee8f2；prepare43262148717。NPM job131336674846 于00:46:45–01:01:05成功，860秒，time budget: missed；包含等待精确41包闭包产物与发布验证，不等同于纯registry上传耗时。NPM latest已实读0.59.4，core0.18.9/kernel0.19.6，release commit784f2009fa。内容提交022ec47a6及合并c97290f370已进入远程master。
 
 macOS ARM四个安装单元被runner调度直接cancelled，job131345771477的check annotation为`The configuration 'macos-14-arm64-us-default' is not supported`，不是产品测试失败。GitHub官方已退役此镜像；按原runner配置迁移15并恢复同一0.59.4。`AUTOMATION_INTERVENTIONS=1`，根因是外部runner生命周期，修回既有工作流与兼容矩阵，并以已取消ARM单元补恢复回归；不重发NPM、不跳过ARM、不降级验收。
 
@@ -55,6 +68,6 @@ macOS ARM四个安装单元被runner调度直接cancelled，job131345771477的ch
 
 文档部署43265714701成功：国际/国内manifest均为c97290f370fca60d3d9a60a92320861d27a1bcbe，tree8890981a9591181796e275aa5fe7dcdf9c9f040074f29524dce6eaa3415595d4；两站中英文0.59.4页面及JSON均200，JSON逐字段等于源码，国际CORS=*。国内镜像没有CORS，非产品默认跨域读取入口，未冒充该项通过。原验证命令误传短SHA产生commit mismatch，改用实际完整SHA后原owner验证通过，未改站点或降低校验。
 
-主线协调器已返回LOCAL_WORKTREE_RETRYING并启动worker68897，原因是primary原有Bibo文档WIP；远程master已含本任务源码/版本/内容，无reset/stash/rebase或覆盖。当前仍待Runtime准备、ARM实装恢复、channel与旧版升级终态；retrospective_state=pending。
+主线协调器已返回LOCAL_WORKTREE_RETRYING并启动worker68897，原因是primary原有Bibo文档WIP；远程master已含本任务源码/版本/内容，无reset/stash/rebase或覆盖。当时仍待Runtime准备、ARM实装恢复、channel与旧版升级终态；retrospective_state=pending。
 
 旧本地三个无关历史tag与远程存在差异，普通fetch拒绝覆盖；本次0.59.4及依赖新tag成功取得，未强制更改无关tag。Runtime、macOS ARM安装与最终旧版升级仍pending，不能将NPM_READY写成整个任务完成。
