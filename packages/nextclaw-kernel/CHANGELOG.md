@@ -1,5 +1,17 @@
 # @nextclaw/kernel
 
+## 0.19.6
+
+### Patch Changes
+
+- 5d4c94c: Manual context compaction now reports failures accurately and retains their causes in session history before returning an error. Conversations under message-count or part-count pressure can install verifiable recovery checkpoints when a summary is unavailable, avoiding repeated unsuccessful summary calls while preserving original history and recovery safeguards.
+- Updated dependencies [5d4c94c]
+  - @nextclaw/core@0.18.9
+  - @nextclaw/mcp@0.3.59
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.59
+  - @nextclaw/runtime@0.4.58
+  - @nextclaw/ncp-mcp@0.2.59
+
 ## 0.19.5
 
 ### Patch Changes

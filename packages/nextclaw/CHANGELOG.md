@@ -1,5 +1,25 @@
 # nextclaw
 
+## 0.59.4
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - nextclaw
+
+- Updated dependencies [5d4c94c]
+  - @nextclaw/core@0.18.9
+  - @nextclaw/kernel@0.19.6
+  - @nextclaw/mcp@0.3.59
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.59
+  - @nextclaw/remote@0.3.75
+  - @nextclaw/runtime@0.4.58
+  - @nextclaw/server@0.23.18
+  - @nextclaw/service@0.7.12
+  - @nextclaw/ncp-mcp@0.2.59
+
 ## 0.59.3
 
 ### Patch Changes
