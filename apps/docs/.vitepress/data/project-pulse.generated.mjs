@@ -1,126 +1,21 @@
 export default {
-  "generatedAt": "2026-10-22T07:30:46.758Z",
+  "generatedAt": "2026-11-12T09:44:40.876Z",
   "hero": {
-    "currentLoc": 323981,
-    "testLoc": 139408,
-    "trackedFiles": 3513,
-    "recentCommitCount": 527,
+    "currentLoc": 311755,
+    "testLoc": 134868,
+    "trackedFiles": 3345,
+    "recentCommitCount": 58,
     "activeDays30": 29,
-    "recentReleaseCount": 43,
+    "recentReleaseCount": 30,
     "latestReleaseDate": "2026-10-19",
     "latestNoteDate": "2026-10-20",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 3766008,
-    "basePercentOfBenchmark": 8.6,
-    "lighterByPercent": 91.4
+    "benchmarkCodeLines": 3993085,
+    "basePercentOfBenchmark": 7.81,
+    "lighterByPercent": 92.19
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-06-25",
-        "label": "06-25",
-        "value": 191258
-      },
-      {
-        "key": "2026-06-26",
-        "label": "06-26",
-        "value": 191258
-      },
-      {
-        "key": "2026-06-27",
-        "label": "06-27",
-        "value": 191258
-      },
-      {
-        "key": "2026-06-28",
-        "label": "06-28",
-        "value": 191258
-      },
-      {
-        "key": "2026-06-29",
-        "label": "06-29",
-        "value": 191258
-      },
-      {
-        "key": "2026-06-30",
-        "label": "06-30",
-        "value": 191258
-      },
-      {
-        "key": "2026-07-01",
-        "label": "07-01",
-        "value": 191258
-      },
-      {
-        "key": "2026-07-02",
-        "label": "07-02",
-        "value": 191258
-      },
-      {
-        "key": "2026-07-03",
-        "label": "07-03",
-        "value": 191504
-      },
-      {
-        "key": "2026-07-04",
-        "label": "07-04",
-        "value": 191504
-      },
-      {
-        "key": "2026-07-05",
-        "label": "07-05",
-        "value": 194185
-      },
-      {
-        "key": "2026-07-06",
-        "label": "07-06",
-        "value": 196093
-      },
-      {
-        "key": "2026-07-07",
-        "label": "07-07",
-        "value": 196093
-      },
-      {
-        "key": "2026-07-08",
-        "label": "07-08",
-        "value": 196093
-      },
-      {
-        "key": "2026-07-09",
-        "label": "07-09",
-        "value": 196093
-      },
-      {
-        "key": "2026-07-10",
-        "label": "07-10",
-        "value": 196093
-      },
-      {
-        "key": "2026-07-11",
-        "label": "07-11",
-        "value": 196093
-      },
-      {
-        "key": "2026-07-12",
-        "label": "07-12",
-        "value": 196093
-      },
-      {
-        "key": "2026-07-13",
-        "label": "07-13",
-        "value": 199874
-      },
-      {
-        "key": "2026-07-14",
-        "label": "07-14",
-        "value": 202430
-      },
-      {
-        "key": "2026-07-15",
-        "label": "07-15",
-        "value": 203165
-      },
       {
         "key": "2026-07-16",
         "label": "07-16",
@@ -615,6 +510,111 @@ export default {
         "key": "2026-10-22",
         "label": "10-22",
         "value": 323981
+      },
+      {
+        "key": "2026-10-23",
+        "label": "10-23",
+        "value": 311755
+      },
+      {
+        "key": "2026-10-24",
+        "label": "10-24",
+        "value": 311755
+      },
+      {
+        "key": "2026-10-25",
+        "label": "10-25",
+        "value": 311755
+      },
+      {
+        "key": "2026-10-26",
+        "label": "10-26",
+        "value": 311755
+      },
+      {
+        "key": "2026-10-27",
+        "label": "10-27",
+        "value": 311755
+      },
+      {
+        "key": "2026-10-28",
+        "label": "10-28",
+        "value": 311755
+      },
+      {
+        "key": "2026-10-29",
+        "label": "10-29",
+        "value": 311755
+      },
+      {
+        "key": "2026-10-30",
+        "label": "10-30",
+        "value": 311755
+      },
+      {
+        "key": "2026-10-31",
+        "label": "10-31",
+        "value": 311755
+      },
+      {
+        "key": "2026-11-01",
+        "label": "11-01",
+        "value": 311755
+      },
+      {
+        "key": "2026-11-02",
+        "label": "11-02",
+        "value": 311755
+      },
+      {
+        "key": "2026-11-03",
+        "label": "11-03",
+        "value": 311755
+      },
+      {
+        "key": "2026-11-04",
+        "label": "11-04",
+        "value": 311755
+      },
+      {
+        "key": "2026-11-05",
+        "label": "11-05",
+        "value": 311755
+      },
+      {
+        "key": "2026-11-06",
+        "label": "11-06",
+        "value": 311755
+      },
+      {
+        "key": "2026-11-07",
+        "label": "11-07",
+        "value": 311755
+      },
+      {
+        "key": "2026-11-08",
+        "label": "11-08",
+        "value": 311755
+      },
+      {
+        "key": "2026-11-09",
+        "label": "11-09",
+        "value": 311755
+      },
+      {
+        "key": "2026-11-10",
+        "label": "11-10",
+        "value": 311755
+      },
+      {
+        "key": "2026-11-11",
+        "label": "11-11",
+        "value": 311755
+      },
+      {
+        "key": "2026-11-12",
+        "label": "11-12",
+        "value": 311755
       }
     ],
     "testLocDaily": [
@@ -1442,114 +1442,114 @@ export default {
         "key": "2026-10-22",
         "label": "10-22",
         "value": 139408
+      },
+      {
+        "key": "2026-10-23",
+        "label": "10-23",
+        "value": 134868
+      },
+      {
+        "key": "2026-10-24",
+        "label": "10-24",
+        "value": 134868
+      },
+      {
+        "key": "2026-10-25",
+        "label": "10-25",
+        "value": 134868
+      },
+      {
+        "key": "2026-10-26",
+        "label": "10-26",
+        "value": 134868
+      },
+      {
+        "key": "2026-10-27",
+        "label": "10-27",
+        "value": 134868
+      },
+      {
+        "key": "2026-10-28",
+        "label": "10-28",
+        "value": 134868
+      },
+      {
+        "key": "2026-10-29",
+        "label": "10-29",
+        "value": 134868
+      },
+      {
+        "key": "2026-10-30",
+        "label": "10-30",
+        "value": 134868
+      },
+      {
+        "key": "2026-10-31",
+        "label": "10-31",
+        "value": 134868
+      },
+      {
+        "key": "2026-11-01",
+        "label": "11-01",
+        "value": 134868
+      },
+      {
+        "key": "2026-11-02",
+        "label": "11-02",
+        "value": 134868
+      },
+      {
+        "key": "2026-11-03",
+        "label": "11-03",
+        "value": 134868
+      },
+      {
+        "key": "2026-11-04",
+        "label": "11-04",
+        "value": 134868
+      },
+      {
+        "key": "2026-11-05",
+        "label": "11-05",
+        "value": 134868
+      },
+      {
+        "key": "2026-11-06",
+        "label": "11-06",
+        "value": 134868
+      },
+      {
+        "key": "2026-11-07",
+        "label": "11-07",
+        "value": 134868
+      },
+      {
+        "key": "2026-11-08",
+        "label": "11-08",
+        "value": 134868
+      },
+      {
+        "key": "2026-11-09",
+        "label": "11-09",
+        "value": 134868
+      },
+      {
+        "key": "2026-11-10",
+        "label": "11-10",
+        "value": 134868
+      },
+      {
+        "key": "2026-11-11",
+        "label": "11-11",
+        "value": 134868
+      },
+      {
+        "key": "2026-11-12",
+        "label": "11-12",
+        "value": 134868
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-09-23",
-        "label": "09-23",
-        "value": 2
-      },
-      {
-        "key": "2026-09-24",
-        "label": "09-24",
-        "value": 17
-      },
-      {
-        "key": "2026-09-25",
-        "label": "09-25",
-        "value": 51
-      },
-      {
-        "key": "2026-09-26",
-        "label": "09-26",
-        "value": 62
-      },
-      {
-        "key": "2026-09-27",
-        "label": "09-27",
-        "value": 91
-      },
-      {
-        "key": "2026-09-28",
-        "label": "09-28",
-        "value": 67
-      },
-      {
-        "key": "2026-09-29",
-        "label": "09-29",
-        "value": 72
-      },
-      {
-        "key": "2026-09-30",
-        "label": "09-30",
-        "value": 57
-      },
-      {
-        "key": "2026-10-01",
-        "label": "10-01",
-        "value": 13
-      },
-      {
-        "key": "2026-10-02",
-        "label": "10-02",
-        "value": 17
-      },
-      {
-        "key": "2026-10-03",
-        "label": "10-03",
-        "value": 9
-      },
-      {
-        "key": "2026-10-04",
-        "label": "10-04",
-        "value": 12
-      },
-      {
-        "key": "2026-10-05",
-        "label": "10-05",
-        "value": 2
-      },
-      {
-        "key": "2026-10-06",
-        "label": "10-06",
-        "value": 1
-      },
-      {
-        "key": "2026-10-07",
-        "label": "10-07",
-        "value": 6
-      },
-      {
-        "key": "2026-10-08",
-        "label": "10-08",
-        "value": 3
-      },
-      {
-        "key": "2026-10-09",
-        "label": "10-09",
-        "value": 9
-      },
-      {
-        "key": "2026-10-10",
-        "label": "10-10",
-        "value": 1
-      },
-      {
-        "key": "2026-10-11",
-        "label": "10-11",
-        "value": 1
-      },
-      {
-        "key": "2026-10-12",
-        "label": "10-12",
-        "value": 2
-      },
-      {
-        "key": "2026-10-13",
-        "label": "10-13",
-        "value": 1
-      },
       {
         "key": "2026-10-14",
         "label": "10-14",
@@ -1593,25 +1593,115 @@ export default {
       {
         "key": "2026-10-22",
         "label": "10-22",
+        "value": 4
+      },
+      {
+        "key": "2026-10-23",
+        "label": "10-23",
+        "value": 1
+      },
+      {
+        "key": "2026-10-24",
+        "label": "10-24",
+        "value": 1
+      },
+      {
+        "key": "2026-10-25",
+        "label": "10-25",
+        "value": 1
+      },
+      {
+        "key": "2026-10-26",
+        "label": "10-26",
+        "value": 2
+      },
+      {
+        "key": "2026-10-27",
+        "label": "10-27",
+        "value": 1
+      },
+      {
+        "key": "2026-10-28",
+        "label": "10-28",
+        "value": 1
+      },
+      {
+        "key": "2026-10-29",
+        "label": "10-29",
+        "value": 1
+      },
+      {
+        "key": "2026-10-30",
+        "label": "10-30",
+        "value": 1
+      },
+      {
+        "key": "2026-10-31",
+        "label": "10-31",
+        "value": 1
+      },
+      {
+        "key": "2026-11-01",
+        "label": "11-01",
+        "value": 1
+      },
+      {
+        "key": "2026-11-02",
+        "label": "11-02",
+        "value": 2
+      },
+      {
+        "key": "2026-11-03",
+        "label": "11-03",
+        "value": 1
+      },
+      {
+        "key": "2026-11-04",
+        "label": "11-04",
+        "value": 1
+      },
+      {
+        "key": "2026-11-05",
+        "label": "11-05",
+        "value": 1
+      },
+      {
+        "key": "2026-11-06",
+        "label": "11-06",
+        "value": 1
+      },
+      {
+        "key": "2026-11-07",
+        "label": "11-07",
+        "value": 1
+      },
+      {
+        "key": "2026-11-08",
+        "label": "11-08",
+        "value": 1
+      },
+      {
+        "key": "2026-11-09",
+        "label": "11-09",
+        "value": 2
+      },
+      {
+        "key": "2026-11-10",
+        "label": "11-10",
+        "value": 1
+      },
+      {
+        "key": "2026-11-11",
+        "label": "11-11",
+        "value": 1
+      },
+      {
+        "key": "2026-11-12",
+        "label": "11-12",
         "value": 0
       }
     ],
     "commitWeekly": [
-      {
-        "key": "2026-08-03",
-        "label": "08-03",
-        "value": 88
-      },
-      {
-        "key": "2026-08-10",
-        "label": "08-10",
-        "value": 132
-      },
-      {
-        "key": "2026-08-17",
-        "label": "08-17",
-        "value": 105
-      },
       {
         "key": "2026-08-24",
         "label": "08-24",
@@ -1655,15 +1745,25 @@ export default {
       {
         "key": "2026-10-19",
         "label": "10-19",
-        "value": 26
+        "value": 33
+      },
+      {
+        "key": "2026-10-26",
+        "label": "10-26",
+        "value": 8
+      },
+      {
+        "key": "2026-11-02",
+        "label": "11-02",
+        "value": 8
+      },
+      {
+        "key": "2026-11-09",
+        "label": "11-09",
+        "value": 4
       }
     ],
     "releaseMonthly": [
-      {
-        "key": "2025-11",
-        "label": "11/25",
-        "value": 0
-      },
       {
         "key": "2025-12",
         "label": "12/25",
@@ -1718,6 +1818,11 @@ export default {
         "key": "2026-10",
         "label": "10/26",
         "value": 4
+      },
+      {
+        "key": "2026-11",
+        "label": "11/26",
+        "value": 0
       }
     ]
   },
@@ -1728,63 +1833,63 @@ export default {
         "codeLines": 76806,
         "testCodeLines": 42954,
         "files": 942,
-        "sharePercent": 23.7
+        "sharePercent": 24.6
       },
       {
         "name": "packages/nextclaw-kernel",
         "codeLines": 52061,
         "testCodeLines": 27906,
         "files": 518,
-        "sharePercent": 16.1
+        "sharePercent": 16.7
       },
       {
         "name": "packages/nextclaw-service",
         "codeLines": 17127,
         "testCodeLines": 9128,
         "files": 175,
-        "sharePercent": 5.3
+        "sharePercent": 5.5
       },
       {
         "name": "packages/nextclaw-core",
         "codeLines": 16883,
         "testCodeLines": 6994,
         "files": 186,
-        "sharePercent": 5.2
+        "sharePercent": 5.4
       },
       {
         "name": "workers/nextclaw-provider-gateway-api",
-        "codeLines": 15298,
+        "codeLines": 15329,
         "testCodeLines": 0,
-        "files": 78,
-        "sharePercent": 4.7
+        "files": 80,
+        "sharePercent": 4.9
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
         "codeLines": 14221,
         "testCodeLines": 9636,
         "files": 150,
-        "sharePercent": 4.4
+        "sharePercent": 4.6
       },
       {
         "name": "packages/nextclaw-server",
         "codeLines": 13729,
         "testCodeLines": 11066,
         "files": 162,
-        "sharePercent": 4.2
+        "sharePercent": 4.4
       },
       {
         "name": "packages/nextclaw-app-runtime",
         "codeLines": 11059,
         "testCodeLines": 3661,
         "files": 95,
-        "sharePercent": 3.4
+        "sharePercent": 3.5
       }
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 3766008,
-      "basePercentOfBenchmark": 8.6,
-      "lighterByPercent": 91.4
+      "benchmarkCodeLines": 3993085,
+      "basePercentOfBenchmark": 7.81,
+      "lighterByPercent": 92.19
     },
     "recentReleaseBatches": [
       {
@@ -3364,7 +3469,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-10-22T07:30:44.610Z",
+    "locGeneratedAt": "2026-11-12T09:44:39.233Z",
     "sourceCount": {
       "notes": 78,
       "scopes": 8
