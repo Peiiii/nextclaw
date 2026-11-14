@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.59.6
+
+### Patch Changes
+
+- 518cb14: Include the platform libSQL native resource in runtime bundles so older Desktop hosts can prepare and read saved conversation history after upgrading.
+
 ## 0.59.5
 
 ### Patch Changes
