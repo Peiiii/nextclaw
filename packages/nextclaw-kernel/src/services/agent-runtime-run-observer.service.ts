@@ -20,6 +20,8 @@ import {
   type EventBus,
 } from "@nextclaw/shared";
 import { catchError, filter, from, lastValueFrom, tap } from "rxjs";
+import { isSessionJournalWriteError, SESSION_JOURNAL_FAILURE_SOURCE } from "@kernel/utils/session-journal-error.utils.js";
+import { PERSISTED_SESSION_EVENT_SOURCE } from "@kernel/services/session-event-ingestion.service.js";
 
 export type AgentRuntimeRunObserverOptions = {
   agentRuntimeManager: AgentRunRuntimeHost;
@@ -41,6 +43,10 @@ export class AgentRuntimeRunObserverService {
     const { options, parentCorrelationId, requestRunStartedAt, runtime, spec } =
       params;
     const { session, sessionRun } = options;
+    const stopWatchingStorage = this.options.eventBus.on(eventKeys.ncpEvent, (event, envelope) => {
+      if (envelope.source !== SESSION_JOURNAL_FAILURE_SOURCE || event.type !== NcpEventType.RunError || event.payload.sessionId !== session.sessionId) return;
+      sessionRun.failPersistence(event.payload.error ?? "Session history could not be saved.");
+    });
     let messageCompletedSeen = false;
     const initialMessageIds = new Set(
       options.initialMessages.map(({ id }) => id),
@@ -124,6 +130,11 @@ export class AgentRuntimeRunObserverService {
           failureReason = classification.reasonCode;
           failureProviderCode = classification.providerCode;
           failureFacts = classification.facts;
+          if (isSessionJournalWriteError(error)) {
+            failureReason = "session_journal_write_failed";
+            sessionRun.failPersistence(error);
+            return;
+          }
           if (!executionMetadataSeen) {
             const metadataEvent = createUnavailableAiExecutionMetadataEvent({
               spec,
@@ -144,8 +155,9 @@ export class AgentRuntimeRunObserverService {
         }),
       ),
       { defaultValue: undefined },
-    ).finally(() =>
-      this.finish({
+    ).finally(() => {
+      stopWatchingStorage();
+      return this.finish({
         failureFacts,
         failureOutcome,
         failureProviderCode,
@@ -157,8 +169,10 @@ export class AgentRuntimeRunObserverService {
         runtimeFailed,
         spec,
         options,
-      }),
-    );
+      });
+    }).catch((error: unknown) => {
+      if (!isSessionJournalWriteError(error)) console.error("[agent-run-request] failed to settle runtime events", error);
+    });
   };
 
   private finish = async (input: {
@@ -243,7 +257,7 @@ export class AgentRuntimeRunObserverService {
   private publishNcpEvent = (event: NcpEndpointEvent): void => {
     this.options.eventBus.emit(eventKeys.ncpEvent, event, {
       emittedAt: new Date().toISOString(),
-      source: "agent-run-request",
+      source: PERSISTED_SESSION_EVENT_SOURCE,
     });
   };
 }

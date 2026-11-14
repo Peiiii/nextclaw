@@ -38,6 +38,45 @@ function createMarkerEvent(status: ContextCompactionCheckpoint["status"]): NcpEn
   };
 }
 
+describe("SessionEventIngestionService failure isolation", () => {
+  it.each(["CONTEXT_COMPACTION_STALE", "AbortError"])("does not latch an intentionally rejected commit: %s", async code => {
+    const rejection = Object.assign(new Error("safely rejected"), { code, journalCommitRejected: true });
+    const appendSessionEvent = vi.fn().mockRejectedValueOnce(rejection).mockResolvedValue(undefined);
+    const onError = vi.fn();
+    const service = new SessionEventIngestionService({ appendSessionEvent,
+      getSessionRecord: async () => null, listUnfinishedRuns: async () => [], onError,
+      subscribe: () => () => undefined, updateSessionMetadata: async () => true });
+    try {
+      await expect(service.ingestEvent(createMarkerEvent("compressing"))).rejects.toBe(rejection);
+      await expect(service.ingestEvent(createMarkerEvent("cancelled"))).resolves.toBeUndefined();
+      await expect(service.flushSession(SESSION_ID)).resolves.toBeUndefined();
+      expect(onError).not.toHaveBeenCalled();
+    } finally { service.dispose(); }
+  });
+
+  it("retains the first metadata JSON cause and isolates a healthy session", async () => {
+    const cause = new SyntaxError("Unexpected token in session metadata JSON");
+    const updateSessionMetadata = vi.fn().mockRejectedValueOnce(cause).mockResolvedValue(true);
+    const onError = vi.fn();
+    const appendSessionEvent = vi.fn(async () => undefined);
+    const service = new SessionEventIngestionService({ appendSessionEvent,
+      getSessionRecord: async () => null, listUnfinishedRuns: async () => [], onError,
+      subscribe: () => () => undefined, updateSessionMetadata });
+    try {
+      const patch: NcpEndpointEvent = { type: NcpEventType.RunMetadata, payload: { sessionId: SESSION_ID,
+        metadata: { kind: "session_metadata_patch", sessionMetadataPatch: { fixture: true } } } };
+      await expect(service.ingestEvent(patch)).rejects.toMatchObject({ code: "SESSION_JOURNAL_WRITE_FAILED", cause });
+      const first = onError.mock.calls[0]?.[1];
+      await expect(service.ingestEvent(createMarkerEvent("failed"))).rejects.toBe(first);
+      await expect(service.flushSession(SESSION_ID)).rejects.toBe(first);
+      expect(onError).toHaveBeenCalledOnce();
+      await expect(service.ingestEvent({ type: NcpEventType.RunStarted, payload: { sessionId: "healthy", runId: "healthy-run" } })).resolves.toBeUndefined();
+      expect(appendSessionEvent).toHaveBeenCalledOnce();
+    } finally { service.dispose(); }
+  });
+
+});
+
 describe("SessionEventIngestionService context compaction", () => {
   it("refuses later writes and restart flush after a failed durable write", async () => {
     const appendSessionEvent = vi.fn().mockRejectedValueOnce(new Error("disk full")).mockResolvedValue(undefined);

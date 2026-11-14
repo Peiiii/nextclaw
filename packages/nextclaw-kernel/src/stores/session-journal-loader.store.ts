@@ -12,7 +12,8 @@ export class SessionJournalLoaderStore {
 
   load = async (sessionId: string, path: string): Promise<LoadedNcpAgentJournalSession | null> => {
     let journalStat: Awaited<ReturnType<typeof stat>>;
-    try { journalStat = await stat(path); } catch { return null; }
+    try { journalStat = await stat(path); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
     const journalOffset = journalStat.size;
     const supersessionTracker = new SessionReplaySupersessionTracker();
     const parsedJournal = await scanSessionJournal({

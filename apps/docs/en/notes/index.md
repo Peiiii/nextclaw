@@ -14,6 +14,8 @@ If you want the broader project information layer rather than just the latest up
 
 ## Latest
 
+- [2026-11-14 · NextClaw v0.59.5](./2026-11-14-nextclaw-v0-59-5)
+
 - [2026-11-13 · NextClaw v0.59.4](./2026-11-13-nextclaw-v0-59-4)
 
 - [2026-10-20 · NextClaw v0.59.3](./2026-10-20-nextclaw-v0-59-3)

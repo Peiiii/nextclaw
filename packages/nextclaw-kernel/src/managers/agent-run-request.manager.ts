@@ -18,6 +18,8 @@ import {
   type NcpMessageAbortPayload,
   type NcpRunHandle,
 } from "@nextclaw/ncp";
+import { isSessionJournalWriteError } from "@kernel/utils/session-journal-error.utils.js";
+import { PERSISTED_SESSION_EVENT_SOURCE } from "@kernel/services/session-event-ingestion.service.js";
 import type {
   DiagnosticRuntime,
 } from "@nextclaw/core";
@@ -482,6 +484,7 @@ export class AgentRunRequestManager {
     spec: AgentRunSpec;
   }): Promise<void> => {
     const { error, requestRunStartedAt, sessionRun, spec } = params;
+    if (isSessionJournalWriteError(error)) { sessionRun.failPersistence(error); return; }
     const metadataEvent = createUnavailableAiExecutionMetadataEvent({
       spec,
       sessionId: sessionRun.sessionId,
@@ -544,7 +547,7 @@ export class AgentRunRequestManager {
   private publishNcpEvent = (event: NcpEndpointEvent): void => {
     this.eventBus.emit(eventKeys.ncpEvent, event, {
       emittedAt: new Date().toISOString(),
-      source: "agent-run-request",
+      source: PERSISTED_SESSION_EVENT_SOURCE,
     });
   };
 

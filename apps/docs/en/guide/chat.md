@@ -160,6 +160,12 @@ The context-window indicator separates system and tools, conversation content, o
 
 You can also use `/compact` to compact earlier context on demand. For both automatic and manual compaction, keep critical paths, final criteria, and non-editable boundaries explicit near the work that depends on them.
 
+## When conversation history cannot be saved
+
+If conversation history cannot be written, the affected run stops and reports a storage error instead of continuing to produce replies that exist only in memory. Pending queued inputs are cleared; other healthy sessions remain usable. Diagnostics retain the first underlying error without repeatedly flooding the log with the same failure.
+
+Check disk space, session-directory permissions, or file access. After fixing the cause, restart NextClaw and resend unfinished requests. Saved history is restored from the journal; content that was never confirmed saved cannot be guaranteed recoverable. Keep the original session files. If an existing session cannot be read because of permissions or an I/O error, NextClaw reports that failure instead of treating the session as missing.
+
 ## Math formulas
 
 Chat messages and Markdown files in the session workspace support `$...$`, `$$...$$`, inline `\(...\)` and display `\[...\]`. For example, use `\(E = mc^2\)` inline, or:

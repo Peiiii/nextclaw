@@ -26,7 +26,7 @@ import type { SessionListPageOptions, SessionMessagePage, SessionMetadataUpdate,
 import { sessionJsonChunks } from "@kernel/utils/session-message-chunks.utils.js";
 import { syncSessionJournalDirectory, syncSessionJournalFile } from "@kernel/utils/session-journal-durability.utils.js";
 import { NcpEventType } from "@nextclaw/ncp";
-import type { ContextCompactionCheckpoint } from "@nextclaw/core/context-compaction";
+import type { ContextCompactionCheckpoint } from "@nextclaw/core";
 export class NcpAgentSessionJournalStore implements SessionPersistence {
   private readonly nextSeqBySession = new Map<string, number>();
   private readonly writeChains = new Map<string, Promise<void>>();
@@ -449,7 +449,7 @@ export class NcpAgentSessionJournalStore implements SessionPersistence {
     } catch (error) {
       if (!completed) {
         await file.truncate(previousOffset); await file.sync();
-        if (error instanceof Error) Object.assign(error, { journalCommitRejected: true });
+        if (error instanceof Error) Object.assign(error, { journalCommitRejected: true, ...(!signal?.aborted ? { journalWriteFailed: true } : {}) });
       }
       throw error;
     } finally { await file.close(); }

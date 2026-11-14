@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.59.5",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-11-14",
+  "title": { "zh-CN": "NextClaw v0.59.5", "en-US": "NextClaw v0.59.5" },
+  "summary": {
+    "zh-CN": "会话记录无法保存时停止运行并报告原因，避免只在内存中继续回复。",
+    "en-US": "Stop affected runs and report the cause when conversation history cannot be saved."
+  },
+  "links": { "html": {
+    "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-11-14-nextclaw-v0-59-5",
+    "en-US": "https://docs.nextclaw.io/en/notes/2026-11-14-nextclaw-v0-59-5"
+  } },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "会话保存失败", "en-US": "Session save failures" },
+      "items": [{
+        "title": { "zh-CN": "停止未落盘的续跑", "en-US": "Stop unsaved continuation" },
+        "body": {
+          "zh-CN": "写入失败时停止受影响的运行并明确报错，清空未执行的排队输入。保留首次底层原因，避免相同故障反复刷屏；其它正常会话仍可使用。修正存储问题后重启并重新发送未完成请求。",
+          "en-US": "A write failure stops the affected run, reports the error, and clears pending inputs. The first underlying cause is retained without repeated log flooding; healthy sessions remain usable. Fix storage access, restart, and resend unfinished requests."
+        }
+      }]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "已有历史读取", "en-US": "Reading existing history" },
+      "items": [{
+        "title": { "zh-CN": "如实报告读取错误", "en-US": "Report read failures accurately" },
+        "body": {
+          "zh-CN": "已有会话因权限或 I/O 问题无法读取时，不再将它误当成不存在。原始会话文件保留；从未成功写入的内容不能由本次修复找回。",
+          "en-US": "Permission and I/O errors no longer cause an existing session to be treated as missing. Original session files are retained; content that was never successfully saved cannot be recovered by this fix."
+        }
+      }]
+    }
+  ]
+}

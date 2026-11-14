@@ -1,4 +1,4 @@
-import type { NcpEndpointEvent } from "@nextclaw/ncp";
+import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import type { EventBus } from "@nextclaw/shared";
 import { eventKeys } from "@nextclaw/shared";
@@ -6,6 +6,7 @@ import type { SessionPersistence } from "@kernel/types/session.types.js";
 import type { NcpAgentSessionJournalReplayEvent } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import type { UnfinishedNcpAgentRun } from "@kernel/utils/ncp-agent-unfinished-run.utils.js";
 import { PERSISTED_SESSION_EVENT_SOURCE, SessionEventIngestionService } from "./session-event-ingestion.service.js";
+import { formatSessionJournalError, SESSION_JOURNAL_FAILURE_SOURCE } from "@kernel/utils/session-journal-error.utils.js";
 
 type SessionEventCoordinatorServiceOptions = {
   appendSessionEvent: (params: {
@@ -39,9 +40,19 @@ export class SessionEventCoordinatorService {
       appendSessionEvent: options.appendSessionEvent,
       getSessionRecord: options.getSessionRecord,
       listUnfinishedRuns: options.listUnfinishedRuns,
-      onError: (sessionId, error) => {
-        const detail = error instanceof Error ? (error.stack ?? error.message) : String(error);
+      onError: (sessionId, error, event) => {
+        const detail = formatSessionJournalError(error);
         console.error(`[session-manager] failed to handle ncp event for ${sessionId}: ${detail}`);
+        const payload = event && "payload" in event ? event.payload : undefined;
+        const endedAt = new Date().toISOString();
+        options.eventBus.emit(eventKeys.ncpEvent, {
+          type: NcpEventType.RunError, occurredAt: endedAt,
+          payload: { sessionId, endedAt, interrupted: true,
+            ...(payload && "messageId" in payload ? { messageId: payload.messageId } : {}),
+            ...(payload && "runId" in payload ? { runId: payload.runId } : {}),
+            ...(payload && "correlationId" in payload ? { correlationId: payload.correlationId } : {}),
+            error: error instanceof Error ? error.message : String(error) },
+        }, { emittedAt: endedAt, source: SESSION_JOURNAL_FAILURE_SOURCE });
       },
       subscribe: (handler) => options.eventBus.on(eventKeys.ncpEvent, handler),
       updateSessionMetadata: options.updateSessionMetadata,
