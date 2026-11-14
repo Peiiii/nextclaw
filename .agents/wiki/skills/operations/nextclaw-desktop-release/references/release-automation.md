@@ -18,6 +18,8 @@ Desktop 独立修复由既有 preflight owner 先拒绝未发布的 runtime 源�
 
 GitHub Release 必须采用 Draft-first 原子公开：CLI 先创建隐藏 Draft，再从分支入口对同一个 release identity 显式 dispatch `desktop-release.yml`。GitHub Draft 公开前不存在 tag ref，禁止以 Draft tag 作为 workflow ref；CLI 必须显式传递不可变 `release_target` SHA，workflow 先核对 Draft `targetCommitish`，再 checkout 该 SHA，公开后 closure 反向验证新建 tag 精确指向同一 SHA。每次 dispatch 带唯一身份，闭环只等待该次 run。正式 workflow 是生产产物构建与验证的单一 owner：五平台各构建一次，安装/启动冒烟、上传、更新频道与 APT 全部消费同一 run 的 artifact；禁止先等待 `desktop-validate.yml` 构建一批不会发布的平行产物。日常 CI 保持独立，但不参与正式发布状态迁移。全部投影绑定该 release identity，禁止跟随推进中的分支漂移。五平台全部成功、30 个 installer/portable/bundle/manifest/update metadata/public key 资产完整上传并精确核验后，workflow 才能公开同一 Release。禁止以 `release.published` 作为构建触发器，禁止在资产缺失时降级公开。失败或取消时 Draft 对公众不可见；Release 已完整公开但 channel/APT 失败时只恢复未完成投影，不重复创建 release identity。
 
+APT 直接索引同一 Release 的原始 `.deb`，不裁剪 seed、资源或二次上传重压缩副本。`gh-pages` 只存签名索引与 package-source；原 Pages artifact owner 从 Release 取包并验证大小/SHA256 后组装发布。Git 的 100 MiB 单文件限制不应误施加到该 artifact 传输；APT builder 属于安装包公开后的投影 owner，修改它仅恢复 APT，不改变已公开 Desktop identity。
+
 ## 完成门
 
 - workflow overall success，矩阵与 publish jobs 全部成功；

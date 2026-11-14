@@ -940,7 +940,7 @@ jobs:
           NEXTCLAW_APT_GPG_KEY_ID: ${{ secrets.NEXTCLAW_APT_GPG_KEY_ID }}
         run: |
           set -euo pipefail
-          node scripts/desktop/build-linux-apt-repo.mjs --input-dir dist/linux-apt-input --output-dir dist/linux-apt-repo --signing-mode env --github-pages-compatible
+          node scripts/desktop/build-linux-apt-repo.mjs --input-dir dist/linux-apt-input --output-dir dist/linux-apt-repo --signing-mode env
 
       - name: Smoke Linux APT fresh install
         shell: bash
@@ -966,12 +966,7 @@ jobs:
           cp -R dist/linux-apt-repo/apt .tmp/gh-pages/apt
           apt_package="$(find .tmp/gh-pages/apt/pool -type f -name 'nextclaw-desktop_*_amd64.deb' -print -quit)"
           test -n "$apt_package"
-          apt_release_asset_name="$(basename "${apt_package%.deb}.pages.deb")"
-          apt_release_asset_path=".tmp/$apt_release_asset_name"
-          cp "$apt_package" "$apt_release_asset_path"
-          gh release upload "$DESKTOP_RELEASE_TAG" "$apt_release_asset_path" \
-            --repo "$GITHUB_REPOSITORY" \
-            --clobber
+          apt_release_asset_name="$(basename "$apt_package")"
           node .tmp/publisher/scripts/release/github-pages-artifact.mjs create-apt-source \
             --packages .tmp/gh-pages/apt/dists/stable/main/binary-amd64/Packages \
             --apt-package "$apt_package" \

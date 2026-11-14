@@ -21,6 +21,14 @@
 
 ## 来源、目标与边界
 
+### 桌面补发的 APT 恢复补充（2026-11-14）
+
+五平台安装包/30 资产已通过并公开，但 APT 仍调用旧 `--github-pages-compatible` 裁剪重压缩，142418242 字节原包压至 117057044 字节后因旧 100 MiB 门失败。现有 owner 已采用 compact gh-pages metadata + Release asset + 按 SHA256 materialize Pages artifact，`.deb` 不进入 Git；GitHub 官方的 100 MiB Git 文件门不适用于该传输链，Pages artifact 受站点 1 GB 合同约束。原重压缩会删掉 seed 与部分资源，且没有当前必要性。
+
+冻结修复：删除原 APT builder 的过期 flag、资源裁剪和重压缩分支，同步正式/验证 workflow，APT 直接索引原 Release `.deb` 并生成签名 metadata；package-source 引用同一原资产，不额外上传 `.pages.deb`。既有 compact state 禁止二进制和哈希验证维持。原 APT builder 属于已发布安装包之后的投影 owner，不属于 Desktop shipping source；原恢复判断明确排除该唯一已知投影脚本，修改它时复用已公开身份，继续原 APT-only 自动恢复。
+
+回归：大于 100 MiB 的原包通过真实 artifact materialize 后字节/哈希不变，compact state 不含包；APT pipeline 不再包含裁剪/额外资产上传；Runtime 或真正 Desktop shipping 变化仍拒绝旧身份复用。真实父流程恢复既有 v0.59.4-desktop.1，仅 APT/Pages 补发，并执行原 fresh-install/upgrade smoke 与公开实读。无新发布器、存储后端、schema 或长期凭据。方案 Review 核对从 original deb→签名索引→Release source→Pages artifact→APT 消费者，保留原哈希和完整安装包；原安装包已经五平台验证，不改变该证据。design-review: passed；plan: not-required。
+
 用户提供《反馈-NextClaw压缩失败-20261112.md》，要求核实、先复现、修复及验证，后明确验收通过后直接发布。附件建议是调查参考，不是逐项新增功能的授权清单。目标是长期会话遇到不可用摘要后仍有可验证的恢复途径，并如实向用户报告结果，服务长期搭档的连续性。
 
 0.59.1 已用 785 条、2,206,608 字符合成输入复现原报错。当前 0.59.3 已消除旧的多批全有或全无机制；本次进一步复现两个现行缺口：手动压缩返回成功但最终 checkpoint 为 failed；257 条短消息下摘要为空，连续自动调用两次均生成 failed 并重复请求 provider。原机 Windows journal 与真实 DeepSeek 响应未提供，不能声称还原原机生成失败原因。

@@ -72,6 +72,12 @@ test("published Desktop recovery preserves identity across content and control-p
     publishLinuxAptOnly: true, reuseExistingRelease: true,
     tag: options.tag, target: "original"
   });
+  const aptPublisherChanged = (command, args) => args[0] === "diff"
+    ? "scripts/desktop/build-linux-apt-repo.mjs" : noApt(command, args);
+  assert.deepEqual(inferExistingReleaseRecovery(options, aptPublisherChanged, () => release), {
+    publishLinuxAptOnly: true, reuseExistingRelease: true,
+    tag: options.tag, target: "original"
+  });
 });
 
 test("preparing a published Desktop checkpoint does not recreate or require a Draft", () => {

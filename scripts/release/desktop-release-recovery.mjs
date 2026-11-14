@@ -56,7 +56,8 @@ export function inferExistingReleaseRecovery(options, run, readReleaseImpl = rea
   if (tagTarget !== target) {
     resolveDesktopReleaseTarget(tagTarget, target, { runCommand: run });
     const shippingChanges = run("git", ["diff", "--name-only", tagTarget, target, "--", "apps/desktop", "scripts/desktop"]);
-    if (shippingChanges.trim()) return;
+    // APT indexes an existing immutable installer after publication.
+    if (shippingChanges.split("\n").some((path) => path && path !== "scripts/desktop/build-linux-apt-repo.mjs")) return;
   }
 
   const release = readReleaseImpl({ ...options, tag });

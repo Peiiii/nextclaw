@@ -12,17 +12,23 @@
 
 | ID | Required | Status | 当前证据/完成条件 |
 | --- | --- | --- | --- |
-| CCF-07 | true | not-run | 五平台 Desktop 构建/安装启动冒烟通过，精确 0.59.4 Runtime 身份及完整资产由原自动 owner 校验后公开 |
-| CCF-08 | true | not-run | stable Desktop manifest、release notes URL、官网安装入口、APT 与同一 release identity 一致 |
-| CCF-09 | true | not-run | 全平台父流程整体成功，记录自动化介入数并完成适用主线协调与复盘 |
+| CCF-07 | true | passed | child 43592691233 五平台构建/安装启动冒烟通过，精确 0.59.4 Runtime/0.0.305 Desktop 和 30 资产校验后公开 v0.59.4-desktop.1 |
+| CCF-08 | true | failed | stable channel 已写分支，APT 旧 100 MiB gate 失败，Pages 尚未部署；正在恢复 |
+| CCF-09 | true | failed | parent 43592263799 因 APT 失败；需完成原身份恢复与复盘 |
 
-当前 open-required：CCF-07–09。`AUTOMATION_INTERVENTIONS=0`（初始触发与只读监控不计）。
+当前 open-required：CCF-08–09。`AUTOMATION_INTERVENTIONS=2`（初始触发与只读监控不计）。
 
 19:45 首次 parent 失败：内置 token 已有 actions/contents write，但 `gh release create` 对旧产品 SHA 返回 403。旧提交相对默认分支包含旧 workflow tree，GitHub API 明确要求内置 token 无法取得的 workflows write。没有创建 Draft/tag，没有重发 NPM。对应真实 Git 源码选择回归修前 2 项失败，定位到原 resolver 追溯历史 target。方案和 Review 已补入原设计；修复原 preflight/recovery/prepare owner，首次选择经过 Runtime gate 的当前冻结 SHA，同 shipping 已公开身份按原 target/tag 复用，保留 Draft-first 与原生产验证。`AUTOMATION_INTERVENTIONS=1`，消除落点是原入口及回归，不新增令牌、发布器或人工发布路径。
 
 修复验证：发布相关 3 文件 48 项回归通过，包含真实 Git workflow tree 前进后的首次 target、控制流程变化后的既有身份复用、Desktop shipping 更新、未发布 Runtime/依赖拒绝和 public/APT checkpoint prepare；Desktop `tsc`、5 文件定向 ESLint、actionlint、新代码治理、backlog ratchet、skill progressive loading 均通过。工作区最初缺 Desktop 依赖，按锁文件恢复后 `tsc` 实际通过，没有用缺工具的退出状态冒充成功。diff maintainability 5 文件 0 error/0 warning，非测试源码净增 7 行；主观复核确认复用原 preflight gate/恢复/prepare owner、未引入新入口，无未关闭 finding。
 
 治理仅同步既有 Desktop 自动化 reference：AGENTS 11989 bytes、16 个 discovery skills、29 个 grouped Wiki skills、description 1510 chars、discovery 2916 chars、入口 2941 bytes 均未改变；未新增规则、命令、脚本文件或 baseline。原主工作区 8 项 Bibo 文档 WIP 与上批相同，未触达。
+
+修复提交 `24537b34081c6fd529c0c9a17897303c1f38b99a` 已进入远程 master 和任务分支；北京时间 19:55:03 以同一业务入口触发 [parent 43592263799](https://github.com/Peiiii/nextclaw/actions/runs/43592263799)，expected_head 为该完整 SHA。父流程已复用 NPM/16 组安装证据，并成功创建隐藏 `v0.59.4-desktop.1`，Desktop app 0.0.305，target 精确为该冻结 SHA；原 403 失败点实际通过。NPM 产品 tag 仍为 `784f2009faac5b482f2ac1e4131ccb0af5af0897`，产品 packages/lockfile 无差异。当前等待 Runtime 验证及后续 Desktop child，尚未公开桌面版；CCF-07–09 保持 not-run。
+
+第二次 parent 的 [Desktop child 43592691233](https://github.com/Peiiii/nextclaw/actions/runs/43592691233) 五平台全过，30 资产已校验并正式公开，target 未变；随后 APT 于北京时间 20:27:08 失败，142418242 字节 `.deb` 仍被旧逻辑裁剪/重压缩至 117057044 字节后错误施加 Git 的 100 MiB 门。实际二进制已通过 Release→SHA256→Pages artifact 输送，不入 Git。删除原 builder 的过期 flag/裁剪/重压缩分支，同步正式与验证 workflow，并直接引用原 Release 资产，不上传多余 `.pages.deb`。恢复 owner 将唯一的下游 APT builder 按实际角色识别为投影脚本，避免误触发 Desktop 重建。`AUTOMATION_INTERVENTIONS=2`，根因为存储链迁移后遗留的旧消费者；落点为原 APT owner、工作流及对应测试，不降低真实尺寸或哈希验收。
+
+APT 修前定向 20 项中 2 项失败；修后发布相关 5 文件 68 项全过，包括 101 MiB 原包经过真实 metadata/source/artifact 组装后字节哈希一致，以及控制平面/APT-only 变化的原身份复用。Desktop tsc、targeted ESLint、actionlint、新代码治理通过；diff maintainability 0 error/0 warning，非测试源码净减 100 行。方案 Review 与实现复核无未关闭 finding；本机无运行中的 Linux Docker daemon，不冒充本地 APT fresh-install 通过，交给原 CI 同一资产的 fresh-install/upgrade smoke 实测。主线协调已复用 worker60750，LOCAL_WORKTREE_RETRYING，原 WIP 未触达。
 
 ## 迭代完成说明
 

@@ -16,10 +16,9 @@ function sha256(content) {
   return createHash("sha256").update(content).digest("hex");
 }
 
-async function createFixture() {
+async function createFixture(packageContent = Buffer.from("nextclaw-debian-package-fixture")) {
   const root = await mkdtemp(join(os.tmpdir(), "nextclaw-pages-artifact-"));
   const stateDirectory = join(root, "state");
-  const packageContent = Buffer.from("nextclaw-debian-package-fixture");
   const assetName = "nextclaw-desktop_0.0.278_amd64.deb";
   const releaseAssetName = "nextclaw-desktop_0.0.278_amd64.pages.deb";
   const packagePath = `pool/main/n/nextclaw-desktop/${assetName}`;
@@ -72,6 +71,30 @@ test("parses the NextClaw APT package contract", () => {
       version: "1.2.3"
     }
   );
+});
+
+test("materializes an original Release package over 100 MiB without changing its bytes", async () => {
+  const fixture = await createFixture(Buffer.alloc(101 * 1024 * 1024, 0x61));
+  try {
+    const source = await createAptPackageSource({
+      aptPackagePath: fixture.aptPackagePath,
+      outputPath: join(fixture.stateDirectory, "apt/package-source.json"),
+      packagesPath: fixture.packagesPath,
+      releaseAssetName: fixture.assetName,
+      releaseTag: "v0.47.0-desktop.1"
+    });
+    await assertCompactGitHubPagesState(fixture.stateDirectory);
+    const result = await materializeGitHubPagesArtifact({
+      aptPackagePath: fixture.aptPackagePath,
+      outputDirectory: join(fixture.root, "output"),
+      stateDirectory: fixture.stateDirectory
+    });
+    assert.ok(result.size > 100 * 1024 * 1024);
+    assert.equal(result.sha256, source.sha256);
+    assert.equal(sha256(await readFile(result.outputPackagePath)), source.sha256);
+  } finally {
+    await rm(fixture.root, { recursive: true, force: true });
+  }
 });
 
 test("creates package source state and materializes a complete Pages artifact", async () => {
@@ -191,7 +214,9 @@ test("release workflows keep Git state compact and deploy one complete Pages art
     "utf8"
   );
 
-  assert.match(desktopWorkflow, /gh release upload[\s\S]*?create-apt-source[\s\S]*?find \.tmp\/gh-pages\/apt\/pool[^\n]+-delete/u);
+  const aptPublication = desktopWorkflow.split("      - name: Publish Linux APT repo to gh-pages")[1];
+  assert.match(aptPublication, /apt_release_asset_name="\$\(basename "\$apt_package"\)"[\s\S]*?create-apt-source[\s\S]*?find \.tmp\/gh-pages\/apt\/pool[^\n]+-delete/u);
+  assert.doesNotMatch(aptPublication, /gh release upload|\.pages\.deb/u);
   assert.equal(
     desktopWorkflow.match(/publisher\/scripts\/release\/github-pages-artifact\.mjs verify-state/g)?.length,
     2
