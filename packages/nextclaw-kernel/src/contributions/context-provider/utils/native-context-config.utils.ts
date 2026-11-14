@@ -16,6 +16,7 @@ export const DEFAULT_NATIVE_CONTEXT_CONFIG: ContextConfig = {
     minimalFiles: ["AGENTS.md", "SOUL.md", "TOOLS.md", "IDENTITY.md"],
     perFileChars: 4000,
     totalChars: 12000,
+    pinnedFile: "pinned.md",
   },
   memory: {
     enabled: true,
