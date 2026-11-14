@@ -1,11 +1,11 @@
 # 上下文压缩失败恢复修复
 
-## 2026-11-14 桌面端补发（进行中）
+## 2026-11-14 桌面端补发（已完成）
 
 用户明确要求“如果漏发了赶紧发”，并要求使用现有全自动流程，不让 AI 手工拼接发布步骤。实际核对桌面 stable 仍为 `v0.59.1-desktop.1`，上次 `target=product` 没有生成桌面安装包。本节扩展原交付范围，不改写下方 0.59.4 产品发布的历史证据。
 
 - active-contract：`CCF-20261113` 桌面补充；parent-goal：桌面用户通过正式安装/更新入口获得已验证的 0.59.4 压缩修复；scope-revision=2，scope-confirmation=user-confirmed。
-- flow=bugfix；task-id=dt-c6f49e21；phase=delivery；retrospective_state=pending。
+- flow=bugfix；task-id=dt-c6f49e21；phase=retrospective；retrospective_state=completed；parent_status=ready-for-completion-check。
 - 唯一发布 owner：现有 `release.yml target=all`，北京时间 19:43:15 单次触发 [parent 43591358194](https://github.com/Peiiii/nextclaw/actions/runs/43591358194)，冻结控制平面 `33de0a53caa1625f878020a5fe8af2a8f02614e2`。由父流程识别已发布身份、复用 NPM/Runtime 并自动推进 Desktop，不另发 NPM 或手工分配 Desktop 身份。
 - 开始时任务 worktree 无改动，仅将已存在的两个远程指标提交快进纳入；原主工作区 WIP 不动。代码复用已验证修复，本次目前只更新同批日志。
 - 验收合同 Review：发布完成须同时有正式资产、更新投影及父流程终态；单独 Draft、子流程构建成功或本地命令结束均不算完整。没有删除原验收项或降低平台覆盖。
@@ -13,10 +13,18 @@
 | ID | Required | Status | 当前证据/完成条件 |
 | --- | --- | --- | --- |
 | CCF-07 | true | passed | child 43592691233 五平台构建/安装启动冒烟通过，精确 0.59.4 Runtime/0.0.305 Desktop 和 30 资产校验后公开 v0.59.4-desktop.1 |
-| CCF-08 | true | failed | stable channel 已写分支，APT 旧 100 MiB gate 失败，Pages 尚未部署；正在恢复 |
-| CCF-09 | true | failed | parent 43592263799 因 APT 失败；需完成原身份恢复与复盘 |
+| CCF-08 | true | passed | child 43595954511 APT fresh-install/upgrade 和 Pages 部署通过；五平台公开 manifest、官网 stable 下载 JSON、APT source/原包 HEAD 均实际读回一致 |
+| CCF-09 | true | passed | parent 43595530154 整体 success/ALL_PLATFORMS_READY，官方 all proof 已逐字段验证，原主线协调 worker 继续保护 WIP；原 owner 修复及复盘完成 |
 
-当前 open-required：CCF-08–09。`AUTOMATION_INTERVENTIONS=2`（初始触发与只读监控不计）。
+当前 open-required：无。`AUTOMATION_INTERVENTIONS=2`（初始触发与只读监控不计）。
+
+最终结果：**DESKTOP_READY / ALL_PLATFORMS_READY**。正式 [NextClaw Desktop 0.0.305](https://github.com/Peiiii/nextclaw/releases/tag/v0.59.4-desktop.1) 内含 Runtime 0.59.4，五平台 30 资产，stable 非 prerelease，安装包 target `24537b34081c6fd529c0c9a17897303c1f38b99a` 始终未变。恢复 [parent 43595530154](https://github.com/Peiiii/nextclaw/actions/runs/43595530154) 从控制平面 `7effddaaa8ce759792cb26c7e1394ddd078b7b7b` 于北京时间 20:34:52 启动，20:43:39 输出 DESKTOP_READY，最终所有 job success。官方 artifact `feedback-release-0.59.4-784f2009faac5b482f2ac1e4131ccb0af5af0897-all` 解包逐字段相等：`{"version":"0.59.4","sha":"784f2009faac5b482f2ac1e4131ccb0af5af0897","target":"all","runId":"43595530154"}`。
+
+APT-only [child 43595954511](https://github.com/Peiiii/nextclaw/actions/runs/43595954511) 20:40:16–20:43:29，结构化 `nextclaw.desktop-release/v1` wallMs=193000；APT job 150 秒（最慢 fresh-install 64 秒），Pages 部署 job 35 秒。构建/资产上传/Release 公开/更新分支步骤均按既有 checkpoint 跳过，没有重建五平台或新建 Desktop tag。五平台原构建证据仍归 child43592691233，不以恢复 run 的 skipped 冒充新构建。
+
+公开复验：五份 stable manifest 均为 HTTP200/latestVersion0.59.4/floor0.0.141，bundle URL 均指向同一 Desktop tag，notes URL 为对应 0.59.4 文档；`desktop-downloads/stable.json` 指向 app0.0.305 及同一正式 Release。APT package-source 指向原始 `nextclaw-desktop_0.0.305_amd64.deb`，size142418242/SHA256 `98eea7ae152e988c558e2463c2320073220bbcf78212e0ae19caa0a204790940`；公开原包 HEAD200/Content-Length142418242。原 owner 验签/哈希与 CI fresh-install/upgrade 均通过；未再裁剪 seed 或改变原安装包。
+
+`retrospective_decision=updated-existing-owners`：修复首次 Desktop source 选择与已公开身份重入；删除迁移到 Release/Pages artifact 后残留的重压缩消费者，原 APT builder/发布和验证 workflow/对应回归/自动化 reference 一起更新。AGENTS、入口/skill 数、discovery 和 baseline 未增长；不把一次入口选择不足另写全局“务必”规则。用户原机与桌面界面实际点击发消息仍未直接验证；本次证明五平台实包装配、安装启动、已有真实模型续跑证据和公开安装/更新交付，范围不混淆。原主工作区 WIP 保留，LOCAL_WORKTREE_RETRYING 已由 worker60750 自动接管，不伪称本地主线已同步。
 
 19:45 首次 parent 失败：内置 token 已有 actions/contents write，但 `gh release create` 对旧产品 SHA 返回 403。旧提交相对默认分支包含旧 workflow tree，GitHub API 明确要求内置 token 无法取得的 workflows write。没有创建 Draft/tag，没有重发 NPM。对应真实 Git 源码选择回归修前 2 项失败，定位到原 resolver 追溯历史 target。方案和 Review 已补入原设计；修复原 preflight/recovery/prepare owner，首次选择经过 Runtime gate 的当前冻结 SHA，同 shipping 已公开身份按原 target/tag 复用，保留 Draft-first 与原生产验证。`AUTOMATION_INTERVENTIONS=1`，消除落点是原入口及回归，不新增令牌、发布器或人工发布路径。
 
