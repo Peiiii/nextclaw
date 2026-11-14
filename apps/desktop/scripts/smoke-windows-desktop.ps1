@@ -320,6 +320,14 @@ function Invoke-SessionCatalogUpgradeProbe {
     throw "candidate did not reconcile the durable Windows session journal."
   }
   $messages = Invoke-RestMethod -Uri "$RuntimeBaseUrl/api/ncp/sessions/$sessionId/messages?limit=20" -Method Get -TimeoutSec 10
+  $historyDeadline = (Get-Date).AddSeconds(30)
+  while ($messages.data.preparation.status -in @("queued", "preparing") -and (Get-Date) -lt $historyDeadline) {
+    Start-Sleep -Milliseconds 250
+    $messages = Invoke-RestMethod -Uri "$RuntimeBaseUrl/api/ncp/sessions/$sessionId/messages?limit=20" -Method Get -TimeoutSec 10
+  }
+  if ($null -ne $messages.data.preparation -and $messages.data.preparation.status -ne "ready") {
+    throw "History preparation did not complete: $($messages.data.preparation | ConvertTo-Json -Compress)"
+  }
   $matchingMessages = @($messages.data.messages | Where-Object {
     $_.role -eq "user" -and @($_.parts | Where-Object { $_.type -eq "text" -and $_.text -eq $prompt }).Count -gt 0
   })

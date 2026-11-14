@@ -31,7 +31,13 @@ active-contract: JRN-20261114；scope-revision: 1；parent-goal: 会话持久化
 
 ## 发布/部署方式
 
-验收与 Review 已具备，尚未发布。版本计划为 nextclaw0.59.5/kernel0.19.7/Desktop0.0.306，Changesets12项（含private，实际NPM包以publisher为准）。`EXISTING_RELEASE_PATH`：原 `release.yml target=all`，现有 npm-production/NPM_TOKEN 路径；最近成功 parent43595530154。发布前无其它在途 release；只触发一个 parent，Actions自行闭合 prepare/安装矩阵/Runtime/Desktop/公开投影，不在Agent侧逐step轮询或gh run watch。`AUTOMATION_INTERVENTIONS=0`。
+验收与 Review 已具备。版本计划为 nextclaw0.59.5/kernel0.19.7/Desktop0.0.306，Changesets12项（含private，实际NPM包以publisher为准）。`EXISTING_RELEASE_PATH`：原 `release.yml target=all`，现有 npm-production/NPM_TOKEN 路径。修复提交 `02cc054440a66cde127b01375afe2ace13ad79f0` 已普通 atomic push 至 master 与任务分支；北京时间22:03触发有效父流程 [43602716658](https://github.com/Peiiii/nextclaw/actions/runs/43602716658)，target=all、expected_head 为此精确 SHA。Actions自行闭合 prepare/安装矩阵/Runtime/Desktop/公开投影，Agent不逐step轮询或gh run watch。
+
+触发纠偏：首次43602685331错误手填 expected_head，被发布前 identity gate 拦截，已请求取消；未执行NPM发布。实际提交号由 `git rev-parse HEAD` 读取后重新触发同一源身份的有效parent。`AUTOMATION_INTERVENTIONS=1`（Agent触发参数错误→修正为实际SHA；流水线本身尚无人工恢复）。不为这次偶发手填疏漏新增规则或第二套publisher。
+
+发布期间独立 `desktop-validate` 43602675948 Windows 旧壳回开验收失败；当前 candidate 首次冷开已找回同一条原始消息，随后0.44旧壳加载该runtime首次请求为空。修复前的上一次43595521551在完全相同脚本位置失败，证明不是本次产品补丁新引入。当前history API明确以 `preparation=queued/preparing` 返回暂空page，原smoke却只请求一次；在既有Windows smoke owner增加只对这些显式状态有界等待，failed/cancelled/超时及真实消息缺失仍报错。Windows focused路径复验中；不以本地16项closure回归替代真实Windows结果，不修改已冻结的产品代码或重复发布NPM。
+
+双站 `pnpm deploy:docs:verify -- --expected-commit 02cc054440a66cde127b01375afe2ace13ad79f0` 已通过，同一tree `fab0a3babad75e91c5f84900304139448c8aa55723121e901f7b358c0db36159`。无cache-bust的国内CDN旧响应只作传播观察，不判为部署失败。
 
 ## 用户/产品视角的验收步骤
 
