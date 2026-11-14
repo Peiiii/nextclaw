@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { FeishuConfigSchema as NextClawFeishuConfigSchema } from "@nextclaw/feishu-core";
 import { DEFAULT_WORKSPACE_PATH } from "./brand.config.js";
-import type { ConfigUiHints } from "../utils/config-schema-hints.utils.js";
-import type { ConfigActionManifest } from "../utils/config-actions.utils.js";
+import type { ConfigUiHints } from "@core/features/config/utils/config-schema-hints.utils.js";
+import type { ConfigActionManifest } from "@core/features/config/utils/config-actions.utils.js";
 
 const allowFrom = z.array(z.string()).default([]);
 const groupPolicySchema = z.enum(["open", "allowlist", "disabled"]);
@@ -526,6 +526,20 @@ export const SecretsConfigSchema = z.object({
   defaults: SecretDefaultsSchema.default({}),
   providers: z.record(SecretProviderSchema).default({}),
   refs: z.record(SecretRefSchema).default({})
+});
+
+export const ToolRiskLevelSchema = z.enum(["low", "medium", "high", "critical"]);
+
+export const ToolRiskPolicyEntrySchema = z.object({
+  risk: ToolRiskLevelSchema.default("low"),
+  reasonHint: z.string().optional(),
+  requireConfirmWhen: z.array(z.string()).default([])
+});
+
+export const ToolRiskPolicySchema = z.object({
+  entries: z.record(z.string(), ToolRiskPolicyEntrySchema).default({}),
+  confirmTimeoutSec: z.number().int().min(1).default(120),
+  rememberConfirmations: z.boolean().default(true)
 });
 
 export const ConfigSchema = z.object({
