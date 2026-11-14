@@ -1,5 +1,11 @@
 # @nextclaw/kernel
 
+## 0.19.7
+
+### Patch Changes
+
+- 02cc054: Stop affected runs when session history cannot be saved, retain the original storage error without repeated log flooding, and report unreadable existing history instead of treating it as a missing session.
+
 ## 0.19.6
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @nextclaw/agent-benchmark
 
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies [02cc054]
+  - @nextclaw/kernel@0.19.7
+
 ## 0.0.18
 
 ### Patch Changes

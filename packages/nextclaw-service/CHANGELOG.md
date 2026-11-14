@@ -1,5 +1,16 @@
 # @nextclaw/service
 
+## 0.7.13
+
+### Patch Changes
+
+- Updated dependencies [02cc054]
+  - @nextclaw/kernel@0.19.7
+  - @nextclaw/harness@0.2.33
+  - @nextclaw/remote@0.3.76
+  - @nextclaw/server@0.23.19
+  - @nextclaw/client-sdk@0.12.19
+
 ## 0.7.12
 
 ### Patch Changes

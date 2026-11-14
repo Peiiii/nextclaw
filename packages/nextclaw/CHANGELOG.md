@@ -1,5 +1,16 @@
 # nextclaw
 
+## 0.59.5
+
+### Patch Changes
+
+- 02cc054: Stop affected runs when session history cannot be saved, retain the original storage error without repeated log flooding, and report unreadable existing history instead of treating it as a missing session.
+- Updated dependencies [02cc054]
+  - @nextclaw/kernel@0.19.7
+  - @nextclaw/remote@0.3.76
+  - @nextclaw/server@0.23.19
+  - @nextclaw/service@0.7.13
+
 ## 0.59.4
 
 ### Patch Changes
