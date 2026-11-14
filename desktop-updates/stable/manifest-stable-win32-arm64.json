@@ -2,11 +2,11 @@
   "channel": "stable",
   "platform": "win32",
   "arch": "arm64",
-  "latestVersion": "0.59.4",
+  "latestVersion": "0.59.6",
   "minimumLauncherVersion": "0.0.141",
-  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/v0.59.4-desktop.1/nextclaw-bundle-win32-arm64-0.59.4.zip",
-  "bundleSha256": "a5392678554b6a38d968a3c28394d18da006b13d4fbbe231b3d3db0cb97b14c2",
-  "bundleSignature": "LuNHZ0RA2fXpjgEQHgjq58JNVyLOtBVhcArICLIr+58+818dGthm9gh6wXLUv5SGJInr5DvGw0EyziiyHrU7DA==",
-  "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-11-13-nextclaw-v0-59-4",
-  "manifestSignature": "ZwNrzgDV1NbKnjR+wtAjsZhNwYyOppF+wk1jTtwsmcSKLyulfcWwVmEYHALs5ZGj4c9syyhUmftS33CYXGnLCw=="
+  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/v0.59.6-desktop.1/nextclaw-bundle-win32-arm64-0.59.6.zip",
+  "bundleSha256": "5bbf8213a4d8b5d384ba2a0e517bab8ad96afedfd1b789707682a1f26fd6786e",
+  "bundleSignature": "Y9nyEp4lO89V+6kXfHG7IYYQReGqYKEHn7xv94poJL47PiskDMG5rrdNtzNZb8vjBySTiV7Z93t7SQ11inh3Ag==",
+  "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-11-14-nextclaw-v0-59-6",
+  "manifestSignature": "ExBgVMJsOZ8iRgHXgEaXdB5k2MuXWhmztt2sE8GIa2NTaHlvcFfBfQ2V+H53fYMtAj6y4u4D16+MsKn5kOLtDQ=="
 }
