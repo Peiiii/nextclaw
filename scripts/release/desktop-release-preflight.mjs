@@ -25,17 +25,14 @@ export function resolveDesktopReleaseTarget(publishedCommit, sourceCommit, optio
   runCommand("git", ["merge-base", "--is-ancestor", publishedCommit, sourceCommit]);
   const paths = runCommand("git", ["diff", "--name-only", publishedCommit, sourceCommit])
     .split("\n").filter(Boolean);
-  const target = paths.some((path) => /^(apps\/desktop|scripts\/desktop)\//.test(path))
-    ? runCommand("git", ["log", "-1", "--format=%H", sourceCommit, "--", "apps/desktop", "scripts/desktop"])
-    : publishedCommit;
-  const targetPaths = target === publishedCommit ? [] :
-    runCommand("git", ["diff", "--name-only", publishedCommit, target]).split("\n").filter(Boolean);
   const allowed = /^(apps\/(desktop|docs)\/|scripts\/(desktop|release)\/|\.github\/workflows\/|\.agents\/|docs\/|commands\/|AGENTS\.md$|CLAUDE\.md$)/;
-  const runtimeChanges = [...new Set([...paths, ...targetPaths])].filter((path) => !allowed.test(path));
+  const runtimeChanges = paths.filter((path) => !allowed.test(path));
   if (runtimeChanges.length > 0) {
     throw new Error(`Desktop recovery cannot include unpublished runtime changes: ${runtimeChanges.join(", ")}`);
   }
-  return target;
+  // GitHub's built-in token cannot create a release that restores an older
+  // workflow tree. Freeze the validated source; recovery preserves old identities.
+  return sourceCommit;
 }
 
 export function assertPublishedDesktopRuntimeIdentity(channel, runtimeVersion, options = {}) {

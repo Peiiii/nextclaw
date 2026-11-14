@@ -51,21 +51,31 @@ test("desktop recovery isolates packaging fixes from the published runtime ident
   const resolve = (paths) => resolveDesktopReleaseTarget("published", "current", {
     runCommand: (_command, args) => args[0] === "diff" ? paths : args[0] === "log" ? "desktop-fix" : ""
   });
-  assert.equal(resolve("apps/docs/notes.md\n.github/workflows/release.yml"), "published");
-  assert.equal(resolve("apps/desktop/package.json\napps/docs/notes.md"), "desktop-fix");
-  assert.equal(resolve("apps/desktop/package.json\ndocs/later.md"), "desktop-fix");
+  assert.equal(resolve("apps/docs/notes.md\n.github/workflows/release.yml"), "current");
+  assert.equal(resolve("apps/desktop/package.json\napps/docs/notes.md"), "current");
+  assert.equal(resolve("apps/desktop/package.json\ndocs/later.md"), "current");
   assert.throws(() => resolve("packages/nextclaw/src/index.ts"), /unpublished runtime changes/);
   assert.throws(() => resolve("pnpm-lock.yaml"), /unpublished runtime changes/);
 });
 
-test("desktop recovery rejects runtime drift at the selected historical build source", () => {
-  assert.throws(() => resolveDesktopReleaseTarget("published", "current", {
-    runCommand: (_command, args) => {
-      if (args[0] === "log") return "desktop-fix";
-      if (args[0] !== "diff") return "";
-      return args[3] === "current" ? "apps/desktop/package.json" : "packages/nextclaw/src/index.ts";
-    }
-  }), /unpublished runtime changes/);
+test("desktop first release freezes the validated source including current workflow files", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "nextclaw-desktop-source-"));
+  const runCommand = (command, args) => execFileSync(command, args, { cwd: fixture, encoding: "utf8" }).trim();
+  try {
+    runCommand("git", ["init", "-b", "master"]);
+    runCommand("git", ["-c", "user.name=fixture", "-c", "user.email=fixture@example.test", "commit", "--allow-empty", "-m", "published"]);
+    const published = runCommand("git", ["rev-parse", "HEAD"]);
+    mkdirSync(join(fixture, ".github/workflows"), { recursive: true });
+    writeFileSync(join(fixture, ".github/workflows/release.yml"), "name: current\n");
+    runCommand("git", ["add", "."]);
+    runCommand("git", ["-c", "user.name=fixture", "-c", "user.email=fixture@example.test", "commit", "-m", "release control plane"]);
+    const current = runCommand("git", ["rev-parse", "HEAD"]);
+    const target = resolveDesktopReleaseTarget(published, current, { runCommand });
+    assert.equal(target, current);
+    assert.equal(runCommand("git", ["diff", "--name-only", target, current, "--", ".github/workflows"]), "");
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
 });
 
 test("workflow dispatch selectors use unique caller identity instead of mutable branch head", () => {

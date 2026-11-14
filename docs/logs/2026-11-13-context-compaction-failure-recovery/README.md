@@ -1,5 +1,29 @@
 # 上下文压缩失败恢复修复
 
+## 2026-11-14 桌面端补发（进行中）
+
+用户明确要求“如果漏发了赶紧发”，并要求使用现有全自动流程，不让 AI 手工拼接发布步骤。实际核对桌面 stable 仍为 `v0.59.1-desktop.1`，上次 `target=product` 没有生成桌面安装包。本节扩展原交付范围，不改写下方 0.59.4 产品发布的历史证据。
+
+- active-contract：`CCF-20261113` 桌面补充；parent-goal：桌面用户通过正式安装/更新入口获得已验证的 0.59.4 压缩修复；scope-revision=2，scope-confirmation=user-confirmed。
+- flow=bugfix；task-id=dt-c6f49e21；phase=delivery；retrospective_state=pending。
+- 唯一发布 owner：现有 `release.yml target=all`，北京时间 19:43:15 单次触发 [parent 43591358194](https://github.com/Peiiii/nextclaw/actions/runs/43591358194)，冻结控制平面 `33de0a53caa1625f878020a5fe8af2a8f02614e2`。由父流程识别已发布身份、复用 NPM/Runtime 并自动推进 Desktop，不另发 NPM 或手工分配 Desktop 身份。
+- 开始时任务 worktree 无改动，仅将已存在的两个远程指标提交快进纳入；原主工作区 WIP 不动。代码复用已验证修复，本次目前只更新同批日志。
+- 验收合同 Review：发布完成须同时有正式资产、更新投影及父流程终态；单独 Draft、子流程构建成功或本地命令结束均不算完整。没有删除原验收项或降低平台覆盖。
+
+| ID | Required | Status | 当前证据/完成条件 |
+| --- | --- | --- | --- |
+| CCF-07 | true | not-run | 五平台 Desktop 构建/安装启动冒烟通过，精确 0.59.4 Runtime 身份及完整资产由原自动 owner 校验后公开 |
+| CCF-08 | true | not-run | stable Desktop manifest、release notes URL、官网安装入口、APT 与同一 release identity 一致 |
+| CCF-09 | true | not-run | 全平台父流程整体成功，记录自动化介入数并完成适用主线协调与复盘 |
+
+当前 open-required：CCF-07–09。`AUTOMATION_INTERVENTIONS=0`（初始触发与只读监控不计）。
+
+19:45 首次 parent 失败：内置 token 已有 actions/contents write，但 `gh release create` 对旧产品 SHA 返回 403。旧提交相对默认分支包含旧 workflow tree，GitHub API 明确要求内置 token 无法取得的 workflows write。没有创建 Draft/tag，没有重发 NPM。对应真实 Git 源码选择回归修前 2 项失败，定位到原 resolver 追溯历史 target。方案和 Review 已补入原设计；修复原 preflight/recovery/prepare owner，首次选择经过 Runtime gate 的当前冻结 SHA，同 shipping 已公开身份按原 target/tag 复用，保留 Draft-first 与原生产验证。`AUTOMATION_INTERVENTIONS=1`，消除落点是原入口及回归，不新增令牌、发布器或人工发布路径。
+
+修复验证：发布相关 3 文件 48 项回归通过，包含真实 Git workflow tree 前进后的首次 target、控制流程变化后的既有身份复用、Desktop shipping 更新、未发布 Runtime/依赖拒绝和 public/APT checkpoint prepare；Desktop `tsc`、5 文件定向 ESLint、actionlint、新代码治理、backlog ratchet、skill progressive loading 均通过。工作区最初缺 Desktop 依赖，按锁文件恢复后 `tsc` 实际通过，没有用缺工具的退出状态冒充成功。diff maintainability 5 文件 0 error/0 warning，非测试源码净增 7 行；主观复核确认复用原 preflight gate/恢复/prepare owner、未引入新入口，无未关闭 finding。
+
+治理仅同步既有 Desktop 自动化 reference：AGENTS 11989 bytes、16 个 discovery skills、29 个 grouped Wiki skills、description 1510 chars、discovery 2916 chars、入口 2941 bytes 均未改变；未新增规则、命令、脚本文件或 baseline。原主工作区 8 项 Bibo 文档 WIP 与上批相同，未触达。
+
 ## 迭代完成说明
 
 **NextClaw 0.59.4 已完整发布，全部 Required 验收通过。** 目标及 active contract 见[设计](../../designs/2026-11-13-context-compaction-failure-recovery.design.md)。用户明确要求先复现，完成验收后直接发布。flow=bugfix；task-id=dt-09b8e34a；retrospective_state=completed；parent_status=ready-for-completion-check。

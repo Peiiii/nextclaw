@@ -12,7 +12,7 @@
 
 内容后补的恢复场景中，产品 target 仍为已发布的不可变提交；父 workflow 从本次冻结的内容 checkout 生成同版本正文与 URL，显式传入已有 `--notes-file` / `--release-notes-url`，Draft 和正式发布必须一致。禁止把当前 checkout 的 CONTENT_READY 当成旧产品提交也含内容的证据。打包预算等配置直接消费产品 target 的既有 owner，不在 workflow 内用正则改写源码以兼容当前版本。
 
-Desktop 独立修复由既有 preflight owner 先拒绝未发布的 runtime 源码或共享依赖漂移，再选最近改变 Desktop shipping source 的提交；NPM/runtime identity 不变，Desktop app version 和构建身份随其产物变化。仅内容或控制流程变化不制造新 Desktop identity。分配构建序号同时计入隐藏 Draft；只复用 target/channel 一致的 Draft，禁止重定向旧身份。
+Desktop 独立修复由既有 preflight owner 先拒绝未发布的 runtime 源码或共享依赖漂移，首次构建使用当前父流程冻结的完整源码 SHA，保留当前 workflow tree；不能回退到旧 shipping 提交触发 GitHub 内置令牌的 workflow 写权限限制。NPM/runtime identity 不变；已有正式 Desktop 的 shipping 内容未变时，由原恢复 owner 复用原 target/tag，仅内容或控制流程变化不制造新身份，prepare 阶段也不要求已公开的 checkpoint 是 Draft。Desktop shipping 变化才分配新构建。分配构建序号同时计入隐藏 Draft；只复用 target/channel 一致的 Draft，禁止重定向旧身份。
 
 全自动等待必须有父子分层上限：Desktop child 的 Draft、五平台构建、资产上传、公开、update channel 和 APT job 都声明独立 timeout；CLI 等待预算必须覆盖 child 的阶段预算，父 `publish-desktop` job 再覆盖 CLI 等待和公开传播预算。CLI 等待耗尽时必须取消仍在运行的精确 child run，禁止父流程已失败而子流程继续公开。正常时长以 closure 的结构化观测为准，timeout 只是异常硬上限，不得被当作预计耗时。
 

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { inferExistingDesktopDraft, readNextDesktopReleaseTag } from "./desktop-release-recovery.mjs";
+import { inferExistingDesktopDraft, inferExistingReleaseRecovery, readNextDesktopReleaseTag } from "./desktop-release-recovery.mjs";
+import { prepareDesktopDraft } from "./desktop-release-github.mjs";
 import {
   assertDesktopReleaseAssetMetadata,
   assertDesktopReleaseAssetSet,
@@ -44,6 +45,41 @@ test("defines the complete five-platform desktop release asset set", () => {
   assert.ok(assets.includes("NextClaw.Desktop-0.0.266-arm64.dmg"));
   assert.ok(assets.includes("NextClaw.Desktop-0.0.266-linux-x64.AppImage"));
   assert.ok(assets.includes("update-bundle-public.pem"));
+});
+
+test("published Desktop recovery preserves identity across content and control-plane commits", () => {
+  const options = { ...releaseOptions, repo: "owner/repo", target: "current" };
+  const release = {
+    isDraft: false, isPrerelease: false, targetCommitish: "original",
+    assets: buildExpectedDesktopReleaseAssetNames(options).map((name) => ({ name, size: 100, state: "uploaded" }))
+  };
+  const run = (command, args) => {
+    if (command === "curl") return `Version: ${options.desktopVersion}\n`;
+    if (args[0] === "ls-remote") return "original refs/tags/v0.42.3-desktop.5";
+    if (args[0] === "diff") return args.includes("--") ? "" : "docs/notes.md\n.github/workflows/release.yml";
+    return "";
+  };
+  assert.deepEqual(inferExistingReleaseRecovery(options, run, () => release), {
+    existingReleaseComplete: true, reuseExistingRelease: true,
+    tag: options.tag, target: "original"
+  });
+  assert.equal(inferExistingReleaseRecovery(options, (command, args) =>
+    args[0] === "diff" ? "apps/desktop/package.json" : run(command, args), () => release), undefined);
+  assert.throws(() => inferExistingReleaseRecovery(options, (command, args) =>
+    args[0] === "diff" ? "packages/nextclaw/src/index.ts" : run(command, args), () => release), /unpublished runtime changes/);
+  const noApt = (command, args) => command === "curl" ? "Version: 0.0.1\n" : run(command, args);
+  assert.deepEqual(inferExistingReleaseRecovery(options, noApt, () => release), {
+    publishLinuxAptOnly: true, reuseExistingRelease: true,
+    tag: options.tag, target: "original"
+  });
+});
+
+test("preparing a published Desktop checkpoint does not recreate or require a Draft", () => {
+  for (const checkpoint of [{ existingReleaseComplete: true }, { publishLinuxAptOnly: true }]) {
+    prepareDesktopDraft({ ...releaseOptions, ...checkpoint, reuseExistingRelease: true }, 0, () => {
+      assert.fail("published checkpoint must not invoke a mutation");
+    });
+  }
 });
 
 test("uses the same complete contract for beta with beta manifests", () => {

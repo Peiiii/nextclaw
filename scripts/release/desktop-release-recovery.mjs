@@ -1,5 +1,6 @@
 import { assertDesktopReleaseAssetMetadata, assertDesktopReleaseAssetSet } from "./desktop-release-closure.mjs";
 import { readRelease } from "./desktop-release-github.mjs";
+import { resolveDesktopReleaseTarget } from "./desktop-release-preflight.mjs";
 
 function buildTagPrefix(channel, runtimeVersion) {
   return channel === "beta" ? `v${runtimeVersion}-desktop-beta.` : `v${runtimeVersion}-desktop.`;
@@ -47,22 +48,27 @@ function stableAptContainsVersion(options, run) {
   }
 }
 
-export function inferExistingReleaseRecovery(options, run) {
+export function inferExistingReleaseRecovery(options, run, readReleaseImpl = readRelease) {
+  const { channel, target } = options;
   const tag = readLatestTag(options, run);
   if (!tag) return;
   const tagTarget = run("git", ["ls-remote", "origin", `refs/tags/${tag}`]).split(/\s+/)[0];
-  if (tagTarget !== options.target) return;
+  if (tagTarget !== target) {
+    resolveDesktopReleaseTarget(tagTarget, target, { runCommand: run });
+    const shippingChanges = run("git", ["diff", "--name-only", tagTarget, target, "--", "apps/desktop", "scripts/desktop"]);
+    if (shippingChanges.trim()) return;
+  }
 
-  const release = readRelease({ ...options, tag });
-  if (release.isDraft || Boolean(release.isPrerelease) !== (options.channel === "beta") || release.targetCommitish !== options.target) return;
+  const release = readReleaseImpl({ ...options, tag });
+  if (release.isDraft || Boolean(release.isPrerelease) !== (channel === "beta") || release.targetCommitish !== tagTarget) return;
   assertDesktopReleaseAssetSet((release.assets ?? []).map((asset) => asset.name), { ...options, tag });
   assertDesktopReleaseAssetMetadata(release.assets ?? [], { ...options, tag });
   if (stableAptContainsVersion(options, run)) {
     console.log(`[desktop:release] inferred completed release ${tag}; verifying closure without republishing.`);
-    return { existingReleaseComplete: true, reuseExistingRelease: true, tag };
+    return { existingReleaseComplete: true, reuseExistingRelease: true, tag, target: tagTarget };
   } else {
     console.log(`[desktop:release] inferred APT-only recovery for ${tag}; no release identity input required.`);
-    return { publishLinuxAptOnly: true, reuseExistingRelease: true, tag };
+    return { publishLinuxAptOnly: true, reuseExistingRelease: true, tag, target: tagTarget };
   }
 }
 

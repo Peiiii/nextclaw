@@ -1,5 +1,24 @@
 # 上下文压缩失败的结果与恢复闭环
 
+## 2026-11-14 桌面自动补发方案
+
+用户新增明确桌面发布授权，并要求由现有全自动流程完成。补充验收 CCF-07–09 的当前账本归同批日志。`release.yml target=all` 首次真实执行在创建 Draft 时返回 403，尚未发布桌面身份；NPM/Runtime 已正确识别为现有 0.59.4。
+
+已确认边界：GitHub Create Release 在目标提交的 workflow tree 与默认分支不同时要求 workflows 写权限，内置 `GITHUB_TOKEN` 无法取得该权限。原 resolver 在 Runtime 相同且只有内容/控制平面变化时回退到旧产品提交，恰好将旧 workflow tree 重新引入。依据：[GitHub Releases API](https://docs.github.com/en/rest/releases/releases#create-a-release)。不采用复制个人令牌、提高长期凭据权限或提前创建公开 tag 的路径。
+
+冻结方案：
+
+1. 原 `resolveDesktopReleaseTarget` 继续拒绝产品提交之后任何未发布 Runtime/共享依赖变化；校验后首次 Desktop 发布使用当前父流程冻结的完整源码 SHA，而不是追溯最近 shipping 文件提交。内容和控制流程可以更新，不改变已发布 Runtime 身份。
+2. 原恢复 owner 比较同版本已有 Desktop tag 与请求 target 的实际 shipping 变更。仅文档/控制流程不同、没有 Runtime 或 Desktop shipping 变化时复用已有 target/tag；不能因为源码 HEAD 前进再次制造 Desktop 身份。Desktop shipping 变化照旧分配新构建，Runtime 变化明确失败。隐藏 Draft 仍只允许精确 target 复用。
+3. 原 prepare-draft owner 对已公开的完整身份或 APT-only checkpoint 不再错误要求它是 Draft；真正首次发布仍 Draft-first。随后父流程调用原 closure owner 验证公开资产、manifest、APT 与 Pages。
+4. 仍只触发 `release.yml target=all`；原五平台 child 消费同一个不可变 target，资产齐全后公开。父子 timeout、签名、安装启动冒烟与发布门不改变，不重新发布 NPM，不改既有产品 tag。
+
+黄金验收：桌面用户从 stable 入口安装/更新→获得内含 0.59.4 的桌面版；维护者一次触发父流程→复用产品 checkpoint→五平台实包冒烟/30 资产校验→正式 Release/channel/APT/官网入口闭合。重复触发且 shipping 内容相同→复用原 Desktop 身份并验证，不新建 Draft。请求中混入未发布 Runtime 或共享依赖→在创建 Draft 前拒绝。
+
+沿用同一 preflight/recovery/github owner，无新发布器、凭据或配置开关。回归覆盖首次 source 冻结、控制流程演进后的原身份复用、Desktop shipping 更新、Runtime/依赖漂移拒绝以及已公开 prepare checkpoint。脚本为 JavaScript，未触达 TypeScript；验证为定向真实 Git 历史/命令合同、lint、actionlint、diff maintainability，随后同一 0.59.4 的真实父流程是生产闭环证据。plan: not-required。
+
+方案 Review（mode=design）：独立反查用户目标与 API 权限边界，校验首次和重入两条链路，保留产品身份与 Draft-first。原身份复用必须在 prepare 和 publish 两处都生效，否则全自动重入会再次要求 public Release 是 Draft；本方案一并覆盖。没有放宽 Runtime gate，无未关闭设计 finding，design-review: passed。
+
 ## 来源、目标与边界
 
 用户提供《反馈-NextClaw压缩失败-20261112.md》，要求核实、先复现、修复及验证，后明确验收通过后直接发布。附件建议是调查参考，不是逐项新增功能的授权清单。目标是长期会话遇到不可用摘要后仍有可验证的恢复途径，并如实向用户报告结果，服务长期搭档的连续性。

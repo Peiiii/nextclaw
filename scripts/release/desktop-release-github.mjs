@@ -101,7 +101,7 @@ export function dispatchReleaseWorkflow(options) {
 }
 
 export function prepareDesktopDraft(options, aheadCount, run) {
-  const { branch, channel, dryRun, reuseExistingRelease, tag } = options;
+  const { branch, channel, dryRun, existingReleaseComplete, publishLinuxAptOnly, reuseExistingRelease, tag } = options;
   if (dryRun) {
     console.log(`[desktop:release] would create or reuse hidden Draft ${tag}.`);
     return;
@@ -109,6 +109,10 @@ export function prepareDesktopDraft(options, aheadCount, run) {
   if (aheadCount > 0) {
     console.log(`[desktop:release] pushing ${aheadCount} local commit(s) to origin/${branch}`);
     run("git", ["push", "origin", `HEAD:${branch}`], { capture: false });
+  }
+  if (existingReleaseComplete || publishLinuxAptOnly) {
+    console.log(`[desktop:release] reusing published checkpoint ${tag}; no Draft is required.`);
+    return;
   }
   if (reuseExistingRelease) {
     assertReleaseIsDraft(options);
