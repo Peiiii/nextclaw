@@ -83,6 +83,9 @@ function createFixture({ platform = "linux", arch = "x64" } = {}) {
   const nativePackageNames = resolveDesktopNativeResourcePackageNames(platform, arch);
   for (const packageName of nativePackageNames) {
     writeFixtureFile(join(sourceRoots.native, "node_modules", ...packageName.split("/"), "package.json"), "{}");
+    if (packageName.startsWith("@libsql/")) {
+      writeFixtureFile(join(sourceRoots.native, "node_modules", ...packageName.split("/"), "index.node"), "native");
+    }
   }
   writeFixtureFile(
     join(sourceRoots.native, "node_modules", "@img", `sharp-${target}`, "lib", `sharp-${target}.node`),
@@ -192,7 +195,26 @@ test("applies Windows-only assets and validates the Windows native runtime contr
   const windowsAsset = result.manifest.assetContract.declaredAssets.find((asset) => asset.id === "windows-only");
   assert.deepEqual(windowsAsset?.paths, ["runtime/windows.dll"]);
   assert.ok(result.nativeRuntimeDependencies.includes("@img/sharp-win32-x64"));
+  assert.ok(result.nativeRuntimeDependencies.includes("@libsql/win32-x64-msvc"));
   assert.ok(!result.nativeRuntimeDependencies.some((name) => name.includes("sharp-libvips-win32")));
+});
+
+test("rejects an otherwise inventoried bundle missing its libSQL native binary", async (t) => {
+  const fixture = createFixture();
+  t.after(() => rmSync(fixture.root, { recursive: true, force: true }));
+  await createValidArchive(fixture);
+  rmSync(join(fixture.bundleRoot, "node_modules/@libsql/linux-x64-gnu/index.node"));
+  const manifest = JSON.parse(readFileSync(join(fixture.bundleRoot, "manifest.json"), "utf8"));
+  for (const asset of manifest.assetContract.declaredAssets) {
+    asset.paths = asset.paths.filter((path) => path !== "node_modules/@libsql/linux-x64-gnu/index.node");
+  }
+  assert.throws(() => assertPreparedProductBundle({
+    bundleRoot: fixture.bundleRoot,
+    platform: "linux",
+    arch: "x64",
+    ...manifest.assetContract,
+    contract: fixtureContract
+  }), /missing the libSQL native binary/);
 });
 
 test("declared resource growth does not invalidate an otherwise complete bundle", async (t) => {

@@ -30,6 +30,12 @@
 
 design-document: required；plan: not-required（单批修复原链路，状态沿活跃日志）。
 
+## 发布兼容与时序补充（scope revision 2）
+
+0.44旧壳在Node20.18.1加载candidate时，history preparation明确失败于缺失 `@libsql/win32-x64-msvc`；candidate新壳已成功读出原消息。上一任务同路径同位置失败。冻结增量：沿原native resource owner复制目标平台libSQL binding，原bundle资产合同验证实际`.node`文件；不新增数据库fallback或整目录依赖复制。Windows smoke只对显式queued/preparing有界等待，失败立即保留原因。由Node20真实隔离bundle读写冷开与Windows focused原升级链证明。
+
+父流程在NPM artifact先就绪后启动Runtime promotion，原selector仅接受整条prepare成功，精确源仍运行即失败，prepare随后真实成功。冻结增量：同selector优先已成功，否则只选精确源active run，Actions owner等其成功再promotion；其它source/失败cell不接受，不增加Agent轮询。0.59.5 NPM已不可变，新增兼容修复以0.59.6 patch交付。补充设计Review passed：两项分别归既有packaging/runtime orchestration owner，缺binding和准备失败均fail closed。
+
 mode=design：从原 issue 反查“只加日志”仍会允许内存会话，故 gate 必须在 actor 之前；只在后台发错误则挂起 provider 仍可能继续，所以要联动真实 AbortController；只改 gate 则 observer/startup catch 会再次写故障盘，需同一故障分支收敛；只按事件 WeakMap 去重不够，完成消息 UI clone 需 persisted source。取消/stale 不得锁死、timer失败不得等下一条token才通知；上述均进入矩阵。未引入并行持久 owner，无未关闭设计 finding，design-review: passed。
 
 维护性复审：首次 diff 检查发现 AgentRunRequest 594→602 超过600、SessionRun628→646继续增长。故将故障监听收回本就拥有活动 runtime 生命周期的 observer，随该 run 开始订阅、finally 解除，不让请求管理器增加全局监听；启动前写失败仍由 actor 的直接 gate 处理。原有 SessionPendingInputs 已是独立队列状态 owner，把原类及其请求类型原样移到同目录独立 manager，原 SessionRun 类型出口继续 re-export，保持调用合同，避免队列状态和运行/持久化继续混放。不是新增转发层，也不按行数压缩逻辑。补充方案Review passed，原队列/取消/steering与native故障集成复验。

@@ -250,6 +250,10 @@ function assertNativeRuntimeContract(paths, platform, arch, manifestPackageNames
   if (!paths.some((path) => path.startsWith(sharpRoot) && path.endsWith(".node"))) {
     throw new Error(`Product bundle is missing the sharp native binary for ${target}.`);
   }
+  const libsqlPackage = expectedPackageNames.find((name) => name.startsWith("@libsql/"));
+  if (libsqlPackage && !paths.some((path) => path.startsWith(`node_modules/${libsqlPackage}/`) && path.endsWith(".node"))) {
+    throw new Error(`Product bundle is missing the libSQL native binary for ${target}.`);
+  }
   const libvipsPackage = `@img/sharp-libvips-${target}`;
   if (expectedPackageNames.includes(libvipsPackage)) {
     const libvipsRoot = `node_modules/${libvipsPackage}/`;

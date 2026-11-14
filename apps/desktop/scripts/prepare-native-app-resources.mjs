@@ -11,6 +11,7 @@ const desktopDir = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const workspaceRoot = resolve(desktopDir, "..", "..");
 const nextclawCorePackageRoot = resolve(workspaceRoot, "packages", "nextclaw-core");
 const requireFromCore = createRequire(join(nextclawCorePackageRoot, "package.json"));
+const requireFromKernel = createRequire(join(workspaceRoot, "packages", "nextclaw-kernel", "package.json"));
 const defaultOutputRoot = resolve(desktopDir, "build", "native-app-resources");
 const SHARP_RUNTIME_BASE_PACKAGE_NAMES = ["sharp", "detect-libc", "semver", "@img/colour"];
 const SHARP_NATIVE_PACKAGE_NAMES_BY_TARGET = {
@@ -20,6 +21,13 @@ const SHARP_NATIVE_PACKAGE_NAMES_BY_TARGET = {
   "linux-x64": ["@img/sharp-linux-x64", "@img/sharp-libvips-linux-x64"],
   "win32-arm64": ["@img/sharp-win32-arm64"],
   "win32-x64": ["@img/sharp-win32-x64"]
+};
+const LIBSQL_NATIVE_PACKAGE_NAMES_BY_TARGET = {
+  "darwin-arm64": "@libsql/darwin-arm64",
+  "darwin-x64": "@libsql/darwin-x64",
+  "linux-arm64": "@libsql/linux-arm64-gnu",
+  "linux-x64": "@libsql/linux-x64-gnu",
+  "win32-x64": "@libsql/win32-x64-msvc"
 };
 
 function parseArgs(argv) {
@@ -52,7 +60,8 @@ export function resolveDesktopNativeResourcePackageNames(platform, arch) {
   if (!sharpNativePackageNames) {
     throw new Error(`Unsupported native desktop resource target: ${target}`);
   }
-  return [...SHARP_RUNTIME_BASE_PACKAGE_NAMES, ...sharpNativePackageNames];
+  const libsqlNativePackageName = LIBSQL_NATIVE_PACKAGE_NAMES_BY_TARGET[target];
+  return [...SHARP_RUNTIME_BASE_PACKAGE_NAMES, ...sharpNativePackageNames, ...(libsqlNativePackageName ? [libsqlNativePackageName] : [])];
 }
 
 async function copyPackageRoot(packageName, sourceRoot, outputRoot) {
@@ -67,8 +76,10 @@ async function copyPackageRoot(packageName, sourceRoot, outputRoot) {
 
 async function copyDesktopRuntimePackages(packageNames, outputRoot) {
   const sharpNodeModulesRoot = resolveSharpInstallNodeModulesRoot();
+  const libsqlNodeModulesRoot = dirname(dirname(requireFromKernel.resolve("libsql")));
   for (const packageName of packageNames) {
-    const sourceRoot = join(sharpNodeModulesRoot, ...packageName.split("/"));
+    const nodeModulesRoot = packageName.startsWith("@libsql/") ? libsqlNodeModulesRoot : sharpNodeModulesRoot;
+    const sourceRoot = join(nodeModulesRoot, ...packageName.split("/"));
     await copyPackageRoot(packageName, sourceRoot, outputRoot);
   }
 }

@@ -8,6 +8,7 @@ import { verifyPublicRuntimeManifests } from "./release-runtime-manifest-verify.
 import { readCoreReleaseNotes } from "./release-core-notes.mjs";
 import {
   PREPARED_NPM_WORKFLOW,
+  selectActivePreparedNpmWorkflowRun,
   selectPreparedNpmWorkflowRun,
 } from "./prepared-npm-release-artifact.mjs";
 
@@ -240,7 +241,7 @@ function triggerRuntimeWorkflow({
 }
 
 export function selectPreparedRuntimeWorkflowRun(runs, sourceCommit) {
-  return selectPreparedNpmWorkflowRun(runs, sourceCommit);
+  return selectPreparedNpmWorkflowRun(runs, sourceCommit) ?? selectActivePreparedNpmWorkflowRun(runs, sourceCommit);
 }
 
 function resolvePreparedRuntimeWorkflowRun(sourceCommit) {
@@ -260,7 +261,7 @@ function resolvePreparedRuntimeWorkflowRun(sourceCommit) {
   const runEntry = selectPreparedRuntimeWorkflowRun(runs, sourceCommit);
   if (!runEntry) {
     throw new Error(
-      `Stable Runtime promotion requires a successful ${PREPARED_NPM_WORKFLOW} run for exact source ${sourceCommit}.`,
+      `Stable Runtime promotion requires a successful or active ${PREPARED_NPM_WORKFLOW} run for exact source ${sourceCommit}.`,
     );
   }
   return runEntry;
@@ -291,6 +292,7 @@ function watchWorkflowRun(runId) {
 async function dispatchAndWaitRuntimeWorkflow(options) {
   if (options.verifyOnly) return null;
   const preparedRun = resolvePreparedRuntimeWorkflowRun(options.preparedSourceSha);
+  if (preparedRun && preparedRun.status !== "completed") watchWorkflowRun(preparedRun.databaseId);
   const dispatchStartedAtMs = Date.now();
   const dispatchId = `npm-runtime-${randomUUID()}`;
   triggerRuntimeWorkflow({ ...options, dispatchId, preparedRunId: preparedRun?.databaseId ?? null });

@@ -10,7 +10,7 @@ flow=bugfix；task-id=dt-73b14f26；phase=delivery；retrospective_state=pending
 
 ## 测试/验证/验收方式
 
-active-contract: JRN-20261114；scope-revision: 1；parent-goal: 会话持久化失败时立即、明确停止不可靠续跑，保留已持久历史，重启后仍可访问；充分验证后通过现有自动父流程发布新版本。
+active-contract: JRN-20261114；scope-revision: 2；parent-goal: 会话持久化失败时立即、明确停止不可靠续跑，保留已持久历史，重启后仍可访问；充分验证后通过现有自动父流程发布新版本，发布期间新增兼容修复纳入同一交付。
 
 | ID | Required | Status | 当前合同与证据 |
 | --- | --- | --- | --- |
@@ -20,6 +20,8 @@ active-contract: JRN-20261114；scope-revision: 1；parent-goal: 会话持久化
 | JRN-04 | true | passed | >20 MiB/1106 条历史、三轮真实 compaction owner、高频 Unicode 写入冷回放逐值一致；文本/推理/tool args 合并、取消/stale、队列/steering/压缩相邻回归有效 |
 | JRN-05 | true | passed | Node22.23.2 10 文件83项回归；Node24.18.1 3文件18项故障/压力测试；kernel/server/Desktop tsc、kernel实际构建、定向lint/治理、实现Review；双语说明与changeset准备完成 |
 | JRN-06 | true | not-run | 新 stable NPM/Runtime/Desktop 全平台自动发布、更新通道/安装升级/公开入口闭合，复盘完成 |
+| JRN-07 | true | not-run | Node20旧Desktop宿主libSQL binding实际打包与历史升级回读；Windows focused复验待完成 |
+| JRN-08 | true | passed | prepare未结束时原Runtime selector返回null导致parent失败；现只等待同source active run且保留失败门，纯selector/编排回归证明 |
 
 复现策略 reproduce：先在真实 journal/coordinator/actor 边界注入可控磁盘访问故障；再补损坏记录、元数据及压力矩阵。JSON 文本包含引号/括号不等于 journal JSON 损坏，须按实际序列化/解析链取证。
 
@@ -38,6 +40,10 @@ active-contract: JRN-20261114；scope-revision: 1；parent-goal: 会话持久化
 发布期间独立 `desktop-validate` 43602675948 Windows 旧壳回开验收失败；当前 candidate 首次冷开已找回同一条原始消息，随后0.44旧壳加载该runtime首次请求为空。修复前的上一次43595521551在完全相同脚本位置失败，证明不是本次产品补丁新引入。当前history API明确以 `preparation=queued/preparing` 返回暂空page，原smoke却只请求一次；在既有Windows smoke owner增加只对这些显式状态有界等待，failed/cancelled/超时及真实消息缺失仍报错。Windows focused路径复验中；不以本地16项closure回归替代真实Windows结果，不修改已冻结的产品代码或重复发布NPM。
 
 双站 `pnpm deploy:docs:verify -- --expected-commit 02cc054440a66cde127b01375afe2ace13ad79f0` 已通过，同一tree `fab0a3babad75e91c5f84900304139448c8aa55723121e901f7b358c0db36159`。无cache-bust的国内CDN旧响应只作传播观察，不判为部署失败。
+
+后续事实：0.59.5/kernel0.19.7已发布NPM，release commit为52f3bf90fcb20018f9461efd349f087a4aa5892a。parent43602716658在Runtime gate失败，因为精确源prepare43602675942当时未结束、随后成功；没有Runtime/公开Desktop完成证明。Windows focused43604136341新诊断明确 preparation=failed，缺`@libsql/win32-x64-msvc`，等待假设不充分，保留有效有界等待并修真正的native resource owner。新增目标nextclaw0.59.6/kernel仍0.19.7/Desktop0.0.307；非重复发布0.59.5。原0.59.5 Desktop draft无资产且未公开，发布新identity前安全撤掉未完成草稿，NPM与产品tag不动。
+
+兼容修复定向21项回归通过；真实Node20.18.1隔离打包的SQLite owner在缺binding时MODULE_NOT_FOUND，复制原native resource owner产物后真实写入、关闭、冷开读取`JRN73_NODE20_HISTORY`成功，证据`/tmp/issue73-libsql-{before,after}.log`。Windows实际复验仍待完成；无发布后源码变更的伪验收。新增脚本diff维护性0error/2warning（既有目录16文件、资产owner401/500），边界复核接受必要的native合同检查，未新增文件或重复owner。
 
 ## 用户/产品视角的验收步骤
 

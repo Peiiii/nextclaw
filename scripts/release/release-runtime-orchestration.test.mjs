@@ -98,13 +98,16 @@ test("workflow dispatch selectors use unique caller identity instead of mutable 
   assert.equal(selectRuntimeWorkflowRun(runs, "mine", startedAt)?.headSha, "new-master");
 });
 
-test("stable Runtime promotion selects only the completed exact-source prepare run", () => {
+test("stable Runtime promotion prefers successful exact-source preparation and waits for an active match", () => {
   const runs = [
     { headSha: "wanted", status: "in_progress", conclusion: "", databaseId: 1 },
     { headSha: "other", status: "completed", conclusion: "success", databaseId: 2 },
     { headSha: "wanted", status: "completed", conclusion: "success", databaseId: 3 },
   ];
   assert.equal(selectPreparedRuntimeWorkflowRun(runs, "wanted")?.databaseId, 3);
+  assert.equal(selectPreparedRuntimeWorkflowRun(runs.slice(0, 2), "wanted")?.databaseId, 1);
+  assert.equal(selectPreparedRuntimeWorkflowRun([{ headSha: "wanted", status: "completed", conclusion: "failure", databaseId: 4 }], "wanted"), null);
+  assert.equal(selectPreparedRuntimeWorkflowRun(runs, "missing"), null);
 });
 
 test("published runtime identity retries unavailable registry reads without calling them missing", () => {

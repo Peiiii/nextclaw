@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.59.6",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-11-14",
+  "title": { "zh-CN": "NextClaw v0.59.6", "en-US": "NextClaw v0.59.6" },
+  "summary": {
+    "zh-CN": "会话保存失败时明确停止，并补齐旧桌面宿主读取历史所需的运行资源。",
+    "en-US": "Stop affected runs when history cannot be saved and include history resources for older Desktop hosts."
+  },
+  "links": { "html": {
+    "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-11-14-nextclaw-v0-59-6",
+    "en-US": "https://docs.nextclaw.io/en/notes/2026-11-14-nextclaw-v0-59-6"
+  } },
+  "sections": [{
+    "kind": "fix",
+    "title": { "zh-CN": "可靠保存与读取会话", "en-US": "Reliable session persistence and reading" },
+    "items": [{
+      "title": { "zh-CN": "完整交付会话保存修复", "en-US": "Deliver the session persistence fix" },
+      "body": {
+        "zh-CN": "写入失败时停止运行并保留首次原因，不再只在内存中继续回复；读取错误不再误报会话不存在。补齐旧桌面宿主需要的 libSQL 原生资源。已保存历史保留，从未写入的内容无法由本次修复找回。",
+        "en-US": "Write failures stop the affected run and retain the first cause instead of continuing only in memory. Read errors no longer hide existing sessions. Bundles include the libSQL native resource required by older Desktop hosts. Saved history is retained; never-written content cannot be recovered by this fix."
+      }
+    }]
+  }]
+}
