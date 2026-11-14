@@ -2,9 +2,9 @@
 
 ## 迭代完成说明
 
-进行中。用户于 2026-11-14 明确要求处理最新 Issue，先复现、修复、充分验证，再发布新版本；沿本 chat 最新确认覆盖全平台 Desktop。来源：[Issue #73](https://github.com/Peiiii/nextclaw/issues/73)，创建于北京时间 20:44:22，环境 Windows11/Node24.18.1/旧版0.59.1。报告中的 JSON 损坏仅为待证假设，没有原用户 journal，不能宣称复现原机的特定触发。
+已完成。用户于 2026-11-14 明确要求处理最新 Issue，先复现、修复、充分验证，再发布新版本；沿本 chat 最新确认覆盖全平台 Desktop。最终 nextclaw0.59.6/kernel0.19.7/Desktop0.0.307 已发布，父流程43606811807于北京时间23:45:55成功，公开下载、双类更新清单、APT与双站说明均已核验。Issue #73于23:51关闭，未发送评论。来源：[Issue #73](https://github.com/Peiiii/nextclaw/issues/73)，创建于北京时间20:44:22，环境Windows11/Node24.18.1/旧版0.59.1。原机JSON损坏仍是未证实假设，没有原用户journal；本修复不能恢复从未落盘的内容。
 
-flow=bugfix；task-id=dt-73b14f26；phase=delivery；retrospective_state=pending。唯一执行区为既有干净 managed worktree，分支 `codex/session-journal-write-failure`，起点 `bbfbd0757b29be0163d562f349abb9c042c3d88e`；原主工作区 Bibo WIP 不动，前项交付已提交。本任务不沿用前项完成状态。
+flow=bugfix；task-id=dt-73b14f26；phase=finishing；retrospective_state=completed；retrospective_decision=updated-existing-owners。唯一执行区为既有干净managed worktree，分支`codex/session-journal-write-failure`，起点`bbfbd0757b29be0163d562f349abb9c042c3d88e`；原主工作区Bibo WIP未动。本任务不沿用前项完成状态。
 
 已复现并修复的机制：普通事件原先先提交 actor 再后台持久化；故障不终止运行，后续锁存报错遮蔽首个 cause 并刷屏。现在全部 durable 事件经过同一 ingestion gate，首个错误只记录/通知一次，活动 runtime observer 随 run 生命周期监听故障并取消真实 controller、清空待运行输入；正常错误收尾不再递归写故障盘。observer 使用原 persisted source 发布 UI 投影，避免 clone 二次写入。另用真实 chmod 复现 loader 将 EACCES 返回 null，改为仅 ENOENT 表示缺失。原机最初的 IO/JSON 触发根因未完全定位，没有原文件；不宣称找回从未落盘的内容。
 
@@ -19,8 +19,8 @@ active-contract: JRN-20261114；scope-revision: 2；parent-goal: 会话持久化
 | JRN-03 | true | passed | 两种故障后冷开仍发现 broken/healthy 并可正常续聊；BigInt 序列化失败实际回滚保留原字节；EACCES 修前返回 null、修后明确抛错且原文件不变；既有 torn-tail 保留回归通过 |
 | JRN-04 | true | passed | >20 MiB/1106 条历史、三轮真实 compaction owner、高频 Unicode 写入冷回放逐值一致；文本/推理/tool args 合并、取消/stale、队列/steering/压缩相邻回归有效 |
 | JRN-05 | true | passed | Node22.23.2 10 文件83项回归；Node24.18.1 3文件18项故障/压力测试；kernel/server/Desktop tsc、kernel实际构建、定向lint/治理、实现Review；双语说明与changeset准备完成 |
-| JRN-06 | true | not-run | 新 stable NPM/Runtime/Desktop 全平台自动发布、更新通道/安装升级/公开入口闭合，复盘完成 |
-| JRN-07 | true | not-run | Node20旧Desktop宿主libSQL binding实际打包与历史升级回读；Windows focused复验待完成 |
+| JRN-06 | true | passed | 父流程43606811807最终success；16个OS×Node安装cell、unsupported guard、4平台Runtime及真实更新、5平台Desktop/安装/30资产/签名清单/APT闭合；公开0.59.6双类清单与0.0.307 APT、双站notes均200；主线闭合与复盘完成 |
+| JRN-07 | true | passed | Node20.18.1隔离bundle实际写入/冷开通过；Windows focused43605577362在精确源518cb1434aac8291db3782a2d593f01b636d8f79通过完整旧版本升级、旧壳回开原消息、桌面与Portable检查 |
 | JRN-08 | true | passed | prepare未结束时原Runtime selector返回null导致parent失败；现只等待同source active run且保留失败门，纯selector/编排回归证明 |
 
 复现策略 reproduce：先在真实 journal/coordinator/actor 边界注入可控磁盘访问故障；再补损坏记录、元数据及压力矩阵。JSON 文本包含引号/括号不等于 journal JSON 损坏，须按实际序列化/解析链取证。
@@ -33,7 +33,9 @@ active-contract: JRN-20261114；scope-revision: 2；parent-goal: 会话持久化
 
 ## 发布/部署方式
 
-验收与 Review 已具备。版本计划为 nextclaw0.59.5/kernel0.19.7/Desktop0.0.306，Changesets12项（含private，实际NPM包以publisher为准）。`EXISTING_RELEASE_PATH`：原 `release.yml target=all`，现有 npm-production/NPM_TOKEN 路径。修复提交 `02cc054440a66cde127b01375afe2ace13ad79f0` 已普通 atomic push 至 master 与任务分支；北京时间22:03触发有效父流程 [43602716658](https://github.com/Peiiii/nextclaw/actions/runs/43602716658)，target=all、expected_head 为此精确 SHA。Actions自行闭合 prepare/安装矩阵/Runtime/Desktop/公开投影，Agent不逐step轮询或gh run watch。
+最终以原`release.yml target=all`、现有npm-production/NPM_TOKEN发布0.59.6；[父流程43606811807](https://github.com/Peiiii/nextclaw/actions/runs/43606811807)与feedback proof确认version0.59.6、target=all、release SHA`a76efe324edc1b3c51014ac5f23d2c034fd8f444`。产品tag`nextclaw@0.59.6`与Desktop tag`v0.59.6-desktop.1`均指向此SHA；[Desktop Release](https://github.com/Peiiii/nextclaw/releases/tag/v0.59.6-desktop.1)已公开，30项精确资产合同与全部上传非空检查通过。首次计划0.59.5/kernel0.19.7/Desktop0.0.306在发布期间发现兼容和准备竞态，历史经过如下；未把中间NPM完成当作父目标完成。
+
+修复提交`02cc054440a66cde127b01375afe2ace13ad79f0`已普通atomic push至master与任务分支；最初父流程[43602716658](https://github.com/Peiiii/nextclaw/actions/runs/43602716658)冻结此source。Actions拥有prepare/安装矩阵/Runtime/Desktop/公开投影，Agent只做父终态检查和失败附近诊断，未逐step监控或调用gh run watch。
 
 触发纠偏：首次43602685331错误手填 expected_head，被发布前 identity gate 拦截，已请求取消；未执行NPM发布。实际提交号由 `git rev-parse HEAD` 读取后重新触发同一源身份的有效parent。`AUTOMATION_INTERVENTIONS=1`（Agent触发参数错误→修正为实际SHA；流水线本身尚无人工恢复）。不为这次偶发手填疏漏新增规则或第二套publisher。
 
@@ -45,9 +47,15 @@ active-contract: JRN-20261114；scope-revision: 2；parent-goal: 会话持久化
 
 兼容修复定向21项回归通过；真实Node20.18.1隔离打包的SQLite owner在缺binding时MODULE_NOT_FOUND，复制原native resource owner产物后真实写入、关闭、冷开读取`JRN73_NODE20_HISTORY`成功，证据`/tmp/issue73-libsql-{before,after}.log`。Windows实际复验仍待完成；无发布后源码变更的伪验收。新增脚本diff维护性0error/2warning（既有目录16文件、资产owner401/500），边界复核接受必要的native合同检查，未新增文件或重复owner。
 
+北京时间22:48，Windows focused [43605577362](https://github.com/Peiiii/nextclaw/actions/runs/43605577362)成功；仅读终态，不读取成功job日志。随后对精确主干518cb1434aac8291db3782a2d593f01b636d8f79触发最终父流程 [43606811807](https://github.com/Peiiii/nextclaw/actions/runs/43606811807)，target=all；expected_head直接从git读取，不再手填。0.59.6的source已在22:44推主干预构建；发布与全平台终态待Actions闭合。`AUTOMATION_INTERVENTIONS=3`：触发SHA填写错误→实际SHA；prepare竞态→同source active等待；旧壳native缺资源→binding资产合同+显式history preparation诊断/等待。未覆盖已发布0.59.5 NPM，也未用第二条publisher绕过验证。
+
+北京时间23:02已核验nextclaw@latest=0.59.6。父流程第一次attempt在darwin-x64/Node20.19.0的setup-node下载前DNS失败（api.github.com、nodejs.org均ENOTFOUND），其余成功cell与NPM保留；23:12沿同run failed-jobs endpoint恢复，只重跑失败cell及依赖阶段。国内Docs Deploy43606432131的OSS archive从22:45:55停滞至23:12仍未结束，23:13取消后只重跑deploy-domestic job132482223042及依赖verify，复用已成功build/global，不触发第二次产品发布。`AUTOMATION_INTERVENTIONS=5`（追加DNS failed-only重试、OSS停滞job重试）；完成时间预计延至23:30–23:50，当前未宣布全平台完成。
+
+Docs重试于23:19成功，23:25独立双站verify通过：commit518cb1434aac8291db3782a2d593f01b636d8f79、tree2ff3a11b303aa98645318511a4aa1b661b62264bc4c54d872276fb896496e58f；两站0.59.6结构化notes均200且version一致。旧OSS job取消后日志显示166.049MiB/1289文件，26分钟上传60.942MiB/432对象、平均约30KiB/s，实际仍缓慢推进，修正“完全停滞”的阶段性判断。新runner重试约6分钟成功，现有不可变artifact与OIDC路径不变，无证据需要为这次网络波动扩大基础设施改造。
+
 ## 用户/产品视角的验收步骤
 
-新版本入口待自动发布闭合。正常对话可落盘并在冷重启后读取；写失败时明确报错并停止当前运行，排队输入清空，后续发送明确拒绝；修正文件访问后退出并重新打开实例可续聊，已保存历史保持，其它会话可继续工作。参见双语 chat guide 新增“会话记录无法保存时”。
+新版本入口与全平台自动验收已闭合。正常对话可落盘并在冷重启后读取；写失败时明确报错并停止当前运行，排队输入清空，后续发送明确拒绝；修正文件访问后退出并重新打开实例可续聊，已保存历史保持，其它会话可继续工作。CLI使用`npm install -g nextclaw@latest`，Desktop可下载v0.59.6-desktop.1。参见双语chat guide新增“会话记录无法保存时”。
 
 ## 可维护性总结汇总
 
@@ -60,4 +68,14 @@ active-contract: JRN-20261114；scope-revision: 2；parent-goal: 会话持久化
 
 ## NPM 包发布记录
 
-需要新 stable patch；显式changeset为`@nextclaw/kernel`与`nextclaw`，依赖包按原publisher闭包跟随。当前未上传NPM；发布事实与精确版本以最终同一parent产物补录。
+首次stable批次已发布9包：`@nextclaw/companion@0.2.76`、`@nextclaw/client-sdk@0.12.19`、`@nextclaw/harness@0.2.33`、`@nextclaw/kernel@0.19.7`、`@nextclaw/remote@0.3.76`、`@nextclaw/server@0.23.19`、`@nextclaw/service@0.7.13`、`@nextclaw/ui@0.27.10`、`nextclaw@0.59.5`。兼容修复新增`nextclaw@0.59.6`，其余8包不重复发布；当前9个精确版本registry元数据均200且含integrity，nextclaw latest=0.59.6。Desktop私有版本0.0.307，三个Changesets版本变动中实际NPM仅nextclaw一个。
+
+## 最终交付与复盘
+
+最终父流程从22:48:51到23:45:55，共57分04秒；NPM_READY为22:59:33，耗时10分42秒。Runtime闭合23:18:26，Desktop job从23:18:29至23:45:47（27分18秒），是最终critical path；DNS失败cell的failed-only恢复还延长了上游等待。Docs并行恢复后23:19成功。全部required acceptance ID passed，无以版本/tag代替父目标验收。
+
+公开核验：Desktop与NPM Runtime的win32-x64 stable manifest均200/latestVersion0.59.6并指向同版notes，NPM hostKind=npm-runtime-bundle；APT Packages为0.0.307；双站同源518cb1434aac8291db3782a2d593f01b636d8f79及tree2ff3a11b303aa98645318511a4aa1b661b62264bc4c54d872276fb896496e58f。其它平台完整合同由成功父流程证明，没有重读成功job日志或重复全矩阵。
+
+`release:check:branch-closure`通过，远程master包含发布源码、版本记录与release commit，无release-only遗漏。首次本地检查因尚未fetch新tag而未能解析ref，补取两枚精确tag后真实通过，不当成产品失败。`release:reconcile:mainline`返回LOCAL_WORKTREE_RETRYING，原主工作区的Bibo WIP逐项保持，由既有单例worker60750接管，未reset/stash/rebase活跃工作区；这不是用户待办。
+
+复盘落点已执行并验证：原ingestion/actor/runtime observer修复不可靠续跑与诊断，保留真实故障与压力回归；原native资源和bundle资产合同纳入libSQL binding及缺二进制拒绝，Node20/Windows旧壳实际验证；原Runtime selector等待精确source active prepare，保留错误source/失败状态门。未新增全局规则、第二套publisher或数据库fallback；单次SHA手填疏漏当下修正，临时DNS/跨境低速按现有失败job恢复，不把偶发环境事件泛化成新框架。`AUTOMATION_INTERVENTIONS=5`，本批不能宣称零人工干预。
