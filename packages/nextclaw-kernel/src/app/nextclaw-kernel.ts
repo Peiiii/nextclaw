@@ -37,8 +37,8 @@ import {
   type DesktopHost,
 } from "@kernel/features/desktop-host/index.js";
 import { FeatureControlsService } from "@kernel/features/feature-controls/index.js";
+import { CoreHealthCheckService } from "@kernel/features/core-health/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
-import type { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
   type GatewayController,
   getWorkspacePath,
@@ -57,11 +57,13 @@ import {
   resolveKernelVerificationRecordStorePath,
   resolveKernelPreferenceStorePath,
   resolveKernelPlannedRestartRecoveryPath,
+  resolveKernelSessionsDir,
 } from "@kernel/app/kernel-storage-paths.js";
 import {
   createKernelContributions,
   createKernelPlannedRestartRecovery,
   createKernelAppRuntimeManagers,
+  createKernelCoreServices,
   createPortableRuntimeAcceptanceServices,
 } from "@kernel/app/kernel-manager.factory.js";
 import type { ProductActivitySink } from "@kernel/types/product-activity.types.js";
@@ -162,6 +164,7 @@ export class NextclawKernel {
   readonly observations: ObservationManager;
   readonly capabilityGrants: CapabilityGrantManager;
   readonly featureControls: FeatureControlsService;
+  readonly coreHealth: CoreHealthCheckService;
   readonly verificationRecords: VerificationRecordService;
   readonly portableRuntimeAcceptance: PortableRuntimeAcceptanceManager;
   readonly plannedRestartRecovery: PlannedRestartRecoveryManager;
@@ -181,7 +184,14 @@ export class NextclawKernel {
     this.capabilityGrants = new CapabilityGrantManager(resolveKernelCapabilityGrantStorePath(options));
     ({ verificationRecords: this.verificationRecords, portableRuntimeAcceptance: this.portableRuntimeAcceptance } =
       createPortableRuntimeAcceptanceServices({ ...options, verificationRecordStorePath: resolveKernelVerificationRecordStorePath(options) }));
-    this.featureControls = new FeatureControlsService(desktopHost);
+    // automation/channels/configManager/assetStore 均来自 platform.local（master 重构后不在 kernel 内重复创建）
+    const sessionsDir = resolveKernelSessionsDir(options);
+    ({ coreHealth: this.coreHealth, featureControls: this.featureControls } = createKernelCoreServices({
+      desktopHost,
+      getWorkspacePath: () => getWorkspacePath(this.configManager.config.agents.defaults.workspace),
+      sessionsDir,
+      configManager: this.configManager,
+    }));
     this.control = new NextclawKernelControlManager<unknown, unknown, unknown>();
     this.accessManager = new AccessManager({ configManager: this.configManager, homeDir: options.homeDir });
     this.capabilityGrantLegacyMigration = this.createCapabilityGrantLegacyMigration(options);
