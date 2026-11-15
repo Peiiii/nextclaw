@@ -1,6 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
+import { readSessionJournalFailureContext } from "@kernel/utils/session-journal-error.utils.js";
 import {
   createNcpAgentSessionSummary,
   type LoadedNcpAgentJournalSession,
@@ -93,18 +94,18 @@ async function scanJournalEntry(
 ): Promise<JournalScanItem | null> {
   const sessionId = readJournalSessionId(entry);
   if (!sessionId) return null;
-  const lightweight = params.loadSessionSummary
-    ? await params.loadSessionSummary(sessionId)
-    : null;
-  if (lightweight)
-    return { sessionId, summary: lightweight, unreadable: false };
-  const loaded = await params.loadSession(sessionId);
-  if (loaded)
-    return {
-      sessionId,
-      summary: createNcpAgentSessionSummary(loaded.record),
-      unreadable: false,
-    };
+  try {
+    // A damaged derived projection may still have a readable canonical source.
+    const lightweight = await params.loadSessionSummary?.(sessionId).catch(() => null);
+    if (lightweight) return { sessionId, summary: lightweight, unreadable: false };
+    const loaded = await params.loadSession(sessionId);
+    if (loaded) return { sessionId, summary: createNcpAgentSessionSummary(loaded.record), unreadable: false };
+  } catch (error) {
+    console.warn("Session catalog could not read an existing history source", {
+      event: "session.persistence.read_failed", operation: "catalog.source-read", projection: "catalog", sessionId,
+      action: "skipped-unreadable-source", ...readSessionJournalFailureContext(error),
+    }, error);
+  }
   const legacy = legacyRecords.get(sessionId);
   return legacy
     ? { sessionId, summary: structuredClone(legacy), unreadable: false }

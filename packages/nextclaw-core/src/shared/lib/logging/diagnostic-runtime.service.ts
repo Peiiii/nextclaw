@@ -3,7 +3,7 @@ import type {
   DiagnosticOutcome,
 } from "@nextclaw/shared";
 import { DIAGNOSTIC_CORRELATION_METADATA_KEY } from "@nextclaw/shared";
-import type { AppLogger } from "./app-logger.js";
+import type { AppLogger } from "./app-logger.service.js";
 import { getAppLogger } from "./logging-runtime.service.js";
 
 export const DIAGNOSTIC_SCHEMA_VERSION = 1;

@@ -27,6 +27,7 @@ type ClaimedNextStepRequest = SessionRunQueuedRequest & {
 
 /** Single owner for inputs waiting for either the next run or the next safe step. */
 export class SessionPendingInputs {
+  private readonly acknowledged = new Set<string>();
   private readonly nextRun: SessionRunQueuedRequest[] = [];
   private readonly nextStep: ClaimedNextStepRequest[] = [];
   private readonly claimedNextStep = new Map<string, ClaimedNextStepRequest>();
@@ -87,12 +88,23 @@ export class SessionPendingInputs {
     const index = this.nextRun.findIndex(({ id }) => id === requestId);
     if (index < 0) return null;
     const [removed] = this.nextRun.splice(index, 1);
+    this.acknowledged.delete(requestId);
     return removed ? structuredClone(removed) : null;
   };
 
-  shiftNextRun = (): SessionRunQueuedRequest | null => {
+  acknowledgeRequest = (requestId: string): void => {
+    if (this.nextRun.some(request => request.id === requestId) || this.nextStep.some(request => request.id === requestId)
+      || this.claimedNextStep.has(requestId)) this.acknowledged.add(requestId);
+  };
+
+  restoreNextRun = (request: SessionRunQueuedRequest): void => {
+    this.acknowledged.add(request.id);
+    this.nextRun.unshift(request);
+  };
+
+  shiftNextRun = (): (SessionRunQueuedRequest & { acknowledged: boolean }) | null => {
     const request = this.nextRun.shift();
-    return request ? structuredClone(request) : null;
+    return request ? { ...structuredClone(request), acknowledged: this.acknowledged.delete(request.id) } : null;
   };
 
   claimNextStep = (runId: string): readonly ClaimedNextStepRequest[] => {
@@ -108,7 +120,10 @@ export class SessionPendingInputs {
   };
 
   acknowledgeNextStep = (requestIds: readonly string[]): void => {
-    for (const requestId of requestIds) this.claimedNextStep.delete(requestId);
+    for (const requestId of requestIds) {
+      this.claimedNextStep.delete(requestId);
+      this.acknowledged.delete(requestId);
+    }
   };
 
   restoreNextStep = (runId: string): void => {
@@ -132,6 +147,7 @@ export class SessionPendingInputs {
     this.nextRun.length = 0;
     this.nextStep.length = 0;
     this.claimedNextStep.clear();
+    this.acknowledged.clear();
   };
 
   private toPendingRequest = (

@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import { SessionRun, SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 import type { AgentRunSession } from "@kernel/types/session.types.js";
+import { SessionJournalWriteError } from "@kernel/utils/session-journal-error.utils.js";
 
 function message(id: string, role: NcpMessage["role"], timestamp: string): NcpMessage {
   return {
@@ -14,6 +15,49 @@ function message(id: string, role: NcpMessage["role"], timestamp: string): NcpMe
     timestamp
   };
 }
+
+describe("SessionRun persistence recovery", () => {
+  it("retains acknowledged startup and steering inputs, but never replays an executed run", async () => {
+    const run = new SessionRun({ sessionId: "session-1", messages: [] });
+    const session: AgentRunSession = { sessionId: "session-1", agentRuntimeId: "native", metadata: {} };
+    const enqueue = (id: string) => run.enqueueRequest({ sessionId: session.sessionId, message: message(id, "user", new Date().toISOString()) }, session);
+    const first = enqueue("accepted-before-start");
+    run.acknowledgeRequest(first.id);
+    const active = run.beginNextRun()!;
+    const steering = enqueue("unconsumed-steering");
+    run.acknowledgeRequest(steering.id);
+    run.moveQueuedRequestToNextStep(steering.id);
+    run.claimNextStepRequests(active.runId);
+    run.failPersistence(new SessionJournalWriteError(session.sessionId, new Error("temporary storage outage")));
+    run.settleRun(active.runId);
+    expect(run.listQueuedRequests().map(request => request.id)).toEqual([first.id, steering.id]);
+    await expect(run.recoverPersistence(async () => { throw new Error("storage still unavailable"); })).rejects.toThrow("still unavailable");
+    expect(run.beginNextRun()).toBeNull();
+    await run.recoverPersistence(async () => [message("canonical-only", "user", new Date().toISOString())]);
+    expect(run.getSnapshot().messages.map(value => value.id)).toEqual(["canonical-only"]);
+    const resumed = run.beginNextRun()!;
+    expect(resumed.id).toBe(first.id);
+    run.markRuntimeStarted(resumed.runId);
+    run.failPersistence("another outage after execution began");
+    run.settleRun(resumed.runId);
+    expect(run.listQueuedRequests().map(request => request.id)).toEqual([steering.id]);
+    run.dispose();
+  });
+
+  it("does not replay an unacknowledged failed startup, and disposal cannot resurrect recovery", async () => {
+    const run = new SessionRun({ sessionId: "session-1", messages: [] });
+    run.enqueueRequest({ sessionId: "session-1", message: message("unaccepted", "user", new Date().toISOString()) }, { sessionId: "session-1", agentRuntimeId: "native", metadata: {} });
+    const active = run.beginNextRun()!;
+    run.failPersistence("storage down");
+    const load = vi.fn(async () => []);
+    const recovering = run.recoverPersistence(load);
+    run.dispose();
+    await expect(recovering).rejects.toThrow("disposed");
+    expect(load).not.toHaveBeenCalled();
+    expect(run.listPendingRequests()).toEqual([]);
+    run.settleRun(active.runId);
+  });
+});
 
 describe("SessionRun", () => {
   it("bounds a new giant message while retaining its source identity and later streaming parts", async () => {

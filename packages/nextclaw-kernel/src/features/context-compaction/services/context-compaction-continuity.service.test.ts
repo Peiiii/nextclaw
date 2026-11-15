@@ -14,6 +14,22 @@ const summary = (detail = "Previous operations completed.") => ["# Compressed Wo
 const response = (content: string) => ({ content, finishReason: "stop", usage: {} });
 
 describe("compaction continuity boundaries", () => {
+  it("keeps the bounded source guard when recovering an existing failed actor", async () => {
+    const publish = vi.fn();
+    const manager = new SessionRunManager({
+      listSessionMessages: async () => [], loadSessionRunSeed: async () => [], publishSessionEvent: publish,
+      recoverSessionRun: async () => [{ id: "tail-only", sessionId: "recover", role: "user", status: "final",
+        timestamp: new Date().toISOString(), parts: [{ type: "text", text: "bounded tail" }], metadata: { nextclaw_source: { ordinal: 20 } } }],
+    });
+    const actor = await manager.getOrCreateSessionRun("recover");
+    actor.failPersistence("storage was unavailable");
+    await expect(manager.getOrCreateSessionRun("recover")).rejects.toThrow("Cannot verify the source");
+    expect(manager.getSessionRun("recover")).toBe(actor);
+    expect(actor.beginNextRun()).toBeNull();
+    expect(publish).not.toHaveBeenCalled();
+    manager.dispose();
+  });
+
   it.each(["messages", "parts"] as const)("installs recovery under %s pressure instead of repeating failed soft compaction", async pressure => {
     const chat = vi.fn(async () => ({ content: null, finishReason: "stop", usage: {} }));
     const service = new ContextCompactionPreflightService({ resolveAgentProfileForRun: () => ({ contextTokens: 20000, reservedContextTokens: 2000 }) }, { chat });

@@ -162,9 +162,9 @@ You can also use `/compact` to compact earlier context on demand. For both autom
 
 ## When conversation history cannot be saved
 
-If conversation history cannot be written, the affected run stops and reports a storage error instead of continuing to produce replies that exist only in memory. Pending queued inputs are cleared; other healthy sessions remain usable. Diagnostics retain the first underlying error without repeatedly flooding the log with the same failure.
+If conversation history cannot be written, the affected run stops and reports a storage error instead of continuing to produce replies that exist only in memory. Accepted inputs that have not executed remain queued in the current process; other healthy sessions remain usable. Diagnostics retain the first underlying error, failure stage, and rollback result without repeatedly flooding the log. Catalog or preview failures after the source was saved are reported separately and do not lock the session.
 
-Check disk space, session-directory permissions, or file access. After fixing the cause, restart NextClaw and resend unfinished requests. Saved history is restored from the journal; content that was never confirmed saved cannot be guaranteed recoverable. Keep the original session files. If an existing session cannot be read because of permissions or an I/O error, NextClaw reports that failure instead of treating the session as missing.
+Check disk space, session-directory permissions, or file access. After fixing the cause, send again in the same conversation without restarting. NextClaw waits for the old run to exit, checks saved history, and confirms a recovery write before processing queued and new input. It does not automatically replay a failed request that already started executing. If storage remains unavailable, the retry reports that failure and keeps the queue. Queued input survives only while the current process stays open; content never confirmed saved cannot be guaranteed recoverable. Keep the original session files. If an existing session cannot be read because of permissions or an I/O error, NextClaw reports that failure instead of treating the session as missing.
 
 ## Math formulas
 

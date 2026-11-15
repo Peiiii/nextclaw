@@ -435,11 +435,8 @@ export class SessionManager implements NcpSessionApi {
     return this.options.journalStore.readSessionMessagePart(params);
   };
 
-  loadSessionRunSeed = async (sessionId: string): Promise<NcpMessage[]> => {
-    if (!this.options.journalStore.loadSessionRunSeed) throw new Error("This session host does not support bounded run loading.");
-    await this.sessionEvents.flushSession(sessionId);
-    return this.options.journalStore.loadSessionRunSeed(sessionId);
-  };
+  loadSessionRunSeed = (sessionId: string): Promise<NcpMessage[]> => this.sessionEvents.loadRunSeed(sessionId);
+  recoverSessionRun = (sessionId: string): Promise<NcpMessage[]> => this.sessionEvents.recoverRun(sessionId);
 
   getSession = async (sessionId: string): Promise<NcpSessionSummary | null> => {
     const normalizedSessionId = normalizeSessionId(sessionId);

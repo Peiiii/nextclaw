@@ -8,7 +8,7 @@ export class SessionJournalWriteError extends Error {
     const detail = cause instanceof Error ? cause.message : String(cause);
     const code = cause && typeof cause === "object" && "code" in cause ? String(cause.code) : "";
     super(`Session journal write failed for ${sessionId}; refusing further writes until recovery. ` +
-      `The run was stopped to prevent unsaved work. Check storage access and restart NextClaw before retrying. Cause: ${code} ${detail}`, { cause });
+      `The run was stopped to prevent unsaved work. Check storage access, then send again to recover this session. Pending inputs are retained while NextClaw stays open. Cause: ${code} ${detail}`, { cause });
     this.name = "SessionJournalWriteError";
   }
 }
@@ -17,23 +17,24 @@ export function isSessionJournalWriteError(error: unknown): error is SessionJour
   return error instanceof Error && "code" in error && error.code === SESSION_JOURNAL_WRITE_FAILED;
 }
 
-/** Keep filesystem/JSON diagnostics without logging the failed user event or provider configuration. */
-export function formatSessionJournalError(error: unknown): string {
-  const causes: Array<Record<string, unknown>> = [];
+/** Read only the transaction's scalar diagnostics; never copy the failed event. */
+export function readSessionJournalFailureContext(error: unknown): Record<string, string | number | boolean> {
   const seen = new Set<unknown>();
   let current = error;
-  while (current !== undefined && causes.length < 8 && !seen.has(current)) {
+  for (let depth = 0; current && typeof current === "object" && depth < 8 && !seen.has(current); depth++) {
     seen.add(current);
-    if (!current || typeof current !== "object") { causes.push({ message: String(current).slice(0, 2048) }); break; }
     const record = current as Record<string, unknown>;
-    const detail: Record<string, unknown> = {};
-    for (const key of ["name", "message", "code", "errno", "syscall", "path", "stack"]) {
-      const value = record[key];
-      if (typeof value === "string") detail[key] = value.slice(0, key === "stack" ? 8192 : 2048);
-      else if (typeof value === "number") detail[key] = value;
+    const context = record.sessionPersistence;
+    if (context && typeof context === "object") {
+      const detail: Record<string, string | number | boolean> = {};
+      for (const key of ["operation", "stage", "path", "seq", "previousOffset", "journalOffset", "rollback", "journalCommitted", "metadataCommitted"]) {
+        const value = (context as Record<string, unknown>)[key];
+        if (typeof value === "string") detail[key] = value.slice(0, 2048);
+        else if (typeof value === "number" || typeof value === "boolean") detail[key] = value;
+      }
+      return detail;
     }
-    causes.push(detail);
     current = record.cause;
   }
-  return JSON.stringify(causes);
+  return {};
 }

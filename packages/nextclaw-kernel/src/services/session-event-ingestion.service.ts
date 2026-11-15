@@ -8,7 +8,7 @@ import { CONTEXT_COMPACTION_METADATA_KEY } from "@nextclaw/core";
 import type { NcpAgentSessionJournalReplayEvent } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import { readEventSessionId } from "@kernel/utils/session-manager.utils.js";
 import type { UnfinishedNcpAgentRun } from "@kernel/utils/ncp-agent-unfinished-run.utils.js";
-import { SESSION_JOURNAL_FAILURE_SOURCE, SessionJournalWriteError } from "@kernel/utils/session-journal-error.utils.js";
+import { readSessionJournalFailureContext, SESSION_JOURNAL_FAILURE_SOURCE, SessionJournalWriteError } from "@kernel/utils/session-journal-error.utils.js";
 import {
   canCoalesceSessionJournalDeltas,
   coalesceSessionJournalDeltas,
@@ -64,6 +64,7 @@ export class SessionEventIngestionService {
   private readonly activityPreview: SessionActivityPreviewEventService;
   private readonly chains = new Map<string, Promise<void>>();
   private readonly failedWrites = new Map<string, SessionJournalWriteError>();
+  private readonly failedProjections = new Set<string>();
   private readonly pendingDeltas = new Map<string, { event: NcpEndpointEvent; timer: ReturnType<typeof setTimeout> }>();
   private cleanup: (() => void) | null = null;
 
@@ -153,6 +154,20 @@ export class SessionEventIngestionService {
     this.throwIfFailed(sessionId);
   };
 
+  recoverSession = async <T>(sessionId: string, restore: () => Promise<T>): Promise<T> => {
+    await this.chains.get(sessionId);
+    try {
+      const result = await restore();
+      this.failedWrites.delete(sessionId);
+      return result;
+    } catch (error) {
+      console.error("Session storage recovery failed", {
+        event: "session.persistence.recovery_failed", sessionId, ...readSessionJournalFailureContext(error),
+      }, error);
+      throw error;
+    }
+  };
+
   flush = async (): Promise<void> => {
     for (const sessionId of this.pendingDeltas.keys()) this.flushPendingDelta(sessionId);
     await Promise.all([...this.chains.values()]);
@@ -168,6 +183,7 @@ export class SessionEventIngestionService {
     this.pendingDeltas.clear();
     this.chains.clear();
     this.failedWrites.clear();
+    this.failedProjections.clear();
     this.activityPreview.clear();
   };
 
@@ -211,7 +227,6 @@ export class SessionEventIngestionService {
     event: NcpEndpointEvent,
     signal?: AbortSignal,
   ): Promise<void> => {
-    const preview = this.activityPreview.projectEvent(event, new Date().toISOString());
     const metadataPatch = readRuntimeSessionMetadataPatch(event);
     if (metadataPatch) {
       await this.options.updateSessionMetadata(sessionId, metadataPatch);
@@ -222,16 +237,27 @@ export class SessionEventIngestionService {
       sessionId,
       signal,
     });
-    if (event.type === NcpEventType.MessageSent) {
-      const checkpoint = readContextCompactionCheckpoint(event.payload.message);
-      if (checkpoint) {
-        await this.options.updateSessionMetadata(sessionId, {
-          [CONTEXT_COMPACTION_METADATA_KEY]: checkpoint,
-        });
+    let operation = "checkpoint-metadata";
+    try {
+      if (event.type === NcpEventType.MessageSent) {
+        const checkpoint = readContextCompactionCheckpoint(event.payload.message);
+        if (checkpoint) await this.options.updateSessionMetadata(sessionId, { [CONTEXT_COMPACTION_METADATA_KEY]: checkpoint });
       }
-    }
-    if (preview) {
-      await this.activityPreview.updatePreview(preview);
+      this.failedProjections.delete(`${sessionId}:${operation}`);
+      operation = "activity-preview";
+      const preview = this.activityPreview.projectEvent(event, new Date().toISOString());
+      if (preview) {
+        await this.activityPreview.updatePreview(preview);
+        this.failedProjections.delete(`${sessionId}:${operation}`);
+      }
+    } catch (error) {
+      const key = `${sessionId}:${operation}`;
+      if (this.failedProjections.has(key)) return;
+      this.failedProjections.add(key);
+      console.warn("Session projection failed after the event was saved", {
+        event: "session.persistence.projection_failed", operation, projection: operation, sessionId, eventType: event.type,
+        journalCommitted: true, ...readSessionJournalFailureContext(error),
+      }, error);
     }
   };
 }

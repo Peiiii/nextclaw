@@ -1,5 +1,6 @@
 import { FileLogSink, type AppLogKind, type AppLogPaths, type AppLogQuery, type AppLogQueryResult } from "./file-log-sink.service.js";
-import { ScopedAppLogger, type AppLogRecord, type AppLogWriter, type AppLogger } from "./app-logger.js";
+import { ScopedAppLogger, type AppLogRecord, type AppLogWriter, type AppLogger } from "./app-logger.service.js";
+import { normalizeLogError } from "./log-error.utils.js";
 
 const CONSOLE_METHOD_NAMES = ["debug", "info", "log", "warn", "error"] as const;
 type ConsoleMethodName = typeof CONSOLE_METHOD_NAMES[number];
@@ -36,6 +37,8 @@ export class LoggingRuntime implements AppLogWriter {
   private readonly startupId: string;
   private readonly pid: number;
   private readonly now: () => Date;
+  private sinkFailureReported = false;
+  private sourceFailureReported = false;
 
   constructor(options: LoggingRuntimeOptions = {}) {
     this.sink = options.sink ?? new FileLogSink();
@@ -45,7 +48,8 @@ export class LoggingRuntime implements AppLogWriter {
   }
 
   ensureReady = (): void => {
-    this.sink.ensureReady();
+    try { this.sink.ensureReady(); }
+    catch (error) { this.reportSinkFailure(error); }
   };
 
   getStartupId = (): string => {
@@ -79,7 +83,33 @@ export class LoggingRuntime implements AppLogWriter {
   };
 
   writeRecord = (record: AppLogRecord): void => {
-    this.sink.writeRecord(record);
+    try {
+      this.sink.writeRecord(record);
+      this.sinkFailureReported = false;
+      this.sourceFailureReported = false;
+    } catch (error) {
+      this.reportSinkFailure(error, record);
+    }
+  };
+
+  private reportSinkFailure = (error: unknown, record?: AppLogRecord): void => {
+    if (this.sinkFailureReported && (!record?.error || this.sourceFailureReported)) return;
+    this.sinkFailureReported = true;
+    this.sourceFailureReported ||= Boolean(record?.error);
+    const correlationId = record?.context?.correlationId;
+    const event = record?.context?.event;
+    try {
+      process.stderr.write(`${JSON.stringify({
+        ts: this.now().toISOString(), level: "error", scope: "logging.file_log_sink",
+        event: "logging.write_failed", startupId: this.startupId, pid: this.pid,
+        error: normalizeLogError(error), sourceScope: record?.scope.slice(0, 256),
+        ...(typeof event === "string" ? { sourceEvent: event.slice(0, 256) } : {}),
+        ...(typeof correlationId === "string" ? { correlationId: correlationId.slice(0, 128) } : {}),
+        ...(record?.error ? { sourceError: normalizeLogError(record.error) } : {}),
+      })}\n`);
+    } catch {
+      // An unavailable diagnostic destination must not throw into the business operation.
+    }
   };
 
   installConsoleMirror = (): void => {

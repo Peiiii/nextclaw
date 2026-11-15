@@ -2,15 +2,36 @@
 
 ## 迭代完成说明
 
-已完成。用户于 2026-11-14 明确要求处理最新 Issue，先复现、修复、充分验证，再发布新版本；沿本 chat 最新确认覆盖全平台 Desktop。最终 nextclaw0.59.6/kernel0.19.7/Desktop0.0.307 已发布，父流程43606811807于北京时间23:45:55成功，公开下载、双类更新清单、APT与双站说明均已核验。Issue #73于23:51关闭，未发送评论。来源：[Issue #73](https://github.com/Peiiii/nextclaw/issues/73)，创建于北京时间20:44:22，环境Windows11/Node24.18.1/旧版0.59.1。原机JSON损坏仍是未证实假设，没有原用户journal；本修复不能恢复从未落盘的内容。
+2026-11-15用户纠偏后已重开，整体未完成。用户明确指出日志缺口必须修、未查明首次触发不能当完整解决，且一刀切停止运行可能使产品更不可用。Issue #73已重新打开，未发送评论。0.59.6/kernel0.19.7/Desktop0.0.307已发布及其CI成功仍是历史事实，不能替代当前开放目标。原反馈机器的JSON触发仍未证实，没有原journal与完整日志；不宣称恢复从未落盘内容。
 
-flow=bugfix；task-id=dt-73b14f26；phase=finishing；retrospective_state=completed；retrospective_decision=updated-existing-owners。唯一执行区为既有干净managed worktree，分支`codex/session-journal-write-failure`，起点`bbfbd0757b29be0163d562f349abb9c042c3d88e`；原主工作区Bibo WIP未动。本任务不沿用前项完成状态。
+flow=bugfix；task-id=dt-73b14f26；phase=validation；retrospective_state=pending；scope-revision=4。本次返工仍复用原worktree/分支，写前HEAD=b684c1ddb38cdac301c4203510d76b3a12038502、工作区干净；全部当前改动属于本任务，主工作区WIP不动。旧required表是0.59.6已证明的历史范围；以下当前表优先，JRN-06历史发布passed不再代表parent-goal完成。
+
+| ID | Required | 当前状态 | 证据与缺口 |
+| --- | --- | --- | --- |
+| JRN-09 | true | not-run | 原机首次触发根因未完全定位；11月15日12:50重新读取Issue仍无附件、0评论。仅有锁存stack，首次cause已经丢失，无法逆推出其code。Issue保持open；请求向作者索取脱敏材料的文字已准备，尚待用户明确授权，未发评论 |
+| JRN-10 | true | passed | 真实FileLogSink写入/query保留cause、code/errno/syscall/path/dest、Aggregate清理异常；transaction记录stage/seq/offset/rollback。真实日志目录不可写及默认初始化失败不再抛回业务，stderr有界保留首因、恢复后重新写文件；错误图总预算防指数放大。core 13项、tsc及build通过 |
+| JRN-11 | true | passed | 修前真实canonical写入成功后catalog故障或metadata读取/解析失败仍锁actor；修后独立降级，一次诊断、后续发消息与冷开通过。metadata保存后catalog错误同样隔离。冷catalog重建遇坏metadata保留原文件与parse cause，健康会话仍可启动；terminal catalog故障不会冷开伪造中断 |
+| JRN-12 | true | passed | 实际chmod制造EACCES，连续两次故障/恢复，同actor可继续消息并冷读；持续故障明确拒绝且保留原队列。真实native/client/SessionManager证明旧runtime清理未完成不会启动新运行，原queued输入先执行、新输入随后回复；已执行请求不重放；未确认启动不暗中重试；并发发送共享恢复、steering保留、dispose不复活 |
+
+本次具体根因：0.59.6 gate把canonical提交后的派生catalog/preview失败误判为源journal写失败；永久failedWrites与actor故障锁无同进程恢复，failPersistence还清空已接收输入。更早日志的Error→stack字符串和三字段序列化丢失cause/code，日志sink异常又可反向打断业务。修复直接收窄提交边界、保留原Error、由原owner核对并实际提交恢复写后解锁，而非吞掉真实写失败。**这证明了可用性退化与诊断缺陷，不证明反馈者首次异常就是其中某一个。**
+
+复现证据：修前日志落盘、catalog后提交失败、preview权限失败、metadata-catalog、日志sink权限及启动失败分别有red baseline；本机历史service/crash归档发现13,422次Unknown named parameter deleted_at及projection meta rename ENOENT（含双日志重复计数），只作“链路异常不等于源IO”的证据，不能当11月Windows事故现场。
+
+12:49验证：Node22原9文件矩阵94/97通过，3项在多进程IO争用时超5秒并连带临时目录清理失败；同三个文件在maxWorkers=1下41项全部通过，未改timeout门槛。最终native集成7项含两轮真实权限恢复通过；core13项通过；Node24.18.1三个文件24项及二轮权限用例复验通过。core/kernel/service tsc、core/kernel实际构建、targeted ESLint通过（2个既有journal warning）；diff maintainability为0error/6warning，治理通过。次数有交叠，不相加冒充覆盖。
+
+真实模型验证：当前源码native→AgentRunClient→SessionManager→journal，使用隔离synthetic目录；实际文件不可写先拒绝，恢复权限后返回STORAGE_RETRY_OK，关闭并冷开后历史仍在，第二轮返回COLD_STORAGE_OK，冷历史4条。model=codex-sub/gpt-5.6-luna，认证只经LocalConfigStore在内存解析，未复制、回显或修改真实配置/会话。临时网络测试已移除，固定回归不依赖凭据；未声称验证原机或GUI点击。结果摘要`/tmp/issue73-recovery-live.json`，源码回归为原native failure integration及coordinator测试。
+
+当前交付门：JRN-09仍未满足；不关闭Issue，不把新版本或这些局部通过写成原事故完整解决。core/kernel/nextclaw patch changeset已准备，尚未正式发布；原队列仅当前进程内保留，不承诺退出后未执行输入可恢复。原流程已有真实复现、父目标及风险验证规则，本次未正确执行验收门是事实，先修产品并保留失败回归，不追加重复AGENTS/Skill规则来代替交付。
+
+12:55实现Review：发现原地恢复绕过冷创建的bounded context完整性检查，已收敛为同一个prepareRunMessages；缺原来源时仍明确拒绝恢复，不让缺失上下文直接进入工具执行。原actor/queue/native/context四文件27项及新增guard所属文件9项通过；Node24最终三个触达文件22项通过。core/kernel/service类型检查、最后kernel构建及定向lint均通过。diff自动检查0error/6warning（journal469/400净减，SessionManager652/600净减，request近600、SessionRun近600及两组必要回归增长）；主观复核接受已有owner与显式生命周期，无未关闭实现finding，范围仅JRN-10至12。Changesets计划nextclaw0.59.7/core0.18.10/kernel0.19.8/Desktop0.0.308及其依赖闭包，当前全部待发布，不修改已发布版本。
+
+以下段落及0.59.6验收表为历史记录；其中清空队列和强制重启的旧方案已由scope revision 4替代，不能用于当前验收。
 
 已复现并修复的机制：普通事件原先先提交 actor 再后台持久化；故障不终止运行，后续锁存报错遮蔽首个 cause 并刷屏。现在全部 durable 事件经过同一 ingestion gate，首个错误只记录/通知一次，活动 runtime observer 随 run 生命周期监听故障并取消真实 controller、清空待运行输入；正常错误收尾不再递归写故障盘。observer 使用原 persisted source 发布 UI 投影，避免 clone 二次写入。另用真实 chmod 复现 loader 将 EACCES 返回 null，改为仅 ENOENT 表示缺失。原机最初的 IO/JSON 触发根因未完全定位，没有原文件；不宣称找回从未落盘的内容。
 
 ## 测试/验证/验收方式
 
-active-contract: JRN-20261114；scope-revision: 2；parent-goal: 会话持久化失败时立即、明确停止不可靠续跑，保留已持久历史，重启后仍可访问；充分验证后通过现有自动父流程发布新版本，发布期间新增兼容修复纳入同一交付。
+active-contract: JRN-20261114；scope-revision: 4；parent-goal: 定位首次故障，修复不可靠续跑与可用性退化，完善可定位首因的日志，保留已持久历史及未执行输入，恢复存储后同进程续聊；充分验证后通过现有自动父流程发布新版本。下表为0.59.6历史验收，仅复用仍有效证据，当前结果见顶部JRN-09至12。
 
 | ID | Required | Status | 当前合同与证据 |
 | --- | --- | --- | --- |

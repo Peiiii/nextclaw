@@ -59,6 +59,12 @@ export class SessionRun {
   private eventChain: Promise<void> = Promise.resolve();
   private windowGrowthBytes = 0;
   private persistenceFailure: SessionJournalWriteError | null = null;
+  private execution: {
+    request: SessionRunQueuedRequest; acknowledged: boolean; runtimeStarted: boolean;
+    settled: Promise<void>; resolve: () => void;
+  } | null = null;
+  private recovery: Promise<void> | null = null;
+  private disposed = false;
 
   constructor(
     seed: {
@@ -249,18 +255,60 @@ export class SessionRun {
     this.pendingInputs.acknowledgeNextStep(requestIds);
   };
 
+  acknowledgeRequest = (requestId: string): void => {
+    if (this.execution?.request.id === requestId) this.execution.acknowledged = true;
+    else this.pendingInputs.acknowledgeRequest(requestId);
+  };
+
+  markRuntimeStarted = (runId: string): void => {
+    if (this.execution?.request.runId === runId) this.execution.runtimeStarted = true;
+  };
+
+  settleRun = (runId: string): void => {
+    const execution = this.execution;
+    if (!execution || execution.request.runId !== runId) return;
+    const wasBusy = this.isBusy();
+    if (this.persistenceFailure && execution.acknowledged && !execution.runtimeStarted) {
+      this.pendingInputs.restoreNextRun(execution.request);
+    }
+    this.execution = null;
+    execution.resolve();
+    this.emitStatusChangeIfNeeded(wasBusy);
+  };
+
+  recoverPersistence = (load: () => Promise<readonly NcpMessage[]>): Promise<void> => {
+    if (!this.persistenceFailure) return Promise.resolve();
+    if (this.recovery) return this.recovery;
+    this.recovery = (async () => {
+      await this.execution?.settled;
+      await this.eventChain;
+      if (this.disposed) throw new Error("Session run was disposed during storage recovery.");
+      const messages = await load();
+      if (this.disposed) throw new Error("Session run was disposed during storage recovery.");
+      this.stateManager.hydrate({ sessionId: this.sessionId, messages });
+      this.windowGrowthBytes = 0;
+      for (const fragment of sessionJsonFragments(messages)) this.windowGrowthBytes += Buffer.byteLength(fragment);
+      this.persistenceFailure = null;
+    })().finally(() => { this.recovery = null; });
+    return this.recovery;
+  };
+
   getActiveRunId = (): string | null => this.activeRunId;
 
   beginNextRun = (): SessionRunActiveRequest | null => {
     if (this.persistenceFailure) return null;
-    if (this.activeRunId) {
+    if (this.activeRunId || this.execution) {
       return null;
     }
     const wasBusy = this.isBusy();
-    const queuedRequest = this.pendingInputs.shiftNextRun();
-    if (!queuedRequest) {
+    const next = this.pendingInputs.shiftNextRun();
+    if (!next) {
       return null;
     }
+    const { acknowledged, ...queuedRequest } = next;
+    let resolve!: () => void;
+    const settled = new Promise<void>(done => { resolve = done; });
+    this.execution = { request: queuedRequest, acknowledged, runtimeStarted: false, settled, resolve };
     const controller = new AbortController();
     this.activeRunId = queuedRequest.runId;
     this.activeRunController = controller;
@@ -295,7 +343,7 @@ export class SessionRun {
     const wasBusy = this.isBusy();
     this.persistenceFailure ??= typeof error === "string"
       ? Object.assign(new Error(error), { code: SESSION_JOURNAL_WRITE_FAILED } satisfies Pick<SessionJournalWriteError, "code">) : error;
-    this.pendingInputs.clear();
+    if (this.activeRunId) this.pendingInputs.restoreNextStep(this.activeRunId);
     this.activeRunController?.abort(this.persistenceFailure);
     this.activeRunController = null;
     this.activeRunId = null;
@@ -305,10 +353,11 @@ export class SessionRun {
 
   isRunning = (): boolean => this.activeRunId !== null;
 
-  isBusy = (): boolean => this.isRunning() || this.pendingInputs.hasNextRun;
+  isBusy = (): boolean => this.isRunning() || this.execution !== null || this.recovery !== null || this.pendingInputs.hasNextRun;
 
   dispose = (): void => {
     const wasBusy = this.isBusy();
+    this.disposed = true;
     this.activeRunController?.abort({
       code: "abort-error",
       message: "Session run owner was disposed; the current run was cancelled.",
@@ -318,6 +367,8 @@ export class SessionRun {
     this.activeRunId = null;
     this.activeProductActivitySource = null;
     this.pendingInputs.clear();
+    this.execution?.resolve();
+    this.execution = null;
     this.emitStatusChangeIfNeeded(wasBusy);
     this.statusListeners.clear();
   };
@@ -375,7 +426,7 @@ export class SessionRunManager {
   private readonly inactiveBytes = new Map<string, number>();
 
   constructor(
-    private readonly sessionManager: Pick<AgentRunSessionHost, "listSessionMessages"> & Partial<Pick<SessionManager, "loadSessionRunSeed" | "publishSessionEvent" | "persistSessionEvent" | "captureCompactionSource">>,
+    private readonly sessionManager: Pick<AgentRunSessionHost, "listSessionMessages"> & Partial<Pick<SessionManager, "loadSessionRunSeed" | "recoverSessionRun" | "publishSessionEvent" | "persistSessionEvent" | "captureCompactionSource">>,
     private readonly productActivitySink?: ProductActivitySink,
   ) {}
 
@@ -394,8 +445,15 @@ export class SessionRunManager {
     });
 
   getOrCreateSessionRun = async (sessionId: string): Promise<SessionRun> => {
+    if (this.disposed) throw new Error("Session run manager is disposed.");
     const existing = this.getSessionRun(sessionId);
     if (existing) {
+      await existing.recoverPersistence(async () => {
+        if (!this.sessionManager.recoverSessionRun) throw new Error("This session host cannot recover storage without restarting.");
+        const messages = await this.sessionManager.recoverSessionRun(sessionId);
+        await this.prepareRunMessages(sessionId, messages);
+        return messages;
+      });
       return existing;
     }
     const pending = this.pendingCreations.get(sessionId);
@@ -430,6 +488,19 @@ export class SessionRunManager {
       ? await this.sessionManager.loadSessionRunSeed(sessionId)
       : await this.sessionManager.listSessionMessages(sessionId);
     if (this.disposed) throw new Error("Session run manager is disposed.");
+    await this.prepareRunMessages(sessionId, messages);
+    const seed = { messages, sessionId };
+    const run = new SessionRun(seed, undefined, this.productActivitySink, this.sessionManager.persistSessionEvent);
+    this.runs.set(sessionId, run);
+    run.onStatusChange(status => {
+      if (status === "running") this.inactiveBytes.delete(sessionId);
+      else this.trimInactive(sessionId);
+    });
+    this.trimInactive(sessionId);
+    return run;
+  };
+
+  private prepareRunMessages = async (sessionId: string, messages: NcpMessage[]): Promise<void> => {
     const checkpoint = readLatestContextCompactionCheckpoint(messages);
     const firstOrdinal = messages.reduce((first, message) => {
       const ordinal = Number((message.metadata?.nextclaw_source as { ordinal?: number } | undefined)?.ordinal);
@@ -457,18 +528,6 @@ export class SessionRunManager {
       await this.sessionManager.publishSessionEvent({ sessionId, event: { type: NcpEventType.MessageSent, payload: { sessionId, message: marker } }, source: "bounded-session-run-seed", persistFirst: true });
       messages.push(marker);
     }
-    const seed = {
-      messages,
-      sessionId,
-    };
-    const run = new SessionRun(seed, undefined, this.productActivitySink, this.sessionManager.persistSessionEvent);
-    this.runs.set(sessionId, run);
-    run.onStatusChange(status => {
-      if (status === "running") this.inactiveBytes.delete(sessionId);
-      else this.trimInactive(sessionId);
-    });
-    this.trimInactive(sessionId);
-    return run;
   };
 
   private trimInactive = (protectedId: string): void => {

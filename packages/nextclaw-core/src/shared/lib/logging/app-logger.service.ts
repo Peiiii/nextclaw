@@ -1,14 +1,10 @@
 import { format } from "node:util";
+import { normalizeLogError, type AppLogError } from "./log-error.utils.js";
+export type { AppLogError } from "./log-error.utils.js";
 
 export type AppLogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 
 export type AppLogContext = Record<string, unknown>;
-
-export type AppLogError = {
-  name: string;
-  message: string;
-  stack?: string;
-};
 
 export type AppLogRecord = {
   ts: string;
@@ -60,23 +56,6 @@ function isPlainObject(value: unknown): value is AppLogContext {
 
 function containsFormatDirective(value: string): boolean {
   return /%[sdifoOj%]/.test(value);
-}
-
-function normalizeLogError(error: unknown): AppLogError | undefined {
-  if (!error) {
-    return undefined;
-  }
-  if (error instanceof Error) {
-    return {
-      name: error.name,
-      message: error.message,
-      ...(error.stack?.trim() ? { stack: error.stack.trim() } : {}),
-    };
-  }
-  return {
-    name: "NonError",
-    message: String(error),
-  };
 }
 
 export class ScopedAppLogger implements AppLogger {

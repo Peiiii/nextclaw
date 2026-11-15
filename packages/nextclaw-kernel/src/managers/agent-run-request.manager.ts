@@ -272,6 +272,7 @@ export class AgentRunRequestManager {
           )
         : null;
     if (steeringRequest) {
+      sessionRun.acknowledgeRequest(queuedRequest.id);
       this.publishRunQueueUpdated(session.sessionId);
       return {
         sessionId: session.sessionId,
@@ -291,6 +292,7 @@ export class AgentRunRequestManager {
       );
     }
 
+    sessionRun.acknowledgeRequest(queuedRequest.id);
     return {
       sessionId: session.sessionId,
       userMessageId: queuedRequest.request.message.id,
@@ -328,12 +330,6 @@ export class AgentRunRequestManager {
       startedAt: requestRunStartedAt,
       trigger,
     });
-    const providerRequest: AgentRunRequest = {
-      ...request,
-      agentId: spec.agentId,
-      sessionId: session.sessionId,
-      message,
-    };
     const correlationId = request.correlationId ?? activeRequest.runId;
     const parentCorrelationId =
       typeof request.metadata?.[DIAGNOSTIC_CORRELATION_METADATA_KEY] ===
@@ -352,30 +348,28 @@ export class AgentRunRequestManager {
         ...(request.channel ? { channel: request.channel } : {}),
       },
     });
-    const messageSentEvent = createMessageSentEvent({
+    const initialEvents = [createMessageSentEvent({
       sessionId: session.sessionId,
       message,
       correlationId: request.correlationId,
-    });
-    const triggerEvent = createRunTriggerMetadataEvent({
+    }), createRunTriggerMetadataEvent({
       sessionId: session.sessionId,
       spec,
       trigger,
-    });
+    })];
     try {
       releaseCapacity = await this.admissions.acquireExecution(activeRequest.signal);
       executionClaim = await this.claimSessionExecutionOrFail({ requestRunStartedAt, sessionRun, spec });
       activeRequest.signal.throwIfAborted();
-      await sessionRun.applyEvents([messageSentEvent, triggerEvent]);
-      this.publishNcpEvent(messageSentEvent);
-      this.publishNcpEvent(triggerEvent);
+      await sessionRun.applyEvents(initialEvents);
+      initialEvents.forEach(this.publishNcpEvent);
       const runtime = this.agentRuntimeManager.getOrCreate({
         agentRuntimeId: session.agentRuntimeId,
         session,
         sessionRun,
       });
       const { contextBlocks, tools } =
-        await this.agentContextWindowManager.resolveRunSurface(providerRequest);
+        await this.agentContextWindowManager.resolveRunSurface({ ...request, agentId: spec.agentId, sessionId: session.sessionId, message });
       this.startRuntimeRun({
         options: {
           contextBlocks,
@@ -414,13 +408,12 @@ export class AgentRunRequestManager {
         providerCode: classification.providerCode,
         facts: classification.facts,
       });
-      await this.publishRunStartupFailure({
-        error,
-        requestRunStartedAt,
-        sessionRun,
-        spec,
-      });
-      this.startNextQueuedRun(sessionRun);
+      try {
+        await this.publishRunStartupFailure({ error, requestRunStartedAt, sessionRun, spec });
+      } finally {
+        sessionRun.settleRun(activeRequest.runId);
+        this.startNextQueuedRun(sessionRun);
+      }
       throw error;
     }
   };
@@ -467,11 +460,13 @@ export class AgentRunRequestManager {
     > & { executionClaim?: SessionExecutionClaim; releaseCapacity?: () => void },
   ): void => {
     const { executionClaim, releaseCapacity, ...runtimeParams } = params;
+    params.options.sessionRun.markRuntimeStarted(params.spec.runId);
     this.runtimeRuns.start({
       ...runtimeParams,
       onSettled: (sessionRun) => {
         executionClaim?.release();
         releaseCapacity?.();
+        sessionRun.settleRun(params.spec.runId);
         this.startNextQueuedRun(sessionRun);
       },
     });

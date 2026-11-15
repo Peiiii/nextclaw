@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -6,11 +6,12 @@ import { NcpEventType, type NcpEndpointEvent, type NcpLLMApi } from "@nextclaw/n
 import { EventBus, Ingress, eventKeys } from "@nextclaw/shared";
 import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
+import { SessionManager } from "@kernel/managers/session.manager.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { createNativeAgentRuntimeRegistration } from "./native-agent-runtime.service.js";
 import { SESSION_JOURNAL_FAILURE_SOURCE } from "@kernel/utils/session-journal-error.utils.js";
 import { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
-import { SessionEventCoordinatorService } from "@kernel/services/session-event-coordinator.service.js";
+import { resolveSessionProjectContext } from "@nextclaw/core";
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -25,17 +26,25 @@ async function fixture(directory: string, failure: "timer" | "terminal" | "none"
   const events: Array<{ event: NcpEndpointEvent; source: string | undefined }> = [];
   eventBus.on(eventKeys.ncpEvent, (event, envelope) => events.push({ event, source: envelope.source }));
   const fault = Object.assign(new Error("fixture storage unavailable"), { code: "ENOSPC", errno: -28, syscall: "write", path: join(directory, "broken.jsonl") });
-  const coordinator = new SessionEventCoordinatorService({
-    eventBus, journalStore: store, getSessionRecord: store.getSession,
-    listUnfinishedRuns: store.listUnfinishedRuns,
-    updateSessionMetadata: (sessionId, metadata) => store.setSessionMetadata({ sessionId, metadata }),
-    appendSessionEvent: async params => {
-      if (params.sessionId === "broken" && ((failure === "timer" && params.event.type === NcpEventType.MessageTextDelta)
-        || (failure === "terminal" && params.event.type === NcpEventType.MessageCompleted))) throw fault;
-      await store.appendSessionEvent(params);
-    },
+  let storageDown = false;
+  let activeFailure = failure;
+  const append = store.appendSessionEvent;
+  vi.spyOn(store, "appendSessionEvent").mockImplementation(async params => {
+    if (params.sessionId === "broken" && (storageDown || (activeFailure === "timer" && params.event.type === NcpEventType.MessageTextDelta)
+      || (activeFailure === "terminal" && params.event.type === NcpEventType.MessageCompleted))) {
+      storageDown = true;
+      throw fault;
+    }
+    await append(params);
   });
-  await coordinator.start();
+  const sessions = new SessionManager({
+    eventBus, journalStore: store, resolveProjectContext: resolveSessionProjectContext,
+    agentContextWindowManager: { previewSession: async () => null, forgetSession: () => undefined } as never,
+    agentManager: { resolveAgentProfile: () => ({ workspace: directory }) } as never,
+    projectManager: { normalizeSessionProjectContext: async () => ({}) } as never,
+    sessionSearch: { handleSessionUpdated: async () => undefined } as never,
+  });
+  await sessions.start();
   const session = (sessionId: string) => ({ sessionId, agentId: "main", agentRuntimeId: "native", model: "fixture-model", metadata: {}, workingDir: directory });
   const host = {
     getOrCreateAgentRunSession: async (params: { sessionId?: string }) => {
@@ -48,14 +57,14 @@ async function fixture(directory: string, failure: "timer" | "terminal" | "none"
     },
     getAgentRunSession: async (id: string) => session(id),
     getSessionRecord: store.getSession, listSessionMessages: store.listSessionMessages,
-    loadSessionRunSeed: store.loadSessionRunSeed, persistSessionEvent: coordinator.persist,
-    publishSessionEvent: coordinator.publish,
+    loadSessionRunSeed: sessions.loadSessionRunSeed, persistSessionEvent: sessions.persistSessionEvent,
+    publishSessionEvent: sessions.publishSessionEvent, recoverSessionRun: sessions.recoverSessionRun,
   };
   const runs = new SessionRunManager(host);
   const modelAborted = vi.fn();
   const models: NcpLLMApi = { generate: async function* (_input, options) {
     yield { id: "reply", choices: [{ index: 0, delta: { role: "assistant", content: "verified answer" }, finish_reason: null }] };
-    if (failure === "timer" && options?.sessionId === "broken") {
+    if (activeFailure === "timer" && options?.sessionId === "broken") {
       await new Promise<void>(resolve => {
         if (options.signal?.aborted) resolve();
         else options.signal?.addEventListener("abort", () => { modelAborted(); resolve(); }, { once: true });
@@ -74,12 +83,136 @@ async function fixture(directory: string, failure: "timer" | "terminal" | "none"
   const requests = new AgentRunRequestManager(runtimeManager, agents, config,
     { resolveRunSurface: async () => ({ contextBlocks: [], tools: [] }) }, eventBus, ingress, host as never, runs);
   requests.start();
-  return { store, coordinator, requests, runs, modelAborted, disposeRuntime, events,
+  return { store, sessions, requests, runs, modelAborted, disposeRuntime, events,
+    restoreStorage: () => { activeFailure = "none"; storageDown = false; },
     client: new AgentRunClient({ eventBus, ingress }),
-    close: () => { requests.dispose(); runs.dispose(); coordinator.dispose(); store.close(); } };
+    close: () => { requests.dispose(); runs.dispose(); sessions.dispose(); store.close(); } };
 }
 
 describe("native runtime durable failure integration", () => {
+  it("recovers one actor after real file permissions are restored and serializes concurrent new sends", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nextclaw-native-real-permission-"));
+    directories.push(directory);
+    const current = await fixture(directory, "none");
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const path = join(directory, "broken.jsonl");
+    const now = new Date().toISOString();
+    await current.store.importSessionSnapshot({ sessionId: "broken", createdAt: now, updatedAt: now, messages: [], metadata: {} });
+    await chmod(path, 0o444);
+    try {
+      await expect(current.client.send({ sessionId: "broken", content: [{ type: "text", text: "not acknowledged" }] })).rejects.toThrow("EACCES");
+      const actor = current.runs.getSessionRun("broken");
+      expect(actor?.listPendingRequests()).toEqual([]);
+      await expect(current.client.send({ sessionId: "broken", content: [{ type: "text", text: "still inaccessible" }] })).rejects.toThrow("EACCES");
+      await chmod(path, 0o644);
+      const replies = await Promise.all(["first retry", "second retry"].map(text =>
+        current.client.sendAndWaitForReply({ sessionId: "broken", content: [{ type: "text", text }] }, { abortSignal: AbortSignal.timeout(5000) })));
+      expect(replies.map(reply => reply.text)).toEqual(["verified answer", "verified answer"]);
+      await vi.waitFor(() => expect(actor?.isBusy()).toBe(false));
+      expect(current.runs.getSessionRun("broken")).toBe(actor);
+      await chmod(path, 0o444);
+      await expect(current.client.send({ sessionId: "broken", content: [{ type: "text", text: "second outage, not accepted" }] })).rejects.toThrow("EACCES");
+      await chmod(path, 0o644);
+      expect((await current.client.sendAndWaitForReply({ sessionId: "broken", content: [{ type: "text", text: "after second recovery" }] }, { abortSignal: AbortSignal.timeout(5000) })).text).toBe("verified answer");
+      await vi.waitFor(() => expect(actor?.isBusy()).toBe(false));
+      const entries = (await readFile(path, "utf8")).trim().split("\n").map(line => JSON.parse(line));
+      expect(entries.filter(entry => entry.event?.payload?.metadata?.kind === "session_storage_recovery")).toHaveLength(2);
+      expect(entries.filter(entry => entry.event?.type === NcpEventType.MessageCompleted)).toHaveLength(3);
+      expect(JSON.stringify(entries)).not.toContain("not acknowledged");
+      expect(JSON.stringify(entries)).not.toContain("still inaccessible");
+      expect(JSON.stringify(entries)).not.toContain("second outage, not accepted");
+    } finally { await chmod(path, 0o644); current.close(); }
+    const cold = await fixture(directory, "none");
+    try { expect((await cold.store.getSession("broken"))?.messages.filter(message => message.role === "user")).toHaveLength(3); }
+    finally { cold.close(); }
+  });
+
+  it("waits for the failed runtime to exit, retains queued input and resumes without restarting", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nextclaw-native-recover-live-"));
+    directories.push(directory);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const current = await fixture(directory, "timer");
+    let release!: () => void;
+    const cleanup = new Promise<void>(resolve => { release = resolve; });
+    current.disposeRuntime.mockImplementationOnce(() => cleanup);
+    try {
+      const execution = await current.client.startRun({ sessionId: "broken", content: [{ type: "text", text: "initial interrupted input" }] }, { abortSignal: AbortSignal.timeout(5000) });
+      await vi.waitFor(() => expect(current.events.some(({ event }) => event.type === NcpEventType.MessageTextDelta)).toBe(true));
+      const queued = await current.client.send({ sessionId: "broken", content: [{ type: "text", text: "accepted queued input" }] });
+      await expect(execution.result).rejects.toThrow("ENOSPC");
+      await vi.waitFor(() => expect(current.disposeRuntime).toHaveBeenCalledOnce());
+      const actor = current.runs.getSessionRun("broken");
+      expect(actor?.listQueuedRequests()).toMatchObject([{ request: { message: { id: queued.userMessageId } } }]);
+      current.restoreStorage();
+      const retry = current.client.sendAndWaitForReply({ sessionId: "broken", content: [{ type: "text", text: "continue after storage restored" }] }, { abortSignal: AbortSignal.timeout(5000) });
+      await new Promise(resolve => setTimeout(resolve, 20));
+      expect(current.events.filter(({ event }) => event.type === NcpEventType.MessageSent && event.payload.message.role === "user")).toHaveLength(1);
+      release();
+      expect((await retry).text).toBe("verified answer");
+      await vi.waitFor(() => expect(actor?.isBusy()).toBe(false));
+      expect(current.runs.getSessionRun("broken")).toBe(actor);
+      const users = current.events.filter(({ event }) => event.type === NcpEventType.MessageSent && event.payload.message.role === "user");
+      expect(users.map(({ event }) => event.type === NcpEventType.MessageSent ? event.payload.message.parts : [])).toEqual([
+        [{ type: "text", text: "initial interrupted input" }], [{ type: "text", text: "accepted queued input" }], [{ type: "text", text: "continue after storage restored" }],
+      ]);
+      expect(actor?.listPendingRequests()).toEqual([]);
+      await current.sessions.flushSessionEvents();
+    } finally { release(); current.close(); }
+    const cold = await fixture(directory, "none");
+    try {
+      const history = (await cold.store.getSession("broken"))!.messages;
+      expect(history.filter(message => message.role === "user")).toHaveLength(3);
+      const journal = (await readFile(join(directory, "broken.jsonl"), "utf8")).trim().split("\n").map(line => JSON.parse(line));
+      expect(journal.filter(entry => entry.event?.type === NcpEventType.MessageCompleted)).toHaveLength(2);
+      expect(history.filter(message => message.role === "assistant" && JSON.stringify(message.parts).includes("verified answer"))).toHaveLength(2);
+    } finally { cold.close(); }
+  });
+
+  it.each([NcpEventType.MessageCompleted, NcpEventType.RunFinished])("does not invent an interrupted run after a committed %s catalog failure", async type => {
+    const directory = await mkdtemp(join(tmpdir(), "nextclaw-native-terminal-catalog-"));
+    directories.push(directory);
+    const current = await fixture(directory, "none");
+    const catalog = (current.store as unknown as { summaryIndexStore: { upsertForEvent: (...args: unknown[]) => Promise<void> } }).summaryIndexStore;
+    const original = catalog.upsertForEvent;
+    const fault = vi.spyOn(catalog, "upsertForEvent").mockImplementation(async (...args) => {
+      if ((args[0] as { event: NcpEndpointEvent }).event.type === type) throw Object.assign(new Error("terminal catalog busy"), { code: "SQLITE_BUSY" });
+      await original(...args);
+    });
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      expect((await current.client.sendAndWaitForReply({ sessionId: "broken", content: [{ type: "text", text: "finish durably" }] }, { abortSignal: AbortSignal.timeout(3000) })).text).toBe("verified answer");
+      await current.sessions.flushSessionEvents();
+      expect(await current.store.listUnfinishedRuns()).toEqual([]);
+    } finally { fault.mockRestore(); current.close(); }
+    const cold = await fixture(directory, "none");
+    try {
+      expect(cold.events.filter(({ event }) => event.type === NcpEventType.RunError)).toEqual([]);
+      expect(JSON.stringify((await cold.store.getSession("broken"))?.messages)).toContain("verified answer");
+    } finally { cold.close(); }
+  });
+
+  it("finishes real client runs across a committed catalog failure and cold restart", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nextclaw-native-catalog-fault-"));
+    directories.push(directory);
+    const current = await fixture(directory, "none");
+    const catalog = (current.store as unknown as { summaryIndexStore: { upsertForEvent: (...args: unknown[]) => Promise<void> } }).summaryIndexStore;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const fault = vi.spyOn(catalog, "upsertForEvent").mockRejectedValueOnce(Object.assign(new Error("catalog temporarily busy"), { code: "SQLITE_BUSY" }));
+    try {
+      const reply = await current.client.sendAndWaitForReply({ sessionId: "broken", content: [{ type: "text", text: "reply through catalog failure" }] }, { abortSignal: AbortSignal.timeout(3000) });
+      expect(reply.text).toBe("verified answer");
+      expect(warn).toHaveBeenCalledOnce();
+      expect(current.events.filter(({ source }) => source === SESSION_JOURNAL_FAILURE_SOURCE)).toEqual([]);
+      expect(current.modelAborted).not.toHaveBeenCalled();
+      expect((await current.client.sendAndWaitForReply({ sessionId: "broken", content: [{ type: "text", text: "continue normally" }] }, { abortSignal: AbortSignal.timeout(3000) })).text).toBe("verified answer");
+    } finally { fault.mockRestore(); current.close(); }
+    const cold = await fixture(directory, "none");
+    try {
+      expect(JSON.stringify((await cold.store.getSession("broken"))?.messages)).toContain("reply through catalog failure");
+      expect((await cold.client.sendAndWaitForReply({ sessionId: "broken", content: [{ type: "text", text: "after cold restart" }] }, { abortSignal: AbortSignal.timeout(3000) })).text).toBe("verified answer");
+    } finally { cold.close(); }
+  });
+
   it.each(["timer", "terminal"] as const)("stops %s failures, notifies the actual client and preserves sessions across cold restart", async failure => {
     const directory = await mkdtemp(join(tmpdir(), "nextclaw-native-journal-fault-"));
     directories.push(directory);
@@ -93,12 +226,13 @@ describe("native runtime durable failure integration", () => {
       }
       await expect(execution.result).rejects.toThrow("ENOSPC");
       await vi.waitFor(() => expect(current.disposeRuntime).toHaveBeenCalled());
-      expect(current.runs.getSessionRun("broken")?.isBusy()).toBe(false);
-      expect(current.runs.getSessionRun("broken")?.listPendingRequests()).toEqual([]);
+      expect(current.runs.getSessionRun("broken")?.isBusy()).toBe(failure === "timer");
+      expect(current.runs.getSessionRun("broken")?.listPendingRequests()).toHaveLength(failure === "timer" ? 1 : 0);
       if (failure === "timer") expect(current.modelAborted).toHaveBeenCalledOnce();
       expect(current.events.filter(({ source }) => source === SESSION_JOURNAL_FAILURE_SOURCE)).toHaveLength(1);
       expect(logged).toHaveBeenCalledOnce();
-      await expect(current.client.send({ sessionId: "broken", content: [{ type: "text", text: "must reject a new run" }] })).rejects.toMatchObject({ code: "SESSION_JOURNAL_WRITE_FAILED" });
+      await expect(current.client.send({ sessionId: "broken", content: [{ type: "text", text: "must reject a new run" }] })).rejects.toMatchObject({ code: "ENOSPC" });
+      expect(current.runs.getSessionRun("broken")?.listPendingRequests()).toHaveLength(failure === "timer" ? 1 : 0);
       const healthy = await current.client.sendAndWaitForReply({ sessionId: "healthy", content: [{ type: "text", text: "another session" }] }, { abortSignal: AbortSignal.timeout(3000) });
       expect(healthy.text).toBe("verified answer");
       const journal = (await readFile(join(directory, "healthy.jsonl"), "utf8")).trim().split("\n").map(line => JSON.parse(line));

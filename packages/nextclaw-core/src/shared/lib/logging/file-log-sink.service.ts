@@ -1,7 +1,8 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
-import { getLogsArchivePath, getLogsPath } from "../core-utils/utils/helpers.utils.js";
-import type { AppLogRecord } from "./app-logger.js";
+import { getDataPath } from "@core/shared/lib/core-utils/index.js";
+import type { AppLogRecord } from "./app-logger.service.js";
+import { normalizeLogError } from "./log-error.utils.js";
 
 export type AppLogKind = "service" | "crash";
 
@@ -100,9 +101,9 @@ export class FileLogSink {
   private readonly now: () => Date;
 
   constructor(options: FileLogSinkOptions = {}) {
-    this.serviceLogPath = options.serviceLogPath ?? resolve(getLogsPath(), "service.log");
-    this.crashLogPath = options.crashLogPath ?? resolve(getLogsPath(), "crash.log");
-    this.archiveDirPath = options.archiveDirPath ?? getLogsArchivePath();
+    this.serviceLogPath = options.serviceLogPath ?? resolve(getDataPath(), "logs", "service.log");
+    this.crashLogPath = options.crashLogPath ?? resolve(getDataPath(), "logs", "crash.log");
+    this.archiveDirPath = options.archiveDirPath ?? resolve(getDataPath(), "logs", "archive");
     this.serviceMaxBytes = options.serviceMaxBytes ?? DEFAULT_SERVICE_MAX_BYTES;
     this.crashMaxBytes = options.crashMaxBytes ?? DEFAULT_CRASH_MAX_BYTES;
     this.now = options.now ?? (() => new Date());
@@ -230,11 +231,7 @@ export class FileLogSink {
           return value.toString();
         }
         if (value instanceof Error) {
-          return {
-            name: value.name,
-            message: value.message,
-            ...(value.stack?.trim() ? { stack: value.stack.trim() } : {}),
-          };
+          return normalizeLogError(value);
         }
         if (typeof value === "object" && value !== null) {
           if (seenObjects.has(value)) {

@@ -1,9 +1,10 @@
-import { chmod, mkdir, mkdtemp, readFile, rename, rm, stat } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NcpEventType, type NcpEndpointEvent, type NcpMessage } from "@nextclaw/ncp";
 import { EventBus, eventKeys } from "@nextclaw/shared";
+import { FileLogSink, LoggingRuntime } from "@nextclaw/core";
 import { SessionRun } from "@kernel/managers/session-run.manager.js";
 import { AgentRunContextCompactionManager } from "@kernel/managers/agent-run-context-compaction.manager.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
@@ -25,6 +26,148 @@ function sent(id: string): NcpEndpointEvent {
 }
 
 describe("session journal failure boundaries", () => {
+  it("retains the parse cause when a cold catalog rebuild skips an unreadable session", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nextclaw-cold-read-diagnostic-"));
+    directories.push(directory);
+    const store = new NcpAgentSessionJournalStore(directory);
+    for (const id of [sessionId, "healthy"]) await store.importSessionSnapshot({ sessionId: id, messages: [{ ...message("saved"), sessionId: id }], metadata: {},
+      createdAt: "2026-11-14T00:00:00.000Z", updatedAt: "2026-11-14T00:00:00.000Z" });
+    store.close();
+    const metadataPath = join(directory, `${sessionId}.metadata.json`);
+    await writeFile(metadataPath, '{"_type":"metadata","metadata":');
+    await rm(join(directory, ".ncp-agent-session-catalog.sqlite"));
+    const sink = new FileLogSink({ serviceLogPath: join(directory, "logs/service.log"),
+      crashLogPath: join(directory, "logs/crash.log"), archiveDirPath: join(directory, "logs/archive") });
+    vi.spyOn(console, "warn").mockImplementation(new LoggingRuntime({ sink }).getLogger("console").warn);
+    const cold = new NcpAgentSessionJournalStore(directory);
+    try {
+      await cold.initialize();
+      expect((await cold.listSessionSummaries()).map(value => value.sessionId)).toContain("healthy");
+      const record = sink.query({ event: "session.persistence.read_failed" }).records[0];
+      expect(record.context).toMatchObject({ operation: "metadata.read", stage: "parse", path: metadataPath });
+      expect(record.error).toMatchObject({ name: "SyntaxError" });
+      expect(await readFile(metadataPath, "utf8")).toBe('{"_type":"metadata","metadata":');
+    } finally { cold.close(); }
+  });
+
+  it("identifies a real metadata JSON parse failure while keeping the valid journal usable", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nextclaw-metadata-parse-diagnostic-"));
+    directories.push(directory);
+    const sink = new FileLogSink({ serviceLogPath: join(directory, "logs/service.log"),
+      crashLogPath: join(directory, "logs/crash.log"), archiveDirPath: join(directory, "logs/archive") });
+    vi.spyOn(console, "warn").mockImplementation(new LoggingRuntime({ sink }).getLogger("console").warn);
+    const store = new NcpAgentSessionJournalStore(directory);
+    await store.importSessionSnapshot({ sessionId, messages: [message("saved")], metadata: {},
+      createdAt: "2026-11-14T00:00:00.000Z", updatedAt: "2026-11-14T00:00:00.000Z" });
+    const path = join(directory, `${sessionId}.metadata.json`);
+    const original = await readFile(path);
+    const coordinator = new SessionEventCoordinatorService({ eventBus: new EventBus(), journalStore: store,
+      appendSessionEvent: store.appendSessionEvent, getSessionRecord: store.getSession,
+      listUnfinishedRuns: async () => [], updateSessionMetadata: (id, patch) => store.setSessionMetadata({ sessionId: id, metadata: patch }) });
+    try {
+      await writeFile(path, '{"_type":"metadata","metadata":');
+      await expect(coordinator.persist({ type: NcpEventType.RunStarted, payload: { sessionId, runId: "parse-run" } })).resolves.toBeUndefined();
+      const record = sink.query({ event: "session.persistence.projection_failed" }).records[0];
+      expect(record.context).toMatchObject({ projection: "activity-preview", operation: "metadata.read", stage: "parse", path, journalCommitted: true });
+      expect(record.error).toMatchObject({ name: "SyntaxError" });
+      await writeFile(path, original);
+      await expect(coordinator.persist(sent("continue"))).resolves.toBeUndefined();
+      expect((await store.getSession(sessionId))?.messages.map(value => value.id)).toEqual(["saved", "continue"]);
+    } finally { await writeFile(path, original); coordinator.dispose(); store.close(); }
+  });
+
+  it("does not reject committed business metadata when its catalog projection fails", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nextclaw-metadata-catalog-failure-"));
+    directories.push(directory);
+    const store = new NcpAgentSessionJournalStore(directory);
+    await store.importSessionSnapshot({ sessionId, messages: [message("saved")], metadata: {},
+      createdAt: "2026-11-14T00:00:00.000Z", updatedAt: "2026-11-14T00:00:00.000Z" });
+    const catalog = (store as unknown as { summaryIndexStore: { upsert: (...args: unknown[]) => Promise<void> } }).summaryIndexStore;
+    vi.spyOn(catalog, "upsert").mockRejectedValueOnce(Object.assign(new Error("metadata catalog busy"), { code: "SQLITE_BUSY" }));
+    const coordinator = new SessionEventCoordinatorService({ eventBus: new EventBus(), journalStore: store,
+      appendSessionEvent: store.appendSessionEvent, getSessionRecord: store.getSession,
+      listUnfinishedRuns: async () => [], updateSessionMetadata: (id, patch) => store.setSessionMetadata({ sessionId: id, metadata: patch }) });
+    try {
+      await expect(coordinator.persist({ type: NcpEventType.RunMetadata, payload: { sessionId,
+        metadata: { kind: "session_metadata_patch", sessionMetadataPatch: { fixture: "saved" } } } })).resolves.toBeUndefined();
+      expect((await store.getSession(sessionId))?.metadata).toMatchObject({ fixture: "saved" });
+      await expect(coordinator.persist(sent("continue"))).resolves.toBeUndefined();
+    } finally { coordinator.dispose(); store.close(); }
+  });
+
+  it("persists one queryable transaction failure with the actual cause and rollback outcome", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nextclaw-persisted-diagnostic-"));
+    directories.push(directory);
+    const sink = new FileLogSink({ serviceLogPath: join(directory, "logs/service.log"),
+      crashLogPath: join(directory, "logs/crash.log"), archiveDirPath: join(directory, "logs/archive") });
+    const logger = new LoggingRuntime({ sink, startupId: "journal-diagnostic", pid: 123 }).getLogger("console");
+    vi.spyOn(console, "error").mockImplementation(logger.error);
+    const store = new NcpAgentSessionJournalStore(directory);
+    await store.importSessionSnapshot({ sessionId, messages: [message("saved")], metadata: {},
+      createdAt: "2026-11-14T00:00:00.000Z", updatedAt: "2026-11-14T00:00:00.000Z" });
+    const coordinator = new SessionEventCoordinatorService({ eventBus: new EventBus(), journalStore: store,
+      appendSessionEvent: store.appendSessionEvent, getSessionRecord: store.getSession,
+      listUnfinishedRuns: async () => [], updateSessionMetadata: (id, patch) => store.setSessionMetadata({ sessionId: id, metadata: patch }) });
+    const bad = sent("bad-json-value");
+    if (bad.type === NcpEventType.MessageSent) bad.payload.message.metadata = { unsupported: BigInt(42), privateValue: "must-not-log-this-value" };
+    try {
+      await expect(coordinator.persist(bad)).rejects.toMatchObject({ code: "SESSION_JOURNAL_WRITE_FAILED" });
+      for (let index = 0; index < 20; index++) await coordinator.persist(sent(`later-${index}`)).catch(() => undefined);
+      const records = sink.query({ event: "session.persistence.failed" }).records;
+      expect(records).toHaveLength(1);
+      expect(records[0]?.context).toMatchObject({ sessionId, operation: "journal.append", stage: "serialize",
+        rollback: "succeeded", journalCommitted: false, previousOffset: expect.any(Number), seq: expect.any(Number) });
+      expect(records[0]?.error?.cause?.cause).toMatchObject({ name: "TypeError", message: expect.stringContaining("BigInt") });
+      expect(await readFile(join(directory, "logs/service.log"), "utf8")).not.toContain("must-not-log-this-value");
+      expect((await store.getSession(sessionId))?.messages.map(value => value.id)).toEqual(["saved"]);
+    } finally { coordinator.dispose(); store.close(); }
+  });
+
+  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)("continues after a real metadata read failure in the activity preview", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nextclaw-preview-failure-"));
+    directories.push(directory);
+    const store = new NcpAgentSessionJournalStore(directory);
+    await store.importSessionSnapshot({ sessionId, messages: [message("saved")], metadata: {},
+      createdAt: "2026-11-14T00:00:00.000Z", updatedAt: "2026-11-14T00:00:00.000Z" });
+    const metadata = join(directory, `${sessionId}.metadata.json`);
+    const original = await readFile(metadata);
+    const coordinator = new SessionEventCoordinatorService({ eventBus: new EventBus(), journalStore: store,
+      appendSessionEvent: store.appendSessionEvent, getSessionRecord: store.getSession,
+      listUnfinishedRuns: async () => [], updateSessionMetadata: (id, patch) => store.setSessionMetadata({ sessionId: id, metadata: patch }) });
+    const actor = new SessionRun({ sessionId, messages: [message("saved")] }, undefined, undefined, coordinator.persist);
+    try {
+      await chmod(metadata, 0);
+      await expect(actor.applyEvents([{ type: NcpEventType.RunStarted, payload: { sessionId, runId: "preview-run" } }])).resolves.toBeUndefined();
+      await chmod(metadata, 0o600);
+      await expect(actor.applyEvents([sent("continue")])).resolves.toBeUndefined();
+      expect((await store.getSession(sessionId))?.messages.map(value => value.id)).toEqual(["saved", "continue"]);
+      expect(await readFile(metadata)).toEqual(original);
+    } finally { await chmod(metadata, 0o600); actor.dispose(); coordinator.dispose(); store.close(); }
+  });
+
+  it("keeps an already persisted message usable when its derived catalog update fails", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nextclaw-catalog-failure-"));
+    directories.push(directory);
+    const store = new NcpAgentSessionJournalStore(directory);
+    await store.importSessionSnapshot({ sessionId, messages: [message("saved")], metadata: {},
+      createdAt: "2026-11-14T00:00:00.000Z", updatedAt: "2026-11-14T00:00:00.000Z" });
+    const catalog = (store as unknown as { summaryIndexStore: { upsertForEvent: (...args: unknown[]) => Promise<void> } }).summaryIndexStore;
+    const failCatalog = vi.spyOn(catalog, "upsertForEvent").mockRejectedValueOnce(Object.assign(new Error("fixture catalog busy"), { code: "SQLITE_BUSY" }));
+    const coordinator = new SessionEventCoordinatorService({ eventBus: new EventBus(), journalStore: store,
+      appendSessionEvent: store.appendSessionEvent, getSessionRecord: store.getSession,
+      listUnfinishedRuns: async () => [], updateSessionMetadata: (id, metadata) => store.setSessionMetadata({ sessionId: id, metadata }) });
+    const actor = new SessionRun({ sessionId, messages: [message("saved")] }, undefined, undefined, coordinator.persist);
+    try {
+      await expect(actor.applyEvents([sent("committed")])).resolves.toBeUndefined();
+      expect((await store.getSession(sessionId))?.messages.map(value => value.id)).toEqual(["saved", "committed"]);
+      await expect(actor.applyEvents([sent("continue")])).resolves.toBeUndefined();
+      expect(actor.getSnapshot().messages.map(value => value.id)).toEqual(["saved", "committed", "continue"]);
+    } finally { failCatalog.mockRestore(); actor.dispose(); coordinator.dispose(); store.close(); }
+  });
+
+});
+
+describe("session journal durability safeguards", () => {
   it.skipIf(process.platform === "win32" || process.getuid?.() === 0)("does not treat an unreadable existing journal as a missing session", async () => {
     const directory = await mkdtemp(join(tmpdir(), "nextclaw-journal-read-failure-"));
     directories.push(directory);
