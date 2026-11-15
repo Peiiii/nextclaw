@@ -1,5 +1,21 @@
 # nextclaw
 
+## 0.59.7
+
+### Patch Changes
+
+- ed1e434: Keep conversations usable when a catalog or preview update fails after history was saved. Retain unexecuted queued input during storage faults and recover the same session on the next send after storage access is restored, without restarting or replaying an already executed request. Preserve the underlying storage error and failure stage in diagnostic logs, and keep log-file failures from interrupting conversations.
+- Updated dependencies [ed1e434]
+  - @nextclaw/core@0.18.10
+  - @nextclaw/kernel@0.19.8
+  - @nextclaw/mcp@0.3.60
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.60
+  - @nextclaw/remote@0.3.77
+  - @nextclaw/runtime@0.4.59
+  - @nextclaw/server@0.23.20
+  - @nextclaw/service@0.7.14
+  - @nextclaw/ncp-mcp@0.2.60
+
 ## 0.59.6
 
 ### Patch Changes
