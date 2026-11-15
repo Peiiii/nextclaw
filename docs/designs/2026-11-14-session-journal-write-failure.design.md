@@ -68,6 +68,8 @@ JRN-12验收矩阵：真实文件写入失败/恢复；启动前失败与已运�
 
 实现审查补充：同actor恢复与冷创建共享prepareRunMessages，使用同一份bounded context完整性检查及原来源checkpoint安装；不能在恢复时跳过大历史的缺失保留项或archive确认边界。队列确认的成员关系由SessionPendingInputs就地判断，不为查询id克隆全部排队正文。相关设计复审通过，复验原context continuity与新原地恢复场景。
 
+12:58日志初始化复现补充：FileLogSink默认路径虽然不再创建logs，但getDataPath仍会提前mkdir data home，父目录不可访问时在LoggingRuntime捕获之前抛错。原路径owner分离纯resolveDataPath与确保目录存在的getDataPath；FileLogSink constructor只解析路径，mkdir由原ensureReady/writeRecord边界捕获。真实chmod父目录、home尚未创建的失败用例修前红，修后须能初始化并在权限恢复后写回原日志位置。未改变数据home的配置语义，补充方案Review通过。
+
 mode=design复审：旧actor直接重置会漏掉旧runtime并发；重启actor会丢输入和监听身份；后台自动重演会重复工具；读seed前清锁会容许新事件竞跑。以上反例由同actor结束屏障、原owner互斥恢复和确认/执行边界共同关闭。没有新增外部协议变体、依赖或存储迁移；设计范围及验收完整，design-review: passed（本节，原机根因仍待直接证据）。
 
 0.44旧壳在Node20.18.1加载candidate时，history preparation明确失败于缺失 `@libsql/win32-x64-msvc`；candidate新壳已成功读出原消息。上一任务同路径同位置失败。冻结增量：沿原native resource owner复制目标平台libSQL binding，原bundle资产合同验证实际`.node`文件；不新增数据库fallback或整目录依赖复制。Windows smoke只对显式queued/preparing有界等待，失败立即保留原因。由Node20真实隔离bundle读写冷开与Windows focused原升级链证明。

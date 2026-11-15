@@ -4,7 +4,7 @@
 
 2026-11-15用户纠偏后已重开，整体未完成。用户明确指出日志缺口必须修、未查明首次触发不能当完整解决，且一刀切停止运行可能使产品更不可用。Issue #73已重新打开，未发送评论。0.59.6/kernel0.19.7/Desktop0.0.307已发布及其CI成功仍是历史事实，不能替代当前开放目标。原反馈机器的JSON触发仍未证实，没有原journal与完整日志；不宣称恢复从未落盘内容。
 
-flow=bugfix；task-id=dt-73b14f26；phase=validation；retrospective_state=pending；scope-revision=4。本次返工仍复用原worktree/分支，写前HEAD=b684c1ddb38cdac301c4203510d76b3a12038502、工作区干净；全部当前改动属于本任务，主工作区WIP不动。旧required表是0.59.6已证明的历史范围；以下当前表优先，JRN-06历史发布passed不再代表parent-goal完成。
+flow=bugfix；task-id=dt-73b14f26；phase=delivery；retrospective_state=pending；scope-revision=4。本次返工仍复用原worktree/分支，写前HEAD=b684c1ddb38cdac301c4203510d76b3a12038502、工作区干净；全部当前改动属于本任务，主工作区WIP不动。旧required表是0.59.6已证明的历史范围；以下当前表优先，JRN-06历史发布passed不再代表parent-goal完成。
 
 | ID | Required | 当前状态 | 证据与缺口 |
 | --- | --- | --- | --- |
@@ -26,6 +26,12 @@ flow=bugfix；task-id=dt-73b14f26；phase=validation；retrospective_state=pendi
 12:55实现Review：发现原地恢复绕过冷创建的bounded context完整性检查，已收敛为同一个prepareRunMessages；缺原来源时仍明确拒绝恢复，不让缺失上下文直接进入工具执行。原actor/queue/native/context四文件27项及新增guard所属文件9项通过；Node24最终三个触达文件22项通过。core/kernel/service类型检查、最后kernel构建及定向lint均通过。diff自动检查0error/6warning（journal469/400净减，SessionManager652/600净减，request近600、SessionRun近600及两组必要回归增长）；主观复核接受已有owner与显式生命周期，无未关闭实现finding，范围仅JRN-10至12。Changesets计划nextclaw0.59.7/core0.18.10/kernel0.19.8/Desktop0.0.308及其依赖闭包，当前全部待发布，不修改已发布版本。
 
 以下段落及0.59.6验收表为历史记录；其中清空队列和强制重启的旧方案已由scope revision 4替代，不能用于当前验收。
+
+13:02后续边界与交付决定：数据home本身尚未创建且父目录不可访问时，默认FileLogSink仍会经getDataPath提前mkdir，真实chmod复现初始化抛EACCES。已在原core path owner分离纯resolveDataPath，原getDataPath仍确保目录；默认logger只解析路径，日志IO由原捕获边界承担。core日志/路径3文件15项、tsc/build、定向lint通过（helpers既有深度warning），diff维护性与治理0error。原request/commands/product-activity/compaction相邻4文件33项通过。
+
+JRN-10至12的已证明回归修复应发布，避免继续保留0.59.6的错误锁死行为；该发布只关闭对应交付子目标，JRN-09仍开放，不能称parent-goal完成。产品版本计划0.59.7，全平台沿唯一release.yml target=all；文档与结构化说明明确原机首次触发仍调查，同时纠正0.59.6笔记的完整解决表述。ed1e4345075d25ca2ed0f5daa2cf70d5dbc94f92已推任务分支；旧源码Windows focused43678903973在新增home边界修复后已过时，主动取消，最终包装/真实安装由冻结新版的原发布owner单次构建验收，不另跑一套平行桌面产物。尚未dispatch正式发布，原主工作区7项Bibo WIP逐项保持。
+
+EXISTING_RELEASE_PATH：release.yml的npm-production/NPM_TOKEN原认证路径，最近真实成功parent43606811807（source518cb1434aac8291db3782a2d593f01b636d8f79），未迁移认证或改workflow。正式队列审计无active parent；25项版本变更、22个实际NPM发布包、41个构建闭包的dry-run通过，v0.59.7结构化说明ready；双语文档完整构建通过，README与release health通过。Docs构建的project-pulse生成漂移已单独恢复，未混入提交。JRN-10至12实现Review无未关闭finding，JRN-09仍是开放调查Required。
 
 已复现并修复的机制：普通事件原先先提交 actor 再后台持久化；故障不终止运行，后续锁存报错遮蔽首个 cause 并刷屏。现在全部 durable 事件经过同一 ingestion gate，首个错误只记录/通知一次，活动 runtime observer 随 run 生命周期监听故障并取消真实 controller、清空待运行输入；正常错误收尾不再递归写故障盘。observer 使用原 persisted source 发布 UI 投影，避免 clone 二次写入。另用真实 chmod 复现 loader 将 EACCES 返回 null，改为仅 ENOENT 表示缺失。原机最初的 IO/JSON 触发根因未完全定位，没有原文件；不宣称找回从未落盘的内容。
 

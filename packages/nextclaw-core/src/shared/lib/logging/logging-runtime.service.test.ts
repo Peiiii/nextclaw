@@ -80,22 +80,25 @@ describe("LoggingRuntime", () => {
     } finally { fs.chmodSync(logs, 0o700); stderr.mockRestore(); }
   });
 
-  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)("can initialize the default logger while its log directory is inaccessible", () => {
-    const logs = path.join(tempDir, "logs");
-    fs.mkdirSync(logs);
+  it.skipIf(process.platform === "win32" || process.getuid?.() === 0).each(["logs", "home"])("can initialize the default logger while its %s directory is inaccessible", blockedKind => {
+    const blocked = path.join(tempDir, "blocked");
+    const home = blockedKind === "home" ? path.join(blocked, "home") : tempDir;
+    const logs = path.join(home, "logs");
+    const inaccessible = blockedKind === "home" ? blocked : logs;
+    fs.mkdirSync(inaccessible);
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    vi.stubEnv("NEXTCLAW_HOME", tempDir);
+    vi.stubEnv("NEXTCLAW_HOME", home);
     try {
-      fs.chmodSync(logs, 0);
+      fs.chmodSync(inaccessible, 0);
       let runtime: LoggingRuntime | undefined;
       expect(() => { runtime = new LoggingRuntime(); runtime.ensureReady(); }).not.toThrow();
       expect(() => runtime!.getLogger("startup").error("storage error", new Error("first business cause"))).not.toThrow();
       expect(stderr.mock.calls.map(call => String(call[0])).join("\n")).toContain("first business cause");
       expect(stderr.mock.calls.length).toBeLessThanOrEqual(2);
-      fs.chmodSync(logs, 0o700);
+      fs.chmodSync(inaccessible, 0o700);
       runtime!.getLogger("startup").info("startup logging recovered");
       expect(fs.readFileSync(path.join(logs, "service.log"), "utf8")).toContain("startup logging recovered");
-    } finally { fs.chmodSync(logs, 0o700); stderr.mockRestore(); vi.unstubAllEnvs(); }
+    } finally { fs.chmodSync(inaccessible, 0o700); stderr.mockRestore(); vi.unstubAllEnvs(); }
   });
 
   it("retains the original filesystem cause in actual persisted and queried logs", () => {

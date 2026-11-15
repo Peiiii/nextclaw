@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.59.7",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-11-15",
+  "title": { "zh-CN": "NextClaw v0.59.7", "en-US": "NextClaw v0.59.7" },
+  "summary": {
+    "zh-CN": "修复会话误锁死，恢复存储访问后无需重启即可续聊，并补全底层故障诊断。Issue #73 原机首次触发仍在调查。",
+    "en-US": "Fix incorrectly locked conversations, resume after storage recovers without restarting, and retain underlying diagnostics. The first trigger reported in Issue #73 remains under investigation."
+  },
+  "links": { "html": {
+    "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-11-15-nextclaw-v0-59-7",
+    "en-US": "https://docs.nextclaw.io/en/notes/2026-11-15-nextclaw-v0-59-7"
+  } },
+  "sections": [{
+    "kind": "fix",
+    "title": { "zh-CN": "会话可用性与恢复", "en-US": "Conversation availability and recovery" },
+    "items": [{
+      "title": { "zh-CN": "已保存正文后的摘要错误不再锁会话", "en-US": "Summary failures no longer lock saved conversations" },
+      "body": {
+        "zh-CN": "正文已保存时，目录摘要或预览错误单独记录，不再永久拒绝输入。冷启动时单个会话读取错误不会阻断其它正常会话。",
+        "en-US": "Catalog summary or preview failures after content was saved are reported separately without permanently refusing input. One unreadable conversation no longer blocks healthy conversations during startup scanning."
+      }
+    }, {
+      "title": { "zh-CN": "存储恢复后无需重启续聊", "en-US": "Resume after storage recovers without restarting" },
+      "body": {
+        "zh-CN": "存储故障仍明确停止当前运行。保留当前进程中未执行的排队输入，恢复访问后继续发送即可核对历史、确认写入并续跑；已开始执行的失败请求不会自动重跑。退出进程后不保证保留未执行输入，不能找回从未保存的内容。",
+        "en-US": "Storage faults still stop the affected run clearly. Unexecuted queued input remains in the current process; sending again after access returns checks history and confirms a recovery write before continuing. Already executed failed requests are not replayed automatically. Unexecuted input is not guaranteed after process exit, and never-saved content cannot be recovered."
+      }
+    }, {
+      "title": { "zh-CN": "保留底层故障诊断", "en-US": "Retain underlying failure diagnostics" },
+      "body": {
+        "zh-CN": "日志保留原因链、系统错误码、路径、失败阶段和回滚结果。日志目录不可访问时不再反向打断聊天，恢复访问后继续写入日志。",
+        "en-US": "Logs retain cause chains, system error codes, paths, failure stages, and rollback results. Unavailable log directories no longer interrupt conversations, and logging resumes when access returns."
+      }
+    }]
+  }]
+}

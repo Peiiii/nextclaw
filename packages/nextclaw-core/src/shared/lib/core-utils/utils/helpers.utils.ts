@@ -11,12 +11,13 @@ export function ensureDir(path: string): string {
   return path;
 }
 
-export function getDataPath(): string {
+export function resolveDataPath(): string {
   const override = process.env[ENV_HOME_KEY]?.trim();
-  if (override) {
-    return ensureDir(resolve(override));
-  }
-  return ensureDir(resolve(homedir(), DEFAULT_HOME_DIR));
+  return override ? resolve(override) : resolve(homedir(), DEFAULT_HOME_DIR);
+}
+
+export function getDataPath(): string {
+  return ensureDir(resolveDataPath());
 }
 
 export function getWorkspacePath(workspace?: string): string {

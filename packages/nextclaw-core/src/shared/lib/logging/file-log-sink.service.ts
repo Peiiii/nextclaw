@@ -1,6 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
-import { getDataPath } from "@core/shared/lib/core-utils/index.js";
+import { resolveDataPath } from "@core/shared/lib/core-utils/index.js";
 import type { AppLogRecord } from "./app-logger.service.js";
 import { normalizeLogError } from "./log-error.utils.js";
 
@@ -101,9 +101,9 @@ export class FileLogSink {
   private readonly now: () => Date;
 
   constructor(options: FileLogSinkOptions = {}) {
-    this.serviceLogPath = options.serviceLogPath ?? resolve(getDataPath(), "logs", "service.log");
-    this.crashLogPath = options.crashLogPath ?? resolve(getDataPath(), "logs", "crash.log");
-    this.archiveDirPath = options.archiveDirPath ?? resolve(getDataPath(), "logs", "archive");
+    this.serviceLogPath = options.serviceLogPath ?? resolve(resolveDataPath(), "logs", "service.log");
+    this.crashLogPath = options.crashLogPath ?? resolve(resolveDataPath(), "logs", "crash.log");
+    this.archiveDirPath = options.archiveDirPath ?? resolve(resolveDataPath(), "logs", "archive");
     this.serviceMaxBytes = options.serviceMaxBytes ?? DEFAULT_SERVICE_MAX_BYTES;
     this.crashMaxBytes = options.crashMaxBytes ?? DEFAULT_CRASH_MAX_BYTES;
     this.now = options.now ?? (() => new Date());
