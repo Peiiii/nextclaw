@@ -1,8 +1,8 @@
 {
   "schema": "nextclaw.github-pages-apt-source/v1",
-  "releaseTag": "v0.59.6-desktop.1",
-  "assetName": "nextclaw-desktop_0.0.307_amd64.deb",
-  "packagePath": "pool/main/n/nextclaw-desktop/nextclaw-desktop_0.0.307_amd64.deb",
-  "size": 146465612,
-  "sha256": "75ef6769ee68354b7659e2058db2872b5ca3f372db375d6c0f494b8b7a39cf32"
+  "releaseTag": "v0.59.7-desktop.1",
+  "assetName": "nextclaw-desktop_0.0.308_amd64.deb",
+  "packagePath": "pool/main/n/nextclaw-desktop/nextclaw-desktop_0.0.308_amd64.deb",
+  "size": 146512658,
+  "sha256": "5e25cd463f255fc02017a4fbad79fc2e75e4c6b1414ed027fc0cedfabf15f1a4"
 }
