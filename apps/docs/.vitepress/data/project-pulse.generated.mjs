@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-11-14T08:55:51.708Z",
+  "generatedAt": "2026-11-15T09:17:15.859Z",
   "hero": {
-    "currentLoc": 311785,
-    "testLoc": 134955,
-    "trackedFiles": 3345,
-    "recentCommitCount": 69,
-    "activeDays30": 29,
-    "recentReleaseCount": 30,
-    "latestReleaseDate": "2026-11-12",
-    "latestNoteDate": "2026-11-13",
+    "currentLoc": 312144,
+    "testLoc": 135689,
+    "trackedFiles": 3351,
+    "recentCommitCount": 82,
+    "activeDays30": 30,
+    "recentReleaseCount": 32,
+    "latestReleaseDate": "2026-11-15",
+    "latestNoteDate": "2026-11-15",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 4018256,
-    "basePercentOfBenchmark": 7.76,
-    "lighterByPercent": 92.24
+    "benchmarkCodeLines": 4027304,
+    "basePercentOfBenchmark": 7.75,
+    "lighterByPercent": 92.25
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-07-18",
-        "label": "07-18",
-        "value": 207320
-      },
       {
         "key": "2026-07-19",
         "label": "07-19",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-11-14",
         "label": "11-14",
         "value": 311785
+      },
+      {
+        "key": "2026-11-15",
+        "label": "11-15",
+        "value": 312144
       }
     ],
     "testLocDaily": [
@@ -1557,14 +1557,14 @@ export default {
         "key": "2026-11-14",
         "label": "11-14",
         "value": 134955
+      },
+      {
+        "key": "2026-11-15",
+        "label": "11-15",
+        "value": 135689
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-10-16",
-        "label": "10-16",
-        "value": 1
-      },
       {
         "key": "2026-10-17",
         "label": "10-17",
@@ -1708,7 +1708,12 @@ export default {
       {
         "key": "2026-11-14",
         "label": "11-14",
-        "value": 0
+        "value": 10
+      },
+      {
+        "key": "2026-11-15",
+        "label": "11-15",
+        "value": 4
       }
     ],
     "commitWeekly": [
@@ -1770,7 +1775,7 @@ export default {
       {
         "key": "2026-11-09",
         "label": "11-09",
-        "value": 17
+        "value": 31
       }
     ],
     "releaseMonthly": [
@@ -1832,7 +1837,7 @@ export default {
       {
         "key": "2026-11",
         "label": "11/26",
-        "value": 1
+        "value": 3
       }
     ]
   },
@@ -1847,10 +1852,10 @@ export default {
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 52090,
-        "testCodeLines": 27992,
-        "files": 518,
-        "sharePercent": 16.7
+        "codeLines": 52390,
+        "testCodeLines": 28642,
+        "files": 523,
+        "sharePercent": 16.8
       },
       {
         "name": "packages/nextclaw-service",
@@ -1861,9 +1866,9 @@ export default {
       },
       {
         "name": "packages/nextclaw-core",
-        "codeLines": 16884,
-        "testCodeLines": 6994,
-        "files": 186,
+        "codeLines": 16943,
+        "testCodeLines": 7078,
+        "files": 187,
         "sharePercent": 5.4
       },
       {
@@ -1897,11 +1902,29 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 4018256,
-      "basePercentOfBenchmark": 7.76,
-      "lighterByPercent": 92.24
+      "benchmarkCodeLines": 4027304,
+      "basePercentOfBenchmark": 7.75,
+      "lighterByPercent": 92.25
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-11-15",
+        "tagCount": 23,
+        "sampleTags": [
+          "@nextclaw/channel-extension-dingtalk@0.2.59",
+          "@nextclaw/channel-extension-discord@0.2.59",
+          "@nextclaw/channel-extension-email@0.2.59"
+        ]
+      },
+      {
+        "date": "2026-11-14",
+        "tagCount": 12,
+        "sampleTags": [
+          "v0.59.4-desktop.1",
+          "@nextclaw/client-sdk@0.12.19",
+          "@nextclaw/companion@0.2.76"
+        ]
+      },
       {
         "date": "2026-11-12",
         "tagCount": 22,
@@ -1937,29 +1960,56 @@ export default {
           "@nextclaw/channel-extension-dingtalk@0.2.55",
           "@nextclaw/channel-extension-discord@0.2.55"
         ]
-      },
-      {
-        "date": "2026-10-02",
-        "tagCount": 22,
-        "sampleTags": [
-          "@nextclaw/channel-extension-dingtalk@0.2.55-beta.1",
-          "@nextclaw/channel-extension-discord@0.2.55-beta.1",
-          "@nextclaw/channel-extension-email@0.2.55-beta.1"
-        ]
-      },
-      {
-        "date": "2026-09-30",
-        "tagCount": 27,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.12.4-beta.0",
-          "@nextclaw/channel-extension-dingtalk@0.2.55-beta.0",
-          "@nextclaw/channel-extension-discord@0.2.55-beta.0"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-11-15-nextclaw-v0-59-7",
+        "date": "2026-11-15",
+        "tags": [],
+        "en": {
+          "title": "2026-11-15 · NextClaw v0.59.7",
+          "description": "Fix incorrectly locked conversations, resume after storage recovers without restarting, and retain underlying diagnostics.",
+          "href": "/en/notes/2026-11-15-nextclaw-v0-59-7"
+        },
+        "zh": {
+          "title": "2026-11-15 · NextClaw v0.59.7",
+          "description": "修复会话误锁死，恢复存储访问后无需重启即可继续聊天，并补全故障诊断。",
+          "href": "/zh/notes/2026-11-15-nextclaw-v0-59-7"
+        }
+      },
+      {
+        "slug": "2026-11-14-nextclaw-v0-59-6",
+        "date": "2026-11-14",
+        "tags": [],
+        "en": {
+          "title": "2026-11-14 · NextClaw v0.59.6",
+          "description": "Stop affected runs when history cannot be saved and include history resources for older Desktop hosts.",
+          "href": "/en/notes/2026-11-14-nextclaw-v0-59-6"
+        },
+        "zh": {
+          "title": "2026-11-14 · NextClaw v0.59.6",
+          "description": "会话保存失败时明确停止，并补齐旧桌面宿主读取历史所需的运行资源。",
+          "href": "/zh/notes/2026-11-14-nextclaw-v0-59-6"
+        }
+      },
+      {
+        "slug": "2026-11-14-nextclaw-v0-59-5",
+        "date": "2026-11-14",
+        "tags": [],
+        "en": {
+          "title": "2026-11-14 · NextClaw v0.59.5",
+          "description": "Stop affected runs and report the cause when conversation history cannot be saved.",
+          "href": "/en/notes/2026-11-14-nextclaw-v0-59-5"
+        },
+        "zh": {
+          "title": "2026-11-14 · NextClaw v0.59.5",
+          "description": "会话记录无法保存时停止运行并报告原因，避免只在内存中继续回复。",
+          "href": "/zh/notes/2026-11-14-nextclaw-v0-59-5"
+        }
+      },
       {
         "slug": "2026-11-13-nextclaw-v0-59-4",
         "date": "2026-11-13",
@@ -3494,9 +3544,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-11-14T08:55:49.103Z",
+    "locGeneratedAt": "2026-11-15T09:17:13.800Z",
     "sourceCount": {
-      "notes": 79,
+      "notes": 82,
       "scopes": 8
     }
   }
