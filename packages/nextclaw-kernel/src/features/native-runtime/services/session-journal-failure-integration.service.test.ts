@@ -90,7 +90,7 @@ async function fixture(directory: string, failure: "timer" | "terminal" | "none"
 }
 
 describe("native runtime durable failure integration", () => {
-  it("recovers one actor after real file permissions are restored and serializes concurrent new sends", async () => {
+  it.skipIf(process.platform === "win32" || process.getuid?.() === 0)("recovers one actor after real file permissions are restored and serializes concurrent new sends", async () => {
     const directory = await mkdtemp(join(tmpdir(), "nextclaw-native-real-permission-"));
     directories.push(directory);
     const current = await fixture(directory, "none");

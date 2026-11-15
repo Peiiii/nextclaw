@@ -4,10 +4,11 @@
 
 2026-11-15用户纠偏后已重开，整体未完成。用户明确指出日志缺口必须修、未查明首次触发不能当完整解决，且一刀切停止运行可能使产品更不可用。Issue #73已重新打开，未发送评论。0.59.6/kernel0.19.7/Desktop0.0.307已发布及其CI成功仍是历史事实，不能替代当前开放目标。原反馈机器的JSON触发仍未证实，没有原journal与完整日志；不宣称恢复从未落盘内容。
 
-flow=bugfix；task-id=dt-73b14f26；phase=delivery；retrospective_state=pending；scope-revision=4。本次返工仍复用原worktree/分支，写前HEAD=b684c1ddb38cdac301c4203510d76b3a12038502、工作区干净；全部当前改动属于本任务，主工作区WIP不动。旧required表是0.59.6已证明的历史范围；以下当前表优先，JRN-06历史发布passed不再代表parent-goal完成。
+flow=bugfix；task-id=dt-73b14f26；phase=task-understanding；retrospective_state=pending；scope-revision=4。本次返工仍复用原worktree/分支，写前HEAD=b684c1ddb38cdac301c4203510d76b3a12038502、工作区干净；全部当前改动属于本任务，主工作区WIP不动。JRN-10至12的修复和0.59.7全平台发布已完成，原机首因JRN-09仍等待现场材料，parent-goal未完成。旧required表是0.59.6已证明的历史范围；以下当前表优先，发布passed不替代原事故根因验收。
 
 | ID | Required | 当前状态 | 证据与缺口 |
 | --- | --- | --- | --- |
+| JRN-06 | true | passed（0.59.7交付子目标） | parent43679498232成功；NPM22包、16个OS×Node安装cell、unsupported guard、Runtime和Desktop闭合。30项非空公开Desktop资产，双类stable manifest0.59.7、APT0.0.308、双站文档同源验证通过 |
 | JRN-09 | true | not-run | 原机首次触发根因未完全定位；11月15日12:50重新读取Issue仍无附件、0评论。仅有锁存stack，首次cause已经丢失，无法逆推出其code。Issue保持open；请求向作者索取脱敏材料的文字已准备，尚待用户明确授权，未发评论 |
 | JRN-10 | true | passed | 真实FileLogSink写入/query保留cause、code/errno/syscall/path/dest、Aggregate清理异常；transaction记录stage/seq/offset/rollback。真实日志目录不可写及默认初始化失败不再抛回业务，stderr有界保留首因、恢复后重新写文件；错误图总预算防指数放大。core 13项、tsc及build通过 |
 | JRN-11 | true | passed | 修前真实canonical写入成功后catalog故障或metadata读取/解析失败仍锁actor；修后独立降级，一次诊断、后续发消息与冷开通过。metadata保存后catalog错误同样隔离。冷catalog重建遇坏metadata保留原文件与parse cause，健康会话仍可启动；terminal catalog故障不会冷开伪造中断 |
@@ -32,6 +33,20 @@ flow=bugfix；task-id=dt-73b14f26；phase=delivery；retrospective_state=pending
 JRN-10至12的已证明回归修复应发布，避免继续保留0.59.6的错误锁死行为；该发布只关闭对应交付子目标，JRN-09仍开放，不能称parent-goal完成。产品版本计划0.59.7，全平台沿唯一release.yml target=all；文档与结构化说明明确原机首次触发仍调查，同时纠正0.59.6笔记的完整解决表述。ed1e4345075d25ca2ed0f5daa2cf70d5dbc94f92已推任务分支；旧源码Windows focused43678903973在新增home边界修复后已过时，主动取消，最终包装/真实安装由冻结新版的原发布owner单次构建验收，不另跑一套平行桌面产物。尚未dispatch正式发布，原主工作区7项Bibo WIP逐项保持。
 
 EXISTING_RELEASE_PATH：release.yml的npm-production/NPM_TOKEN原认证路径，最近真实成功parent43606811807（source518cb1434aac8291db3782a2d593f01b636d8f79），未迁移认证或改workflow。正式队列审计无active parent；25项版本变更、22个实际NPM发布包、41个构建闭包的dry-run通过，v0.59.7结构化说明ready；双语文档完整构建通过，README与release health通过。Docs构建的project-pulse生成漂移已单独恢复，未混入提交。JRN-10至12实现Review无未关闭finding，JRN-09仍是开放调查Required。
+
+### 0.59.7已发布，原机首次触发仍开放（2026-11-15 13:55）
+
+正式父流程[43679498232](https://github.com/Peiiii/nextclaw/actions/runs/43679498232)从13:04:43到13:48:48成功，共44分05秒；source6194c7976bbfd6de36ff672c372f4dbb704cff4f，release commit4e75336a7d4241fde7b327ad8df399a79ca93a4d，feedback proof target=all。NPM publish job成功终态13:18:59，可作NPM_READY上界（从dispatch算14分16秒，非内部精确事件时间）；该job13分25秒，含准备产物等待，60秒目标未达。Runtime job13:23:27–13:26:17；Desktop job13:26:19–13:48:41，共22分22秒，是最终关键路径。仅读终态结构化job摘要，不读成功job日志；没有用等待时间推断未知的构建内部原因。
+
+`AUTOMATION_INTERVENTIONS=0`：正式owning dispatch之后未手工恢复、重跑、补资产或另起publisher。一次target=all自动闭合22包、16个安装cell、Runtime与Desktop。此前开发期取消的过时Windows qualification不是正式发布阶段干预，已单列留痕；不能把它写成没有发生。耗时目标未达如实记录，现有owner已自动闭合，没有证据支持为本次改变发布框架或跳过构建验证。
+
+[Desktop v0.59.7-desktop.1](https://github.com/Peiiii/nextclaw/releases/tag/v0.59.7-desktop.1)已公开、非prerelease，30项资产全部非空，target/tag均指向4e75336a7d4241fde7b327ad8df399a79ca93a4d。公开NPM Runtime与Desktop win32-x64 stable manifest均latestVersion0.59.7、notes URL为本版；APT Version0.0.308；Docs双站verify为source6194c7976bbfd6de36ff672c372f4dbb704cff4f、tree83b86e6cdc5af326d246ab34d1dcb24b8989c3eafaeb788ae017ee08aaa0eed8。22个精确registry版本均200并带integrity，CLI latest0.59.7，core0.18.10、kernel0.19.8。其它平台完整合同消费成功parent，不重复读成功job日志。
+
+分支闭合检查通过，remote master已含产品与全部发布记录，无release-only遗漏。任务分支安全快进到release commit；原主工作区7项Bibo WIP原样保留，reconcile返回LOCAL_WORKTREE_RETRYING，由单例worker95867继续，未stash/reset/rebase，也不是用户待办。全量fetch遇3个无关历史tag同名冲突，未覆盖它们；本版两枚精确tag已取得并通过闭合检查。
+
+发布后仅测试可移植性收尾：POSIX chmod用例显式跳过Windows/root（其权限语义不同），原注入ENOSPC/terminal/catalog跨平台集成仍运行。该用例本地复验通过，未改变shipped运行逻辑，不追加changeset。当前JRN-09缺原journal/完整故障时间窗日志，Issue仍open；已准备索取脱敏材料的评论，因当前会话要求对外消息须明确授权而尚未发送。
+
+本次纠偏的复盘落点为原canonical commit边界、SessionRun/SessionPendingInputs恢复生命周期、core logging/path owner及其红→绿回归；旧公开0.59.6“完整解决”表述已纠正。`retrospective_decision=updated-original-owners`（仅已确认缺陷）；没有新增AGENTS/Skill或一次性检查器。现有方法本已要求真实复现和parent完成门，前次未正确执行，不能靠重复规则冒充优化。`parent_status=rework-awaiting-source-evidence`，retrospective_state仍pending，不能把本次发布当作全部完成。
 
 已复现并修复的机制：普通事件原先先提交 actor 再后台持久化；故障不终止运行，后续锁存报错遮蔽首个 cause 并刷屏。现在全部 durable 事件经过同一 ingestion gate，首个错误只记录/通知一次，活动 runtime observer 随 run 生命周期监听故障并取消真实 controller、清空待运行输入；正常错误收尾不再递归写故障盘。observer 使用原 persisted source 发布 UI 投影，避免 clone 二次写入。另用真实 chmod 复现 loader 将 EACCES 返回 null，改为仅 ENOENT 表示缺失。原机最初的 IO/JSON 触发根因未完全定位，没有原文件；不宣称找回从未落盘的内容。
 
@@ -94,6 +109,8 @@ Docs重试于23:19成功，23:25独立双站verify通过：commit518cb1434aac829
 - `ncp-agent-session-journal.store.ts`：无净增长；只区分真实回滚写失败与显式拒绝并改回根公共type import。未为一次写故障扩展存储架构。
 
 ## NPM 包发布记录
+
+2026-11-15本次0.59.7批次：22个精确版本已发布且registry均含integrity：`@nextclaw/core@0.18.10`、`@nextclaw/kernel@0.19.8`、`nextclaw@0.59.7`、`@nextclaw/client-sdk@0.12.20`、`@nextclaw/companion@0.2.77`、`@nextclaw/harness@0.2.34`、`@nextclaw/mcp@0.3.60`、`@nextclaw/ncp-mcp@0.2.60`、`@nextclaw/nextclaw-narp-runtime-opencode@0.2.60`、`@nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.60`、`@nextclaw/remote@0.3.77`、`@nextclaw/runtime@0.4.59`、`@nextclaw/server@0.23.20`、`@nextclaw/service@0.7.14`、`@nextclaw/ui@0.27.11`；以及`@nextclaw/channel-extension-dingtalk`、`@nextclaw/channel-extension-discord`、`@nextclaw/channel-extension-email`、`@nextclaw/channel-extension-slack`、`@nextclaw/channel-extension-telegram`、`@nextclaw/channel-extension-wecom`、`@nextclaw/channel-extension-whatsapp`各`0.2.59`。Desktop私有版本0.0.308。以下为0.59.6历史记录。
 
 首次stable批次已发布9包：`@nextclaw/companion@0.2.76`、`@nextclaw/client-sdk@0.12.19`、`@nextclaw/harness@0.2.33`、`@nextclaw/kernel@0.19.7`、`@nextclaw/remote@0.3.76`、`@nextclaw/server@0.23.19`、`@nextclaw/service@0.7.13`、`@nextclaw/ui@0.27.10`、`nextclaw@0.59.5`。兼容修复新增`nextclaw@0.59.6`，其余8包不重复发布；当前9个精确版本registry元数据均200且含integrity，nextclaw latest=0.59.6。Desktop私有版本0.0.307，三个Changesets版本变动中实际NPM仅nextclaw一个。
 
