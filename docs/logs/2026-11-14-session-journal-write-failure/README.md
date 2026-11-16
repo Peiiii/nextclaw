@@ -245,3 +245,5 @@ Docs重试于23:19成功，23:25独立双站verify通过：commit518cb1434aac829
 复盘落点已执行并验证：原ingestion/actor/runtime observer修复不可靠续跑与诊断，保留真实故障与压力回归；原native资源和bundle资产合同纳入libSQL binding及缺二进制拒绝，Node20/Windows旧壳实际验证；原Runtime selector等待精确source active prepare，保留错误source/失败状态门。未新增全局规则、第二套publisher或数据库fallback；单次SHA手填疏漏当下修正，临时DNS/跨境低速按现有失败job恢复，不把偶发环境事件泛化成新框架。`AUTOMATION_INTERVENTIONS=5`，本批不能宣称零人工干预。
 
 发布恢复实施纠错：首版0a8d0488a内联release.yml，actionlint通过但GitHub在c0b0efb5dd拒绝“Workflow release cannot listen to itself”，两个push检查未运行job；没有触发重复发包。改由release-recovery.yml接收事件，release.yml恢复原生产配置。planned-path preflight、9项脚本直接执行回归、两workflow actionlint通过；实际触发仍待验收，明确保留失败记录。
+
+22:19:40原parent attempt3在Desktop失败：preflight43884004514确已创建、queued且jobs=[]、displayTitle仅desktop-release-preflight，旧脚本按dispatch标题轮询3分钟没有匹配而退出；恢复控制器正确拒绝未分类错误，没有掩盖。JRN-20 required running，修原desktop-release-github dispatch使用官方return_run_details直接取得workflow_run_id，preflight/build两消费者按精确ID等待，删除93行旧preflight标题扫描及closure扫描。官方依据https://github.blog/changelog/2026-02-19-workflow-dispatch-api-now-returns-run-ids/ 。31项定向回归通过，maintainability 0error/0warning；缺ID明确失败，不盲重发。仍需新控制平面沿原all recovery消费已发布0.59.9和原Draft0828055e5c，不重发NPM/Runtime；待真实验证。

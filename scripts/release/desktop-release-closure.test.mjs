@@ -250,8 +250,8 @@ test("desktop publication is Draft-first and workflow-dispatched", () => {
   );
 
   assert.match(githubRelease, /"--draft"/);
-  assert.match(githubRelease, /"workflow",\s*\n\s*"run"/);
-  assert.match(githubRelease, /`dispatch_id=\$\{workflowDispatchId\}`/);
+  assert.match(githubRelease, /return_run_details: true/);
+  assert.match(githubRelease, /dispatch_id: randomUUID\(\)/);
   assert.match(workflow, /run-name: desktop-release .* dispatch=\$\{\{ inputs\.dispatch_id \}\}/);
   assert.match(
     releaseScript,
@@ -290,7 +290,7 @@ test("desktop owner infers APT recovery without public recovery inputs", () => {
   const releaseScript = readFileSync(new URL("./release-desktop.mjs", import.meta.url), "utf8");
   const githubRelease = readFileSync(new URL("./desktop-release-github.mjs", import.meta.url), "utf8");
   const recovery = readFileSync(new URL("./desktop-release-recovery.mjs", import.meta.url), "utf8");
-  assert.match(githubRelease, /publish_linux_apt_only=\$\{publishLinuxAptOnly === true\}/);
+  assert.match(githubRelease, /publish_linux_apt_only: String\(publishLinuxAptOnly === true\)/);
   assert.match(
     releaseScript,
     /inferExistingReleaseRecovery\(options, run\) \?\? inferExistingDesktopDraft\(options, run\)[\s\S]*?options\.tag \?\?= readNextDesktopReleaseTag/,
@@ -303,10 +303,10 @@ test("desktop Draft dispatch carries an immutable target before the tag exists",
   const closure = readFileSync(new URL("./desktop-release-closure.mjs", import.meta.url), "utf8");
   const githubRelease = readFileSync(new URL("./desktop-release-github.mjs", import.meta.url), "utf8");
 
-  assert.match(githubRelease, /"--ref",\s*\n\s*branch/);
+  assert.match(githubRelease, /ref: branch/);
   assert.doesNotMatch(githubRelease, /"--ref",\s*\n\s*tag/);
-  assert.match(githubRelease, /`release_target=\$\{target\}`/);
-  assert.match(githubRelease, /`node_version=\$\{nodeVersion\}`/);
+  assert.match(githubRelease, /release_target: target/);
+  assert.match(githubRelease, /node_version: nodeVersion/);
   assert.equal(
     workflow.match(/node-version: \$\{\{ inputs\.node_version \}\}/g)?.length,
     2,

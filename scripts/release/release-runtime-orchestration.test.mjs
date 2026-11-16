@@ -8,8 +8,7 @@ import test from "node:test";
 
 import {
   assertPublishedDesktopRuntimeIdentity,
-  resolveDesktopReleaseTarget,
-  selectPreflightWorkflowRun
+  resolveDesktopReleaseTarget
 } from "./desktop-release-preflight.mjs";
 import {
   selectPreparedRuntimeWorkflowRun,
@@ -94,7 +93,6 @@ test("workflow dispatch selectors use unique caller identity instead of mutable 
       headSha: "new-master"
     }
   ];
-  assert.equal(selectPreflightWorkflowRun(runs, "mine", startedAt)?.headSha, "new-master");
   assert.equal(selectRuntimeWorkflowRun(runs, "mine", startedAt)?.headSha, "new-master");
 });
 
@@ -293,5 +291,22 @@ test("all-platform Desktop calls pass frozen content separately from the product
       step,
       /--target "(?:\$DESKTOP_TARGET|\$\{\{ needs\.publish-npm\.outputs\.desktop_target \}\})"/,
     );
+  }
+});
+
+
+test("desktop dispatch returns the exact queued run without title discovery", async () => {
+  const {dispatchDesktopWorkflowRun} = await import('./desktop-release-github.mjs');
+  const request = {repo: 'owner/repo', workflow:'desktop-release-preflight.yml',
+    branch:'master', inputs:{target_sha:'frozen',dispatch_id:'unknown-title'}};
+  const result = dispatchDesktopWorkflowRun(request, (args, options) => {
+    assert.equal(args.includes('--input'), true);
+    assert.equal(args[3], 'repos/owner/repo/actions/workflows/desktop-release-preflight.yml/dispatches');
+    assert.deepEqual(JSON.parse(options.input), {ref:'master',inputs:request.inputs,return_run_details:true});
+    return JSON.stringify({workflow_run_id:43884004514});
+  });
+  assert.deepEqual(result, {runId:43884004514});
+  for (const value of [{}, {workflow_run_id:0}, {workflow_run_id:'42'}]) {
+    assert.throws(() => dispatchDesktopWorkflowRun(request, () => JSON.stringify(value)), /do not redispatch/);
   }
 });

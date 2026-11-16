@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { dispatchDesktopWorkflowRun } from "./desktop-release-github.mjs";
 
 const ROOT_DIR = process.cwd();
 
@@ -76,33 +77,6 @@ function readWorkflowRun(repo, runId) {
   ]);
 }
 
-export function selectPreflightWorkflowRun(runs, dispatchId, startedAt = 0) {
-  return runs.find(
-    (entry) =>
-      String(entry.displayTitle ?? "").includes(`dispatch=${dispatchId}`) &&
-      Date.parse(entry.createdAt ?? "") >= startedAt - 60_000
-  );
-}
-
-function findWorkflowDispatchRun(options) {
-  const { dispatchId, dispatchStartedAt, preflightWorkflow, repo } = options;
-  const runs = readJsonCommand("gh", [
-    "run",
-    "list",
-    "--repo",
-    repo,
-    "--workflow",
-    preflightWorkflow,
-    "--event",
-    "workflow_dispatch",
-    "--limit",
-    "20",
-    "--json",
-    "databaseId,createdAt,displayTitle,headSha,status,conclusion,url"
-  ]);
-  return selectPreflightWorkflowRun(runs, dispatchId, dispatchStartedAt);
-}
-
 async function waitForWorkflowSuccess(options, runEntry, label) {
   const { repo, runAttempts, runDelayMs } = options;
   let previousLine = "";
@@ -122,18 +96,6 @@ async function waitForWorkflowSuccess(options, runEntry, label) {
     await new Promise((resolveDelay) => setTimeout(resolveDelay, runDelayMs));
   }
   throw new Error(`Timed out waiting for desktop ${label}: ${runEntry.url}`);
-}
-
-async function waitForPreflightRun(options) {
-  const { preflightWorkflow, target } = options;
-  for (let attempt = 1; attempt <= 30; attempt += 1) {
-    const runEntry = findWorkflowDispatchRun(options);
-    if (runEntry) {
-      return runEntry;
-    }
-    await new Promise((resolveDelay) => setTimeout(resolveDelay, 5000));
-  }
-  throw new Error(`Timed out locating ${preflightWorkflow} run for ${target}.`);
 }
 
 async function waitForPreflightSuccess(options, runEntry) {
@@ -162,32 +124,10 @@ export async function runRemotePreflight(options) {
     return;
   }
 
-  const dispatchId = `desktop-preflight-${randomUUID()}`;
-  const dispatchStartedAt = Date.now();
-
-  run("gh", [
-    "workflow",
-    "run",
-    preflightWorkflow,
-    "--repo",
-    repo,
-    "--ref",
-    branch,
-    "-f",
-    `channel=${channel}`,
-    "-f",
-    `desktop_version=${desktopVersion}`,
-    "-f",
-    `runtime_version=${runtimeVersion}`,
-    "-f",
-    `minimum_launcher_version=${minimumLauncherVersion}`,
-    "-f",
-    `node_version=${options.nodeVersion}`,
-    "-f",
-    `target_sha=${target}`,
-    "-f",
-    `dispatch_id=${dispatchId}`
-  ]);
-  const runEntry = await waitForPreflightRun({ ...options, dispatchId, dispatchStartedAt });
-  await waitForPreflightSuccess(options, runEntry);
+  const { runId } = dispatchDesktopWorkflowRun({ repo, workflow: preflightWorkflow, branch, inputs: {
+    channel, desktop_version: desktopVersion, runtime_version: runtimeVersion,
+    minimum_launcher_version: minimumLauncherVersion, node_version: options.nodeVersion,
+    target_sha: target, dispatch_id: `desktop-preflight-${randomUUID()}`
+  }});
+  await waitForPreflightSuccess(options, { databaseId: runId });
 }

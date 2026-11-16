@@ -7,7 +7,8 @@ function runGh(args, options = {}) {
   const output = execFileSync("gh", args, {
     cwd: ROOT_DIR,
     encoding: "utf8",
-    stdio: options.capture === false ? "inherit" : ["ignore", "pipe", "pipe"]
+    input: options.input,
+    stdio: options.capture === false ? "inherit" : [options.input ? "pipe" : "ignore", "pipe", "pipe"]
   });
   return typeof output === "string" ? output.trim() : "";
 }
@@ -71,33 +72,24 @@ export function createDraftRelease(options) {
   assertReleaseIsDraft(options);
 }
 
+export function dispatchDesktopWorkflowRun({ repo, workflow, branch, inputs }, runCommand = runGh) {
+  const response = JSON.parse(runCommand([
+    "api", "--method", "POST", `repos/${repo}/actions/workflows/${workflow}/dispatches`,
+    "-H", "X-GitHub-Api-Version: 2022-11-28", "--input", "-"
+  ], { input: JSON.stringify({ ref: branch, inputs, return_run_details: true }) }));
+  if (!Number.isSafeInteger(response.workflow_run_id) || response.workflow_run_id <= 0) {
+    throw new Error("Workflow dispatch did not return a valid workflow_run_id; do not redispatch blindly.");
+  }
+  return { runId: response.workflow_run_id };
+}
+
 export function dispatchReleaseWorkflow(options) {
   const { branch, nodeVersion, publishLinuxAptOnly, releaseNotesUrl, repo, tag, target, workflow } = options;
-  const workflowDispatchId = randomUUID();
-  const workflowDispatchStartedAt = Date.now();
-  runGh([
-    "workflow",
-    "run",
-    workflow,
-    "--repo",
-    repo,
-    "--ref",
-    branch,
-    "-f",
-    `release_tag=${tag}`,
-    "-f",
-    `release_target=${target}`,
-    "-f",
-    `release_notes_url=${releaseNotesUrl}`,
-    "-f",
-    `node_version=${nodeVersion}`,
-    "-f",
-    `dispatch_id=${workflowDispatchId}`,
-    "-f",
-    `publish_linux_apt_only=${publishLinuxAptOnly === true}`
-  ]);
-  console.log(`[desktop:release] dispatched ${workflow} for hidden Draft ${tag} (${workflowDispatchId})`);
-  return { workflowDispatchId, workflowDispatchStartedAt };
+  return dispatchDesktopWorkflowRun({ repo, workflow, branch, inputs: {
+    release_tag: tag, release_target: target, release_notes_url: releaseNotesUrl,
+    node_version: nodeVersion, dispatch_id: randomUUID(),
+    publish_linux_apt_only: String(publishLinuxAptOnly === true)
+  }});
 }
 
 export function prepareDesktopDraft(options, aheadCount, run) {

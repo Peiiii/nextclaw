@@ -49,44 +49,11 @@ function readTagSha(tag) {
 }
 
 async function waitForWorkflowRun(options) {
-  const {
-    repo,
-    runId,
-    workflow,
-    workflowDispatchId,
-    workflowDispatchStartedAt = 0
-  } = options;
-  if (runId) {
-    return await readWorkflowRun(repo, runId);
+  const { repo, runId } = options;
+  if (!Number.isSafeInteger(Number(runId)) || Number(runId) <= 0) {
+    throw new Error("Desktop closure requires the dispatch run ID; refusing title-based discovery.");
   }
-
-  for (let attempt = 1; attempt <= 30; attempt += 1) {
-    const runs = await readJsonCommand("gh", [
-      "run",
-      "list",
-      "--repo",
-      repo,
-      "--workflow",
-      workflow,
-      "--event",
-      "workflow_dispatch",
-      "--limit",
-      "40",
-      "--json",
-      "databaseId,createdAt,displayTitle,headSha,status,conclusion,url"
-    ]);
-    const runEntry = runs.find(
-      (entry) =>
-        String(entry.displayTitle ?? "").includes(`dispatch=${workflowDispatchId}`) &&
-        Date.parse(entry.createdAt ?? "") >= workflowDispatchStartedAt - 60_000
-    );
-    if (runEntry) {
-      return runEntry;
-    }
-    await sleep(5000);
-  }
-
-  throw new Error(`Timed out locating ${workflow} workflow_dispatch run for ${options.tag}.`);
+  return await readWorkflowRun(repo, runId);
 }
 
 async function readWorkflowRun(repo, runId) {
