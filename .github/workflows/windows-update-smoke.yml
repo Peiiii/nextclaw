@@ -2,6 +2,14 @@ name: windows-update-smoke
 
 on:
   workflow_dispatch:
+    inputs:
+      scenario:
+        description: Windows diagnostic scenario
+        type: choice
+        default: update
+        options:
+          - update
+          - session-journal
   push:
     branches:
       - master
@@ -23,6 +31,7 @@ concurrency:
 
 jobs:
   windows-update-smoke:
+    if: ${{ inputs.scenario != 'session-journal' }}
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
@@ -54,3 +63,45 @@ jobs:
           if ($joinedOutput -notmatch "Runtime update available:|NextClaw runtime is already up to date") {
             throw "nextclaw update --check output missing runtime status"
           }
+
+  session-journal-repro:
+    if: ${{ inputs.scenario == 'session-journal' }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.1
+      - name: Fetch the immutable historical Windows bundle
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          gh release download v0.59.1-desktop.1 --repo Peiiii/nextclaw --pattern nextclaw-bundle-win32-x64-0.59.1.zip --dir $env:RUNNER_TEMP
+          if ($LASTEXITCODE -ne 0) { throw 'Historical bundle download failed' }
+          Expand-Archive -Path "$env:RUNNER_TEMP/nextclaw-bundle-win32-x64-0.59.1.zip" -DestinationPath "$env:RUNNER_TEMP/journal-repro"
+      - name: Reproduce large history and post-compaction writes
+        shell: pwsh
+        run: |
+          $env:REPRO_RESULT_PATH = "$env:RUNNER_TEMP/journal-pressure-result.json"
+          node scripts/stress/session-journal-repro.mjs "$env:RUNNER_TEMP/journal-repro/bundle" *> "$env:RUNNER_TEMP/journal-pressure.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Historical pressure scenario failed; see the diagnostic artifact' }
+      - name: Reproduce truncated tool argument fragments
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          $env:REPRO_TOOL_ARGS = '1'
+          $env:REPRO_RESULT_PATH = "$env:RUNNER_TEMP/journal-tool-args-result.json"
+          node scripts/stress/session-journal-repro.mjs "$env:RUNNER_TEMP/journal-repro/bundle" *> "$env:RUNNER_TEMP/journal-tool-args.log"
+          if ($LASTEXITCODE -ne 0) { throw 'Historical tool-argument scenario failed; see the diagnostic artifact' }
+      - name: Preserve bounded diagnostic evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: session-journal-repro-windows-node24
+          path: |
+            ${{ runner.temp }}/journal-*-result.json
+            ${{ runner.temp }}/journal-*.log
+          if-no-files-found: warn

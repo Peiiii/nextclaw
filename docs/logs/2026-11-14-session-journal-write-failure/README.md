@@ -2,6 +2,14 @@
 
 ## 迭代完成说明
 
+2026-11-16 10:24恢复JRN-09调查。用户要求具体说明下一步并继续解决，原目标和发布授权保持；当前仅调查，不因新增实验自动再发产品版本。写前HEAD=a8c183162b9f7df91a6c2a94f8a5c78466dbf657、工作区干净；本轮归属原分支与worktree。已读取原Issue全部条件，冻结失败判据为首次真实异常→journal停止而live继续→冷读缺失；不把任意磁盘注入算原事故复现。
+
+已取得NextClaw0.59.1/core0.18.7/kernel0.19.3及隔离依赖207包；原Windows正式bundle含同名dist-BSD8HAiL.mjs，SHA256=c29d4429a41a103969f57499f06dea372750d0736be79ed9c397b5fde82f7e7d。该包throwIfFailed实际throw行242888，Issue记242851，相差37行；版本tag同为d022fb20a82478c63c90366268bd5ad4ba06f9b2，但不能仅凭文件名宣称原机二进制相同。若需现场补充，chunk hash/实际bundle来源是明确缺口之一。
+
+10:51旧NPM代码在Mac/Node24.18.1预实验：2会话各20,730,934字节、3239记录、1106消息，3轮压缩后11,544个事件，无人为故障注入；冷读各1112条，3个stream回复parts hash一致，无存储错误。第一版固定摘要不符合旧版完整协议，压缩阶段明确拒绝；修正fixture协议后才取得上述结果，不能把fixture失败说成原事故。旧JSON writer本来就stringify后parse校验；0.59.1 catalog也已剔除未绑定deleted_at参数，故本机历史deleted_at日志不能直接解释本事故。
+
+本机无法执行Win native sharp，已保留该环境失败，不改Windows发布物借用Mac native模块。下一步沿原windows-update-smoke的显式诊断分支在Windows runner/Node24.18.1运行发布bundle；原artifact不改，仅副本加观察导出，目标规模调到20,963,430字节，另测截断tool参数。11:15检查实际结果；JRN-09仍未复现/未通过。
+
 2026-11-15用户纠偏后已重开，整体未完成。用户明确指出日志缺口必须修、未查明首次触发不能当完整解决，且一刀切停止运行可能使产品更不可用。Issue #73已重新打开，未发送评论。0.59.6/kernel0.19.7/Desktop0.0.307已发布及其CI成功仍是历史事实，不能替代当前开放目标。原反馈机器的JSON触发仍未证实，没有原journal与完整日志；不宣称恢复从未落盘内容。
 
 flow=bugfix；task-id=dt-73b14f26；phase=task-understanding；retrospective_state=pending；scope-revision=4。本次返工仍复用原worktree/分支，写前HEAD=b684c1ddb38cdac301c4203510d76b3a12038502、工作区干净；全部当前改动属于本任务，主工作区WIP不动。JRN-10至12的修复和0.59.7全平台发布已完成，原机首因JRN-09仍等待现场材料，parent-goal未完成。旧required表是0.59.6已证明的历史范围；以下当前表优先，发布passed不替代原事故根因验收。

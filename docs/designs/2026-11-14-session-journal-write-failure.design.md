@@ -1,5 +1,13 @@
 # Issue #73：会话持久化失败边界
 
+## JRN-09历史版本复现补充（2026-11-16）
+
+本节仅定义调查用实验，不是新的产品修复或发布。复用原Windows诊断workflow，增加显式dispatch的session-journal场景；普通update路径及push行为不变，权限保持contents:read。独立脚本从官方0.59.1 Windows bundle读取manifest并核对原chunk SHA256；仅在副本末尾加观测导出，不改业务实现，原chunk保持原字节。实际Windows/Node24.18.1上运行旧Store/SessionManager/SessionRun/compaction，合成数据home，不读取真实配置、会话或凭据。
+
+两个实验：正常压力与截断tool参数字符串。各用两个会话、1106消息、3239源记录、目标20,963,430字节及240k上下文配置，三轮真实压缩owner后立即高频写入；压缩provider返回协议完整的固定摘要，不执行外部模型或工具。观察源append/projection/catalog/metadata的首个真实异常；不注入人为throw或磁盘故障。冷读必须保留原始历史，且完成回复parts的hash与live一致，否则明确失败。实验失败不自动等于原机首因；Mac预实验不能替代Windows结果，未取得原chunk原机hash也不能宣称二进制完全相同。
+
+plan:not-required（单轮实验）；design-document:已有设计局部补充。方案复审：只读获取历史发布物，SHA/平台不匹配即退出，原实现不改、仅临时副本可观察；坏fixture与persistence首因分开记录，全部并发任务settle后才dispose。原事故目标不缩减，JRN-09仍open。design-review:passed（仅调查工具）。无需changeset，不进入正式publisher。
+
 ## 用户结果、来源与现状
 
 来源与 active contract `JRN-20261114` 归[本批日志](../logs/2026-11-14-session-journal-write-failure/README.md)。用户要求先复现、修复、充分验证后发布新 stable，全平台沿本 chat 已明确的 Desktop 范围。
