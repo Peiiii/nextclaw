@@ -13,7 +13,7 @@
 | JRN-09 | true | unverified | 原0.59.1首次journal异常仍未知，保持Issue打开 |
 | JRN-13 | true | passed | 移除runtime归档白名单/读预算与通用再次授权；真实native及实际模型read_file/write_file、冷开再次执行通过，旧确认数据可读 |
 | JRN-14 | true | passed | preview保留工具协议、consumer兼容旧异常字段、旧checkpoint文案精确更新；原失败入口转绿，真实持久化和冷开续用通过，原正文完整 |
-| JRN-15 | true | running | target=all父流程43835025509，冻结9792e004299ef6862fdccd25b719c792d856709b；首次缺内容已在发包前拒绝并纠正，等待NPM/Runtime/Desktop/公开渠道全部终态 |
+| JRN-15 | true | passed | target=all父流程43835025509最终success；13包NPM、16个OS×Node安装cell/unsupported guard、4个Runtime包、5平台Desktop/30资产、双类公开manifest/APT/双站说明均闭合；首次材料缺失恢复1次 |
 
 本节优先于下方scope revision 4历史状态；未受影响的JRN-10至12证据继续有效，存储保护回归将定向复验。
 
@@ -36,6 +36,24 @@ EXISTING_RELEASE_PATH：原release.yml/npm-production/NPM_TOKEN；最近成功pa
 17:10:05 NPM_READY：同父publish stable NPM batch成功，08:55:04Z→09:10:05Z，15分01秒，time budget:missed（60秒目标）。公开nextclaw@latest=0.59.8，release commit/tag=9d974e86327d1726f9b23d33848677d989a00876；kernel0.19.9、ncp-agent-runtime0.4.29、runtime-next0.1.32、Desktop私有0.0.309。发布13个NPM包、版本变化16项，仍不代表Runtime/Desktop完成。父流程当前继续安装矩阵和Runtime channel，Desktop待后续owner。只读父终态observer session=1511，无手工逐步publisher。
 
 两处docs于17:06完整核验commit9792e004299ef6862fdccd25b719c792d856709b、tree7a83bfbc475b19f655657a6687dc3be4b6f00bfe6b314cfefc87134c1cedb63f；公开structured JSON HTTP200/version0.59.8。首次传播期间domestic commit mismatch不判成部署失败，待对应docs run43834946111成功后同verify入口通过。fetch --tags遇三个既有历史tag冲突，仅保留原标签未强制覆盖；本次13个新tag和master已正常取得，exact nextclaw tag及源版本读取成功，不把无关旧tag冲突当作本次发布失败。
+
+17:37用户提醒有新信息，已读取作者[6912473634](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6912473634)：bundle来自官方Windows Desktop；旧SHA、首个底层异常、工具序列均未留存且已无法回溯，不再重复索取。作者基于现有文件和当时检测窗口的记忆确认一个jsonl重启后不存在，另一个仍存在但mtime停在旧消息。此为新事实报告，不等于已有审计证据证明应用主动删除，也不证明两个会话曾有同一规模；原20,963,430字节不能自动套到缺文件的那个会话。
+
+已发送并回读[6912798389](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6912798389)：只请求现有故障时间窗脱敏归档ZIP及脱敏日志目录，保留时间戳/组件/stack/一致A/B映射，不需要凭据、正文、完整ID或再覆盖旧版；说明NPM/Runtime已发、Desktop仍运行。已有持续跟进授权，不重复请用户批准。
+
+旧正式tag源码的进一步边界核对：普通createSession先await importSessionSnapshot；后者先write metadata，再writeFile(jsonl，即使messages为空)，完成投影/catalog后才返回。因此“普通首次创建写文件失败却直接正常开始回答”不能仅靠现有证据成立。getOrCreateAgentRunSession另有catalog已有summary分支，不重新创建原文件；缓存/数据目录与文件缺失时点需现场日志核对。journal store显式unlink在deleteSession；offline维护有backup/marker并rename切换、启动restore回原source，不把其rm(marker/pending/projection)误说成删除journal。尚无直接证据命中删除/迁移或首次创建首因；不改数据、不追加未经复现的产品修复，JRN-09保持unverified，下一输入是作者可提供的现有归档。
+
+17:17:56同父Runtime channel成功（17:14:27开始，3分29秒）；nextclaw@0.59.8 GitHub Release已非Draft/非Prerelease，4个OS runtime ZIP均非空。Desktop parent job17:17:58开始，当前继续由原五平台child闭环。
+
+## 0.59.8 全平台交付与本批复盘（2026-11-16 17:52）
+
+父流程[43835025509](https://github.com/Peiiii/nextclaw/actions/runs/43835025509)最终success，08:54:08Z→09:49:03Z，共54分55秒。NPM job15分01秒（60秒目标missed），Runtime3分29秒；Desktop parent17:17:58→17:48:54共30分56秒，为最慢阶段。只按父终态和必要异常查询，未重读成功job日志。Desktop child[43838681279](https://github.com/Peiiii/nextclaw/actions/runs/43838681279)全部success：五平台构建/安装冒烟、资产、公开、channel、APT、Pages。darwin-x64构建17:19:35→17:41:52是矩阵最慢项（22分17秒），其后资产与投影闭环；不把硬timeout当预期时长。
+
+公开核验：[v0.59.8-desktop.1](https://github.com/Peiiii/nextclaw/releases/tag/v0.59.8-desktop.1)非Draft/非Prerelease，target9d974e86327d1726f9b23d33848677d989a00876，30资产全部非空，Windows x64 installer 200,518,553字节。公开win32-x64 Desktop/NPM Runtime两类stable manifest均0.59.8、同版releaseNotesUrl；NPM hostKind=npm-runtime-bundle；APT Packages=0.0.309。原有launcher floor按owner保持，未为补丁提高兼容门槛。文档双站commit/tree及结构化JSON200证明见上。
+
+复盘决定（本批已交付子目标）：updated-original-owners。旧测试把拒绝工具当成成功，未证明用户在归档后仍能完成任务；现改为真实native/client/journal下实际工具读写、大结果、旧字段/旧检查点兼容、冷开继续的回归。修正落在原runtime执行器、descriptor producer、image consumer及恢复提示/问答owner，无新增权限框架或“解锁”开关。原all内容门已有效阻止不完整发布，本次Agent混用product与all准备顺序已纠正；既有合同足够，不增加平行AGENTS/Skill规则或一次性检查器。AUTOMATION_INTERVENTIONS=1，不宣称零人工。
+
+本批JRN-13/14/15交付及复盘completed；parent-goal仍有JRN-09 unverified，retrospective_state=pending（整体），parent_status=rework-awaiting-source-evidence。作者新回复已改变缺文件分支的取证重点；17:47复查暂无归档附件，未要求已不可恢复的证据、未将当前hash冒充旧hash。收到现有归档后继续调查；不因0.59.8全平台成功关闭Issue，也不声称已在作者原机验收。
 
 ## 迭代完成说明
 
