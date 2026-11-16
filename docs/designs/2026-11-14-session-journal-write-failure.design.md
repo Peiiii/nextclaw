@@ -2,6 +2,8 @@
 
 ## 2026-11-17 发布可靠性返工（用户再次要求完成自动交付）
 
+03:20实证补充：公开Release/channel/APT已完成，但最终all恢复43937756541在NPM recovery身份判断误拒绝scripts/dev/node/project-node-version-contract.test.mjs。此文件是本轮新workflow的开发测试，不进入冻结NPM/runtime。原target解析器按路径保留严格runtime限制，只新增scripts/dev下.test.mjs开发测试这一类允许项；真实scripts/dev执行文件、packages源码和锁文件仍拒绝。补充现有身份测试并以真实325f→当前HEAD的git diff复验，原all恢复再跑，不新发版本或放宽产品来源。设计Review passed：分类落原preflight owner，未允许整个scripts/dev或任意测试路径。
+
 02:48追加实际失败：desktop child43929802861的Mac ARM未获runner被cancel，其它平台仍在构建时parent43928744907即提前失败。既有Recovery未覆盖desktop-release。首次仅补workflow_run订阅在本次child18:52Z终态后仍未产生恢复事件，不能把配置通过当成恢复证明。最终选定原owner最小修正：Recovery增加desktop-release固定path白名单，沿已有同仓master/精确容量annotation/无runner/失败run/attempt<4门做failed-only恢复，保留其它成功构建；不另设恢复器。closure不以单job失败提前结束，等workflow终态；每次failure终态仅一次显式workflow_dispatch原Recovery(run_id=既有child)，取得官方ack ID后给控制器120秒启动恢复，active时清除等待计时，超过等待或非failure终态明确失败。删除无实证的desktop workflow_run订阅，避免双入口竞争；显式dispatch适用GITHUB_TOKEN派发的child，不依赖其后续事件是否再触发。总runAttempts不增加，业务错误不会被重试。设计Review passed：恢复判定只归原控制器，父流程请求后观察同ID；避免重复dispatch构建/重建已成功平台。补充JRN-24验收：执行真实handler证明desktop容量恢复且编译失败/到限拒绝；真实等待器证明active中单job取消不提前退出、同ID attempt切换后成功、单次恢复请求、未恢复失败有界退出，再观察本次child容量恢复。
 
 当前16cell矩阵在每个OS重复申请4个runner，Mac ARM单cell在多次容量取消中阻断后续；parent attempt3安装已全部通过/Runtime success，Desktop在17:53Z对已acknowledge的preflight43923039596作首次run查询却404，未做可见性等待直接退出。不能把自动重试等同可靠交付。产品source8e/已发布0.59.10/tag325f均保持，不发新产品版本。

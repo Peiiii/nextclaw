@@ -34,6 +34,8 @@ JRN-21 required red：真实源journal/SQLite/readRunWindow/model projection复�
 
 03:08最终控制增量Review：68项全通过，actionlint/diff/治理通过，diff-only维护性0error/1近预算warning（closure442/500，净增5）。状态观察与容量重试分类仍分别归closure/原Recovery，官方dispatch receipt日志归原GitHub owner；未新增权限框架、publisher、版本例外或放宽平台验证。controller并发仍按原run ID串行，旧事件按attempt门拒绝，后续事件可到达但不再作为重试持续执行前提。当前desktop ARM构建和资格ARM排队中，尚无完整发布声明。
 
+03:22公开核验与最后身份门返工：desktop43929802861 attempt2已全部success（五平台构建/安装冒烟、Release、channel、APT、Pages），公开v0.59.10-desktop.1非Draft/非prerelease、target325f259f3a25aa1de6d3945a0619414c12a3ec67；原资产owner精确30名及非空检查通过，Windows x64 exe200550168字节。裸公开Desktop/NPM Runtime stable manifest均0.59.10且指向同版notes，Runtime hostKind=npm-runtime-bundle；APT0.0.311；notes JSON与registry latest0.59.10。主线4dc329261a已部署持续恢复owner；真实43937087512自动将资格run恢复attempt4并继续观察，前三平台成功，ARM尚queued，未冒称新矩阵全过。最终all恢复43937756541（第6次发布恢复介入）在NPM recovery误把scripts/dev/node/project-node-version-contract.test.mjs当未发布runtime而拒绝，未重新publish。修原preflight分类，仅允许scripts/dev下.test.mjs，执行文件/包源码/锁仍拒绝；35项相关回归、真实325f→4dc的git diff解析通过，维护性0error/0warning。首次尝试以SHA作dispatch ref遭422无run创建，已改回master+实际expected_head，无产物动作，不增发布身份。接下来从修后master再走唯一all恢复，保留已发布产物；第7次介入待dispatch。
+
 ## 23:16 全平台交付与发布恢复验收完成
 
 当前交付子目标phase=delivery→retrospective，retrospective_state=completed；parent原JRN-09仍unverified，Issue保持open，不能称最初事故全部解决。JRN-16/17的结果可读性与偏移修复验证继续有效；JRN-18=passed，JRN-19=passed，JRN-20=passed。下方running/估计均为历史检查点。

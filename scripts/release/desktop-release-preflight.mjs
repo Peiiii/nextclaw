@@ -22,7 +22,7 @@ export function resolveDesktopReleaseTarget(publishedCommit, sourceCommit, optio
   runCommand("git", ["merge-base", "--is-ancestor", publishedCommit, sourceCommit]);
   const paths = runCommand("git", ["diff", "--name-only", publishedCommit, sourceCommit])
     .split("\n").filter(Boolean);
-  const allowed = /^(apps\/(desktop|docs)\/|scripts\/(desktop|release)\/|\.github\/workflows\/|\.agents\/|docs\/|commands\/|AGENTS\.md$|CLAUDE\.md$)/;
+  const allowed = /^(apps\/(desktop|docs)\/|scripts\/(desktop|release)\/|scripts\/dev\/.*\.test\.mjs$|\.github\/workflows\/|\.agents\/|docs\/|commands\/|AGENTS\.md$|CLAUDE\.md$)/;
   const runtimeChanges = paths.filter((path) => !allowed.test(path));
   if (runtimeChanges.length > 0) {
     throw new Error(`Desktop recovery cannot include unpublished runtime changes: ${runtimeChanges.join(", ")}`);

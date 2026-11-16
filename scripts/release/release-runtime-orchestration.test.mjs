@@ -53,6 +53,8 @@ test("desktop recovery isolates packaging fixes from the published runtime ident
   assert.equal(resolve("apps/docs/notes.md\n.github/workflows/release.yml"), "current");
   assert.equal(resolve("apps/desktop/package.json\napps/docs/notes.md"), "current");
   assert.equal(resolve("apps/desktop/package.json\ndocs/later.md"), "current");
+  assert.equal(resolve("scripts/dev/node/project-node-version-contract.test.mjs"), "current");
+  assert.throws(() => resolve("scripts/dev/node/project-node-version-contract.mjs"), /unpublished runtime changes/);
   assert.throws(() => resolve("packages/nextclaw/src/index.ts"), /unpublished runtime changes/);
   assert.throws(() => resolve("pnpm-lock.yaml"), /unpublished runtime changes/);
 });
