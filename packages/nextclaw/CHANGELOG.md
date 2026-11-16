@@ -1,5 +1,16 @@
 # nextclaw
 
+## 0.59.10
+
+### Patch Changes
+
+- 8e7849a: Fix valid compacted sessions being rejected when bounded previews omit original message parts. Preserve typed preview parts and source coordinates, rebuild old derived indexes, and prevent derived summary failures from locking a successfully written journal.
+- Updated dependencies [8e7849a]
+  - @nextclaw/kernel@0.19.11
+  - @nextclaw/remote@0.3.80
+  - @nextclaw/server@0.23.23
+  - @nextclaw/service@0.7.17
+
 ## 0.59.9
 
 ### Patch Changes

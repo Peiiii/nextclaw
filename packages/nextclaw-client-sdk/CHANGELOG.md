@@ -1,5 +1,11 @@
 # @nextclaw/client-sdk
 
+## 0.12.23
+
+### Patch Changes
+
+- @nextclaw/server@0.23.23
+
 ## 0.12.22
 
 ### Patch Changes
