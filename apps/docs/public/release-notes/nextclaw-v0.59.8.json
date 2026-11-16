@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.59.8",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-11-16",
+  "title": { "zh-CN": "NextClaw v0.59.8", "en-US": "NextClaw v0.59.8" },
+  "summary": {
+    "zh-CN": "恢复归档会话的工具调用，修复新会话大工具结果崩溃，并兼容旧检查点和异常预览。",
+    "en-US": "Restore tool calls in archived conversations and fix crashes after large tool results, including older checkpoints and malformed previews."
+  },
+  "links": { "html": {
+    "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-11-16-nextclaw-v0-59-8",
+    "en-US": "https://docs.nextclaw.io/en/notes/2026-11-16-nextclaw-v0-59-8"
+  } },
+  "sections": [{
+    "kind": "fix",
+    "title": { "zh-CN": "恢复工具调用可用性", "en-US": "Restore tool availability" },
+    "items": [{
+      "title": { "zh-CN": "归档历史不再封禁普通工具", "en-US": "Archived history no longer blocks ordinary tools" },
+      "body": {
+        "zh-CN": "当前明确请求可以继续执行，无需统一再次确认。旧恢复检查点也采用这一行为；需要的旧条件和结果仍通过历史核实，不自动重放旧操作。",
+        "en-US": "Current explicit requests can continue without blanket reconfirmation, including sessions with older recovery checkpoints. Necessary earlier facts are verified from history without automatically replaying old actions."
+      }
+    }, {
+      "title": { "zh-CN": "修复大结果与旧预览的崩溃", "en-US": "Fix crashes from large results and older previews" },
+      "body": {
+        "zh-CN": "工具结果预览不再破坏内容数组，旧异常字段也能兼容读取。保留原始正文及真实写盘失败保护；Issue #73 原 0.59.1 首次写入异常的根因仍在调查。",
+        "en-US": "Tool previews no longer corrupt content arrays, and older malformed fields are handled. Original content and actual write-failure protection remain intact. The first 0.59.1 write-failure trigger in Issue #73 remains under investigation."
+      }
+    }]
+  }]
+}
