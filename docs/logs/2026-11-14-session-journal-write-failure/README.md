@@ -20,6 +20,10 @@
 
 本轮仅新增可重复诊断入口、实验与事实记录；无产品源码变化、无changeset、无新版本发布。默认Windows update smoke入口保持原行为，新增场景只有显式dispatch运行；权限contents:read。actionlint、node --check、定向ESLint、新代码治理与diff维护性检查均通过（0error/0warning）。当前原workflow支持单模块Windows实验，无需重建桌面安装包或重新发布来取得这份证据。阶段仍为原事故调查，复盘/parent完成门保持开放；下一动作是经授权索取上述精确材料后定向回放，不再把这些阴性实验称为原事故已复现。
 
+2026-11-16用户明确答复“允许发送并继续跟进”后，已按批准原文发送[现场材料请求](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6907351622)，以🤖[墨爪]署名；发布前读取评论为空，发布后回读正文与批准文本一致。写入receipt comment_id=6907351622，已验证发布账号Peiiii/user_id=42300463；恢复时只按该明确comment ID及正文判断本次自身输出，不屏蔽同账号或同前缀的其它Agent消息。此授权覆盖本Issue材料收集与后续跟进，不再重复请求相同许可。
+
+请求内容是实际chunk SHA256/来源、首个非锁存错误、最后操作/工具类型，以及重启后原jsonl存在与大小变化；没有要求公开凭据、正文或完整私密文件。当前已解除对外联系授权缺口，等待作者提供可定向回放的材料；原事故JRN-09仍unverified，Issue保持open。作者回复时先按新证据定位第一个失败边界，再决定是否需要代码修改和适用发布，不把发出评论本身当作调查完成。
+
 2026-11-15用户纠偏后已重开，整体未完成。用户明确指出日志缺口必须修、未查明首次触发不能当完整解决，且一刀切停止运行可能使产品更不可用。Issue #73已重新打开，未发送评论。0.59.6/kernel0.19.7/Desktop0.0.307已发布及其CI成功仍是历史事实，不能替代当前开放目标。原反馈机器的JSON触发仍未证实，没有原journal与完整日志；不宣称恢复从未落盘内容。
 
 flow=bugfix；task-id=dt-73b14f26；phase=task-understanding；retrospective_state=pending；scope-revision=4。本次返工仍复用原worktree/分支，写前HEAD=b684c1ddb38cdac301c4203510d76b3a12038502、工作区干净；全部当前改动属于本任务，主工作区WIP不动。JRN-10至12的修复和0.59.7全平台发布已完成，原机首因JRN-09仍等待现场材料，parent-goal未完成。旧required表是0.59.6已证明的历史范围；以下当前表优先，发布passed不替代原事故根因验收。
@@ -27,7 +31,7 @@ flow=bugfix；task-id=dt-73b14f26；phase=task-understanding；retrospective_sta
 | ID | Required | 当前状态 | 证据与缺口 |
 | --- | --- | --- | --- |
 | JRN-06 | true | passed（0.59.7交付子目标） | parent43679498232成功；NPM22包、16个OS×Node安装cell、unsupported guard、Runtime和Desktop闭合。30项非空公开Desktop资产，双类stable manifest0.59.7、APT0.0.308、双站文档同源验证通过 |
-| JRN-09 | true | unverified | 11月16日已执行正式0.59.1 Windows/Node24.18.1双会话、精确规模、3轮压缩、高频文本及截断tool参数实验，均未命中原事故；完整1106条原消息parts与新回复cold hash一致。原机payload、首个异常与实际chunk hash仍缺，尚待对外联系作者授权，Issue保持open，未发评论 |
+| JRN-09 | true | unverified | 正式0.59.1 Windows/Node24.18.1双会话、精确规模、3轮压缩、高频文本及截断tool参数实验均未命中原事故；1106条原消息parts与新回复cold hash一致。用户已授权联系作者，请求评论6907351622已发布并回读；当前等待原机payload线索、首个异常与实际chunk hash，Issue保持open |
 | JRN-10 | true | passed | 真实FileLogSink写入/query保留cause、code/errno/syscall/path/dest、Aggregate清理异常；transaction记录stage/seq/offset/rollback。真实日志目录不可写及默认初始化失败不再抛回业务，stderr有界保留首因、恢复后重新写文件；错误图总预算防指数放大。core 13项、tsc及build通过 |
 | JRN-11 | true | passed | 修前真实canonical写入成功后catalog故障或metadata读取/解析失败仍锁actor；修后独立降级，一次诊断、后续发消息与冷开通过。metadata保存后catalog错误同样隔离。冷catalog重建遇坏metadata保留原文件与parse cause，健康会话仍可启动；terminal catalog故障不会冷开伪造中断 |
 | JRN-12 | true | passed | 实际chmod制造EACCES，连续两次故障/恢复，同actor可继续消息并冷读；持续故障明确拒绝且保留原队列。真实native/client/SessionManager证明旧runtime清理未完成不会启动新运行，原queued输入先执行、新输入随后回复；已执行请求不重放；未确认启动不暗中重试；并发发送共享恢复、steering保留、dispose不复活 |
