@@ -22,7 +22,9 @@ JRN-21 required red：真实源journal/SQLite/readRunWindow/model projection复�
 
 01:17发现prepare43912639495已failure：Mac x64在pnpm deploy命中ERR_PNPM_NO_MATCHING_VERSION，@typescript-eslint/parser8.73.0要求types8.73.0，但runner metadata当时最高8.72.2；Mac ARM未获runner cancel。NPM artifact及Windows/Linux已成功。当前精确registry types8.73.0 GET 200，表明条件已改变，不改源锁文件8.56.0或重发产品包。扩展原Release Recovery到prepare工作流，只有确切缺失版本现已可用才failed-only恢复，永久缺失/普通编译错误拒绝；原run_id受控bootstrap仍完整校验。10项真实handler回归、actionlint、维护性0error/0warning通过，无新publisher/版本特判。详见design增量。当前等待部署控制器并从原run恢复，尚未算成功，不冒称全平台可用。
 
-控制增量部署ae5c51c046（合并NPM publisher325f259f3a，保留source8e与版本身份），bootstrap控制器43918220835 success但未发生rerun：实际REST run.name是动态run-name，不是静态workflow名，新增白名单过早返回。已改以run.path固定workflow文件路径分类，并用真实动态title回归，10项仍通过；首次green不计实际恢复成功。期间parent43912757861因两个Mac cell未获runner而failure；需要同一控制器对原prepare及原parent分别受控恢复，不另dispatch publisher。人工入口触发次数目前1（无变更），后续两入口要如实累计，不能称首轮零干预。
+控制增量部署ae5c51c046（合并NPM publisher325f259f3a，保留source8e与版本身份），bootstrap控制器43918220835 success但未发生rerun：实际REST run.name是动态run-name，不是静态workflow名，新增白名单过早返回。已改以run.path固定workflow文件路径分类，并用真实动态title回归，10项仍通过；首次green不计实际恢复成功。期间parent43912757861因Mac ARM64/Node24 cell未获runner而failure；需要同一控制器对原prepare及原parent分别受控恢复，不另dispatch publisher。人工入口触发次数目前1（无变更），后续两入口要如实累计，不能称首轮零干预。
+
+01:30/01:32控制平面3c561a5d640（完整SHA从git取）部署后，两次受控bootstrap均有实际动作：控制器43919043786在01:30:22.290 notice Resumed run43912639495 attempt2；控制器43919357538在01:32:11.683 notice Resumed run43912757861 attempt2，原API也回读两任务attempt2。只调用原failed-jobs API，无新publisher/NPM重新上传。01:39两Mac Runtime均in_progress，parent仅ARM64/Node24 cell queued。人工恢复入口累计3（首次误拒绝1、实际prepare及parent各1）；这是AUTOMATION_INTERVENTIONS=3，不宣称零干预。NPM latest0.59.10及docs已公开，Runtime/Desktop尚未完整闭合，预计02:00–02:30仍是估计。当前observer session85752仅跟原parent终态；最终还需公开manifest/APT/桌面30资产核验。原JRN-09仍unverified，客户无现场资料，不据本地同文复现关闭Issue。
 
 ## 23:16 全平台交付与发布恢复验收完成
 
