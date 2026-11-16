@@ -18,6 +18,8 @@ JRN-21 required red：真实源journal/SQLite/readRunWindow/model projection复�
 
 00:55:11正式target=all parent [43912757861](https://github.com/Peiiii/nextclaw/actions/runs/43912757861)已接管，冻结source8e7849ace2af4722323236af9d397e5c19f75f51，ordinary atomic push同时闭合远程master/任务分支；exact prepare43912639495、docs43912639338。expected_head直接取git，不手填；正式dispatcher后只读observer跟随终态，不人工串联子流程。本批AUTOMATION_INTERVENTIONS=0。预计NPM_READY01:10、全平台01:40–02:00，均为估计；JRN-23正式发布running，原JRN-09仍unverified。最终补强的已知source总数上界四种非法边界回归通过，参数end局部只读改名后治理全过、匹配tsc及所属6项复验通过，不削弱校验；没有未关闭Review finding。
 
+01:10:53 NPM owning job成功；01:15直接读取registry.npmjs.org/nextclaw/latest确认0.59.10及dist integrity，常规npm view本机查询缓慢但不是发布失败。NPM_READY首dispatch至此942秒（15分42秒），time budget: missed。Runtime/Desktop仍待闭合，未宣称全平台完成。docs43912639338 attempt1 success，原deploy:docs:verify再次确认双生产站source8e7849ace2/tree826a2ad0fb998412156a9cea1426bf9dc101e04771ba252244e857060cd3ae4e一致。Issue进度评论6923115912已发送并回读确认Peiiii及本次正文，只按具体操作ID识别自己，不重复索要无留存材料；最终发布后再交付下载入口。本批AUTOMATION_INTERVENTIONS仍0。
+
 ## 23:16 全平台交付与发布恢复验收完成
 
 当前交付子目标phase=delivery→retrospective，retrospective_state=completed；parent原JRN-09仍unverified，Issue保持open，不能称最初事故全部解决。JRN-16/17的结果可读性与偏移修复验证继续有效；JRN-18=passed，JRN-19=passed，JRN-20=passed。下方running/估计均为历史检查点。
