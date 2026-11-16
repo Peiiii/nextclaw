@@ -1,5 +1,17 @@
 # Issue #73 会话日志持久化故障
 
+## 23:16 全平台交付与发布恢复验收完成
+
+当前交付子目标phase=delivery→retrospective，retrospective_state=completed；parent原JRN-09仍unverified，Issue保持open，不能称最初事故全部解决。JRN-16/17的结果可读性与偏移修复验证继续有效；JRN-18=passed，JRN-19=passed，JRN-20=passed。下方running/估计均为历史检查点。
+
+最终唯一all恢复parent43887007685 success，22:33:41–23:12:50（39分9秒），Desktop child43888006998 success（22:39:21–23:12:34），11个job全部success，五平台真实构建及安装冒烟、发布资产/公开Release/更新渠道/APT完整闭合。公开v0.59.9-desktop.1为非Draft、非prerelease，30个非空资产，target精确0828055e5c6068d09a49a660826e6b8a35ee4295，Desktop0.0.310；Windows x64 exe200566524字节。NPM latest0.59.9、Desktop与NPM-runtime两公开stable manifest latestVersion0.59.9且notes URL为本版，APT实际Package nextclaw-desktop/Version0.0.310；裸公开URL复验通过（早先23:09仍见旧缓存，未冒称当时已更新）。双站docs再次由原verify脚本确认77558dd4b及tree hash一致，结构化公开notes version0.59.9。
+
+发布首dispatch21:23:59至最终23:12:50总108分51秒；NPM_READY21:36:32，首dispatch至此753秒，time budget: missed（60秒目标）。NPM job21:24:50–21:36:32=702秒，其中Publish prepared batch and close Git state21:25:45–21:36:15=630秒，为该job最慢步骤；未读取成功job全日志，不能再细分为registry或artifact等待。最终Intel Mac job21分25秒（22:39:32–23:00:57），Build Desktop macOS步骤11分54秒，随后发布渠道/APT约12分钟。没有因超时降验收。人工恢复4、自动容量恢复1；另有self-listen部署错误与jobs可见性边界的实现返工，不宣称首次零干预完成。
+
+复盘已落原owner：产品结果保留/轮次及旧索引/UI语义回归避免固定报告冒充读取成功；原发布控制器仅对明确平台容量/连接超时自动恢复，真实43883089570已证明不用Agent手动续跑；原github dispatch owner改官方returned ID并统一queued状态读取，preflight43887936600与Desktop43888006998实链均成功。32项发布关联/closure回归、9项恢复分类回归、actionlint、diff检查通过，维护性无error，closure近预算1个warning且净减。没有再加AGENTS/Skill规则、版本特判、第二publisher或放宽门禁。若确定性失败或达到恢复上限，仍明确失败，不承诺任意外部故障无限自愈。
+
+Issue评论[6920421283](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6920421283)已发送并回读确认author Peiiii/正文/安装链接，说明真实nonce+SHA冷开验证、自动索引升级及原首次停写首因仍未知。最新10条评论无新作者归档；不重复索要已无法找回的旧hash/首异常。实际本机用户体验仍待作者升级确认，原journal缺失/停写的现场触发仍缺脱敏归档，不能用本轮发布替代原首因验收。
+
 ### 当前发布检查点：22:42
 
 控制平面cbe23697be229ef0fa2dc9444faf3fc662315f3c，唯一当前all恢复parent [43887007685](https://github.com/Peiiii/nextclaw/actions/runs/43887007685)，22:33:41开始；NPM recovery22:36:01、Runtime recovery22:38:07通过，复用既有0.59.9身份，未生成0.59.10。精确ID预检43887936600已success；原parent自动派发Desktop child [43888006998](https://github.com/Peiiii/nextclaw/actions/runs/43888006998)于22:39:21开始，目标仍原Draft v0.59.9-desktop.1 / 0828055e5c6068d09a49a660826e6b8a35ee4295 / Desktop0.0.310。当前child in_progress，未宣称公开可下载。JRN-20的dispatch/queued查询实链已通过，完整交付JRN-18仍running；原JRN-09仍unverified。observer session72855只读父终态；全平台估计23:10附近，非保证。人工恢复累计4（docs failed-only1、原parent failed-only1、部署两次已确认控制缺口后的all恢复各1），自动runner恢复另有真实成功证据，不计人工。旧43884004514排队数据与cancel接口不一致，未重复盲取消、其只读预检不会发布资产。
