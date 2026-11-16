@@ -1,5 +1,9 @@
 # Issue #73 会话日志持久化故障
 
+## 发布恢复返工（2026-11-16）
+
+用户追问全自动流程并要求修好，扩展到原发布owner的瞬态故障恢复。实现仅release.yml终态订阅/分类/有界failed-job rerun，仍调用同一publisher，既有产品验收保持有效。JRN-19 required running：脚本直接执行平台真实failure形状、确定性失败拒绝、来源/陈旧/取消/到限门及docs超时/内容不一致分离，9项通过；actionlint、diff --check通过，diff维护性0error/0warning。实现Review检查事件权限、同仓库master来源、当前attempt对账、单run互斥与成功checkpoint复用，无未关闭finding。无TS改动；不另发产品changeset。默认分支部署后仍需真实workflow_run触发证据，不能把手工rerun称为自动修复通过。JRN-18及原JRN-09仍未完成。
+
 ## 2026-11-16 20:39 结果不可读与轮次错误返工（当前 scope revision 6）
 
 用户提供客户AI原话：每次回显变“已归档”，抓Issue、算SHA256、读11-14反馈不能获得实际内容；随后报告Invalid assistant model round part offsets，并明确要求审计今天改动。目标仍是可实际完成任务且经验证后全平台发布，授权保持；原.59.1首因JRN-09不降标准。flow=bugfix，phase=delivery，retrospective_state=pending，单代理。写前HEAD952d0b9201b567ffb8cf40c5b76621318cfcc6ff/worktree干净；全部新改动属本轮，主工作区WIP不动；origin/master另有独立star-history指标6986669e5f，已合并保留。正式设计/Review见原设计scope revision 6节。
@@ -30,6 +34,10 @@ Review finding已闭合：缓存升级草稿初放在已有977行journal总测�
 对外已发并回读评论6917588820，承认0.59.8仍不充分并说明已复现的实际结果/坐标/旧flag问题；没有公开客户私密正文，未宣称0.59.9已发布。继续跟进授权沿用，不重复请用户确认。
 
 21:24 source冻结与正式dispatch完成：产品提交a60572e7d后合并独立指标提交，最终source77558dd4b15837cceeb1cdb47203192ec092d20a，工作区干净、ordinary atomic push到master及任务分支。原release.yml target=all父流程[43875370755](https://github.com/Peiiii/nextclaw/actions/runs/43875370755)接管，exact-SHA prepare43875336507；expected_head由git实际读取，没有手填或复用旧source。本批AUTOMATION_INTERVENTIONS=0。预期首检查点NPM_READY约21:45、全平台22:20–22:40，均为估计。仅父终态observer只读跟随，任何真实失败从原owner checkpoint恢复，不手工拼发布阶段。原JRN-09仍unverified，所有发布完成点不能替代原首因门。
+
+21:36:32 NPM owning job成功，registry随后确认nextclaw@latest=0.59.9；父流程继续Runtime/Desktop，尚未宣称全平台完成。文档43875336211的build/global/domestic均成功，但verify runner连接docs.nextclaw.net四次超时（ConnectTimeoutError，非版本或内容不一致）。原deploy:docs:verify --expected-commit在本机核验双生产域名同source77558dd4b及tree hash7a5f92cdbc9119d3d9a130be7f7fffec336a928f22c0426544fff5408bbd4e0b通过；仅对原docs run执行--failed恢复，不重复部署或发布NPM，attempt 2的verify已success，整run成功。本批产品父流程干预0，含文档完整交付AUTOMATION_INTERVENTIONS=1，原因是云端连通性；不把本次恢复宣称零人工干预。最新Issue回读仍9条，无新作者归档，原首因证据缺口未改变。
+
+21:53:15父流程attempt 1失败：14/16安装cell已success，余下macos-15 arm64 Node24与26从未获配runner（runner_name为空），GitHub各job annotation明确“The job was not acquired by Runner of type hosted even after multiple attempts”及macOS arm64 capacity constraints；不是安装或产品用例失败。取消使矩阵结果abandoned，Runtime/Desktop被正确跳过，summary拒绝完整成功。21:56仅--failed恢复原parent，成功NPM与14个cell不重复执行；产品父流程恢复1次，含docs累计AUTOMATION_INTERVENTIONS=2，均外部基础设施。后续仍需16cell及Runtime/Desktop实际通过，不因容量跳过平台或放宽门槛。
 
 ## 2026-11-16 16:05 用户追报：工具调用可用性回归
 
