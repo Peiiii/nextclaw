@@ -113,3 +113,12 @@ export function prepareDesktopDraft(options, aheadCount, run) {
   }
   console.log(channel === "stable" ? "DESKTOP_DRAFT_READY" : "DESKTOP_BETA_DRAFT_READY");
 }
+
+export async function readDesktopWorkflowRun(repo, runId, readJson = async (command, args) => JSON.parse(runGh(args))) {
+  const args = ["run", "view", String(runId), "--repo", repo, "--json"];
+  const fields = "databaseId,status,conclusion,url,headSha";
+  const summary = await readJson("gh", [...args, fields]);
+  // GitHub can expose the run ID before its jobs endpoint exists.
+  if (["queued", "requested", "waiting", "pending"].includes(summary.status)) return summary;
+  return await readJson("gh", [...args, `${fields},jobs`]);
+}

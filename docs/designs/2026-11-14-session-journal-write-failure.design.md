@@ -149,3 +149,5 @@ mode=design：从原 issue 反查“只加日志”仍会允许内存会话，�
 ## 桌面dispatch关联返工
 
 真实preflight43884004514已创建但queued时displayTitle仅workflow名，旧标题轮询3分钟误判未创建，parent attempt3失败。GitHub官方2026-02-19已提供return_run_details，可直接返回workflow_run_id，无需猜标题。选用已有desktop-release-github owner封装该确定性API，preflight及desktop build都消费返回runId；删除新dispatch的标题扫描，只保留已有runId恢复入口。保留冻结product SHA及Draft，当前控制平面通过原target=all recovery运行，不重复发包。design Review passed：直接id没有并发串单/排队标题依赖；缺失id明确失败，不再盲dispatch；API请求用stdin JSON避免shell插值，接收字段严格验证。测试覆盖queued无标题、参数原样、两调用方返回id和缺失id拒绝；真实all恢复必须证明进入正确child。
+
+直接ID后真实API还存在run已创建、jobs接口尚未创建的排队窗口。preflight43886363977派发成功，初次jobs查询404，随后预检success。状态读取统一归已有github owner：先取不含jobs的run字段，queued/requested/waiting/pending不读jobs；活动/终态再读jobs保留失败与耗时诊断。API请求失败不伪造成功。设计/实现Review追加通过，实际四种排队状态与终态失败jobs均有行为回归。

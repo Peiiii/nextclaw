@@ -1,6 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
 
+import { readDesktopWorkflowRun } from "./desktop-release-github.mjs";
+
 const ROOT_DIR = process.cwd();
 
 function run(command, args) {
@@ -57,15 +59,7 @@ async function waitForWorkflowRun(options) {
 }
 
 async function readWorkflowRun(repo, runId) {
-  return await readJsonCommand("gh", [
-    "run",
-    "view",
-    String(runId),
-    "--repo",
-    repo,
-    "--json",
-    "databaseId,status,conclusion,url,jobs,headSha"
-  ]);
+  return await readDesktopWorkflowRun(repo, runId, readJsonCommand);
 }
 
 function summarizeJobs(runSummary) {

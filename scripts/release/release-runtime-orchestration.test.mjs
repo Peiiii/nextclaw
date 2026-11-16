@@ -310,3 +310,26 @@ test("desktop dispatch returns the exact queued run without title discovery", as
     assert.throws(() => dispatchDesktopWorkflowRun(request, () => JSON.stringify(value)), /do not redispatch/);
   }
 });
+
+
+test("a dispatched queued run does not require the not-yet-created jobs endpoint", async () => {
+  const {readDesktopWorkflowRun} = await import('./desktop-release-github.mjs');
+  for (const status of ['queued','requested','waiting','pending']) {
+    let calls = 0;
+    const result = await readDesktopWorkflowRun('owner/repo',42,async (command,args) => {
+      calls++;
+      assert.equal(args.at(-1).includes('jobs'), false);
+      return {databaseId:42,status};
+    });
+    assert.equal(result.status,status);
+    assert.equal(calls,1);
+  }
+  let calls = 0;
+  const result = await readDesktopWorkflowRun('owner/repo',42,async (command,args) => {
+    calls++;
+    return {databaseId:42,status:'completed',conclusion:'failure',
+      ...(args.at(-1).includes('jobs') ? {jobs:[{conclusion:'failure'}]} : {})};
+  });
+  assert.equal(calls,2);
+  assert.equal(result.jobs[0].conclusion,'failure');
+});

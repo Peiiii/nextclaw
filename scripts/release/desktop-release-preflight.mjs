@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { dispatchDesktopWorkflowRun } from "./desktop-release-github.mjs";
+import { dispatchDesktopWorkflowRun, readDesktopWorkflowRun } from "./desktop-release-github.mjs";
 
 const ROOT_DIR = process.cwd();
 
@@ -11,10 +11,6 @@ function run(command, args) {
     stdio: ["ignore", "pipe", "pipe"]
   });
   return typeof output === "string" ? output.trim() : "";
-}
-
-function readJsonCommand(command, args) {
-  return JSON.parse(run(command, args));
 }
 
 function blockingSleep(ms) {
@@ -65,23 +61,11 @@ export function assertPublishedDesktopRuntimeIdentity(channel, runtimeVersion, o
   );
 }
 
-function readWorkflowRun(repo, runId) {
-  return readJsonCommand("gh", [
-    "run",
-    "view",
-    String(runId),
-    "--repo",
-    repo,
-    "--json",
-    "databaseId,status,conclusion,url,jobs,headSha"
-  ]);
-}
-
 async function waitForWorkflowSuccess(options, runEntry, label) {
   const { repo, runAttempts, runDelayMs } = options;
   let previousLine = "";
   for (let attempt = 1; attempt <= runAttempts; attempt += 1) {
-    const runSummary = readWorkflowRun(repo, runEntry.databaseId);
+    const runSummary = await readDesktopWorkflowRun(repo, runEntry.databaseId);
     const line = `[desktop:release] ${label} ${runEntry.databaseId}: ${runSummary.status}/${runSummary.conclusion || "pending"}`;
     if (line !== previousLine) {
       console.log(line);
