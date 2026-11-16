@@ -27,6 +27,8 @@ JRN-13=passed，JRN-14=passed；JRN-15仍not-run等待正式全平台发布，JR
 
 EXISTING_RELEASE_PATH：原release.yml/npm-production/NPM_TOKEN；最近成功parent43679498232/source6194c7976bbfd6de36ff672c372f4dbb704cff4f。本次patch目标0.59.8，dry-run计划16项版本变化、13项NPM发布、40包构建闭包；target=all，禁止拆为Agent逐步发包/桌面。正式dispatch后由owner等待exact-SHA prepare，Agent只读父终态/失败。结构化笔记在owner接管发布后补齐；当前AUTOMATION_INTERVENTIONS=0（尚未dispatch）。
 
+16:45收尾复审：新普通问答还会附带recovery checkpoint标记，虽然工具已不因此拒绝，该新标记仍属于无必要的统一授权机制，已删除。旧已保存问答及显式确认消息的兼容读取保留。新增真实UserQuestionManager回归证明归档会话正常提问、普通PDF回答可完成，消息无“确认续做”及授权checkpoint；原RequestManager旧确认兼容同测，2文件20项通过，kernel tsc/定向lint通过、两文件维护性0error/0warning。不是移除必要业务澄清，而是不再把它变成通用授权门。补充设计/实现Review均passed。
+
 ## 迭代完成说明
 
 2026-11-16 10:24恢复JRN-09调查。用户要求具体说明下一步并继续解决，原目标和发布授权保持；当前仅调查，不因新增实验自动再发产品版本。写前HEAD=a8c183162b9f7df91a6c2a94f8a5c78466dbf657、工作区干净；本轮归属原分支与worktree。已读取原Issue全部条件，冻结失败判据为首次真实异常→journal停止而live继续→冷读缺失；不把任意磁盘注入算原事故复现。

@@ -37,10 +37,6 @@ export class UserQuestionManager {
     try { created = createQuestionMessage(sessionId, prompts); }
     catch (error) { throw new UserQuestionError("INVALID_ANSWER", error instanceof Error ? error.message : "Invalid question"); }
     const { message } = created;
-    const recovery = this.runs.getSessionRun(sessionId)?.getContextRecoveryState();
-    if (recovery?.required) {
-      message.metadata = { ...message.metadata, nextclaw_context_recovery_checkpoint: recovery.checkpointId };
-    }
     const event = {
       type: NcpEventType.MessageSent as const,
       occurredAt: message.timestamp,

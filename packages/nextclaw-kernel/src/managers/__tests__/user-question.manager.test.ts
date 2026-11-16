@@ -57,6 +57,21 @@ async function createFixture() {
 }
 
 describe("UserQuestionManager", () => {
+  it("does not turn an ordinary question into blanket reauthorization when history is archived", async () => {
+    const { sessions, runs, questions } = await createFixture();
+    const actor = await runs.getOrCreateSessionRun("native-session");
+    actor.replaceMessages([{ id: "archive", sessionId: "native-session", role: "assistant", status: "final",
+      parts: [{ type: "text", text: "Archived earlier evidence" }], metadata: { nextclaw_archived_body: true } }]);
+    expect(actor.getContextRecoveryState().required).toBe(true);
+    const asked = await questions.ask("native-session", [{ title: "Which report format?", options: ["PDF", "DOCX"] }]);
+    const messages = await sessions.listSessionMessages("native-session");
+    expect(messages[0]?.metadata?.nextclaw_context_recovery_checkpoint).toBeUndefined();
+    expect(JSON.stringify(messages)).not.toContain("确认续做");
+    await questions.resolve({ sessionId: "native-session", questionId: asked.questionIds[0]!, action: "answer", answer: "PDF" });
+    expect((await questions.list("native-session"))[0]?.status).toBe("answered");
+    sessions.dispose(); runs.dispose();
+  });
+
   it("persists multiple independent questions and accepts one answer only once", async () => {
     const { sessions, runs, accepted, questions } = await createFixture();
     const asked = await questions.ask("native-session", [
