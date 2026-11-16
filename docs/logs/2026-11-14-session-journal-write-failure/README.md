@@ -2,7 +2,7 @@
 
 ## 发布恢复返工（2026-11-16）
 
-用户追问全自动流程并要求修好，扩展到原发布owner的瞬态故障恢复。实现仅release.yml终态订阅/分类/有界failed-job rerun，仍调用同一publisher，既有产品验收保持有效。JRN-19 required running：脚本直接执行平台真实failure形状、确定性失败拒绝、来源/陈旧/取消/到限门及docs超时/内容不一致分离，9项通过；actionlint、diff --check通过，diff维护性0error/0warning。实现Review检查事件权限、同仓库master来源、当前attempt对账、单run互斥与成功checkpoint复用，无未关闭finding。无TS改动；不另发产品changeset。默认分支部署后仍需真实workflow_run触发证据，不能把手工rerun称为自动修复通过。JRN-18及原JRN-09仍未完成。
+用户追问全自动流程并要求修好，扩展到原发布owner的瞬态故障恢复。实现仅release-recovery.yml终态订阅/分类/有界failed-job rerun，仍调用同一publisher，既有产品验收保持有效。JRN-19 required running：脚本直接执行平台真实failure形状、确定性失败拒绝、来源/陈旧/取消/到限门及docs超时/内容不一致分离，9项通过；actionlint、diff --check通过，diff维护性0error/0warning。实现Review检查事件权限、同仓库master来源、当前attempt对账、单run互斥与成功checkpoint复用，无未关闭finding。无TS改动；不另发产品changeset。默认分支部署后仍需真实workflow_run触发证据，不能把手工rerun称为自动修复通过。JRN-18及原JRN-09仍未完成。
 
 ## 2026-11-16 20:39 结果不可读与轮次错误返工（当前 scope revision 6）
 
@@ -241,3 +241,5 @@ Docs重试于23:19成功，23:25独立双站verify通过：commit518cb1434aac829
 `release:check:branch-closure`通过，远程master包含发布源码、版本记录与release commit，无release-only遗漏。首次本地检查因尚未fetch新tag而未能解析ref，补取两枚精确tag后真实通过，不当成产品失败。`release:reconcile:mainline`返回LOCAL_WORKTREE_RETRYING，原主工作区的Bibo WIP逐项保持，由既有单例worker60750接管，未reset/stash/rebase活跃工作区；这不是用户待办。
 
 复盘落点已执行并验证：原ingestion/actor/runtime observer修复不可靠续跑与诊断，保留真实故障与压力回归；原native资源和bundle资产合同纳入libSQL binding及缺二进制拒绝，Node20/Windows旧壳实际验证；原Runtime selector等待精确source active prepare，保留错误source/失败状态门。未新增全局规则、第二套publisher或数据库fallback；单次SHA手填疏漏当下修正，临时DNS/跨境低速按现有失败job恢复，不把偶发环境事件泛化成新框架。`AUTOMATION_INTERVENTIONS=5`，本批不能宣称零人工干预。
+
+发布恢复实施纠错：首版0a8d0488a内联release.yml，actionlint通过但GitHub在c0b0efb5dd拒绝“Workflow release cannot listen to itself”，两个push检查未运行job；没有触发重复发包。改由release-recovery.yml接收事件，release.yml恢复原生产配置。planned-path preflight、9项脚本直接执行回归、两workflow actionlint通过；实际触发仍待验收，明确保留失败记录。

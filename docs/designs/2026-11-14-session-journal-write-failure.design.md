@@ -4,7 +4,7 @@
 
 用户要求全自动完成，不能靠Agent逐阶段手动恢复。实际证据：release43875370755两项macOS job从未分配runner，平台annotation明确capacity constraints；docs43875336211仅生产验证连接超时。原workflow只有人工rerun入口，没有终态事件恢复owner。L4 bugfix，design-document required，plan not-required（单批）。
 
-方案：在原release workflow接收release/Docs Deploy completed事件，独立低权限恢复job只读取同仓库master的workflow_dispatch/push失败run。只对有明确runner未获取annotation的失败/cancelled job，或Docs verify日志明确ConnectTimeoutError的失败，调用原run的rerun-failed-jobs；summary连带失败忽略但其它业务失败拒绝恢复。保持原run/source/成功checkpoint，不发新版本、不dispatch第二publisher、不改平台矩阵。最多三次自动恢复（run_attempt<4）；到限明确失败，不宣称无限可自愈。事件恢复run不进入发布jobs，不读取artifact/执行上游源码，避免权限放大与自回复循环。workflow级concurrency按事件分组，避免恢复run挤占生产队列。
+方案：由独立release-recovery workflow接收原release/Docs Deploy completed事件，独立低权限恢复job只读取同仓库master的workflow_dispatch/push失败run。只对有明确runner未获取annotation的失败/cancelled job，或Docs verify日志明确ConnectTimeoutError的失败，调用原run的rerun-failed-jobs；summary连带失败忽略但其它业务失败拒绝恢复。保持原run/source/成功checkpoint，不发新版本、不dispatch第二publisher、不改平台矩阵。最多三次自动恢复（run_attempt<4）；到限明确失败，不宣称无限可自愈。事件恢复run不进入发布jobs，不读取artifact/执行上游源码，避免权限放大与自回复循环。恢复workflow按原run互斥，避免恢复run挤占生产队列。GitHub真实部署拒绝workflow监听自身，故不能把handler放进release.yml；独立控制器不承接任何发包步骤。
 
 方案Review：逐步检查原run失败→终态事件→原因分类→有界rerun→原成功outputs复用→Runtime/Desktop继续；确定性失败/PR/fork/取消操作/陈旧run/到限均不重跑。相较单纯重试所有错误，明确分类避免隐藏产品错误；相较另起publisher，保留身份和已成功步骤。design-review passed。验收：真实平台失败annotations回放、确定性错误拒绝、次数/来源/陈旧事件门、API只调用rerunFailedJobs；部署到默认分支后用原失败事件重投验证真实自动恢复，不以手动rerun冒充。
 

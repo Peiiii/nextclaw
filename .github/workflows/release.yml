@@ -2,9 +2,6 @@ name: release
 run-name: ${{ inputs.feedback_batch && format('feedback-{0}', inputs.feedback_batch) || 'release' }}
 
 on:
-  workflow_run:
-    workflows: [release, Docs Deploy]
-    types: [completed]
   workflow_dispatch:
     inputs:
       feedback_batch:
@@ -28,59 +25,11 @@ on:
 permissions: {}
 
 concurrency:
-  group: ${{ github.event_name == 'workflow_run' && format('release-recovery-{0}', github.event.workflow_run.id) || 'nextclaw-stable-release' }}
+  group: nextclaw-stable-release
   cancel-in-progress: false
 
 jobs:
-  recover-transient:
-    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure' }}
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      checks: read
-    steps:
-      - uses: actions/github-script@v7
-        with:
-          script: |
-            // Automatic recovery owns only transient infrastructure failures.
-            const event = context.payload.workflow_run;
-            const repo = context.repo;
-            if (event.head_repository?.full_name !== `${repo.owner}/${repo.repo}` ||
-                event.head_branch !== 'master' ||
-                !['workflow_dispatch', 'push'].includes(event.event)) return;
-            const {data: run} = await github.rest.actions.getWorkflowRun({...repo, run_id: event.id});
-            if (run.status !== 'completed' || run.conclusion !== 'failure' ||
-                run.run_attempt !== event.run_attempt || run.run_attempt >= 4) {
-              core.notice('No recovery: stale event, active run, or retry limit.');
-              return;
-            }
-            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRunAttempt,
-              {...repo, run_id: run.id, attempt_number: run.run_attempt, per_page: 100});
-            let transient = 0;
-            for (const job of jobs) {
-              if (!['failure', 'cancelled', 'timed_out', 'action_required'].includes(job.conclusion) ||
-                  job.name === 'summarize release state') continue;
-              const check_run_id = Number(job.check_run_url?.split('/').pop());
-              const annotations = check_run_id ? await github.paginate(
-                github.rest.checks.listAnnotations, {...repo, check_run_id, per_page: 100}) : [];
-              let retryable = !job.runner_name && annotations.some(a =>
-                a.message.includes('The job was not acquired by Runner of type hosted'));
-              if (!retryable && event.name === 'Docs Deploy' && job.name === 'verify') {
-                const {data: log} = await github.rest.actions.downloadJobLogsForWorkflowRun(
-                  {...repo, job_id: job.id});
-                retryable = typeof log === 'string' && log.includes('ConnectTimeoutError');
-              }
-              if (!retryable) {
-                core.notice(`No automatic recovery for unclassified failure: ${job.name}`);
-                return;
-              }
-              transient++;
-            }
-            if (!transient) return;
-            await github.rest.actions.reRunWorkflowFailedJobs({...repo, run_id: run.id});
-            core.notice(`Resumed run ${run.id}, attempt ${run.run_attempt + 1}; successful checkpoints retained.`);
   resolve-release-identity:
-    if: ${{ github.event_name == 'workflow_dispatch' }}
     name: resolve immutable stable release identity
     runs-on: ubuntu-latest
     permissions:
@@ -627,7 +576,7 @@ jobs:
 
   summarize:
     name: summarize release state
-    if: ${{ always() && github.event_name == 'workflow_dispatch' }}
+    if: ${{ always() }}
     needs: [publish-npm, verify-npm-node-compatibility, verify-npm-unsupported-node, publish-runtime, publish-desktop]
     runs-on: ubuntu-latest
     permissions: {}

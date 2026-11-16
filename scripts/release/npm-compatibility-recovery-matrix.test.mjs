@@ -72,8 +72,8 @@ test("rejects older-version evidence and only accepts legacy jobs from the exact
 
 // Execute the production workflow script with the actual infrastructure failure shape.
 const { readFileSync } = await import('node:fs');
-const workflow = readFileSync(new URL('../../.github/workflows/release.yml', import.meta.url), 'utf8');
-const recoveryScript = workflow.split('          script: |\n')[1].split('\n  resolve-release-identity:')[0]
+const workflow = readFileSync(new URL('../../.github/workflows/release-recovery.yml', import.meta.url), 'utf8');
+const recoveryScript = workflow.split('          script: |\n')[1]
   .split('\n').map(line => line.replace(/^            /, '')).join('\n');
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 async function recover(overrides = {}) {
