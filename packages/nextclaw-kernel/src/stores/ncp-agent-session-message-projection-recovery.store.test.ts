@@ -23,7 +23,7 @@ async function fixture() {
 }
 
 describe("transactional derived projection recovery", () => {
-  it("rebuilds legacy v12 preview metadata from the untouched journal before a cold run", async () => {
+  it.each([12, 13])("rebuilds legacy v%s preview metadata from the untouched journal before a cold run", async version => {
     const directory = await mkdtemp(join(tmpdir(), "nextclaw-preview-upgrade-")); directories.push(directory);
     const original: NcpMessage = { ...message("cached"), role: "assistant", metadata: { model_round_part_offsets: [1] } };
     const store = new NcpAgentSessionJournalStore(directory);
@@ -31,7 +31,9 @@ describe("transactional derived projection recovery", () => {
     const before = await readFile(join(directory, `${sessionId}.jsonl`), "utf8");
     store.close();
     const database = await openSqliteDatabase(join(directory, ".message-projections", sessionId, "messages.sqlite"));
-    database.exec("UPDATE projection_meta SET value=json_set(value,'$.version',12)");
+    database.prepare("UPDATE projection_meta SET value=json_set(value,'$.version',?)").run(version);
+    database.prepare("UPDATE messages SET descriptor=json_set(descriptor,'$.parts[0]',?) WHERE id=?")
+      .run("[archived; read source]", original.id);
     database.prepare("UPDATE messages SET descriptor=json_set(descriptor,'$.metadata.model_round_part_offsets',?) WHERE id=?")
       .run("[archived; read source]", original.id);
     database.close();
@@ -39,6 +41,7 @@ describe("transactional derived projection recovery", () => {
     try {
       const restored = (await cold.loadSessionRunSeed(sessionId)).find(message => message.id === original.id)!;
       expect(restored.metadata?.model_round_part_offsets).toEqual([1]);
+      expect(restored.parts).toEqual(original.parts);
       expect(() => ncpMessageToOpenAiMessages(restored)).not.toThrow();
       expect(await readFile(join(directory, `${sessionId}.jsonl`), "utf8")).toBe(before);
     } finally { cold.close(); }

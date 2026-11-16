@@ -11,7 +11,7 @@ import { SessionMessagePartsStore } from "./session-message-parts.store.js";
 import type { NcpAgentSessionJournalReplayEvent } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import { SessionEventProjectionStore } from "./session-event-projection.store.js";
 import { readCompressedContextCompactionCheckpoint, projectContextCompactionStatus, type ContextCompactionCheckpoint } from "@nextclaw/core/context-compaction";
-import { CONTEXT_COMPACTION_PART_START } from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
+import { CONTEXT_COMPACTION_PART_START } from "@kernel/features/context-compaction/index.js";
 import { MODEL_ROUND_PART_OFFSETS } from "@nextclaw/ncp-agent-runtime";
 
 export type ReadProjectionPageParams = { sessionId: string; limit: number; cursor?: string; tailMessages?: readonly NcpMessage[] };
@@ -428,7 +428,7 @@ export class SessionMessageSqlProjectionStore {
         if (bytes + (complete ? measured.bytes + overhead : overhead) > SESSION_RUN_BYTES) break;
         const message = { ...descriptor, parts: complete ? partStore.assemble(row.id, start) : descriptor.parts };
         const indices = complete ? measured.indices : source?.partIndices ?? descriptor.parts.map((_, index) => index);
-        const partial = message.role === "assistant" && (!complete || start > 0);
+        const partial = !complete || start > 0;
         const preservedText = checkpoint?.truncatedPreservedUserMessage;
         if (message.role === "user" && preservedText?.messageId === row.id) message.parts = [{ type: "text", text: preservedText.text }];
         if (parts + message.parts.length > 1_024) break;

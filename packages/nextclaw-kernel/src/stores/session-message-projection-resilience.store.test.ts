@@ -1,4 +1,4 @@
-import { mkdtemp, rename, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -8,9 +8,34 @@ import { replayNcpAgentSessionEvents } from "@kernel/utils/ncp-agent-session-rep
 import { NcpAgentSessionMessageProjectionPersistenceStore } from "./ncp-agent-session-message-projection-persistence.store.js";
 import { SessionMessageSqlProjectionStore } from "./session-message-sql-projection.store.js";
 import { openSqliteDatabase, type SqliteDatabase } from "./sqlite-database.store.js";
+import { buildContextCompactionModelProjection, buildContextCompactionTimelineNcpMessage } from "@kernel/features/context-compaction/index.js";
 
 const sessionId = "resilience-session";
 const directories: string[] = [];
+it.each(["assistant", "user", "service"] as const)("projects retained %s parts beyond the bounded preview without treating it as corrupt source", async role => {
+  const original = { ...message("retained-large", Array.from({ length: 24 }, (_, i) => ({ type: "text" as const,
+    text: i === 22 ? "diagnostic. value.\n".repeat(550_000) : `PART_${i}` })), "final"), role };
+  const marker = buildContextCompactionTimelineNcpMessage({ sessionId, messageId: "legacy-marker", checkpoint: {
+    version: 1, id: "legacy", status: "compressed", summary: "Earlier parts summarized.",
+    retainedMessageIds: [original.id], retainedMessagePartStarts: { [original.id]: 0 },
+    retainedMessagePartEnds: { [original.id]: 24 },
+    coveredMessageCount: 1, coveredSessionMessageCount: 1, originalEstimatedTokens: 100, projectedEstimatedTokens: 10,
+    createdAt: "2026-10-19T01:00:00.000Z", updatedAt: "2026-10-19T01:00:00.000Z",
+  } });
+  const { store, directory } = await fixture([sent(original), sent(marker)]);
+  const raw = await readFile(join(directory, `${sessionId}.jsonl`));
+  await store.prepare(sessionId);
+  const window = await store.readRunWindow(sessionId);
+  expect(window).not.toBeNull();
+  expect(() => buildContextCompactionModelProjection({ sessionId, sessionMessages: window!.messages })).not.toThrow();
+  const projected = buildContextCompactionModelProjection({ sessionId, sessionMessages: window!.messages });
+  expect(projected.messages.find(m => m.id === original.id)?.parts.at(-1)).toEqual({ type: "text", text: "PART_23" });
+  expect(buildContextCompactionModelProjection({ sessionId, sessionMessages: [...projected.messages, marker] }).messages)
+    .toEqual(projected.messages);
+  const cold = new NcpAgentSessionMessageProjectionPersistenceStore(directory);
+  expect((await cold.readRunWindow(sessionId))!.messages).toEqual(window!.messages);
+  expect((await readFile(join(directory, `${sessionId}.jsonl`))).equals(raw)).toBe(true);
+});
 afterEach(async () => { await Promise.all(directories.splice(0).map(path => rm(path, { recursive: true, force: true }))); });
 const message = (id: string, parts: NcpMessage["parts"], status: NcpMessage["status"] = "streaming"): NcpMessage => ({
   id, sessionId, role: "assistant", status, parts, timestamp: "2026-10-19T00:00:00.000Z",

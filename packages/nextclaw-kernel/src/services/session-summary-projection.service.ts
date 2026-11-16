@@ -17,6 +17,7 @@ export type SessionSummaryProjectionServiceOptions = {
 };
 
 export class SessionSummaryProjectionService {
+  private readonly failedSummaries = new Set<string>();
   constructor(
     private readonly options: SessionSummaryProjectionServiceOptions,
   ) {}
@@ -39,28 +40,37 @@ export class SessionSummaryProjectionService {
   };
 
   publishChange = async (sessionKey: string): Promise<void> => {
-    this.options.eventBus.emit(
-      eventKeys.sessionUpdated,
-      { sessionKey },
-      {
-        emittedAt: new Date().toISOString(),
-        source: "ncp-session",
-      },
-    );
-    await this.options.sessionSearch.handleSessionUpdated(sessionKey);
-    const record = await this.options.getSessionRecord(sessionKey);
-    if (!record) {
-      this.options.eventBus.emit(eventKeys.sessionSummaryDelete, {
+    try {
+      this.options.eventBus.emit(
+        eventKeys.sessionUpdated,
+        { sessionKey },
+        {
+          emittedAt: new Date().toISOString(),
+          source: "ncp-session",
+        },
+      );
+      await this.options.sessionSearch.handleSessionUpdated(sessionKey);
+      const record = await this.options.getSessionRecord(sessionKey);
+      if (!record) {
+        this.failedSummaries.delete(sessionKey);
+        this.options.eventBus.emit(eventKeys.sessionSummaryDelete, {
+          sessionKey,
+        });
+        return;
+      }
+      const summary = await this.createWithContextWindow(record);
+      if (record.totalMessageCount !== undefined) summary.messageCount = record.totalMessageCount;
+      await this.options.journalStore.updateSessionMessageProjectionContextWindow(
         sessionKey,
-      });
-      return;
+        summary.contextWindow ?? null,
+      );
+      this.options.eventBus.emit(eventKeys.sessionSummaryUpsert, { summary });
+      this.failedSummaries.delete(sessionKey);
+    } catch (error) {
+      if (!this.failedSummaries.has(sessionKey)) console.error("Session summary projection failed after a session update", {
+        event: "session.summary_projection_failed", operation: "summary-projection", sessionId: sessionKey,
+      }, error);
+      this.failedSummaries.add(sessionKey);
     }
-    const summary = await this.createWithContextWindow(record);
-    if (record.totalMessageCount !== undefined) summary.messageCount = record.totalMessageCount;
-    await this.options.journalStore.updateSessionMessageProjectionContextWindow(
-      sessionKey,
-      summary.contextWindow ?? null,
-    );
-    this.options.eventBus.emit(eventKeys.sessionSummaryUpsert, { summary });
   };
 }

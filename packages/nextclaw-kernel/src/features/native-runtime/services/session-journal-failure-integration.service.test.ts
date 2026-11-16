@@ -12,6 +12,7 @@ import { createNativeAgentRuntimeRegistration } from "./native-agent-runtime.ser
 import { SESSION_JOURNAL_FAILURE_SOURCE } from "@kernel/utils/session-journal-error.utils.js";
 import { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
 import { resolveSessionProjectContext } from "@nextclaw/core";
+import { buildContextCompactionTimelineNcpMessage } from "@kernel/features/context-compaction/index.js";
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -29,6 +30,7 @@ async function fixture(directory: string, failure: "timer" | "terminal" | "none"
   let storageDown = false;
   let activeFailure = failure;
   const append = store.appendSessionEvent;
+  const previewSession = vi.fn(async () => null);
   vi.spyOn(store, "appendSessionEvent").mockImplementation(async params => {
     if (params.sessionId === "broken" && (storageDown || (activeFailure === "timer" && params.event.type === NcpEventType.MessageTextDelta)
       || (activeFailure === "terminal" && params.event.type === NcpEventType.MessageCompleted))) {
@@ -39,7 +41,7 @@ async function fixture(directory: string, failure: "timer" | "terminal" | "none"
   });
   const sessions = new SessionManager({
     eventBus, journalStore: store, resolveProjectContext: resolveSessionProjectContext,
-    agentContextWindowManager: { previewSession: async () => null, forgetSession: () => undefined } as never,
+    agentContextWindowManager: { previewSession, forgetSession: () => undefined } as never,
     agentManager: { resolveAgentProfile: () => ({ workspace: directory }) } as never,
     projectManager: { normalizeSessionProjectContext: async () => ({}) } as never,
     sessionSearch: { handleSessionUpdated: async () => undefined } as never,
@@ -59,6 +61,7 @@ async function fixture(directory: string, failure: "timer" | "terminal" | "none"
     getSessionRecord: store.getSession, listSessionMessages: store.listSessionMessages,
     loadSessionRunSeed: sessions.loadSessionRunSeed, persistSessionEvent: sessions.persistSessionEvent,
     publishSessionEvent: sessions.publishSessionEvent, recoverSessionRun: sessions.recoverSessionRun,
+    captureCompactionSource: sessions.captureCompactionSource,
   };
   const runs = new SessionRunManager(host);
   const modelAborted = vi.fn();
@@ -83,14 +86,61 @@ async function fixture(directory: string, failure: "timer" | "terminal" | "none"
   const requests = new AgentRunRequestManager(runtimeManager, agents, config,
     { resolveRunSurface: async () => ({ contextBlocks: [], tools: toolScenario?.tools ?? [] }) }, eventBus, ingress, host as never, runs);
   requests.start();
-  return { store, sessions, requests, runs, modelAborted, disposeRuntime, events,
+  return { store, sessions, requests, runs, modelAborted, disposeRuntime, events, previewSession,
     restoreStorage: () => { activeFailure = "none"; storageDown = false; },
     client: new AgentRunClient({ eventBus, ingress }),
     close: () => { requests.dispose(); runs.dispose(); sessions.dispose(); store.close(); } };
 }
 
+async function seedCompactedSession(store: NcpAgentSessionJournalStore): Promise<void> {
+  const now = new Date().toISOString();
+  const old = { id: "old-large-user", sessionId: "tools", role: "user" as const, status: "final" as const, timestamp: now,
+    parts: Array.from({ length: 24 }, (_, i) => ({ type: "text" as const, text: i === 22 ? "old diagnostic.\n".repeat(600_000) : `OLD_PART_${i}` })) };
+  const marker = buildContextCompactionTimelineNcpMessage({ sessionId: "tools", messageId: "old-checkpoint", checkpoint: {
+    version: 1, id: "old-checkpoint", status: "compressed", summary: "Earlier diagnostics were summarized.",
+    retainedMessageIds: [old.id], retainedMessagePartStarts: { [old.id]: 0 }, retainedMessagePartEnds: { [old.id]: 24 },
+    coveredMessageCount: 1, coveredSessionMessageCount: 1, originalEstimatedTokens: 100, projectedEstimatedTokens: 20,
+    createdAt: now, updatedAt: now,
+  } });
+  await store.importSessionSnapshot({ sessionId: "tools", messages: [old, marker], metadata: {}, createdAt: now, updatedAt: now });
+}
+
+it("continues real runs after a post-commit summary boundary failure and cold reopens the durable messages", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "nextclaw-summary-boundary-")); directories.push(directory);
+  const current = await fixture(directory, "none");
+  const diagnostics = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  current.previewSession.mockRejectedValue(new Error("Invalid compacted message part boundary"));
+  try {
+    for (const text of ["first durable message", "second durable message"]) {
+      const reply = await current.client.sendAndWaitForReply({ sessionId: "broken", content: [{ type: "text", text }] },
+        { abortSignal: AbortSignal.timeout(3000) });
+      expect(reply.text).toBe("verified answer");
+    }
+    await current.sessions.flushSessionEvents();
+    expect(current.events.filter(({ source }) => source === SESSION_JOURNAL_FAILURE_SOURCE)).toEqual([]);
+    const summaries = diagnostics.mock.calls.filter(([text]) => text === "Session summary projection failed after a session update");
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0]![1]).toMatchObject({ event: "session.summary_projection_failed", operation: "summary-projection" });
+    current.previewSession.mockResolvedValue(null);
+    expect((await current.client.sendAndWaitForReply({ sessionId: "broken", content: [{ type: "text", text: "summary healthy" }] },
+      { abortSignal: AbortSignal.timeout(3000) })).text).toBe("verified answer");
+    current.previewSession.mockRejectedValue(new Error("Invalid compacted message part boundary"));
+    expect((await current.client.sendAndWaitForReply({ sessionId: "broken", content: [{ type: "text", text: "summary failed again" }] },
+      { abortSignal: AbortSignal.timeout(3000) })).text).toBe("verified answer");
+    expect(diagnostics.mock.calls.filter(([text]) => text === "Session summary projection failed after a session update")).toHaveLength(2);
+  } finally { current.close(); }
+  const cold = await fixture(directory, "none");
+  try {
+    const record = await cold.store.getSession("broken");
+    expect(record!.messages.filter(m => m.role === "user")).toHaveLength(4);
+    expect(record!.messages.filter(m => m.role === "assistant")).toHaveLength(4);
+    expect((await cold.client.sendAndWaitForReply({ sessionId: "broken", content: [{ type: "text", text: "cold continue" }] },
+      { abortSignal: AbortSignal.timeout(3000) })).text).toBe("verified answer");
+  } finally { cold.close(); }
+});
+
 describe("native runtime durable failure integration", () => {
-  it.each(["archived", "new"] as const)("reads large diagnostics, writes a report and repeats after cold reopen for a %s session", async kind => {
+  it.each(["archived", "new", "compacted"] as const)("reads large diagnostics, writes a report and repeats after cold reopen for a %s session", async kind => {
     const directory = await mkdtemp(join(tmpdir(), "nextclaw-tool-availability-"));
     directories.push(directory);
     const diagnostics = [...Array.from({ length: 39 }, (_, index) => `${index}: ${"diagnostic ".repeat(100)}`), "FEEDBACK_END_c293b7"];
@@ -101,6 +151,7 @@ describe("native runtime durable failure integration", () => {
       let round = 0;
       const models: NcpLLMApi = { generate: async function* (input) {
         const index = round++ % 3;
+        if (kind === "compacted" && index === 0) expect(JSON.stringify(input.messages)).toContain("OLD_PART_23");
         if (index === 1) {
           const latestResult = input.messages.filter(message => message.role === "tool").at(-1)?.content;
           expect(latestResult).toContain(expectedTail);
@@ -129,6 +180,7 @@ describe("native runtime durable failure integration", () => {
         parts: [{ type: "text", text: oldText }],
       }] });
     }
+    if (kind === "compacted") await seedCompactedSession(current.store);
     try {
       expect((await current.client.sendAndWaitForReply({ sessionId: "tools", content: [{ type: "text", text: "Read diagnostics and write the report." }] }, { abortSignal: AbortSignal.timeout(5000) })).text).toBe("REPORT_SAVED");
       await current.sessions.flushSessionEvents();

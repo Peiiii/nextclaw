@@ -6,7 +6,7 @@ import {
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import { ContextCompactionPreflightService } from "./context-compaction-preflight.service.js";
 import { MODEL_ROUND_PART_OFFSETS, ncpMessageToOpenAiMessages } from "@nextclaw/ncp-agent-runtime";
-import { buildContextCompactionModelProjection, buildContextCompactionTimelineNcpMessage } from "../utils/context-compaction.utils.js";
+import { buildContextCompactionModelProjection, buildContextCompactionTimelineNcpMessage } from "@kernel/features/context-compaction/index.js";
 
 const SESSION_ID = "session-pre-run-placement";
 
@@ -27,6 +27,24 @@ function createService(): ContextCompactionPreflightService {
 }
 
 describe("continuation pre-run compaction placement", () => {
+  it.each([{ start: -1, end: 2, partial: false }, { start: 0.5, end: 2, partial: false },
+    { start: 3, end: 2, partial: false }, { start: 0, end: 3, partial: true }])("rejects an invalid source boundary $start..$end with safe structural diagnostics", ({ start, end, partial }) => {
+    const source: NcpMessage = { id: "source", sessionId: SESSION_ID, role: "user", status: "final",
+      timestamp: "2026-08-08T10:00:00.000Z", parts: [{ type: "text", text: "PRIVATE_BODY" }, { type: "text", text: "retained" }],
+      metadata: { nextclaw_partial_projection: partial, nextclaw_source: { partCount: 2 } } };
+    const marker = buildContextCompactionTimelineNcpMessage({ sessionId: SESSION_ID, messageId: "checkpoint", checkpoint: {
+      version: 1, id: "checkpoint", status: "compressed", summary: "Summary", retainedMessageIds: [source.id],
+      retainedMessagePartStarts: { source: start }, retainedMessagePartEnds: { source: end },
+      coveredMessageCount: 1, coveredSessionMessageCount: 1, originalEstimatedTokens: 100, projectedEstimatedTokens: 20,
+      createdAt: "2026-08-08T11:00:00.000Z", updatedAt: "2026-08-08T11:00:00.000Z",
+    } });
+    let error: unknown;
+    try { buildContextCompactionModelProjection({ sessionId: SESSION_ID, sessionMessages: [source, marker] }); }
+    catch (caught) { error = caught; }
+    expect(error).toMatchObject({ code: "INVALID_COMPACTED_MESSAGE_PART_BOUNDARY" });
+    expect((error as Error).message).toContain("parts=2");
+    expect((error as Error).message).not.toContain("PRIVATE_BODY");
+  });
   it("projects only retained parts and rebases later model rounds without changing the journal", () => {
     const assistant: NcpMessage = { id: "reply", sessionId: SESSION_ID, role: "assistant", status: "final",
       timestamp: "2026-08-08T10:00:00.000Z",

@@ -1,5 +1,17 @@
 # Issue #73：会话持久化失败边界
 
+## 2026-11-17 旧会话压缩分段边界返工（scope revision 8）
+
+用户反馈新版新窗口可工作，但旧会话持续Cause Invalid compacted message part boundary，run中止/HTTP500。00:23开始，L4 bugfix，reproduce，单批plan not-required，design-document required。源码修前clean HEAD0f79cfd66；主区WIP保持，首写仅本任务既有resilience测试。客户AI关于“文件结构坏”的说明是待核实解释，无原始堆栈/版本/源文件，已经异步请求最小脱敏堆栈，Issue无新评论。
+
+实证：真实journal→SQLite准备→readRunWindow→model projection，24part/大文本使8MiB工作预算退为16part预览，assistant通过、user同文边界错误；源checkpoint保留0..24，但user预览未标partial，严格校验以16part视作完整源。初始legacy assistant夹具通过，不能算复现；最初忘prepare的null失败属fixture错误。红基线/tmp/issue73-compact-boundary-before.log。另沿SessionManager.appendSessionEvent→publishSessionChange→summaryProjection→contextWindow.preview追踪到提交后的摘要投影异常仍会回到ingestion.recordFailure，产生持久化锁，需单独红基线确认。
+
+方案：SQL运行窗口对所有role准确标partial及原始坐标，slicer输出实际交集起点/同步source indices，不能把请求的start赋给不含该part的预览；完整源和非法数值仍严格校验，不改源journal、checkpoint或预算。SessionManager只隔离已经成功append之后的摘要发布异常，结构化诊断含阶段与journalCommitted；真实append异常继续拒绝、队列/恢复合同保持。既有失败锁由升级冷启动或原恢复owner重读，禁止删会话/猜边界。错误诊断补安全结构值（role/start/end/base/parts/sourcePartCount），不含正文。
+
+方案Review passed：与直接clamp坏checkpoint相比，修真实producer/consumer坐标并保留非法源拒绝；与全部吞错误相比，仅收窄原提交边界。验收JRN-21=有效源多role部分视图同文故障转绿，重复投影坐标稳定、原始源字节不变；JRN-22=真实摘要投影异常不误锁、后续发消息/冷读通过而真实写失败仍拒绝；JRN-23=旧会话真实模型读取结果/续聊及全平台新版本。客户原会话是否正是该输入仍待堆栈/结构证据，不能因此关闭原JRN-09或称恢复从未落盘内容。
+
+设计增量Review：进一步语义断言发现descriptor的共享2K预算会使大text后的小part整项变成“已归档”字符串，不能仅修partial后让非法part进入模型。原descriptor owner将相同2K内容预算按最多16part分配，text/reasoning及其它part保持type，metadata独立预算，不增加工作窗口8MiB/part数上限；索引v12/v13从原journal自动重建v14，测试注入坏parts及offset验证源字节不变。旧缓存不能只修新producer。摘要错误隔离落在原SessionSummaryProjectionService.publishChange（纯派生流程owner），不在651行SessionManager再加包装；保留原Error并按会话一次诊断，健康发布后清除抑制，后续事件重试派生计算，真实append异常在此之前照常抛出。该owner不掌握源提交事实，诊断不虚填journalCommitted，而明确summary-projection阶段，避免再混称journal失败。
+
 ## 2026-11-16 发布瞬态故障自动恢复
 
 用户要求全自动完成，不能靠Agent逐阶段手动恢复。实际证据：release43875370755两项macOS job从未分配runner，平台annotation明确capacity constraints；docs43875336211仅生产验证连接超时。原workflow只有人工rerun入口，没有终态事件恢复owner。L4 bugfix，design-document required，plan not-required（单批）。

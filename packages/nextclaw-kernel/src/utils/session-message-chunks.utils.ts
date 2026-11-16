@@ -91,7 +91,8 @@ export function buildSessionValuePreview(value: unknown): unknown {
 }
 
 function previewMessagePart(part: NcpMessagePart, budget: { chars: number }): NcpMessagePart {
-  if (part.type !== "tool-invocation") return preview(part, budget) as NcpMessagePart;
+  if (part.type === "text" || part.type === "reasoning") return { type: part.type, text: preview(part.text, budget) as string };
+  if (part.type !== "tool-invocation") return { ...(preview(part, budget) as NcpMessagePart), type: part.type } as NcpMessagePart;
   // Results take priority over argument previews, so even a huge command cannot hide its small exit/hash result.
   const result = part.result !== undefined ? preview(part.result, budget) : undefined;
   const args = part.args !== undefined ? preview(part.args, budget) : undefined;
@@ -115,7 +116,9 @@ function previewMessagePart(part: NcpMessagePart, budget: { chars: number }): Nc
 export function buildSessionMessageDescriptor(message: NcpMessage, revision: string): NcpMessage {
   // Bound even JSON-escaped surrogate-heavy previews, leaving room for identities and cursors.
   const budget = { chars: 2_048 };
-  const parts = message.parts.slice(0, 16).map((part) => previewMessagePart(part, budget));
+  const selectedParts = message.parts.slice(0, 16);
+  const partBudget = Math.floor(budget.chars / Math.max(1, selectedParts.length));
+  const parts = selectedParts.map((part) => previewMessagePart(part, { chars: partBudget }));
   const descriptor = {
     id: message.id, sessionId: message.sessionId, role: message.role, status: message.status,
     timestamp: message.timestamp, parts,

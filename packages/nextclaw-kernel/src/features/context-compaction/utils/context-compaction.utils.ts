@@ -108,18 +108,25 @@ function buildMidRunContinuationMessage(params: {
   };
 }
 
-function sliceMessageParts(message: NcpMessage, start: number, end?: number): NcpMessage {
+function sliceMessageParts(message: NcpMessage, start: number, requestedEnd?: number): NcpMessage {
   const base = Number(message.metadata?.[CONTEXT_COMPACTION_PART_START] ?? 0);
   const physicalEnd = base + message.parts.length;
-  end ??= physicalEnd;
-  if (!Number.isInteger(start) || start < 0 || start > end || !Number.isInteger(end)) {
-    throw new Error("Invalid compacted message part boundary");
+  const end = requestedEnd ?? physicalEnd;
+  const partial = message.metadata?.nextclaw_partial_projection === true;
+  const sourcePartCount = (message.metadata?.nextclaw_source as { partCount?: number } | undefined)?.partCount;
+  const sourceEnd = Number.isSafeInteger(sourcePartCount) ? Math.max(physicalEnd, sourcePartCount!) : physicalEnd;
+  if (!Number.isSafeInteger(base) || base < 0 || !Number.isSafeInteger(start) || start < 0 || start > end || !Number.isSafeInteger(end)
+    || (!partial && (start < base || end > physicalEnd)) || (partial && Number.isSafeInteger(sourcePartCount) && end > sourceEnd)) {
+    throw Object.assign(new Error(`Invalid compacted message part boundary (start=${typeof start === "number" ? start : "invalid"}, end=${typeof end === "number" ? end : "invalid"}, base=${base}, parts=${message.parts.length}, partial=${partial}, role=${message.role})`),
+      { code: "INVALID_COMPACTED_MESSAGE_PART_BOUNDARY" });
   }
-  if (!message.metadata?.nextclaw_partial_projection && (start < base || end > physicalEnd)) throw new Error("Invalid compacted message part boundary");
   const localStart = Math.max(0, start - base);
   const localEnd = Math.min(message.parts.length, end - base);
   const projected = { ...message, parts: message.parts.slice(localStart, Math.max(localStart, localEnd)).map(part => structuredClone(part)), metadata: structuredClone(message.metadata ?? {}) };
-  projected.metadata = { ...projected.metadata, [CONTEXT_COMPACTION_PART_START]: start };
+  projected.metadata = { ...projected.metadata, [CONTEXT_COMPACTION_PART_START]: base + localStart };
+  const source = projected.metadata.nextclaw_source as { partIndices?: number[] } | undefined;
+  if (Array.isArray(source?.partIndices)) projected.metadata.nextclaw_source = { ...source,
+    partIndices: source.partIndices.slice(localStart, Math.max(localStart, localEnd)) };
   const offsets = projected.metadata?.[MODEL_ROUND_PART_OFFSETS];
   if (Array.isArray(offsets)) {
     projected.metadata = { ...projected.metadata, [MODEL_ROUND_PART_OFFSETS]:

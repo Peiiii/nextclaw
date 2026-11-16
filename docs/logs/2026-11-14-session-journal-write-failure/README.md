@@ -1,5 +1,21 @@
 # Issue #73 会话日志持久化故障
 
+## 2026-11-17 00:23 新反馈返工（当前scope revision 8）
+
+反馈：新窗口可工作，旧会话16:00–16:14反复Session journal write failed / Cause Invalid compacted message part boundary，run中止、HTTP500。时区和实际版本尚未证实，客户AI的文件损坏解释待核实，不当作事实。异步请求最小脱敏首次堆栈/实际版本；Issue当前无新作者评论。flow=bugfix，phase=design，retrospective_state=pending。HEAD0f79cfd66/worktree原clean，新增改动仅本轮原resilience测试与设计/日志；主区旧WIP不动。
+
+JRN-21 required red：真实源journal/SQLite/readRunWindow/model projection复现同文错误，24分段大user消息退为16part预览却没有partial标记，assistant对照通过，/tmp/issue73-compact-boundary-before.log。原始legacy assistant尝试未命中，不能算复现；夹具漏prepare的null断言已修正，无产品变更。JRN-22 required not-run：提交后summary异常误锁链路已源码追踪，待原入口红基线。JRN-23 required not-run：正确读取与续聊、冷开、全平台发布。原JRN-09仍unverified，本轮不替代原事故首因证明。正式设计/Review见原design scope8。
+
+00:53验收与Review：JRN-21/22 passed，JRN-23功能部分passed/发布待执行，phase=delivery。用户明确回答版本/堆栈“没有”，不再重复索要。真实native/client/SessionManager红基线/tmp/issue73-summary-boundary-before.log同文SessionJournalWriteError、source提交后summary preview抛错触发ingestion锁；修后两次失败发消息均完成，单次诊断；健康发布清抑制后再失败重新诊断，四组user/assistant冷读一致，真实EACCES/ENOSPC仍拒绝。
+
+最终kernel7文件68项通过（14.66秒），匹配tsc通过；新fixture从describe移出、将本轮压缩数据准备放独立fixture函数后，原native11项再次通过；最终仅参数局部只读重命名后该6项及tsc复验通过，不叠加测试次数。v12/v13实际坏parts/offset派生SQLite升级v14，原journal不变；user/assistant/service部分预览坐标重复投影稳定、尾小文本可见、已知source范围外仍拒绝且诊断不含正文。最初9MB Buffer用toEqual导致JS逐字段比较超5秒，改原生Buffer.equals保留完整字节判定，11秒矩阵恢复通过，未放宽超时门。
+
+真实模型：codex-sub/gpt-6-luna，旧v1 checkpoint+24part/约9.6MB原用户消息，真实native链自动建立有原来源验证的恢复checkpoint；read_file读约37KB文件末尾未知nonce、exec真实shasum -a256、write_file报告，回复/报告均与独立crypto SHA相符。冷关闭重建、换新nonce及内容后重复通过，6次实际工具调用，60.765秒，/tmp/issue73-boundary-live.json及.log。初始fixture遗漏captureCompactionSource被正确拒绝，补接生产SessionManager真实capture后通过，未移除来源保护。认证只经LocalConfigStore内存解析，业务全synthetic，无真实会话/凭据复制；临时联网代码已清除，常规测试无网络凭据依赖。
+
+实现Review闭合：部分标记覆盖所有role，source坐标实际交集与indices同步；part的2K预算按最多16段分配、保留type，metadata独立；旧索引14迁移重放源；摘要owner单独诊断且不影响canonical写入，非法源及真IO仍严格拒绝。维护性0error/3既有warning（utils近400、SQL457/400和readRunWindow45statement既有）；定向lint0error/6既有warning，治理及ratchet通过。治理触发两处既有跨目录/feature深导入已改原公共入口，参数end既有赋值改局部const，无规则/baseline改动。无未关闭finding。
+
+发布材料：0.59.10中英notes/索引/结构化JSON及changeset首次冻结前备齐，planned-path preflight通过，docs i18n通过、实际构建9.27秒；project-pulse仅本轮生成漂移已单独恢复。EXISTING_RELEASE_PATH沿原release.yml/npm-production/NPM_TOKEN，最近成功parent43887007685；无active parent。dry-run确认0.59.9→0.59.10、12项版本变动/9个NPM发布/39包验证闭包，structured notes ready，patch无需官网/X；正式必须target=all含Desktop。本批AUTOMATION_INTERVENTIONS=0（尚未dispatch）。主区7项Bibo WIP完全保持，本worktree所有新改动属本轮。
+
 ## 23:16 全平台交付与发布恢复验收完成
 
 当前交付子目标phase=delivery→retrospective，retrospective_state=completed；parent原JRN-09仍unverified，Issue保持open，不能称最初事故全部解决。JRN-16/17的结果可读性与偏移修复验证继续有效；JRN-18=passed，JRN-19=passed，JRN-20=passed。下方running/估计均为历史检查点。

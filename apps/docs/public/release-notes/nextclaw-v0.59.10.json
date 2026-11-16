@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.59.10",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-11-17",
+  "title": { "zh-CN": "NextClaw v0.59.10", "en-US": "NextClaw v0.59.10" },
+  "summary": {
+    "zh-CN": "修复旧压缩会话的分段边界误判及摘要计算失败导致的会话锁死。",
+    "en-US": "Fix false part-boundary failures in older compacted sessions and summary failures locking durable conversations."
+  },
+  "links": { "html": {
+    "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-11-17-nextclaw-v0-59-10",
+    "en-US": "https://docs.nextclaw.io/en/notes/2026-11-17-nextclaw-v0-59-10"
+  } },
+  "sections": [{
+    "kind": "fix",
+    "title": { "zh-CN": "旧会话连续性", "en-US": "Older conversation continuity" },
+    "items": [{
+      "title": { "zh-CN": "正确处理部分消息视图", "en-US": "Handle partial message views correctly" },
+      "body": {
+        "zh-CN": "修正部分预览的原始分段坐标和类型，旧派生索引自动从原 journal 重建，无需删除会话。原始正文保持不变。",
+        "en-US": "Preserve original coordinates and part types in partial previews. Older derived indexes rebuild from the original journal without deleting conversations or rewriting original content."
+      }
+    }, {
+      "title": { "zh-CN": "隔离派生摘要故障", "en-US": "Isolate derived summary failures" },
+      "body": {
+        "zh-CN": "摘要计算失败不再误锁已成功写入的会话，诊断单独记录并随后续更新重试；真实写盘失败保护保留。原始事故首因仍在调查。",
+        "en-US": "Summary failures are diagnosed separately and retried on later updates without locking a durably written conversation. Actual storage-failure protection remains. The original incident's first cause is still being investigated."
+      }
+    }]
+  }]
+}
