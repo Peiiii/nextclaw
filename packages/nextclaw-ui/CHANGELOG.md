@@ -1,5 +1,13 @@
 # @nextclaw/ui
 
+## 0.27.13
+
+### Patch Changes
+
+- a60572e: Keep recent tool results readable by the model instead of replacing them with history previews. Restore populated tool cards carrying older deferred flags, and fix invalid model round boundaries after history cropping or full compaction, including older empty leading rounds.
+  - @nextclaw/ncp-toolkit@0.6.28
+  - @nextclaw/client-sdk@0.12.22
+
 ## 0.27.12
 
 ### Patch Changes

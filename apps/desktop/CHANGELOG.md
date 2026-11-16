@@ -1,5 +1,15 @@
 # @nextclaw/desktop
 
+## 0.0.310
+
+### Patch Changes
+
+- Updated dependencies [a60572e]
+  - nextclaw@0.59.9
+  - @nextclaw/kernel@0.19.10
+  - @nextclaw/harness@0.2.36
+  - @nextclaw/server@0.23.22
+
 ## 0.0.309
 
 ### Patch Changes

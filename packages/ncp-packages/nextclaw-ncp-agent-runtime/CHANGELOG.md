@@ -1,5 +1,11 @@
 # @nextclaw/ncp-agent-runtime
 
+## 0.4.30
+
+### Patch Changes
+
+- a60572e: Keep recent tool results readable by the model instead of replacing them with history previews. Restore populated tool cards carrying older deferred flags, and fix invalid model round boundaries after history cropping or full compaction, including older empty leading rounds.
+
 ## 0.4.29
 
 ### Patch Changes
