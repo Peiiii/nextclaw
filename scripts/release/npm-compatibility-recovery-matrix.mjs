@@ -7,10 +7,21 @@ const platforms = [
   ["darwin-x64", "macos-15-intel"],
 ];
 const nodeVersions = ["20.19.0", "22.19.0", "24", "26"];
+const reusedCell = { node: "reused", os: "ubuntu-22.04", platform: "reused", reused: true };
 
 export const NPM_COMPATIBILITY_MATRIX = platforms.flatMap(([platform, os]) =>
   nodeVersions.map((node) => ({ node, os, platform, reused: false })),
 );
+
+export function groupNpmCompatibilityMatrix(entries = NPM_COMPATIBILITY_MATRIX) {
+  if (entries.length === 1 && entries[0].reused === true && entries[0].platform === "reused") return [{ ...reusedCell, nodes: [] }];
+  if (!entries.length || entries.some(entry => !NPM_COMPATIBILITY_MATRIX.some(candidate =>
+    candidate.platform === entry.platform && candidate.node === entry.node))) throw new Error("Invalid compatibility cells.");
+  return platforms.flatMap(([platform, os]) => {
+    const nodes = nodeVersions.filter(node => entries.some(entry => entry.platform === platform && entry.node === node));
+    return nodes.length ? [{ platform, os, nodes, node: nodes.join(","), reused: false }] : [];
+  });
+}
 
 export function resolveNpmCompatibilityRecoveryMatrix({ isRecovery, jobs = [], sourceCommit, targetVersion }) {
   if (!isRecovery) return { include: NPM_COMPATIBILITY_MATRIX, reused: false };
@@ -21,11 +32,15 @@ export function resolveNpmCompatibilityRecoveryMatrix({ isRecovery, jobs = [], s
   const conclusionByName = new Map();
   for (const job of jobs) {
     if (typeof job.name !== "string") continue;
+    const leafName = job.name.split(" / ").at(-1);
     const suffix = ` @${targetVersion}`;
-    const name = job.name.endsWith(suffix) ? job.name.slice(0, -suffix.length)
-      : job.sourceCommit === sourceCommit ? job.name : null;
-    if (name && (job.conclusion === "success" || !conclusionByName.has(name))) {
-      conclusionByName.set(name, job.conclusion);
+    const name = leafName.endsWith(suffix) ? leafName.slice(0, -suffix.length)
+      : job.sourceCommit === sourceCommit ? leafName : null;
+    const match = name?.match(/^verify NPM ([a-z0-9-]+) Node ([0-9.,]+)$/);
+    if (!match || !match[2].split(",").every(node => nodeVersions.includes(node))) continue;
+    for (const node of match[2].split(",")) {
+      const cell = jobName({ platform: match[1], node });
+      if (job.conclusion === "success" || !conclusionByName.has(cell)) conclusionByName.set(cell, job.conclusion);
     }
   }
   const unresolved = NPM_COMPATIBILITY_MATRIX.filter((entry) =>
@@ -35,7 +50,7 @@ export function resolveNpmCompatibilityRecoveryMatrix({ isRecovery, jobs = [], s
     conclusionByName.has(jobName(entry)),
   )) {
     return {
-      include: [{ node: "reused", os: "ubuntu-22.04", platform: "reused", reused: true }],
+      include: [{ ...reusedCell }],
       reused: true,
     };
   }
@@ -47,11 +62,18 @@ function jobName({ node, platform }) {
 }
 
 if (process.argv[1] === new URL(import.meta.url).pathname) {
+  if (process.argv.includes("--grouped-input")) {
+    const raw = readArg("--grouped-input");
+    const entries = raw ? JSON.parse(raw).include : NPM_COMPATIBILITY_MATRIX;
+    if (!Array.isArray(entries)) throw new Error("Invalid compatibility matrix.");
+    process.stdout.write(`${JSON.stringify({ include: groupNpmCompatibilityMatrix(entries) })}\n`);
+  } else {
   const isRecovery = readArg("--is-recovery") === "true";
   const jobsFile = readArg("--jobs-file");
   const jobs = jobsFile ? parseJobs(readFileSync(jobsFile, "utf8")) : [];
   process.stdout.write(`${JSON.stringify(resolveNpmCompatibilityRecoveryMatrix({ isRecovery, jobs,
     sourceCommit: readArg("--source-commit"), targetVersion: readArg("--target-version") }))}\n`);
+  }
 }
 
 function parseJobs(raw) {

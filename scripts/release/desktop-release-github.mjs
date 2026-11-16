@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { setTimeout as sleep } from "node:timers/promises";
 
 const ROOT_DIR = process.cwd();
 
@@ -8,6 +9,7 @@ function runGh(args, options = {}) {
     cwd: ROOT_DIR,
     encoding: "utf8",
     input: options.input,
+    timeout: options.timeout,
     stdio: options.capture === false ? "inherit" : [options.input ? "pipe" : "ignore", "pipe", "pipe"]
   });
   return typeof output === "string" ? output.trim() : "";
@@ -114,11 +116,21 @@ export function prepareDesktopDraft(options, aheadCount, run) {
   console.log(channel === "stable" ? "DESKTOP_DRAFT_READY" : "DESKTOP_BETA_DRAFT_READY");
 }
 
-export async function readDesktopWorkflowRun(repo, runId, readJson = async (command, args) => JSON.parse(runGh(args))) {
+export async function readDesktopWorkflowRun(repo, runId, readJson = async (command, args) => JSON.parse(runGh(args, { timeout: 20_000 }))) {
   const args = ["run", "view", String(runId), "--repo", repo, "--json"];
   const fields = "databaseId,status,conclusion,url,headSha";
-  const summary = await readJson("gh", [...args, fields]);
+  const read = async fields => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try { return await readJson("gh", [...args, fields]); }
+      catch (error) {
+        const detail = `${error?.message ?? error}\n${error?.stderr ?? ""}`;
+        if (attempt === 4 || !/HTTP (404|5\d\d)|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|\bEOF\b|i\/o timeout/.test(detail)) throw error;
+        await sleep(1000 * 2 ** attempt);
+      }
+    }
+  };
+  const summary = await read(fields);
   // GitHub can expose the run ID before its jobs endpoint exists.
   if (["queued", "requested", "waiting", "pending"].includes(summary.status)) return summary;
-  return await readJson("gh", [...args, `${fields},jobs`]);
+  return await read(`${fields},jobs`);
 }

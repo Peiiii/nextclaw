@@ -24,7 +24,9 @@ JRN-21 required red：真实源journal/SQLite/readRunWindow/model projection复�
 
 控制增量部署ae5c51c046（合并NPM publisher325f259f3a，保留source8e与版本身份），bootstrap控制器43918220835 success但未发生rerun：实际REST run.name是动态run-name，不是静态workflow名，新增白名单过早返回。已改以run.path固定workflow文件路径分类，并用真实动态title回归，10项仍通过；首次green不计实际恢复成功。期间parent43912757861因Mac ARM64/Node24 cell未获runner而failure；需要同一控制器对原prepare及原parent分别受控恢复，不另dispatch publisher。人工入口触发次数目前1（无变更），后续两入口要如实累计，不能称首轮零干预。
 
-01:30/01:32控制平面3c561a5d640（完整SHA从git取）部署后，两次受控bootstrap均有实际动作：控制器43919043786在01:30:22.290 notice Resumed run43912639495 attempt2；控制器43919357538在01:32:11.683 notice Resumed run43912757861 attempt2，原API也回读两任务attempt2。只调用原failed-jobs API，无新publisher/NPM重新上传。01:39两Mac Runtime均in_progress，parent仅ARM64/Node24 cell queued。人工恢复入口累计3（首次误拒绝1、实际prepare及parent各1）；这是AUTOMATION_INTERVENTIONS=3，不宣称零干预。NPM latest0.59.10及docs已公开，Runtime/Desktop尚未完整闭合，预计02:00–02:30仍是估计。当前observer session85752仅跟原parent终态；最终还需公开manifest/APT/桌面30资产核验。原JRN-09仍unverified，客户无现场资料，不据本地同文复现关闭Issue。
+01:30/01:32控制平面3c561a5d649b1f6d8c3f8349e1ef4e215f95bd81部署后，两次受控bootstrap均有实际动作：控制器43919043786在01:30:22.290 notice Resumed run43912639495 attempt2；控制器43919357538在01:32:11.683 notice Resumed run43912757861 attempt2，原API也回读两任务attempt2。只调用原failed-jobs API，无新publisher/NPM重新上传。01:39两Mac Runtime均in_progress，parent仅ARM64/Node24 cell queued。人工恢复入口累计3（首次误拒绝1、实际prepare及parent各1）；这是AUTOMATION_INTERVENTIONS=3，不宣称零干预。NPM latest0.59.10及docs已公开，Runtime/Desktop尚未完整闭合，预计02:00–02:30仍是估计。当前observer session85752仅跟原parent终态；最终还需公开manifest/APT/桌面30资产核验。原JRN-09仍unverified，客户无现场资料，不据本地同文复现关闭Issue。
+
+02:24检查点：原parent attempt3全部16安装组合通过，Runtime于01:52:15成功；Desktop于01:53:25因已确认preflight43923039596首次只读查询HTTP404中断，没有启动本版桌面构建。原02:00–02:30预计无法兑现，尚未完整发布。JRN-24修复原reader的同ID有界读重试、资格矩阵按平台合并为4次runner申请保留16组合；67项相关测试全通过，actionlint通过，diff-only维护性auto为0error/0warning，治理全通过。严格non-feature净增长检查曾拒绝必要新增能力，按项目允许的最小增长以auto复审；未修改规则或baseline，未删除无关实现。产品source8e、NPM发布commit325f及Desktop0.0.311身份不变，不新增changeset。JRN-24真实四平台CI与JRN-23完整发布仍pending；当前提交控制修复后沿原all入口恢复，预计03:00附近，非保证。人工恢复累计仍3，下一次新控制入口恢复将记第4次；单独只读矩阵验收不发布产品。
 
 ## 23:16 全平台交付与发布恢复验收完成
 

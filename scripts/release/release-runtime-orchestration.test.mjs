@@ -333,3 +333,17 @@ test("a dispatched queued run does not require the not-yet-created jobs endpoint
   assert.equal(calls,2);
   assert.equal(result.jobs[0].conclusion,'failure');
 });
+
+
+test("acknowledged workflow IDs tolerate read visibility lag without redispatch", async () => {
+  const {readDesktopWorkflowRun}=await import('./desktop-release-github.mjs');
+  let reads=0;
+  const result=await readDesktopWorkflowRun('owner/repo',43923039596,async()=>{
+    if(++reads<3) throw new Error('failed to get run: HTTP 404: Not Found');
+    return {databaseId:43923039596,status:'queued'};
+  });
+  assert.equal(result.databaseId,43923039596);assert.equal(reads,3);
+  reads=0;
+  await assert.rejects(readDesktopWorkflowRun('owner/repo',42,async()=>{reads++;throw new Error('HTTP 403: Forbidden');}),/403/);
+  assert.equal(reads,1);
+});

@@ -1,0 +1,98 @@
+name: NPM Install Compatibility
+
+on:
+  workflow_call:
+    inputs:
+      expected_version:
+        required: true
+        type: string
+      leaf_matrix:
+        required: false
+        default: ""
+        type: string
+  workflow_dispatch:
+    inputs:
+      expected_version:
+        description: "Already published stable nextclaw version"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    name: resolve compatibility matrix
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - id: matrix
+        env:
+          LEAF_MATRIX: ${{ inputs.leaf_matrix }}
+        run: |
+          matrix="$(node scripts/release/npm-compatibility-recovery-matrix.mjs --grouped-input "$LEAF_MATRIX")"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  verify:
+    name: verify NPM ${{ matrix.platform }} Node ${{ matrix.node }} @${{ inputs.expected_version }}
+    needs: resolve
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      EXPECTED_VERSION: ${{ inputs.expected_version }}
+    steps:
+      - name: Checkout verification control plane
+        if: ${{ matrix.reused != true }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Setup Node 20
+        if: ${{ contains(matrix.nodes, '20.19.0') }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.0"
+      - name: Verify Node 20 installation and SQLite
+        if: ${{ contains(matrix.nodes, '20.19.0') }}
+        run: node packages/nextclaw/scripts/verify-published-npm-node-compatibility.mjs --expected-version "$EXPECTED_VERSION"
+
+      - name: Setup Node 22
+        if: ${{ contains(matrix.nodes, '22.19.0') }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.19.0"
+      - name: Verify Node 22 installation and SQLite
+        if: ${{ contains(matrix.nodes, '22.19.0') }}
+        run: node packages/nextclaw/scripts/verify-published-npm-node-compatibility.mjs --expected-version "$EXPECTED_VERSION"
+
+      - name: Setup Node 24
+        if: ${{ contains(matrix.nodes, '24') }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Verify Node 24 installation and SQLite
+        if: ${{ contains(matrix.nodes, '24') }}
+        run: node packages/nextclaw/scripts/verify-published-npm-node-compatibility.mjs --expected-version "$EXPECTED_VERSION"
+
+      - name: Setup Node 26
+        if: ${{ contains(matrix.nodes, '26') }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "26"
+      - name: Verify Node 26 installation and SQLite
+        if: ${{ contains(matrix.nodes, '26') }}
+        run: node packages/nextclaw/scripts/verify-published-npm-node-compatibility.mjs --expected-version "$EXPECTED_VERSION"
+
+      - name: Reuse completed immutable compatibility evidence
+        if: ${{ matrix.reused == true }}
+        run: echo "All requested compatibility cells were already verified."

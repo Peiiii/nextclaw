@@ -351,10 +351,9 @@ test("stable release exposes only the business target and infers recovery checkp
     workflow,
     /candidate_conclusion" = "skipped"[\s\S]*?--status completed[\s\S]*?--json conclusion,databaseId,headSha/,
   );
-  assert.match(
-    workflow,
-    /matrix: \$\{\{ fromJSON\(needs\.publish-npm\.outputs\.compatibility_matrix\) \}\}[\s\S]*?Reuse completed immutable compatibility evidence/,
-  );
+  assert.match(workflow, /leaf_matrix: \$\{\{ needs\.publish-npm\.outputs\.compatibility_matrix \}\}/);
+  const qualification = readFileSync(new URL("../../.github/workflows/npm-install-compatibility.yml", import.meta.url), "utf8");
+  assert.match(qualification, /matrix: \$\{\{ fromJSON\(needs\.resolve\.outputs\.matrix\) \}\}[\s\S]*?Reuse completed immutable compatibility evidence/);
 });
 
 test("stable identity promotes an exited beta and preserves published Desktop recovery", () => {
@@ -434,6 +433,9 @@ test("only all-platform releases require complete content before package publica
 });
 
 test("stable recovery runs current verification scripts against the immutable package identity", () => {
+  const qualification = readFileSync(new URL("../../.github/workflows/npm-install-compatibility.yml", import.meta.url), "utf8");
+  assert.equal((qualification.match(/ref: \$\{\{ github\.sha \}\}/g) ?? []).length, 2);
+  assert.match(qualification, /--expected-version "\$EXPECTED_VERSION"/);
   const workflow = readFileSync(
     new URL("../../.github/workflows/release.yml", import.meta.url),
     "utf8",
@@ -445,7 +447,7 @@ test("stable recovery runs current verification scripts against the immutable pa
     verificationJobs?.match(
       /ref: \$\{\{ github\.sha \}\}/g,
     )?.length ?? 0,
-    2,
+    1,
   );
   assert.match(
     workflow,

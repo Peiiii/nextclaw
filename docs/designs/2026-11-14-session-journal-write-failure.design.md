@@ -1,5 +1,13 @@
 # Issue #73：会话持久化失败边界
 
+## 2026-11-17 发布可靠性返工（用户再次要求完成自动交付）
+
+当前16cell矩阵在每个OS重复申请4个runner，Mac ARM单cell在多次容量取消中阻断后续；parent attempt3安装已全部通过/Runtime success，Desktop在17:53Z对已acknowledge的preflight43923039596作首次run查询却404，未做可见性等待直接退出。不能把自动重试等同可靠交付。产品source8e/已发布0.59.10/tag325f均保持，不发新产品版本。
+
+L4设计：原desktop github reader只对已知run ID的404/临时网络读错误做最多5次有界查询，拒绝401/403/业务失败，不重新dispatch；queued不读未建立的jobs，active/terminal保留jobs诊断。原16 OS×Node事实矩阵仍单owner，新增复用的只读资格workflow按平台分组，每次runner依次setup并验证20.19.0、22.19.0、24、26，4个runner保留16组合，不变更OS/架构标签。parent调用该owner，standalone workflow_dispatch用已发布version作验收，不承接发布；资格脚本及矩阵计算从本次冻结控制平面github.sha读取，验证对象绑定不可变expected_version的已发布NPM包，保留既有验证代码与产品来源分离合同。兼容旧单cell和新group成功证据，失败group不伪造其部分成功；仅重跑缺失cells。保留来源/版本身份门和非法source/真实IO检查。
+
+设计Review passed：比切换架构/跳过Node验证更直接减少资源请求，比第二publisher更清晰（新workflow只验证）；整个parent沿原all recovery闭合，已成功NPM/Runtime不重发。JRN-24 required：真实同ID暂时404后读取成功（隔离API回归）、永久错误/403明确失败、全部16cell分组不丢失且旧证据兼容、真实coalesced CI四平台四Node通过，再报告流程修复完成。当前旧parent失败，必须以修复后的控制平面恢复，不能让冻结旧reader重试假装已修。
+
 ## 0.59.10 交付期 preparation 恢复增量
 
 真实API补充：run.name会采用动态run-name，不能作为workflow身份白名单；分类与白名单统一使用run.path固定workflow路径，标题不参与授权或关联。初次bootstrap因该问题误拒绝（green但无动作），保留失败记录；回归已覆盖动态标题下的parent和prepare，不以controller green代替原任务attempt变化证据。

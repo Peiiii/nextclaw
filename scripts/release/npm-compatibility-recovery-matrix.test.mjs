@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   NPM_COMPATIBILITY_MATRIX,
+  groupNpmCompatibilityMatrix,
   resolveNpmCompatibilityRecoveryMatrix,
 } from "./npm-compatibility-recovery-matrix.mjs";
 
@@ -135,4 +136,36 @@ test('preparation resumes only when the exact missing registry version is now av
   assert.deepEqual(await recover({...base,event:{...base.event,path:'.github/workflows/untrusted.yml'},registry}),[]);
   assert.equal((await recover({...base,registry,manual:true})).length,1);
   assert.deepEqual(await recover({...base,registry,manual:true,run:{status:'in_progress'}}),[]);
+});
+
+
+test('one allocation per platform covers all sixteen cells exactly once', () => {
+  const groups=groupNpmCompatibilityMatrix();
+  assert.equal(groups.length,4);
+  assert.deepEqual(groups.flatMap(g=>g.nodes.map(node=>({node,os:g.os,platform:g.platform,reused:false}))),NPM_COMPATIBILITY_MATRIX);
+  for (const group of groups) assert.equal(group.node,group.nodes.join(','));
+  assert.throws(()=>groupNpmCompatibilityMatrix([{platform:'darwin-arm64',node:'99'}]),/Invalid/);
+});
+test('groups only unresolved cells and retains completed grouped evidence', () => {
+  const groups=groupNpmCompatibilityMatrix();
+  const jobs=groups.map(g=>({name:`verify-npm-node-compatibility / verify NPM ${g.platform} Node ${g.node} @${identity.targetVersion}`,conclusion:'success'}));
+  assert.equal(resolveNpmCompatibilityRecoveryMatrix({isRecovery:true,jobs,...identity}).reused,true);
+  jobs[2].conclusion='cancelled';
+  const result=resolveNpmCompatibilityRecoveryMatrix({isRecovery:true,jobs,...identity});
+  const pending=groupNpmCompatibilityMatrix(result.include);
+  assert.equal(pending.length,1);assert.equal(pending[0].platform,'darwin-arm64');assert.equal(pending[0].nodes.length,4);
+  assert.equal(groupNpmCompatibilityMatrix([NPM_COMPATIBILITY_MATRIX[0]])[0].nodes.length,1);
+  assert.equal(groupNpmCompatibilityMatrix([{node:'reused',platform:'reused',os:'ubuntu-22.04',reused:true}])[0].reused,true);
+  const older=jobs.map(j=>({...j,name:j.name.replace(identity.targetVersion,'0.59.3')}));
+  assert.equal(resolveNpmCompatibilityRecoveryMatrix({isRecovery:true,jobs:older,...identity}).include.length,16);
+});
+test('caller delegates to the same read-only qualification owner used for acceptance', () => {
+  const caller=readFileSync(new URL('../../.github/workflows/release.yml',import.meta.url),'utf8');
+  const qualify=readFileSync(new URL('../../.github/workflows/npm-install-compatibility.yml',import.meta.url),'utf8');
+  assert.match(caller,/uses: \.\/\.github\/workflows\/npm-install-compatibility.yml/);
+  assert.match(qualify,/ref: \$\{\{ github\.sha \}\}/);
+  assert.match(qualify,/--expected-version "\$EXPECTED_VERSION"/);
+  assert.match(qualify,/shell: bash/);
+  for(const version of ['20.19.0','22.19.0','24','26']) assert.ok(qualify.includes(`node-version: "${version}"`));
+  assert.equal((qualify.match(/Verify Node \d+ installation and SQLite/g)??[]).length,4);
 });

@@ -446,38 +446,14 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   verify-npm-node-compatibility:
-    name: verify NPM ${{ matrix.platform }} Node ${{ matrix.node }} @${{ needs.publish-npm.outputs.target_version }}
     needs: publish-npm
     if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' }}
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.publish-npm.outputs.compatibility_matrix) }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 12
     permissions:
       contents: read
-    steps:
-      - name: Checkout release commit
-        if: ${{ matrix.reused != true }}
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-
-      - name: Setup compatibility Node
-        if: ${{ matrix.reused != true }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-
-      - name: Install published package and open SQLite
-        if: ${{ matrix.reused != true }}
-        run: >-
-          node packages/nextclaw/scripts/verify-published-npm-node-compatibility.mjs
-          --expected-version "${{ needs.publish-npm.outputs.target_version }}"
-
-      - name: Reuse completed immutable compatibility evidence
-        if: ${{ matrix.reused == true }}
-        run: echo "Reusing the completed cross-platform compatibility evidence for nextclaw@${{ needs.publish-npm.outputs.target_version }}."
+    uses: ./.github/workflows/npm-install-compatibility.yml
+    with:
+      expected_version: ${{ needs.publish-npm.outputs.target_version }}
+      leaf_matrix: ${{ needs.publish-npm.outputs.compatibility_matrix }}
 
   verify-npm-unsupported-node:
     name: verify NPM unsupported Node fails clearly

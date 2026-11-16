@@ -5,6 +5,38 @@ import test from "node:test";
 
 const root = resolve(import.meta.dirname, "../../..");
 
+function assertWorkflowNodeVersions(entry, source) {
+  const setupNodeCount = source.match(/uses:\s*actions\/setup-node@/g)?.length ?? 0;
+  if (setupNodeCount === 0) return;
+  const versionFileCount = source.match(/node-version-file:\s*(?:publisher\/)?\.nvmrc/g)?.length ?? 0;
+  const explicitVersionCount = source.match(/^\s*node-version:/gm)?.length ?? 0;
+  if (entry === "release.yml") {
+    assert.equal(versionFileCount + explicitVersionCount, setupNodeCount);
+    assert.equal(explicitVersionCount, 1, "release.yml may vary Node only in the unsupported-version guard");
+    assert.match(source, /name: Verify launcher version guard[\s\S]*--expect-unsupported/);
+    return;
+  }
+  if (entry === "npm-install-compatibility.yml") {
+    assert.equal(explicitVersionCount, 4);
+    for (const expected of ["20.19.0", "22.19.0", "24", "26"]) assert.ok(source.includes(`node-version: "${expected}"`));
+    assert.match(source, /--expected-version "\$EXPECTED_VERSION"/);
+    return;
+  }
+  if (["desktop-release-preflight.yml", "desktop-release.yml"].includes(entry)) {
+    assert.equal((source.match(/node-version: \$\{\{ inputs\.node_version \}\}/g) ?? []).length, setupNodeCount);
+    assert.match(source, /node_version:[\s\S]*?Pinned Node version from the release protocol[\s\S]*?required: true/);
+    return;
+  }
+  if (entry === "windows-update-smoke.yml") {
+    assert.equal(versionFileCount, 1);
+    assert.equal(explicitVersionCount, 1);
+    assert.match(source, /session-journal-repro:[\s\S]*?node-version: 24\.18\.1[\s\S]*?gh release download v0\.59\.1-desktop\.1/);
+    return;
+  }
+  assert.equal(versionFileCount, setupNodeCount, `${entry} must use .nvmrc for every setup-node step`);
+  assert.equal(explicitVersionCount, 0, `${entry} must not declare a second Node version`);
+}
+
 test("keeps development and CI exact without narrowing the published CLI runtime", () => {
   const version = readFileSync(resolve(root, ".nvmrc"), "utf8").trim();
   assert.match(version, /^\d+\.\d+\.\d+$/);
@@ -21,19 +53,7 @@ test("keeps development and CI exact without narrowing the published CLI runtime
   for (const entry of readdirSync(workflowDirectory)) {
     if (!/\.ya?ml$/.test(entry)) continue;
     const source = readFileSync(resolve(workflowDirectory, entry), "utf8");
-    const setupNodeCount = source.match(/uses:\s*actions\/setup-node@/g)?.length ?? 0;
-    if (setupNodeCount === 0) continue;
-    const versionFileCount = source.match(/node-version-file:\s*\.nvmrc/g)?.length ?? 0;
-    const explicitVersionCount = source.match(/^\s*node-version:/gm)?.length ?? 0;
-    if (entry === "release.yml") {
-      assert.equal(versionFileCount + explicitVersionCount, setupNodeCount);
-      assert.equal(explicitVersionCount, 2, "release.yml may vary Node only in compatibility jobs");
-      assert.match(source, /name: Setup compatibility Node[\s\S]*node-version: \$\{\{ matrix\.node \}\}/);
-      assert.match(source, /name: Verify launcher version guard[\s\S]*--expect-unsupported/);
-      continue;
-    }
-    assert.equal(versionFileCount, setupNodeCount, `${entry} must use .nvmrc for every setup-node step`);
-    assert.equal(explicitVersionCount, 0, `${entry} must not declare a second Node version`);
+    assertWorkflowNodeVersions(entry, source);
   }
 
   const wrapper = resolve(root, "scripts/dev/node/run-with-project-node.sh");
