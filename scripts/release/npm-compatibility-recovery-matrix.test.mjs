@@ -92,8 +92,12 @@ async function recover(overrides = {}) {
       {name: 'verify NPM darwin-arm64 Node 24', conclusion: 'cancelled', runner_name: '', check_run_url: '/checks/24'},
       {name: 'summarize release state', conclusion: 'failure'},
     ]) : (overrides.annotations ?? [{message: 'The job was not acquired by Runner of type hosted even after multiple attempts'}]) };
-  await new AsyncFunction('github', 'context', 'core', recoveryScript)(github,
-    {repo: {owner: 'owner', repo: 'repo'}, payload: {workflow_run: event}}, {notice() {}});
+  await new AsyncFunction('github', 'context', 'core', 'fetch', recoveryScript)(github,
+    {repo: {owner: 'owner', repo: 'repo'}, payload: overrides.manual ? {inputs:{run_id:'73'}} : {workflow_run: event}}, {notice() {}},
+    async url => {
+      if (overrides.expectUrl) assert.equal(url, overrides.expectUrl);
+      return {ok:overrides.registry !== undefined,json:async()=>overrides.registry};
+    });
   return calls;
 }
 
@@ -115,4 +119,19 @@ test('docs connection timeout retries verification; content mismatch does not', 
     jobs:[{name:'verify',conclusion:'failure',runner_name:'runner'}]};
   assert.equal((await recover({...base,log:'TypeError fetch failed; ConnectTimeoutError'})).length, 1);
   assert.deepEqual(await recover({...base,log:'manifest commit mismatch'}), []);
+});
+
+
+test('preparation resumes only when the exact missing registry version is now available', async () => {
+  const base={event:{name:'npm-release-prepare',event:'push'},
+    jobs:[{name:'prepare runtime darwin',conclusion:'failure',runner_name:'runner'}],
+    log:'ERR_PNPM_NO_MATCHING_VERSION No matching version found for @typescript-eslint/types@8.73.0'};
+  const registry={name:'@typescript-eslint/types',version:'8.73.0'};
+  assert.equal((await recover({...base,registry,expectUrl:'https://registry.npmjs.org/%40typescript-eslint%2Ftypes/8.73.0'})).length,1);
+  assert.deepEqual(await recover(base),[]);
+  assert.deepEqual(await recover({...base,registry:{...registry,version:'8.72.2'}}),[]);
+  assert.deepEqual(await recover({...base,log:'build failed',registry}),[]);
+  assert.deepEqual(await recover({...base,event:{...base.event,name:'untrusted workflow'},registry}),[]);
+  assert.equal((await recover({...base,registry,manual:true})).length,1);
+  assert.deepEqual(await recover({...base,registry,manual:true,run:{status:'in_progress'}}),[]);
 });

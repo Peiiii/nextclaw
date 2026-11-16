@@ -1,5 +1,11 @@
 # Issue #73：会话持久化失败边界
 
+## 0.59.10 交付期 preparation 恢复增量
+
+Mac x64预构建pnpm deploy重新解析开发依赖，17:10Z报ERR_PNPM_NO_MATCHING_VERSION @typescript-eslint/types@8.73.0（当时metadata最新8.72.2），同source Mac ARM未获runner而cancel。17:20Z同一精确registry版本HTTP200且name/version相符；源码锁文件仍8.56.0，不能把临时metadata不同步误当产品回归或立即升级pnpm/改依赖锁。L4交付修复，复用原Release Recovery控制器：订阅npm-release-prepare终态，对此类错误只有精确缺失版本现已可用才自动failed-only恢复；永久404/不同版本/普通build失败不重试。既有runner容量分类适用于prepare，保留成功NPM产物及其它平台artifact，最多3次恢复，不另起publisher。
+
+已发生的失败事件在控制器部署前，故增加run_id受控恢复入口：获取原run后仍执行同仓master/已知workflow/原event/current attempt/失败状态/上限的同一校验，不允许任意workflow或active run重跑。当前一次bootstrap需计人工介入，不能称首轮零干预。相较盲重试、固定版本特判和改冻结产品源，这条路径保持原身份，能证实错误条件已改变。设计及实现Review passed：10项实际handler执行回归覆盖scoped package、registry404/错版本/普通错误/未知workflow拒绝及手动同门校验，actionlint与diff维护性通过；部署后用原43912639495验证真实恢复。产品source8e7849ace2与已发布0.59.10不改写，原session修复证据不失效。
+
 ## 2026-11-17 旧会话压缩分段边界返工（scope revision 8）
 
 用户反馈新版新窗口可工作，但旧会话持续Cause Invalid compacted message part boundary，run中止/HTTP500。00:23开始，L4 bugfix，reproduce，单批plan not-required，design-document required。源码修前clean HEAD0f79cfd66；主区WIP保持，首写仅本任务既有resilience测试。客户AI关于“文件结构坏”的说明是待核实解释，无原始堆栈/版本/源文件，已经异步请求最小脱敏堆栈，Issue无新评论。
