@@ -52,15 +52,15 @@ export class ToolResultImageService {
     return images;
   };
 
-  readVisibleImages = (
+  readImages = (
     contentItems: ReadonlyArray<NcpToolOutputContentItem> | undefined,
   ): NcpToolOutputImageItem[] => {
-    if (!contentItems) {
+    if (!Array.isArray(contentItems)) {
       return [];
     }
     return contentItems
-      .filter((item): item is NcpToolOutputImageItem => item.type === "input_image")
-      .slice(0, this.maxModelVisibleImages);
+      .filter((item): item is NcpToolOutputImageItem => item !== null && typeof item === "object"
+        && item.type === "input_image" && typeof item.imageUrl === "string" && item.imageUrl.length > 0);
   };
 
   toOpenAiImagePart = (item: NcpToolOutputImageItem): OpenAIContentPart => ({

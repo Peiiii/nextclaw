@@ -3,7 +3,7 @@ import { ingressKeys, type AgentRunSendIngressPayload, type Ingress } from "@nex
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import type { AgentRunClient, AgentRunReplyOptions } from "@kernel/services/agent-run-client.service.js";
-import { CONTEXT_RECOVERY_CHANNEL_CONFIRMATION_PREFIX, createQuestionMessage, createQuestionResolutionMessage, projectUserQuestions } from "@kernel/utils/user-question.utils.js";
+import { createQuestionMessage, createQuestionResolutionMessage, projectUserQuestions } from "@kernel/utils/user-question.utils.js";
 import type { UserQuestionPrompt, UserQuestionView } from "@kernel/utils/user-question.utils.js";
 export { USER_QUESTION_EXTENSION_TYPE } from "@kernel/utils/user-question.utils.js";
 export type { UserQuestionPrompt, UserQuestionView } from "@kernel/utils/user-question.utils.js";
@@ -40,7 +40,6 @@ export class UserQuestionManager {
     const recovery = this.runs.getSessionRun(sessionId)?.getContextRecoveryState();
     if (recovery?.required) {
       message.metadata = { ...message.metadata, nextclaw_context_recovery_checkpoint: recovery.checkpointId };
-      message.parts.push({ type: "text", text: `此前部分上下文尚未核实。请确认本次继续任务的具体条件；旧操作的结果仍须核实，不能直接重做。通过聊天回复时，请使用“${CONTEXT_RECOVERY_CHANNEL_CONFIRMATION_PREFIX}”开头，并写明任务范围和条件。` });
     }
     const event = {
       type: NcpEventType.MessageSent as const,

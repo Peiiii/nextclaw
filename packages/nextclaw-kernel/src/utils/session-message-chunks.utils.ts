@@ -1,4 +1,4 @@
-import type { NcpMessage } from "@nextclaw/ncp";
+import type { NcpMessage, NcpMessagePart, NcpToolOutputContentItem } from "@nextclaw/ncp";
 
 export const SESSION_BODY_CHUNK_BYTES = 16 * 1024;
 export const SESSION_PAGE_BYTES = 256 * 1024;
@@ -80,11 +80,31 @@ export function buildSessionValuePreview(value: unknown): unknown {
   return preview(value, { chars: 8_192 });
 }
 
+function previewMessagePart(part: NcpMessagePart, budget: { chars: number }): NcpMessagePart {
+  const value = preview(part, budget);
+  if (part.type !== "tool-invocation") return value as NcpMessagePart;
+  const fields = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  // Payload budgets may omit bodies, but must not change the tool protocol's identity or array types.
+  const contentItems = Array.isArray(fields.resultContentItems) ? fields.resultContentItems.filter(
+    (item): item is NcpToolOutputContentItem => item !== null && typeof item === "object"
+      && ((item.type === "input_text" && typeof item.text === "string")
+        || (item.type === "input_image" && typeof item.imageUrl === "string" && !item.imageUrl.includes("[archived; read source]"))),
+  ) : undefined;
+  return {
+    type: "tool-invocation", toolName: part.toolName, toolCallId: part.toolCallId, state: part.state,
+    payloadDeferred: true,
+    ...(part.args !== undefined ? { args: part.args && typeof part.args === "object" && typeof fields.args !== "object" ? {} : fields.args ?? {} } : {}),
+    ...(part.result !== undefined ? { result: fields.result !== undefined ? fields.result : "[archived; read source]" } : {}),
+    ...(contentItems ? { resultContentItems: contentItems } : {}),
+    ...(part.execution ? { execution: part.execution } : {}),
+  };
+}
+
 /** Descriptors are persisted at ingestion, not made after reading a full stored message. */
 export function buildSessionMessageDescriptor(message: NcpMessage, revision: string): NcpMessage {
   // Bound even JSON-escaped surrogate-heavy previews, leaving room for identities and cursors.
   const budget = { chars: 2_048 };
-  const parts = message.parts.slice(0, 16).map((part) => preview(part, budget));
+  const parts = message.parts.slice(0, 16).map((part) => previewMessagePart(part, budget));
   const descriptor = {
     id: message.id, sessionId: message.sessionId, role: message.role, status: message.status,
     timestamp: message.timestamp, parts,

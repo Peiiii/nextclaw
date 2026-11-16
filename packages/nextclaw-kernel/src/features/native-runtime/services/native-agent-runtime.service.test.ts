@@ -1,10 +1,54 @@
 import { describe, expect, it, vi } from "vitest";
-import type { NcpLLMApi, NcpLLMApiInput } from "@nextclaw/ncp";
+import { NcpEventType, type NcpLLMApi, type NcpLLMApiInput } from "@nextclaw/ncp";
 import { SessionRun } from "@kernel/managers/session-run.manager.js";
 import type { AgentRunSession } from "@kernel/types/session.types.js";
 import { createNativeAgentRuntimeRegistration } from "./native-agent-runtime.service.js";
 
 describe("shared native runtime composition", () => {
+  it.each(["archived-session", "new-session-large-result"] as const)("continues real tool dispatch for %s", async (scenario) => {
+    const session: AgentRunSession = { sessionId: "session", agentRuntimeId: "native", workingDir: "/", metadata: {} };
+    const sessionRun = new SessionRun({ sessionId: session.sessionId, messages: [{
+      id: "user", sessionId: session.sessionId, role: "user", status: "final",
+      parts: [{ type: "text", text: "Read the diagnostics, then write the requested report." }],
+      metadata: scenario === "archived-session" ? { nextclaw_archived_body: true } : {},
+    }] });
+    const calls: string[] = [];
+    const inputs: NcpLLMApiInput[] = [];
+    const models: NcpLLMApi = { generate: async function* (input) {
+      inputs.push(input);
+      const index = inputs.length;
+      if (index <= 2) {
+        yield { id: `reply-${index}`, choices: [{ index: 0, delta: { role: "assistant", tool_calls: [{
+          index: 0, id: `call-${index}`, type: "function", function: { name: index === 1 ? "read_file" : "write_file", arguments: "{}" },
+        }] }, finish_reason: null }] };
+        yield { id: `reply-${index}`, choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] };
+      } else {
+        yield { id: "done", choices: [{ index: 0, delta: { content: "REPORT_SAVED" }, finish_reason: "stop" }] };
+      }
+    } };
+    const registration = createNativeAgentRuntimeRegistration({
+      models, agents: { getDefaultAgentId: () => "main", resolveAgentProfile: () => ({ contextTokens: 200_000, reservedContextTokens: 10_000 }) },
+      config: { getDefaultModel: () => "test" }, sessions: { getAgentRunSession: async () => session },
+      compaction: { runPreflight: async function* () {}, runManual: async () => [] },
+    });
+    const runtime = registration.createRuntime({ entry: { id: "native", type: "native", label: "Native" }, session, sessionRun });
+    const errors: unknown[] = [];
+    for await (const event of runtime.run({ agentId: "main", runId: "run", runtimeId: "native", model: "test", requestedModel: null }, {
+      session, sessionRun, contextBlocks: [], initialMessages: sessionRun.getSnapshot().messages,
+      tools: ["read_file", "write_file"].map(name => ({ name, description: name, parameters: { type: "object", properties: {} },
+        execute: async () => { calls.push(name); return name === "read_file" && scenario === "new-session-large-result"
+          ? Array.from({ length: 40 }, (_, index) => `${index}: ${"diagnostic ".repeat(100)}`) : "ok"; } })),
+    })) {
+      if (event.type === NcpEventType.RunError) errors.push(event.payload);
+      await sessionRun.applyEvents([event]);
+    }
+    expect(errors).toEqual([]);
+    expect(calls).toEqual(["read_file", "write_file"]);
+    expect(inputs).toHaveLength(3);
+    expect(JSON.stringify(sessionRun.getSnapshot().messages)).toContain("REPORT_SAVED");
+    sessionRun.dispose();
+  });
+
   it.each([true, false])("preserves context injection=%s and fresh compaction metadata", async (injectNextclawContext) => {
     const inputs: NcpLLMApiInput[] = [];
     const models: NcpLLMApi = { generate: async function* (input) {

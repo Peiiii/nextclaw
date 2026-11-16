@@ -1,5 +1,27 @@
 # Issue #73：会话持久化失败边界
 
+## 2026-11-16 旧会话工具封禁与新会话预览崩溃（scope revision 5）
+
+来源：作者评论6910822183明确报告升级后所有窗口近乎不能调用工具，错误为`Unresolved archived context: only exact current-session history reads are permitted`；评论6910834514报告新窗口`contentItems.filter is not a function`。原0.59.1首次写入失败JRN-09仍独立调查，不用本节两个已复现回归冒充原首因。
+
+复现选择reproduce，L3 bugfix。真实native组合（SessionRun、模型输入builder、真实工具分派，模型流固定以排除外部波动）已复现：有archive标记的会话read_file/write_file均未执行；新会话工具返回40段各约1100字符诊断文本后，下一模型轮次抛出作者同文filter异常。另用真实descriptor→模型转换锁定第二个边界；修前证据`/tmp/issue73-tool-before.log`和`/tmp/issue73-contentitems-before.log`。
+
+根因一：runtime把历史不完整误作所有工具的权限，只有本会话历史/澄清白名单，普通只读工具也不允许；读历史不能解除required，解除依赖特殊用户确认。原目标是防止重复旧操作，但缺失上下文不是新请求的未授权证据。根因二：通用preview在字符预算耗尽时把任意值替成字符串，包括resultContentItems数组；类型断言把异常数据伪装成合法协议对象，图像consumer无数组校验直接filter。
+
+选定单一路径：删除runtime的archive工具白名单与8次读取上限，不新增解锁开关或第二套权限；工具仍按原catalog、参数校验、各工具自身权限、取消及写盘失败边界执行。恢复提示只描述事实缺口、引导查历史，提醒不要凭缺失结果重做旧操作；已有明确请求可以继续，不要求通用“确认续做”。旧确认metadata保持可读兼容，已打开的旧问答仍可处理，但不再向新问答追加统一确认要求。
+
+preview的最近owner保持在session-message-chunks：工具part保留type、toolName、toolCallId、state与完成结果的占位语义；可选resultContentItems只输出合法数组项，归档后省略无效/截断的视觉字段，原始journal和body不改、不截断。视觉consumer在原image service边界对历史或扩展输入作数组/有效图像校验，旧版已产生的字符串/空项不再导致崩溃；不把任意损坏值转换成伪图像，不新增持久化迁移或重写用户数据。
+
+最强替代方案“扩大只读白名单/自动确认当前请求”仍会把历史状态变成隐式权限并保留不可自愈锁，拒绝采用。直接关闭存储故障保护会重现内存孤岛，拒绝采用。仅consumer吞异常会继续产生坏协议，故producer和历史consumer共同修正。
+
+黄金验收：①已有归档会话收到明确新任务→真实read_file→write_file→回复，并且旧工具不会被系统自动重放；②新会话返回大诊断结果→下一工具实际执行→最终回复，结果持久化、冷开后可再调用工具；③旧版异常contentItems及有效图像/混合内容→模型转换不崩溃，有效图像仍保留，原完整正文不变；④真实写失败仍中止运行、恢复后同进程可用。AI负责客观验证，无新增视觉偏好验收。
+
+JRN-13=归档不再封禁工具，JRN-14=大结果预览/旧数据不再崩溃，JRN-15=本次0.59.8全部适用发布与Desktop闭环；均Required。plan:not-required（同一连续修复批次，状态保留本节与原日志）。design-document:required（本节）。
+
+mode=design Review：反查原Issue两条回复、完整producer→SessionRun→model输入→tool分派链路；核对源journal不变、现有权限与存储保护保留、旧数据兼容、正常图像回归及冷开后继续工具都列入矩阵。仅删gate不能解决新会话崩溃，仅加Array guard不能阻止producer制造坏字段；以上方案共同关闭两项反例。无未关闭finding，design-review:passed，限本节回归修复，原首因仍unverified。
+
+兼容补充及复审：旧checkpoint.summary已持久化旧版代码生成的只读文案，只修改新常量不足以修复旧窗口。模型投影精确识别这段旧代码文案并用当前说明替换，不改任意用户/模型摘要，不重写journal。已确认的旧确认消息仍能被读取。视觉有效项过滤只由原ToolResultImageService拥有，内容manager的预算计数和视觉附件复用同一判定。该增量有当前数据消费者与反例，补充design-review:passed。
+
 ## JRN-09历史版本复现补充（2026-11-16）
 
 本节仅定义调查用实验，不是新的产品修复或发布。复用原Windows诊断workflow，增加显式dispatch的session-journal场景；普通update路径及push行为不变，权限保持contents:read。独立脚本从官方0.59.1 Windows bundle读取manifest并核对原chunk SHA256；仅在副本末尾加观测导出，不改业务实现，原chunk保持原字节。实际Windows/Node24.18.1上运行旧Store/SessionManager/SessionRun/compaction，合成数据home，不读取真实配置、会话或凭据。

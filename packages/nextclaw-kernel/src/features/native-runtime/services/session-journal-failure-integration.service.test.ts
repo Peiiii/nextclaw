@@ -1,8 +1,8 @@
-import { chmod, mkdtemp, readFile, rm } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { NcpEventType, type NcpEndpointEvent, type NcpLLMApi } from "@nextclaw/ncp";
+import { NcpEventType, type NcpEndpointEvent, type NcpLLMApi, type NcpTool } from "@nextclaw/ncp";
 import { EventBus, Ingress, eventKeys } from "@nextclaw/shared";
 import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
@@ -19,7 +19,7 @@ afterEach(async () => {
   await Promise.all(directories.splice(0).map(path => rm(path, { force: true, recursive: true })));
 });
 
-async function fixture(directory: string, failure: "timer" | "terminal" | "none") {
+async function fixture(directory: string, failure: "timer" | "terminal" | "none", toolScenario?: { models: NcpLLMApi; tools: NcpTool[] }) {
   const store = new NcpAgentSessionJournalStore(directory);
   const eventBus = new EventBus();
   const ingress = new Ingress();
@@ -75,13 +75,13 @@ async function fixture(directory: string, failure: "timer" | "terminal" | "none"
   } };
   const agents = { getDefaultAgentId: () => "main", resolveAgentProfile: () => ({ contextTokens: 200_000, reservedContextTokens: 10_000 }) };
   const config = { getDefaultModel: () => "fixture-model", getModelMaxTokens: () => 4096 };
-  const native = createNativeAgentRuntimeRegistration({ models, agents, config, sessions: host,
+  const native = createNativeAgentRuntimeRegistration({ models: toolScenario?.models ?? models, agents, config, sessions: host,
     compaction: { runPreflight: async function* () {}, runManual: async () => [] } });
   const disposeRuntime = vi.fn(async () => undefined);
   const runtimeManager = { disposeRuntime, getOrCreate: (params: Omit<Parameters<typeof native.createRuntime>[0], "entry">) =>
     native.createRuntime({ ...params, entry: { id: "native", type: "native", label: "Native", injectNextclawContext: true } }) };
   const requests = new AgentRunRequestManager(runtimeManager, agents, config,
-    { resolveRunSurface: async () => ({ contextBlocks: [], tools: [] }) }, eventBus, ingress, host as never, runs);
+    { resolveRunSurface: async () => ({ contextBlocks: [], tools: toolScenario?.tools ?? [] }) }, eventBus, ingress, host as never, runs);
   requests.start();
   return { store, sessions, requests, runs, modelAborted, disposeRuntime, events,
     restoreStorage: () => { activeFailure = "none"; storageDown = false; },
@@ -90,6 +90,58 @@ async function fixture(directory: string, failure: "timer" | "terminal" | "none"
 }
 
 describe("native runtime durable failure integration", () => {
+  it.each(["archived", "new"] as const)("reads large diagnostics, writes a report and repeats after cold reopen for a %s session", async kind => {
+    const directory = await mkdtemp(join(tmpdir(), "nextclaw-tool-availability-"));
+    directories.push(directory);
+    const diagnostics = Array.from({ length: 40 }, (_, index) => `${index}: ${"diagnostic ".repeat(100)}`);
+    await writeFile(join(directory, "diagnostics.json"), JSON.stringify(diagnostics));
+    const calls: string[] = [];
+    const scenario = () => {
+      let round = 0;
+      const models: NcpLLMApi = { generate: async function* () {
+        const index = round++ % 3;
+        if (index < 2) {
+          yield { id: `reply-${round}`, choices: [{ index: 0, delta: { role: "assistant", tool_calls: [{
+            index: 0, id: `call-${round}`, type: "function", function: { name: index === 0 ? "read_file" : "write_file", arguments: "{}" },
+          }] }, finish_reason: null }] };
+          yield { id: `reply-${round}`, choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] };
+        } else yield { id: `reply-${round}`, choices: [{ index: 0, delta: { content: "REPORT_SAVED" }, finish_reason: "stop" }] };
+      } };
+      return { models, tools: ["read_file", "write_file"].map(name => ({ name, description: name,
+        parameters: { type: "object", properties: {} }, execute: async () => {
+          calls.push(name);
+          if (name === "read_file") return JSON.parse(await readFile(join(directory, "diagnostics.json"), "utf8"));
+          await writeFile(join(directory, "report.txt"), "REPORT_SAVED");
+          return "saved";
+        } })) };
+    };
+    const oldText = "old archived evidence ".repeat(5_000);
+    const current = await fixture(directory, "none", scenario());
+    if (kind === "archived") {
+      const now = new Date().toISOString();
+      await current.store.importSessionSnapshot({ sessionId: "tools", createdAt: now, updatedAt: now, metadata: {}, messages: [{
+        id: "old-evidence", sessionId: "tools", role: "user", status: "final", timestamp: now,
+        parts: [{ type: "text", text: oldText }],
+      }] });
+    }
+    try {
+      expect((await current.client.sendAndWaitForReply({ sessionId: "tools", content: [{ type: "text", text: "Read diagnostics and write the report." }] }, { abortSignal: AbortSignal.timeout(5000) })).text).toBe("REPORT_SAVED");
+      await current.sessions.flushSessionEvents();
+      expect(calls).toEqual(["read_file", "write_file"]);
+    } finally { current.close(); }
+    const cold = await fixture(directory, "none", scenario());
+    try {
+      const history = (await cold.store.getSession("tools"))!.messages;
+      if (kind === "archived") expect(history.find(message => message.id === "old-evidence")?.parts).toEqual([{ type: "text", text: oldText }]);
+      expect(history.flatMap(message => message.parts).find(part => part.type === "tool-invocation" && part.toolName === "read_file")).toMatchObject({ result: diagnostics });
+      expect((await cold.client.sendAndWaitForReply({ sessionId: "tools", content: [{ type: "text", text: "Read diagnostics again and update the report." }] }, { abortSignal: AbortSignal.timeout(5000) })).text).toBe("REPORT_SAVED");
+      await cold.sessions.flushSessionEvents();
+      expect(calls).toEqual(["read_file", "write_file", "read_file", "write_file"]);
+      expect(await readFile(join(directory, "report.txt"), "utf8")).toBe("REPORT_SAVED");
+      expect(cold.events.filter(({ event }) => event.type === NcpEventType.RunError)).toEqual([]);
+    } finally { cold.close(); }
+  });
+
   it.skipIf(process.platform === "win32" || process.getuid?.() === 0)("recovers one actor after real file permissions are restored and serializes concurrent new sends", async () => {
     const directory = await mkdtemp(join(tmpdir(), "nextclaw-native-real-permission-"));
     directories.push(directory);

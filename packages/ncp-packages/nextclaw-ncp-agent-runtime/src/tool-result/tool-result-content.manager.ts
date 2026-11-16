@@ -193,7 +193,7 @@ export class ToolResultContentManager {
 
   private readonly readVisibleImages = (
     contentItems: ReadonlyArray<NcpToolOutputContentItem> | undefined,
-  ): NcpToolOutputImageItem[] => this.imageService.readVisibleImages(contentItems);
+  ): NcpToolOutputImageItem[] => this.imageService.readImages(contentItems).slice(0, this.maxModelVisibleImages);
 
   private readonly buildVisualObservationMessage = (
     toolResult: NcpToolCallResult,
@@ -202,8 +202,7 @@ export class ToolResultContentManager {
     const imageParts = images.map(this.imageService.toOpenAiImagePart);
     const omittedCount = Math.max(
       0,
-      (toolResult.contentItems ?? []).filter((item) => item.type === "input_image").length -
-        imageParts.length,
+      this.imageService.readImages(toolResult.contentItems).length - imageParts.length,
     );
     return {
       role: "user",

@@ -5,7 +5,7 @@ import {
 } from "@nextclaw/ncp";
 import { readCompressedContextCompactionCheckpoint, type ContextCompactionCheckpoint } from "@nextclaw/core/context-compaction-checkpoint";
 import { MODEL_ROUND_PART_OFFSETS } from "@nextclaw/ncp-agent-runtime";
-import { COMPACTION_RECOVERY_NOTICE } from "@kernel/features/context-compaction/services/context-compaction-summary-generation.service.js";
+import { COMPACTION_RECOVERY_NOTICE, isCompactionRecoveryNotice } from "@kernel/features/context-compaction/services/context-compaction-summary-generation.service.js";
 
 export const NEXTCLAW_TIMELINE_KIND_METADATA_KEY = "nextclaw_timeline_kind";
 export const CONTEXT_COMPACTION_TIMELINE_KIND = "context_compaction";
@@ -17,7 +17,7 @@ export const CONTEXT_COMPACTION_SYSTEM_PREAMBLE = [
   "Compressed working context for this session. Original messages and recorded tool outcomes remain authoritative; verify uncertain constraints and effects using session history.",
   "Continue from this context and any following messages. Do not restart onboarding or treat missing profile fields as a new-session trigger unless the compressed context says onboarding is the active user task.",
 ].join("\n");
-export const CONTEXT_COMPACTION_RECOVERY_PREAMBLE = "Unresolved archived history: read original session history to verify old constraints and action outcomes. Only read-only recovery is permitted; ask a specific business clarification if required facts remain unknown.";
+export const CONTEXT_COMPACTION_RECOVERY_PREAMBLE = "Some earlier history is archived or incomplete. Continue the user's current request with the available tools and confirmed conditions. Read original session history when an older constraint or action outcome matters; do not repeat an old operation solely because its result is missing here. Ask a specific clarification only if a necessary fact cannot be verified. Archived history does not revoke existing authorization or require blanket reconfirmation.";
 
 export type ContextCompactionTimelineCheckpoint = ContextCompactionCheckpoint;
 
@@ -34,8 +34,9 @@ function buildCompressedContextSystemText(checkpoint: ContextCompactionCheckpoin
   return [
     CONTEXT_COMPACTION_SYSTEM_PREAMBLE,
     "",
-    !checkpoint.recovery && checkpoint.summary === COMPACTION_RECOVERY_NOTICE
-      ? "Earlier conversation remains archived. Follow the latest human-confirmed task conditions and read original history for any older facts needed."
+    isCompactionRecoveryNotice(checkpoint.summary)
+      ? checkpoint.recovery ? COMPACTION_RECOVERY_NOTICE
+        : "Earlier conversation remains archived. Follow the latest human-confirmed task conditions and read original history for any older facts needed."
       : checkpoint.summary,
     ...(checkpoint.recovery ? [
       CONTEXT_COMPACTION_RECOVERY_PREAMBLE,

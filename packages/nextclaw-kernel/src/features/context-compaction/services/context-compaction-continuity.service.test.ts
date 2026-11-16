@@ -14,6 +14,26 @@ const summary = (detail = "Previous operations completed.") => ["# Compressed Wo
 const response = (content: string) => ({ content, finishReason: "stop", usage: {} });
 
 describe("compaction continuity boundaries", () => {
+  it("replaces the old persisted code-generated read-only notice without rewriting user history", () => {
+    const legacyNotice = [
+      "Earlier conversation is archived, not reliably summarized. Its constraints and action outcomes remain unresolved.",
+      "Read the original session history before relying on old facts. Do not repeat actions or infer completion.",
+      "Only read-only recovery is permitted. If required business conditions cannot be verified, ask a specific clarification.",
+    ].join("\n");
+    const checkpoint: ContextCompactionCheckpoint = { version: 1, id: "legacy", status: "compressed", phase: "pre-run", summary: legacyNotice,
+      coveredUntil: "2026-10-19T00:00:00.000Z", coveredMessageCount: 1, coveredSessionMessageCount: 1,
+      originalEstimatedTokens: 100, projectedEstimatedTokens: 30, createdAt: "2026-10-19T00:00:01.000Z", updatedAt: "2026-10-19T00:00:01.000Z",
+      recovery: { required: true, reason: "unresolved-archive", archiveThrough: "2026-10-19T00:00:00.000Z" } };
+    const marker = buildContextCompactionTimelineNcpMessage({ sessionId: "legacy", messageId: "marker", checkpoint });
+    const projected = buildContextCompactionModelProjection({ sessionId: "legacy", sessionMessages: [marker] });
+    expect(JSON.stringify(projected.messages)).not.toContain("Only read-only recovery");
+    expect(JSON.stringify(projected.messages)).toContain("Continue the user's current request with available tools");
+    expect(marker.metadata?.checkpoint).toEqual(checkpoint);
+    const acknowledged = { id: "ack", sessionId: "legacy", role: "user" as const, status: "final" as const,
+      parts: [{ type: "text" as const, text: "continue" }], metadata: { nextclaw_context_recovery_ack: checkpoint.id } };
+    expect(JSON.stringify(buildContextCompactionModelProjection({ sessionId: "legacy", sessionMessages: [marker, acknowledged] }).messages)).not.toContain("Only read-only recovery");
+  });
+
   it("keeps the bounded source guard when recovering an existing failed actor", async () => {
     const publish = vi.fn();
     const manager = new SessionRunManager({

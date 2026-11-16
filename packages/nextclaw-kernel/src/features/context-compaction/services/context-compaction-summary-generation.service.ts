@@ -40,9 +40,18 @@ class UnusableCompactionSummary extends Error {}
 // Code owns this notice. It never claims that omitted history was summarized.
 export const COMPACTION_RECOVERY_NOTICE = [
   "Earlier conversation is archived, not reliably summarized. Its constraints and action outcomes remain unresolved.",
-  "Read the original session history before relying on old facts. Do not repeat actions or infer completion.",
-  "Only read-only recovery is permitted. If required business conditions cannot be verified, ask a specific clarification.",
+  "Read the original session history before relying on old facts. Do not assume an unknown old action succeeded or automatically replay it to fill a history gap.",
+  "Continue the user's current request with available tools and confirmed conditions. Verify missing earlier constraints or action outcomes from original history before relying on them; do not repeat old operations solely because their results are absent. Ask a specific clarification only when a necessary fact cannot be verified.",
 ].join("\n");
+
+// These exact code-generated notices can remain in older persisted checkpoints.
+export function isCompactionRecoveryNotice(summary: string): boolean {
+  return summary === COMPACTION_RECOVERY_NOTICE || summary === [
+    "Earlier conversation is archived, not reliably summarized. Its constraints and action outcomes remain unresolved.",
+    "Read the original session history before relying on old facts. Do not repeat actions or infer completion.",
+    "Only read-only recovery is permitted. If required business conditions cannot be verified, ask a specific clarification.",
+  ].join("\n");
+}
 
 export class ContextCompactionSummaryGenerationService {
   constructor(private readonly providerManager?: CompactionSummaryProvider) {}

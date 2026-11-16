@@ -4,6 +4,8 @@ import { SessionRun, SessionRunManager } from "@kernel/managers/session-run.mana
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 import type { AgentRunSession } from "@kernel/types/session.types.js";
 import { SessionJournalWriteError } from "@kernel/utils/session-journal-error.utils.js";
+import { ncpMessageToOpenAiMessages } from "@nextclaw/ncp-agent-runtime";
+import { buildSessionMessageDescriptor } from "@kernel/utils/session-message-chunks.utils.js";
 
 function message(id: string, role: NcpMessage["role"], timestamp: string): NcpMessage {
   return {
@@ -60,6 +62,23 @@ describe("SessionRun persistence recovery", () => {
 });
 
 describe("SessionRun", () => {
+  it("keeps a large tool result usable through the real bounded descriptor and model conversion", async () => {
+    const large: NcpMessage = { ...message("large-tool", "assistant", new Date().toISOString()), status: "streaming", parts: [{
+      type: "tool-invocation", toolCallId: "read-diagnostics", toolName: "read_file", state: "result", args: { path: "diagnostics.log" },
+      result: "diagnostic ".repeat(12_000), resultContentItems: [{ type: "input_text", text: "diagnostic ".repeat(12_000) }],
+    }] };
+    const descriptor = buildSessionMessageDescriptor(large, "test");
+    expect(() => ncpMessageToOpenAiMessages(descriptor)).not.toThrow();
+    const run = new SessionRun({ sessionId: "session-1", messages: [] });
+    await run.applyEvents([{ type: NcpEventType.MessageSent, payload: { sessionId: "session-1", message: large } }]);
+    const bounded = run.getSnapshot().messages[0]!;
+    expect(bounded.metadata?.nextclaw_archived_body).toBe(true);
+    expect(() => ncpMessageToOpenAiMessages(bounded)).not.toThrow();
+    expect(ncpMessageToOpenAiMessages(bounded).map(entry => entry.role)).toEqual(["assistant", "tool"]);
+    expect(JSON.stringify(bounded).length).toBeLessThan(32_768);
+    run.dispose();
+  });
+
   it("bounds a new giant message while retaining its source identity and later streaming parts", async () => {
     const run = new SessionRun({ sessionId: "session-1", messages: [] });
     const giant = { ...message("giant-live", "assistant", new Date().toISOString()), status: "streaming" as const,

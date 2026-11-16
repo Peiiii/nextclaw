@@ -13,6 +13,21 @@ const message = (parts: NcpMessagePart[], offsets?: number[]): NcpMessage => ({
 });
 
 describe("model round history", () => {
+  it.each(["[archived; read source]", {}, null])("accepts legacy malformed content items %j", (contentItems) => {
+    const legacy = message([{ ...tool("legacy"), resultContentItems: contentItems } as NcpMessagePart]);
+    legacy.status = "streaming";
+    expect(() => ncpMessageToOpenAiMessages(legacy)).not.toThrow();
+    expect(ncpMessageToOpenAiMessages(legacy).map(entry => entry.role)).toEqual(["assistant", "tool"]);
+  });
+
+  it("keeps a valid visual observation among malformed legacy array entries", () => {
+    const legacy = message([{ ...tool("image"), resultContentItems: [null, "bad", { type: "input_image" },
+      { type: "input_image", imageUrl: "https://example.com/observation.png" }] } as NcpMessagePart]);
+    legacy.status = "streaming";
+    const converted = ncpMessageToOpenAiMessages(legacy);
+    expect(converted.at(-1)?.content).toContainEqual({ type: "image_url", image_url: { url: "https://example.com/observation.png" } });
+  });
+
   it("keeps previous wire messages unchanged after serial tool rounds and reload", () => {
     const parts: NcpMessagePart[] = [{ type: "reasoning", text: "look up first" }, tool("a")];
     const first = ncpMessageToOpenAiMessages(message(parts));

@@ -1,5 +1,32 @@
 # Issue #73 会话日志持久化故障
 
+## 2026-11-16 16:05 用户追报：工具调用可用性回归
+
+用户要求解释破坏可用性的限制、读取GitHub最新信息并解决。原发布授权保持，单代理；使用development-lifecycle的bugfix路径。写前HEAD=69cd190eec802b773695b616359efb2887ae6bdf、工作区干净，首次写入仅本任务两个复现测试；主工作区Bibo WIP不动。当前scope-revision=5，phase=implementation，retrospective_state=pending；设计及方案Review见原设计新增章节。
+
+原始反馈：作者评论[6910822183](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6910822183)说明更新后所有窗口几乎无法操作工具，不能整理反馈材料，明确报archive history限制；[6910834514](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6910834514)说明新窗口持续报contentItems.filter异常。这是新增直接证据，不能继续要求作者依赖故障工具取证。
+
+16:11真实native组合的固定模型流双场景均失败：归档会话两次工具调用均未分派；新会话大诊断结果后RunError为`contentItems.filter is not a function`。descriptor→model独立复现同一异常。修前日志`/tmp/issue73-tool-before.log`、`/tmp/issue73-contentitems-before.log`。最初单一超长字符串在normalizer下未触发，换40段正常诊断数组后才命中；不把未触发尝试当复现。
+
+| ID | Required | 当前状态 | 判定 |
+| --- | --- | --- | --- |
+| JRN-09 | true | unverified | 原0.59.1首次journal异常仍未知，保持Issue打开 |
+| JRN-13 | true | failed | 已归档会话明确新请求下read_file/write_file被runtime硬拦截，需修复并证明实际执行 |
+| JRN-14 | true | failed | 新窗口大工具结果经preview破坏contentItems数组，下一模型轮次崩溃；需修producer及旧数据consumer、冷开续用 |
+| JRN-15 | true | not-run | 修复验收后沿现有全自动父流程交付新版本，包含Desktop，正式发布前不称完成 |
+
+本节优先于下方scope revision 4历史状态；未受影响的JRN-10至12证据继续有效，存储保护回归将定向复验。
+
+16:43验收：kernel 6文件49项（含真实文件权限恢复、队列、用户问答、native工具及冷读）、runtime converter/utils 21项、executor 7项通过，范围不把后续重复的13项native复验累加。kernel/runtime/runtime-next三个匹配tsc通过；targeted ESLint无error（原summary/offset/runtime函数预算warning保留）；治理及ratchet通过。最终diff维护性0error/2warning，原runtime文件超预算但净减2、compaction utils近预算但仅+1；不为通过预算迁移无关逻辑。实现Review发现image有效项过滤在两个consumer重复，已归回原image service并复验；无未关闭finding。
+
+真实模型：当前源码native→AgentRunClient→SessionManager→journal，codex-sub/gpt-6-luna，从旧版只读恢复checkpoint实际发起read_file/write_file并回复REAL_TOOL_CHAIN_OK；关闭store/actor后删除synthetic报告，以明确新请求冷开再次读取大诊断文件并重建报告。4次工具执行、2条user和4个结果冷历史一致，17.98秒。只在内存用LocalConfigStore解析现有认证，未复制配置/凭据，全部业务文件为临时synthetic数据。摘要`/tmp/issue73-real-tools.json`，日志`/tmp/issue73-real-tools.log`；临时网络测试/输入观察已从交付源码移除，固定回归不需账号。早期极简fixture使用巨量重复assistant filler且未注入正常执行上下文，模型回复未按marker，未记为通过；最终使用实际旧checkpoint和原production执行policy完成本节验收，未冒称原机/GUI复现。
+
+JRN-13=passed，JRN-14=passed；JRN-15仍not-run等待正式全平台发布，JRN-09仍unverified。真实正常图像/畸形数组混合、旧contentItems字符串、null及object均有consumer回归。旧checkpoint精确文案替换不改原数据，已追加兼容回归。
+
+对外跟进：[评论6911570459](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6911570459)已发送并回读作者/正文，明确承认回归、无需作者依赖故障工具补材料、修复尚未发布。作者追加确认版本为0.59.7（6910901714）。仅按本次操作ID识别自身评论，未屏蔽同账号其它协作。
+
+EXISTING_RELEASE_PATH：原release.yml/npm-production/NPM_TOKEN；最近成功parent43679498232/source6194c7976bbfd6de36ff672c372f4dbb704cff4f。本次patch目标0.59.8，dry-run计划16项版本变化、13项NPM发布、40包构建闭包；target=all，禁止拆为Agent逐步发包/桌面。正式dispatch后由owner等待exact-SHA prepare，Agent只读父终态/失败。结构化笔记在owner接管发布后补齐；当前AUTOMATION_INTERVENTIONS=0（尚未dispatch）。
+
 ## 迭代完成说明
 
 2026-11-16 10:24恢复JRN-09调查。用户要求具体说明下一步并继续解决，原目标和发布授权保持；当前仅调查，不因新增实验自动再发产品版本。写前HEAD=a8c183162b9f7df91a6c2a94f8a5c78466dbf657、工作区干净；本轮归属原分支与worktree。已读取原Issue全部条件，冻结失败判据为首次真实异常→journal停止而live继续→冷读缺失；不把任意磁盘注入算原事故复现。

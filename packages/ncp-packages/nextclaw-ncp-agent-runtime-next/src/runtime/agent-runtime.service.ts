@@ -211,7 +211,6 @@ export class DefaultNcpAgentRuntime {
       messageId,
     });
     let runStartedAt: string | undefined;
-    const recovery = { required: false, readCount: 0, cursors: new Set<string>() };
 
     try {
       for (const event of this.toMessageSentEvents(
@@ -258,7 +257,6 @@ export class DefaultNcpAgentRuntime {
           executeToolCall: (toolCall, publishToolEvent) => {
             attemptedTool = true;
             return this.toolCallExecution.execute({
-              recovery: Object.assign(recovery, { required: sessionRun.getContextRecoveryState?.().required ?? false }),
               tools,
               sessionId,
               messageId: roundMessageId,
