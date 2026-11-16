@@ -357,6 +357,20 @@ it("renders a minimal Chinese history summary and still expands its process", ()
   expect(screen.getByRole("button", { name: "projects list" })).toBeTruthy();
 });
 
+it("renders actual stdout from an older populated deferred tool when its details are opened", () => {
+  captures.language = "zh";
+  captures.renderActualChatMessageList = true;
+  const message: NcpMessage = {
+    id: "legacy-visible-output", sessionId: "session-1", role: "assistant", status: "final",
+    timestamp: "2026-11-16T12:00:00Z",
+    parts: [{ type: "tool-invocation", toolCallId: "sha", toolName: "exec", state: "result", payloadDeferred: true,
+      args: { command: "sha256 feedback.md" }, result: "SHA256_VISIBLE_a27b91" }],
+  };
+  render(<ChatMessageListContainer messages={[message]} isSending={false} />);
+  fireEvent.click(screen.getByRole("button", { name: /sha256 feedback.md/ }));
+  expect(screen.getByText(/SHA256_VISIBLE_a27b91/)).toBeTruthy();
+});
+
 it("keeps unavailable ai usage in metadata but out of the footer", () => {
   const assistantMessage = {
     id: "assistant-execution",

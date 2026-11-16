@@ -21,7 +21,7 @@ import { AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY } from "@kernel/utils/agent-run
 import { buildContextCompactionTimelineNcpMessage, buildContextCompactionModelProjection, CONTEXT_COMPACTION_PART_START, readLatestContextCompactionCheckpoint, readContextRecoveryState, COMPACTION_RECOVERY_NOTICE } from "@kernel/features/context-compaction/index.js";
 import type { ContextCompactionCheckpoint } from "@nextclaw/core";
 import type { SessionManager } from "./session.manager.js";
-import { buildSessionMessageDescriptor, buildSessionValuePreview, sessionJsonFragments, SESSION_RUN_BYTES } from "@kernel/utils/session-message-chunks.utils.js";
+import { buildSessionMessageDescriptor, buildSessionValuePreview, measureSessionJsonBytes, sessionJsonFragments, SESSION_RUN_BYTES } from "@kernel/utils/session-message-chunks.utils.js";
 import { isSessionJournalWriteError, SESSION_JOURNAL_WRITE_FAILED, type SessionJournalWriteError } from "@kernel/utils/session-journal-error.utils.js";
 
 import { SessionPendingInputs, type SessionRunQueuedRequest, type SessionRunActiveRequest, type SessionRunPendingRequest } from "./session-pending-inputs.manager.js";
@@ -108,10 +108,9 @@ export class SessionRun {
     this.applyRunEvents(events);
     let archived = false;
     const conversationEvents = events.filter(isConversationStateEvent).map(event => {
-      let bytes = 0;
-      for (const fragment of sessionJsonFragments(event)) { bytes += Buffer.byteLength(fragment); if (bytes > 64 * 1024) break; }
+      const bytes = measureSessionJsonBytes(event);
       this.windowGrowthBytes += bytes;
-      if (bytes <= 64 * 1024) return event;
+      if (bytes <= SESSION_RUN_BYTES) return event;
       archived = true;
       if (event.type === NcpEventType.MessageSent || event.type === NcpEventType.MessageCompleted) {
         return { ...event, payload: { ...event.payload, message: this.archiveMessageView(event.payload.message) } };
@@ -133,10 +132,12 @@ export class SessionRun {
   private archiveMessageView = (message: NcpMessage): NcpMessage => {
     const base = Number(message.metadata?.[CONTEXT_COMPACTION_PART_START] ?? 0);
     const start = message.role === "assistant" ? Math.max(0, message.parts.length - 16) : 0;
-    const descriptor = buildSessionMessageDescriptor({ ...message, parts: message.parts.slice(start, start + 16) }, "runtime");
+    const descriptor = buildSessionMessageDescriptor({ ...message, parts: [] }, "runtime");
+    descriptor.parts = message.parts.slice(start, start + 16).map(part =>
+      buildSessionMessageDescriptor({ ...message, parts: [part] }, "runtime").parts[0]!);
     const offsets = message.metadata?.[MODEL_ROUND_PART_OFFSETS];
     return { ...descriptor, metadata: { ...descriptor.metadata, nextclaw_archived_body: true,
-      ...(Array.isArray(offsets) ? { [MODEL_ROUND_PART_OFFSETS]: offsets.map(offset => Number(offset) - start).filter(offset => offset >= 0 && offset <= descriptor.parts.length) } : {}),
+      ...(Array.isArray(offsets) ? { [MODEL_ROUND_PART_OFFSETS]: offsets.map(offset => Number(offset) - start).filter(offset => offset > 0 && offset <= descriptor.parts.length) } : {}),
       ...(message.role === "assistant" ? { nextclaw_partial_projection: true, [CONTEXT_COMPACTION_PART_START]: base + start } : {}),
       nextclaw_source: { messageId: message.id, partCount: base + message.parts.length,
         partIndices: descriptor.parts.map((_, index) => base + start + index) } } };
@@ -146,7 +147,22 @@ export class SessionRun {
     const state = this.stateManager.getSnapshot();
     const messages = this.getSnapshot().messages;
     const checkpoint = messages.filter(message => message.metadata?.nextclaw_timeline_kind === "context_compaction").at(-1);
-    const tail = messages.filter(message => message.metadata?.nextclaw_timeline_kind !== "context_compaction").slice(-254).map(this.archiveMessageView);
+    const regular = messages.filter(message => message.metadata?.nextclaw_timeline_kind !== "context_compaction");
+    const tail: NcpMessage[] = [];
+    // Reserve room for one source descriptor/checkpoint while keeping recent working results intact.
+    let bytes = checkpoint ? measureSessionJsonBytes(checkpoint) : 0;
+    let parts = checkpoint?.parts.length ?? 0;
+    for (const message of regular.slice(-254).reverse()) {
+      const size = measureSessionJsonBytes(message);
+      const keepComplete = bytes + size <= SESSION_RUN_BYTES - 64 * 1024 && parts + message.parts.length <= 1_024;
+      const view = keepComplete ? message : this.archiveMessageView(message);
+      const viewBytes = keepComplete ? size : measureSessionJsonBytes(view);
+      if (bytes + viewBytes > SESSION_RUN_BYTES || parts + view.parts.length > 1_024) break;
+      tail.unshift(view); bytes += viewBytes; parts += view.parts.length;
+    }
+    if (regular.length > tail.length && tail.length && !tail.some(message => message.metadata?.nextclaw_archived_body)) {
+      tail[0] = this.archiveMessageView(tail[0]!);
+    }
     if (checkpoint) tail.push(checkpoint);
     this.stateManager.hydrate({ sessionId: this.sessionId, messages: tail, activeRun: state.activeRun ?? undefined, contextWindow: state.contextWindow ?? undefined });
     // Keep the active message addressable for the next streaming delta without copying source bodies.
@@ -175,7 +191,8 @@ export class SessionRun {
     if (streaming && !view.some(message => message.id === streaming.id)) {
       const end = Number(streaming.metadata?.[CONTEXT_COMPACTION_PART_START] ?? 0) + streaming.parts.length;
       view.push({ ...streaming, parts: [], metadata: { ...streaming.metadata, nextclaw_partial_projection: true,
-        [CONTEXT_COMPACTION_PART_START]: end, nextclaw_source: { messageId: streaming.id, partCount: end, partIndices: [] } } });
+        [MODEL_ROUND_PART_OFFSETS]: [], [CONTEXT_COMPACTION_PART_START]: end,
+        nextclaw_source: { messageId: streaming.id, partCount: end, partIndices: [] } } });
     }
     view.push(marker);
     this.stateManager.hydrate({ sessionId: this.sessionId, messages: view, activeRun: state.activeRun ?? undefined, contextWindow: state.contextWindow ?? undefined });

@@ -55,7 +55,25 @@ describe("model round history", () => {
     expect(result[0]?.tool_calls).toHaveLength(2);
   });
 
-  it.each([[0], [3], [1, 1], [-1], [0.5]])("rejects corrupt explicit offsets %j", (...offsets) => {
+  it("accepts a persisted empty leading round while preserving actual tool round order", () => {
+    const old = message([tool("a"), tool("b")], [0, 1, 2]);
+    const converted = ncpMessageToOpenAiMessages(old);
+    expect(converted.map(entry => entry.role)).toEqual(["assistant", "tool", "assistant", "tool"]);
+    expect(converted.filter(entry => entry.role === "tool").map(entry => entry.tool_call_id)).toEqual(["a", "b"]);
+    expect(old.metadata?.[MODEL_ROUND_PART_OFFSETS]).toEqual([0, 1, 2]);
+  });
+
+  it.each([[3], [1, 1], [-1], [0.5], [0, 0], [0, 3]])("rejects corrupt explicit offsets %j", (...offsets) => {
     expect(() => ncpMessageToOpenAiMessages(message([tool("a"), tool("b")], offsets))).toThrow("Invalid assistant");
+  });
+
+  it("reports structural counts for invalid offsets without including conversation bodies", () => {
+    const bad = message([{ type: "text", text: "PRIVATE_BODY_DO_NOT_LOG" }], [2]);
+    try { ncpMessageToOpenAiMessages(bad); throw new Error("expected rejection"); }
+    catch (error) {
+      expect(error).toMatchObject({ code: "INVALID_ASSISTANT_MODEL_ROUND_OFFSETS" });
+      expect((error as Error).message).toContain("parts=1, offsets=1, invalidIndex=0");
+      expect((error as Error).message).not.toContain("PRIVATE_BODY_DO_NOT_LOG");
+    }
   });
 });

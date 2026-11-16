@@ -63,6 +63,15 @@ it('keeps deferred tool part slots out of the summary card view', () => {
   ]);
 });
 
+it('shows populated results even when an older preview marked the tool as deferred', () => {
+  const adapted = adaptNcpMessagePartsForChat([{
+    type: 'tool-invocation', toolCallId: 'old-preview', toolName: 'exec', state: 'result', payloadDeferred: true,
+    args: { command: 'sha256 feedback.md' }, result: 'SHA256_VISIBLE_a27b91',
+  }]);
+  expect(adapted).toHaveLength(1);
+  expect(JSON.stringify(adapted)).toContain('SHA256_VISIBLE_a27b91');
+});
+
 it('preserves standard tool execution timing without reading opaque result timing', () => {
   const adapted = adaptNcpMessageToUiMessage({
     id: 'ncp-message-timing-1',

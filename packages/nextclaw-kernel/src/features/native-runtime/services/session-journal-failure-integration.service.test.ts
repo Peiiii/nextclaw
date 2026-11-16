@@ -93,13 +93,18 @@ describe("native runtime durable failure integration", () => {
   it.each(["archived", "new"] as const)("reads large diagnostics, writes a report and repeats after cold reopen for a %s session", async kind => {
     const directory = await mkdtemp(join(tmpdir(), "nextclaw-tool-availability-"));
     directories.push(directory);
-    const diagnostics = Array.from({ length: 40 }, (_, index) => `${index}: ${"diagnostic ".repeat(100)}`);
+    const diagnostics = [...Array.from({ length: 39 }, (_, index) => `${index}: ${"diagnostic ".repeat(100)}`), "FEEDBACK_END_c293b7"];
+    let expectedTail = "FEEDBACK_END_c293b7";
     await writeFile(join(directory, "diagnostics.json"), JSON.stringify(diagnostics));
     const calls: string[] = [];
     const scenario = () => {
       let round = 0;
-      const models: NcpLLMApi = { generate: async function* () {
+      const models: NcpLLMApi = { generate: async function* (input) {
         const index = round++ % 3;
+        if (index === 1) {
+          const latestResult = input.messages.filter(message => message.role === "tool").at(-1)?.content;
+          expect(latestResult).toContain(expectedTail);
+        }
         if (index < 2) {
           yield { id: `reply-${round}`, choices: [{ index: 0, delta: { role: "assistant", tool_calls: [{
             index: 0, id: `call-${round}`, type: "function", function: { name: index === 0 ? "read_file" : "write_file", arguments: "{}" },
@@ -129,6 +134,8 @@ describe("native runtime durable failure integration", () => {
       await current.sessions.flushSessionEvents();
       expect(calls).toEqual(["read_file", "write_file"]);
     } finally { current.close(); }
+    expectedTail = "COLD_FEEDBACK_END_d67e41";
+    await writeFile(join(directory, "diagnostics.json"), JSON.stringify([...diagnostics.slice(0, -1), expectedTail]));
     const cold = await fixture(directory, "none", scenario());
     try {
       const history = (await cold.store.getSession("tools"))!.messages;

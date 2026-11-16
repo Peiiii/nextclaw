@@ -1,5 +1,33 @@
 # Issue #73：会话持久化失败边界
 
+## 2026-11-16 20:39 结果可读性与轮次坐标返工（scope revision 6）
+
+原始新输入：客户AI报告“每次返回内容都变成已归档；文件写出、命令完成却读不到回显；抓Issue、SHA256和读11-14反馈均卡住”；随后用户补充不能发消息，报Invalid assistant model round part offsets。不把“工具已执行/报告文件存在”当作完成业务验收。复现选择reproduce，L3 bugfix。
+
+当前源码已复现：原native固定模型测试在下一轮增加工具结果尾部随机标识可见断言即失败，原返回值约43KB，低于既有60K模型可见结果预算；事件的result/contentItems重复后超过64KiB，SessionRun提前套用UI descriptor的2K字符共享预算，把近期输出换成归档标记。对应修前日志/tmp/issue73-observation-before.log。另补真实actor大早期body+多轮工具场景，核对裁剪后轮次坐标及最新SHA结果，判据是模型实际收到有效结果，而非调用计数。
+
+选定主链路：保留现有8MiB actor工作窗口、256消息/1024片段边界及持久化先行保护。近期消息在总预算内保留原协议与模型可见结果；64KiB不再作为把正常工具结果转换成UI预览的阈值。超过工作窗口时优先保留最新消息，旧消息/真正超大单消息才转有来源的有界视图；超大消息的近期各part独立预览预算，不能前一个body耗尽预算后抹掉后面的SHA等小结果。数量裁剪仍留下有来源的归档边界，避免静默丢历史。context预算继续由原preflight/compaction owner控制，不加第二套上下文或权限owner。
+
+轮次协议：裁剪偏移后仅保留大于0、在可见parts范围内的边界；存储descriptor中的model_round_part_offsets是协议元数据，不参加通用文字preview。由原message converter兼容旧记录中唯一的空首轮0，不改变片段和工具顺序；其它非法坐标仍拒绝并给结构诊断，不猜测、不改源journal。完整压缩后的空活动占位同时清空offsets。历史列表预览仍有界，不能因该修复全量载入归档或取消8MiB预算；旧派生缓存通过原版本机制重建。
+
+最强替代方案“只调大2K预览/继续把descriptor喂模型”保留了混用展示与工作数据的错误owner；“取消所有内存/上下文限制”会重现大历史成本与内存问题，均拒绝。正常数据和超大数据沿同一既有actor/源history链路处理，无新配置开关、无新发布器。
+
+黄金验收：①工具读入带不可预知尾标记的约40K反馈文件→模型输入必须含完整结果→后续SHA命令结果被模型正确引用→实际报告包含读取到的nonce与真实SHA；②连续多轮、超过16parts和发生真实窗口裁剪后仍能发新消息，显式轮次边界合法，近期输出不变“已归档”；③冷开同一持久会话后重做新请求仍能读取真实内容；④64MB单消息/结构压力保持有界且可访问来源；存储失败中止/恢复原回归不变。
+
+JRN-16=模型确实读取并引用工具值（Required）；JRN-17=裁剪/旧partial坐标下正常发消息（Required）；JRN-18=本次全平台发布（Required）。JRN-09原首因继续unverified；本轮不把新可复现退化混同原事故。plan:not-required（同批连续修复，原设计与日志维持状态），design-document:required（本节）。
+
+mode=design Review：沿真实事件持久化→actor预算→模型projection→converter取证；反例包含多次大结果、小SHA跟在大参数后、超大单part、多轮尾裁剪、冷seed、旧partial首0及原存储失败。实现只改原工作窗口/descriptor协议元数据/既有projection兼容，不改变catalog、权限、队列或源journal。已验证低于模型预算的结果被过早替代，保留预算而撤去UI预览的模型职责可恢复合同；无未关闭方案finding，design-review:passed。
+
+今天改动专项审计：原64KiB提前预览及>=0轮次过滤均来自6e7a43a6ad；0.59.7已包含这些行为，不是客户误用。今天7dfa9fa56恢复工具分派但保留该两处，并新增了kernel preview的payloadDeferred:true。前端toUiParts按该flag过滤片段，故该新增标记会进一步隐藏有实际结果的工具卡。修复删除kernel无条件deferred标记；UI原adapter兼容旧flag：只有确实没有args/result/contentItems时才过滤占位，保留旧版“带flag但有内容”的有效结果。其它deferred摘要机制不改，不把真正缺失的payload显示成伪结果。局部纯数据适配，依原组件交互，补适配到展示的回归。该影响面补充设计/Review passed；原21:10检查点不变。
+
+旧数据兼容补充Review：冷projection会去除临时partial标记，因此仅在kernel按该标记剔除首0不足以恢复已保存会话。将唯一边界兼容放在原ncp-agent-runtime message converter：仅允许一个明确的空首轮0，跳过它不改变任何片段或工具顺序，原metadata不改；负数、重复、越界、非整数等其它异常仍拒绝。删除kernel重复兼容逻辑，不增加重建/猜测轮次或重写用户journal。以无partial标记的真实cold场景验证该公共协议消费边界；这是兼容空轮次，不是放开任意损坏输入。design-review:passed（该增量）。
+
+轮次同owner审计还复现第二个确定缺陷：完整压缩覆盖活动回复全部parts后，为继续stream保留的parts=[]占位仍携带旧正offset，converter同文报错，见/tmp/issue73-empty-round-before.log。清空该占位的offsets是与空parts同一状态变更，不额外容忍越界坐标。回归跨两轮完整压缩，每轮后实际追加回复并转换模型输入；设计及实现边界补充Review passed。8MiB预算、序号来源和旧原文不变。
+
+诊断增量：其它非法坐标仍报错，同时提供parts数、offset数、首个非法下标及稳定错误code，便于区分根因；只记录结构数量，不输出正文或任意metadata值。由同一converter生成，不加第二套日志或校验owner。Review passed。
+
+升级数据门：旧v12派生SQLite descriptor可能已把offset数组保存成预览字符串，单改producer不能让已有索引重新变好。使用原projection版本失效机制12→13，从原始journal流式重建派生索引，不修改源journal，不让用户手动删目录，也不猜测被截断的metadata。真实SQLite旧meta/坏descriptor冷开回归须比较源journal字节完全不变、原offset数组恢复并可生成模型输入；该迁移与错误元数据修复归原projection owner。Review passed，发布前Required。
+
 ## 2026-11-16 旧会话工具封禁与新会话预览崩溃（scope revision 5）
 
 来源：作者评论6910822183明确报告升级后所有窗口近乎不能调用工具，错误为`Unresolved archived context: only exact current-session history reads are permitted`；评论6910834514报告新窗口`contentItems.filter is not a function`。原0.59.1首次写入失败JRN-09仍独立调查，不用本节两个已复现回归冒充原首因。

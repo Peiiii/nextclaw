@@ -62,20 +62,41 @@ describe("SessionRun persistence recovery", () => {
 });
 
 describe("SessionRun", () => {
+  it("keeps recent command results and valid model round boundaries after a giant earlier body is archived", async () => {
+    const parts: NcpMessage["parts"] = [{ type: "text", text: "old evidence ".repeat(1_000_000) }];
+    const offsets = [1];
+    for (let index = 0; index < 16; index++) {
+      parts.push({ type: "text", text: `read ${index}` }, { type: "tool-invocation", state: "result", toolName: "exec", toolCallId: `sha-${index}`,
+        args: { command: "sha256 feedback.md" }, result: `SHA256_RESULT_${index}` });
+      offsets.push(parts.length);
+    }
+    const run = new SessionRun({ sessionId: "session-1", messages: [] });
+    await run.applyEvents([{ type: NcpEventType.MessageSent, payload: { sessionId: "session-1", message: {
+      ...message("rounds", "assistant", new Date().toISOString()), status: "streaming", parts, metadata: { model_round_part_offsets: offsets },
+    } } }]);
+    const current = run.getSnapshot().messages[0]!;
+    expect(() => ncpMessageToOpenAiMessages(current)).not.toThrow();
+    expect(ncpMessageToOpenAiMessages(current).filter(entry => entry.role === "tool").at(-1)?.content).toBe("SHA256_RESULT_15");
+    expect(JSON.stringify(current).length).toBeLessThan(8 * 1024 * 1024);
+    run.dispose();
+  });
+
   it("keeps a large tool result usable through the real bounded descriptor and model conversion", async () => {
     const large: NcpMessage = { ...message("large-tool", "assistant", new Date().toISOString()), status: "streaming", parts: [{
       type: "tool-invocation", toolCallId: "read-diagnostics", toolName: "read_file", state: "result", args: { path: "diagnostics.log" },
-      result: "diagnostic ".repeat(12_000), resultContentItems: [{ type: "input_text", text: "diagnostic ".repeat(12_000) }],
+      result: "diagnostic: value.\n".repeat(8_000), resultContentItems: [{ type: "input_text", text: "diagnostic: value.\n".repeat(8_000) }],
     }] };
     const descriptor = buildSessionMessageDescriptor(large, "test");
     expect(() => ncpMessageToOpenAiMessages(descriptor)).not.toThrow();
     const run = new SessionRun({ sessionId: "session-1", messages: [] });
     await run.applyEvents([{ type: NcpEventType.MessageSent, payload: { sessionId: "session-1", message: large } }]);
     const bounded = run.getSnapshot().messages[0]!;
-    expect(bounded.metadata?.nextclaw_archived_body).toBe(true);
+    expect(bounded.metadata?.nextclaw_archived_body).toBeUndefined();
     expect(() => ncpMessageToOpenAiMessages(bounded)).not.toThrow();
     expect(ncpMessageToOpenAiMessages(bounded).map(entry => entry.role)).toEqual(["assistant", "tool"]);
-    expect(JSON.stringify(bounded).length).toBeLessThan(32_768);
+    expect(ncpMessageToOpenAiMessages(bounded).find(entry => entry.role === "tool")?.content).toContain("diagnostic: value.");
+    expect(bounded.parts).toEqual(large.parts);
+    expect(JSON.stringify(bounded).length).toBeLessThan(8 * 1024 * 1024);
     run.dispose();
   });
 

@@ -42,13 +42,17 @@ export function ncpMessageToOpenAiMessageGroups(
   rawMessage: NcpMessage,
   options: NcpMessageToOpenAiMessagesOptions = {},
 ): Array<{ partStart: number; messages: OpenAIChatMessage[] }> {
-  const offsets = rawMessage.metadata?.[MODEL_ROUND_PART_OFFSETS];
+  const storedOffsets = rawMessage.metadata?.[MODEL_ROUND_PART_OFFSETS];
+  // Older cropped views persisted an empty first round. Removing that boundary changes no messages or tool ordering.
+  const offsets = Array.isArray(storedOffsets) && storedOffsets[0] === 0 ? storedOffsets.slice(1) : storedOffsets;
   if (rawMessage.role === "assistant" && offsets !== undefined) {
-    if (!Array.isArray(offsets) || offsets.some((offset, index) =>
+    const invalidIndex = Array.isArray(offsets) ? offsets.findIndex((offset, index) =>
       !Number.isInteger(offset) || offset <= 0 || offset > rawMessage.parts.length ||
       (index > 0 && offset <= offsets[index - 1])
-    )) {
-      throw new Error("Invalid assistant model round part offsets");
+    ) : -1;
+    if (!Array.isArray(offsets) || invalidIndex >= 0) {
+      throw Object.assign(new Error(`Invalid assistant model round part offsets (parts=${rawMessage.parts.length}, offsets=${Array.isArray(offsets) ? offsets.length : "non-array"}, invalidIndex=${invalidIndex})`),
+        { code: "INVALID_ASSISTANT_MODEL_ROUND_OFFSETS" });
     }
     const boundaries = [0, ...offsets, rawMessage.parts.length];
     return boundaries.slice(0, -1).flatMap((start, index) => {

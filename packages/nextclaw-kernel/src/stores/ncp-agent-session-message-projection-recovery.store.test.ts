@@ -6,6 +6,9 @@ import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import { NcpAgentSessionMessageProjectionStore } from "./ncp-agent-session-message-projection.store.js";
 import type { NcpAgentSessionMessageProjectionPersistenceStore } from "./ncp-agent-session-message-projection-persistence.store.js";
 import { SessionMessagePreparationStore } from "./session-message-preparation.store.js";
+import { openSqliteDatabase } from "./sqlite-database.store.js";
+import { NcpAgentSessionJournalStore } from "./ncp-agent-session-journal.store.js";
+import { ncpMessageToOpenAiMessages } from "@nextclaw/ncp-agent-runtime";
 
 const sessionId = "session-1";
 const directories: string[] = [];
@@ -20,6 +23,27 @@ async function fixture() {
 }
 
 describe("transactional derived projection recovery", () => {
+  it("rebuilds legacy v12 preview metadata from the untouched journal before a cold run", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nextclaw-preview-upgrade-")); directories.push(directory);
+    const original: NcpMessage = { ...message("cached"), role: "assistant", metadata: { model_round_part_offsets: [1] } };
+    const store = new NcpAgentSessionJournalStore(directory);
+    await store.importSessionSnapshot({ sessionId, messages: [original], metadata: {}, createdAt: original.timestamp!, updatedAt: original.timestamp! });
+    const before = await readFile(join(directory, `${sessionId}.jsonl`), "utf8");
+    store.close();
+    const database = await openSqliteDatabase(join(directory, ".message-projections", sessionId, "messages.sqlite"));
+    database.exec("UPDATE projection_meta SET value=json_set(value,'$.version',12)");
+    database.prepare("UPDATE messages SET descriptor=json_set(descriptor,'$.metadata.model_round_part_offsets',?) WHERE id=?")
+      .run("[archived; read source]", original.id);
+    database.close();
+    const cold = new NcpAgentSessionJournalStore(directory);
+    try {
+      const restored = (await cold.loadSessionRunSeed(sessionId)).find(message => message.id === original.id)!;
+      expect(restored.metadata?.model_round_part_offsets).toEqual([1]);
+      expect(() => ncpMessageToOpenAiMessages(restored)).not.toThrow();
+      expect(await readFile(join(directory, `${sessionId}.jsonl`), "utf8")).toBe(before);
+    } finally { cold.close(); }
+  });
+
   it("leaves the prior committed body and metadata intact when rebuilding fails", async () => {
     const { store } = await fixture();
     await store.prepare(sessionId, { wait: true });

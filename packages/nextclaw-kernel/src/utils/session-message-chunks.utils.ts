@@ -1,4 +1,5 @@
 import type { NcpMessage, NcpMessagePart, NcpToolOutputContentItem } from "@nextclaw/ncp";
+import { MODEL_ROUND_PART_OFFSETS } from "@nextclaw/ncp-agent-runtime";
 
 export const SESSION_BODY_CHUNK_BYTES = 16 * 1024;
 export const SESSION_PAGE_BYTES = 256 * 1024;
@@ -55,6 +56,15 @@ export function* sessionJsonChunks(value: unknown): Generator<string> {
   if (chunk) yield chunk;
 }
 
+export function measureSessionJsonBytes(value: unknown, limit = SESSION_RUN_BYTES): number {
+  let bytes = 0;
+  for (const fragment of sessionJsonFragments(value)) {
+    bytes += Buffer.byteLength(fragment);
+    if (bytes > limit) break;
+  }
+  return bytes;
+}
+
 function preview(value: unknown, remaining: { chars: number }, depth = 0): unknown {
   if (remaining.chars <= 0) return "[archived; read source]";
   if (typeof value === "string") {
@@ -81,20 +91,21 @@ export function buildSessionValuePreview(value: unknown): unknown {
 }
 
 function previewMessagePart(part: NcpMessagePart, budget: { chars: number }): NcpMessagePart {
-  const value = preview(part, budget);
-  if (part.type !== "tool-invocation") return value as NcpMessagePart;
-  const fields = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  if (part.type !== "tool-invocation") return preview(part, budget) as NcpMessagePart;
+  // Results take priority over argument previews, so even a huge command cannot hide its small exit/hash result.
+  const result = part.result !== undefined ? preview(part.result, budget) : undefined;
+  const args = part.args !== undefined ? preview(part.args, budget) : undefined;
+  const items = preview(part.resultContentItems, budget);
   // Payload budgets may omit bodies, but must not change the tool protocol's identity or array types.
-  const contentItems = Array.isArray(fields.resultContentItems) ? fields.resultContentItems.filter(
+  const contentItems = Array.isArray(items) ? items.filter(
     (item): item is NcpToolOutputContentItem => item !== null && typeof item === "object"
       && ((item.type === "input_text" && typeof item.text === "string")
         || (item.type === "input_image" && typeof item.imageUrl === "string" && !item.imageUrl.includes("[archived; read source]"))),
   ) : undefined;
   return {
     type: "tool-invocation", toolName: part.toolName, toolCallId: part.toolCallId, state: part.state,
-    payloadDeferred: true,
-    ...(part.args !== undefined ? { args: part.args && typeof part.args === "object" && typeof fields.args !== "object" ? {} : fields.args ?? {} } : {}),
-    ...(part.result !== undefined ? { result: fields.result !== undefined ? fields.result : "[archived; read source]" } : {}),
+    ...(part.args !== undefined ? { args: part.args && typeof part.args === "object" && typeof args !== "object" ? {} : args ?? {} } : {}),
+    ...(part.result !== undefined ? { result } : {}),
     ...(contentItems ? { resultContentItems: contentItems } : {}),
     ...(part.execution ? { execution: part.execution } : {}),
   };
@@ -114,6 +125,8 @@ export function buildSessionMessageDescriptor(message: NcpMessage, revision: str
       nextclaw_source: { messageId: message.id, revision, partCount: message.parts.length },
     },
   } as NcpMessage;
+  const offsets = message.metadata?.[MODEL_ROUND_PART_OFFSETS];
+  if (Array.isArray(offsets)) descriptor.metadata![MODEL_ROUND_PART_OFFSETS] = offsets.slice(-1_024);
   // Checkpoints are already bounded protocol objects and must never become truncated prose.
   if (message.metadata?.nextclaw_timeline_kind === "context_compaction") {
     descriptor.metadata = { ...message.metadata, nextclaw_source: descriptor.metadata?.nextclaw_source };

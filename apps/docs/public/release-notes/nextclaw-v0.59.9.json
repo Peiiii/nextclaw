@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.59.9",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-11-16",
+  "title": { "zh-CN": "NextClaw v0.59.9", "en-US": "NextClaw v0.59.9" },
+  "summary": {
+    "zh-CN": "修复工具完成后读不到结果、旧工具卡片被隐藏，以及压缩或裁剪后无法继续发消息的问题。",
+    "en-US": "Fix unreadable tool results, hidden populated tool cards, and conversations unable to continue after compaction or cropping."
+  },
+  "links": { "html": {
+    "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-11-16-nextclaw-v0-59-9",
+    "en-US": "https://docs.nextclaw.io/en/notes/2026-11-16-nextclaw-v0-59-9"
+  } },
+  "sections": [{
+    "kind": "fix",
+    "title": { "zh-CN": "工具结果与会话连续性", "en-US": "Tool results and conversation continuity" },
+    "items": [{
+      "title": { "zh-CN": "保留近期实际结果", "en-US": "Keep recent actual results readable" },
+      "body": {
+        "zh-CN": "近期工具结果不再被历史预览提前替换。模型可在预算内读取文件内容、命令回显和校验值，有内容的旧工具卡片也可正常展开。",
+        "en-US": "History previews no longer replace recent working results prematurely. Models can read file content, stdout and checksums within their budgets, and populated older tool cards remain visible."
+      }
+    }, {
+      "title": { "zh-CN": "修复无效轮次位置", "en-US": "Fix invalid round positions" },
+      "body": {
+        "zh-CN": "修复裁剪产生的空首轮及完整压缩后的旧坐标，兼容旧空首轮并从原始日志自动重建旧派生索引，不需要删除会话。原始正文和写盘失败保护保持；原 0.59.1 首因仍在调查。",
+        "en-US": "Fix empty leading rounds and stale positions after full compaction, support older empty leading rounds, and rebuild older derived indexes from original journals. Original content and write-failure protection remain intact; the original 0.59.1 trigger is still under investigation."
+      }
+    }]
+  }]
+}

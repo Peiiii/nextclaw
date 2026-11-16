@@ -3,7 +3,7 @@ import { CONTEXT_COMPACTION_METADATA_KEY, estimateInputTokens, type ContextCompa
 import { MODEL_ROUND_PART_OFFSETS, ncpMessageToOpenAiMessages } from "@nextclaw/ncp-agent-runtime";
 import type { NcpMessage } from "@nextclaw/ncp";
 import { buildContextCompactionModelProjection, buildContextCompactionTimelineNcpMessage, readContextRecoveryState } from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
-import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
+import { SessionRun, SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { ContextCompactionPreflightService } from "./context-compaction-preflight.service.js";
 import { ContextCompactionSummaryGenerationService } from "./context-compaction-summary-generation.service.js";
 
@@ -14,6 +14,41 @@ const summary = (detail = "Previous operations completed.") => ["# Compressed Wo
 const response = (content: string) => ({ content, finishReason: "stop", usage: {} });
 
 describe("compaction continuity boundaries", () => {
+  it("keeps an empty active continuation valid through two full compactions and subsequent replies", async () => {
+    const run = new SessionRun({ sessionId: "empty", messages: [] });
+    await run.applyEvents([{ type: "message.sent", payload: { sessionId: "empty", message: {
+      id: "active", sessionId: "empty", role: "assistant", status: "streaming", timestamp: "2026-11-14T00:00:00Z",
+      parts: [{ type: "text", text: "completed earlier round" }], metadata: { [MODEL_ROUND_PART_OFFSETS]: [1] },
+    } } }]);
+    for (let index = 0; index < 2; index++) {
+      const now = `2026-11-16T12:00:0${index}Z`;
+      const marker = buildContextCompactionTimelineNcpMessage({ sessionId: "empty", messageId: `marker-${index}`, checkpoint: {
+        version: 1, id: `ctx-${index}`, status: "compressed", phase: "mid-run", summary: summary(), coveredUntil: now,
+        coveredMessageCount: 1, coveredSessionMessageCount: 1, originalEstimatedTokens: 100, projectedEstimatedTokens: 20,
+        createdAt: now, updatedAt: now,
+      } });
+      await run.applyEvents([{ type: "message.sent", payload: { sessionId: "empty", message: marker } }]);
+      const active = run.getSnapshot().messages.find(message => message.id === "active")!;
+      expect(active.parts).toEqual([]);
+      expect(() => ncpMessageToOpenAiMessages(active)).not.toThrow();
+      await run.applyEvents([{ type: "message.text-start", payload: { sessionId: "empty", messageId: "active" } },
+        { type: "message.text-delta", payload: { sessionId: "empty", messageId: "active", delta: `CONTINUE_${index}` } }]);
+      expect(JSON.stringify(ncpMessageToOpenAiMessages(run.getSnapshot().messages.find(message => message.id === "active")!))).toContain(`CONTINUE_${index}`);
+    }
+    run.dispose();
+  });
+
+  it("reads an older partial projection with an empty leading round without modifying its stored metadata", () => {
+    const legacy = { id: "old-partial", sessionId: "legacy", role: "assistant" as const, status: "streaming" as const,
+      parts: [{ type: "tool-invocation" as const, state: "result" as const, toolCallId: "first", toolName: "exec", args: {}, result: "FIRST_SHA" },
+        { type: "tool-invocation" as const, state: "result" as const, toolCallId: "second", toolName: "exec", args: {}, result: "SECOND_SHA" }],
+      metadata: { nextclaw_partial_projection: true, [MODEL_ROUND_PART_OFFSETS]: [0, 1, 2] } };
+    const view = buildContextCompactionModelProjection({ sessionId: "legacy", sessionMessages: [legacy] });
+    expect(() => ncpMessageToOpenAiMessages(view.messages[0]!)).not.toThrow();
+    expect(ncpMessageToOpenAiMessages(view.messages[0]!).filter(message => message.role === "tool").map(message => message.content)).toEqual(["FIRST_SHA", "SECOND_SHA"]);
+    expect(legacy.metadata[MODEL_ROUND_PART_OFFSETS]).toEqual([0, 1, 2]);
+  });
+
   it("replaces the old persisted code-generated read-only notice without rewriting user history", () => {
     const legacyNotice = [
       "Earlier conversation is archived, not reliably summarized. Its constraints and action outcomes remain unresolved.",

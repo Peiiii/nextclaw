@@ -1,5 +1,34 @@
 # Issue #73 会话日志持久化故障
 
+## 2026-11-16 20:39 结果不可读与轮次错误返工（当前 scope revision 6）
+
+用户提供客户AI原话：每次回显变“已归档”，抓Issue、算SHA256、读11-14反馈不能获得实际内容；随后报告Invalid assistant model round part offsets，并明确要求审计今天改动。目标仍是可实际完成任务且经验证后全平台发布，授权保持；原.59.1首因JRN-09不降标准。flow=bugfix，phase=validation，retrospective_state=pending，单代理。写前HEAD952d0b9201b567ffb8cf40c5b76621318cfcc6ff/worktree干净；全部新改动属本轮，主工作区WIP不动；origin/master另有独立star-history指标6986669e5f，后续合并保留。正式设计/Review见原设计scope revision 6节。
+
+修前证据：/tmp/issue73-observation-before.log：原native测试只加下一轮模型输入中的43KB结果尾标识断言即失败，原工具确已返回；/tmp/issue73-offsets-before.log：大早期body+多轮tail裁剪产生0边界，同文Invalid；/tmp/issue73-empty-round-before.log：完整压缩后活动占位parts=[]仍带旧正offset，同文Invalid。前次固定模型无条件写固定报告，真实模型也只写固定marker，都不能证明AI读到了工具返回值；此前“实际可用”结论超出证据，本轮收回这一扩张。
+
+今天改动审计：64KiB事件提前套UI descriptor、2K共享预览预算、裁剪>=0及空占位继承旧offset来自既有6e7a43a6ad（已在0.59.7）；今天7dfa9fa56移除权限锁但保留上述缺陷，又给preview工具part无条件payloadDeferred:true；前端toUiParts过滤带该flag的工具，扩大了有内容却被隐藏的问题。5701310dc问答授权移除与本次结果截断无直接关联；当前远端后续只有指标SVG变动，无其它产品源码漂移。不能归咎客户环境或把旧实现当作与今天修复无关。
+
+选定修复：正常工具结果在既有8MiB actor工作预算内保持完整，不再用64KiB显示预览替代模型输入；只对真正超预算/旧历史做有来源的裁剪，保留近期结果，每part独立预览、小结果优先于大参数预览。保留数量/part预算、上下文preflight及真实写失败保护。修正裁剪>0/空占位[]，协议元数据offsets单独保存；converter仅兼容已保存的一个空首轮0，仍拒绝其它非法值。去掉kernel无条件deferred，UI兼容旧flag但有真实内容的卡片；真无payload占位仍延迟加载。
+
+| ID | Required | 当前状态 | 判定 |
+| --- | --- | --- | --- |
+| JRN-09 | true | unverified | 原0.59.1首因仍缺现场归档，不因本轮可复现回归替代 |
+| JRN-16 | true | passed | 实际模型读未知尾nonce/真实shasum stdout，引用并写入报告；冷重开换新内容通过；固定连续大结果与255消息压力场景核对真实值 |
+| JRN-17 | true | passed | 裁剪0/完整压缩空占位双次续聊、旧首0及其它非法拒绝、v12坏派生索引自动重建且源字节不变、真实UI卡片展开显示通过 |
+| JRN-18 | true | not-run | 通过验证/Review后0.59.9全平台发布，先备齐all内容门再冻结；包含Desktop |
+
+21:02真实模型新验收：当前源码native/client/SessionManager/journal，codex-sub/gpt-6-luna；read_file读约37KB真实synthetic markdown末尾不可预知nonce，exec实际执行shasum -a256，write_file写报告。最终回复及报告同时精确包含nonce与独立node.crypto计算的真实SHA。冷重开前改文件并生成新nonce，新请求必须重新读、重新算，再次精确通过；6次实际工具调用，两组nonce/hash不同，不能仅复用旧上下文。28.37秒，/tmp/issue73-live-observation.json及.log；只在内存通过LocalConfigStore解析现有认证，未复制配置、未回显凭据，业务数据全隔离。临时联网测试已移出交付源码，常规CI不需要凭据。
+
+两轮完整压缩后继续追加回复的回归已通过；新版native多次大结果+255旧消息的数量压力场景能看到各实际尾值。UI真实ChatMessageList DOM中，旧deferred但有SHA结果的卡片可展开并显示原值（初始fixture误点不存在的全局摘要，改为真实命令卡按钮后通过；未把fixture错误当产品失败）。仍在收尾，无发布完成声明。本节优先于下方已交付scope5状态，parent-goal仍未完成。
+
+21:22 AI验收与实现Review收尾：kernel真实native/actor/compaction/存储故障4文件34项、projection recovery/page2文件18项、runtime converter/utils24项、UI adapter及真实列表DOM36项均通过，结果有交叉不叠加宣传；额外journal26项为原缓存升级位置的早期验证，迁入正确owner后不重复计数。kernel/runtime/UI/server匹配tsc通过。UI首次tsc发现新增测试缺timestamp，补齐后tsc与DOM复验通过；不把Vitest转译通过当类型检查通过。定向lint无error、维护性0error/3warning（actor586/600，UI adapter369/400，列表测试896/900），治理/ratchet通过。
+
+Review finding已闭合：缓存升级草稿初放在已有977行journal总测试，转入已有projection recovery测试owner（约110行），原总测试完整恢复，无搬动无关存量。审查覆盖8MiB/1024part上限、近期结果保留与旧来源可读、空首轮兼容不吞其它损坏、空占位清offsets、旧派生缓存自动重建、deferred占位与有内容卡片区分；无未关闭finding，不扩大到新的权限/日志框架。其它非法轮次现在仅输出parts数、offset数、非法下标及稳定code，回归确认无正文泄露。
+
+发布准备：双语说明、索引、结构化0.59.9 JSON、changeset及chat guide均在首次all冻结前备齐；docs构建10.94秒通过，模型/迁移测试临时联网代码已清除。旧docs生成器造成的project-pulse临时漂移仅撤销本轮项。原EXISTING_RELEASE_PATH不变，最近成功parent43835025509；dry-run确认0.59.8→0.59.9、16项版本变动/13个NPM包/40包验证闭包，structured notes ready，patch不要求官网/X宣传。JRN-18尚未运行，AUTOMATION_INTERVENTIONS=0（本批尚未dispatch），原JRN-09仍unverified。
+
+对外已发并回读评论6917588820，承认0.59.8仍不充分并说明已复现的实际结果/坐标/旧flag问题；没有公开客户私密正文，未宣称0.59.9已发布。继续跟进授权沿用，不重复请用户确认。
+
 ## 2026-11-16 16:05 用户追报：工具调用可用性回归
 
 用户要求解释破坏可用性的限制、读取GitHub最新信息并解决。原发布授权保持，单代理；使用development-lifecycle的bugfix路径。写前HEAD=69cd190eec802b773695b616359efb2887ae6bdf、工作区干净，首次写入仅本任务两个复现测试；主工作区Bibo WIP不动。当前scope-revision=5，phase=delivery，retrospective_state=pending；设计及方案Review见原设计新增章节。

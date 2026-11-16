@@ -5,9 +5,13 @@ import type { AgentRunSession } from "@kernel/types/session.types.js";
 import { createNativeAgentRuntimeRegistration } from "./native-agent-runtime.service.js";
 
 describe("shared native runtime composition", () => {
-  it.each(["archived-session", "new-session-large-result"] as const)("continues real tool dispatch for %s", async (scenario) => {
+  it.each(["archived-session", "new-session-large-result", "message-count-pressure"] as const)("continues real tool dispatch for %s", async (scenario) => {
     const session: AgentRunSession = { sessionId: "session", agentRuntimeId: "native", workingDir: "/", metadata: {} };
-    const sessionRun = new SessionRun({ sessionId: session.sessionId, messages: [{
+    const sessionRun = new SessionRun({ sessionId: session.sessionId, messages: [
+      ...(scenario === "message-count-pressure" ? Array.from({ length: 255 }, (_, index) => ({
+        id: `earlier-${index}`, sessionId: session.sessionId, role: "user" as const, status: "final" as const,
+        timestamp: new Date(index).toISOString(), parts: [{ type: "text" as const, text: `Earlier constraint ${index}.` }],
+      })) : []), {
       id: "user", sessionId: session.sessionId, role: "user", status: "final",
       parts: [{ type: "text", text: "Read the diagnostics, then write the requested report." }],
       metadata: scenario === "archived-session" ? { nextclaw_archived_body: true } : {},
@@ -17,9 +21,14 @@ describe("shared native runtime composition", () => {
     const models: NcpLLMApi = { generate: async function* (input) {
       inputs.push(input);
       const index = inputs.length;
-      if (index <= 2) {
+      if (scenario !== "archived-session" && index >= 2) {
+        const observed = input.messages.filter(message => message.role === "tool").map(message => message.content).join("\n");
+        expect(observed).toContain("DIAGNOSTIC_END_b63f10b8");
+        if (index >= 3) expect(observed).toContain("ISSUE_END_d385f1");
+      }
+      if (index <= 3) {
         yield { id: `reply-${index}`, choices: [{ index: 0, delta: { role: "assistant", tool_calls: [{
-          index: 0, id: `call-${index}`, type: "function", function: { name: index === 1 ? "read_file" : "write_file", arguments: "{}" },
+          index: 0, id: `call-${index}`, type: "function", function: { name: index === 1 ? "read_file" : index === 2 ? "fetch_issue" : "write_file", arguments: "{}" },
         }] }, finish_reason: null }] };
         yield { id: `reply-${index}`, choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] };
       } else {
@@ -35,16 +44,16 @@ describe("shared native runtime composition", () => {
     const errors: unknown[] = [];
     for await (const event of runtime.run({ agentId: "main", runId: "run", runtimeId: "native", model: "test", requestedModel: null }, {
       session, sessionRun, contextBlocks: [], initialMessages: sessionRun.getSnapshot().messages,
-      tools: ["read_file", "write_file"].map(name => ({ name, description: name, parameters: { type: "object", properties: {} },
-        execute: async () => { calls.push(name); return name === "read_file" && scenario === "new-session-large-result"
-          ? Array.from({ length: 40 }, (_, index) => `${index}: ${"diagnostic ".repeat(100)}`) : "ok"; } })),
+      tools: ["read_file", "fetch_issue", "write_file"].map(name => ({ name, description: name, parameters: { type: "object", properties: {} },
+        execute: async () => { calls.push(name); return name !== "write_file" && scenario !== "archived-session"
+          ? [...Array.from({ length: 39 }, (_, index) => `${index}: ${"diagnostic ".repeat(100)}`), name === "read_file" ? "DIAGNOSTIC_END_b63f10b8" : "ISSUE_END_d385f1"] : "ok"; } })),
     })) {
       if (event.type === NcpEventType.RunError) errors.push(event.payload);
       await sessionRun.applyEvents([event]);
     }
     expect(errors).toEqual([]);
-    expect(calls).toEqual(["read_file", "write_file"]);
-    expect(inputs).toHaveLength(3);
+    expect(calls).toEqual(["read_file", "fetch_issue", "write_file"]);
+    expect(inputs).toHaveLength(4);
     expect(JSON.stringify(sessionRun.getSnapshot().messages)).toContain("REPORT_SAVED");
     sessionRun.dispose();
   });
