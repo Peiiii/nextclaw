@@ -1,5 +1,15 @@
 # @nextclaw/kernel
 
+## 0.19.10
+
+### Patch Changes
+
+- a60572e: Keep recent tool results readable by the model instead of replacing them with history previews. Restore populated tool cards carrying older deferred flags, and fix invalid model round boundaries after history cropping or full compaction, including older empty leading rounds.
+- Updated dependencies [a60572e]
+  - @nextclaw/ncp-agent-runtime@0.4.30
+  - @nextclaw/ncp-agent-runtime-next@0.1.33
+  - @nextclaw/ncp-toolkit@0.6.28
+
 ## 0.19.9
 
 ### Patch Changes

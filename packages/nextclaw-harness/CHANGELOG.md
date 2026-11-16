@@ -1,5 +1,12 @@
 # @nextclaw/harness
 
+## 0.2.36
+
+### Patch Changes
+
+- Updated dependencies [a60572e]
+  - @nextclaw/kernel@0.19.10
+
 ## 0.2.35
 
 ### Patch Changes
