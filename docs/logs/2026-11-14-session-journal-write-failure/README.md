@@ -1,5 +1,9 @@
 # Issue #73 会话日志持久化故障
 
+### 当前发布检查点：22:42
+
+控制平面cbe23697be229ef0fa2dc9444faf3fc662315f3c，唯一当前all恢复parent [43887007685](https://github.com/Peiiii/nextclaw/actions/runs/43887007685)，22:33:41开始；NPM recovery22:36:01、Runtime recovery22:38:07通过，复用既有0.59.9身份，未生成0.59.10。精确ID预检43887936600已success；原parent自动派发Desktop child [43888006998](https://github.com/Peiiii/nextclaw/actions/runs/43888006998)于22:39:21开始，目标仍原Draft v0.59.9-desktop.1 / 0828055e5c6068d09a49a660826e6b8a35ee4295 / Desktop0.0.310。当前child in_progress，未宣称公开可下载。JRN-20的dispatch/queued查询实链已通过，完整交付JRN-18仍running；原JRN-09仍unverified。observer session72855只读父终态；全平台估计23:10附近，非保证。人工恢复累计4（docs failed-only1、原parent failed-only1、部署两次已确认控制缺口后的all恢复各1），自动runner恢复另有真实成功证据，不计人工。旧43884004514排队数据与cancel接口不一致，未重复盲取消、其只读预检不会发布资产。
+
 ## 发布恢复返工（2026-11-16）
 
 用户追问全自动流程并要求修好，扩展到原发布owner的瞬态故障恢复。实现仅release-recovery.yml终态订阅/分类/有界failed-job rerun，仍调用同一publisher，既有产品验收保持有效。JRN-19 required passed（已证明runner容量故障实际自动恢复；docs分类为隔离API回归，未注入生产超时）：脚本直接执行平台真实failure形状、确定性失败拒绝、来源/陈旧/取消/到限门及docs超时/内容不一致分离，9项通过；actionlint、diff --check通过，diff维护性0error/0warning。实现Review检查事件权限、同仓库master来源、当前attempt对账、单run互斥与成功checkpoint复用，无未关闭finding。无TS改动；不另发产品changeset。JRN-18及原JRN-09仍未完成。
