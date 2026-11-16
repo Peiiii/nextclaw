@@ -1,7 +1,7 @@
 {
   "originalIssueReproduced": false,
-  "workflowRun": "https://github.com/Peiiii/nextclaw/actions/runs/43796073500",
-  "sourceCommit": "89f44f10c83ca512459a9cd8f3d99e7585c06e0f",
+  "workflowRun": "https://github.com/Peiiii/nextclaw/actions/runs/43797732846",
+  "sourceCommit": "01553484e62fee828c72f7d5ae31b3bf494682a1",
   "seedPerSession": {
     "bytes": 20963430,
     "sourceRecords": 3239,
@@ -31,6 +31,7 @@
         {
           "sessionId": "large-a",
           "messages": 1112,
+          "verifiedOriginalMessages": 1106,
           "final": [
             {
               "id": "stream-0",
@@ -49,6 +50,7 @@
         {
           "sessionId": "large-b",
           "messages": 1112,
+          "verifiedOriginalMessages": 1106,
           "final": [
             {
               "id": "stream-0",
@@ -65,7 +67,7 @@
           ]
         }
       ],
-      "durationMs": 20210
+      "durationMs": 14192
     },
     {
       "platform": "win32",
@@ -80,6 +82,7 @@
         {
           "sessionId": "large-a",
           "messages": 1112,
+          "verifiedOriginalMessages": 1106,
           "final": [
             {
               "id": "stream-0",
@@ -98,6 +101,7 @@
         {
           "sessionId": "large-b",
           "messages": 1112,
+          "verifiedOriginalMessages": 1106,
           "final": [
             {
               "id": "stream-0",
@@ -114,7 +118,9 @@
           ]
         }
       ],
-      "durationMs": 22165
+      "durationMs": 14962
     }
-  ]
+  ],
+  "initialWorkflowRun": "https://github.com/Peiiii/nextclaw/actions/runs/43796073500",
+  "replayValidation": "all 1106 original message bodies checked individually by ID and SHA256, plus every completed stream response"
 }
