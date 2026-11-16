@@ -2,7 +2,7 @@
 
 ## 2026-11-16 16:05 用户追报：工具调用可用性回归
 
-用户要求解释破坏可用性的限制、读取GitHub最新信息并解决。原发布授权保持，单代理；使用development-lifecycle的bugfix路径。写前HEAD=69cd190eec802b773695b616359efb2887ae6bdf、工作区干净，首次写入仅本任务两个复现测试；主工作区Bibo WIP不动。当前scope-revision=5，phase=implementation，retrospective_state=pending；设计及方案Review见原设计新增章节。
+用户要求解释破坏可用性的限制、读取GitHub最新信息并解决。原发布授权保持，单代理；使用development-lifecycle的bugfix路径。写前HEAD=69cd190eec802b773695b616359efb2887ae6bdf、工作区干净，首次写入仅本任务两个复现测试；主工作区Bibo WIP不动。当前scope-revision=5，phase=delivery，retrospective_state=pending；设计及方案Review见原设计新增章节。
 
 原始反馈：作者评论[6910822183](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6910822183)说明更新后所有窗口几乎无法操作工具，不能整理反馈材料，明确报archive history限制；[6910834514](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6910834514)说明新窗口持续报contentItems.filter异常。这是新增直接证据，不能继续要求作者依赖故障工具取证。
 
@@ -11,9 +11,9 @@
 | ID | Required | 当前状态 | 判定 |
 | --- | --- | --- | --- |
 | JRN-09 | true | unverified | 原0.59.1首次journal异常仍未知，保持Issue打开 |
-| JRN-13 | true | failed | 已归档会话明确新请求下read_file/write_file被runtime硬拦截，需修复并证明实际执行 |
-| JRN-14 | true | failed | 新窗口大工具结果经preview破坏contentItems数组，下一模型轮次崩溃；需修producer及旧数据consumer、冷开续用 |
-| JRN-15 | true | not-run | 修复验收后沿现有全自动父流程交付新版本，包含Desktop，正式发布前不称完成 |
+| JRN-13 | true | passed | 移除runtime归档白名单/读预算与通用再次授权；真实native及实际模型read_file/write_file、冷开再次执行通过，旧确认数据可读 |
+| JRN-14 | true | passed | preview保留工具协议、consumer兼容旧异常字段、旧checkpoint文案精确更新；原失败入口转绿，真实持久化和冷开续用通过，原正文完整 |
+| JRN-15 | true | running | target=all父流程43835025509，冻结9792e004299ef6862fdccd25b719c792d856709b；首次缺内容已在发包前拒绝并纠正，等待NPM/Runtime/Desktop/公开渠道全部终态 |
 
 本节优先于下方scope revision 4历史状态；未受影响的JRN-10至12证据继续有效，存储保护回归将定向复验。
 
@@ -32,6 +32,10 @@ EXISTING_RELEASE_PATH：原release.yml/npm-production/NPM_TOKEN；最近成功pa
 16:46对修复5701310dcb33c8cd18eafd40f7d8c9bf6c7946b6 dispatch首个target=all父流程43834048597；08:51:00Z在发布任何NPM包前被ensureProductReleaseArtifacts拒绝，错误明确缺nextclaw-v0.59.8.json。原因是Agent把product可后补内容的时序套在all的强内容门；不是产品修复失败，不绕过门禁。本轮不能宣称零干预。
 
 已按既有路径补齐中英文页面/索引/结构化JSON（9792e004299ef6862fdccd25b719c792d856709b）、本地双语docs构建通过8秒、hasStructuredReleaseNotes=true、surface review patch ready；构建引起的project-pulse临时漂移已仅撤销本轮生成项。16:54新父流程43835025509冻结该SHA，target=all，exact-SHA prepare43834946475；旧失败source的无用prepare43833947439请求取消，不复用错误identity。AUTOMATION_INTERVENTIONS=1（同根因：all首次冻结缺内容→补齐后由原owner重新接管，未重复publish、未新增版本/发布器）。原产品源码/验收结论不变。当前等待父终态，JRN-15 pending，JRN-09仍unverified。
+
+17:10:05 NPM_READY：同父publish stable NPM batch成功，08:55:04Z→09:10:05Z，15分01秒，time budget:missed（60秒目标）。公开nextclaw@latest=0.59.8，release commit/tag=9d974e86327d1726f9b23d33848677d989a00876；kernel0.19.9、ncp-agent-runtime0.4.29、runtime-next0.1.32、Desktop私有0.0.309。发布13个NPM包、版本变化16项，仍不代表Runtime/Desktop完成。父流程当前继续安装矩阵和Runtime channel，Desktop待后续owner。只读父终态observer session=1511，无手工逐步publisher。
+
+两处docs于17:06完整核验commit9792e004299ef6862fdccd25b719c792d856709b、tree7a83bfbc475b19f655657a6687dc3be4b6f00bfe6b314cfefc87134c1cedb63f；公开structured JSON HTTP200/version0.59.8。首次传播期间domestic commit mismatch不判成部署失败，待对应docs run43834946111成功后同verify入口通过。fetch --tags遇三个既有历史tag冲突，仅保留原标签未强制覆盖；本次13个新tag和master已正常取得，exact nextclaw tag及源版本读取成功，不把无关旧tag冲突当作本次发布失败。
 
 ## 迭代完成说明
 
