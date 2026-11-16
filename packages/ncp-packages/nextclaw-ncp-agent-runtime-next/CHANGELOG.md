@@ -1,5 +1,13 @@
 # @nextclaw/ncp-agent-runtime-next
 
+## 0.1.32
+
+### Patch Changes
+
+- 7dfa9fa: Restore tool calls in archived conversations without blanket reconfirmation. Fix crashes after large tool results and when loading older malformed preview content, while preserving original history and storage-failure protection.
+- Updated dependencies [7dfa9fa]
+  - @nextclaw/ncp-agent-runtime@0.4.29
+
 ## 0.1.31
 
 ### Patch Changes
