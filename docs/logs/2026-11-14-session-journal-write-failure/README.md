@@ -1,6 +1,12 @@
 # Issue #73 会话日志持久化故障
 
-## 2026-11-17 00:23 新反馈返工（当前scope revision 8）
+## 当前交付状态：2026-11-17 03:32（scope revision 8）
+
+0.59.10已完成NPM/Runtime/Desktop/文档/更新渠道/APT公开发布；最终all parent [43938566446](https://github.com/Peiiii/nextclaw/actions/runs/43938566446) success，03:21:56–03:28:00，控制源d8f78d74aec2f7501c29fff1e0625e18f0c8d03c。冻结产品源8e7849ace2af4722323236af9d397e5c19f75f51、NPM/桌面tag目标325f259f3a25aa1de6d3945a0619414c12a3ec67、Desktop0.0.311均保持；没有再发新产品身份。Windows安装包及其它平台入口见[公开Release](https://github.com/Peiiii/nextclaw/releases/tag/v0.59.10-desktop.1)。
+
+JRN-21/22/23=passed；JRN-24=partial/blocked-external（原发布16安装组合及五平台桌面验收全部通过；新增分组资格只有12/16取得执行机会，Mac ARM连续4次无runner，不宣称通过）。原JRN-09=unverified，Issue保持open。phase=finishing，retrospective_decision=updated-original-owners，retrospective_state=pending（新增CI容量阻塞未闭合），不把已发布子目标当作所有原始首因均已解决。
+
+## 2026-11-17 00:23 新反馈返工（scope revision 8历史起点）
 
 反馈：新窗口可工作，旧会话16:00–16:14反复Session journal write failed / Cause Invalid compacted message part boundary，run中止、HTTP500。时区和实际版本尚未证实，客户AI的文件损坏解释待核实，不当作事实。异步请求最小脱敏首次堆栈/实际版本；Issue当前无新作者评论。flow=bugfix，phase=design，retrospective_state=pending。HEAD0f79cfd66/worktree原clean，新增改动仅本轮原resilience测试与设计/日志；主区旧WIP不动。
 
@@ -35,6 +41,12 @@ JRN-21 required red：真实源journal/SQLite/readRunWindow/model projection复�
 03:08最终控制增量Review：68项全通过，actionlint/diff/治理通过，diff-only维护性0error/1近预算warning（closure442/500，净增5）。状态观察与容量重试分类仍分别归closure/原Recovery，官方dispatch receipt日志归原GitHub owner；未新增权限框架、publisher、版本例外或放宽平台验证。controller并发仍按原run ID串行，旧事件按attempt门拒绝，后续事件可到达但不再作为重试持续执行前提。当前desktop ARM构建和资格ARM排队中，尚无完整发布声明。
 
 03:22公开核验与最后身份门返工：desktop43929802861 attempt2已全部success（五平台构建/安装冒烟、Release、channel、APT、Pages），公开v0.59.10-desktop.1非Draft/非prerelease、target325f259f3a25aa1de6d3945a0619414c12a3ec67；原资产owner精确30名及非空检查通过，Windows x64 exe200550168字节。裸公开Desktop/NPM Runtime stable manifest均0.59.10且指向同版notes，Runtime hostKind=npm-runtime-bundle；APT0.0.311；notes JSON与registry latest0.59.10。主线4dc329261a已部署持续恢复owner；真实43937087512自动将资格run恢复attempt4并继续观察，前三平台成功，ARM尚queued，未冒称新矩阵全过。最终all恢复43937756541（第6次发布恢复介入）在NPM recovery误把scripts/dev/node/project-node-version-contract.test.mjs当未发布runtime而拒绝，未重新publish。修原preflight分类，仅允许scripts/dev下.test.mjs，执行文件/包源码/锁仍拒绝；35项相关回归、真实325f→4dc的git diff解析通过，维护性0error/0warning。首次尝试以SHA作dispatch ref遭422无run创建，已改回master+实际expected_head，无产物动作，不增发布身份。接下来从修后master再走唯一all恢复，保留已发布产物；第7次介入待dispatch。
+
+03:32收尾证据：最终all parent success含NPM recovery、兼容证据复用/unsupported guard、Runtime与Desktop完整校验；仅复用0.59.10，不重复NPM publish。本批从首次00:55:11到最终03:28:00共152分49秒；NPM_READY仍942秒，60秒目标missed；发布恢复介入累计7，另一次ref填写错误HTTP422没有创建run，不宣称首轮零干预。Desktop child43929802861于03:16:17终态success，全部11类job含五平台构建/安装冒烟和公开投影；30精确非空资产、Windows200550168字节、公开manifest/APT/notes/registry证据见前。Issue评论[6926821632](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6926821632)已发送并回读验证Peiiii/全文/安装链接，未收到新的作者归档。
+
+新资格43928733838最终attempt4 failure，Mac ARM job133544607335 runner_name为空，实际annotation为The job was not acquired by Runner of type hosted及macOS arm64容量限制；另外三平台各4个Node均success。原Recovery43937087512在4dc控制源下自行恢复attempt4并观察到终态，于03:29:00结束，未越过4次上限；controller success仅表示恢复执行结束，不是目标资格通过。新增矩阵完整CI仍为真实外部阻塞，未降平台/Node门、改OS/架构标签、改用付费runner或另dispatch躲避上限。已取得可用产品与原16组合证据，故产品交付完成；不将新自动化验证标成完成。
+
+方法改进已直接落原owner：source完整/派生局部视图和坐标合同、摘要错误与写盘错误隔离及真实未知结果/cold验收；发布的官方ack ID、有界404等待、4runner保留16cells、单一恢复分类及持续有界观察、开发测试与runtime身份边界。68项发布关联回归通过；新增永久404回归真实等待后证明5次读取明确失败，所属18项通过（20.05秒），不重复累加数量；最终diff-only维护性0error/0warning。没有新增AGENTS/Skill规则或第二publisher。主工作区7项Bibo WIP逐项仍在，待最终提交后按原mainline owner对账；新增CI容量阻塞与原首因缺现场证据均不转成用户手工修文件待办。
 
 ## 23:16 全平台交付与发布恢复验收完成
 

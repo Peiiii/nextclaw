@@ -349,3 +349,13 @@ test("acknowledged workflow IDs tolerate read visibility lag without redispatch"
   await assert.rejects(readDesktopWorkflowRun('owner/repo',42,async()=>{reads++;throw new Error('HTTP 403: Forbidden');}),/403/);
   assert.equal(reads,1);
 });
+
+test("a permanently unavailable acknowledged run fails after bounded reads", async () => {
+  const {readDesktopWorkflowRun}=await import('./desktop-release-github.mjs');
+  let reads=0;
+  await assert.rejects(readDesktopWorkflowRun('owner/repo',42,async()=>{
+    reads++;
+    throw new Error('HTTP 404: Not Found');
+  }),/404/);
+  assert.equal(reads,5);
+});
