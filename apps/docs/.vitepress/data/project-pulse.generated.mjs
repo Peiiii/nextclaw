@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-11-15T09:17:15.859Z",
+  "generatedAt": "2026-11-16T09:33:40.002Z",
   "hero": {
-    "currentLoc": 312144,
-    "testLoc": 135689,
+    "currentLoc": 312146,
+    "testLoc": 135838,
     "trackedFiles": 3351,
-    "recentCommitCount": 82,
+    "recentCommitCount": 92,
     "activeDays30": 30,
     "recentReleaseCount": 32,
-    "latestReleaseDate": "2026-11-15",
-    "latestNoteDate": "2026-11-15",
+    "latestReleaseDate": "2026-11-16",
+    "latestNoteDate": "2026-11-16",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 4027304,
-    "basePercentOfBenchmark": 7.75,
-    "lighterByPercent": 92.25
+    "benchmarkCodeLines": 4036418,
+    "basePercentOfBenchmark": 7.73,
+    "lighterByPercent": 92.27
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-07-19",
-        "label": "07-19",
-        "value": 212627
-      },
       {
         "key": "2026-07-20",
         "label": "07-20",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-11-15",
         "label": "11-15",
         "value": 312144
+      },
+      {
+        "key": "2026-11-16",
+        "label": "11-16",
+        "value": 312146
       }
     ],
     "testLocDaily": [
@@ -1562,14 +1562,14 @@ export default {
         "key": "2026-11-15",
         "label": "11-15",
         "value": 135689
+      },
+      {
+        "key": "2026-11-16",
+        "label": "11-16",
+        "value": 135838
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-10-17",
-        "label": "10-17",
-        "value": 1
-      },
       {
         "key": "2026-10-18",
         "label": "10-18",
@@ -1713,15 +1713,15 @@ export default {
       {
         "key": "2026-11-15",
         "label": "11-15",
-        "value": 4
+        "value": 5
+      },
+      {
+        "key": "2026-11-16",
+        "label": "11-16",
+        "value": 10
       }
     ],
     "commitWeekly": [
-      {
-        "key": "2026-08-24",
-        "label": "08-24",
-        "value": 251
-      },
       {
         "key": "2026-08-31",
         "label": "08-31",
@@ -1775,7 +1775,12 @@ export default {
       {
         "key": "2026-11-09",
         "label": "11-09",
-        "value": 31
+        "value": 32
+      },
+      {
+        "key": "2026-11-16",
+        "label": "11-16",
+        "value": 10
       }
     ],
     "releaseMonthly": [
@@ -1837,7 +1842,7 @@ export default {
       {
         "key": "2026-11",
         "label": "11/26",
-        "value": 3
+        "value": 4
       }
     ]
   },
@@ -1852,8 +1857,8 @@ export default {
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 52390,
-        "testCodeLines": 28642,
+        "codeLines": 52411,
+        "testCodeLines": 28787,
         "files": 523,
         "sharePercent": 16.8
       },
@@ -1902,11 +1907,20 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 4027304,
-      "basePercentOfBenchmark": 7.75,
-      "lighterByPercent": 92.25
+      "benchmarkCodeLines": 4036418,
+      "basePercentOfBenchmark": 7.73,
+      "lighterByPercent": 92.27
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-11-16",
+        "tagCount": 12,
+        "sampleTags": [
+          "@nextclaw/client-sdk@0.12.21",
+          "@nextclaw/companion@0.2.78",
+          "@nextclaw/harness@0.2.35"
+        ]
+      },
       {
         "date": "2026-11-15",
         "tagCount": 23,
@@ -1951,20 +1965,26 @@ export default {
           "@nextclaw/channel-extension-discord@0.2.56",
           "@nextclaw/channel-extension-email@0.2.56"
         ]
-      },
-      {
-        "date": "2026-10-07",
-        "tagCount": 27,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.12.4",
-          "@nextclaw/channel-extension-dingtalk@0.2.55",
-          "@nextclaw/channel-extension-discord@0.2.55"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-11-16-nextclaw-v0-59-8",
+        "date": "2026-11-16",
+        "tags": [],
+        "en": {
+          "title": "2026-11-16 · NextClaw v0.59.8",
+          "description": "Restore tool calls in existing conversations and fix crashes after large tool results.",
+          "href": "/en/notes/2026-11-16-nextclaw-v0-59-8"
+        },
+        "zh": {
+          "title": "2026-11-16 · NextClaw v0.59.8",
+          "description": "恢复旧会话工具调用，修复新会话大工具结果导致的崩溃。",
+          "href": "/zh/notes/2026-11-16-nextclaw-v0-59-8"
+        }
+      },
       {
         "slug": "2026-11-15-nextclaw-v0-59-7",
         "date": "2026-11-15",
@@ -3544,9 +3564,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-11-15T09:17:13.800Z",
+    "locGeneratedAt": "2026-11-16T09:33:38.405Z",
     "sourceCount": {
-      "notes": 82,
+      "notes": 83,
       "scopes": 8
     }
   }
