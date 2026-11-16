@@ -29,6 +29,10 @@ EXISTING_RELEASE_PATH：原release.yml/npm-production/NPM_TOKEN；最近成功pa
 
 16:45收尾复审：新普通问答还会附带recovery checkpoint标记，虽然工具已不因此拒绝，该新标记仍属于无必要的统一授权机制，已删除。旧已保存问答及显式确认消息的兼容读取保留。新增真实UserQuestionManager回归证明归档会话正常提问、普通PDF回答可完成，消息无“确认续做”及授权checkpoint；原RequestManager旧确认兼容同测，2文件20项通过，kernel tsc/定向lint通过、两文件维护性0error/0warning。不是移除必要业务澄清，而是不再把它变成通用授权门。补充设计/实现Review均passed。
 
+16:46对修复5701310dcb33c8cd18eafd40f7d8c9bf6c7946b6 dispatch首个target=all父流程43834048597；08:51:00Z在发布任何NPM包前被ensureProductReleaseArtifacts拒绝，错误明确缺nextclaw-v0.59.8.json。原因是Agent把product可后补内容的时序套在all的强内容门；不是产品修复失败，不绕过门禁。本轮不能宣称零干预。
+
+已按既有路径补齐中英文页面/索引/结构化JSON（9792e004299ef6862fdccd25b719c792d856709b）、本地双语docs构建通过8秒、hasStructuredReleaseNotes=true、surface review patch ready；构建引起的project-pulse临时漂移已仅撤销本轮生成项。16:54新父流程43835025509冻结该SHA，target=all，exact-SHA prepare43834946475；旧失败source的无用prepare43833947439请求取消，不复用错误identity。AUTOMATION_INTERVENTIONS=1（同根因：all首次冻结缺内容→补齐后由原owner重新接管，未重复publish、未新增版本/发布器）。原产品源码/验收结论不变。当前等待父终态，JRN-15 pending，JRN-09仍unverified。
+
 ## 迭代完成说明
 
 2026-11-16 10:24恢复JRN-09调查。用户要求具体说明下一步并继续解决，原目标和发布授权保持；当前仅调查，不因新增实验自动再发产品版本。写前HEAD=a8c183162b9f7df91a6c2a94f8a5c78466dbf657、工作区干净；本轮归属原分支与worktree。已读取原Issue全部条件，冻结失败判据为首次真实异常→journal停止而live继续→冷读缺失；不把任意磁盘注入算原事故复现。
