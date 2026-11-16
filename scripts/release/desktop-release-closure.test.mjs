@@ -8,7 +8,8 @@ import {
   assertDesktopReleaseAssetSet,
   buildDesktopReleaseObservation,
   buildExpectedDesktopReleaseAssetNames,
-  waitForPublicManifest
+  waitForPublicManifest,
+  waitForWorkflowSuccess
 } from "./desktop-release-closure.mjs";
 
 const releaseOptions = {
@@ -17,6 +18,34 @@ const releaseOptions = {
   runtimeVersion: "0.42.3",
   tag: "v0.42.3-desktop.5"
 };
+
+test("desktop observer follows the same run through capacity recovery without stopping other builds", async () => {
+  const states = [
+    {status:"in_progress",jobs:[{status:"completed",conclusion:"cancelled"},{status:"in_progress"}]},
+    {status:"completed",conclusion:"failure"},
+    {status:"queued"},
+    {status:"completed",conclusion:"success"},
+  ];
+  let elapsed=0;
+  const reads=[];
+  const result=await waitForWorkflowSuccess({repo:"owner/repo",runAttempts:10,runDelayMs:10}, {databaseId:73}, {
+    read:async(repo,id)=>{reads.push([repo,id]);return states.shift();},
+    pause:async ms=>{elapsed+=ms;},now:()=>elapsed,
+  });
+  assert.equal(result.conclusion,"success");
+  assert.deepEqual(reads,Array.from({length:4},()=>["owner/repo",73]));
+});
+
+test("desktop observer fails after a bounded recovery window and immediately for cancellation", async () => {
+  for (const conclusion of ["failure","cancelled"]) {
+    let elapsed=0;let reads=0;
+    await assert.rejects(waitForWorkflowSuccess({repo:"owner/repo",runAttempts:10,runDelayMs:60_000}, {databaseId:73}, {
+      read:async()=>{reads++;return {status:"completed",conclusion,url:"run73"};},
+      pause:async ms=>{elapsed+=ms;},now:()=>elapsed,
+    }),/Workflow did not finish successfully: run73/);
+    assert.equal(reads,conclusion==="failure"?3:1);
+  }
+});
 
 test("desktop identities reserve hidden drafts and reuse only an exact target", () => {
   const options = { ...releaseOptions, repo: "owner/repo", target: "new-source" };

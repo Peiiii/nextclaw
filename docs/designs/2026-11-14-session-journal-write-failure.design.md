@@ -2,6 +2,8 @@
 
 ## 2026-11-17 发布可靠性返工（用户再次要求完成自动交付）
 
+02:48追加实际失败：desktop child43929802861的Mac ARM未获runner被cancel，其它平台仍在构建时parent43928744907即提前失败。既有Recovery未订阅desktop-release。选定原owner最小修正：Recovery增加desktop-release同仓master终态订阅及固定path白名单，沿已有精确容量annotation/无runner/失败run/attempt<4门做failed-only恢复，保留其它成功构建；不另设恢复器。closure不以单job失败提前结束，等workflow终态；failure终态给已有控制器120秒启动恢复，active时清除等待计时，超过等待或非failure终态明确失败。总runAttempts不增加，业务错误不会被重试。设计Review passed：恢复判定只归原控制器，父流程只观察；避免重复dispatch/重建已成功平台。补充JRN-24验收：执行真实handler证明desktop容量恢复且编译失败/到限拒绝；真实等待器证明active中单job取消不提前退出、同ID attempt切换后成功、未恢复失败有界退出，再观察本次child容量恢复。
+
 当前16cell矩阵在每个OS重复申请4个runner，Mac ARM单cell在多次容量取消中阻断后续；parent attempt3安装已全部通过/Runtime success，Desktop在17:53Z对已acknowledge的preflight43923039596作首次run查询却404，未做可见性等待直接退出。不能把自动重试等同可靠交付。产品source8e/已发布0.59.10/tag325f均保持，不发新产品版本。
 
 L4设计：原desktop github reader只对已知run ID的404/临时网络读错误做最多5次有界查询，拒绝401/403/业务失败，不重新dispatch；queued不读未建立的jobs，active/terminal保留jobs诊断。原16 OS×Node事实矩阵仍单owner，新增复用的只读资格workflow按平台分组，每次runner依次setup并验证20.19.0、22.19.0、24、26，4个runner保留16组合，不变更OS/架构标签。parent调用该owner，standalone workflow_dispatch用已发布version作验收，不承接发布；资格脚本及矩阵计算从本次冻结控制平面github.sha读取，验证对象绑定不可变expected_version的已发布NPM包，保留既有验证代码与产品来源分离合同。兼容旧单cell和新group成功证据，失败group不伪造其部分成功；仅重跑缺失cells。保留来源/版本身份门和非法source/真实IO检查。

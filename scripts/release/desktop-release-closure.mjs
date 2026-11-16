@@ -65,7 +65,6 @@ async function readWorkflowRun(repo, runId) {
 function summarizeJobs(runSummary) {
   const jobs = runSummary.jobs ?? [];
   const completed = jobs.filter((job) => job.status === "completed").length;
-  const failed = jobs.filter((job) => job.conclusion && job.conclusion !== "success" && job.conclusion !== "skipped");
   const important = jobs
     .filter((job) =>
       [
@@ -78,7 +77,7 @@ function summarizeJobs(runSummary) {
     )
     .map((job) => `${job.name}:${job.status}/${job.conclusion || "pending"}`)
     .join(", ");
-  return { completed, failed, important, total: jobs.length };
+  return { completed, important, total: jobs.length };
 }
 
 function durationMs(startedAt, completedAt) {
@@ -126,30 +125,35 @@ function printDesktopReleaseObservation(runSummary) {
   console.log(`[desktop:release-observation] ${JSON.stringify(buildDesktopReleaseObservation(runSummary))}`);
 }
 
-async function waitForWorkflowSuccess(options, runEntry) {
+export async function waitForWorkflowSuccess(options, runEntry, { read = readWorkflowRun, pause = sleep, now = Date.now } = {}) {
   const { repo, runAttempts, runDelayMs, runId: optionRunId } = options;
   const runId = runEntry.databaseId ?? optionRunId;
   let previousLine = "";
+  let failureSince = null;
   for (let attempt = 1; attempt <= runAttempts; attempt += 1) {
-    const runSummary = await readWorkflowRun(repo, runId);
+    const runSummary = await read(repo, runId);
     const jobSummary = summarizeJobs(runSummary);
     const line = `[desktop:release] run ${runId}: ${runSummary.status}/${runSummary.conclusion || "pending"} jobs ${jobSummary.completed}/${jobSummary.total} ${jobSummary.important}`;
     if (line !== previousLine) {
       console.log(line);
       previousLine = line;
     }
-    if (jobSummary.failed.length > 0) {
-      printDesktopReleaseObservation(runSummary);
-      throw new Error(`Workflow has failed jobs: ${runSummary.url}`);
-    }
     if (runSummary.status === "completed") {
+      // Release Recovery classifies infrastructure failures and resumes this ID.
+      // Allow its workflow_run handler to start; never redispatch from the observer.
+      failureSince ??= now();
+      if (runSummary.conclusion === "failure" && now() - failureSince < 120_000) {
+        await pause(runDelayMs);
+        continue;
+      }
       printDesktopReleaseObservation(runSummary);
       if (runSummary.conclusion !== "success") {
         throw new Error(`Workflow did not finish successfully: ${runSummary.url}`);
       }
       return runSummary;
     }
-    await sleep(runDelayMs);
+    failureSince = null;
+    await pause(runDelayMs);
   }
   try {
     run("gh", ["run", "cancel", String(runId), "--repo", repo]);

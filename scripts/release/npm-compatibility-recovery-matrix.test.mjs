@@ -110,6 +110,13 @@ test('deterministic failure alongside capacity failure blocks recovery', async (
   assert.deepEqual(await recover({jobs: [{name: 'install test', conclusion: 'failure', runner_name: 'runner'}]}), []);
   assert.deepEqual(await recover({annotations: [{message: 'test assertion failed'}]}), []);
 });
+test('desktop child capacity recovery retains its run and rejects build failures and exhaustion', async () => {
+  const event={name:'desktop-release',path:'.github/workflows/desktop-release.yml'};
+  const jobs=[{name:'desktop-darwin-arm64',conclusion:'cancelled',runner_name:'',check_run_url:'/checks/24'}];
+  assert.deepEqual(await recover({event,jobs}),[{owner:'owner',repo:'repo',run_id:73}]);
+  assert.deepEqual(await recover({event,jobs:[{...jobs[0],runner_name:'runner',conclusion:'failure'}]}),[]);
+  assert.deepEqual(await recover({event:{...event,run_attempt:4},jobs}),[]);
+});
 test('recovery refuses stale, exhausted, running, foreign, PR and cancelled runs', async () => {
   for (const override of [{run:{run_attempt:2}}, {event:{run_attempt:4}},
     {run:{status:'in_progress'}}, {event:{head_branch:'feature'}},

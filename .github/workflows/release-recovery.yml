@@ -1,7 +1,7 @@
 name: Release Recovery
 on:
   workflow_run:
-    workflows: [release, Docs Deploy, npm-release-prepare, NPM Install Compatibility]
+    workflows: [release, Docs Deploy, npm-release-prepare, NPM Install Compatibility, desktop-release]
     types: [completed]
   workflow_dispatch:
     inputs:
@@ -33,7 +33,7 @@ jobs:
                 !['workflow_dispatch', 'push'].includes(event.event)) return;
             const {data: run} = await github.rest.actions.getWorkflowRun({...repo, run_id: event.id});
             const workflow = run.path;
-            if (!['.github/workflows/release.yml', '.github/workflows/docs-deploy.yml', '.github/workflows/npm-release-prepare.yml', '.github/workflows/npm-install-compatibility.yml'].includes(workflow)) return;
+            if (!['.github/workflows/release.yml', '.github/workflows/docs-deploy.yml', '.github/workflows/npm-release-prepare.yml', '.github/workflows/npm-install-compatibility.yml', '.github/workflows/desktop-release.yml'].includes(workflow)) return;
             if (run.status !== 'completed' || run.conclusion !== 'failure' ||
                 run.run_attempt !== event.run_attempt || run.run_attempt >= 4) {
               core.notice('No recovery: stale event, active run, or retry limit.');

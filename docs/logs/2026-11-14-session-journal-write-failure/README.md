@@ -28,6 +28,8 @@ JRN-21 required red：真实源journal/SQLite/readRunWindow/model projection复�
 
 02:24检查点：原parent attempt3全部16安装组合通过，Runtime于01:52:15成功；Desktop于01:53:25因已确认preflight43923039596首次只读查询HTTP404中断，没有启动本版桌面构建。原02:00–02:30预计无法兑现，尚未完整发布。JRN-24修复原reader的同ID有界读重试、资格矩阵按平台合并为4次runner申请保留16组合；67项相关测试全通过，actionlint通过，diff-only维护性auto为0error/0warning，治理全通过。严格non-feature净增长检查曾拒绝必要新增能力，按项目允许的最小增长以auto复审；未修改规则或baseline，未删除无关实现。产品source8e、NPM发布commit325f及Desktop0.0.311身份不变，不新增changeset。JRN-24真实四平台CI与JRN-23完整发布仍pending；当前提交控制修复后沿原all入口恢复，预计03:00附近，非保证。人工恢复累计仍3，下一次新控制入口恢复将记第4次；单独只读矩阵验收不发布产品。
 
+02:49真实返工：控制40b614e925推主干后，四runner只读资格43928733838与all恢复43928744907分别于02:25:58/02:26:02接管，人工发布恢复累计4。preflight43929698086成功，desktop43929802861已自动派发；Windows两架构/Linux已构建成功，ARM Mac无runner的取消触发旧closure提前退出，Intel Mac仍继续构建，parent失败。原控制器未订阅desktop child，形成真实自动恢复缺口。补充原Recovery订阅desktop-release，沿同一容量annotation门和failed-only API；closure等待整体终态并给控制器120秒恢复窗口，不再因单job取消中止父流程。67项相关测试全过，actionlint、治理、diff检查通过，维护性0error/1既有近预算warning（closure437/500，净增4行）。实现Review确认无新publisher或第二恢复分类owner、失败等待有上限、业务失败不会自动重试、原成功构建保留；待真实child恢复验证。新分组资格的Mac ARM也曾无runner取消，但已有43931740438自动将同run恢复至attempt2，另三平台成功结果保留，无Agent介入；最终16组合尚未全部证明。预计时间需待ARM获得runner后再核定，原03:00不能保证。
+
 ## 23:16 全平台交付与发布恢复验收完成
 
 当前交付子目标phase=delivery→retrospective，retrospective_state=completed；parent原JRN-09仍unverified，Issue保持open，不能称最初事故全部解决。JRN-16/17的结果可读性与偏移修复验证继续有效；JRN-18=passed，JRN-19=passed，JRN-20=passed。下方running/估计均为历史检查点。
