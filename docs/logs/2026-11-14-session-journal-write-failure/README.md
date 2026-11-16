@@ -16,6 +16,8 @@ JRN-21 required red：真实源journal/SQLite/readRunWindow/model projection复�
 
 发布材料：0.59.10中英notes/索引/结构化JSON及changeset首次冻结前备齐，planned-path preflight通过，docs i18n通过、实际构建9.27秒；project-pulse仅本轮生成漂移已单独恢复。EXISTING_RELEASE_PATH沿原release.yml/npm-production/NPM_TOKEN，最近成功parent43887007685；无active parent。dry-run确认0.59.9→0.59.10、12项版本变动/9个NPM发布/39包验证闭包，structured notes ready，patch无需官网/X；正式必须target=all含Desktop。本批AUTOMATION_INTERVENTIONS=0（尚未dispatch）。主区7项Bibo WIP完全保持，本worktree所有新改动属本轮。
 
+00:55:11正式target=all parent [43912757861](https://github.com/Peiiii/nextclaw/actions/runs/43912757861)已接管，冻结source8e7849ace2af4722323236af9d397e5c19f75f51，ordinary atomic push同时闭合远程master/任务分支；exact prepare43912639495、docs43912639338。expected_head直接取git，不手填；正式dispatcher后只读observer跟随终态，不人工串联子流程。本批AUTOMATION_INTERVENTIONS=0。预计NPM_READY01:10、全平台01:40–02:00，均为估计；JRN-23正式发布running，原JRN-09仍unverified。最终补强的已知source总数上界四种非法边界回归通过，参数end局部只读改名后治理全过、匹配tsc及所属6项复验通过，不削弱校验；没有未关闭Review finding。
+
 ## 23:16 全平台交付与发布恢复验收完成
 
 当前交付子目标phase=delivery→retrospective，retrospective_state=completed；parent原JRN-09仍unverified，Issue保持open，不能称最初事故全部解决。JRN-16/17的结果可读性与偏移修复验证继续有效；JRN-18=passed，JRN-19=passed，JRN-20=passed。下方running/估计均为历史检查点。
