@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
 
-import { readDesktopWorkflowRun } from "./desktop-release-github.mjs";
+import { dispatchDesktopWorkflowRun, readDesktopWorkflowRun } from "./desktop-release-github.mjs";
 
 const ROOT_DIR = process.cwd();
 
@@ -125,11 +125,12 @@ function printDesktopReleaseObservation(runSummary) {
   console.log(`[desktop:release-observation] ${JSON.stringify(buildDesktopReleaseObservation(runSummary))}`);
 }
 
-export async function waitForWorkflowSuccess(options, runEntry, { read = readWorkflowRun, pause = sleep, now = Date.now } = {}) {
+export async function waitForWorkflowSuccess(options, runEntry, { read = readWorkflowRun, pause = sleep, now = Date.now, recover = dispatchDesktopWorkflowRun } = {}) {
   const { repo, runAttempts, runDelayMs, runId: optionRunId } = options;
   const runId = runEntry.databaseId ?? optionRunId;
   let previousLine = "";
   let failureSince = null;
+  let recoveryRequested = false;
   for (let attempt = 1; attempt <= runAttempts; attempt += 1) {
     const runSummary = await read(repo, runId);
     const jobSummary = summarizeJobs(runSummary);
@@ -139,8 +140,12 @@ export async function waitForWorkflowSuccess(options, runEntry, { read = readWor
       previousLine = line;
     }
     if (runSummary.status === "completed") {
-      // Release Recovery classifies infrastructure failures and resumes this ID.
-      // Allow its workflow_run handler to start; never redispatch from the observer.
+      // Explicit dispatch also works for children started with GITHUB_TOKEN.
+      // Release Recovery alone classifies failures; never redispatch the build.
+      if (runSummary.conclusion === "failure" && !recoveryRequested) {
+        await recover({repo, workflow:"release-recovery.yml", branch:"master", inputs:{run_id:String(runId)}});
+        recoveryRequested = true;
+      }
       failureSince ??= now();
       if (runSummary.conclusion === "failure" && now() - failureSince < 120_000) {
         await pause(runDelayMs);

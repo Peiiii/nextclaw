@@ -24,27 +24,38 @@ test("desktop observer follows the same run through capacity recovery without st
     {status:"in_progress",jobs:[{status:"completed",conclusion:"cancelled"},{status:"in_progress"}]},
     {status:"completed",conclusion:"failure"},
     {status:"queued"},
+    {status:"completed",conclusion:"failure"},
+    {status:"in_progress"},
     {status:"completed",conclusion:"success"},
   ];
   let elapsed=0;
   const reads=[];
+  const recoveries=[];
   const result=await waitForWorkflowSuccess({repo:"owner/repo",runAttempts:10,runDelayMs:10}, {databaseId:73}, {
     read:async(repo,id)=>{reads.push([repo,id]);return states.shift();},
     pause:async ms=>{elapsed+=ms;},now:()=>elapsed,
+    recover:async request=>{recoveries.push(request);return {runId:74};},
   });
   assert.equal(result.conclusion,"success");
-  assert.deepEqual(reads,Array.from({length:4},()=>["owner/repo",73]));
+  assert.deepEqual(reads,Array.from({length:6},()=>["owner/repo",73]));
+  assert.deepEqual(recoveries,[{repo:"owner/repo",workflow:"release-recovery.yml",branch:"master",inputs:{run_id:"73"}}]);
 });
 
 test("desktop observer fails after a bounded recovery window and immediately for cancellation", async () => {
   for (const conclusion of ["failure","cancelled"]) {
-    let elapsed=0;let reads=0;
+    let elapsed=0;let reads=0;let recoveries=0;
     await assert.rejects(waitForWorkflowSuccess({repo:"owner/repo",runAttempts:10,runDelayMs:60_000}, {databaseId:73}, {
       read:async()=>{reads++;return {status:"completed",conclusion,url:"run73"};},
       pause:async ms=>{elapsed+=ms;},now:()=>elapsed,
+      recover:async()=>{recoveries++;return {runId:74};},
     }),/Workflow did not finish successfully: run73/);
     assert.equal(reads,conclusion==="failure"?3:1);
+    assert.equal(recoveries,conclusion==="failure"?1:0);
   }
+  await assert.rejects(waitForWorkflowSuccess({repo:"owner/repo",runAttempts:10,runDelayMs:1}, {databaseId:73}, {
+    read:async()=>({status:"completed",conclusion:"failure"}),
+    recover:async()=>{throw new Error("recovery dispatch rejected");},
+  }),/recovery dispatch rejected/);
 });
 
 test("desktop identities reserve hidden drafts and reuse only an exact target", () => {

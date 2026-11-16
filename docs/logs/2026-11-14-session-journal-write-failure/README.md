@@ -30,6 +30,10 @@ JRN-21 required red：真实源journal/SQLite/readRunWindow/model projection复�
 
 02:49真实返工：控制40b614e925推主干后，四runner只读资格43928733838与all恢复43928744907分别于02:25:58/02:26:02接管，人工发布恢复累计4。preflight43929698086成功，desktop43929802861已自动派发；Windows两架构/Linux已构建成功，ARM Mac无runner的取消触发旧closure提前退出，Intel Mac仍继续构建，parent失败。原控制器未订阅desktop child，形成真实自动恢复缺口。补充原Recovery订阅desktop-release，沿同一容量annotation门和failed-only API；closure等待整体终态并给控制器120秒恢复窗口，不再因单job取消中止父流程。67项相关测试全过，actionlint、治理、diff检查通过，维护性0error/1既有近预算warning（closure437/500，净增4行）。实现Review确认无新publisher或第二恢复分类owner、失败等待有上限、业务失败不会自动重试、原成功构建保留；待真实child恢复验证。新分组资格的Mac ARM也曾无runner取消，但已有43931740438自动将同run恢复至attempt2，另三平台成功结果保留，无Agent介入；最终16组合尚未全部证明。预计时间需待ARM获得runner后再核定，原03:00不能保证。
 
+03:06订阅验证返工：desktop child18:52:10Z已failure，但新订阅未产生Recovery run；不能把YAML通过当交付证明。移除该无实证的订阅，closure失败终态显式dispatch同一Recovery(run_id)，整个等待期一次请求，恢复仍由原owner按annotations分类并保留成功构建。控制器自己观察新attempt至终态后重判，最多attempt4/每轮90分钟/总300分钟，不依赖事件继续接力。68项实际handler与等待器测试通过（含连续容量失败、到限、后续业务失败拒绝、ack后旧attempt可见性、同ID两轮失败只请求一次、未恢复失败有界退出），actionlint/治理通过；维护性先触发closure31statement，已将官方ack日志统一放回原dispatch owner，等待器不再自行解释receipt，最终检查待记录。03:01实际回读：desktop43929802861 attempt2的ARM已in_progress，其余四平台success；其受控bootstrap43934559343为本批第5次发布恢复介入。独立资格43928733838已由43934393354自动恢复attempt3，先前口头“第二次失败未自动恢复”是观察过早，已更正；资格无Agent介入。Issue原JRN-09不因此关闭。
+
+03:08最终控制增量Review：68项全通过，actionlint/diff/治理通过，diff-only维护性0error/1近预算warning（closure442/500，净增5）。状态观察与容量重试分类仍分别归closure/原Recovery，官方dispatch receipt日志归原GitHub owner；未新增权限框架、publisher、版本例外或放宽平台验证。controller并发仍按原run ID串行，旧事件按attempt门拒绝，后续事件可到达但不再作为重试持续执行前提。当前desktop ARM构建和资格ARM排队中，尚无完整发布声明。
+
 ## 23:16 全平台交付与发布恢复验收完成
 
 当前交付子目标phase=delivery→retrospective，retrospective_state=completed；parent原JRN-09仍unverified，Issue保持open，不能称最初事故全部解决。JRN-16/17的结果可读性与偏移修复验证继续有效；JRN-18=passed，JRN-19=passed，JRN-20=passed。下方running/估计均为历史检查点。

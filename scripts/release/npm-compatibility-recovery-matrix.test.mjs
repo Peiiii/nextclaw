@@ -81,30 +81,41 @@ async function recover(overrides = {}) {
   const calls = [];
   const event = { id: 73, name: 'release', path: '.github/workflows/release.yml', head_repository: { full_name: 'owner/repo' },
     head_branch: 'master', event: 'workflow_dispatch', run_attempt: 1, ...overrides.event };
-  const run = { ...event, status: 'completed', conclusion: 'failure', ...overrides.run };
+  let run = { ...event, status: 'completed', conclusion: 'failure', ...overrides.run };
+  let previousRun;let visibilityLag=overrides.visibilityLag??0;
   const api = {
-    getWorkflowRun: async () => ({data: run}),
+    getWorkflowRun: async () => ({data: previousRun && visibilityLag-- > 0 ? previousRun : {...run}}),
     listJobsForWorkflowRunAttempt: 'jobs',
     downloadJobLogsForWorkflowRun: async () => ({data: overrides.log ?? ''}),
-    reRunWorkflowFailedJobs: async args => calls.push(args),
+    reRunWorkflowFailedJobs: async args => {
+      calls.push(args);
+      previousRun={...run};
+      run={...run,run_attempt:run.run_attempt+1,conclusion:calls.length <= (overrides.retryFailures??0)?'failure':'success'};
+    },
   };
   const github = { rest: { actions: api, checks: {listAnnotations: 'annotations'} },
-    paginate: async method => method === 'jobs' ? (overrides.jobs ?? [
+    paginate: async method => method === 'jobs' ? (calls.length && overrides.nextJobs ? overrides.nextJobs : overrides.jobs ?? [
       {name: 'verify NPM darwin-arm64 Node 24', conclusion: 'cancelled', runner_name: '', check_run_url: '/checks/24'},
       {name: 'summarize release state', conclusion: 'failure'},
     ]) : (overrides.annotations ?? [{message: 'The job was not acquired by Runner of type hosted even after multiple attempts'}]) };
-  await new AsyncFunction('github', 'context', 'core', 'fetch', recoveryScript)(github,
+  await new AsyncFunction('github', 'context', 'core', 'fetch', 'setTimeout', recoveryScript)(github,
     {repo: {owner: 'owner', repo: 'repo'}, payload: overrides.manual ? {inputs:{run_id:'73'}} : {workflow_run: event}}, {notice() {}},
     async url => {
       if (overrides.expectUrl) assert.equal(url, overrides.expectUrl);
       return {ok:overrides.registry !== undefined,json:async()=>overrides.registry};
-    });
+    },resolve=>resolve());
   return calls;
 }
 
 test('capacity failure resumes the same run through failed-jobs API only', async () => {
   assert.deepEqual(await recover(), [{owner: 'owner', repo: 'repo', run_id: 73}]);
   assert.equal((await recover({event:{name:'feedback-dynamic-title'}})).length,1);
+});
+test('one recovery invocation owns subsequent failures without another workflow event', async () => {
+  assert.equal((await recover({retryFailures:2})).length,3);
+  assert.equal((await recover({retryFailures:9})).length,3);
+  assert.equal((await recover({visibilityLag:3})).length,1);
+  assert.equal((await recover({retryFailures:2,nextJobs:[{name:'build',conclusion:'failure',runner_name:'runner'}]})).length,1);
 });
 test('deterministic failure alongside capacity failure blocks recovery', async () => {
   assert.deepEqual(await recover({jobs: [{name: 'install test', conclusion: 'failure', runner_name: 'runner'}]}), []);

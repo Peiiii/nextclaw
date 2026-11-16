@@ -82,6 +82,7 @@ export function dispatchDesktopWorkflowRun({ repo, workflow, branch, inputs }, r
   if (!Number.isSafeInteger(response.workflow_run_id) || response.workflow_run_id <= 0) {
     throw new Error("Workflow dispatch did not return a valid workflow_run_id; do not redispatch blindly.");
   }
+  console.log(`[desktop:release] acknowledged ${workflow} run ${response.workflow_run_id}`);
   return { runId: response.workflow_run_id };
 }
 
