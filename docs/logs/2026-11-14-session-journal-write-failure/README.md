@@ -2,7 +2,7 @@
 
 ## 2026-11-16 20:39 结果不可读与轮次错误返工（当前 scope revision 6）
 
-用户提供客户AI原话：每次回显变“已归档”，抓Issue、算SHA256、读11-14反馈不能获得实际内容；随后报告Invalid assistant model round part offsets，并明确要求审计今天改动。目标仍是可实际完成任务且经验证后全平台发布，授权保持；原.59.1首因JRN-09不降标准。flow=bugfix，phase=validation，retrospective_state=pending，单代理。写前HEAD952d0b9201b567ffb8cf40c5b76621318cfcc6ff/worktree干净；全部新改动属本轮，主工作区WIP不动；origin/master另有独立star-history指标6986669e5f，后续合并保留。正式设计/Review见原设计scope revision 6节。
+用户提供客户AI原话：每次回显变“已归档”，抓Issue、算SHA256、读11-14反馈不能获得实际内容；随后报告Invalid assistant model round part offsets，并明确要求审计今天改动。目标仍是可实际完成任务且经验证后全平台发布，授权保持；原.59.1首因JRN-09不降标准。flow=bugfix，phase=delivery，retrospective_state=pending，单代理。写前HEAD952d0b9201b567ffb8cf40c5b76621318cfcc6ff/worktree干净；全部新改动属本轮，主工作区WIP不动；origin/master另有独立star-history指标6986669e5f，已合并保留。正式设计/Review见原设计scope revision 6节。
 
 修前证据：/tmp/issue73-observation-before.log：原native测试只加下一轮模型输入中的43KB结果尾标识断言即失败，原工具确已返回；/tmp/issue73-offsets-before.log：大早期body+多轮tail裁剪产生0边界，同文Invalid；/tmp/issue73-empty-round-before.log：完整压缩后活动占位parts=[]仍带旧正offset，同文Invalid。前次固定模型无条件写固定报告，真实模型也只写固定marker，都不能证明AI读到了工具返回值；此前“实际可用”结论超出证据，本轮收回这一扩张。
 
@@ -15,7 +15,7 @@
 | JRN-09 | true | unverified | 原0.59.1首因仍缺现场归档，不因本轮可复现回归替代 |
 | JRN-16 | true | passed | 实际模型读未知尾nonce/真实shasum stdout，引用并写入报告；冷重开换新内容通过；固定连续大结果与255消息压力场景核对真实值 |
 | JRN-17 | true | passed | 裁剪0/完整压缩空占位双次续聊、旧首0及其它非法拒绝、v12坏派生索引自动重建且源字节不变、真实UI卡片展开显示通过 |
-| JRN-18 | true | not-run | 通过验证/Review后0.59.9全平台发布，先备齐all内容门再冻结；包含Desktop |
+| JRN-18 | true | running | 0.59.9全平台parent43875370755，冻结77558dd4b15837cceeb1cdb47203192ec092d20a，exact prepare43875336507；all内容门已备齐，包含Desktop |
 
 21:02真实模型新验收：当前源码native/client/SessionManager/journal，codex-sub/gpt-6-luna；read_file读约37KB真实synthetic markdown末尾不可预知nonce，exec实际执行shasum -a256，write_file写报告。最终回复及报告同时精确包含nonce与独立node.crypto计算的真实SHA。冷重开前改文件并生成新nonce，新请求必须重新读、重新算，再次精确通过；6次实际工具调用，两组nonce/hash不同，不能仅复用旧上下文。28.37秒，/tmp/issue73-live-observation.json及.log；只在内存通过LocalConfigStore解析现有认证，未复制配置、未回显凭据，业务数据全隔离。临时联网测试已移出交付源码，常规CI不需要凭据。
 
@@ -28,6 +28,8 @@ Review finding已闭合：缓存升级草稿初放在已有977行journal总测�
 发布准备：双语说明、索引、结构化0.59.9 JSON、changeset及chat guide均在首次all冻结前备齐；docs构建10.94秒通过，模型/迁移测试临时联网代码已清除。旧docs生成器造成的project-pulse临时漂移仅撤销本轮项。原EXISTING_RELEASE_PATH不变，最近成功parent43835025509；dry-run确认0.59.8→0.59.9、16项版本变动/13个NPM包/40包验证闭包，structured notes ready，patch不要求官网/X宣传。JRN-18尚未运行，AUTOMATION_INTERVENTIONS=0（本批尚未dispatch），原JRN-09仍unverified。
 
 对外已发并回读评论6917588820，承认0.59.8仍不充分并说明已复现的实际结果/坐标/旧flag问题；没有公开客户私密正文，未宣称0.59.9已发布。继续跟进授权沿用，不重复请用户确认。
+
+21:24 source冻结与正式dispatch完成：产品提交a60572e7d后合并独立指标提交，最终source77558dd4b15837cceeb1cdb47203192ec092d20a，工作区干净、ordinary atomic push到master及任务分支。原release.yml target=all父流程[43875370755](https://github.com/Peiiii/nextclaw/actions/runs/43875370755)接管，exact-SHA prepare43875336507；expected_head由git实际读取，没有手填或复用旧source。本批AUTOMATION_INTERVENTIONS=0。预期首检查点NPM_READY约21:45、全平台22:20–22:40，均为估计。仅父终态observer只读跟随，任何真实失败从原owner checkpoint恢复，不手工拼发布阶段。原JRN-09仍unverified，所有发布完成点不能替代原首因门。
 
 ## 2026-11-16 16:05 用户追报：工具调用可用性回归
 
