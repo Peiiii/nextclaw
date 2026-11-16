@@ -71,6 +71,7 @@ try {
     const history = Array.from({ length: 1106 }, (_, index) => ({ id: `history-${index}`, sessionId,
       role: index % 2 ? 'assistant' : 'user', status: 'final', timestamp: new Date(Date.parse(now) + index * 1000).toISOString(),
       parts: [{ type: 'text', text: 'x'.repeat(18_000 + (index === 0 ? 232_496 : 0)) + '\n"中文🙂" \\ {"unfinished": ' }] }));
+    for (const message of history) expected.set(`${sessionId}/${message.id}`, createHash('sha256').update(JSON.stringify(message.parts)).digest('hex'));
     await store.importSessionSnapshot({ sessionId, messages: history, metadata: {}, createdAt: now, updatedAt: now });
     for (let index = 0; index < 2133; index++) await store.appendSessionEvent({ sessionId,
       event: { type: E.RunMetadata, payload: { sessionId, metadata: { kind: 'repro_history_marker', index } } } });
@@ -109,6 +110,14 @@ const cold = new NcpAgentSessionJournalStore(join(root, 'journal'));
 let coldResult;
 try { coldResult = await Promise.all(['large-a', 'large-b'].map(async sessionId => {
   const record = await cold.getSession(sessionId);
+  const replayed = new Map(record?.messages.map(message => [message.id, message]));
+  for (let index = 0; index < 1106; index++) {
+    const id = `history-${index}`;
+    const message = replayed.get(id);
+    if (!message || createHash('sha256').update(JSON.stringify(message.parts)).digest('hex') !== expected.get(`${sessionId}/${id}`)) {
+      throw new Error(`Cold replay changed original history: ${sessionId}/${id}`);
+    }
+  }
   for (let round = 0; round < 3; round++) {
     const id = `stream-${round}`;
     const saved = record?.messages.find(message => message.id === id);
@@ -117,7 +126,7 @@ try { coldResult = await Promise.all(['large-a', 'large-b'].map(async sessionId 
     }
   }
   if (record?.messages[0]?.id !== 'history-0' || !record.messages.some(message => message.id === 'history-1105')) throw new Error('Cold replay lost original history');
-  return { sessionId, messages: record?.messages.length, final: record?.messages.filter(m => m.id.startsWith('stream-')).map(m => ({ id: m.id, hash: createHash('sha256').update(JSON.stringify(m.parts)).digest('hex') })) };
+  return { sessionId, messages: record?.messages.length, verifiedOriginalMessages: 1106, final: record?.messages.filter(m => m.id.startsWith('stream-')).map(m => ({ id: m.id, hash: createHash('sha256').update(JSON.stringify(m.parts)).digest('hex') })) };
 })); } catch (error) { failures.push({ phase: 'cold-read', message: error.message, stack: error.stack }); }
 finally { cold.close(); }
 const result = { root, platform: process.platform, node: process.version, kernel: '0.19.3', runtime: '0.59.1', sourceHash, toolArgs, injectedFailures: false, generated, failures, coldResult, durationMs: Date.now() - started };
