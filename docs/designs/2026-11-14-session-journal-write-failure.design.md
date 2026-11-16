@@ -2,6 +2,8 @@
 
 ## 0.59.10 交付期 preparation 恢复增量
 
+真实API补充：run.name会采用动态run-name，不能作为workflow身份白名单；分类与白名单统一使用run.path固定workflow路径，标题不参与授权或关联。初次bootstrap因该问题误拒绝（green但无动作），保留失败记录；回归已覆盖动态标题下的parent和prepare，不以controller green代替原任务attempt变化证据。
+
 Mac x64预构建pnpm deploy重新解析开发依赖，17:10Z报ERR_PNPM_NO_MATCHING_VERSION @typescript-eslint/types@8.73.0（当时metadata最新8.72.2），同source Mac ARM未获runner而cancel。17:20Z同一精确registry版本HTTP200且name/version相符；源码锁文件仍8.56.0，不能把临时metadata不同步误当产品回归或立即升级pnpm/改依赖锁。L4交付修复，复用原Release Recovery控制器：订阅npm-release-prepare终态，对此类错误只有精确缺失版本现已可用才自动failed-only恢复；永久404/不同版本/普通build失败不重试。既有runner容量分类适用于prepare，保留成功NPM产物及其它平台artifact，最多3次恢复，不另起publisher。
 
 已发生的失败事件在控制器部署前，故增加run_id受控恢复入口：获取原run后仍执行同仓master/已知workflow/原event/current attempt/失败状态/上限的同一校验，不允许任意workflow或active run重跑。当前一次bootstrap需计人工介入，不能称首轮零干预。相较盲重试、固定版本特判和改冻结产品源，这条路径保持原身份，能证实错误条件已改变。设计及实现Review passed：10项实际handler执行回归覆盖scoped package、registry404/错版本/普通错误/未知workflow拒绝及手动同门校验，actionlint与diff维护性通过；部署后用原43912639495验证真实恢复。产品source8e7849ace2与已发布0.59.10不改写，原session修复证据不失效。

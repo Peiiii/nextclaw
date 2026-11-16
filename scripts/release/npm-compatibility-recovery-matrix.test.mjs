@@ -78,7 +78,7 @@ const recoveryScript = workflow.split('          script: |\n')[1]
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 async function recover(overrides = {}) {
   const calls = [];
-  const event = { id: 73, name: 'release', head_repository: { full_name: 'owner/repo' },
+  const event = { id: 73, name: 'release', path: '.github/workflows/release.yml', head_repository: { full_name: 'owner/repo' },
     head_branch: 'master', event: 'workflow_dispatch', run_attempt: 1, ...overrides.event };
   const run = { ...event, status: 'completed', conclusion: 'failure', ...overrides.run };
   const api = {
@@ -103,6 +103,7 @@ async function recover(overrides = {}) {
 
 test('capacity failure resumes the same run through failed-jobs API only', async () => {
   assert.deepEqual(await recover(), [{owner: 'owner', repo: 'repo', run_id: 73}]);
+  assert.equal((await recover({event:{name:'feedback-dynamic-title'}})).length,1);
 });
 test('deterministic failure alongside capacity failure blocks recovery', async () => {
   assert.deepEqual(await recover({jobs: [{name: 'install test', conclusion: 'failure', runner_name: 'runner'}]}), []);
@@ -115,7 +116,7 @@ test('recovery refuses stale, exhausted, running, foreign, PR and cancelled runs
     {run:{conclusion:'cancelled'}}]) assert.deepEqual(await recover(override), []);
 });
 test('docs connection timeout retries verification; content mismatch does not', async () => {
-  const base = {event:{name:'Docs Deploy',event:'push'},
+  const base = {event:{name:'Docs Deploy',path:'.github/workflows/docs-deploy.yml',event:'push'},
     jobs:[{name:'verify',conclusion:'failure',runner_name:'runner'}]};
   assert.equal((await recover({...base,log:'TypeError fetch failed; ConnectTimeoutError'})).length, 1);
   assert.deepEqual(await recover({...base,log:'manifest commit mismatch'}), []);
@@ -123,7 +124,7 @@ test('docs connection timeout retries verification; content mismatch does not', 
 
 
 test('preparation resumes only when the exact missing registry version is now available', async () => {
-  const base={event:{name:'npm-release-prepare',event:'push'},
+  const base={event:{name:'npm-release-prepare source=frozen dispatch=push',path:'.github/workflows/npm-release-prepare.yml',event:'push'},
     jobs:[{name:'prepare runtime darwin',conclusion:'failure',runner_name:'runner'}],
     log:'ERR_PNPM_NO_MATCHING_VERSION No matching version found for @typescript-eslint/types@8.73.0'};
   const registry={name:'@typescript-eslint/types',version:'8.73.0'};
@@ -131,7 +132,7 @@ test('preparation resumes only when the exact missing registry version is now av
   assert.deepEqual(await recover(base),[]);
   assert.deepEqual(await recover({...base,registry:{...registry,version:'8.72.2'}}),[]);
   assert.deepEqual(await recover({...base,log:'build failed',registry}),[]);
-  assert.deepEqual(await recover({...base,event:{...base.event,name:'untrusted workflow'},registry}),[]);
+  assert.deepEqual(await recover({...base,event:{...base.event,path:'.github/workflows/untrusted.yml'},registry}),[]);
   assert.equal((await recover({...base,registry,manual:true})).length,1);
   assert.deepEqual(await recover({...base,registry,manual:true,run:{status:'in_progress'}}),[]);
 });

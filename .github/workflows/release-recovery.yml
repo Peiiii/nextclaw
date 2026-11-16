@@ -28,11 +28,12 @@ jobs:
             const repo = context.repo;
             const event = context.payload.workflow_run ?? (await github.rest.actions.getWorkflowRun(
               {...repo, run_id: Number(context.payload.inputs.run_id)})).data;
-            if (!['release', 'Docs Deploy', 'npm-release-prepare'].includes(event.name)) return;
             if (event.head_repository?.full_name !== `${repo.owner}/${repo.repo}` ||
                 event.head_branch !== 'master' ||
                 !['workflow_dispatch', 'push'].includes(event.event)) return;
             const {data: run} = await github.rest.actions.getWorkflowRun({...repo, run_id: event.id});
+            const workflow = run.path;
+            if (!['.github/workflows/release.yml', '.github/workflows/docs-deploy.yml', '.github/workflows/npm-release-prepare.yml'].includes(workflow)) return;
             if (run.status !== 'completed' || run.conclusion !== 'failure' ||
                 run.run_attempt !== event.run_attempt || run.run_attempt >= 4) {
               core.notice('No recovery: stale event, active run, or retry limit.');
@@ -49,12 +50,12 @@ jobs:
                 github.rest.checks.listAnnotations, {...repo, check_run_id, per_page: 100}) : [];
               let retryable = !job.runner_name && annotations.some(a =>
                 a.message.includes('The job was not acquired by Runner of type hosted'));
-              if (!retryable && event.name === 'Docs Deploy' && job.name === 'verify') {
+              if (!retryable && workflow === '.github/workflows/docs-deploy.yml' && job.name === 'verify') {
                 const {data: log} = await github.rest.actions.downloadJobLogsForWorkflowRun(
                   {...repo, job_id: job.id});
                 retryable = typeof log === 'string' && log.includes('ConnectTimeoutError');
               }
-              if (!retryable && event.name === 'npm-release-prepare') {
+              if (!retryable && workflow === '.github/workflows/npm-release-prepare.yml') {
                 const {data: log} = await github.rest.actions.downloadJobLogsForWorkflowRun({...repo, job_id: job.id});
                 const missing = typeof log === 'string' && log.includes('ERR_PNPM_NO_MATCHING_VERSION')
                   ? log.match(/No matching version found for ((?:@[a-z0-9._-]+\/)?[a-z0-9._-]+)@(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?)/) : null;

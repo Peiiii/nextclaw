@@ -22,6 +22,8 @@ JRN-21 required red：真实源journal/SQLite/readRunWindow/model projection复�
 
 01:17发现prepare43912639495已failure：Mac x64在pnpm deploy命中ERR_PNPM_NO_MATCHING_VERSION，@typescript-eslint/parser8.73.0要求types8.73.0，但runner metadata当时最高8.72.2；Mac ARM未获runner cancel。NPM artifact及Windows/Linux已成功。当前精确registry types8.73.0 GET 200，表明条件已改变，不改源锁文件8.56.0或重发产品包。扩展原Release Recovery到prepare工作流，只有确切缺失版本现已可用才failed-only恢复，永久缺失/普通编译错误拒绝；原run_id受控bootstrap仍完整校验。10项真实handler回归、actionlint、维护性0error/0warning通过，无新publisher/版本特判。详见design增量。当前等待部署控制器并从原run恢复，尚未算成功，不冒称全平台可用。
 
+控制增量部署ae5c51c046（合并NPM publisher325f259f3a，保留source8e与版本身份），bootstrap控制器43918220835 success但未发生rerun：实际REST run.name是动态run-name，不是静态workflow名，新增白名单过早返回。已改以run.path固定workflow文件路径分类，并用真实动态title回归，10项仍通过；首次green不计实际恢复成功。期间parent43912757861因两个Mac cell未获runner而failure；需要同一控制器对原prepare及原parent分别受控恢复，不另dispatch publisher。人工入口触发次数目前1（无变更），后续两入口要如实累计，不能称首轮零干预。
+
 ## 23:16 全平台交付与发布恢复验收完成
 
 当前交付子目标phase=delivery→retrospective，retrospective_state=completed；parent原JRN-09仍unverified，Issue保持open，不能称最初事故全部解决。JRN-16/17的结果可读性与偏移修复验证继续有效；JRN-18=passed，JRN-19=passed，JRN-20=passed。下方running/估计均为历史检查点。
