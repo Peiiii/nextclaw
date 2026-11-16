@@ -2,7 +2,9 @@
 
 ## 发布恢复返工（2026-11-16）
 
-用户追问全自动流程并要求修好，扩展到原发布owner的瞬态故障恢复。实现仅release-recovery.yml终态订阅/分类/有界failed-job rerun，仍调用同一publisher，既有产品验收保持有效。JRN-19 required running：脚本直接执行平台真实failure形状、确定性失败拒绝、来源/陈旧/取消/到限门及docs超时/内容不一致分离，9项通过；actionlint、diff --check通过，diff维护性0error/0warning。实现Review检查事件权限、同仓库master来源、当前attempt对账、单run互斥与成功checkpoint复用，无未关闭finding。无TS改动；不另发产品changeset。默认分支部署后仍需真实workflow_run触发证据，不能把手工rerun称为自动修复通过。JRN-18及原JRN-09仍未完成。
+用户追问全自动流程并要求修好，扩展到原发布owner的瞬态故障恢复。实现仅release-recovery.yml终态订阅/分类/有界failed-job rerun，仍调用同一publisher，既有产品验收保持有效。JRN-19 required passed（已证明runner容量故障实际自动恢复；docs分类为隔离API回归，未注入生产超时）：脚本直接执行平台真实failure形状、确定性失败拒绝、来源/陈旧/取消/到限门及docs超时/内容不一致分离，9项通过；actionlint、diff --check通过，diff维护性0error/0warning。实现Review检查事件权限、同仓库master来源、当前attempt对账、单run互斥与成功checkpoint复用，无未关闭finding。无TS改动；不另发产品changeset。JRN-18及原JRN-09仍未完成。
+
+22:11:19.510真实自动恢复证据：默认分支a35e1db95c209859ed7d78f16e467ea3aa50e908的workflow_run [43883089570](https://github.com/Peiiii/nextclaw/actions/runs/43883089570) success，notice明确Resumed run 43875370755, attempt 3; successful checkpoints retained。原attempt2仅Node24再次未获runner，Node26已22:07:10通过；控制器未重发NPM/未另dispatch，自动attempt3 Node24在22:12:10通过，16cell及unsupported全部成功，原Runtime进入in_progress。人工干预仍2（docs1、早先parent1），此次控制器自动恢复不计人工。新控制器实施期间的非法self-listen配置已如实记录并纠正，不能称首次实现就成功；当前全平台预计22:40–23:00，待Desktop及公开渠道实际核验。
 
 ## 2026-11-16 20:39 结果不可读与轮次错误返工（当前 scope revision 6）
 
