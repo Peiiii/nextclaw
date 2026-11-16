@@ -10,6 +10,12 @@
 
 本机无法执行Win native sharp，已保留该环境失败，不改Windows发布物借用Mac native模块。下一步沿原windows-update-smoke的显式诊断分支在Windows runner/Node24.18.1运行发布bundle；原artifact不改，仅副本加观察导出，目标规模调到20,963,430字节，另测截断tool参数。11:15检查实际结果；JRN-09仍未复现/未通过。
 
+11:16本轮结果：诊断提交89f44f10c83ca512459a9cd8f3d99e7585c06e0f，Windows [43796073500](https://github.com/Peiiii/nextclaw/actions/runs/43796073500)于11:07:17成功结束。正常文本与截断工具参数两组，各2会话，seed精确20,963,430字节/3239记录/1106消息、3轮真实compaction owner后分别11,544与11,574个事件；首错探针无异常，cold各1112条且所有完成回复parts hash与live一致。20.210秒、22.165秒为各实验执行时间，不含runner准备下载。Mac/旧NPM/Node24同一tool参数场景也通过。永久[证据摘要](artifacts/2026-11-16-v0591-windows-reproduction.json)保留source hash、操作条件、全部cold hash与未对齐条件；没有保存用户内容或认证信息。
+
+边界：此为GitHub Windows runner，不是反馈者Win11机器；未取得原消息/工具payload，未重建85,857实际token占用，也未对齐2273条压缩计数。大历史的额外源记录是无副作用合成metadata，不能冒充原真实工具分布。结果证明这两组合法字符串/截断参数实验未触发首因，不能证明原事故不存在或已经修复。原机JRN-09仍not-run（未命中原触发），没有新增产品修复或版本发布。
+
+另已取得nextclaw@0.59.1的NPM Runtime Windows zip，该分发物不含同名BSD8HAiL chunk，未把它混作已测试的Desktop bundle。现有公开产物排查和无注入实验已完成；下一步需实际chunk SHA/来源、首个非锁存异常、最后一次操作类型、重启后原jsonl是否保留等具体证据。已向用户提交可直接发布的AI署名请求，等待对外联系作者授权；未发送Issue评论。仅此依赖阻止后续定向回放，父目标仍未完成。
+
 2026-11-15用户纠偏后已重开，整体未完成。用户明确指出日志缺口必须修、未查明首次触发不能当完整解决，且一刀切停止运行可能使产品更不可用。Issue #73已重新打开，未发送评论。0.59.6/kernel0.19.7/Desktop0.0.307已发布及其CI成功仍是历史事实，不能替代当前开放目标。原反馈机器的JSON触发仍未证实，没有原journal与完整日志；不宣称恢复从未落盘内容。
 
 flow=bugfix；task-id=dt-73b14f26；phase=task-understanding；retrospective_state=pending；scope-revision=4。本次返工仍复用原worktree/分支，写前HEAD=b684c1ddb38cdac301c4203510d76b3a12038502、工作区干净；全部当前改动属于本任务，主工作区WIP不动。JRN-10至12的修复和0.59.7全平台发布已完成，原机首因JRN-09仍等待现场材料，parent-goal未完成。旧required表是0.59.6已证明的历史范围；以下当前表优先，发布passed不替代原事故根因验收。

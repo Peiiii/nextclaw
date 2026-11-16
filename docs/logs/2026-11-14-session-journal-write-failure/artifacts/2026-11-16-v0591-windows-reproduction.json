@@ -1,0 +1,120 @@
+{
+  "originalIssueReproduced": false,
+  "workflowRun": "https://github.com/Peiiii/nextclaw/actions/runs/43796073500",
+  "sourceCommit": "89f44f10c83ca512459a9cd8f3d99e7585c06e0f",
+  "seedPerSession": {
+    "bytes": 20963430,
+    "sourceRecords": 3239,
+    "messages": 1106
+  },
+  "sessionsPerCase": 2,
+  "compactionRounds": 3,
+  "contextTokenBudget": 240000,
+  "provider": "fixed protocol-valid synthetic summary; no external model or tool execution",
+  "unmatchedConditions": [
+    "original message and tool payloads unavailable",
+    "reported usedContextTokens=85857 not reconstructed",
+    "reported compactedMessageCount=2273 not matched",
+    "GitHub hosted Windows runner does not reproduce the reporters Windows 11 profile or file filters"
+  ],
+  "cases": [
+    {
+      "platform": "win32",
+      "node": "v24.18.1",
+      "runtime": "0.59.1",
+      "sourceHash": "c29d4429a41a103969f57499f06dea372750d0736be79ed9c397b5fde82f7e7d",
+      "toolArgs": false,
+      "injectedFailures": false,
+      "generated": 11544,
+      "failures": [],
+      "coldResult": [
+        {
+          "sessionId": "large-a",
+          "messages": 1112,
+          "final": [
+            {
+              "id": "stream-0",
+              "hash": "a242076dce3123688872bcfb1979c6aaf8e463e5338faaed227bbd5f296b4344"
+            },
+            {
+              "id": "stream-1",
+              "hash": "a242076dce3123688872bcfb1979c6aaf8e463e5338faaed227bbd5f296b4344"
+            },
+            {
+              "id": "stream-2",
+              "hash": "a242076dce3123688872bcfb1979c6aaf8e463e5338faaed227bbd5f296b4344"
+            }
+          ]
+        },
+        {
+          "sessionId": "large-b",
+          "messages": 1112,
+          "final": [
+            {
+              "id": "stream-0",
+              "hash": "a242076dce3123688872bcfb1979c6aaf8e463e5338faaed227bbd5f296b4344"
+            },
+            {
+              "id": "stream-1",
+              "hash": "a242076dce3123688872bcfb1979c6aaf8e463e5338faaed227bbd5f296b4344"
+            },
+            {
+              "id": "stream-2",
+              "hash": "a242076dce3123688872bcfb1979c6aaf8e463e5338faaed227bbd5f296b4344"
+            }
+          ]
+        }
+      ],
+      "durationMs": 20210
+    },
+    {
+      "platform": "win32",
+      "node": "v24.18.1",
+      "runtime": "0.59.1",
+      "sourceHash": "c29d4429a41a103969f57499f06dea372750d0736be79ed9c397b5fde82f7e7d",
+      "toolArgs": true,
+      "injectedFailures": false,
+      "generated": 11574,
+      "failures": [],
+      "coldResult": [
+        {
+          "sessionId": "large-a",
+          "messages": 1112,
+          "final": [
+            {
+              "id": "stream-0",
+              "hash": "79362fe014c526e5105c9f8f436a39d97cde4dd25fce642cd480a46b90e4a7f7"
+            },
+            {
+              "id": "stream-1",
+              "hash": "c3d29891ef21b4f3a2bf12e523f5293f957bec5ad2643b2f1c2ec21876769250"
+            },
+            {
+              "id": "stream-2",
+              "hash": "017bff0a5ebc230c44624d9e224e1eca9c286550276af5ea542ad8ea091437a8"
+            }
+          ]
+        },
+        {
+          "sessionId": "large-b",
+          "messages": 1112,
+          "final": [
+            {
+              "id": "stream-0",
+              "hash": "79362fe014c526e5105c9f8f436a39d97cde4dd25fce642cd480a46b90e4a7f7"
+            },
+            {
+              "id": "stream-1",
+              "hash": "c3d29891ef21b4f3a2bf12e523f5293f957bec5ad2643b2f1c2ec21876769250"
+            },
+            {
+              "id": "stream-2",
+              "hash": "017bff0a5ebc230c44624d9e224e1eca9c286550276af5ea542ad8ea091437a8"
+            }
+          ]
+        }
+      ],
+      "durationMs": 22165
+    }
+  ]
+}
