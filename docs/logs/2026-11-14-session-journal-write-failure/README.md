@@ -1,10 +1,18 @@
 # Issue #73 会话日志持久化故障
 
-## 当前交付状态：2026-11-17 03:32（scope revision 8）
+## 当前交付状态：2026-11-17 11:27（scope revision 8）
 
 0.59.10已完成NPM/Runtime/Desktop/文档/更新渠道/APT公开发布；最终all parent [43938566446](https://github.com/Peiiii/nextclaw/actions/runs/43938566446) success，03:21:56–03:28:00，控制源d8f78d74aec2f7501c29fff1e0625e18f0c8d03c。冻结产品源8e7849ace2af4722323236af9d397e5c19f75f51、NPM/桌面tag目标325f259f3a25aa1de6d3945a0619414c12a3ec67、Desktop0.0.311均保持；没有再发新产品身份。Windows安装包及其它平台入口见[公开Release](https://github.com/Peiiii/nextclaw/releases/tag/v0.59.10-desktop.1)。
 
-JRN-21/22/23=passed；JRN-24=partial/blocked-external（原发布16安装组合及五平台桌面验收全部通过；新增分组资格只有12/16取得执行机会，Mac ARM连续4次无runner，不宣称通过）。原JRN-09=unverified，Issue保持open。phase=finishing，retrospective_decision=updated-original-owners，retrospective_state=pending（新增CI容量阻塞未闭合），不把已发布子目标当作所有原始首因均已解决。
+JRN-21/22/23/24=passed。[新增分组资格44008561614](https://github.com/Peiiii/nextclaw/actions/runs/44008561614)于11:12:43–11:27:05首轮success，控制源9932f53de62638707c63bdbe822d1cf6d43ae35e；逐step核对四个平台各四个Node安装/SQLite校验共16项全部success，Mac ARM原外部阻塞已解除。原JRN-09=unverified，Issue保持open。phase=finishing，retrospective_decision=updated-original-owners，retrospective_state=completed（本轮JRN-21至24交付与补验）；原始事故首因调查没有因此完成。
+
+## 2026-11-17 11:27 自动发布范围核对与剩余验收闭合
+
+用户继续追问自动化范围。原release.yml的完整发布入口target=all已覆盖NPM、安装兼容门、Runtime、Desktop、更新渠道/APT及公开复核；NPM不是独立漏项，registry dist-tag latest实际仍0.59.10。原最终all parent43938566446已验证整链成功，无需重复发布产品。
+
+本轮写前HEAD9932f53de/worktree clean，仅补原JRN-24缺失实证。先确认此前容量故障后，desktop-validate43940563847的Mac安装冒烟已在03:39:11–03:44:53取得runner并success，环境条件已改变；11:12:43从原只读资格入口启动44008561614，对已发布nextclaw0.59.10验证，不越过旧run的4次上限。此轮首次即取得全部四个runner：Linux四版本11:14:55完成、Mac ARM11:15:18完成、Intel Mac11:19:55完成、Windows11:27:04完成；run11:27:05 success，共14分22秒。逐step确认Node20.19.0、22.19.0、24、26的实际安装与SQLite校验全部成功，无reused占位或跳过项，原OS/架构标签未变。证据摘要/tmp/issue73-05910-coalesced-accepted.json及Actions原run。
+
+本轮没有产品或流程源码改动、没有新changeset/版本，不增加发布器、权限开关、定时任务或规则。既有失败分类与持续有界恢复owner保持；健康条件下取得全部16组合的真实CI证据，补齐原验收，不为相同风险重复跑其它已通过测试。此前发布7次受控介入仍为历史事实，不能把本次资格首轮通过写成原发布全程零介入。复盘无新增方法缺口：原owner修复已在前轮落地，此轮只更新事实及关闭未验证项；原首次停写/文件缺失原因仍缺现场证据，Issue73最新无新增作者评论，保持开放。
 
 ## 2026-11-17 00:23 新反馈返工（scope revision 8历史起点）
 
