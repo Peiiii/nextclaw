@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-11-16T09:33:40.002Z",
+  "generatedAt": "2026-11-17T10:39:26.222Z",
   "hero": {
-    "currentLoc": 312146,
-    "testLoc": 135838,
+    "currentLoc": 312198,
+    "testLoc": 136063,
     "trackedFiles": 3351,
-    "recentCommitCount": 92,
+    "recentCommitCount": 125,
     "activeDays30": 30,
     "recentReleaseCount": 32,
     "latestReleaseDate": "2026-11-16",
-    "latestNoteDate": "2026-11-16",
+    "latestNoteDate": "2026-11-17",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 4036418,
-    "basePercentOfBenchmark": 7.73,
-    "lighterByPercent": 92.27
+    "benchmarkCodeLines": 4045695,
+    "basePercentOfBenchmark": 7.72,
+    "lighterByPercent": 92.28
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-07-20",
-        "label": "07-20",
-        "value": 212622
-      },
       {
         "key": "2026-07-21",
         "label": "07-21",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-11-16",
         "label": "11-16",
         "value": 312146
+      },
+      {
+        "key": "2026-11-17",
+        "label": "11-17",
+        "value": 312198
       }
     ],
     "testLocDaily": [
@@ -1567,14 +1567,14 @@ export default {
         "key": "2026-11-16",
         "label": "11-16",
         "value": 135838
+      },
+      {
+        "key": "2026-11-17",
+        "label": "11-17",
+        "value": 136063
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-10-18",
-        "label": "10-18",
-        "value": 1
-      },
       {
         "key": "2026-10-19",
         "label": "10-19",
@@ -1718,7 +1718,12 @@ export default {
       {
         "key": "2026-11-16",
         "label": "11-16",
-        "value": 10
+        "value": 31
+      },
+      {
+        "key": "2026-11-17",
+        "label": "11-17",
+        "value": 13
       }
     ],
     "commitWeekly": [
@@ -1780,7 +1785,7 @@ export default {
       {
         "key": "2026-11-16",
         "label": "11-16",
-        "value": 10
+        "value": 44
       }
     ],
     "releaseMonthly": [
@@ -1850,15 +1855,15 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 76806,
-        "testCodeLines": 42954,
+        "codeLines": 76808,
+        "testCodeLines": 42975,
         "files": 942,
         "sharePercent": 24.6
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 52411,
-        "testCodeLines": 28787,
+        "codeLines": 52458,
+        "testCodeLines": 28975,
         "files": 523,
         "sharePercent": 16.8
       },
@@ -1907,14 +1912,14 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 4036418,
-      "basePercentOfBenchmark": 7.73,
-      "lighterByPercent": 92.27
+      "benchmarkCodeLines": 4045695,
+      "basePercentOfBenchmark": 7.72,
+      "lighterByPercent": 92.28
     },
     "recentReleaseBatches": [
       {
         "date": "2026-11-16",
-        "tagCount": 12,
+        "tagCount": 36,
         "sampleTags": [
           "@nextclaw/client-sdk@0.12.21",
           "@nextclaw/companion@0.2.78",
@@ -1970,6 +1975,36 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-11-17-nextclaw-v0-59-10",
+        "date": "2026-11-17",
+        "tags": [],
+        "en": {
+          "title": "2026-11-17 · NextClaw v0.59.10",
+          "description": "Fix false part-boundary failures in older compacted sessions and summary failures locking durable conversations.",
+          "href": "/en/notes/2026-11-17-nextclaw-v0-59-10"
+        },
+        "zh": {
+          "title": "2026-11-17 · NextClaw v0.59.10",
+          "description": "修复旧压缩会话的分段边界误判，以及摘要计算错误导致会话停写的问题。",
+          "href": "/zh/notes/2026-11-17-nextclaw-v0-59-10"
+        }
+      },
+      {
+        "slug": "2026-11-16-nextclaw-v0-59-9",
+        "date": "2026-11-16",
+        "tags": [],
+        "en": {
+          "title": "2026-11-16 · NextClaw v0.59.9",
+          "description": "Fix unreadable tool results and conversations unable to continue after context cropping.",
+          "href": "/en/notes/2026-11-16-nextclaw-v0-59-9"
+        },
+        "zh": {
+          "title": "2026-11-16 · NextClaw v0.59.9",
+          "description": "修复工具执行后读不到结果，以及上下文裁剪后无法继续发消息的问题。",
+          "href": "/zh/notes/2026-11-16-nextclaw-v0-59-9"
+        }
+      },
       {
         "slug": "2026-11-16-nextclaw-v0-59-8",
         "date": "2026-11-16",
@@ -3564,9 +3599,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-11-16T09:33:38.405Z",
+    "locGeneratedAt": "2026-11-17T10:39:23.820Z",
     "sourceCount": {
-      "notes": 83,
+      "notes": 85,
       "scopes": 8
     }
   }
