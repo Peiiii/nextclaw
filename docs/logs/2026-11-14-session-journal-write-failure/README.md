@@ -6,7 +6,11 @@
 
 新增安全日志记录候选检查点、原界限、读取与选择记录数、预算、恢复结果。通过真实 journal 的失败路径确认旧检查点保持、失败条目落盘、提供方恢复后压缩成功。测试同时验证可提取模型声明的上限及实际请求 token 数，且诊断不含响应正文。HTTP 路由已验证受控压缩失败返回结构化 409；客户收到纯文本 500 的外层原因待其当时的 service 日志。旧版 EPERM 已确认 metadata 原子替换阶段，Windows 拒绝该操作的条件待核。针对两个问题仅索取可查的摘要时间线与短日志窗口，已回读 [Issue 评论](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6971752412)。
 
-73 项 kernel 测试及 6 项 HTTP 测试通过，kernel tsc 和治理检查通过。恢复标记与第二次计划加强后的 13 项连续性测试复验通过，与 73 项有重叠。计划 patch 0.59.11，完整发布尚未完成。
+73 项 kernel 测试及 6 项 HTTP 测试通过，kernel tsc、治理、文档构建和双语检查通过。恢复标记与第二次计划加强后的 13 项连续性测试复验通过，与 73 项有重叠。既有日志服务及文件 sink 的 14 项回归通过。设计与实现审查通过，维护性 0 错误，preflight service 保留近预算警告。
+
+0.59.11 已完整发布。唯一 [all 父流程](https://github.com/Peiiii/nextclaw/actions/runs/44257848208) 在 15:18:28–16:22:29 北京时间首轮成功，历时 64 分 01 秒。冻结源 5c29ef67d9d21940853998c872d4ee384b90ef1b，版本提交与公开桌面目标 7d0ceb35605822d7ee168ca77a30ef2ddbebf2ef。NPM_READY 15:32:50，耗时 14 分 22 秒，60 秒目标未达。新版本的四平台各四 Node 安装/SQLite 验证全过，Windows 是最长一组。Runtime 公开 manifest 正确，桌面 [child](https://github.com/Peiiii/nextclaw/actions/runs/44262002839) 五平台构建与安装冒烟通过，Intel Mac 为最长构建。桌面 0.0.312 公开版的 30 个资产名、非空状态及目标通过校验，Windows x64 安装包 200564996 字节。公开两类 stable manifest 为 0.59.11，APT 为 0.0.312，发行说明 JSON 为 0.59.11。
+
+国内站私有 OSS 归档停留 49 分钟，取消原文档 run 后只重试原国内部署 job，同一 [Docs run](https://github.com/Peiiii/nextclaw/actions/runs/44257830732) attempt2 成功。双站 commit/tree 核验通过，tree 为 2dfdd594076765eef1a7ef157b12c0c4c7acce33ec9670c26a4c51d04697700b。产品父流程零人工续跑，独立文档恢复一次。取消前日志未给出可核实的 OSS 根因，暂不修改超时或发布流程。复盘把可复用诊断直接落到原压缩管理器，继续追踪原机检查点来源、纯文本 500 的外层异常与 0.59.1 EPERM 系统拒绝原因。已发送并回读 [下载与日志回执](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6973176745)，Issue 保持开放。
 
 ## 当前交付状态：2026-11-17 11:27（scope revision 8）
 
