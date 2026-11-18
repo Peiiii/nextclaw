@@ -1,5 +1,16 @@
 # nextclaw
 
+## 0.59.11
+
+### Patch Changes
+
+- 73135e3: Fix manual compaction getting stuck when the summary model returns a usable summary from shortened long fields. Preserve the archive notice and record the checkpoint and budget details needed to diagnose failures.
+- Updated dependencies [73135e3]
+  - @nextclaw/kernel@0.19.12
+  - @nextclaw/remote@0.3.81
+  - @nextclaw/server@0.23.24
+  - @nextclaw/service@0.7.18
+
 ## 0.59.10
 
 ### Patch Changes
