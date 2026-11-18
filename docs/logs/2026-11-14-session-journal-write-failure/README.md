@@ -1,5 +1,13 @@
 # Issue #73 会话日志持久化故障
 
+## 2026-11-18 复现并修复手动压缩无法前进
+
+作者的 [0.59.10 复现](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6942044029) 显示提供方正常结束后，删节输入触发失败，原检查点迟迟不能前进。对原 0.59.10 发布 commit 检查受影响源码一致。合成 640 KB 来源在 1,048,576 token 模型设置下重现：测试先红，实际状态 failed，finishReason=stop、sourceTruncated=true、recovery=provider-summary。修后从零覆盖恢复标记继续，保留归档待核实状态，检查点推进；加入新消息后第二次真实计划不再把同一条已覆盖长消息作为原文送入摘要。最终模型预算门保持。原路径无客户正文。
+
+新增安全日志记录候选检查点、原界限、读取与选择记录数、预算、恢复结果。通过真实 journal 的失败路径确认旧检查点保持、失败条目落盘、提供方恢复后压缩成功。测试同时验证可提取模型声明的上限及实际请求 token 数，且诊断不含响应正文。HTTP 路由已验证受控压缩失败返回结构化 409；客户收到纯文本 500 的外层原因待其当时的 service 日志。旧版 EPERM 已确认 metadata 原子替换阶段，Windows 拒绝该操作的条件待核。针对两个问题仅索取可查的摘要时间线与短日志窗口，已回读 [Issue 评论](https://github.com/Peiiii/nextclaw/issues/73#issuecomment-6971752412)。
+
+73 项 kernel 测试及 6 项 HTTP 测试通过，kernel tsc 和治理检查通过。恢复标记与第二次计划加强后的 13 项连续性测试复验通过，与 73 项有重叠。计划 patch 0.59.11，完整发布尚未完成。
+
 ## 当前交付状态：2026-11-17 11:27（scope revision 8）
 
 0.59.10已完成NPM/Runtime/Desktop/文档/更新渠道/APT公开发布；最终all parent [43938566446](https://github.com/Peiiii/nextclaw/actions/runs/43938566446) success，03:21:56–03:28:00，控制源d8f78d74aec2f7501c29fff1e0625e18f0c8d03c。冻结产品源8e7849ace2af4722323236af9d397e5c19f75f51、NPM/桌面tag目标325f259f3a25aa1de6d3945a0619414c12a3ec67、Desktop0.0.311均保持；没有再发新产品身份。Windows安装包及其它平台入口见[公开Release](https://github.com/Peiiii/nextclaw/releases/tag/v0.59.10-desktop.1)。

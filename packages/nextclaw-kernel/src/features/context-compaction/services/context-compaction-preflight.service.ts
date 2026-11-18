@@ -65,6 +65,7 @@ type ContinuationMessageBoundary = {
 };
 
 type ContextCompactionPendingWork = {
+  trigger: ContextCompactionTrigger;
   overflow: boolean;
   structuralPressure: boolean;
   originalBudget: ContextWindowBudgetEvaluation;
@@ -403,6 +404,7 @@ export class ContextCompactionPreflightService {
       pendingCompaction: plan && checkpoint
         ? {
             originalBudget: budget,
+            trigger,
             overflow,
             structuralPressure,
             priorCheckpoint: existingCheckpoint,
@@ -458,7 +460,8 @@ export class ContextCompactionPreflightService {
       throw new Error("context compaction pending work did not produce a checkpoint");
     }
     signal?.throwIfAborted();
-    if ((summaryDiagnostics?.recovery === "deterministic-recent-context" || summaryDiagnostics?.sourceTruncated)
+    if ((summaryDiagnostics?.recovery === "deterministic-recent-context"
+      || (pending.trigger === "automatic" && summaryDiagnostics?.sourceTruncated))
       && !pending.overflow && !pending.structuralPressure
       && pending.originalBudget.estimatedTokens <= pending.contextTokens - pending.reservedContextTokens) {
       // Discard the candidate; nothing from an unsuccessful summary replaces the old view.
@@ -525,7 +528,7 @@ export class ContextCompactionPreflightService {
     });
     if (budget.estimatedTokens > pending.contextTokens - pending.reservedContextTokens) {
       throw new Error(
-        `Context compaction checkpoint does not fit the final provider input surface: ${budget.estimatedTokens} estimated tokens exceeds ${budget.triggerTokens}. The previous checkpoint was kept unchanged.`,
+        `Context compaction checkpoint does not fit the final provider input surface: ${budget.estimatedTokens} estimated tokens exceeds ${pending.contextTokens - pending.reservedContextTokens}. The previous checkpoint was kept unchanged.`,
       );
     }
     const contextWindow = buildContextWindowSnapshotFromBudget({

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.59.11",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-11-18",
+  "title": { "zh-CN": "NextClaw v0.59.11", "en-US": "NextClaw v0.59.11" },
+  "summary": {
+    "zh-CN": "修复长会话手动压缩反复失败，补充压缩诊断。",
+    "en-US": "Fix repeated manual compaction failures in long conversations and improve diagnostics."
+  },
+  "links": { "html": {
+    "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-11-18-nextclaw-v0-59-11",
+    "en-US": "https://docs.nextclaw.io/en/notes/2026-11-18-nextclaw-v0-59-11"
+  } },
+  "sections": [{
+    "kind": "fix",
+    "title": { "zh-CN": "会话压缩", "en-US": "Conversation compaction" },
+    "items": [{
+      "title": { "zh-CN": "长会话可以继续手动压缩", "en-US": "Advance manual compaction in long conversations" },
+      "body": {
+        "zh-CN": "正常返回且符合上下文预算的摘要可以推进检查点。原历史仍可读取，归档提示会保留，诊断会记录上一次覆盖边界和本次预算。",
+        "en-US": "A usable summary that fits the context budget can advance the checkpoint. Original history remains available, archive notices are preserved, and diagnostics capture the previous boundary and current budget."
+      }
+    }]
+  }]
+}

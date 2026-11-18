@@ -103,13 +103,15 @@ export class AgentRunContextCompactionManager {
       const id = message.ncp_message_id;
       return typeof id === "string" ? sourceIds.has(id) ? [id] : checkpointMessage ? [checkpointMessage.id] : [] : [];
     }))];
-    const source = this.sources ? await this.sources.captureCompactionSource(input.sessionId, coveredIds) : undefined;
     yield this.toEvent(input.sessionId, buildContextCompactionTimelineNcpMessage({
       checkpoint: pending.checkpoint,
       messageId: pending.serviceMessageId,
       sessionId: input.sessionId,
     }));
+    let stage = "capture-source";
     try {
+      const source = this.sources ? await this.sources.captureCompactionSource(input.sessionId, coveredIds) : undefined;
+      stage = "generate-checkpoint";
       const finishResult = await this.preflightService.finish(pending, input.signal);
       if (finishResult.timelineMessage) {
         const checkpoint = finishResult.timelineMessage.metadata?.checkpoint as ContextCompactionCheckpoint;
@@ -118,10 +120,14 @@ export class AgentRunContextCompactionManager {
           checkpoint.source = source;
           if (source.omittedRangeCount > 0) checkpoint.recovery = { required: true, reason: "unresolved-archive", archiveThrough: checkpoint.coveredUntil ?? checkpoint.updatedAt, checkpointId: checkpoint.recovery?.checkpointId ?? checkpoint.id };
         }
+        if (checkpoint.status === "failed" || checkpoint.summaryDiagnostics?.sourceTruncated) {
+          this.logDiagnostic(pending, stage, checkpoint.status === "failed", checkpoint);
+        }
         input.signal?.throwIfAborted();
         yield this.toEvent(input.sessionId, finishResult.timelineMessage);
       }
     } catch (error) {
+      if (!input.signal?.aborted) this.logDiagnostic(pending, stage, true, undefined, error);
       yield this.toEvent(input.sessionId, buildContextCompactionTimelineNcpMessage({
         checkpoint: {
           ...pending.checkpoint,
@@ -137,6 +143,33 @@ export class AgentRunContextCompactionManager {
       }
       throw error;
     }
+  };
+
+  private logDiagnostic = (
+    pending: Parameters<ContextCompactionPreflightService["finish"]>[0],
+    stage: string,
+    checkpointKept: boolean,
+    checkpoint?: ContextCompactionCheckpoint,
+    error?: unknown,
+  ): void => {
+    const diagnostics = checkpoint?.summaryDiagnostics;
+    const prior = pending.priorCheckpoint;
+    const contextLimit = error instanceof Error
+      ? error.message.match(/maximum context length is (\d+) tokens\. However, you requested\s+(\d+) tokens/i)
+      : undefined;
+    console.warn("Session context compaction diagnostic", {
+      event: checkpointKept ? "session.compaction.failed" : "session.compaction.summary_limited",
+      stage, sessionId: pending.sessionId, trigger: pending.trigger, phase: pending.phase, model: pending.model,
+      checkpointId: pending.checkpoint.id, checkpointKept, priorCheckpointId: prior?.id,
+      priorCoveredUntil: prior?.coveredUntil, priorCoveredCount: prior?.coveredSessionMessageCount,
+      priorArchiveThrough: prior?.recovery?.archiveThrough,
+      sourceRecords: pending.plan.coveredMessages.length, loadedMessages: pending.sessionMessages.length,
+      contextTokens: pending.contextTokens, estimatedInputTokens: pending.originalBudget.estimatedTokens,
+      omittedSourceRanges: checkpoint?.source?.omittedRangeCount, sourceTruncated: diagnostics?.sourceTruncated,
+      summaryOutcome: diagnostics?.recovery, providerInputTokens: diagnostics?.providerInputTokens,
+      providerReportedInputTokens: diagnostics?.providerUsage.prompt_tokens ?? diagnostics?.providerUsage.input_tokens,
+      ...(contextLimit ? { providerContextLimit: Number(contextLimit[1]), providerRequestedTokens: Number(contextLimit[2]) } : {}),
+    });
   };
 
   private toEvent = (

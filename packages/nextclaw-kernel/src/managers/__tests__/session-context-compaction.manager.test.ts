@@ -53,6 +53,7 @@ describe("SessionContextCompactionManager", () => {
   it.each(["empty", "transport"] as const)("persists %s failures, preserves the old checkpoint and succeeds after provider recovery", async kind => {
     const directory = await mkdtemp(join(tmpdir(), "manual-compaction-failure-"));
     const store = new NcpAgentSessionJournalStore(directory);
+    const diagnostics = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     try {
       const prior: ContextCompactionCheckpoint = { version: 1, id: "prior", status: "compressed", summary: "Verified prior work.",
         coveredMessageCount: 1, coveredSessionMessageCount: 1, coveredUntil: "2026-11-05T10:00:00.000Z",
@@ -62,7 +63,8 @@ describe("SessionContextCompactionManager", () => {
         ...Array.from({ length: 12 }, (_, index): NcpMessage => ({ id: `source-${index}`, sessionId: SESSION_ID,
           role: "assistant", status: "final", timestamp: new Date(Date.UTC(2026, 10, 12, 10, index)).toISOString(),
           parts: [{ type: "text", text: "x".repeat(1200) }] }))];
-      const expected = kind === "empty" ? "Empty visible summary" : "provider authentication failed";
+      const expected = kind === "empty" ? "Empty visible summary" :
+        "400 This model's maximum context length is 1048576 tokens. However, you requested 1426451 tokens. private-response-text";
       let recovered = false;
       const provider = { chat: vi.fn(async () => {
         if (!recovered && kind === "transport") throw new Error(expected);
@@ -80,6 +82,12 @@ describe("SessionContextCompactionManager", () => {
         event => store.appendSessionEvent({ sessionId: SESSION_ID, event }));
       sessionRun.applyEvents.mockImplementation(events => actor.applyEvents(events));
       await expect(manager.compact(SESSION_ID)).rejects.toMatchObject({ code: "CONTEXT_COMPACTION_FAILED", message: expected });
+      expect(diagnostics).toHaveBeenCalledWith("Session context compaction diagnostic", expect.objectContaining({
+        event: "session.compaction.failed", stage: "generate-checkpoint", trigger: "manual",
+        priorCheckpointId: prior.id, priorCoveredCount: 1, checkpointKept: true,
+        ...(kind === "transport" ? { providerContextLimit: 1_048_576, providerRequestedTokens: 1_426_451 } : {}),
+      }));
+      expect(JSON.stringify(diagnostics.mock.calls)).not.toContain("private-response-text");
       expect(eventBus.emit).toHaveBeenCalledTimes(2);
       const cold = new NcpAgentSessionJournalStore(directory);
       try {
@@ -92,7 +100,7 @@ describe("SessionContextCompactionManager", () => {
       recovered = true;
       await expect(manager.compact(SESSION_ID)).resolves.toEqual({ compacted: true, sessionId: SESSION_ID });
       expect(provider.chat).toHaveBeenCalledTimes(2);
-    } finally { store.close(); await rm(directory, { recursive: true, force: true }); }
+    } finally { diagnostics.mockRestore(); store.close(); await rm(directory, { recursive: true, force: true }); }
   });
   it("applies and publishes runtime compaction events", async () => {
     const compactContext = vi.fn(async () => ({

@@ -5,13 +5,43 @@ import type { NcpMessage } from "@nextclaw/ncp";
 import { buildContextCompactionModelProjection, buildContextCompactionTimelineNcpMessage, readContextRecoveryState } from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
 import { SessionRun, SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { ContextCompactionPreflightService } from "./context-compaction-preflight.service.js";
-import { ContextCompactionSummaryGenerationService } from "./context-compaction-summary-generation.service.js";
+import { COMPACTION_RECOVERY_NOTICE, ContextCompactionSummaryGenerationService } from "./context-compaction-summary-generation.service.js";
 
 const summary = (detail = "Previous operations completed.") => ["# Compressed Working Context",
   "## Active Request\n\nFinish the report.", `## Current Work State\n\nDone: ${detail}`,
   "## Safety and User Constraints\n\nRun each migration once.",
   "## Continuation Contract\n\nReport the result.\n<!-- nextclaw-essential-context-complete -->"].join("\n\n");
 const response = (content: string) => ({ content, finishReason: "stop", usage: {} });
+
+it("advances a manual checkpoint when bounded source fields were shortened without dropping records", async () => {
+  const chat = vi.fn(async () => response(summary("Verified work from the bounded source.")));
+  const service = new ContextCompactionPreflightService({ resolveAgentProfileForRun: () => ({ contextTokens: 1_048_576, reservedContextTokens: 4_400 }) }, { chat });
+  const messages: NcpMessage[] = Array.from({ length: 12 }, (_, index) => ({
+    id: `source-${index}`, sessionId: "manual", role: index === 11 ? "user" : "assistant", status: "final",
+    timestamp: new Date(Date.UTC(2026, 10, 17, 10, index)).toISOString(),
+    parts: [{ type: "text", text: index === 0 ? "source evidence ".repeat(40_000) : `delta ${index}` }],
+  }));
+  const start = "2026-11-17T09:59:59.000Z";
+  const prior = buildContextCompactionTimelineNcpMessage({ sessionId: "manual", messageId: "recovery-marker", checkpoint: {
+    version: 1, id: "recovery", status: "compressed", phase: "pre-run", summary: COMPACTION_RECOVERY_NOTICE,
+    coveredUntil: start, coveredMessageCount: 0, coveredSessionMessageCount: 0,
+    originalEstimatedTokens: 0, projectedEstimatedTokens: 0, createdAt: start, updatedAt: start,
+    recovery: { required: true, reason: "unresolved-archive", archiveThrough: start },
+  } });
+  const input = { sessionId: "manual", inputMessages: [], sessionMessages: [...messages, prior], model: "test", requestMetadata: {}, storedMetadata: {}, trigger: "manual" as const };
+  const completed = await service.finish(service.begin(input).pendingCompaction!);
+  const checkpoint = completed.timelineMessage!.metadata!.checkpoint as ContextCompactionCheckpoint;
+  expect(checkpoint).toMatchObject({ status: "compressed", recovery: { required: true },
+    summaryDiagnostics: { sourceTruncated: true, finishReason: "stop", recovery: "provider-summary" } });
+  expect(checkpoint.coveredSessionMessageCount).toBeGreaterThan(0);
+  expect(checkpoint.coveredUntil).toBe(messages[0]!.timestamp);
+  const fresh: NcpMessage = { ...messages[0]!, id: "fresh", timestamp: "2026-11-17T10:12:00.000Z",
+    parts: [{ type: "text", text: "fresh work ".repeat(12_000) }] };
+  const latest: NcpMessage = { ...messages[11]!, id: "latest", timestamp: "2026-11-17T10:13:00.000Z" };
+  const next = service.begin({ ...input, sessionMessages: [...input.sessionMessages, completed.timelineMessage!, fresh, latest] }).pendingCompaction;
+  expect(next).not.toBeNull();
+  expect(JSON.stringify(next!.plan.coveredMessages)).not.toContain("source evidence ".repeat(100));
+});
 
 describe("compaction continuity boundaries", () => {
   it("keeps an empty active continuation valid through two full compactions and subsequent replies", async () => {
