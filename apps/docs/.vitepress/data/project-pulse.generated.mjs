@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-11-17T10:39:26.222Z",
+  "generatedAt": "2026-11-18T10:04:08.031Z",
   "hero": {
-    "currentLoc": 312198,
-    "testLoc": 136063,
+    "currentLoc": 312233,
+    "testLoc": 136100,
     "trackedFiles": 3351,
-    "recentCommitCount": 125,
+    "recentCommitCount": 123,
     "activeDays30": 30,
     "recentReleaseCount": 32,
-    "latestReleaseDate": "2026-11-16",
-    "latestNoteDate": "2026-11-17",
+    "latestReleaseDate": "2026-11-18",
+    "latestNoteDate": "2026-11-18",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 4045695,
-    "basePercentOfBenchmark": 7.72,
-    "lighterByPercent": 92.28
+    "benchmarkCodeLines": 4057821,
+    "basePercentOfBenchmark": 7.69,
+    "lighterByPercent": 92.31
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-07-21",
-        "label": "07-21",
-        "value": 215172
-      },
       {
         "key": "2026-07-22",
         "label": "07-22",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-11-17",
         "label": "11-17",
         "value": 312198
+      },
+      {
+        "key": "2026-11-18",
+        "label": "11-18",
+        "value": 312233
       }
     ],
     "testLocDaily": [
@@ -1572,14 +1572,14 @@ export default {
         "key": "2026-11-17",
         "label": "11-17",
         "value": 136063
+      },
+      {
+        "key": "2026-11-18",
+        "label": "11-18",
+        "value": 136100
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-10-19",
-        "label": "10-19",
-        "value": 8
-      },
       {
         "key": "2026-10-20",
         "label": "10-20",
@@ -1723,7 +1723,12 @@ export default {
       {
         "key": "2026-11-17",
         "label": "11-17",
-        "value": 13
+        "value": 14
+      },
+      {
+        "key": "2026-11-18",
+        "label": "11-18",
+        "value": 5
       }
     ],
     "commitWeekly": [
@@ -1785,7 +1790,7 @@ export default {
       {
         "key": "2026-11-16",
         "label": "11-16",
-        "value": 44
+        "value": 50
       }
     ],
     "releaseMonthly": [
@@ -1847,7 +1852,7 @@ export default {
       {
         "key": "2026-11",
         "label": "11/26",
-        "value": 4
+        "value": 5
       }
     ]
   },
@@ -1862,8 +1867,8 @@ export default {
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 52458,
-        "testCodeLines": 28975,
+        "codeLines": 52493,
+        "testCodeLines": 29012,
         "files": 523,
         "sharePercent": 16.8
       },
@@ -1912,11 +1917,20 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 4045695,
-      "basePercentOfBenchmark": 7.72,
-      "lighterByPercent": 92.28
+      "benchmarkCodeLines": 4057821,
+      "basePercentOfBenchmark": 7.69,
+      "lighterByPercent": 92.31
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-11-18",
+        "tagCount": 10,
+        "sampleTags": [
+          "@nextclaw/client-sdk@0.12.24",
+          "@nextclaw/companion@0.2.81",
+          "@nextclaw/harness@0.2.38"
+        ]
+      },
       {
         "date": "2026-11-16",
         "tagCount": 36,
@@ -1961,20 +1975,26 @@ export default {
           "@nextclaw/channel-extension-discord@0.2.57",
           "@nextclaw/channel-extension-email@0.2.57"
         ]
-      },
-      {
-        "date": "2026-10-09",
-        "tagCount": 23,
-        "sampleTags": [
-          "@nextclaw/channel-extension-dingtalk@0.2.56",
-          "@nextclaw/channel-extension-discord@0.2.56",
-          "@nextclaw/channel-extension-email@0.2.56"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-11-18-nextclaw-v0-59-11",
+        "date": "2026-11-18",
+        "tags": [],
+        "en": {
+          "title": "2026-11-18 · NextClaw v0.59.11",
+          "description": "Fix repeated manual compaction failures in long conversations and improve diagnostics.",
+          "href": "/en/notes/2026-11-18-nextclaw-v0-59-11"
+        },
+        "zh": {
+          "title": "2026-11-18 · NextClaw v0.59.11",
+          "description": "修复长会话手动压缩反复失败，补充压缩诊断。",
+          "href": "/zh/notes/2026-11-18-nextclaw-v0-59-11"
+        }
+      },
       {
         "slug": "2026-11-17-nextclaw-v0-59-10",
         "date": "2026-11-17",
@@ -3599,9 +3619,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-11-17T10:39:23.820Z",
+    "locGeneratedAt": "2026-11-18T10:04:06.046Z",
     "sourceCount": {
-      "notes": 85,
+      "notes": 86,
       "scopes": 8
     }
   }
