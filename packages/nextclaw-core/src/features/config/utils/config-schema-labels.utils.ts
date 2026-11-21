@@ -1,4 +1,6 @@
 export const FIELD_LABELS: Record<string, string> = {
+  coreHealth: "Core Health",
+  "coreHealth.autoDegrade": "Auto Degrade",
   agents: "Agents",
   "agents.defaults": "Agent Defaults",
   "agents.defaults.workspace": "Workspace",

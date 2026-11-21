@@ -75,6 +75,7 @@ export type UiKernelHost = Pick<
   | "sessionContextCompactionManager"
 > & {
   accessManager?: NextclawKernel["accessManager"];
+  coreHealth?: NextclawKernel["coreHealth"];
 };
 
 export type UiCronHost = {

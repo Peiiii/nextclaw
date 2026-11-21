@@ -1,4 +1,6 @@
 export const FIELD_HELP: Record<string, string> = {
+  "coreHealth.autoDegrade":
+    "When the minimal core (config/provider/workspace/sessions) is unhealthy, external features (desktop automation, MCP tools) are disabled to keep the core running.",
   "agents.defaults.workspace": "Workspace directory for agent context files and memory.",
   "agents.defaults.model":
     "Default model identifier used by the agent. Use provider-prefixed format. Examples: openai/gpt-5.1 · anthropic/claude-opus-4-1 · deepseek/deepseek-chat · minimax/MiniMax-M2.5 · openrouter/openai/gpt-5.3-codex.",
