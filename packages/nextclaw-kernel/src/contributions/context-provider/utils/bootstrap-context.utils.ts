@@ -58,15 +58,37 @@ function section(input: {
   return lines.join("\n");
 }
 
+// pinned 固定事实（#40）：先占读取预算保证必达，输出时置于 bootstrap 内容
+// 尾部（贴近模型决策）；不受会话记忆压缩裁剪，cron/subagent minimalFiles
+// 场景同样注入。文件不存在或为空时静默跳过。
+async function loadPinned(input: BootstrapContextInput, root: string, budget: number): Promise<{ content: string; used: number }> {
+  const filename = input.config.pinnedFile?.trim();
+  if (!filename) return { content: "", used: 0 };
+  let raw = "";
+  try {
+    raw = (await input.readText(root, filename)).trim();
+  } catch {
+    return { content: "", used: 0 };
+  }
+  if (!raw || budget <= 0) return { content: "", used: 0 };
+  const limit = input.config.perFileChars > 0 ? input.config.perFileChars : raw.length;
+  const allowed = Math.min(limit, budget);
+  if (allowed <= 0) return { content: "", used: 0 };
+  const content = truncateContextText(raw, allowed);
+  return { content: `## ${filename}\n\n${content}`, used: content.length };
+}
+
 /** Shared bootstrap policy; the environment owns only reading the named text. */
 export async function renderAgentBootstrapContext(input: BootstrapContextInput): Promise<string> {
   const budget = input.config.totalChars > 0 ? input.config.totalChars : Number.POSITIVE_INFINITY;
-  const agent = await loadFiles(input, input.agentRoot, budget);
+  const pinned = await loadPinned(input, input.agentRoot, budget);
+  const agent = await loadFiles(input, input.agentRoot, budget - pinned.used);
   const distinctWorkspace = input.workspaceRoot !== input.agentRoot;
   const workspace = distinctWorkspace ? (await loadFiles(input, input.workspaceRoot, agent.remaining)).content : "";
+  const agentContent = [agent.content, pinned.content].filter(Boolean).join("\n\n");
   const sections = [section({
-    content: agent.content, emptyLabel: "No agent bootstrap files were found.",
-    includeSoulRule: /##\s+SOUL\.md\b/i.test(`${agent.content}\n${workspace}`),
+    content: agentContent, emptyLabel: "No agent bootstrap files were found.",
+    includeSoulRule: /##\s+SOUL\.md\b/i.test(`${agentContent}\n${workspace}`),
     loadedLabel: "Agent bootstrap files loaded:", rootLine: `Agent bootstrap root: ${input.agentRoot}`,
     title: "# Agent Bootstrap Context",
   })];
