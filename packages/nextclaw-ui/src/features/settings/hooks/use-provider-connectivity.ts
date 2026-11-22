@@ -3,6 +3,7 @@ import { NextClawClientError } from '@nextclaw/client-sdk';
 import { toast } from 'sonner';
 import { useDiscoverProviderModels, useTestProviderConnection } from '@/shared/hooks/use-config';
 import { t } from '@/shared/lib/i18n';
+import type { ProviderConnectionTestResult } from '@/shared/lib/api';
 import {
   buildProviderConnectionTestPayload,
   buildProviderModelDiscoveryPayload,
@@ -92,6 +93,62 @@ export function useProviderConnectivity(params: UseProviderConnectivityParams) {
     wireApi
   ]);
 
+  const testModelLatency = useCallback(async (modelName: string): Promise<ProviderConnectionTestResult | null> => {
+    if (!providerName) {
+      return null;
+    }
+    if (apiKeyRequired && !apiKey.trim() && !apiKeySet) {
+      toast.error(t('providerModelsApiKeyRequired'));
+      return null;
+    }
+    const payload = buildProviderConnectionTestPayload({
+      apiKey,
+      apiBase,
+      extraHeaders,
+      supportsWireApi,
+      wireApi,
+      models: [modelName],
+      providerModelAliases,
+    });
+    // 测速会产生一次真实模型请求，可能消耗少量 token；设置 15s 超时避免思考模型长等。
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    try {
+      return await testProviderConnection.mutateAsync({
+        provider: providerName,
+        data: payload,
+      }, { signal: controller.signal });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        return {
+          success: false,
+          provider: providerName,
+          model: modelName,
+          latencyMs: 0,
+          message: t('providerModelLatencyTimeout'),
+          errorCode: 'NETWORK_ERROR',
+        };
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`${t('providerTestConnectionFailed')}: ${message}`);
+      return null;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }, [
+    apiBase,
+    apiKey,
+    apiKeyRequired,
+    apiKeySet,
+    extraHeaders,
+    providerModelAliases,
+    providerName,
+    supportsWireApi,
+    testProviderConnection,
+    wireApi,
+    t,
+  ]);
+
   const discoverModels = useCallback(async () => {
     if (!providerName) {
       return null;
@@ -127,6 +184,7 @@ export function useProviderConnectivity(params: UseProviderConnectivityParams) {
     fetchedModels: modelDiscovery?.key === discoveryKey ? modelDiscovery.models : [],
     isDiscoveringModels: discoverProviderModels.isPending,
     isTestPending: testProviderConnection.isPending,
-    testConnection
+    testConnection,
+    testModelLatency,
   };
 }

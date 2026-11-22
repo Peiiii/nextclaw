@@ -11,6 +11,7 @@ import {
 import { ProviderModelSuggestionsPanel } from "./provider-model-suggestions-panel";
 import { AlertCircle, LoaderCircle, Plus, RefreshCw, X } from "lucide-react";
 import { useRef, useState } from "react";
+import type { ProviderConnectionTestResult } from "@/shared/lib/api";
 
 type ProviderModelsSectionProps = {
   providerName: string;
@@ -36,6 +37,7 @@ type ProviderModelsSectionProps = {
   onSetModelVision: (modelName: string, vision: boolean) => void;
   thinkingLevels: ThinkingLevel[];
   formatThinkingLevelLabel: (level: ThinkingLevel) => string;
+  onTestModelLatency?: (modelName: string) => Promise<ProviderConnectionTestResult | null>;
 };
 
 function ProviderModelCatalogError({
@@ -80,6 +82,7 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
     onSetModelVision,
     thinkingLevels,
     formatThinkingLevelLabel,
+    onTestModelLatency,
   } = props;
   const [suggestionsExpanded, setSuggestionsExpanded] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -241,6 +244,7 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
           onSetModelVision={onSetModelVision}
           thinkingLevels={thinkingLevels}
           formatThinkingLevelLabel={formatThinkingLevelLabel}
+          onTestModelLatency={onTestModelLatency}
         />
       )}
     </div>
