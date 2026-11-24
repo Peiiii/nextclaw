@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-11-23T10:41:49.475Z",
+  "generatedAt": "2026-11-24T12:24:12.317Z",
   "hero": {
     "currentLoc": 312233,
     "testLoc": 136100,
     "trackedFiles": 3351,
-    "recentCommitCount": 104,
+    "recentCommitCount": 105,
     "activeDays30": 29,
     "recentReleaseCount": 28,
     "latestReleaseDate": "2026-11-18",
     "latestNoteDate": "2026-11-18",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 4095115,
+    "benchmarkCodeLines": 4098436,
     "basePercentOfBenchmark": 7.62,
     "lighterByPercent": 92.38
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-07-27",
-        "label": "07-27",
-        "value": 216702
-      },
       {
         "key": "2026-07-28",
         "label": "07-28",
@@ -614,6 +609,11 @@ export default {
       {
         "key": "2026-11-23",
         "label": "11-23",
+        "value": 312233
+      },
+      {
+        "key": "2026-11-24",
+        "label": "11-24",
         "value": 312233
       }
     ],
@@ -1602,14 +1602,14 @@ export default {
         "key": "2026-11-23",
         "label": "11-23",
         "value": 136100
+      },
+      {
+        "key": "2026-11-24",
+        "label": "11-24",
+        "value": 136100
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-10-25",
-        "label": "10-25",
-        "value": 1
-      },
       {
         "key": "2026-10-26",
         "label": "10-26",
@@ -1753,6 +1753,11 @@ export default {
       {
         "key": "2026-11-23",
         "label": "11-23",
+        "value": 2
+      },
+      {
+        "key": "2026-11-24",
+        "label": "11-24",
         "value": 0
       }
     ],
@@ -1815,7 +1820,7 @@ export default {
       {
         "key": "2026-11-23",
         "label": "11-23",
-        "value": 0
+        "value": 2
       }
     ],
     "releaseMonthly": [
@@ -1942,7 +1947,7 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 4095115,
+      "benchmarkCodeLines": 4098436,
       "basePercentOfBenchmark": 7.62,
       "lighterByPercent": 92.38
     },
@@ -3644,7 +3649,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-11-23T10:41:47.403Z",
+    "locGeneratedAt": "2026-11-24T12:24:10.216Z",
     "sourceCount": {
       "notes": 86,
       "scopes": 8
